@@ -9,9 +9,21 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@privy-io/react-auth": "latest",
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@radix-ui/react-icons": "^1.3.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-toast": "^1.2.1",
+    "@zoralabs/protocol-sdk": "^0.9.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.441.0",
+    "next": "14.2.11",
     "react": "^18",
     "react-dom": "^18",
-    "next": "14.2.11"
+    "tailwind-merge": "^2.5.2",
+    "tailwindcss-animate": "^1.0.7",
+    "viem": "^2.7.15"
   },
   "devDependencies": {
     "typescript": "^5",
