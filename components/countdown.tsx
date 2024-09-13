@@ -34,5 +34,9 @@ export const Countdown = () => {
     return <div>Loading...</div>;
   }
 
-  return <div>{formatCountdown(timeLeft)}</div>;
+  return (
+    <div className="text-3xl lg:text-5xl font-bold">
+      {formatCountdown(timeLeft)}
+    </div>
+  );
 };

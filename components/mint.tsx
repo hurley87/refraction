@@ -114,7 +114,7 @@ export const Mint = () => {
     return (
       <Dialog>
         <DialogTrigger>
-          <div className="rounded-md px-8 bg-stone-100 font-bold text-stone-800 text-primary-foreground items-center justify-center whitespace-nowrap rounded-md text-lg font-medium transition-colors px-4 py-2">
+          <div className="bg-primary text-primary-foreground shadow hover:bg-primary/90 border px-4 py-2 rounded-md">
             Claim Your Free Mint
           </div>
         </DialogTrigger>
@@ -190,5 +190,5 @@ export const Mint = () => {
     return <Button onClick={linkEmail}>Link Email</Button>;
   }
 
-  return <Button onClick={login}>Claim Your Mint</Button>;
+  return <Button onClick={login}>Connect</Button>;
 };

@@ -11,12 +11,10 @@ export default function Home() {
           $IRL
         </div>
         <div className="relative z-20 mt-auto">
-          <blockquote className="space-y-2">
-            <p className="text-3xl lg:text-5xl">
-              <Countdown />
-            </p>
+          <div className="flex flex-col gap-2">
+            <Countdown />
             <footer className="text-sm">Full Launch @ Devcon Bangkok</footer>
-          </blockquote>
+          </div>
         </div>
       </div>
       <div className="p-6">
