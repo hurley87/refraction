@@ -47,7 +47,7 @@ export default function Home() {
               Twitter &#x2197;
             </Link>
             <Link
-              href="https://instagram.com/refractingculture"
+              href="https://www.instagram.com/refractionfestival"
               target="_blank"
               className="underline"
             >
