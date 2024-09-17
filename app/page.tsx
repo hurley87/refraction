@@ -4,40 +4,34 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="container relative grid-cols-1 h-40 lg:h-screen flex-col items-center justify-center md:grid w-full lg:grid-cols-2 lg:px-0">
-      <div className="relative h-full flex-col bg-muted p-6 text-white dark:border-r flex">
-        <div className="absolute inset-0 bg-zinc-900" />
-        <div className="relative z-20 flex items-center text-lg font-bold">
-          $IRL
-        </div>
+    <div className="container relative grid-cols-1 h-40 md:h-screen flex-col items-center justify-center md:grid w-full md:grid-cols-2 md:px-0">
+      <div className="relative h-fit md:h-screen flex flex-col gap-3 bg-zinc-900 p-6 text-white dark:border-r justify-between">
+        <div className="relative z-20 flex text-lg font-bold">$IRL</div>
+        <img src="/nft.jpg" alt="IRL" className="w-auto h-full z-20" />
         <div className="relative z-20 mt-auto">
-          <div className="flex flex-col gap-2">
+          <div className="flex justify-between gap-2">
+            <footer className="text-sm md:text-lg font-bold">
+              Full Launch @ Devcon Bangkok
+            </footer>
             <Countdown />
-            <footer className="text-sm">Full Launch @ Devcon Bangkok</footer>
           </div>
         </div>
       </div>
       <div className="p-6">
         <div className="flex flex-col gap-12">
           <div className="flex flex-col gap-2">
-            <h1 className="text-3xl lg:text-5xl font-bold">Welcome to $IRL</h1>
-            <p className=" lg:text-xl">
+            <h1 className="text-3xl md:text-5xl font-bold">Welcome to $IRL</h1>
+            <p className=" md:text-xl">
               $IRL is your key to unlocking a new way to experience culture.
             </p>
-            <p className=" lg:text-xl">
+            <p className=" md:text-xl">
               It’s a way to shift the balance and bring creators, venues, and
               audiences closer together. A tool that rewards those who believe
               in the power of real-world experiences, while opening doors to new
               possibilities.
             </p>
           </div>
-          <div>
-            <Mint />
-          </div>
-          <p className="text-xs lg:text-sm italic">
-            Claim your free commemorative mint and take an early spot in line
-            for the release.
-          </p>
+          <Mint />
           <div className="flex flex-col gap-1 text-sm">
             <Link
               href="https://x.com/RefractionDAO"
