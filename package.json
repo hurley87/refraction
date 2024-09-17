@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@privy-io/react-auth": "latest",
+    "@privy-io/server-auth": "^1.12.1",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-icons": "^1.3.0",
     "@radix-ui/react-slot": "^1.1.0",
