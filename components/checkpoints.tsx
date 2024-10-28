@@ -10,10 +10,6 @@ export default function Checkpoints() {
   const address = user?.wallet?.address as `0x${string}`;
   const { checkins } = useCheckins(address);
 
-  if (!checkins) {
-    return <div>Loading...</div>;
-  }
-
   if (!address) {
     return (
       <div>
@@ -21,6 +17,10 @@ export default function Checkpoints() {
         <Button onClick={login}>Connect Wallet</Button>
       </div>
     );
+  }
+
+  if (!checkins) {
+    return <div>Loading...</div>;
   }
 
   return (
