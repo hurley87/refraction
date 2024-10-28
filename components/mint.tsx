@@ -78,12 +78,9 @@ export const Mint = () => {
 
       const hash = await walletClient.writeContract(parameters);
 
-      // wait for transaction to be mined
-      const receipt = await publicClient.waitForTransactionReceipt({
+      await publicClient.waitForTransactionReceipt({
         hash,
       });
-
-      console.log("receipt", receipt);
 
       toast({
         title: "Minted!",
