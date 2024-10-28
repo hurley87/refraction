@@ -1,4 +1,5 @@
 "use client";
+
 import { usePrivy } from "@privy-io/react-auth";
 import { useCheckins } from "@/hooks/useCheckins";
 import Link from "next/link";

@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import { useCheckInStatus } from "@/hooks/useCheckInStatus";
 import { usePrivy } from "@privy-io/react-auth";
