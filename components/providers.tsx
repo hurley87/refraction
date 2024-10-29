@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { PrivyProvider } from '@privy-io/react-auth';
-import { base } from 'viem/chains';
+import { PrivyProvider } from "@privy-io/react-auth";
+import { base } from "viem/chains";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID!;
@@ -9,9 +9,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <PrivyProvider
       appId={appId}
       config={{
-        loginMethods: ['wallet'],
+        loginMethods: ["wallet"],
         appearance: {
-          theme: 'dark',
+          theme: "dark",
         },
         defaultChain: base,
       }}
