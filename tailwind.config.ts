@@ -59,11 +59,10 @@ const config: Config = {
 		fontFamily: {
 	
 			'sans': 	['var(--font-pleasure-bold)'],
-			//'pleasure-bold': 'var(--font-pleasure-bold)',
-			//'anonymous-regular': 'var(--font-anonymous-regular)',
-			//'anonymous-bold': 'var(--font-anonymous-bold',
-			//'anonymous-italic': 'var(--font-anonymous-italic)',
-			//'anonymous-bold-italic': 'var(--font-anonymous-bold-italic)',
+			'serif': ['var(--font-anonymous-regular)'],
+			'mono': ['var(--font-anonymous-bold)'],
+			'body': ['var(--font-anonymous-italic)'],
+			'display': ['var(--font-anonymous-bold-italic)'],
 
 		}
   	}

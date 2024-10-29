@@ -21,26 +21,30 @@ const pleasure = localFont({
   weight: "100 900",
 });
 
-const anonymous = localFont({
-  src: [
-    { path: "./fonts/AnonymousPro-Regular.ttf",
-      style: "--font-anonymous-regular",
-      weight: "100 900",
-    },
-    { path: "./fonts/AnonymousPro-Italic.ttf",
-      style: "--font-anonymous-italic",
-      weight: "100 900",
-    },
-    { path: "./fonts/AnonymousPro-Bold.ttf",
-      style: "--font-anonymous-bold",
-      weight: "100 900",
-    },
-    { path: "./fonts/AnonymousPro-BoldItalic.ttf",
-      style: "--font-anonymous-bold-italic",
-      weight: "100 900",
-    },
-  ],
-})
+const anonymousRegular = localFont({
+  src: "./fonts/AnonymousPro-Regular.ttf",
+  variable: "--font-anonymous-regular",
+  weight: "100 900",
+});
+
+const anonymousItalic = localFont({
+  src: "./fonts/AnonymousPro-Italic.ttf",
+  variable: "--font-anonymous-italic",
+  weight: "100 900",
+});
+
+const anonymousBold = localFont({
+  src: "./fonts/AnonymousPro-Bold.ttf",
+  variable: "--font-anonymous-bold",
+  weight: "100 900",
+});
+
+const anonymousBoldItalic = localFont({
+  src: "./fonts/AnonymousPro-BoldItalic.ttf",
+  variable: "--font-anonymous-bold-italic",
+  weight: "100 900",
+});
+
 
 export const metadata: Metadata = {
   title: "$IRL",
@@ -55,7 +59,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${pleasure.variable} ${anonymous.className} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${pleasure.variable} ${anonymousRegular.variable} ${anonymousItalic.variable} ${anonymousBold.variable} ${anonymousBoldItalic.variable}antialiased`}
       >
         <Providers>{children}</Providers>
         <Toaster />
