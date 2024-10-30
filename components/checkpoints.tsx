@@ -11,7 +11,7 @@ export default function Checkpoints() {
   const { checkins } = useCheckins(address);
 
   console.log("address", address);
-  console.log("checkins", address);
+  console.log("checkins", checkins);
 
   if (!checkins) {
     return <div>Loading...</div>;
