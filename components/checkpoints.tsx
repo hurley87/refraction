@@ -10,6 +10,9 @@ export default function Checkpoints() {
   const address = user?.wallet?.address as `0x${string}`;
   const { checkins } = useCheckins(address);
 
+  console.log("address", address);
+  console.log("checkins", address);
+
   if (!checkins) {
     return <div>Loading...</div>;
   }
@@ -17,7 +20,7 @@ export default function Checkpoints() {
   return (
     <Auth>
       <div className="flex flex-col">
-        {checkins.map((checkin: boolean, index: number) => (
+        {checkins?.map((checkin: boolean, index: number) => (
           <Link href={`/checkpoints/${index}`} key={index}>
             <div className="flex gap-1">
               <p>{index + 1}</p>
