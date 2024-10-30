@@ -13,7 +13,7 @@ export default function Checkpoints() {
   console.log("address", address);
   console.log("checkins", checkins);
 
-  if (!checkins) {
+  if (address && !checkins) {
     return <div>Loading...</div>;
   }
 
