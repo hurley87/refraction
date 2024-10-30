@@ -28,7 +28,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
   return (
     <Auth>
-      <div>
+      <div className="bg-gradient-to-r from-purple-500 to-pink-500">
         {checkinStatus ? (
           <p>You checked in!</p>
         ) : (
