@@ -28,15 +28,18 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
   return (
     <Auth>
-      <div className="bg-gradient-to-r from-purple-500 to-pink-500">
+        <div className="container  relative h-full  md:h-screen flex-col items-center justify-center md:grid w-full  md:px-0 font-sans">
+      <div className="relative   flex flex-col gap-3 bg-gradient-to-r from-green-600 from-10% via-blue-300 via-60% to-sky-500 to-90% p-6 text-BLACK dark:border-r justify-between">
+        <div className="flex ">
         {checkinStatus ? (
           <p>You checked in!</p>
         ) : (
-          <Button onClick={handleCheckIn} disabled={isCheckingIn}>
+          <Button onClick={handleCheckIn} disabled={isCheckingIn} className="bg-gradient-to-r from-green-600 from-10% via-blue-300 via-60% to-sky-500 to-90%">
             {isCheckingIn ? "Checking in..." : `Check In #${parseInt(id) + 1}`}
           </Button>
         )}
       </div>
+      </div></div>
     </Auth>
   );
 }

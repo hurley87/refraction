@@ -8,7 +8,7 @@ export default async function CheckpointsPage() {
       <div className="relative   flex flex-col gap-3 bg-gradient-to-r from-green-600 from-10% via-blue-300 via-60% to-sky-500 to-90% p-6 text-BLACK dark:border-r justify-between">
         <div className="flex ">
           <div className="flex-none">
-            <img src="/images/$IRL_PRIMARY LOGO_BLACK.svg" alt="IRL" width={100} height={100} />
+            <Image src="/images/$IRL_PRIMARY LOGO_BLACK.svg" alt="IRL" width={100} height={100} />
           </div>
           <div className="flex-auto wd-6 ">
             &nbsp;
@@ -20,28 +20,28 @@ export default async function CheckpointsPage() {
               target="_blank"
               className="nounderline"
             >
-              HOME &#x2197;
+              TWITTER &#x2197;
             </Link>
             <Link
               href="https://www.instagram.com/refractionfestival"
               target="_blank"
               className="nounderline"
             >
-              OUR STORY &#x2197;
+              INSTAGRAM &#x2197;
             </Link>
             <Link
               href="https://warpcast.com/refraction"
               target="_blank"
               className="nounderline"
             >
-              UPCOMING EVENTS &#x2197;
+              WARPCAST &#x2197;
             </Link>
             <Link
               href="https://orb.ac/@refraction"
               target="_blank"
               className="nounderline"
             >
-              CONTACTS &#x2197;
+              ORB &#x2197;
             </Link>
           
           </div>
@@ -55,14 +55,17 @@ export default async function CheckpointsPage() {
       <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-orange-600 from-10%  to-red-600 to-90% p-6 text-BLACK dark:border-r justify-between">
         <div className="flex ">
          <div className="flex-none">
-            <img src="/images/$IRL_PRIMARY LOGO ICON_BLACK.svg" alt="IRL" width={100} height={100} className="rotate-90" />
+            <Image src="/images/$IRL_PRIMARY LOGO ICON_BLACK.svg" alt="IRL" width={100} height={100} className="rotate-90 pt-20" />
           </div>
-         <div className="flex-auto text-black text-lg">
+         <div className="flex-auto text-black text-lg pt-10">
           <p>OFFERS A NOVEL WAY TO ENSURE THAT EVERY PARTICIPANT -- FROM CREATORS TO CONSUMERS -- RECEIVES DUE RECOGNITION AND REWARDS.</p></div>
           </div>
       </div>
       <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-red-600 from-40% to-green-600 to-90% p-6 text-BLACK dark:border-r justify-between">
           <div className="flex-auto text-black text-lg"><p className="text-lg">TRANSFORMS PARTICIPATION INTO A TANGIBLE ASSET, FOSTERING DEEPER ENGAGEMENT AND INCENTIVIZING CONTRIBUTIONS.</p></div>
+      </div>
+      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-green-600 from-10% via-blue-300 via-60% to-sky-500 to-90%p-6 text-BLACK dark:border-r justify-between">
+          <div className="flex-auto text-black text-lg"><Checkpoints/></div>
       </div>
       
 
