@@ -4,8 +4,8 @@ import Image from "next/image";
 
 export default async function CheckpointsPage() {
   return (
-    <div className="container relative  flex-col items-center justify-center md:grid w-full  md:px-0 font-sans">
-      <div className="relative   flex flex-col  bg-gradient-to-r from-green-600 from-10% via-blue-300 via-60% to-sky-500 to-90% p-6 text-BLACK dark:border-r justify-between">
+    <div className="container relative h-40 md:h-screen flex-col items-center justify-center md:grid w-full  md:px-0 font-sans">
+      <div className="relative   flex flex-col gap-3 bg-gradient-to-r from-green-600 from-10% via-blue-300 via-60% to-sky-500 to-90% p-6 text-BLACK dark:border-r justify-between">
         <div className="flex ">
           <div className="flex-none">
             <Image src="/images/$IRL_PRIMARY LOGO_BLACK.svg" alt="IRL" width={100} height={100} />
@@ -49,27 +49,22 @@ export default async function CheckpointsPage() {
         
         
       </div>
-      <div className="relative  flex flex-col  bg-gradient-to-r from-orange-600 from-10% via-rose-300 via-90% to-yellow-300 to-100% p-6 text-BLACK dark:border-r justify-between">
-          <div className="flex-auto text-black text-lg"><p className="text-4xl text-center">Earn rewards for supporting culture</p></div>
+      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-orange-600 from-10% via-rose-300 via-90% to-yellow-300 to-100% p-6 text-BLACK dark:border-r justify-between">
+          <div className="flex-auto text-black text-lg"><p className="text-4xl">RECOGNIZING AND REWARDING CULTURE.</p></div>
       </div>
-      <div className="relative  flex flex-col gap-1 bg-gradient-to-r from-red-600 from-10%  to-red-700 to-90% p-6 text-BLACK dark:border-r justify-between">
+      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-orange-600 from-10%  to-red-600 to-90% p-6 text-BLACK dark:border-r justify-between">
         <div className="flex ">
          <div className="flex-none">
             <Image src="/images/$IRL_PRIMARY LOGO ICON_BLACK.svg" alt="IRL" width={100} height={100} className="rotate-90 pt-20" />
           </div>
          <div className="flex-auto text-black text-lg pt-10">
-          <p>A token that fuels creativity and experiences around the world.
-Earn $IRL to unlock unique experiences and rewards, both online and offline.
-</p></div>
+          <p>OFFERS A NOVEL WAY TO ENSURE THAT EVERY PARTICIPANT -- FROM CREATORS TO CONSUMERS -- RECEIVES DUE RECOGNITION AND REWARDS.</p></div>
           </div>
       </div>
-      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-red-600 from-10% to-green-600 to-70% p-6 text-BLACK dark:border-r justify-between">
-          <div className="flex-auto text-black text-lg text-center"><p className="text-lg">WHAT ARE $IRL SIDE QUESTS?</p></div>
+      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-red-600 from-40% to-green-600 to-90% p-6 text-BLACK dark:border-r justify-between">
+          <div className="flex-auto text-black text-lg"><p className="text-lg">TRANSFORMS PARTICIPATION INTO A TANGIBLE ASSET, FOSTERING DEEPER ENGAGEMENT AND INCENTIVIZING CONTRIBUTIONS.</p></div>
       </div>
-      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-red-600 from-10% to-green-600 to-70% p-6 text-BLACK dark:border-r justify-between">
-          <div className="flex-auto text-black text-lg text-center"><p className="text-base">$IRL Side Quests let you dive deeper into the experience, earn points, discover new art, and unlock rewards across each checkpoint. Tap your phone to the first checkpoint to get started.</p></div>
-      </div>
-      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-yellow-300 from-10% via-rose-300 via-30% to-sky-500 to-90% p-6 text-BLACK dark:border-r justify-between">
+      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-green-600 from-10% via-blue-300 via-60% to-sky-500 to-90%p-6 text-BLACK dark:border-r justify-between">
           <div className="flex-auto text-black text-lg"><Checkpoints/></div>
       </div>
       
