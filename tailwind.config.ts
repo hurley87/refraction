@@ -64,7 +64,8 @@ const config: Config = {
 			'body': ['var(--font-anonymous-italic)'],
 			'display': ['var(--font-anonymous-bold-italic)'],
 
-		}
+		},
+		
   	}
   },
   plugins: [require("tailwindcss-animate")],
