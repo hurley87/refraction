@@ -12,8 +12,6 @@ export default async function CheckpointPage({
   const id = params.id as `0x${string}`;
   const iykRef = searchParams.iykRef;
 
-  console.log("IYK Reference:", iykRef);
-
   const NoAccess = () => (
     <div className="absolute top-0 left-0 w-full h-screen flex justify-center items-center text-center z-50">
       No access
@@ -26,11 +24,7 @@ export default async function CheckpointPage({
 
   const response = await fetch(`https://api.iyk.app/refs/${iykRef}`);
 
-  console.log("response:", response);
-
   const { isValidRef } = await response.json();
-
-  console.log("isValidRef:", isValidRef);
 
   if (!isValidRef) {
     return <NoAccess />;
