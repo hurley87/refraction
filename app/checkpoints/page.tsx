@@ -11,7 +11,7 @@ export default async function CheckpointsPage() {
             
         </div>
       </div>
-      <div className="relative  flex flex-col gap-1 bg-gradient-to-r from-red-600 from-10%  to-red-700 to-90% p-6 text-BLACK dark:border-r justify-between">
+      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-orange-600 from-10%  to-red-600 to-90% p-6 text-BLACK dark:border-r justify-between">
         <div className="flex ">
          <div className="flex-none">
             <Image src="/images/$IRL_PRIMARY LOGO ICON_BLACK.svg" alt="IRL" width={100} height={100} className="rotate-90 pt-20" />
@@ -22,8 +22,8 @@ export default async function CheckpointsPage() {
           </p></div>
           </div>
       </div>
-      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-red-600 from-10% to-green-600 to-70% p-6 text-BLACK dark:border-r justify-between">
-          <div className="flex-auto text-black text-lg text-center"><p className="text-lg">WHAT ARE $IRL SIDE QUESTS?</p></div>
+      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-red-600 from-40% to-green-600 to-90% p-6 text-BLACK dark:border-r justify-between">
+          <div className="flex-auto text-black text-lg"><p className="text-lg">TRANSFORMS PARTICIPATION INTO A TANGIBLE ASSET, FOSTERING DEEPER ENGAGEMENT AND INCENTIVIZING CONTRIBUTIONS.</p></div>
       </div>
       <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-red-600 from-10% to-green-600 to-70% p-6 text-BLACK dark:border-r justify-between">
           <div className="flex-auto text-black text-lg text-center"><p className="text-base">$IRL Side Quests let you dive deeper into the experience, earn points, discover new art, and unlock rewards across each checkpoint. Tap your phone to the first checkpoint to get started.</p></div>
