@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="container relative grid-cols-1 h-40 md:h-screen flex-col items-center justify-center md:grid w-full md:grid-cols-2 md:px-0 font-sans">
+    <div className="container flex relative grid-cols-1 h-40 md:h-screen flex-col items-center justify-center md:grid w-full md:grid-cols-2 md:px-0 font-sans">
       <div className="relative h-fit md:h-screen flex flex-col gap-3 bg-zinc-900 p-6 text-white dark:border-r justify-between">
         <div className="relative z-20 flex text-lg">$IRL</div>
         <img src="/nft.jpg" alt="IRL" className="w-auto h-full z-20" />

@@ -47,50 +47,8 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
   return (
     <Auth>
-      <div className="container relative  flex-col items-center justify-center md:grid w-full  md:px-0 font-sans">
-        <div className="relative   flex flex-col  bg-gradient-to-r from-green-600 from-10% via-blue-300 via-60% to-sky-500 to-90% p-6 text-BLACK dark:border-r justify-between">
-          <div className="flex ">
-            <div className="flex-none">
-              <Image src="/images/$IRL_PRIMARY LOGO_BLACK.svg" alt="IRL" width={100} height={100} />
-            </div>
-            <div className="flex-auto wd-6 ">
-              &nbsp;
-            </div>
-
-            <div className="flex flex-col w-64 gap-1 text-sm text-right text-black ">
-              <Link
-                href="https://x.com/RefractionDAO"
-                target="_blank"
-                className="nounderline"
-              >
-                TWITTER &#x2197;
-              </Link>
-              <Link
-                href="https://www.instagram.com/refractionfestival"
-                target="_blank"
-                className="nounderline"
-              >
-                INSTAGRAM &#x2197;
-              </Link>
-              <Link
-                href="https://warpcast.com/refraction"
-                target="_blank"
-                className="nounderline"
-              >
-                WARPCAST &#x2197;
-              </Link>
-              <Link
-                href="https://orb.ac/@refraction"
-                target="_blank"
-                className="nounderline"
-              >
-                ORB &#x2197;
-              </Link>
-            
-            </div>
-          </div>
-        </div>
-        <div className="relative   flex flex-col gap-3 bg-gradient-to-r from-green-600 from-10% via-blue-300 via-60% to-sky-500 to-90% p-6 text-BLACK dark:border-r justify-between">
+     
+        <div className="relative flex flex-col gap-3 bg-gradient-to-r from-green-600 from-10% via-blue-300 via-60% to-sky-500 to-90% p-6 text-BLACK dark:border-r justify-between text-3xl">
           
             {checkinStatus ? (
               <p>{checkedInMessages[id]}</p>
@@ -108,7 +66,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
             </>
           )}
         </div>
-      </div>
+      
     </Auth>
   );
 }

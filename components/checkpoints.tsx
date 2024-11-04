@@ -4,6 +4,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useCheckins } from "@/hooks/useCheckins";
 import Auth from "./auth";
 
+
 export default function Checkpoints() {
   const { user } = usePrivy();
   const address = user?.wallet?.address as `0x${string}`;
@@ -18,14 +19,13 @@ export default function Checkpoints() {
 
   return (
     <Auth>
-      <div className="flex flex-col p-6  ">
+      <div className="flex-none w-30 p-6 ">
         Checkpoints: 
-        {checkins.map((checkin: boolean, index: number) => (      
+        {checkins.map((checkin: boolean, index: number) => (
             <div key={index} className="flex gap-1 text-center">
               <p>{index + 1}</p>
               <p>{checkin ? "Checked In" : "Not Checked In"}</p>
             </div>
-          
         ))}
       </div>
     </Auth>
