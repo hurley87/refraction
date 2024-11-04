@@ -1,5 +1,4 @@
 import Checkpoints from "@/components/checkpoints";
-import Link from "next/link";
 import Image from "next/image";
 
 export default async function CheckpointsPage() {
