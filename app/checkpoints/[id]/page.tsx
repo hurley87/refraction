@@ -1,5 +1,4 @@
 import Checkpoint from "@/components/checkpoint";
-import { notFound } from "next/navigation";
 
 interface CheckpointPageProps {
   params: { id: string };
