@@ -5,6 +5,7 @@ import { useCheckins } from "@/hooks/useCheckins";
 import Link from "next/link";
 import Auth from "./auth";
 
+
 export default function Checkpoints() {
   const { user } = usePrivy();
   const address = user?.wallet?.address as `0x${string}`;
