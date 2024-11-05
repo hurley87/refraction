@@ -4,18 +4,25 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useCheckins } from "@/hooks/useCheckins";
 import Link from "next/link";
 import Auth from "./auth";
-
+import { SendEmailButton } from "./send-email-button";
 
 export default function Checkpoints() {
   const { user } = usePrivy();
   const address = user?.wallet?.address as `0x${string}`;
   const { checkins } = useCheckins(address);
 
-  console.log("address", address);
-  console.log("checkins", checkins);
-
   if (address && !checkins) {
     return <div>Loading...</div>;
+  }
+
+  const allCheckedIn = checkins?.every((checkin: boolean) => checkin);
+  if (allCheckedIn) {
+    return (
+      <div>
+        <p>All checkpoints checked in!</p>
+        <SendEmailButton />
+      </div>
+    );
   }
 
   return (
