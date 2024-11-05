@@ -2,7 +2,6 @@
 
 import { usePrivy } from "@privy-io/react-auth";
 import { useCheckins } from "@/hooks/useCheckins";
-import Link from "next/link";
 import Auth from "./auth";
 import { SendEmailButton } from "./send-email-button";
 
