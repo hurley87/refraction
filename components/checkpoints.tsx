@@ -28,7 +28,7 @@ export default function Checkpoints() {
     <Auth>
       <div className="flex flex-col text-xl gap-3 text-black">
         {checkins?.map((checkin: boolean, index: number) => (
-          <div className="flex gap-2 items-center">
+          <div key={index} className="flex gap-2 items-center">
             {!checkin ? (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
