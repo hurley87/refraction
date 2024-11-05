@@ -12,7 +12,7 @@ export default function Auth({ children }: AuthProps) {
   const address = user?.wallet?.address as `0x${string}`;
 
   if (!ready) {
-    return <div>Loading...</div>;
+    return <div className="h-full p-6">Loading...</div>;
   }
 
   if (ready && user && !user.email) {

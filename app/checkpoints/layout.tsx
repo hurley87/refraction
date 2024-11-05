@@ -59,7 +59,7 @@ export default function RootLayout({
           </div>
         </div>
       </div>
-      <div>{children}</div>
+      {children}
 
       <div className="relative flex flex-col  bg-gradient-to-r from-green-600 from-10% via-blue-300 via-60% to-sky-500 to-90% p-6 text-BLACK dark:border-r justify-between font-sans ">
         <div className="flex flex-col md:flex-row relative p-6">
