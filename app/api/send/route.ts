@@ -26,6 +26,11 @@ export async function POST(req: NextRequest) {
       react: EmailTemplate({}),
     });
 
+    resend.contacts.create({
+      email: emailAddress,
+      audienceId: "11cbf1ba-8c50-4e6d-8735-51488886bae8",
+    });
+
     if (error) {
       console.log("error", error);
       return Response.json({ error }, { status: 500 });
