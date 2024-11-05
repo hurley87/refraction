@@ -30,9 +30,5 @@ export default async function CheckpointPage({
     return <NoAccess />;
   }
 
-  return (
-    <div>
-      <Checkpoint id={id} />
-    </div>
-  );
+  return <Checkpoint id={id} />;
 }

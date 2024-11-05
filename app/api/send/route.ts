@@ -19,24 +19,20 @@ export async function POST(req: NextRequest) {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: "Support <david@irl.energy>",
+      from: "Support <support@irl.energy>",
       to: [emailAddress],
       subject: "$IRL",
       text,
-      bcc: ["dhurls99@gmail.com"],
       react: EmailTemplate({}),
     });
 
-    console.log("data", data);
-    console.log("error", error);
-
     if (error) {
+      console.log("error", error);
       return Response.json({ error }, { status: 500 });
     }
 
     return Response.json(data);
   } catch (error) {
-    console.log(error);
     return Response.json({ error }, { status: 500 });
   }
 }
