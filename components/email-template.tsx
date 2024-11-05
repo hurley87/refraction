@@ -6,13 +6,15 @@ const URL =
 
 export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
   <div>
-    <h1>Hey!</h1>
     <p>
       Thank you for joining $IRL and congratulations on completing the Side
       Quest in Bangkok! We’re just getting started, and we can’t wait to see
-      what’s next. Stay connected and keep an eye on <a href={URL}>TOWNS</a>
-      for the latest on your future $IRL claim, new $IRL Side Quests, and more
-      exclusive experiences.
+      what’s next.
+    </p>
+    <p>
+      Stay connected and keep an eye on <a href={URL}>TOWNS</a> for the latest
+      on your future $IRL claim, new $IRL Side Quests, and more exclusive
+      experiences.
     </p>
     <p>What is $IRL?</p>
     <p>
@@ -26,7 +28,7 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
       rewards, explore the space, and get closer to our special $IRL claim.
     </p>
     <p>
-      <a href={URL}>Join our community on TOWNS</a> for updates! for updates!
+      <a href={URL}>Join our community on TOWNS for updates!</a>
     </p>
   </div>
 );
