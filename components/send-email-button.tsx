@@ -30,7 +30,7 @@ export const SendEmailButton = () => {
 
   return (
     <Button disabled={isSending} onClick={handleSendEmail}>
-      {isSending ? "Sending..." : "Send Email"}
+      {isSending ? "Sending..." : "Send Email For Updates"}
     </Button>
   );
 };
