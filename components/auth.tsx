@@ -12,7 +12,7 @@ export default function Auth({ children }: AuthProps) {
   const address = user?.wallet?.address as `0x${string}`;
 
   if (!ready) {
-    return <div className="h-full p-6">Loading...</div>;
+    return <div className="h-full p-6 text-black">Loading...</div>;
   }
 
   if (ready && user && !user.email) {
@@ -39,7 +39,12 @@ export default function Auth({ children }: AuthProps) {
     return (
       <div className="text-black">
         <p>Please connect your wallet to view your checkpoints</p>
-        <Button className="text-white rounded-lg hover:bg-slate-800 justify-center" onClick={login}>Connect Wallet</Button>
+        <Button
+          className="text-white rounded-lg hover:bg-slate-800 justify-center"
+          onClick={login}
+        >
+          Connect Wallet
+        </Button>
       </div>
     );
   }

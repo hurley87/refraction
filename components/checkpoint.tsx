@@ -11,7 +11,7 @@ interface CheckpointProps {
   id: string;
 }
 const checkInMessages = [
-  "Check-in: Let’s get started! Click the button below to unlock your first checkpoint. Find and unlock 4 more to claim your prize and qualify for future $IRL perks.",
+  "Check-in: Let’s get started! Click the button below to unlock your first checkpoint. Find and unlock 3 more times to claim your custom Bangkok merch and future $IRL perks.",
   "You’ve made it to the bar!\n Grab a drink, check in, and unlock this checkpoint!",
   "Welcome to TEN by RARI! Check out the art and unlock this checkpoint.",
   "Tap your phone to complete your $IRL Side Quest and claim your exclusive Refraction $IRL Bangkok merch collectible",

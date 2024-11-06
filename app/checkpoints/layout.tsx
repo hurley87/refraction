@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import Image from "next/image";
 import Link from "next/link";
+import { LogoutButton } from "@/components/logout";
 
 export const metadata: Metadata = {
   title: "$IRL",
@@ -56,6 +57,11 @@ export default function RootLayout({
             >
               ORB &#x2197;
             </Link>
+            <div className="flex justify-end">
+              <div className="max-w-20">
+                <LogoutButton />
+              </div>
+            </div>
           </div>
         </div>
       </div>
