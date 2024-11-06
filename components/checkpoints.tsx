@@ -65,7 +65,7 @@ export default function Checkpoints() {
                 />
               </svg>
             )}
-            <p>{`Side Quest #${index + 1}`}</p>
+            <p>{`Checkpoint #${index + 1}`}</p>
           </div>
         ))}
       </div>
