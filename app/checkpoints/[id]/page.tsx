@@ -1,5 +1,4 @@
 import Checkpoint from "@/components/checkpoint";
-import Image from "next/image";
 
 interface CheckpointPageProps {
   params: { id: string };
