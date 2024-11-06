@@ -68,7 +68,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
             </div>
           </>
         )}
-
         <p>
           <Button
             onClick={() => router.push("/checkpoints")}
