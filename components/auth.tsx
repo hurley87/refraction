@@ -39,7 +39,7 @@ export default function Auth({ children }: AuthProps) {
     return (
       <div className="text-black">
         <p>Please connect your wallet to view your checkpoints</p>
-        <Button className="text-black bg-sky-600 hover:bg-sky-300 justify-center" onClick={login}>Connect Wallet</Button>
+        <Button className="text-white rounded-lg hover:bg-slate-800 justify-center" onClick={login}>Connect Wallet</Button>
       </div>
     );
   }

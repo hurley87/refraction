@@ -16,7 +16,7 @@ const checkInMessages = [
     "Welcome to TEN by RARI! Check out the art and unlock this checkpoint.",
     "Tap your phone to complete your $IRL Side Quest and claim your exclusive Refraction $IRL Bangkok merch collectible",
     "Let loose! Earn bonus $IRL with your dancefloor check-in",
-    "Aenean tempor diam in eros tristique mollis. Etiam rutrum augue nec euismod tempor. Integer nec libero velit. Nulla bibendum lacus eu enim lacinia, vel volutpat velit posuere. Suspendisse at iaculis tortor. ",
+    
   ];
 
   const checkedInMessages = [
@@ -25,7 +25,6 @@ const checkInMessages = [
     "You’re just one check-in away from claiming your exclusive Refraction $IRL Bangkok merch collectible. Head to the merch station to complete your journey.",
     "Congratulations, you’ve completed your $IRL Side Quest. Show this message to the merch table to claim your Refraction $IRL Bangkok t-shirt. It wouldn’t be a Refraction party without the music, keep your eyes out for a opportunity to earn more $IRL on the dancefloor",
     "Grab your free $IRL T-shirt at the merch stand and stay tuned for your $IRL claim. Join our TOWN to stay on top of the drop and earn more $IRL.",
-    "Aenean tempor diam in eros tristique mollis. Etiam rutrum augue nec euismod tempor. Integer nec libero velit. Nulla bibendum lacus eu enim lacinia, vel volutpat velit posuere. Suspendisse at iaculis tortor. ",
   ];
 
 
@@ -60,14 +59,14 @@ export default function Checkpoint({ id }: CheckpointProps) {
             {checkInMessages[id]}
           </div>
           <div className="flex-auto justify-center">
-            <Button onClick={handleCheckIn} disabled={isCheckingIn} className=" text-black bg-sky-600 hover:bg-sky-300 justify-center">
+            <Button onClick={handleCheckIn} disabled={isCheckingIn} className=" text-white hover:bg-slate-800 rounded-lg">
               {isCheckingIn ? "Checking in..." : `Check In #${parseInt(id) + 1}`}
             </Button>
           </div>
         </>
       )}
             
-      <p><Button onClick={() => router.push('/checkpoints')} className="bg-sky-600 hover:bg-sky-300 text-black ">
+      <p><Button onClick={() => router.push('/checkpoints')} className=" text-white hover:bg-slate-800 rounded-lg">
         Back
       </Button>
       </p>
