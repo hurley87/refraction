@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useCheckInStatus } from "@/hooks/useCheckInStatus";
 import { usePrivy } from "@privy-io/react-auth";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Auth from "./auth";
-import Link from "next/link";
 
 interface CheckpointProps {
   id: string;
@@ -14,7 +14,7 @@ const checkInMessages = [
   "Check-in: Let’s get started! Click the button below to unlock your first checkpoint. Find and unlock 4 more to claim your prize and qualify for future $IRL perks.",
   "You’ve made it to the bar!\n Grab a drink, check in, and unlock this checkpoint!",
   "Welcome to TEN by RARI! Check out the art and unlock this checkpoint.",
-  "Complete your $IRL Side Quest and claim your exclusive Refraction $IRL Bangkok merch collectible",
+  "Tap your phone to complete your $IRL Side Quest and claim your exclusive Refraction $IRL Bangkok merch collectible",
   "Let loose! Earn bonus $IRL with your dancefloor check-in",
 ];
 
@@ -31,6 +31,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
   const address = user?.wallet?.address as `0x${string}`;
   const { checkinStatus, setCheckinStatus } = useCheckInStatus(address, id);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const router = useRouter();
 
   const handleCheckIn = async () => {
     setIsCheckingIn(true);
@@ -45,15 +46,20 @@ export default function Checkpoint({ id }: CheckpointProps) {
   return (
     <Auth>
       <div className="relative flex flex-col gap-3  p-6 text-BLACK dark:border-r justify-between">
-        <p>
-          <Link href="/checkpoints" className=" text-white underline">
-            View All Checkpoints
-          </Link>
-        </p>
         {checkinStatus ? (
-          <div className="flex-auto text-black text-lg4">
-            {checkedInMessages[id]}
-          </div>
+          <>
+            <div className="flex-auto text-black text-lg4">
+              {checkedInMessages[id]}
+            </div>
+            <div className="flex-auto justify-center">
+              <Button
+                onClick={() => router.push("/checkpoints")}
+                className=" text-white hover:bg-slate-800 rounded-lg"
+              >
+                View All Checkpoints
+              </Button>
+            </div>
+          </>
         ) : (
           <>
             <div className="flex-auto text-black text-lg4">
