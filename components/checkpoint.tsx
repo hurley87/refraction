@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { useCheckInStatus } from "@/hooks/useCheckInStatus";
 import { usePrivy } from "@privy-io/react-auth";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Auth from "./auth";
 import Link from "next/link";
 
@@ -32,7 +31,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
   const address = user?.wallet?.address as `0x${string}`;
   const { checkinStatus, setCheckinStatus } = useCheckInStatus(address, id);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
-  const router = useRouter();
 
   const handleCheckIn = async () => {
     setIsCheckingIn(true);
