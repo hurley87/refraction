@@ -63,7 +63,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
               >
                 {isCheckingIn
                   ? "Checking in..."
-                  : `Check In #${parseInt(id) + 1}`}
+                  : `Complete Checkpoint #${parseInt(id) + 1}`}
               </Button>
             </div>
           </>
