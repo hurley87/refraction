@@ -58,10 +58,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${pleasure.variable} ${anonymousRegular.variable} ${anonymousItalic.variable} ${anonymousBold.variable} ${anonymousBoldItalic.variable} antialiased`}
+        className={`h-screen ${geistSans.variable} ${geistMono.variable} ${pleasure.variable} ${anonymousRegular.variable} ${anonymousItalic.variable} ${anonymousBold.variable} ${anonymousBoldItalic.variable} antialiased`}
       >
         <Providers>{children}</Providers>
-
         <Toaster />
       </body>
     </html>
