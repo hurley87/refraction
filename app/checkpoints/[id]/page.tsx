@@ -1,4 +1,5 @@
 import Checkpoint from "@/components/checkpoint";
+import Image from "next/image";
 
 interface CheckpointPageProps {
   params: { id: string };
@@ -30,5 +31,18 @@ CheckpointPageProps) {
   //   return <NoAccess />;
   // }
 
-  return <Checkpoint id={id} />;
+  return (
+    <div className=" relative  flex-col items-center justify-center w-full  md:px-0 font-sans">
+      <div className="relative  flex flex-row  bg-gradient-to-r from-orange-600 from-10% via-rose-300 via-90% to-yellow-300 to-100% p-6 text-BLACK dark:border-r justify-between">
+        <div className="flex p-6">
+    
+              <Checkpoint id={id} />
+          
+        
+        
+        </div>
+      </div>
+    
+    </div>
+  );
 }

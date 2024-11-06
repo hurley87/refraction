@@ -49,34 +49,29 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
   return (
     <Auth>
-      <div className=" flex  flex-col  p-6 bg-gradient-to-r from-green-600 from-10% via-blue-300 via-60% to-sky-500 to-90% items-center justify-center md:grid w-full  md:px-0 font-sans gap-3 text-BLACK dark:border-r">
-        
-          
-            {checkinStatus ? (
-              <div >
-              <p>{checkedInMessages[id]}</p>
-              </div>
-            ) : (
-              <>
-                <div className="justify-center">
-                  <p>{checkInMessages[id]}</p>
-                </div>
-                <div className="justify-center">
-                  <Button onClick={handleCheckIn} disabled={isCheckingIn} className="bg-sky-600 hover:bg-sky-300 ">
-                  {isCheckingIn ? "Checking in..." : `Check In #${parseInt(id) + 1}`}
-                  </Button>
-                </div>
-              </>
-            )}
-            <div>
-              <Button onClick={() => router.back()} className="bg-sky-600 hover:bg-sky-300 ">
-                Back
-              </Button>
-            </div>
-          
-        
-      </div>
-      
+      <div className="relative flex flex-col gap-3  p-6 text-BLACK dark:border-r justify-between">
+      {checkinStatus ? (
+        <div className="flex-auto text-black text-lg4">
+          {checkedInMessages[id]}
+        </div>
+      ) : (
+        <>
+          <div className="flex-auto text-black text-lg4">
+            {checkInMessages[id]}
+          </div>
+          <div className="flex-auto justify-center">
+            <Button onClick={handleCheckIn} disabled={isCheckingIn} className=" text-black bg-sky-600 hover:bg-sky-300 justify-center">
+              {isCheckingIn ? "Checking in..." : `Check In #${parseInt(id) + 1}`}
+            </Button>
+          </div>
+        </>
+      )}
+            
+      <p><Button onClick={() => router.push('/checkpoints')} className="bg-sky-600 hover:bg-sky-300 text-black ">
+        Back
+      </Button>
+      </p>
+    </div>
     </Auth>
   );
 }

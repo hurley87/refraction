@@ -6,16 +6,16 @@ export default async function CheckpointsPage() {
     <div className=" relative  flex-col items-center justify-center w-full  md:px-0 font-sans">
       <div className="relative  flex flex-row  bg-gradient-to-r from-orange-600 from-10% via-rose-300 via-90% to-yellow-300 to-100% p-6 text-BLACK dark:border-r justify-between">
         <div className="flex">
-          <div className="flex-auto text-black text-lg pt-5">
+          <div className="flex-auto text-black text-lg p-6">
             <p className="text-6xl text-center">
               Earn rewards for supporting culture
             </p>
           </div>
-          <div className="flex justify-center p-6">
+          <div className="flex justify-center">
           <Image 
             src="/images/$IRL_SYMBOLS_BLACK_2.svg" 
-            width={250} 
-            height={250} 
+            width={300} 
+            height={300} 
             alt="symbols"
           />
         </div>
@@ -32,7 +32,7 @@ export default async function CheckpointsPage() {
               className="rotate-90"
             />
           </div>
-          <div className="flex-auto text-black text-lg4">
+          <div className="flex-auto text-black text-lg4 p-6">
             <p>
               A token that fuels creativity and experiences around the world.
               Earn $IRL to unlock unique experiences and rewards, both online
