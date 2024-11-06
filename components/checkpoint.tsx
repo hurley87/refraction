@@ -19,7 +19,7 @@ const checkInMessages = [
 ];
 
 const checkedInMessages = [
-  "Your Side Quest has started, time to get yourself a drink. Head to the bar to find the next checkpoint to earn more $IRL and exclusive Bangkok merchandise.",
+  "You completed a checkpoint, time to get yourself a drink. Head to the bar to find the next checkpoint to earn more $IRL and exclusive Bangkok merchandise.",
   "You’re all set— grab a drink, and continue your $IRL Side Quest at the visual art exhibition by RARI, curated by Refraction.ou’ve made it to the bar!” - “Grab a drink, check in, and unlock this checkpoint!",
   "You’re just one check-in away from claiming your exclusive Refraction $IRL Bangkok merch collectible. Head to the merch station to complete your journey.",
   "Congratulations, you’ve completed your $IRL Side Quest. Show this message to the merch table to claim your Refraction $IRL Bangkok t-shirt. It wouldn’t be a Refraction party without the music, keep your eyes out for a opportunity to earn more $IRL on the dancefloor",
@@ -73,7 +73,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
             onClick={() => router.push("/checkpoints")}
             className=" text-white hover:bg-slate-800 rounded-lg"
           >
-            Home
+            Learn more
           </Button>
         </p>
       </div>
