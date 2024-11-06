@@ -73,7 +73,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
             onClick={() => router.push("/checkpoints")}
             className=" text-white hover:bg-slate-800 rounded-lg"
           >
-            Learn more
+            View All Checkpoints
           </Button>
         </p>
       </div>
