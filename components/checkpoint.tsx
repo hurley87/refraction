@@ -29,6 +29,7 @@ const checkedInMessages = [
 export default function Checkpoint({ id }: CheckpointProps) {
   const { user } = usePrivy();
   const address = user?.wallet?.address as `0x${string}`;
+  const email = user?.email;
   const { checkinStatus, setCheckinStatus } = useCheckInStatus(address, id);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const router = useRouter();
@@ -39,6 +40,18 @@ export default function Checkpoint({ id }: CheckpointProps) {
       method: "POST",
       body: JSON.stringify({ checkpoint: id, walletAddress: address }),
     });
+
+    if (id === "3") {
+      await fetch("/api/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+        }),
+      });
+    }
     setIsCheckingIn(false);
     setCheckinStatus(true);
   };
