@@ -38,12 +38,11 @@ export default function Auth({ children }: AuthProps) {
   if (ready && !address) {
     return (
       <div className="text-black">
-        <p>Please connect your wallet to view your checkpoints</p>
         <Button
           className="text-white rounded-lg hover:bg-slate-800 justify-center"
           onClick={login}
         >
-          Connect Wallet
+          Get Started
         </Button>
       </div>
     );
