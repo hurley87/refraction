@@ -31,7 +31,14 @@ export default function Home() {
               possibilities.
             </p>
           </div>
-          <Mint />
+          <Link
+            target="_blank"
+            href="https://zora.co/collect/base:0xec6f57cb913cdb21ed021d22ad2f47e67e59ac09/1"
+          >
+            <div className="bg-yellow-500 hover:bg-yellow-400 text-black px-8 py-2 rounded-md max-w-64 text-center">
+              Buy $IRL Tokens
+            </div>
+          </Link>
           <div className="flex flex-col gap-1 text-sm">
             <Link
               href="https://x.com/RefractionDAO"

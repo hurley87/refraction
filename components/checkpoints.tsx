@@ -67,7 +67,7 @@ export default function Checkpoints() {
         {/* <SendEmailButton /> */}
         <Link href="/">
           <Button className="w-full" size="lg">
-            Claim Your IRL Mint
+            Learn More About $IRL
           </Button>
         </Link>
       </div>
