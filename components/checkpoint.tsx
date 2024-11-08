@@ -59,7 +59,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
   return (
     <Auth>
       <div className="relative flex flex-col gap-6  p-6 text-BLACK dark:border-r justify-between">
-        {!checkinStatus ? (
+        {checkinStatus ? (
           <>
             <div className="flex-auto text-black text-lg whitespace-pre-wrap">
               {checkedInMessages[id]}
