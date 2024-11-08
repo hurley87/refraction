@@ -23,6 +23,14 @@ export default function Checkpoints() {
     checkins?.filter((checkin: boolean) => checkin).length >=
     REQUIRED_CHECKPOINTS;
 
+  const checkpointNames = [
+    "Entrance checkpoint",
+    "Bar checkpoint",
+    "Ten by RARI exhibition checkpoint",
+    "Merch stand checkpoint",
+    "Bonus! Dancefloor checkpoint",
+  ];
+
   if (hasEnoughCheckpoints) {
     return (
       <div className="flex flex-col text-xl gap-3 text-black">
@@ -66,7 +74,7 @@ export default function Checkpoints() {
                   />
                 </svg>
               )}
-              <p>{`Checkpoint #${index + 1}`}</p>
+              <p>{checkpointNames[index]}</p>
             </div>
           ))}
         </div>
@@ -79,14 +87,6 @@ export default function Checkpoints() {
       </div>
     );
   }
-
-  const checkpointNames = [
-    "Entrance checkpoint",
-    "Bar checkpoint",
-    "Ten by RARI exhibition checkpoint",
-    "Merch stand checkpoint",
-    "Bonus! Dancefloor checkpoint",
-  ];
 
   return (
     <Auth>
