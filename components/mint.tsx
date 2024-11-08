@@ -107,6 +107,22 @@ export const Mint = () => {
     }
   };
 
+  const switchNetwork = async () => {
+    if (!wallet) {
+      toast({
+        title: "Error",
+        description: "Minting requires a wallet.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      await wallet?.switchChain(8453);
+    } catch (error) {
+      console.error("Error switching network:", error);
+    }
+  };
+
   if (user?.email) {
     return (
       <div className="flex flex-col gap-12">
@@ -172,7 +188,7 @@ export const Mint = () => {
                       <Button
                         size="lg"
                         className="bg-yellow-500 hover:bg-yellow-400 text-black"
-                        onClick={() => wallet?.switchChain(8453)}
+                        onClick={switchNetwork}
                       >
                         Switch Network
                       </Button>
