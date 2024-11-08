@@ -1,5 +1,4 @@
 import { Countdown } from "@/components/countdown";
-import { Mint } from "@/components/mint";
 import Link from "next/link";
 
 export default function Home() {
