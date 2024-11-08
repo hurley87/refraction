@@ -31,7 +31,7 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
       <a href={URL}>Join our community on TOWNS for updates!</a>
     </p>
     <p>
-      <img src="/irl.png" alt="symbols" />
+      <img src="https://www.irl.energy/irl.png" alt="symbols" />
     </p>
   </div>
 );

@@ -17,8 +17,8 @@ export default function Auth({ children }: AuthProps) {
 
   if (ready && user && !user.email) {
     return (
-      <div className="flex flex-col gap-12">
-        <p>Link your email for updates</p>
+      <div className="flex flex-col gap-4">
+        <p className="text-black">Link your email for updates</p>
         <div>
           <Button
             className="bg-yellow-500 hover:bg-yellow-400 text-black"
@@ -34,10 +34,10 @@ export default function Auth({ children }: AuthProps) {
 
   if (ready && !address) {
     return (
-      <div className="flex flex-col gap-12">
-        <p>
-          Welcome to your first IRL Side Quest. There are 5 checkpoints to
-          complete.
+      <div className="flex flex-col gap-4">
+        <p className="text-black">
+          Welcome to your first IRL Side Quest. <br /> There are 5 checkpoints
+          to complete.
         </p>
         <Button
           className="text-white rounded-lg hover:bg-slate-800 justify-center"

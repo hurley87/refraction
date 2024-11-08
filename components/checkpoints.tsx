@@ -3,6 +3,7 @@
 import { usePrivy } from "@privy-io/react-auth";
 import { useCheckins } from "@/hooks/useCheckins";
 import Auth from "./auth";
+import { SendEmailButton } from "./send-email-button";
 
 export default function Checkpoints() {
   const { user } = usePrivy();
@@ -61,6 +62,7 @@ export default function Checkpoints() {
             </div>
           ))}
         </div>
+        <SendEmailButton />
       </div>
     );
   }
