@@ -5,14 +5,11 @@ import { useCheckins } from "@/hooks/useCheckins";
 import Auth from "./auth";
 import { Button } from "./ui/button";
 import Link from "next/link";
-// import { SendEmailButton } from "./send-email-button";
 
 export default function Checkpoints() {
   const { user } = usePrivy();
   const address = user?.wallet?.address as `0x${string}`;
   const { checkins } = useCheckins(address);
-
-  console.log(user);
 
   if (user && !checkins) {
     return <div className="text-center text-black">Loading...</div>;
@@ -78,7 +75,6 @@ export default function Checkpoints() {
             </div>
           ))}
         </div>
-        {/* <SendEmailButton /> */}
         <Link href="/">
           <Button className="w-full" size="lg">
             Learn More About $IRL
