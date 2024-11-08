@@ -9,7 +9,6 @@ interface AuthProps {
 
 export default function Auth({ children }: AuthProps) {
   const { user, login, ready, linkEmail } = usePrivy();
-  const address = user?.wallet?.address as `0x${string}`;
 
   if (!ready) {
     return <div className="h-full p-6 text-black">Loading...</div>;
@@ -34,7 +33,7 @@ export default function Auth({ children }: AuthProps) {
     );
   }
 
-  if (ready && !address) {
+  if (ready && !user) {
     return (
       <div className="flex justify-center w-fit mx-auto">
         <div className="flex flex-col gap-4">
