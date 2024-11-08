@@ -12,7 +12,9 @@ export default function Checkpoints() {
   const address = user?.wallet?.address as `0x${string}`;
   const { checkins } = useCheckins(address);
 
-  if (address && !checkins) {
+  console.log(user);
+
+  if (user && !checkins) {
     return <div className="text-center text-black">Loading...</div>;
   }
 
@@ -74,6 +76,14 @@ export default function Checkpoints() {
     );
   }
 
+  const checkpointNames = [
+    "Entrance checkpoint",
+    "Bar checkpoint",
+    "Ten by RARI exhibition checkpoint",
+    "Merch stand checkpoint",
+    "Bonus! Dancefloor checkpoint",
+  ];
+
   return (
     <Auth>
       <div className="flex flex-col text-xl gap-3 text-black">
@@ -115,7 +125,7 @@ export default function Checkpoints() {
                 />
               </svg>
             )}
-            <p>{`Checkpoint #${index + 1}`}</p>
+            <p>{checkpointNames[index]}</p>
           </div>
         ))}
       </div>
