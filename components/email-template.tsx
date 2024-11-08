@@ -34,8 +34,8 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
     <p>
       <Img
         src="https://www.irl.energy/irl.png"
-        title="IRL Logo"
-        alt="IRL Logo"
+        title="IRL"
+        alt="IRL"
         style={{ display: "block" }}
         width="300"
         height="300"
