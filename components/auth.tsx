@@ -18,6 +18,7 @@ export default function Auth({ children }: AuthProps) {
   if (ready && user && !user.email) {
     return (
       <div className="flex flex-col gap-12">
+        <p>Link your email for updates</p>
         <div>
           <Button
             className="bg-yellow-500 hover:bg-yellow-400 text-black"
@@ -27,17 +28,17 @@ export default function Auth({ children }: AuthProps) {
             Link Email
           </Button>
         </div>
-        <p className="text-xs md:text-sm italic">
-          Claim your free commemorative mint and take an early spot in line for
-          the release.
-        </p>
       </div>
     );
   }
 
   if (ready && !address) {
     return (
-      <div className="text-black">
+      <div className="flex flex-col gap-12">
+        <p>
+          Welcome to your first IRL Side Quest. There are 5 checkpoints to
+          complete.
+        </p>
         <Button
           className="text-white rounded-lg hover:bg-slate-800 justify-center"
           onClick={login}

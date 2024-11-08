@@ -30,5 +30,8 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
     <p>
       <a href={URL}>Join our community on TOWNS for updates!</a>
     </p>
+    <p>
+      <img src="/irl.png" alt="symbols" />
+    </p>
   </div>
 );
