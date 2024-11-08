@@ -5,6 +5,7 @@ import { useCheckins } from "@/hooks/useCheckins";
 import Auth from "./auth";
 import { Button } from "./ui/button";
 import Link from "next/link";
+// import { SendEmailButton } from "./send-email-button";
 
 export default function Checkpoints() {
   const { user } = usePrivy();
@@ -80,6 +81,7 @@ export default function Checkpoints() {
             Learn More About $IRL
           </Button>
         </Link>
+        {/* <SendEmailButton /> */}
       </div>
     );
   }

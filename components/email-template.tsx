@@ -1,12 +1,12 @@
 import * as React from "react";
-import { Img } from "@react-email/img";
+import { Html } from "@react-email/components";
 
 interface EmailTemplateProps {}
 const URL =
   "https://app.towns.com/t/0xf19e5997fa4df2e12a3961fc7e9ad09c7a301244/";
 
 export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
-  <div>
+  <Html lang="en">
     <p>
       Thank you for joining $IRL and congratulations on completing the Side
       Quest in Bangkok! We’re just getting started, and we can’t wait to see
@@ -31,15 +31,5 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
     <p>
       <a href={URL}>Join our community on TOWNS for updates!</a>
     </p>
-    <p>
-      <Img
-        src="https://www.irl.energy/irl.png"
-        title="IRL"
-        alt="IRL"
-        style={{ display: "block" }}
-        width="300"
-        height="300"
-      />
-    </p>
-  </div>
+  </Html>
 );
