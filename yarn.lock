@@ -1161,6 +1161,11 @@
   dependencies:
     "@radix-ui/react-primitive" "2.0.0"
 
+"@react-email/img@0.0.10":
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/@react-email/img/-/img-0.0.10.tgz#4d237dd269e25a269786510db81fb2be2409a0bc"
+  integrity sha512-pJ8glJjDNaJ53qoM95pvX9SK05yh0bNQY/oyBKmxlBDdUII6ixuMc3SCwYXPMl+tgkQUyDgwEBpSTrLAnjL3hA==
+
 "@react-email/render@1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@react-email/render/-/render-1.0.1.tgz#5a8897a2b87c1aa41ebe5dd36233bd8d983b801a"

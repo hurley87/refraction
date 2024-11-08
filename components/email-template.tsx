@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Img } from "@react-email/img";
 
 interface EmailTemplateProps {}
 const URL =
@@ -31,11 +32,11 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
       <a href={URL}>Join our community on TOWNS for updates!</a>
     </p>
     <p>
-      <img
+      <Img
         src="https://www.irl.energy/irl.png"
-        alt="symbols"
-        height={300}
-        width={300}
+        alt="IRL Logo"
+        width="300"
+        height="300"
       />
     </p>
   </div>
