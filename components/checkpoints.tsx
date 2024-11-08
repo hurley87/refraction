@@ -3,6 +3,8 @@
 import { usePrivy } from "@privy-io/react-auth";
 import { useCheckins } from "@/hooks/useCheckins";
 import Auth from "./auth";
+import { Button } from "./ui/button";
+import Link from "next/link";
 // import { SendEmailButton } from "./send-email-button";
 
 export default function Checkpoints() {
@@ -63,6 +65,11 @@ export default function Checkpoints() {
           ))}
         </div>
         {/* <SendEmailButton /> */}
+        <Link href="/">
+          <Button className="w-full" size="lg">
+            Claim Your IRL Mint
+          </Button>
+        </Link>
       </div>
     );
   }

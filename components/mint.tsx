@@ -114,7 +114,7 @@ export const Mint = () => {
           <Dialog>
             <DialogTrigger>
               <div className="bg-yellow-500 hover:bg-yellow-400 text-black px-8 py-2 rounded-md">
-                Claim Your Free Mint
+                Claim Your IRL Mint
               </div>
             </DialogTrigger>
             <DialogContent>
