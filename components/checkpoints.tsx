@@ -18,8 +18,12 @@ export default function Checkpoints() {
     return <div className="text-center text-black">Loading...</div>;
   }
 
-  const allCheckedIn = checkins?.every((checkin: boolean) => checkin);
-  if (allCheckedIn) {
+  const REQUIRED_CHECKPOINTS = 4;
+  const hasEnoughCheckpoints =
+    checkins?.filter((checkin: boolean) => checkin).length >=
+    REQUIRED_CHECKPOINTS;
+
+  if (hasEnoughCheckpoints) {
     return (
       <div className="flex flex-col text-xl gap-3 text-black">
         <p>All checkpoints completed!</p>
