@@ -77,7 +77,9 @@ const secondaryHeaderText = {
 export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
   <Html>
     <Head />
-    <Preview>You're now ready to make live transactions with Stripe!</Preview>
+    <Preview>
+      You&apos;re now ready to make live transactions with Stripe!
+    </Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={box}>
@@ -94,15 +96,15 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
             Join our Town
           </Button>
           <Hr style={hr} />
-          <Text style={secondaryHeaderText}>What's next for $IRL?</Text>
+          <Text style={secondaryHeaderText}>What&apos;s next for $IRL?</Text>
           <Text style={paragraph}>
             $IRL is your gateway to unforgettable, in-person experiences powered
             by the digital culture you love.
           </Text>
           <Text style={paragraph}>
-            It’s a groundbreaking token that unites audiences, artists, and the
-            broader industry to unlock experiences, rewards, and more at events
-            worldwide.
+            It&apos;s a groundbreaking token that unites audiences, artists, and
+            the broader industry to unlock experiences, rewards, and more at
+            events worldwide.
           </Text>
           <Text style={paragraph}>
             Going beyond blockchain early adopters, $IRL invites everyone to
@@ -121,9 +123,9 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
             Refraction bridges art, music, and tech innovation.
           </Text>
           <Text style={paragraph}>
-            Through $IRL, we’re entering our next phase, empowering the cultural
-            ecosystem and forging a bold, inclusive path for creative expression
-            globally.
+            Through $IRL, we&apos;re entering our next phase, empowering the
+            cultural ecosystem and forging a bold, inclusive path for creative
+            expression globally.
           </Text>
           <Hr style={hr} />
           <Text style={footer}>
