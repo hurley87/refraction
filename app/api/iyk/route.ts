@@ -9,9 +9,9 @@ export async function PATCH() {
         "x-iyk-api-key": process.env.IYK_KEY!,
       },
       body: JSON.stringify({
-        tagUIDs: ["1260683545350288"],
+        tagUIDs: ["1244702508912784"],
         updates: {
-          redirectUrl: "https://www.irl.energy/checkpoints/0",
+          redirectUrl: "https://www.irl.energy/checkpoints/4",
         },
       }),
     });
