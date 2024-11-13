@@ -78,7 +78,7 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
   <Html>
     <Head />
     <Preview>
-      You&apos;re now ready to make live transactions with Stripe!
+      Welcome to $IRL!
     </Preview>
     <Body style={main}>
       <Container style={container}>
