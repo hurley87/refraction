@@ -8,11 +8,22 @@ import Link from "next/link";
 // import { SendEmailButton } from "./send-email-button";
 
 export default function Checkpoints() {
-  const { user } = usePrivy();
+  const { user, login } = usePrivy();
   const address = user?.wallet?.address as `0x${string}`;
   const { checkins } = useCheckins(address);
 
-  if (user && !checkins) {
+  if (!user) {
+    return (
+      <Button
+        className="text-white rounded-lg hover:bg-slate-800 justify-center"
+        onClick={login}
+      >
+        Get Started
+      </Button>
+    );
+  }
+
+  if (!checkins) {
     return <div className="text-center text-black">Loading...</div>;
   }
 
