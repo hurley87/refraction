@@ -77,9 +77,7 @@ const secondaryHeaderText = {
 export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
   <Html>
     <Head />
-    <Preview>
-      You&apos;re now ready to make live transactions with Stripe!
-    </Preview>
+    <Preview>Welcome to $IRL!</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={box}>

@@ -7,7 +7,7 @@ import { baseSepolia } from "viem/chains";
 
 const walletClient = createWalletClient({
   chain: baseSepolia,
-  transport: http("https://sepolia.base.org"),
+  transport: http(process.env.NEXT_PUBLIC_QUICKNODE),
 });
 
 export async function POST(req: NextRequest) {
