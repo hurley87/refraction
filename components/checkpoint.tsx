@@ -6,6 +6,8 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Auth from "./auth";
+import Link from "next/link";
+
 
 interface CheckpointProps {
   id: string;
@@ -64,13 +66,22 @@ export default function Checkpoint({ id }: CheckpointProps) {
             <div className="flex-auto text-black text-lg whitespace-pre-wrap">
               {checkedInMessages[id]}
             </div>
+
             <div className="flex-auto justify-center">
-              <Button
-                onClick={() => router.push("/checkpoints")}
-                className=" text-white hover:bg-slate-800 rounded-lg"
-              >
-                View All Checkpoints
-              </Button>
+              {parseInt(id) < 4 ? (
+                <Button
+                  onClick={() => router.push("/checkpoints")}
+                  className=" text-white hover:bg-slate-800 rounded-lg"
+               >
+                  View All Checkpoints
+                </Button>
+              ) : (
+               <Link href="/">
+                <Button className=" text-white hover:bg-slate-800 rounded-lg" size="lg">
+                  Learn More About $IRL
+                </Button>
+                </Link>
+              )} 
             </div>
           </>
         ) : (
