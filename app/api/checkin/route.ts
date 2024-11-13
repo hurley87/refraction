@@ -13,6 +13,8 @@ const walletClient = createWalletClient({
 export async function POST(req: NextRequest) {
   const { walletAddress, checkpoint } = await req.json();
 
+  console.log(walletAddress, checkpoint);
+
   try {
     const privateKey = process.env.SERVER_PRIVATE_KEY;
     const account = privateKeyToAccount(privateKey as `0x${string}`);
