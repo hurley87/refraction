@@ -9,6 +9,7 @@ import Link from "next/link";
 
 export default function Checkpoints() {
   const { user, login } = usePrivy();
+  console.log("user", user);
   const address = user?.wallet?.address as `0x${string}`;
   const { checkins } = useCheckins(address);
 

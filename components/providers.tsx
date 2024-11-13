@@ -10,6 +10,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       appId={appId}
       config={{
         loginMethods: ["wallet", "email"],
+        embeddedWallets: {
+          createOnLogin: "users-without-wallets", // defaults to 'off'
+        },
         appearance: {
           theme: "dark",
         },
