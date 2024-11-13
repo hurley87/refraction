@@ -5,10 +5,6 @@ import { checkinABI, checkinAddress } from "@/lib/checkin";
 export function useCheckins(address: string) {
   const [checkins, setCheckins] = useState<any>(null);
 
-  if (!address) {
-    return { checkins: null };
-  }
-
   useEffect(() => {
     const fetchCheckins = async () => {
       if (!address) {
