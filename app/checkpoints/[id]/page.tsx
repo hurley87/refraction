@@ -17,19 +17,19 @@ export default async function CheckpointPage({
       No access
     </div>
   );
-/* 
+
   if (!iykRef) {
     return <NoAccess />;
   }
- */
+
   const response = await fetch(`https://api.iyk.app/refs/${iykRef}`);
 
   const { isValidRef } = await response.json();
 
-/*   if (!isValidRef) {
+  if (!isValidRef) {
     return <NoAccess />;
   }
- */
+
   return (
     <div className=" relative  flex-col items-center justify-center w-full  md:px-0 font-sans">
       <div className="relative  flex flex-row  bg-gradient-to-r from-orange-600 from-10% via-rose-300 via-90% to-yellow-300 to-100% p-6 text-BLACK dark:border-r justify-between">
