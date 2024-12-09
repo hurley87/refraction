@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@campnetwork/sdk": "^1.2.15",
     "@privy-io/react-auth": "^1.90.0",
     "@privy-io/server-auth": "^1.16.2",
     "@radix-ui/react-dialog": "^1.1.1",
