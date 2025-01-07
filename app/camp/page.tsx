@@ -4,7 +4,6 @@ import { CampModal, useAuth } from "@campnetwork/sdk/react/auth";
 
 export default function CampPage() {
   const { userId, linkTwitter } = useAuth();
-  console.log(userId);
   return (
     <div className="relative  flex-col items-center justify-center w-full  md:px-0 font-sans">
       {!userId ? (

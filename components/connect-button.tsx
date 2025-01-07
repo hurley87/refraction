@@ -17,7 +17,7 @@ export function ConnectButton() {
   return (
     <Button
       onClick={login}
-      className="text-white hover:bg-slate-800 rounded-lg"
+      className="text-[#303030] bg-[#FFFFFF] hover:bg-[#FFFFFF]/90 rounded-lg uppercase"
       size="lg"
     >
       Connect Wallet
