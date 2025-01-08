@@ -43,18 +43,36 @@ export default function Home() {
               {`The REFRACT PASS is the most direct way to support Refraction’s mission of empowering creatives and building a future that values the economic independence of artists across the world.*Mint a REFRACT PASS to gain full membership.`}
             </p>
             <div className="flex gap-4">
-              <Button
-                size="lg"
-                className="uppercase bg-[#6101FF] hover:bg-[#6101FF]/90 text-[#FFFFFF]"
+              <Link
+                target="_blank"
+                href="https://zora.co/collect/eth:0x115b90187d38dc0a9a9d6bdc8ec9b1f492964894"
               >
-                Mint PASS
-              </Button>
+                <Button
+                  size="lg"
+                  className="uppercase bg-[#6101FF] hover:bg-[#6101FF]/90 text-[#FFFFFF]"
+                >
+                  Mint PASS
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
       </div>
       <div className="flex flex-col gap-4 bg-[#221204] rounded-sm p-6">
         <p className="text-white">Stay up to date with our newsletter</p>
+        <div className="flex gap-4 justify-start">
+          <Link
+            target="_blank"
+            href="https://confirmsubscription.com/h/y/2D65DCC50191F65F"
+          >
+            <Button
+              size="lg"
+              className="uppercase bg-[#FF9900] hover:bg-[#FF9900]/90 text-[#221204]"
+            >
+              Subscribe
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );
