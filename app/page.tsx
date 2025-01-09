@@ -4,40 +4,60 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="p-4 flex flex-col gap-4">
+    <div className="p-4 flex flex-col w-full">
       <Header />
       <div className="p-6 bg-black rounded-sm flex flex-col gap-4">
-        <div className="flex gap-4">
-          <h2 className="text-[#00E232] text-2xl">
-            Refraction is an artist-owned community leading the next wave of
-            digital art, music and culture — online, onchain and IRL.
-          </h2>
+        <div className="flex flex-row gap-4">
+          <div className="flex">
+            <h2 className="text-[#00E232] text-2xl">
+              Refraction is an artist-owned community leading the next wave of
+              digital art, music and culture — online, onchain and IRL.
+            </h2>
+          </div>
+          <div className="flex">
+            <img src="/images/spectrum.png" alt="spectrum" className="object-scale-down max-h-full m-auto" />
+          </div>
+        </div>
+        <div className="flex flex-col gap-4">
+           <img src="/images/lockup_image.png" alt="spectrum" className="object-scale-down max-h-full m-auto" />
         </div>
       </div>
       <div className="p-6 bg-[#FFE1E1] rounded-sm flex flex-col gap-4">
-        <h2 className="text-[#FF0000] text-2xl font-bold">
-          {`Refraction’s online opportunities span educational workshops, creative
-          programs, and cultivation of MicroDAOs within our larger structure.`}
-        </h2>
-        <div className="flex justify-start">
-          <Link
-            target="_blank"
-            href="https://app.towns.com/t/0xf19e5997fa4df2e12a3961fc7e9ad09c7a301244/"
-          >
-            <Button
-              size="lg"
-              className="uppercase bg-[#FF0000] hover:bg-[#FF0000]/90 text-[#95FF0F]"
+        <div className="flex flex-row gap-4">
+          <div className="flex">
+            <h2 className="text-[#FF0000] text-2xl font-bold">
+              {`Refraction’s online opportunities span educational workshops, creative
+                programs, and cultivation of MicroDAOs within our larger structure.`}
+            </h2>
+          </div>
+        </div>
+        <div className="flex flex-row gap-4">
+          <div className="flex justify-start">
+            <Link
+              target="_blank"
+              href="https://app.towns.com/t/0xf19e5997fa4df2e12a3961fc7e9ad09c7a301244/"
             >
-              Join the Community
-            </Button>
-          </Link>
+              <Button
+                size="lg"
+                className="uppercase bg-[#FF0000] hover:bg-[#FF0000]/90 text-[#95FF0F]"
+              >
+                Join the Community
+              </Button>
+            </Link>
+          </div>
+         
+          <div className="flex flex-grow justify-end">
+              <img src="/images/call_out_vector.png" alt="vector" className="object-scale-down max-h-full m-auto" />
+          </div>
+        </div>
+        <div className="flex flex-col gap-4 relative">
+          <img src="/images/callout-gradient-overlay.png" alt="overlay" className="object-scale-down max-h-full m-auto absolute  z-10" />
+          <img src="/images/call_out_image.png" alt="crewdem" className="object-scale-down max-h-full m-auto  z-0" />
         </div>
       </div>
       <div className="flex flex-col gap-4 bg-[#E7E3FF] rounded-sm p-6">
         <div className="flex">
-          <h2 className="text-[#6101FF] text-2xl font-bold w-1/2">
-            Join Refraction
-          </h2>
+          <img src="/images/join_refraction.png" alt="join" className="object-scale-down max-h-full m-auto" />
           <div className="flex flex-col gap-4 w-1/2">
             <p className="text-[#6101FF] text-sm">
               {`The REFRACT PASS is the most direct way to support Refraction’s mission of empowering creatives and building a future that values the economic independence of artists across the world.*Mint a REFRACT PASS to gain full membership.`}
@@ -57,21 +77,33 @@ export default function Home() {
             </div>
           </div>
         </div>
+        <div className="flex">
+          <img src="/images/join_refraction_image.png" alt="join" className="object-scale-down max-h-full m-auto" />
+        </div>
       </div>
       <div className="flex flex-col gap-4 bg-[#221204] rounded-sm p-6">
-        <p className="text-white">Stay up to date with our newsletter</p>
-        <div className="flex gap-4 justify-start">
-          <Link
-            target="_blank"
-            href="https://confirmsubscription.com/h/y/2D65DCC50191F65F"
-          >
-            <Button
-              size="lg"
-              className="uppercase bg-[#FF9900] hover:bg-[#FF9900]/90 text-[#221204]"
+        <div className="flex flex-col gap-4">
+          <p className="text-white">Stay up to date with our newsletter</p>
+        </div>
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-4 justify-start">
+            <Link
+              target="_blank"
+              href="https://confirmsubscription.com/h/y/2D65DCC50191F65F"
             >
-              Subscribe
-            </Button>
-          </Link>
+              <Button
+                size="lg"
+                className="uppercase bg-gradient-to-r from-orange-500 from-10% via-yellow-500 via-30% to-green-500 to-90%  hover:bg-gradient-to-r from-orange-500 from-10% via-yellow-500 via-30% to-green-500 to-90%  text-[#221204]"
+              >
+                Sign Up
+              </Button>
+            </Link>
+          </div>
+           
+        </div>
+       
+        <div className="flex">
+          <img src="/images/footer-logo.png" alt="join" className="object-scale-down max-h-full m-auto" />
         </div>
       </div>
     </div>
