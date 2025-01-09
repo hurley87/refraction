@@ -48,10 +48,11 @@ export default function Home() {
           <Link
             target="_blank"
             href="https://app.towns.com/t/0xf19e5997fa4df2e12a3961fc7e9ad09c7a301244/"
+            className="w-full sm:w-auto"
           >
             <Button
               size="lg"
-              className="uppercase bg-[#FF0000] hover:bg-[#FF0000]/90 text-[#95FF0F] w-full sm:w-auto"
+              className="uppercase bg-[#FF0000] hover:bg-[#FF0000]/90 text-[#95FF0F] w-full"
             >
               Join the Community
             </Button>
