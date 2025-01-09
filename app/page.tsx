@@ -96,19 +96,37 @@ export default function Home() {
             Stay up to date with our newsletter
           </p>
         </div>
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-4 justify-start">
+        <div className="flex flex-row gap-4 justify-between">
+          <div className="flex gap-4 ">
             <Link
               target="_blank"
               href="https://confirmsubscription.com/h/y/2D65DCC50191F65F"
             >
               <Button
                 size="lg"
-                className="uppercase bg-gradient-to-r from-orange-500 from-10% via-yellow-500 via-30% to-green-500 to-90%  hover:bg-gradient-to-r from-orange-500 from-10% via-yellow-500 via-30% to-green-500 to-90%  text-[#221204]"
+                className="uppercase bg-gradient-to-r from-orange-500 from-10% via-yellow-500 via-30% to-green-500 to-90%  hover:bg-orange-500 text-[#221204]"
               >
                 Sign Up
               </Button>
             </Link>
+          </div>
+          <div className="flex gap-4 justify-end">
+             <Link
+              target="_blank"
+              href="https://discord.gg/TmTcbaDr"
+            > <img src="/images/discord.png" alt="join" className="object-scale-down max-h-full m-auto" /></Link>
+            <Link
+              target="_blank"
+              href="https://www.x.com/refractiondao"
+            > <img src="/images/twitter.png" alt="join" className="object-scale-down max-h-full m-auto" /></Link>
+            <Link
+              target="_blank"
+              href="https://instagram.com/refractionfestival"
+            > <img src="/images/instagram.png" alt="join" className="object-scale-down max-h-full m-auto" /></Link>
+            <Link
+              target="_blank"
+              href="https://www.lensfrens.xyz/refraction"
+            > <img src="/images/lenster.png" alt="join" className="object-scale-down max-h-full m-auto" /></Link>
           </div>
         </div>
 
