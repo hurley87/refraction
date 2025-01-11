@@ -1,11 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 
-type BoostProps = {
+type CreatorProps = {
   creator: `0x${string}`;
 };
 
-export default function Creator({ creator }: BoostProps) {
+export default function Creator({ creator }: CreatorProps) {
   const [username, setUsername] = useState("");
   const [avatar, setAvatar] = useState("");
   const formatAddress = (address: string) => {
@@ -18,7 +18,12 @@ export default function Creator({ creator }: BoostProps) {
       const response = await fetch(`/api/user?address=${creator}`);
       const data = await response.json();
       setUsername(data.username);
-      setAvatar(data.avatar.replace("ipfs://", ""));
+
+      const image = `https://ipfs.decentralized-content.com/ipfs/${data.avatar.replace(
+        "ipfs://",
+        ""
+      )}`;
+      setAvatar(image);
     } catch (error) {
       console.error("Failed to fetch user data:", error);
     }
@@ -30,15 +35,11 @@ export default function Creator({ creator }: BoostProps) {
     }
   }, [creator]);
 
-  console.log("avatar", avatar);
-
   return (
     <span className="text-black flex items-center gap-2">
-      <img
-        src={`https://ipfs.decentralized-content.com/ipfs/${avatar}`}
-        alt={username}
-        className="w-4 h-4 rounded-full"
-      />
+      {avatar && (
+        <img src={avatar} alt={username} className="w-4 h-4 rounded-full" />
+      )}
       {username || formatAddress(creator)}
     </span>
   );

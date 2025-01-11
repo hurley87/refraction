@@ -10,7 +10,6 @@ export const Token = ({
   tokenId: number;
   collectorClient: any;
 }) => {
-  const [token, setToken] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [name, setName] = useState<string>("");
@@ -29,31 +28,15 @@ export const Token = ({
         const tokenURI = await getIPSFData(
           token.tokenURI.replace("ipfs://", "")
         );
-
-        console.log(tokenURI);
-
         const name = tokenURI.name;
-
-        console.log(name);
-
-        setName(name);
-
         const image = `https://ipfs.decentralized-content.com/ipfs/${tokenURI.image.replace(
           "ipfs://",
           ""
         )}`;
 
-        console.log(image);
-
+        setName(name);
         setImage(image);
-
-        // const image = await getIPSFData(imageIPFS);
-
-        // console.log(image);
-
         setCreator(token.creator);
-
-        setToken(token);
         setIsLoading(false);
       } catch (err) {
         setError(err as Error);
@@ -62,12 +45,10 @@ export const Token = ({
     };
 
     fetchTokens();
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error loading tokens</div>;
-
-  console.log(token);
 
   return (
     <div className="flex flex-col gap-6 bg-[#DBDFF2]/50 p-4 sm:p-8 rounded-lg max-w-[600px]">
