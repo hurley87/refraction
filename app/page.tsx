@@ -2,6 +2,7 @@ import { Header } from "@/components/homepage/header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
+import { Tokens } from "@/components/homepage/tokens";
 
 export default function Home() {
   return (
@@ -9,13 +10,13 @@ export default function Home() {
       <Header />
 
       {/* Hero Section */}
-      <div className="p-4 sm:p-8 md:p-12 bg-black rounded-sm flex flex-col gap-8 md:gap-12">
+      <div className="p-4 sm:p-8 bg-black rounded-sm flex flex-col gap-8 md:gap-12">
         <div className="flex flex-col md:flex-row md:gap-12 gap-6">
-          <h2 className="text-[#00E232] text-2xl sm:text-4xl md:text-5xl w-full">
+          <h2 className="text-[#00E232] text-2xl sm:text-5xl w-full">
             Refraction is an artist-owned community leading the next wave of
             digital art, music and culture — online, onchain and IRL.
           </h2>
-          <div className="w-full md:w-1/2">
+          <div className="w-full md:w-3/5">
             <Image
               src="/images/spectrum.png"
               alt="spectrum"
@@ -36,8 +37,10 @@ export default function Home() {
         </div>
       </div>
 
+      <Tokens />
+
       {/* Red Section */}
-      <div className="p-4 sm:p-8 md:p-12 bg-[#FFE1E1] rounded-sm flex flex-col gap-6 sm:gap-8 md:gap-10">
+      <div className="p-4 sm:p-8 bg-[#FFE1E1] rounded-sm flex flex-col gap-6 sm:gap-8 md:gap-10">
         <div className="flex flex-row gap-4">
           <h2 className="text-[#FF0000] text-2xl sm:text-3xl md:text-4xl">
             {`Refraction's online opportunities span educational workshops, creative
@@ -85,7 +88,7 @@ export default function Home() {
       </div>
 
       {/* Purple Section */}
-      <div className="flex flex-col md:flex-row justify-between items-center bg-[#E7E3FF] rounded-sm p-4 sm:p-8 md:p-12 gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-center bg-[#E7E3FF] rounded-sm p-4 sm:p-8 gap-6">
         <h1 className="text-4xl sm:text-5xl md:text-7xl text-[#6101FF]">
           Join Refraction
         </h1>
@@ -108,7 +111,7 @@ export default function Home() {
       </div>
 
       {/* Footer Section */}
-      <div className="flex flex-col gap-6 bg-[#221204] rounded-sm p-4 sm:p-8 md:p-12">
+      <div className="flex flex-col gap-6 bg-[#221204] rounded-sm p-4 sm:p-8">
         <p className="text-white text-lg sm:text-xl">
           Stay up to date with our newsletter
         </p>
