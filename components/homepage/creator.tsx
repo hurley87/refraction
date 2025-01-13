@@ -40,7 +40,7 @@ export default function Creator({ creator }: CreatorProps) {
       {avatar && (
         <img src={avatar} alt={username} className="w-4 h-4 rounded-full" />
       )}
-      {username || formatAddress(creator)}
+      {username.toUpperCase() || formatAddress(creator)}
     </span>
   );
 }
