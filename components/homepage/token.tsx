@@ -3,7 +3,7 @@ import { getIPSFData } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import Creator from "./creator";
-import { getPremintPricePerToken } from "@zoralabs/protocol-sdk";
+import Link from "next/link";
 
 export const Token = ({
   tokenId,
@@ -17,7 +17,6 @@ export const Token = ({
   const [name, setName] = useState<string>("");
   const [image, setImage] = useState<string>("");
   const [creator, setCreator] = useState<`0x${string}` | null>(null);
-  
 
   useEffect(() => {
     const fetchTokens = async () => {
@@ -28,6 +27,8 @@ export const Token = ({
           mintType: "1155",
         });
 
+        console.log("token", token);
+
         const tokenURI = await getIPSFData(
           token.tokenURI.replace("ipfs://", "")
         );
@@ -36,13 +37,10 @@ export const Token = ({
           "ipfs://",
           ""
         )}`;
-        
 
-        
-        
         setName(name.toUpperCase());
         setImage(image);
-        setCreator(token.creator); 
+        setCreator(token.creator);
         setIsLoading(false);
       } catch (err) {
         setError(err as Error);
@@ -64,17 +62,17 @@ export const Token = ({
       {creator && <Creator creator={creator} />}
       <div className="flex flex-row gap-6 justify-between">
         <div className="flex">
-          <Button
-            size="lg"
-            className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90  sm:w-auto"
+          <Link
+            target="_blank"
+            href="https://zora.co/collect/base:0xec6f57cb913cdb21ed021d22ad2f47e67e59ac09/1"
           >
-            Mint • 0.15ETH
-          </Button>
-        </div>
-        <div className="flex pt-2">
-          <div className="text-sm ju text-[#6101FF]">LEARN MORE </div>
-          &nbsp;
-          <img src="/images/arrow.png" className="w-4 h-4" alt="arrow" />
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90  sm:w-auto"
+            >
+              Buy • 0.000111 ETH
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

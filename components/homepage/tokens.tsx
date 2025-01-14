@@ -42,37 +42,15 @@ export const Tokens = () => {
       <div className="flex justify-start items-center p-4 sm:p-8 bg-[#DBDFF2]/50">
         IRL Mints
       </div>
-      <div className="flex flex-row gap-6">
-        <div className="flex gap-6 text-black">
-          {tokens.map((token: any) => (
-            <Token
-              key={token.token.tokenId}
-              tokenId={token.token.tokenId}
-              collectorClient={collectorClient}
-            />
-          ))}
-        </div>
-        <div className="flex gap-6 text-black">
-          {tokens.map((token: any) => (
-            <Token
-              key={token.token.tokenId}
-              tokenId={token.token.tokenId}
-              collectorClient={collectorClient}
-            />
-          ))}
-        </div>
-        <div className="flex gap-6 text-black">
-          {tokens.map((token: any) => (
-            <Token
-              key={token.token.tokenId}
-              tokenId={token.token.tokenId}
-              collectorClient={collectorClient}
-            />
-          ))}
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {tokens.map((token: any) => (
+          <Token
+            key={token.token.tokenId}
+            tokenId={token.token.tokenId}
+            collectorClient={collectorClient}
+          />
+        ))}
       </div>
     </div>
-    
-    
   );
 };
