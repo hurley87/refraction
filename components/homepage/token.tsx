@@ -27,8 +27,6 @@ export const Token = ({
           mintType: "1155",
         });
 
-        console.log("token", token);
-
         const tokenURI = await getIPSFData(
           token.tokenURI.replace("ipfs://", "")
         );
