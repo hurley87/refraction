@@ -38,6 +38,10 @@ export default function CreateToken() {
       name: "Event 1",
       contractAddress: "0x54cb61509acc4c5e977d46628e05bbb724638d36",
     },
+    {
+      name: "Event 2",
+      contractAddress: "0xa31b79656b4fa6c03e36f44dae2071fa7d7c5650",
+    },
   ];
 
   const chainId = base.id;
@@ -56,8 +60,6 @@ export default function CreateToken() {
         toast.error("Please select an event");
         return;
       }
-
-      const buttonClass ="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90  sm:w-auto";
 
       // Convert file to base64
       const base64Image = await new Promise<string>((resolve, reject) => {
@@ -133,84 +135,91 @@ export default function CreateToken() {
   };
 
   return (
-    <div className="flex flex-col gap-6 bg-[#DBDFF2]/50 p-4 sm:p-8 rounded-lg max-w-[600px] font-sans ">
-      <div className="grid w-full items-center gap-1.5" >
-        <Label className="text-[#6101FF]">Event</Label>
-        <Select
-          value={selectedEventAddress}
-          onValueChange={setSelectedEventAddress}
-          
-          
-        >
-          <SelectTrigger className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-[#E9E7FF] py-1.5 pl-3 pr-8 text-base outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 text-[#6101FF]">
-            <SelectValue placeholder="Select an event" className="" />
-          </SelectTrigger>
-          <SelectContent className="bg-[#E9E7FF] text-[#6101FF] " >
-            {events.map((event) => (
-              <SelectItem
-                key={event.contractAddress}
-                value={event.contractAddress}
-              >
-                {event.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid w-full items-center gap-1.5">
-        <Label className="text-[#6101FF]">Name</Label>
-        <Input className="bg-[#E9E7FF]"
-          value={imageName}
-          onChange={(e) => setImageName(e.target.value)}
-        />
-      </div>
-      <div className="grid w-full items-center gap-1.5">
-        <Label className="text-[#6101FF]">Description</Label>
-        <Input
-          className="bg-[#E9E7FF]"
-          value={imageDescription}
-          onChange={(e) => setImageDescription(e.target.value)}
-        />
-      </div>
-      <div className="grid w-full max-w-sm items-center gap-1.5 ">
-        <Label className="text-[#6101FF]" htmlFor="picture">File</Label>
-        <Input 
-          onChange={(e) => {
-            if (e.target.files) {
-              setImageFile(e.target.files[0]);
-            }
-          }}
-          id="picture"
-          type="file"
-          className="bg-[#E9E7FF] text-[#6101FF]"
-        />
-        <p className="text-xs italic text-[#6101FF]">1:1 ratio is recommended</p>
-      </div>
-      <div>
-        {wallet ? (
-          <>
-            {walletChainId === base.id.toString() ? (
-              <Button
-                className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90 sm:w-auto"
-                disabled={isUpdatingToken}
-                onClick={addImageToken}
-              >
-                {isUpdatingToken ? "Creating ..." : "Create"}
-              </Button>
-            ) : (
-              <Button 
-              className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90  sm:w-auto"
-              onClick={switchNetwork}>Switch to Base</Button>
-            )}
-          </>
-        ) : (
-          <Button
-            className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90  sm:w-auto"
-            onClick={login}
+    <div className="p-6">
+      <div className="flex flex-col gap-6 bg-[#DBDFF2]/50 p-4 sm:p-8 rounded-lg max-w-[600px] font-sans mx-auto">
+        <div className="grid w-full items-center gap-1.5">
+          <Select
+            value={selectedEventAddress}
+            onValueChange={setSelectedEventAddress}
           >
-            Connect Wallet
-          </Button>
-        )}
+            <SelectTrigger className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-[#E9E7FF] py-1.5 pl-3 pr-8 text-base outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 text-[#6101FF] border border-black">
+              <SelectValue placeholder="Select an event" className="" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#E9E7FF] text-[#6101FF] ">
+              {events.map((event) => (
+                <SelectItem
+                  key={event.contractAddress}
+                  value={event.contractAddress}
+                >
+                  {event.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid w-full items-center gap-1.5">
+          <Label className="text-[#6101FF]">Name</Label>
+          <Input
+            className="bg-[#E9E7FF]"
+            value={imageName}
+            onChange={(e) => setImageName(e.target.value)}
+          />
+        </div>
+        <div className="grid w-full items-center gap-1.5">
+          <Label className="text-[#6101FF]">Description</Label>
+          <Input
+            className="bg-[#E9E7FF]"
+            value={imageDescription}
+            onChange={(e) => setImageDescription(e.target.value)}
+          />
+        </div>
+        <div className="grid w-full max-w-sm items-center gap-1.5 ">
+          <Label className="text-[#6101FF]" htmlFor="picture">
+            File
+          </Label>
+          <Input
+            onChange={(e) => {
+              if (e.target.files) {
+                setImageFile(e.target.files[0]);
+              }
+            }}
+            id="picture"
+            type="file"
+            className="bg-[#E9E7FF] text-[#6101FF]"
+          />
+          <p className="text-xs italic text-[#6101FF]">
+            1:1 ratio is recommended
+          </p>
+        </div>
+        <div>
+          {wallet ? (
+            <>
+              {walletChainId === base.id.toString() ? (
+                <Button
+                  className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90 sm:w-auto"
+                  disabled={isUpdatingToken}
+                  onClick={addImageToken}
+                >
+                  {isUpdatingToken ? "Creating ..." : "Create"}
+                </Button>
+              ) : (
+                <Button
+                  className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90  sm:w-auto"
+                  onClick={switchNetwork}
+                >
+                  Switch to Base
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button
+              className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90  sm:w-auto"
+              onClick={login}
+            >
+              Connect Wallet
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
