@@ -35,11 +35,11 @@ export default function CreateToken() {
 
   const events = [
     {
-      name: "Event 1",
+      name: "Graham Event",
       contractAddress: "0x54cb61509acc4c5e977d46628e05bbb724638d36",
     },
     {
-      name: "Event 2",
+      name: "Dave Event",
       contractAddress: "0xa31b79656b4fa6c03e36f44dae2071fa7d7c5650",
     },
   ];
