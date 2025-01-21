@@ -87,9 +87,6 @@ export default function CreateToken() {
         throw new Error(data.error || "Failed to upload");
       }
 
-      toast.success("Successfully uploaded to IPFS!");
-      console.log("IPFS URL: ", data.metadataUrl);
-
       const tokenMetadataURI = data.metadataUrl;
 
       const ethereumProvider = (await wallet?.getEthereumProvider()) as any;
