@@ -1,35 +1,103 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract Events is Ownable {
+contract PointsProtocol is Ownable, Pausable, ReentrancyGuard {
+    struct Checkpoint {
+        uint256 points;
+        bool isActive;
+    }
 
-    uint256 public totalCheckpoints = 5;
+    struct UserCheckin {
+        mapping(uint256 => bool) checkedIn;
+        uint256 totalPoints;
+        uint256 lastCheckInTime;
+        uint256 checkInCount;
+    }
+
+    mapping(address => UserCheckin) public users;
+    mapping(uint256 => Checkpoint) public checkpoints;
+    uint256 public nextCheckpointId = 1;
     
-    // Mapping to track which checkpoints a user has checked into
-    mapping(address => bool[5]) public checkInStatus;
-
-    // Event to emit when a user checks in
-    event CheckIn(address indexed user, uint256 checkpoint);
+    uint256 public maxPointsPerCheckpoint = 1000;
+    
+    event CheckIn(address indexed user, uint256 checkpointId, uint256 points);
+    event PointsUpdated(uint256 checkpointId, uint256 newPoints);
+    event CheckpointAdded(uint256 checkpointId, uint256 points);
+    event CheckpointStatusChanged(uint256 checkpointId, bool isActive);
+    event MaxPointsUpdated(uint256 newMaxPoints);
 
     constructor() Ownable(msg.sender) {}
 
-    // Modifier to ensure that the checkpoint is valid and user hasn't checked in already
-    modifier canCheckIn(uint256 checkpoint, address user) {
-        require(checkpoint < totalCheckpoints, "Invalid checkpoint");
-        require(!checkInStatus[user][checkpoint], "User already checked in to this checkpoint");
-        _;
+    function checkIn(address user, uint256 checkpointId) external whenNotPaused nonReentrant onlyOwner {
+        require(checkpoints[checkpointId].isActive, "Checkpoint does not exist or inactive");
+        require(!users[user].checkedIn[checkpointId], "Already checked in");
+
+        users[user].checkedIn[checkpointId] = true;
+        users[user].totalPoints += checkpoints[checkpointId].points;
+        users[user].lastCheckInTime = block.timestamp;
+        users[user].checkInCount++;
+
+        emit CheckIn(user, checkpointId, checkpoints[checkpointId].points);
     }
 
-    // Function to check in to a checkpoint
-    function checkIn(uint256 checkpoint, address user) external canCheckIn(checkpoint, user) onlyOwner {
-        checkInStatus[user][checkpoint] = true;
-        emit CheckIn(user, checkpoint);
+    function updateCheckpointPoints(uint256 checkpointId, uint256 newPoints) external onlyOwner {
+        require(checkpoints[checkpointId].isActive, "Checkpoint does not exist");
+        require(newPoints <= maxPointsPerCheckpoint, "Points exceed maximum allowed");
+
+        checkpoints[checkpointId].points = newPoints;
+        emit PointsUpdated(checkpointId, newPoints);
     }
 
-    // Function to get the check-in status of a user at all checkpoints
-    function getCheckInStatus(address user) external view returns (bool[5] memory) {
-        return checkInStatus[user];
+    function addCheckpoint(uint256 points) external onlyOwner {
+        require(points <= maxPointsPerCheckpoint, "Points exceed maximum allowed");
+
+        uint256 checkpointId = nextCheckpointId++;
+        checkpoints[checkpointId] = Checkpoint(points, true);
+        emit CheckpointAdded(checkpointId, points);
     }
+
+    function setCheckpointStatus(uint256 checkpointId, bool isActive) external onlyOwner {
+        require(checkpoints[checkpointId].points > 0, "Checkpoint does not exist");
+        checkpoints[checkpointId].isActive = isActive;
+        emit CheckpointStatusChanged(checkpointId, isActive);
+    }
+
+    function setMaxPointsPerCheckpoint(uint256 newMaxPoints) external onlyOwner {
+        maxPointsPerCheckpoint = newMaxPoints;
+        emit MaxPointsUpdated(newMaxPoints);
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    function getUserPoints(address user) external view returns (uint256) {
+        return users[user].totalPoints;
+    }
+
+    function getUserCheckInCount(address user) external view returns (uint256) {
+        return users[user].checkInCount;
+    }
+
+    function getUserLastCheckIn(address user) external view returns (uint256) {
+        return users[user].lastCheckInTime;
+    }
+
+    function getCheckpointDetails(uint256 checkpointId) 
+        external 
+        view 
+        returns (uint256 points, bool isActive) 
+    {
+        Checkpoint memory checkpoint = checkpoints[checkpointId];
+        return (checkpoint.points, checkpoint.isActive);
+    }
+
 }
