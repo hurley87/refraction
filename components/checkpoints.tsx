@@ -28,17 +28,15 @@ export default function Checkpoints() {
     return <div className="text-center text-black">Loading...</div>;
   }
 
-  const REQUIRED_CHECKPOINTS = 4;
+  const REQUIRED_CHECKPOINTS = 3;
   const hasEnoughCheckpoints =
     checkins?.filter((checkin: boolean) => checkin).length >=
     REQUIRED_CHECKPOINTS;
 
   const checkpointNames = [
-    "Entrance checkpoint",
-    "Bar checkpoint",
-    "Ten by RARI exhibition checkpoint",
-    "Merch stand checkpoint",
-    "Bonus! Dancefloor checkpoint",
+    "Checkpoint 1",
+    "Checkpoint 2",
+    "Checkpoint 3",
   ];
 
   if (hasEnoughCheckpoints) {

@@ -58,6 +58,9 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-space-grotesk)"],
+        grotesk: ['"Space Grotesk"', "sans-serif"],
+        anonymous: ['"Anonymous Pro"', "sans-serif"],
+        'inktrap': ['Inktrap', "sans-serif"],
       },
     },
   },

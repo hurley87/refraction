@@ -3,94 +3,63 @@ import Image from "next/image";
 
 export default async function CheckpointsPage() {
   return (
-    <div className="relative  flex-col items-center justify-center w-full  md:px-0 font-sans">
-      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-yellow-300 from-10% via-rose-300 via-30% to-sky-500 to-90% p-6 text-BLACK dark:border-r justify-between">
+    <div className="relative  flex-col items-center justify-center w-full  md:px-0">
+      <div className="relative  flex flex-row  bg-[#E8E3DA] p-6 text-BLACK dark:border-r justify-between">
+        <div className="flex">
+          <div className="flex-auto text-black text-lg p-6">
+            <p className="text-6xl text-left font-inktrap">
+              Your IRL Side Quest @ Ledger 106
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="relative  flex flex-col gap-3 bg-[#E8E3DA] p-6 text-BLACK dark:border-r justify-between">
+        <div className="flex-auto text-black text-lg p-6">
+          <p className="text-4xl text-left font-anonymous">
+            Powered by
+            </p>
+          </div>
+      </div>
+       <div className="relative  flex flex-row gap-3 bg-[#E8E3DA] p-6 text-BLACK dark:border-r justify-between">
+        <div className="flex-auto text-black text-lg p-6">
+          <Image src="/images/refraction_paris.png" alt="refraction paris" width={173} height={30} />    
+        </div>
+        <div className="flex-auto text-black text-lg p-6">
+          <Image src="/images/ledger_paris.png" alt="refraction paris" width={132} height={44} />    
+        </div>
+      </div>
+      <div className="relative  flex flex-col gap-3 bg-[#E8E3DA] p-6 text-BLACK dark:border-r justify-between">
         <div className="flex justify-center p-6">
           <Checkpoints />
         </div>
       </div>
-      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-yellow-300 from-10% via-rose-300 via-30% to-sky-500 to-90% p-6 text-BLACK dark:border-r justify-between">
+      <div className="relative  flex flex-col gap-3 bg-[#E8E3DA] p-6 text-BLACK dark:border-r justify-between">
         <div className="flex justify-center p-6">
           <Image
-            src="/images/$IRL_VENUE MAP_2ND FLOOR_TRANSPARENT.png"
-            width={1000}
-            height={1000}
+            src="/images/map.png"
+            width={393} 
+            height={495} 
             alt="venue map 2nd floor"
           />
         </div>
       </div>
-      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-yellow-300 from-10% via-rose-300 via-30% to-sky-500 to-90% p-6 text-BLACK dark:border-r justify-between">
-        <div className="flex justify-center p-6">
-          <Image
-            src="/images/$IRL_VENUE MAP_3RD FLOOR_TRANSPARENT-2.png"
-            width={1000}
-            height={1000}
-            alt="venue map 3rd floor"
-          />
-        </div>
-      </div>
-      <div className="relative  flex flex-row  bg-gradient-to-r from-orange-600 from-10% via-rose-300 via-90% to-yellow-300 to-100% p-6 text-BLACK dark:border-r justify-between">
-        <div className="flex">
-          <div className="flex-auto text-black text-lg p-6">
-            <p className="text-6xl text-center">
-              Earn rewards for supporting culture
-            </p>
-          </div>
-          <div className="flex justify-center">
-            <Image
-              src="/images/$IRL_SYMBOLS_BLACK_2.svg"
-              width={300}
-              height={300}
-              alt="symbols"
-            />
-          </div>
-        </div>
-      </div>
-      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-orange-600 from-10%  to-red-600 to-90% p-6 text-BLACK dark:border-r justify-between">
-        <div className="flex items-center p-6">
-          <div className="flex-none">
-            <Image
-              src="/images/$IRL_PRIMARY LOGO ICON_BLACK.svg"
-              alt="IRL"
-              width={100}
-              height={100}
-              className="rotate-90"
-            />
-          </div>
-          <div className="flex-auto text-black text-lg4 p-6">
-            <p>
-              A token that fuels creativity and experiences around the world.
-              Earn $IRL to unlock unique experiences and rewards, both online
-              and offline.
-            </p>
-          </div>
-        </div>
-      </div>
-      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-red-600 from-40% to-green-600 to-90% p-6 text-BLACK dark:border-r justify-between">
-        <div className="flex-auto text-black text-lg">
-          <p className="text-lg">
-            TRANSFORMS PARTICIPATION INTO A TANGIBLE ASSET, FOSTERING DEEPER
-            ENGAGEMENT AND INCENTIVIZING CONTRIBUTIONS.
+      <div className="relative  flex flex-col gap-3 bg-[#E8E3DA] p-6 text-BLACK dark:border-r justify-between">
+        <div className="flex-auto text-black text-lg text-left max-w-4xl mx-auto p-6">
+          <p className="text-base font-anonymous">
+            Powered by Refraction's global network of artists, creatives and culture institutions, IRL bridges tangible and virtual worlds, forming the connective tissue between decentralized internet and lived reality.<br/><br/>
+            Side Quests are your opportunity to earn points on the IRL protocol ahead of the token launch in June 2025. <br/><br/>In partnership with Ledger, Refraction and IRL touch down @ Ledger 106 during NFT Paris week for a full programme of events. Learn more here:
           </p>
         </div>
       </div>
-      <div className="relative  flex flex-col gap-3 bg-gradient-to-r from-red-600 from-10% to-green-600 to-70% p-6 text-BLACK dark:border-r justify-between">
-        <div className="flex-auto text-black text-lg text-center max-w-4xl mx-auto p-6">
-          <p className="text-base">
-            $IRL Side Quests let you dive deeper into the experience, earn
-            points, discover new art, and unlock rewards across each checkpoint.
-            Tap your phone to the first checkpoint to get started.
+      <div className="relative  flex flex-col gap-3 bg-[#E8E3DA] p-6 text-BLACK dark:border-r justify-between">
+        <div className="flex-auto text-black text-lg text-left max-w-4xl mx-auto p-6">
+          <p className="text-base font-anonymous">
+            You’ve checked in at ** of 3 Side Quest checkpoints. Head to the lobby, Ledger Stax installation, and the vending machine on the 8th floor to check-in and earn more IRL points
           </p>
         </div>
-        <div className="flex-auto text-black text-lg text-center max-w-4xl mx-auto p-6">
-          <Image
-            src="/images/$IRL_SYMBOLS_BLACK_4.svg"
-            width={250}
-            height={250}
-            alt="symbols"
-          />
-        </div>
       </div>
+
+      
     </div>
   );
 }
