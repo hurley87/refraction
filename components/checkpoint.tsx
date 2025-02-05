@@ -40,7 +40,7 @@ const checkedInTitles = [
 
 const checkedInMessages = [
   "",
-  "Congratulations, you’ve checked in to your first Side Quest and have started earning IRL points. Continue to the back of the lobby to explore the bespoke Stax artwork by Emily Edelman and find your next Side Quest checkpoint.",
+  "Congratulations, you’ve checked in to your first Side Quest and have started earning IRL points. \n\nContinue to the back of the lobby to explore the bespoke Stax artwork by Emily Edelman and find your next Side Quest checkpoint.",
   "Congratulations, you’ve checked in at the Ledger Stax Side Quest checkpoint and have earned more IRL points. It’s time to head upstairs to the 8th floor— grab a drink and visit the vending machine to collect your Ledger collectible.",
   "Claim your physical collectible at the vending machine.",
 ];
