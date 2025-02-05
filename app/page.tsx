@@ -13,8 +13,9 @@ export default function Home() {
       <div className="p-4 sm:p-8 bg-black rounded-sm flex flex-col gap-8 md:gap-12 ">
         <div className="flex flex-col md:flex-row md:gap-12 gap-6">
           <h2 className="text-[#00E232] text-2xl sm:text-5xl w-full">
-            Refraction is an artist-owned community leading the next wave of
-            digital art, music and culture — online, onchain and IRL.
+            Developed by Refraction, a pioneer in web3 arts and culture, the IRL
+            protocol realizes the blockchain's potential to revolutionize the
+            creative industry.
           </h2>
           <div className="w-full md:w-3/5">
             <Image
@@ -43,14 +44,13 @@ export default function Home() {
       <div className="p-4 sm:p-8 bg-[#FFE1E1] rounded-sm flex flex-col gap-6 sm:gap-8 md:gap-10">
         <div className="flex flex-row gap-4">
           <h2 className="text-[#FF0000] text-2xl sm:text-3xl md:text-4xl">
-            {`Refraction's online opportunities span educational workshops, creative
-              programs, and cultivation of MicroDAOs within our larger structure.`}
+            {`The IRL ecosystem reimagines the experience economy through its blockchain, token, and protocol, establishing a decentralized foundation for a new era of cultural participation. Rewarding meaningful contributions and creating direct pathways for monetization and interaction, the IRL protocol empowers artists, creators, and audiences to participate in a system that incentivizes collaboration and innovation.`}
           </h2>
         </div>
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <Link
             target="_blank"
-            href="https://app.towns.com/t/0xf19e5997fa4df2e12a3961fc7e9ad09c7a301244/"
+            href="https://linkin.bio/refractionfestival/"
             className="w-full sm:w-auto"
           >
             <Button
@@ -90,21 +90,18 @@ export default function Home() {
       {/* Purple Section */}
       <div className="flex flex-col md:flex-row justify-between items-center bg-[#E7E3FF] rounded-sm p-4 sm:p-8 gap-6">
         <h1 className="text-4xl sm:text-5xl md:text-7xl text-[#6101FF]">
-          Join Refraction
+          Earn IRL
         </h1>
         <div className="flex flex-col gap-6 w-full md:w-1/2">
           <p className="text-[#6101FF] text-base sm:text-lg">
-            {`The REFRACT PASS is the most direct way to support Refraction's mission of empowering creatives and building a future that values the economic independence of artists across the world.*Mint a REFRACT PASS to gain full membership.`}
+            {`With real-world utility supported by existing cultural networks, the IRL protocol transcends traditional crypto applications and sets the stage for an inclusive, expansive framework for global cultural engagement.  As much a loyalty points system as a web3 platform, IRL changes how we experience for the better.`}
           </p>
-          <Link
-            target="_blank"
-            href="https://zora.co/collect/eth:0x115b90187d38dc0a9a9d6bdc8ec9b1f492964894"
-          >
+          <Link target="_blank" href="https://linkin.bio/refractionfestival/">
             <Button
               size="lg"
               className="uppercase bg-[#6101FF] hover:bg-[#6101FF]/90 text-[#FFFFFF] w-full sm:w-auto"
             >
-              Mint PASS
+              Learn more
             </Button>
           </Link>
         </div>
