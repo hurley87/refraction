@@ -66,17 +66,17 @@ export default function Auth({ children }: AuthProps) {
         <div className="relative  flex flex-col gap-3 bg-[#E8E3DA] text-BLACK dark:border-r justify-between">
           <div className="flex-auto text-black text-lg text-left max-w-4xl mx-auto">
             <p className="text-base font-anonymous">
-              Let’s get started! Click the button below to learn more about the
-              art exhibition and unlock the first checkpoint on your Side Quest.
+              {`Let’s get started! Click the button below to learn more about the
+              art exhibition and unlock the first checkpoint on your Side Quest.`}
               <br />
               <br />
               Side Quests are your opportunity to earn points on the IRL
               protocol ahead of the token launch in June 2025. <br />
               <br />
-              In partnership with Ledger and powered by Refraction's global
+              {`In partnership with Ledger and powered by Refraction's global
               network of artists, creatives and culture institutions, IRL
               bridges tangible and virtual worlds, forming the connective tissue
-              between decentralized internet and lived reality.
+              between decentralized internet and lived reality.`}
             </p>
           </div>
         </div>

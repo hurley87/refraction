@@ -37,10 +37,10 @@ export default async function CheckpointsPage() {
       <div className="relative  flex flex-col gap-3 bg-[#E8E3DA] text-BLACK dark:border-r justify-between">
         <div className="flex-auto text-black text-lg text-left max-w-4xl mx-auto">
           <p className="text-base font-anonymous">
-            Powered by Refraction's global network of artists, creatives and
+            {`Powered by Refraction's global network of artists, creatives and
             culture institutions, IRL bridges tangible and virtual worlds,
             forming the connective tissue between decentralized internet and
-            lived reality.
+            lived reality.`}
             <br />
             <br />
             Side Quests are your opportunity to earn points on the IRL protocol
@@ -55,9 +55,9 @@ export default async function CheckpointsPage() {
       <div className="relative  flex flex-col gap-3 bg-[#E8E3DA] text-BLACK dark:border-r justify-between">
         <div className="flex-auto text-black text-lg text-left max-w-4xl mx-auto">
           <p className="text-base font-anonymous">
-            You’ve checked in at ** of 3 Side Quest checkpoints. Head to the
+            {`You’ve checked in at ** of 3 Side Quest checkpoints. Head to the
             lobby, Ledger Stax installation, and the vending machine on the 8th
-            floor to check-in and earn more IRL points
+            floor to check-in and earn more IRL points.`}
           </p>
         </div>
       </div>
