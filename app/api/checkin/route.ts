@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { createWalletClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { checkinABI, checkinAddress } from "@/lib/checkin";
-import { publicClient } from "@/lib/publicClient";
+import { testPublicClient } from "@/lib/publicClient";
 import { baseSepolia } from "viem/chains";
 
 const walletClient = createWalletClient({
@@ -20,12 +20,12 @@ export async function POST(req: NextRequest) {
     const account = privateKeyToAccount(privateKey as `0x${string}`);
 
     // Add to allowlist
-    const { request }: any = await publicClient.simulateContract({
+    const { request }: any = await testPublicClient.simulateContract({
       account,
       address: checkinAddress,
       abi: checkinABI,
       functionName: "checkIn",
-      args: [checkpoint, walletAddress],
+      args: [walletAddress, checkpoint],
     });
 
     await walletClient.writeContract(request);

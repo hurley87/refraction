@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { publicClient } from "../lib/publicClient";
+import { testPublicClient } from "../lib/publicClient";
 import { checkinABI, checkinAddress } from "@/lib/checkin";
 
 export function useCheckins(address: string) {
-  const [checkins, setCheckins] = useState<any>(null);
+  const [checkins, setCheckins] = useState<number>(0);
 
   useEffect(() => {
     const fetchCheckins = async () => {
@@ -12,15 +12,15 @@ export function useCheckins(address: string) {
       }
 
       try {
-        const checkins = await publicClient.readContract({
+        const checkins = await testPublicClient.readContract({
           address: checkinAddress,
           abi: checkinABI,
-          functionName: "getCheckInStatus",
+          functionName: "getUserCheckInCount",
           args: [address],
         });
 
         if (checkins) {
-          setCheckins(checkins);
+          setCheckins(Number(checkins));
         }
       } catch (error) {
         console.error("Error fetching checkins:", error);

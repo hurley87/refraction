@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { publicClient } from "../lib/publicClient";
+import { testPublicClient } from "../lib/publicClient";
 import { checkinABI, checkinAddress } from "@/lib/checkin";
 
 export function useCheckInStatus(address: string, checkinId: string) {
@@ -12,12 +12,14 @@ export function useCheckInStatus(address: string, checkinId: string) {
       }
 
       try {
-        const checkinStatus = await publicClient.readContract({
+        const checkinStatus = await testPublicClient.readContract({
           address: checkinAddress,
           abi: checkinABI,
-          functionName: "checkInStatus",
+          functionName: "hasUserCheckedIn",
           args: [address, checkinId],
         });
+
+        console.log("checkinStatus", checkinStatus);
 
         if (checkinStatus) {
           setCheckinStatus(checkinStatus);

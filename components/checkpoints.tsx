@@ -8,15 +8,18 @@ import Link from "next/link";
 // import { SendEmailButton } from "./send-email-button";
 
 export default function Checkpoints() {
-  const { user, login } = usePrivy();
-  console.log("user", user);
+  const { user, login, ready } = usePrivy();
   const address = user?.wallet?.address as `0x${string}`;
   const { checkins } = useCheckins(address);
+
+  if (!ready) {
+    return <div className="text-center text-black">Loading...</div>;
+  }
 
   if (!user) {
     return (
       <Button
-        className="text-white rounded-lg hover:bg-slate-800 justify-center"
+        className="bg-white text-[#F24405] rounded-lg hover:bg-white/80 justify-center items-center w-full max-w-4xl text-xl font-inktrap py-5"
         onClick={login}
       >
         Get Started
@@ -24,122 +27,24 @@ export default function Checkpoints() {
     );
   }
 
-  if (!checkins) {
-    return <div className="text-center text-black">Loading...</div>;
-  }
-
-  const REQUIRED_CHECKPOINTS = 3;
-  const hasEnoughCheckpoints =
-    checkins?.filter((checkin: boolean) => checkin).length >=
-    REQUIRED_CHECKPOINTS;
-
-  const checkpointNames = [
-    "Checkpoint 1",
-    "Checkpoint 2",
-    "Checkpoint 3",
-  ];
-
-  if (hasEnoughCheckpoints) {
-    return (
-      <div className="flex flex-col text-xl gap-3 text-black">
-        <p>All checkpoints completed!</p>
-        <div className="flex flex-col text-xl gap-3 text-black">
-          {checkins?.map((checkin: boolean, index: number) => (
-            <div key={index} className="flex gap-2 items-center">
-              {!checkin ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="size-6"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 9.563C9 9.252 9.252 9 9.563 9h4.874c.311 0 .563.252.563.563v4.874c0 .311-.252.563-.563.563H9.564A.562.562 0 0 1 9 14.437V9.564Z"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="size-6"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                  />
-                </svg>
-              )}
-              <p>{checkpointNames[index]}</p>
-            </div>
-          ))}
-        </div>
-        <Link href="/">
-          <Button className="w-full" size="lg">
-            Learn More About $IRL
-          </Button>
-        </Link>
-        {/* <SendEmailButton /> */}
-      </div>
-    );
-  }
+  const checkpointNames = ["Checkpoint 1", "Checkpoint 2", "Checkpoint 3"];
 
   return (
     <Auth>
-      <div className="flex flex-col text-xl gap-3 text-black">
-        {checkins?.map((checkin: boolean, index: number) => (
-          <div key={index} className="flex gap-2 items-center">
-            {!checkin ? (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="size-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 9.563C9 9.252 9.252 9 9.563 9h4.874c.311 0 .563.252.563.563v4.874c0 .311-.252.563-.563.563H9.564A.562.562 0 0 1 9 14.437V9.564Z"
-                />
-              </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="size-6"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                />
-              </svg>
-            )}
-            <p>{checkpointNames[index]}</p>
-          </div>
-        ))}
+      <div className="flex flex-col gap-6">
+        <h2 className="font-inktrap text-2xl">Status</h2>
+        <div className="flex flex-col text-xl gap-3 text-black">
+          {checkpointNames?.map((name, index) => (
+            <div key={index} className="flex gap-6 items-center font-anonymous">
+              {checkins < index + 1 ? (
+                <div className="size-5 bg-[#FF9900] rounded-full"></div>
+              ) : (
+                <div className="size-5 bg-[#00E232] rounded-full"></div>
+              )}
+              <p>{name}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </Auth>
   );

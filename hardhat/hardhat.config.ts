@@ -15,7 +15,7 @@ const config = {
     },
     // for testnet
     "base-sepolia": {
-      url: process.env.NEXT_PUBLIC_QUICKNODE,
+      url: "https://base-sepolia-rpc.publicnode.com",
       accounts: [process.env.WALLET_KEY as string],
       gasPrice: 1000000000,
     },

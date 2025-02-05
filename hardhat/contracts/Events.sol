@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract PointsProtocol is Ownable, Pausable, ReentrancyGuard {
+contract Events is Ownable, Pausable, ReentrancyGuard {
     struct Checkpoint {
         uint256 points;
         bool isActive;
@@ -100,4 +100,7 @@ contract PointsProtocol is Ownable, Pausable, ReentrancyGuard {
         return (checkpoint.points, checkpoint.isActive);
     }
 
+    function hasUserCheckedIn(address user, uint256 checkpointId) external view returns (bool) {
+        return users[user].checkedIn[checkpointId];
+    }
 }

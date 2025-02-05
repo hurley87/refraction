@@ -9,5 +9,6 @@ npx hardhat help
 npx hardhat test
 REPORT_GAS=true npx hardhat test
 npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.ts
+npx hardhat ignition deploy ./ignition/modules/Events.ts --network base-sepolia
+npx hardhat verify --network base-sepolia
 ```
