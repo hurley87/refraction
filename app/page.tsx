@@ -6,11 +6,11 @@ import { Tokens } from "@/components/homepage/tokens";
 
 export default function Home() {
   return (
-    <div className="p-2 sm:p-4 flex flex-col w-full gap-4">
+    <div className="p-2 sm:p-4 flex flex-col w-full gap-4  font-grotesk">
       <Header />
 
       {/* Hero Section */}
-      <div className="p-4 sm:p-8 bg-black rounded-sm flex flex-col gap-8 md:gap-12">
+      <div className="p-4 sm:p-8 bg-black rounded-sm flex flex-col gap-8 md:gap-12 ">
         <div className="flex flex-col md:flex-row md:gap-12 gap-6">
           <h2 className="text-[#00E232] text-2xl sm:text-5xl w-full">
             Refraction is an artist-owned community leading the next wave of
