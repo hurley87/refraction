@@ -8,9 +8,11 @@ import Link from "next/link";
 export const Token = ({
   tokenId,
   collectorClient,
+  tokenContract,
 }: {
   tokenId: number;
   collectorClient: any;
+  tokenContract: string;
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -22,8 +24,8 @@ export const Token = ({
     const fetchTokens = async () => {
       try {
         const { token } = await collectorClient.getToken({
-          tokenContract: "0xec6f57cb913cdb21ed021d22ad2f47e67e59ac09",
-          tokenId: tokenId,
+          tokenContract,
+          tokenId,
           mintType: "1155",
         });
 
@@ -62,13 +64,13 @@ export const Token = ({
         <div className="flex">
           <Link
             target="_blank"
-            href="https://zora.co/collect/base:0xec6f57cb913cdb21ed021d22ad2f47e67e59ac09/1"
+            href={`https://zora.co/collect/base:${tokenContract}/${tokenId}?referrer=0xbD78783a26252bAf756e22f0DE764dfDcDa7733c`}
           >
             <Button
               size="lg"
               className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90  sm:w-auto"
             >
-              Buy • 0.000111 ETH
+              Mint
             </Button>
           </Link>
         </div>
