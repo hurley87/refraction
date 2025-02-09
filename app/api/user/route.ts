@@ -21,7 +21,6 @@ export async function GET(
     const data = await response.json();
     const username = data.user_profile?.username || "";
     const avatar = data.user_profile?.avatar || "";
-    console.log(data);
 
     return NextResponse.json({ username, avatar });
   } catch (error) {

@@ -55,12 +55,20 @@ export const Token = ({
   if (error) return <div>Error loading tokens</div>;
 
   return (
-    <div className="flex flex-col gap-6 bg-[#DBDFF2]/50 p-4 sm:p-8 rounded-lg max-w-[600px] font-sans ">
-      <img src={image} alt={name} />
+    <div className="flex flex-col gap-3 bg-[#DBDFF2]/50 p-4 sm:p-8 rounded-lg max-w-[600px] font-sans h-full">
+      <div
+        className="w-full aspect-square relative rounded-lg overflow-hidden"
+        style={{
+          backgroundImage: `url(${image})`,
+          backgroundPosition: "center",
+          backgroundSize: "cover",
+          backgroundRepeat: "no-repeat",
+        }}
+      />
       <div className="text-2xl">{name}</div>
 
       {creator && <Creator creator={creator} />}
-      <div className="flex flex-row gap-6 justify-between">
+      <div className="flex flex-row gap-6 justify-between mt-auto">
         <div className="flex">
           <Link
             target="_blank"

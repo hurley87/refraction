@@ -15,6 +15,14 @@ export const Tokens = () => {
       tokenId: "3",
       tokenContract: "0x9c02860419224c3e56df4a5111a24ec5a566e709",
     },
+    {
+      tokenId: "1",
+      tokenContract: "0xef889592ca0547c38e888e7247cfb11ebcd6936b",
+    },
+    {
+      tokenId: "1",
+      tokenContract: "0x78737183c792f2558662ce1fd6c4a18f2ca7f20a",
+    },
   ];
 
   return (
