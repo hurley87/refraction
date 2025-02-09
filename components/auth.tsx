@@ -15,8 +15,6 @@ export default function Auth({ children }: AuthProps) {
     return <div className="p-6 text-black h-screen">Loading...</div>;
   }
 
-  console.log(user);
-
   if (ready && user && !user.email) {
     return (
       <div className="flex justify-center w-fit mx-auto">

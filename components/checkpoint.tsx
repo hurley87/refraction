@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Auth from "./auth";
 import Image from "next/image";
-
+import { AssignedNumber } from "./assigned-number";
 interface CheckpointProps {
   id: string;
 }
@@ -88,6 +88,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
             <div className=" text-black text-lg font-anonymous whitespace-pre-wrap">
               {checkedInMessages[id]}
             </div>
+            {id === "3" && <AssignedNumber />}
             <div className="">
               <Button
                 onClick={() => router.push("/checkpoints")}
@@ -116,6 +117,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
             <div className=" text-black text-lg4 font-anonymous whitespace-pre-wrap">
               {checkInMessages[id]}
             </div>
+            {id === "3" && <AssignedNumber />}
 
             <div className="flex flex-col gap-2 justify-center">
               <Button

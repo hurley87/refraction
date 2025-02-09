@@ -19,8 +19,6 @@ export function useCheckInStatus(address: string, checkinId: string) {
           args: [address, checkinId],
         });
 
-        console.log("checkinStatus", checkinStatus);
-
         if (checkinStatus) {
           setCheckinStatus(checkinStatus);
         }
