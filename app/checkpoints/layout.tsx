@@ -14,14 +14,14 @@ export default function RootLayout({
 }>) {
   return (
     <div className="h-screen">
-      <div className="relative flex flex-col gap-6 bg-[#E8E3DA] px-4 text-BLACK dark:border-r justify-between font-sans">
+      <div className="relative flex flex-col gap-6 bg-gradient-to-b from-red-900 from-0% via-black via-15% to-black to-100% px-4 text-white dark:border-r justify-between font-sans">
         <div className="flex justify-start py-2">
           <div className="flex-none">
             <Image
-              src="/images/$IRL_PRIMARY LOGO_BLACK.svg"
+              src="/images/white-logo-36x34.png"
               alt="IRL"
-              width={42}
-              height={39}
+              width={36}
+              height={34}
             />
           </div>
         </div>

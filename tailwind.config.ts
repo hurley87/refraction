@@ -60,6 +60,8 @@ const config: Config = {
         sans: ["var(--font-space-grotesk)"],
         grotesk: ['"Space Grotesk"', "sans-serif"],
         anonymous: ['"Anonymous Pro"', "sans-serif"],
+        'ledger': ["Ledger", "sans-serif"],
+        'hmalpha': ["HMAlpha", "sans-serif"],
         'inktrap': ['Inktrap', "sans-serif"],
       },
     },

@@ -4,3 +4,17 @@
   font-weight: normal;
   font-style: normal;
 }
+
+@font-face {
+  font-family: 'Ledger';
+  src: url('/fonts/LedgerMono-Regular.ttf') format('truetype');
+  font-weight: normal;
+}
+
+@font-face {
+  font-family: 'HMAlpha';
+  src: url('/fonts/HMAlphaMono-Medium.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+

@@ -17,7 +17,7 @@ export default function Checkpoints() {
   if (!user) {
     return (
       <Button
-        className="bg-white text-[#F24405] rounded-lg hover:bg-white/80 justify-center items-center w-full max-w-4xl text-xl font-inktrap py-5"
+        className="bg-white text-[#F24405] rounded-lg hover:bg-white/80 justify-center items-center w-full max-w-4xl text-xl font-ledger py-5"
         onClick={login}
       >
         Get Started
@@ -25,15 +25,15 @@ export default function Checkpoints() {
     );
   }
 
-  const checkpointNames = ["Checkpoint 1", "Checkpoint 2", "Checkpoint 3"];
+  const checkpointNames = ["CHECKPOINT1", "CHECKPOINT2", "CHECKPOINT3"];
 
   return (
     <Auth>
-      <div className="flex flex-col gap-6">
-        <h2 className="font-inktrap text-2xl">Status</h2>
-        <div className="flex flex-col text-xl gap-3 text-black">
+      <div className="flex flex-col justify-center items-center gap-6">
+        <h2 className="font-ledger text-2xl">STATUS</h2>
+        <div className="flex flex-col text-xl gap-3 text-white">
           {checkpointNames?.map((name, index) => (
-            <div key={index} className="flex gap-6 items-center font-anonymous">
+            <div key={index} className="flex gap-6 items-center font-hmalpha">
               {checkins < index + 1 ? (
                 <div className="size-5 bg-[#FF9900] rounded-full"></div>
               ) : (

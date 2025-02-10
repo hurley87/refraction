@@ -78,7 +78,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
   return (
     <Auth>
       <div className="flex flex-col gap-6 text-BLACK">
-        {checkinStatus ? (
+        {!checkinStatus ? (
           <div className="flex flex-col gap-6 h-screen">
             <div className=" text-black text-xl4">
               <h1 className="text-4xl font-bold font-inktrap">
@@ -101,20 +101,20 @@ export default function Checkpoint({ id }: CheckpointProps) {
         ) : (
           <div className="flex flex-col gap-6">
             <Image
-              src="/images/imagery.png"
+              src="/images/maps2.png"
               alt="map"
-              width={393}
+              width={423}
               height={263}
             />
-            <div className=" text-black text-xl4">
-              <p className="text-4xl font-bold font-inktrap">
+            <div className=" text-white text-xl4">
+              <p className="text-4xl font-bold font-ledger">
                 {checkInTitles[id]}
               </p>
-              <p className="text-2xl font-bold font-inktrap">
+              <p className="text-2xl font-bold font-ledger">
                 {checkInSubtitles[id]}
               </p>
             </div>
-            <div className=" text-black text-lg4 font-anonymous whitespace-pre-wrap">
+            <div className=" text-white text-lg4 font-hmalpha whitespace-pre-wrap">
               {checkInMessages[id]}
             </div>
             {id === "3" && <AssignedNumber />}
