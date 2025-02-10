@@ -12,6 +12,14 @@ export const Tokens = () => {
 
   const tokens = [
     {
+      tokenId: "1",
+      tokenContract: "0x9c02860419224c3e56df4a5111a24ec5a566e709",
+    },
+    {
+      tokenId: "2",
+      tokenContract: "0x9c02860419224c3e56df4a5111a24ec5a566e709",
+    },
+    {
       tokenId: "3",
       tokenContract: "0x9c02860419224c3e56df4a5111a24ec5a566e709",
     },
