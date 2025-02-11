@@ -16,6 +16,36 @@ const website = () => {
   window.open("https://irl.energy", "_blank");
 };
 
+const checkpointImage = [
+  "",
+  "/images/checkpoint1-image.png",
+  "/images/checkpoint2-image.png",
+  "/images/checkpoint3-image.png",
+  "/images/checkpoint4-image.png",
+]
+const checkpointBlockText = [
+  "",
+  "/images/checkpoint1-blockText.png",
+  "/images/checkpoint2-blockText.png",
+  "/images/checkpoint3-blockText.png",
+  "/images/checkpoint4-blockText.png",
+]
+
+const checkpointCompletedImage = [
+  "",
+  "/images/checkpoint1-completedImage.png",
+  "/images/checkpoint2-completedImage.png",
+  "/images/checkpoint3-completedImage.png",
+  "/images/checkpoint4-completedImage.png",
+]
+const checkpointCompletedText = [
+  "",
+  "/images/checkpoint1-completedText.png",
+  "/images/checkpoint2-completedText.png",
+  "/images/checkpoint3-completedText.png",
+  "/images/checkpoint4-completedText.png",
+]
+
 const checkInTitles = [
   "",
   "Welcome to Rendered Frequencies @ Ledger 106",
@@ -23,7 +53,7 @@ const checkInTitles = [
   "Free from Compromise",
 ];
 
-const checkInSubtitles = ["", "", "by Emily Edelman"];
+
 const checkInMessages = [
   "",
   "Rendered Frequencies reimagines the encounter between art, music and audience by placing physicality and presence at the core of its ethos. \n\nDigital and physical experiences are no longer diametrically opposed— free from this compromise of deriving value from a singular realm, artists and audiences are encouraged to construct meaning across and between the increasingly indistinct digital-physical divide. \n\nThe exhibition, which takes place at Ledger’s newly unveiled and already iconic 106 HQ, features Anna Lucia, Fingacode, Kim Asendorf, Leander Herzog and Linda Dounia, exploring the essential role of seeing, experiencing, and connecting with art, music and beyond in real life. During the night of February 12th, Leander Herzog’s site specific installation of Heatsink, will be displayed in conversation with the music played throughout the evening.",
@@ -77,43 +107,60 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
   return (
     <Auth>
-      <div className="flex flex-col gap-6 text-BLACK">
-        {!checkinStatus ? (
-          <div className="flex flex-col gap-6 h-screen">
-            <div className=" text-black text-xl4">
-              <h1 className="text-4xl font-bold font-inktrap">
-                {checkedInTitles[id]}
-              </h1>
+      <div className="flex flex-col gap-6">
+        {checkinStatus ? (
+          <div className="flex flex-col gap-6 ">
+            <div className="flex flex-col justify-center items-center gap-6">
+              
+                <Image
+                  src={checkpointCompletedImage[id]}
+                  alt="map"
+                  width={393}
+                  height={310}
+                />
+                
+              
             </div>
-            <div className=" text-black text-lg font-anonymous whitespace-pre-wrap">
+            <div className="flex flex-col justify-center items-center gap-6">
+              
+                <Image
+                  src={checkpointCompletedText[id]}
+                  alt="map"
+                  width={393}
+                  height={310}
+                />
+                
+              
+            </div>
+            <div className="flex flex-col text-white font-hmalpha whitespace-pre-wrap">
               {checkedInMessages[id]}
             </div>
             {id === "3" && <AssignedNumber />}
             <div className="">
               <Button
                 onClick={() => router.push("/checkpoints")}
-                className=" text-black hover:bg-slate-800 rounded-lg w-full font-inktrap border-none shadow-none"
+                className=" text-white hover:bg-slate-800 rounded-lg w-full font-hmalpha border-none shadow-none"
               >
                 View Checkpoint Status
               </Button>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col justify-center items-center gap-6">
             <Image
-              src="/images/maps2.png"
+              src={checkpointImage[id]}
               alt="map"
               width={423}
-              height={263}
+              height={238}
             />
-            <div className=" text-white text-xl4">
-              <p className="text-4xl font-bold font-ledger">
-                {checkInTitles[id]}
-              </p>
-              <p className="text-2xl font-bold font-ledger">
-                {checkInSubtitles[id]}
-              </p>
-            </div>
+            
+            <Image
+              src={checkpointBlockText[id]}
+              alt="map"
+              width={361}
+              height={246}
+            />
+  
             <div className=" text-white text-lg4 font-hmalpha whitespace-pre-wrap">
               {checkInMessages[id]}
             </div>
