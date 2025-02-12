@@ -15,9 +15,16 @@ const NUMBER_SEQUENCE = [
 
 const SLOTS_PER_NUMBER = 10;
 
+// Type for the assignment record
+type Assignment = {
+  assigned_number: number;
+  user_address: string;
+};
+
 export async function GET(request: NextRequest) {
   try {
     const userAddress = request.nextUrl.searchParams.get("address");
+    console.log("userAddress", userAddress);
     if (!userAddress) {
       return NextResponse.json(
         { error: "User address is required" },
@@ -36,7 +43,9 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (existingAssignment) {
-      return NextResponse.json({ number: existingAssignment.assigned_number });
+      return NextResponse.json({
+        number: parseInt(existingAssignment.assigned_number),
+      });
     }
 
     // Get all assigned numbers with their counts
@@ -45,15 +54,20 @@ export async function GET(request: NextRequest) {
       .select("assigned_number")
       .order("created_at", { ascending: true });
 
+    console.log("numberCounts", numberCounts);
+
     // Count occurrences of each number
     const countMap = new Map<number, number>();
     numberCounts?.forEach((assignment) => {
-      const count = countMap.get(assignment.assigned_number) || 0;
-      countMap.set(assignment.assigned_number, count + 1);
+      const assignedNumber = parseInt(assignment.assigned_number);
+      const count = countMap.get(assignedNumber) || 0;
+      countMap.set(assignedNumber, count + 1);
     });
 
     // First, try to find an unassigned number in the sequence
     let nextNumber = NUMBER_SEQUENCE.find((num) => !countMap.has(num));
+
+    console.log("nextNumber", nextNumber);
 
     // If all numbers have been assigned at least once, find one that hasn't reached its slot limit
     if (!nextNumber) {
@@ -71,12 +85,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Assign the new number
-    const { error: insertError } = await supabase.from("assignments").insert([
-      {
-        user_address: validatedData.userAddress,
-        assigned_number: nextNumber,
-      },
-    ]);
+    const newAssignment: Assignment = {
+      user_address: validatedData.userAddress,
+      assigned_number: nextNumber,
+    };
+
+    const { error: insertError } = await supabase
+      .from("assignments")
+      .insert([newAssignment]);
 
     if (insertError) {
       // Handle unique constraint violation
@@ -90,7 +106,7 @@ export async function GET(request: NextRequest) {
 
         if (raceConditionAssignment) {
           return NextResponse.json({
-            number: raceConditionAssignment.assigned_number,
+            number: parseInt(raceConditionAssignment.assigned_number),
           });
         }
       }
