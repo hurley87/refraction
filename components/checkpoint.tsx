@@ -211,6 +211,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
             alt="ledger logo"
             className="w-full h-auto max-w-4xl"
           />
+          <AssignedNumber />
           <p className="text-base font-inktrap">
             {`Congratulations on completing your IRL Side Quest, powered by Refraction and Ledger.`}
             <br />
