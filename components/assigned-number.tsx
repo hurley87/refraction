@@ -11,8 +11,8 @@ export function AssignedNumber() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-4 bg-white/10 rounded-lg">
-        <p className="text-black animate-pulse">Loading your number...</p>
+      <div className="">
+        <p className="text-white animate-pulse">Loading your number...</p>
       </div>
     );
   }
@@ -36,9 +36,13 @@ export function AssignedNumber() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg shadow-sm">
-      <h2 className="text-2xl font-bold text-black mb-2">Your Number</h2>
-      <p className="text-4xl font-bold text-[#F24405]">{assignedNumber}</p>
+    <div className="flex flex-col items-center justify-center p-6 rounded-lg shadow-sm">
+      <h2 className="text-sm text-[#D4A0FF] mb-2 uppercase text-awesome font-inktrap">
+        Your Number
+      </h2>
+      <p className="text-5xl font-bold text-white font-inktrap">
+        {assignedNumber}
+      </p>
     </div>
   );
 }

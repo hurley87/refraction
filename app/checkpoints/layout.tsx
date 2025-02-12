@@ -25,19 +25,16 @@ export default function RootLayout({
 }>) {
   const numericId = params.id ? parseInt(params.id) : 1;
   const gradientColor = gradientColors[numericId] || gradientColors[1]; // Default to first color
-  console.log("id",numericId);
-  console.log("gradientcolor",gradientColor);
+  console.log("id", numericId);
+  console.log("gradientcolor", gradientColor);
   return (
     <div className="h-screen">
-      <div className={`relative flex flex-col gap-6 bg-gradient-to-b ${gradientColor} from-0% via-black via-5% to-black to-100% px-4 text-white dark:border-r justify-between font-sans`}>
-        <div className="flex justify-start py-2">
+      <div
+        className={`relative flex flex-col gap-6 bg-[#020303] via-5% to-black to-100% px-4 text-white dark:border-r justify-between font-sans`}
+      >
+        <div className="flex justify-start py-4">
           <div className="flex-none">
-            <Image
-              src="/images/white-logo-36x34.png"
-              alt="IRL"
-              width={36}
-              height={34}
-            />
+            <Image src="/ledger/Logo.png" alt="IRL" width={36} height={34} />
           </div>
         </div>
         {children}

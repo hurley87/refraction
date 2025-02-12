@@ -4,7 +4,6 @@ import Image from "next/image";
 export default async function CheckpointsPage() {
   return (
     <div className="flex flex-col gap-6 w-full max-w-xl mx-auto pb-6">
-    
       <div className="flex gap-6 justify-center">
         <Image
           src="/images/Mask group.png"
