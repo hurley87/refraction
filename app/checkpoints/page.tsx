@@ -53,8 +53,7 @@ export default async function CheckpointsPage() {
       <div className="relative  flex flex-col gap-3 bg-black text-white dark:border-r justify-between">
         <div className="flex-auto text-white text-lg text-left max-w-4xl mx-auto">
           <p className="text-base font-hmalpha">
-            {`You’ve checked in at ** of 3 Side Quest checkpoints. Head to the
-            lobby, Ledger Stax installation, and the vending machine on the 8th
+            {`Head to the lobby, Ledger Stax installation, and the vending machine on the 8th
             floor to check-in and earn more IRL points.`}
           </p>
         </div>

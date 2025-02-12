@@ -25,24 +25,15 @@ export default function Checkpoints() {
     );
   }
 
-  const checkpointNames = ["CHECKPOINT1", "CHECKPOINT2", "CHECKPOINT3"];
-
   return (
     <Auth>
-      <div className="flex flex-col justify-center items-center gap-6">
-        <h2 className="font-ledger text-2xl">STATUS</h2>
-        <div className="flex flex-col text-xl gap-3 text-white">
-          {checkpointNames?.map((name, index) => (
-            <div key={index} className="flex gap-6 items-center font-hmalpha">
-              {checkins < index + 1 ? (
-                <div className="size-5 bg-[#FF9900] rounded-full"></div>
-              ) : (
-                <div className="size-5 bg-[#00E232] rounded-full"></div>
-              )}
-              <p>{name}</p>
-            </div>
-          ))}
-        </div>
+      <div className="flex flex-col items-center justify-center p-6 rounded-lg shadow-sm">
+        <h2 className="text-sm text-[#F24405] mb-2 uppercase text-awesome font-inktrap">
+          STATUS
+        </h2>
+        <p className="text-xl font-bold text-white font-inktrap">
+          {checkins} / 3 checkpoints completed
+        </p>
       </div>
     </Auth>
   );
