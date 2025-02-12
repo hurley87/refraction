@@ -7,6 +7,43 @@ const requestSchema = z.object({
   userAddress: z.string().startsWith("0x"),
 });
 
+// Define the sequence of numbers
+const VALID_NUMBERS = [
+  11,
+  13,
+  15, // First slot (3 numbers)
+  21,
+  22,
+  23,
+  24,
+  25,
+  26, // Second slot (6 numbers)
+  31,
+  32,
+  33,
+  34,
+  35,
+  36, // Third slot
+  41,
+  42,
+  43,
+  44,
+  45,
+  46, // Fourth slot
+  51,
+  52,
+  53,
+  54,
+  55,
+  56, // Fifth slot
+  61,
+  62,
+  63,
+  64,
+  65,
+  66, // Sixth slot
+];
+
 export async function GET(request: NextRequest) {
   try {
     const userAddress = request.nextUrl.searchParams.get("address");
@@ -31,21 +68,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ number: existingAssignment.assigned_number });
     }
 
-    // Get the last assigned number
-    const { data: lastAssignment } = await supabase
+    // Get all assigned numbers
+    const { data: allAssignments } = await supabase
       .from("assignments")
       .select("assigned_number")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
+      .order("created_at", { ascending: true });
 
-    // Calculate next number
-    let nextNumber = 21; // Start with 21
-    if (lastAssignment) {
-      nextNumber =
-        lastAssignment.assigned_number >= 66
-          ? 21 // Reset to 21 if we reached 66
-          : lastAssignment.assigned_number + 1;
+    // Find the first available number in the sequence
+    const assignedNumbers = new Set(
+      allAssignments?.map((a) => a.assigned_number) || []
+    );
+    const nextNumber =
+      VALID_NUMBERS.find((num) => !assignedNumbers.has(num)) ||
+      VALID_NUMBERS[0];
+
+    if (!nextNumber) {
+      return NextResponse.json(
+        { error: "No available numbers" },
+        { status: 409 }
+      );
     }
 
     // Assign the new number
