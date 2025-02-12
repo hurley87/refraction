@@ -6,18 +6,13 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Auth from "./auth";
-import Image from "next/image";
 import { AssignedNumber } from "./assigned-number";
 interface CheckpointProps {
   id: string;
 }
 
-const website = () => {
-  window.open("https://irl.energy", "_blank");
-};
-
 export default function Checkpoint({ id }: CheckpointProps) {
-  const { user, logout } = usePrivy();
+  const { user } = usePrivy();
   const address = user?.wallet?.address as `0x${string}`;
   const email = user?.email;
   const { checkinStatus, setCheckinStatus } = useCheckInStatus(address, id);
