@@ -84,7 +84,7 @@ export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
           <Text style={headerText}>Welcome to $IRL</Text>
           <Hr style={hr} />
           <Text style={paragraph}>
-            Congratulations on completing the $IRL Side Quests in Bangkok!
+            Congratulations on completing the $IRL Side Quests!
           </Text>
           <Text style={paragraph}>
             Join the Refraction TOWN for YOUR future $IRL claim, new $IRL Side
