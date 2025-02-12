@@ -10,6 +10,8 @@ interface AuthProps {
 export default function Auth({ children }: AuthProps) {
   const { user, login, ready, linkEmail } = usePrivy();
 
+  console.log("user", user);
+
   if (!ready) {
     return <div className="p-6 text-black h-screen">Loading...</div>;
   }

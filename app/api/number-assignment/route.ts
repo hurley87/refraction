@@ -7,11 +7,12 @@ const requestSchema = z.object({
   userAddress: z.string().startsWith("0x"),
 });
 
-// Define the sequence of numbers and their slot limits
+// Define the sequence of numbers
 const NUMBER_SEQUENCE = [
   11, 13, 15, 21, 22, 23, 24, 25, 26, 31, 32, 33, 34, 35, 36, 41, 42, 43, 44,
   45, 46, 51, 52, 53, 54, 55, 56, 61, 62, 63, 64, 65, 66,
 ];
+
 const SLOTS_PER_NUMBER = 10;
 
 export async function GET(request: NextRequest) {
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ number: existingAssignment.assigned_number });
     }
 
-    // Get all assigned numbers with counts
+    // Get all assigned numbers with their counts
     const { data: numberCounts } = await supabase
       .from("assignments")
       .select("assigned_number")
@@ -51,11 +52,16 @@ export async function GET(request: NextRequest) {
       countMap.set(assignment.assigned_number, count + 1);
     });
 
-    // Find the first number that hasn't reached its slot limit
-    const nextNumber = NUMBER_SEQUENCE.find((num) => {
-      const currentCount = countMap.get(num) || 0;
-      return currentCount < SLOTS_PER_NUMBER;
-    });
+    // First, try to find an unassigned number in the sequence
+    let nextNumber = NUMBER_SEQUENCE.find((num) => !countMap.has(num));
+
+    // If all numbers have been assigned at least once, find one that hasn't reached its slot limit
+    if (!nextNumber) {
+      nextNumber = NUMBER_SEQUENCE.find((num) => {
+        const count = countMap.get(num) || 0;
+        return count < SLOTS_PER_NUMBER;
+      });
+    }
 
     if (!nextNumber) {
       return NextResponse.json(
@@ -75,7 +81,6 @@ export async function GET(request: NextRequest) {
     if (insertError) {
       // Handle unique constraint violation
       if (insertError.code === "23505") {
-        // PostgreSQL unique violation code
         // If we hit a race condition, fetch the existing number
         const { data: raceConditionAssignment } = await supabase
           .from("assignments")
