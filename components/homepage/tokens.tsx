@@ -31,6 +31,30 @@ export const Tokens = () => {
       tokenId: "1",
       tokenContract: "0x78737183c792f2558662ce1fd6c4a18f2ca7f20a",
     },
+    {
+      tokenId: "3",
+      tokenContract: "0xb5055d029ac1e4c01e7f5c66d27d3acdeb9f4207",
+    },
+    {
+      tokenId: "2",
+      tokenContract: "0xb5055d029ac1e4c01e7f5c66d27d3acdeb9f4207",
+    },
+    {
+      tokenId: "1",
+      tokenContract: "0xb5055d029ac1e4c01e7f5c66d27d3acdeb9f4207",
+    },
+    {
+      tokenId: "3",
+      tokenContract: "0xa7bfc86ff944d6e12dd5e0aa3ddd2950e6b7c895",
+    },
+    {
+      tokenId: "2",
+      tokenContract: "0xa7bfc86ff944d6e12dd5e0aa3ddd2950e6b7c895",
+    },
+    {
+      tokenId: "1",
+      tokenContract: "0xa7bfc86ff944d6e12dd5e0aa3ddd2950e6b7c895",
+    },
   ];
 
   return (
