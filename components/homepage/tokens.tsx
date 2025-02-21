@@ -59,6 +59,10 @@ export const Tokens = () => {
       tokenId: "1",
       tokenContract: "0x0d9e3740754707bf2c4bf39fa0bf6e57028071ca",
     },
+    {
+      tokenId: "1",
+      tokenContract: ":0xdabf37fa1bb92b8a0c44eb4695c930679538697e",
+    },
   ];
 
   return (
