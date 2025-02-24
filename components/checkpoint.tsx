@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useCheckInStatus } from "@/hooks/useCheckInStatus";
 import { usePrivy } from "@privy-io/react-auth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Auth from "./auth";
 import { AssignedNumber } from "./assigned-number";
@@ -19,27 +19,39 @@ export default function Checkpoint({ id }: CheckpointProps) {
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const router = useRouter();
 
-  const handleCheckIn = async () => {
-    setIsCheckingIn(true);
-    await fetch("/api/checkin", {
-      method: "POST",
-      body: JSON.stringify({ checkpoint: id, walletAddress: address }),
-    });
+  useEffect(() => {
+    const autoCheckIn = async () => {
+      // Only proceed if we have the required user data and haven't checked in yet
+      if (user && address && !checkinStatus && !isCheckingIn) {
+        setIsCheckingIn(true);
+        try {
+          await fetch("/api/checkin", {
+            method: "POST",
+            body: JSON.stringify({ checkpoint: id, walletAddress: address }),
+          });
 
-    if (id === "3") {
-      await fetch("/api/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-        }),
-      });
-    }
-    setIsCheckingIn(false);
-    setCheckinStatus(true);
-  };
+          if (id === "3" && email) {
+            await fetch("/api/send", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email,
+              }),
+            });
+          }
+          setCheckinStatus(true);
+        } catch (error) {
+          console.error("Failed to auto check-in:", error);
+        } finally {
+          setIsCheckingIn(false);
+        }
+      }
+    };
+
+    autoCheckIn();
+  }, [user, address, checkinStatus, id, email]);
 
   return (
     <Auth>
@@ -66,14 +78,13 @@ export default function Checkpoint({ id }: CheckpointProps) {
             divide.
             <br />
             <br />
-            {`The exhibition, which takes place at Ledger’s newly unveiled and already iconic 106 HQ, features Anna Lucia, Fingacode, Kim Asendorf, Leander Herzog and Linda Dounia, exploring the essential role of seeing, experiencing, and connecting with art, music and beyond in real life. During the night of February 12th, Leander Herzog’s site specific installation of Heatsink, will be displayed in conversation with the music played throughout the evening.`}
+            {`The exhibition, which takes place at Ledger's newly unveiled and already iconic 106 HQ, features Anna Lucia, Fingacode, Kim Asendorf, Leander Herzog and Linda Dounia, exploring the essential role of seeing, experiencing, and connecting with art, music and beyond in real life. During the night of February 12th, Leander Herzog's site specific installation of Heatsink, will be displayed in conversation with the music played throughout the evening.`}
           </p>
           <Button
-            onClick={handleCheckIn}
-            disabled={isCheckingIn}
-            className=" text-black  bg-white rounded-lg w-full font-inktrap"
+            disabled={true}
+            className="text-black bg-white rounded-lg w-full font-inktrap"
           >
-            {isCheckingIn ? "Checking in..." : `CHECK-IN`}
+            {isCheckingIn ? "Checking in..." : "Checking presence..."}
           </Button>
         </div>
       )}
@@ -91,7 +102,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
               className="w-full h-auto max-w-4xl"
             />
             <p className="text-base font-inktrap">
-              {`Congratulations, you’ve checked in to your first Side Quest and have started earning IRL points. 
+              {`Congratulations, you've checked in to your first Side Quest and have started earning IRL points. 
               `}
               <br />
               <br />
@@ -126,7 +137,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
             {`Physicality becomes a defining theme in both form and function. Just as audiences are free from compromise when choosing between digital and physical experience, Ledger doubles down on this promise by building secure products that empower the protection of assets while providing an open platform for the sharing of creativity and culture.`}
             <br />
             <br />
-            {`In merging both worlds, a custom display of Ledger Stax’s builds
+            {`In merging both worlds, a custom display of Ledger Stax's builds
             into an object that serves as both a screen and a collectible
             artwork in its own right. Ledger Stax embodies the convergence of
             personalisation, uniqueness and materiality—offering not just a
@@ -134,11 +145,10 @@ export default function Checkpoint({ id }: CheckpointProps) {
             carries its own distinct identity.`}
           </p>
           <Button
-            onClick={handleCheckIn}
-            disabled={isCheckingIn}
-            className=" text-black  bg-white rounded-lg w-full font-inktrap"
+            disabled={true}
+            className="text-black bg-white rounded-lg w-full font-inktrap"
           >
-            {isCheckingIn ? "Checking in..." : `CHECK-IN`}
+            {isCheckingIn ? "Checking in..." : "Checking presence..."}
           </Button>
         </div>
       )}
@@ -155,10 +165,10 @@ export default function Checkpoint({ id }: CheckpointProps) {
             className="w-full h-auto max-w-4xl"
           />
           <p className="text-base font-inktrap">
-            {`Congratulations, you’ve checked in at the Ledger Stax Side Quest checkpoint and have earned more IRL points.`}
+            {`Congratulations, you've checked in at the Ledger Stax Side Quest checkpoint and have earned more IRL points.`}
             <br />
             <br />
-            {`It’s time to head upstairs to the 8th floor— grab a drink and visit the vending machine to collect your Ledger collectible.`}
+            {`It's time to head upstairs to the 8th floor— grab a drink and visit the vending machine to collect your Ledger collectible.`}
           </p>
           <Button
             onClick={() => router.push("/checkpoints")}
@@ -185,20 +195,20 @@ export default function Checkpoint({ id }: CheckpointProps) {
           />
           <AssignedNumber />
           <p className="text-base font-inktrap text-light">
-            {`The importance of the IRL connection is not simply aesthetic but fundamental; it reaffirms art’s ability to anchor us in a tangible reality, where form, texture, and spatial presence can be fully felt. A dynamic choreography of objects, screens, and experiences—each element working to enhance the interplay between digital and physical realms. `}
+            {`The importance of the IRL connection is not simply aesthetic but fundamental; it reaffirms art's ability to anchor us in a tangible reality, where form, texture, and spatial presence can be fully felt. A dynamic choreography of objects, screens, and experiences—each element working to enhance the interplay between digital and physical realms. `}
             <br />
             <br />
             {`Check-in at this Side Quest checkpoint to receive your unique code to claim your collectible embroidery patch, designed by Tabitha Swanson.`}
           </p>
           <Button
-            onClick={handleCheckIn}
-            disabled={isCheckingIn}
-            className=" text-black  bg-white rounded-lg w-full font-inktrap"
+            disabled={true}
+            className="text-black bg-white rounded-lg w-full font-inktrap"
           >
-            {isCheckingIn ? "Checking in..." : `CHECK-IN`}
+            {isCheckingIn ? "Checking in..." : "Checking presence..."}
           </Button>
         </div>
       )}
+
       {id === "3" && checkinStatus && (
         <div className="flex flex-col gap-6 pb-6">
           <img

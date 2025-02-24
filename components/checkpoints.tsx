@@ -17,7 +17,7 @@ export default function Checkpoints() {
   if (!user) {
     return (
       <Button
-        className="bg-white text-[#F24405] rounded-lg hover:bg-white/80 justify-center items-center w-full max-w-4xl text-xl font-ledger py-5"
+        className="bg-white text-[#F24405] rounded-lg hover:bg-white/80 w-full max-w-4xl text-xl font-inktrap"
         onClick={login}
       >
         Get Started
