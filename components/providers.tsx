@@ -11,7 +11,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       config={{
         loginMethods: ["email"],
         embeddedWallets: {
-          createOnLogin: "users-without-wallets", // defaults to 'off'
+          createOnLogin: "users-without-wallets",
         },
         appearance: {
           theme: "dark",
