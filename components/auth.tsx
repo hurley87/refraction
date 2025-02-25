@@ -11,7 +11,11 @@ export default function Auth({ children }: AuthProps) {
   const { user, login, ready, linkEmail } = usePrivy();
 
   if (!ready) {
-    return <div className="p-6 text-black h-screen">Loading...</div>;
+    return (
+      <div className="flex justify-center items text-center w-full h-screen font-inktrap text-2xl pt-10">
+        Loading...
+      </div>
+    );
   }
 
   if (ready && user && !user.email) {
@@ -56,7 +60,7 @@ export default function Auth({ children }: AuthProps) {
         </Button>
         <div className="relative  flex flex-col gap-3  dark:border-r justify-between">
           <div className="flex-auto text-black font-light text-lg text-left max-w-4xl mx-auto">
-            <p className="text-base font-inktrap">
+            <p className="text-base font-anonymous">
               {`In partnership with Reown and Syndicate, and powered by Refraction's global network of artists, creatives and culture institutions, IRL bridges tangible and virtual worlds, forming the connective tissue between decentralized internet and lived reality.`}
               <br />
               <br />

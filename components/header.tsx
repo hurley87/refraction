@@ -38,7 +38,7 @@ export default function Header() {
       <header className="w-full flex items-center justify-end">
         <button
           onClick={() => setIsMenuOpen(true)}
-          className="flex items-center justify-center rounded-full w-7 h-7 bg-green-500 border transition-colors"
+          className="flex items-center justify-center rounded-full w-6 h-6 bg-green-500 border transition-colors"
           aria-label="Open user menu"
         >
           {/* Green circle indicating logged in status */}

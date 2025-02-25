@@ -6,7 +6,6 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Auth from "./auth";
-import { AssignedNumber } from "./assigned-number";
 import { testPublicClient } from "@/lib/publicClient";
 import { checkinABI, checkinAddress } from "@/lib/checkin";
 
@@ -83,27 +82,34 @@ export default function Checkpoint({ id }: CheckpointProps) {
   return (
     <Auth>
       {id === "1" && !checkinStatus && (
-        <div className="flex flex-col gap-6 pb-6 text-center h-screen">
+        <div className="flex justify-center items text-center w-full h-screen font-inktrap text-2xl pt-10">
           Loading ...
         </div>
       )}
       {id === "1" && checkinStatus && (
-        <div className="flex flex-col gap-6 pb-6">
+        <div className="flex flex-col gap-6">
+          <img src="/tapphone.png" className="w-2/3 h-auto mx-auto" />
           <div>
-            <img
-              src="/ledger/title1done.png"
-              alt="ledger logo"
-              className="w-full h-auto max-w-4xl"
-            />
-            <p className="text-base font-inktrap">
-              {`Congratulations, you've checked in to your first Side Quest and have started earning IRL points. 
-              `}
-              <br />
-              <br />
-              Continue to the back of the lobby to explore the bespoke Stax
-              artwork by Emily Edelman and find your next Side Quest checkpoint.
+            <h1 className="text-3xl font-inktrap text-black uppercase">
+              You'vE STARTED YOUR
+            </h1>
+            <p
+              style={{ lineHeight: "70px" }}
+              className="text-white text-7xl font-inktrap uppercase"
+            >
+              Side Quest
             </p>
           </div>
+          <p className="text-base font-anonymous font-light">
+            {`WalletConnect is the connectivity network shaping the future of onchain UX.`}
+            <br />
+            <br />
+            {`With the launch of the WalletConnect Token, the network is taking the next step—paving the way for a fully decentralized, permissionless and community owned future of connectivity.`}
+            <br />
+            <br />
+            {`Congratulations, you've checked in to your Side Quest and have started earning IRL points and $WCT.`}
+          </p>
+          <img src="/walletconnect.png" className="w-full h-auto" />
           <Button
             onClick={() => router.push("/checkpoints")}
             className="text-black  bg-white rounded-lg w-full font-inktrap"
@@ -116,27 +122,41 @@ export default function Checkpoint({ id }: CheckpointProps) {
       {/* Checkpoint 2 */}
 
       {id === "2" && !checkinStatus && (
-        <div className="flex flex-col gap-6 pb-6  text-center h-screen">
+        <div className="flex justify-center items text-center w-full h-screen font-inktrap text-2xl pt-10">
           Loading ...
         </div>
       )}
       {id === "2" && checkinStatus && (
-        <div className="flex flex-col gap-6 pb-6">
-          <img
-            src="/ledger/map2done.png"
-            alt="ledger logo"
-            className="w-full h-auto max-w-4xl"
-          />
-          <img
-            src="/ledger/title2done.png"
-            alt="ledger logo"
-            className="w-full h-auto max-w-4xl"
-          />
-          <p className="text-base font-inktrap">
-            {`Congratulations, you've checked in at the Ledger Stax Side Quest checkpoint and have earned more IRL points.`}
+        <div className="flex flex-col gap-6">
+          <img src="/tapphone.png" className="w-2/3 h-auto mx-auto" />
+          <div>
+            <h1 className="text-3xl font-inktrap text-black uppercase">
+              One step
+            </h1>
+            <p
+              style={{ lineHeight: "70px" }}
+              className="text-white text-7xl font-inktrap uppercase"
+            >
+              Closer
+            </p>
+          </div>
+          <p className="text-base font-anonymous font-light">
+            {`Congratulations, you've checked in at Reset Denver, this week's busiest dance floor at ESP Hifi, with all your friends from Reown, WalletConnect, Refraction and FWB. `}
             <br />
             <br />
-            {`It's time to head upstairs to the 8th floor— grab a drink and visit the vending machine to collect your Ledger collectible.`}
+            {`Check in to the final Side Quest checkpoint at the Syndicate van. Track it down at `}
+            <a
+              href="https://communitiesfirst.xyz/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white underline hover:text-gray-200 transition-colors"
+            >
+              https://communitiesfirst.xyz/
+            </a>
+          </p>
+          <img src="/build.png" className="w-3/4 mx-auto h-auto my-6" />
+          <p className="text-base font-anonymous font-light">
+            {`In partnership with Reown and Syndicate, and powered by Refraction's global network of artists, creatives and culture institutions, IRL bridges tangible and virtual worlds, forming the connective tissue between decentralized internet and lived reality.`}
           </p>
           <Button
             onClick={() => router.push("/checkpoints")}
@@ -150,29 +170,30 @@ export default function Checkpoint({ id }: CheckpointProps) {
       {/* Checkpoint 3 */}
 
       {id === "3" && !checkinStatus && (
-        <div className="flex flex-col gap-6 pb-6  text-center h-screen">
+        <div className="flex justify-center items text-center w-full h-screen font-inktrap text-2xl pt-10">
           Loading ...
         </div>
       )}
 
       {id === "3" && checkinStatus && (
-        <div className="flex flex-col gap-6 pb-6">
-          <img
-            src="/ledger/map3done.png"
-            alt="ledger logo"
-            className="w-full h-auto max-w-4xl"
-          />
-          <img
-            src="/ledger/title3done.png"
-            alt="ledger logo"
-            className="w-full h-auto max-w-4xl"
-          />
-          <AssignedNumber />
-          <p className="text-base font-inktrap">
-            {`Congratulations on completing your IRL Side Quest, powered by Refraction and Ledger.`}
+        <div className="flex flex-col gap-6">
+          <img src="/tapphone.png" className="w-2/3 h-auto mx-auto" />
+          <div>
+            <h1 className="text-3xl font-inktrap text-black uppercase">
+              You've
+            </h1>
+            <p
+              style={{ lineHeight: "60px" }}
+              className="text-white text-5xl font-inktrap uppercase"
+            >
+              Checked In
+            </p>
+          </div>
+          <p className="text-base font-anonymous font-light">
+            {`You’ve tracked down the Syndicate van, and have continued to earn IRL points and $WCT.`}
             <br />
             <br />
-            {`Make sure to collect your exclusive collectible patch at the vending machine using the code provided and learn more about how you can use your IRL points and stay up to date on our token launch on X at @refractionfestival.`}
+            {`In partnership with Reown and Syndicate, and powered by Refraction's global network of artists, creatives and culture institutions, IRL bridges tangible and virtual worlds, forming the connective tissue between decentralized internet and lived reality.`}
           </p>
           <Button
             onClick={() => router.push("/checkpoints")}
