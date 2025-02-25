@@ -52,12 +52,6 @@ export default function Auth({ children }: AuthProps) {
           </p>
         </div>
         <img src="/info.png" alt="IRL Side Quest" className="w-full h-auto" />
-        <Button
-          className="bg-white text-[#F24405] rounded-lg hover:bg-white/80 justify-center w-full max-w-4xl text-xl font-inktrap uppercases"
-          onClick={login}
-        >
-          Email Sign-In
-        </Button>
         <div className="relative  flex flex-col gap-3  dark:border-r justify-between">
           <div className="flex-auto text-black font-light text-lg text-left max-w-4xl mx-auto">
             <p className="text-base font-anonymous">
@@ -69,6 +63,12 @@ export default function Auth({ children }: AuthProps) {
               points on the Syndicate powered IRL protocol.
             </p>
           </div>
+          <Button
+            className="bg-white text-[#F24405] rounded-lg hover:bg-white/80 justify-center w-full max-w-4xl text-xl font-inktrap uppercase my-4"
+            onClick={login}
+          >
+            Email Sign-In
+          </Button>
           <img src="/checkpoint.png" alt="Ledger" className="w-full h-auto" />
         </div>
       </div>
