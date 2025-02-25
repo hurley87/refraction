@@ -3,11 +3,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
-import dynamic from "next/dynamic";
-
-// Dynamically import the Header component with no SSR to avoid hydration issues
-// since it depends on client-side Privy authentication
-const Header = dynamic(() => import("@/components/header"), { ssr: false });
 
 export const metadata: Metadata = {
   title: "$IRL",
