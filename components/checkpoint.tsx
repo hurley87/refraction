@@ -181,7 +181,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
           <img src="/tapphone.png" className="w-2/3 h-auto mx-auto" />
           <div>
             <h1 className="text-3xl font-inktrap text-black uppercase">
-              You've
+              {`You've`}
             </h1>
             <p
               style={{ lineHeight: "60px" }}
