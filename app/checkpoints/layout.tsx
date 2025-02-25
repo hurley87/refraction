@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import Image from "next/image";
 import Link from "next/link";
+import Auth from "@/components/auth";
+import Header from "@/components/header";
 
 export const metadata: Metadata = {
   title: "$IRL",
@@ -16,16 +18,16 @@ export default function RootLayout({
   return (
     <div className="h-screen">
       <div
-        className={`relative flex flex-col gap-6 bg-[#020303] via-5% to-black to-100% px-4 text-white dark:border-r justify-between font-sans`}
+        style={{ backgroundImage: "url('/bg.svg')" }}
+        className={`flex flex-col gap-6 p-6`}
       >
-        <div className="flex justify-start py-4">
-          <div className="flex-none">
-            <Link href="/">
-              <Image src="/ledger/Logo.png" alt="IRL" width={36} height={34} />
-            </Link>
-          </div>
+        <div className="flex justify-between items-center">
+          <Link href="/">
+            <Image src="/logo.png" alt="IRL" width={49} height={25} />
+          </Link>
+          <Header />
         </div>
-        {children}
+        <Auth>{children}</Auth>
       </div>
       <Toaster />
     </div>

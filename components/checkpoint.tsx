@@ -7,6 +7,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Auth from "./auth";
 import { AssignedNumber } from "./assigned-number";
+import { testPublicClient } from "@/lib/publicClient";
+import { checkinABI, checkinAddress } from "@/lib/checkin";
+
 interface CheckpointProps {
   id: string;
 }
@@ -21,80 +24,71 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
   useEffect(() => {
     const autoCheckIn = async () => {
-      // Only proceed if we have the required user data and haven't checked in yet
-      if (user && address && !checkinStatus && !isCheckingIn) {
-        setIsCheckingIn(true);
-        try {
-          await fetch("/api/checkin", {
-            method: "POST",
-            body: JSON.stringify({ checkpoint: id, walletAddress: address }),
-          });
+      // Only proceed if we have the required user data and aren't already checking in
+      if (!user || !address || isCheckingIn) {
+        return;
+      }
 
-          if (id === "3" && email) {
-            await fetch("/api/send", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                email,
-              }),
-            });
-          }
-          setCheckinStatus(true);
-        } catch (error) {
-          console.error("Failed to auto check-in:", error);
-        } finally {
-          setIsCheckingIn(false);
+      // First verify if the user is already checked in directly from the contract
+      try {
+        // If checkinStatus is already true, no need to check again
+        if (checkinStatus) {
+          return;
         }
+
+        // Double-check with the contract to ensure we have the latest status
+        const isAlreadyCheckedIn = await testPublicClient.readContract({
+          address: checkinAddress,
+          abi: checkinABI,
+          functionName: "hasUserCheckedIn",
+          args: [address, id],
+        });
+
+        // If already checked in, update the local state and exit
+        if (isAlreadyCheckedIn) {
+          setCheckinStatus(true);
+          return;
+        }
+
+        // If we get here, user is not checked in, so proceed with check-in
+        setIsCheckingIn(true);
+
+        await fetch("/api/checkin", {
+          method: "POST",
+          body: JSON.stringify({ checkpoint: id, walletAddress: address }),
+        });
+
+        if (id === "3" && email) {
+          await fetch("/api/send", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email,
+            }),
+          });
+        }
+        setCheckinStatus(true);
+      } catch (error) {
+        console.error("Failed to auto check-in:", error);
+      } finally {
+        setIsCheckingIn(false);
       }
     };
 
     autoCheckIn();
-  }, [user, address, checkinStatus, id, email]);
+  }, [user, address, checkinStatus, id, email, isCheckingIn]);
 
   return (
     <Auth>
       {id === "1" && !checkinStatus && (
-        <div className="flex flex-col gap-6 pb-6">
-          <img
-            src="/ledger/map1.png"
-            alt="ledger logo"
-            className="w-full h-auto max-w-4xl"
-          />
-          <img
-            src="/ledger/title1.png"
-            alt="ledger logo"
-            className="w-full h-auto max-w-4xl"
-          />
-          <p className="text-base font-inktrap">
-            {`Rendered Frequencies reimagines the encounter between art, music and audience by placing physicality and presence at the core of its ethos.`}
-            <br />
-            <br />
-            Digital and physical experiences are no longer diametrically
-            opposed— free from this compromise of deriving value from a singular
-            realm, artists and audiences are encouraged to construct meaning
-            across and between the increasingly indistinct digital-physical
-            divide.
-            <br />
-            <br />
-            {`The exhibition, which takes place at Ledger's newly unveiled and already iconic 106 HQ, features Anna Lucia, Fingacode, Kim Asendorf, Leander Herzog and Linda Dounia, exploring the essential role of seeing, experiencing, and connecting with art, music and beyond in real life. During the night of February 12th, Leander Herzog's site specific installation of Heatsink, will be displayed in conversation with the music played throughout the evening.`}
-          </p>
-          <Button
-            disabled={true}
-            className="text-black bg-white rounded-lg w-full font-inktrap"
-          >
-            {isCheckingIn ? "Checking in..." : "Checking presence..."}
-          </Button>
+        <div className="flex flex-col gap-6 pb-6 text-center h-screen">
+          Loading ...
         </div>
       )}
       {id === "1" && checkinStatus && (
         <div className="flex flex-col gap-6 pb-6">
-          <img
-            src="/ledger/map1done.png"
-            alt="ledger logo"
-            className="w-full h-auto max-w-4xl"
-          />
           <div>
             <img
               src="/ledger/title1done.png"
@@ -122,34 +116,8 @@ export default function Checkpoint({ id }: CheckpointProps) {
       {/* Checkpoint 2 */}
 
       {id === "2" && !checkinStatus && (
-        <div className="flex flex-col gap-6 pb-6">
-          <img
-            src="/ledger/art2.png"
-            alt="ledger logo"
-            className="w-full h-auto max-w-4xl"
-          />
-          <img
-            src="/ledger/title2.png"
-            alt="ledger logo"
-            className="w-full h-auto max-w-4xl"
-          />
-          <p className="text-base font-inktrap text-light">
-            {`Physicality becomes a defining theme in both form and function. Just as audiences are free from compromise when choosing between digital and physical experience, Ledger doubles down on this promise by building secure products that empower the protection of assets while providing an open platform for the sharing of creativity and culture.`}
-            <br />
-            <br />
-            {`In merging both worlds, a custom display of Ledger Stax's builds
-            into an object that serves as both a screen and a collectible
-            artwork in its own right. Ledger Stax embodies the convergence of
-            personalisation, uniqueness and materiality—offering not just a
-            portal into the digital artwork but also a tangible artifact that
-            carries its own distinct identity.`}
-          </p>
-          <Button
-            disabled={true}
-            className="text-black bg-white rounded-lg w-full font-inktrap"
-          >
-            {isCheckingIn ? "Checking in..." : "Checking presence..."}
-          </Button>
+        <div className="flex flex-col gap-6 pb-6  text-center h-screen">
+          Loading ...
         </div>
       )}
       {id === "2" && checkinStatus && (
@@ -182,30 +150,8 @@ export default function Checkpoint({ id }: CheckpointProps) {
       {/* Checkpoint 3 */}
 
       {id === "3" && !checkinStatus && (
-        <div className="flex flex-col gap-6 pb-6">
-          <img
-            src="/ledger/map3.png"
-            alt="ledger logo"
-            className="w-full h-auto max-w-4xl"
-          />
-          <img
-            src="/ledger/title3.png"
-            alt="ledger logo"
-            className="w-full h-auto max-w-4xl"
-          />
-          <AssignedNumber />
-          <p className="text-base font-inktrap text-light">
-            {`The importance of the IRL connection is not simply aesthetic but fundamental; it reaffirms art's ability to anchor us in a tangible reality, where form, texture, and spatial presence can be fully felt. A dynamic choreography of objects, screens, and experiences—each element working to enhance the interplay between digital and physical realms. `}
-            <br />
-            <br />
-            {`Check-in at this Side Quest checkpoint to receive your unique code to claim your collectible embroidery patch, designed by Tabitha Swanson.`}
-          </p>
-          <Button
-            disabled={true}
-            className="text-black bg-white rounded-lg w-full font-inktrap"
-          >
-            {isCheckingIn ? "Checking in..." : "Checking presence..."}
-          </Button>
+        <div className="flex flex-col gap-6 pb-6  text-center h-screen">
+          Loading ...
         </div>
       )}
 

@@ -3,7 +3,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
+import dynamic from "next/dynamic";
 
+// Dynamically import the Header component with no SSR to avoid hydration issues
+// since it depends on client-side Privy authentication
+const Header = dynamic(() => import("@/components/header"), { ssr: false });
 
 export const metadata: Metadata = {
   title: "$IRL",
@@ -18,7 +22,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet"/>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
+          rel="stylesheet"
+        />
       </head>
       <body>
         <Providers>{children}</Providers>

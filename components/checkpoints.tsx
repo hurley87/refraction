@@ -27,8 +27,8 @@ export default function Checkpoints() {
 
   return (
     <Auth>
-      <div className="flex flex-col items-center justify-center p-6 rounded-lg shadow-sm">
-        <h2 className="text-sm text-[#F24405] mb-2 uppercase text-awesome font-inktrap">
+      <div className="flex flex-col items-center justify-center p-6">
+        <h2 className="text-sm text-black mb-2 uppercase text-awesome font-inktrap">
           STATUS
         </h2>
         <p className="text-xl font-bold text-white font-inktrap">

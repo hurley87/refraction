@@ -19,11 +19,17 @@ const config = {
       accounts: [process.env.WALLET_KEY as string],
       gasPrice: 1000000000,
     },
+    "irl-mainnet": {
+      url: "https://rpc.testnet.irl.syndicate.io",
+      accounts: [process.env.WALLET_KEY as string],
+      gasPrice: 1000000000,
+    },
   },
   etherscan: {
     apiKey: {
       "base-sepolia": process.env.ETHERSCAN_KEY as string,
       "base-mainnet": process.env.ETHERSCAN_KEY as string,
+      "irl-mainnet": "empty",
     },
     customChains: [
       {
@@ -40,6 +46,14 @@ const config = {
         urls: {
           apiURL: "https://api-sepolia.basescan.org/api",
           browserURL: "https://sepolia.basescan.org",
+        },
+      },
+      {
+        network: "irl-mainnet",
+        chainId: 63821,
+        urls: {
+          apiURL: "https://explorer.testnet.irl.syndicate.io/api",
+          browserURL: "https://explorer.testnet.irl.syndicate.io",
         },
       },
     ],
