@@ -91,7 +91,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
           <img src="/tapphone.png" className="w-2/3 h-auto mx-auto" />
           <div>
             <h1 className="text-3xl font-inktrap text-black uppercase">
-              You'vE STARTED YOUR
+              {`You'vE STARTED YOUR`}
             </h1>
             <p
               style={{ lineHeight: "70px" }}
@@ -140,6 +140,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
               Closer
             </p>
           </div>
+          <img src="/logos.png" className="w-full h-auto" />
           <p className="text-base font-anonymous font-light">
             {`Congratulations, you've checked in at Reset Denver, this week's busiest dance floor at ESP Hifi, with all your friends from Reown, WalletConnect, Refraction and FWB. `}
             <br />
@@ -189,6 +190,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
               Checked In
             </p>
           </div>
+          <img src="/logos.png" className="w-full h-auto" />
           <p className="text-base font-anonymous font-light">
             {`You’ve tracked down the Syndicate van, and have continued to earn IRL points and $WCT.`}
             <br />
