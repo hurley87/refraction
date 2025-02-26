@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { testPublicClient } from "../lib/publicClient";
 import { checkinABI, checkinAddress } from "@/lib/checkin";
+import { useQuery } from "@tanstack/react-query";
 
 export type CheckpointStatus = {
   id: number;
@@ -27,73 +28,35 @@ const CHECKPOINT_DETAILS = [
   },
 ];
 
+async function fetchCheckpointStatuses(address?: `0x${string}`) {
+  //  Fetch status for all three checkpoints in parallel
+  const statusPromises = CHECKPOINT_DETAILS.map((checkpoint) =>
+    testPublicClient.readContract({
+      address: checkinAddress,
+      abi: checkinABI,
+      functionName: "hasUserCheckedIn",
+      args: [address, BigInt(checkpoint.id)],
+    })
+  );
+
+  const statuses = await Promise.all(statusPromises);
+
+  return CHECKPOINT_DETAILS.map((checkpoint, index) => ({
+    ...checkpoint,
+    isCheckedIn: statuses[index] as boolean,
+  }));
+}
+
 export function useCheckpointStatuses(address?: `0x${string}`) {
-  const [checkpointStatuses, setCheckpointStatuses] = useState<
-    CheckpointStatus[]
-  >([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    const fetchCheckpointStatuses = async () => {
-      if (!address) {
-        setCheckpointStatuses(
-          CHECKPOINT_DETAILS.map((checkpoint) => ({
-            ...checkpoint,
-            isCheckedIn: false,
-          }))
-        );
-        setIsLoading(false);
-        return;
+  return useQuery({
+    queryKey: ["checkpointStatuses", address],
+    queryFn: () => fetchCheckpointStatuses(address),
+    refetchInterval(query) {
+      if (query.state.data?.some((checkpoint) => checkpoint.isCheckedIn)) {
+        return false;
       }
 
-      try {
-        setIsLoading(true);
-
-        // Fetch status for all three checkpoints in parallel
-        const statusPromises = CHECKPOINT_DETAILS.map((checkpoint) =>
-          testPublicClient.readContract({
-            address: checkinAddress,
-            abi: checkinABI,
-            functionName: "hasUserCheckedIn",
-            args: [address, BigInt(checkpoint.id)],
-          })
-        );
-
-        const statuses = await Promise.all(statusPromises);
-
-        // Combine the checkpoint details with the status results
-        const checkpointStatuses = CHECKPOINT_DETAILS.map(
-          (checkpoint, index) => ({
-            ...checkpoint,
-            isCheckedIn: statuses[index] as boolean,
-          })
-        );
-
-        setCheckpointStatuses(checkpointStatuses);
-        setError(null);
-      } catch (error) {
-        console.error("Error fetching checkpoint statuses:", error);
-        setError(
-          error instanceof Error
-            ? error
-            : new Error("Failed to fetch checkpoint statuses")
-        );
-
-        // Set default values in case of error
-        setCheckpointStatuses(
-          CHECKPOINT_DETAILS.map((checkpoint) => ({
-            ...checkpoint,
-            isCheckedIn: false,
-          }))
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCheckpointStatuses();
-  }, [address]);
-
-  return { checkpointStatuses, isLoading, error };
+      return 1000;
+    }
+  });
 }

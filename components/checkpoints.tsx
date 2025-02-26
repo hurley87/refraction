@@ -9,9 +9,9 @@ import { CheckCircle, Circle } from "lucide-react";
 export default function Checkpoints() {
   const { user, login, ready } = usePrivy();
   const address = user?.wallet?.address as `0x${string}`;
-  const { checkpointStatuses, isLoading } = useCheckpointStatuses(address);
+  const { data: checkpointStatuses, isLoading } = useCheckpointStatuses(address);
 
-  if (!ready || isLoading) {
+  if (!ready || isLoading || !checkpointStatuses) {
     return <div className="text-center text-black">Loading...</div>;
   }
 

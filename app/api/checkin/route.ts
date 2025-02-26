@@ -46,20 +46,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // const privateKey = process.env.SERVER_PRIVATE_KEY;
-    // const account = privateKeyToAccount(privateKey as `0x${string}`);
-
-    // // Add to allowlist
-    // const { request }: any = await testPublicClient.simulateContract({
-    //   account,
-    //   address: checkinAddress,
-    //   abi: checkinABI,
-    //   functionName: "checkIn",
-    //   args: [walletAddress, checkpoint],
-    // });
-
-    // await walletClient.writeContract(request);
-
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
