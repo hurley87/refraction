@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { SyndicateClient } from "@syndicateio/syndicate-node";
 
-import {  checkinAddress } from "@/lib/checkin";
+import { checkinAddress } from "@/lib/checkin";
 
 export async function POST(req: NextRequest) {
   const { walletAddress, checkpoint } = await req.json();
@@ -9,7 +9,9 @@ export async function POST(req: NextRequest) {
   console.log(walletAddress, checkpoint);
 
   try {
-    const syndicate = new SyndicateClient({ token: process.env.SYNDICATE_API_KEY as string })
+    const syndicate = new SyndicateClient({
+      token: process.env.SYNDICATE_API_KEY as string,
+    });
 
     // TODO: the syndicate broadcasting wallet address would need to be allowlisted on the contract
     // DEV: This likely wont work due to the current contract setup uses onlyOwner check
@@ -23,6 +25,8 @@ export async function POST(req: NextRequest) {
         checkpointId: checkpoint,
       },
     });
+
+    console.log(tx);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
