@@ -25,34 +25,46 @@ const walletClient = createWalletClient({
 });
 
 export async function POST(req: NextRequest) {
-  const { walletAddress, checkpoint } = await req.json();
-
-  console.log(walletAddress, checkpoint);
-
   try {
     const privateKey = process.env.SERVER_PRIVATE_KEY;
+
+    if (!privateKey) {
+      return new Response(
+        JSON.stringify({ error: "Server private key not configured" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const account = privateKeyToAccount(privateKey as `0x${string}`);
 
-    // Add to allowlist
-    const { request }: any = await testPublicClient.simulateContract({
+    // Add checkpoint with 2 points
+    const { request } = await testPublicClient.simulateContract({
       account,
       address: checkinAddress,
       abi: checkinABI,
-      functionName: "checkIn",
-      args: [walletAddress, checkpoint],
+      functionName: "addCheckpoint",
+      args: [BigInt(2)], // 2 points
     });
 
-    await walletClient.writeContract(request);
+    const hash = await walletClient.writeContract(request);
 
-    return new Response(JSON.stringify({ success: true }), {
+    console.log("Hash:", hash);
+
+    return new Response(JSON.stringify({ success: true, hash }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error(e);
-    return new Response(JSON.stringify({ error: "An error occurred" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("Error adding checkpoint:", e);
+    return new Response(
+      JSON.stringify({ error: "An error occurred while adding checkpoint" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }

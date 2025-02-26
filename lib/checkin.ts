@@ -1,4 +1,4 @@
-export const checkinAddress = "0xEf459B4eBe7aB2Df7574339B04B8B99e53803287";
+export const checkinAddress = "0x0Cd40B41fd2cA8b91164B5888D3e2e2573D83B60";
 
 export const checkinABI = [
   {
