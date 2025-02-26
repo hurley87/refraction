@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createWalletClient, defineChain, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
+import { SyndicateClient } from "@syndicateio/syndicate-node";
 import { checkinABI, checkinAddress } from "@/lib/checkin";
 import { testPublicClient } from "@/lib/publicClient";
 
@@ -30,19 +31,34 @@ export async function POST(req: NextRequest) {
   console.log(walletAddress, checkpoint);
 
   try {
-    const privateKey = process.env.SERVER_PRIVATE_KEY;
-    const account = privateKeyToAccount(privateKey as `0x${string}`);
+    const syndicate = new SyndicateClient({ token: process.env.SYNDICATE_API_KEY as string })
 
-    // Add to allowlist
-    const { request }: any = await testPublicClient.simulateContract({
-      account,
-      address: checkinAddress,
-      abi: checkinABI,
-      functionName: "checkIn",
-      args: [walletAddress, checkpoint],
+    // TODO: the syndicate broadcasting wallet address would need to be allowlisted on the contract
+    // DEV: This likely wont work due to the current contract setup uses onlyOwner check
+    const tx = await syndicate.transact.sendTransaction({
+      projectId: process.env.SYNDICATE_PROJECT_ID as string,
+      contractAddress: checkinAddress,
+      chainId: 63821,
+      functionSignature: "checkIn(address user, uint256 checkpoint)",
+      args: {
+        user: walletAddress,
+        checkpointId: checkpoint,
+      },
     });
 
-    await walletClient.writeContract(request);
+    // const privateKey = process.env.SERVER_PRIVATE_KEY;
+    // const account = privateKeyToAccount(privateKey as `0x${string}`);
+
+    // // Add to allowlist
+    // const { request }: any = await testPublicClient.simulateContract({
+    //   account,
+    //   address: checkinAddress,
+    //   abi: checkinABI,
+    //   functionName: "checkIn",
+    //   args: [walletAddress, checkpoint],
+    // });
+
+    // await walletClient.writeContract(request);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
