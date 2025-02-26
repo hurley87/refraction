@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       projectId: process.env.SYNDICATE_PROJECT_ID as string,
       contractAddress: checkinAddress,
       chainId: 63821,
-      functionSignature: "checkIn(address user, uint256 checkpoint)",
+      functionSignature: "checkIn(address user, uint256 checkpointId)",
       args: {
         user: walletAddress,
         checkpointId: checkpoint,
