@@ -1,29 +1,7 @@
 import { NextRequest } from "next/server";
-import { createWalletClient, defineChain, http } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
 import { SyndicateClient } from "@syndicateio/syndicate-node";
-import { checkinABI, checkinAddress } from "@/lib/checkin";
-import { testPublicClient } from "@/lib/publicClient";
 
-const chain = defineChain({
-  id: 63821,
-  name: "IRL",
-  nativeCurrency: {
-    decimals: 18,
-    name: "ETH",
-    symbol: "ETH",
-  },
-  rpcUrls: {
-    default: {
-      http: ["https://rpc.testnet.irl.syndicate.io"],
-    },
-  },
-});
-
-const walletClient = createWalletClient({
-  chain,
-  transport: http(),
-});
+import {  checkinAddress } from "@/lib/checkin";
 
 export async function POST(req: NextRequest) {
   const { walletAddress, checkpoint } = await req.json();
