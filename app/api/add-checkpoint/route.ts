@@ -25,6 +25,7 @@ const walletClient = createWalletClient({
 });
 
 export async function POST(req: NextRequest) {
+  console.log("Adding checkpoint", req);
   try {
     const privateKey = process.env.SERVER_PRIVATE_KEY;
 
