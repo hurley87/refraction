@@ -51,6 +51,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
         // If we get here, user is not checked in, so proceed with check-in
         setIsCheckingIn(true);
+        setCheckinStatus(true);
 
         await fetch("/api/checkin", {
           method: "POST",
@@ -68,7 +69,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
             }),
           });
         }
-        setCheckinStatus(true);
       } catch (error) {
         console.error("Failed to auto check-in:", error);
       } finally {
