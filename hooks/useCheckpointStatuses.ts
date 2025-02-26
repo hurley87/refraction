@@ -51,12 +51,6 @@ export function useCheckpointStatuses(address?: `0x${string}`) {
   return useQuery({
     queryKey: ["checkpointStatuses", address],
     queryFn: () => fetchCheckpointStatuses(address),
-    refetchInterval(query) {
-      if (query.state.data?.some((checkpoint) => checkpoint.isCheckedIn)) {
-        return false;
-      }
-
-      return 1000;
-    }
+    refetchInterval: 1000,
   });
 }
