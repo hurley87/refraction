@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       address: checkinAddress,
       abi: checkinABI,
       functionName: "addCheckpoint",
-      args: [BigInt(2)], // 2 points
+      args: [BigInt(2)],
     });
 
     const hash = await walletClient.writeContract(request);
