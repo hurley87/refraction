@@ -10,6 +10,8 @@ import { invalidateEventCache, getEventCacheStatus } from "@/lib/event-utils";
  * @returns Success status and cache information
  */
 export async function POST(req: NextRequest) {
+  console.log("Invalidating cache");
+  console.log(req);
   try {
     // Get cache status before invalidation
     const beforeStatus = getEventCacheStatus();
