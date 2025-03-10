@@ -2,6 +2,7 @@
 import { publicClient } from "@/lib/publicClient";
 import { createCollectorClient } from "@zoralabs/protocol-sdk";
 import { Token } from "./token";
+import { Coin } from "./coin";
 
 export const Tokens = () => {
   const chainId = 8453;
@@ -65,6 +66,16 @@ export const Tokens = () => {
     },
   ];
 
+  const coins = [
+    {
+      tokenAddress: "0xc316cc6911cba583fe2bafa13dad398b2de329fd",
+      name: "Street Flowers in a Pot",
+      image: "/coins/street-flowers-in-a-pot.png",
+      avatar: "/coins/skohr.png",
+      creator: "skohr",
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex justify-start items-center p-4 sm:p-8 bg-[#DBDFF2]/50">
@@ -78,6 +89,9 @@ export const Tokens = () => {
             tokenContract={token.tokenContract}
             collectorClient={collectorClient}
           />
+        ))}
+        {coins.map((coin: any) => (
+          <Coin key={coin.tokenAddress} coin={coin} />
         ))}
       </div>
     </div>

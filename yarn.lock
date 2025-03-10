@@ -1022,6 +1022,16 @@
   resolved "https://registry.npmjs.org/@one-ini/wasm/-/wasm-0.1.1.tgz"
   integrity sha512-XuySG1E38YScSJoMlqovLru4KTUNSjgVTIjyh7qMX6aNN5HY5Ct5LhRJdxO79JtTzKfzV/bnWpz+zquYrISsvw==
 
+"@openzeppelin/contracts-upgradeable@^5.0.2":
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-5.2.0.tgz#caf9a6eaf4f16d7f90f9b45a6db4e7b125f4b13b"
+  integrity sha512-mZIu9oa4tQTlGiOJHk6D3LdJlqFqF6oNOSn6S6UVJtzfs9UsY9/dhMEbAVTwElxUtJnjpf6yA062+oBp+eOyPg==
+
+"@openzeppelin/contracts@^5.0.2":
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-5.2.0.tgz#bd020694218202b811b0ea3eec07277814c658da"
+  integrity sha512-bxjNie5z89W1Ea0NZLZluFh8PrFNn9DH8DQlujEok2yjsOlraUPKID5p1Wk3qdNbf6XkQ1Os2RvfiHrrXLHWKA==
+
 "@paulmillr/qr@^0.2.1":
   version "0.2.1"
   resolved "https://registry.npmjs.org/@paulmillr/qr/-/qr-0.2.1.tgz"
@@ -2703,6 +2713,21 @@
   dependencies:
     "@walletconnect/window-getters" "^1.0.1"
     tslib "1.14.1"
+
+"@zoralabs/coins-sdk@^0.0.2-sdkalpha.2":
+  version "0.0.2-sdkalpha.2"
+  resolved "https://registry.yarnpkg.com/@zoralabs/coins-sdk/-/coins-sdk-0.0.2-sdkalpha.2.tgz#d0c2107b14273d836a6e0f984d439b17967aee78"
+  integrity sha512-apJ8ZuxWTit1Sn9ZHdG6yLtR6KfgVAJPj6HosJv3/COaYdas4ya5th5PMz/QAG93CA2RPah/A/Z4rHLSSHClkw==
+  dependencies:
+    "@zoralabs/coins" "^0.5.1-sdkalpha.0"
+
+"@zoralabs/coins@^0.5.1-sdkalpha.0":
+  version "0.5.1-sdkalpha.0"
+  resolved "https://registry.yarnpkg.com/@zoralabs/coins/-/coins-0.5.1-sdkalpha.0.tgz#d66bb4cbe0ab010bfb4a2fd8cb216a04db5ddf86"
+  integrity sha512-APEzAzA+q7w1r9KPcmmAPWQLai20dEo+iEqBBwi3UnyIOd0CxJKVnD2ily8j8PXlapE1r0NRuFtrJVOzXQyMNQ==
+  dependencies:
+    "@openzeppelin/contracts" "^5.0.2"
+    "@openzeppelin/contracts-upgradeable" "^5.0.2"
 
 "@zoralabs/protocol-deployments@^0.4.0":
   version "0.4.0"
