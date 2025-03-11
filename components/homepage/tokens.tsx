@@ -74,6 +74,13 @@ export const Tokens = () => {
       avatar: "/coins/skohr.png",
       creator: "skohr",
     },
+    {
+      tokenAddress: "0x96092e07827ecf53e43a02bc39a6e5c0bf8ea68b",
+      name: "Consciousness Terrain Sampler",
+      image: "/coins/consciousness-terrain-sampler.png",
+      avatar: "/coins/skygoodman.png",
+      creator: "Sky Goodman",
+    },
   ];
 
   return (
@@ -82,6 +89,9 @@ export const Tokens = () => {
         DIG Shibuya Mints
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {coins.map((coin: any) => (
+          <Coin key={coin.tokenAddress} coin={coin} />
+        ))}
         {tokens.map((token: any) => (
           <Token
             key={token.tokenId}
@@ -89,9 +99,6 @@ export const Tokens = () => {
             tokenContract={token.tokenContract}
             collectorClient={collectorClient}
           />
-        ))}
-        {coins.map((coin: any) => (
-          <Coin key={coin.tokenAddress} coin={coin} />
         ))}
       </div>
     </div>
