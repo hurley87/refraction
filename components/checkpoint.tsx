@@ -87,35 +87,38 @@ export default function Checkpoint({ id }: CheckpointProps) {
         </div>
       )}
       {id === "1" && checkinStatus && (
-        <div className="flex flex-col gap-6">
-          <img src="/tapphone.png" className="w-2/3 h-auto mx-auto" />
+        <div className="flex flex-col items-center gap-6">
+          
           <div>
-            <h1 className="text-3xl font-inktrap text-black uppercase">
-              {`You'vE STARTED YOUR`}
+            <h1 className="text-3xl font-inktrap justify-center text-black uppercase">
+              {`YOU EARNED`}
             </h1>
             <p
               style={{ lineHeight: "70px" }}
               className="text-white text-7xl font-inktrap uppercase"
             >
-              Side Quest
+              POINTS
             </p>
           </div>
-          <p className="text-base font-anonymous font-light">
-            {`WalletConnect is the connectivity network shaping the future of onchain UX.`}
+          <img src="/checkpoint1.svg" className="w-2/3 h-auto mx-auto" />
+          <p className=" font-inktrap text-3xl font-light">
+            
+             {`You’ve just gained future access to events, rewards and bespoke experiences.`}
             <br />
             <br />
-            {`With the launch of the WalletConnect Token, the network is taking the next step—paving the way for a fully decentralized, permissionless and community owned future of connectivity.`}
-            <br />
-            <br />
-            {`Congratulations, you've checked in to your Side Quest and have started earning IRL points and $WCT.`}
+           {`Learn more and be the first to know about the latest IRL network news`}
+            
           </p>
-          <img src="/walletconnect.png" className="w-full h-auto" />
-          <Button
-            onClick={() => router.push("/checkpoints")}
+           <Button
+            onClick={() => router.push("/")}
             className="text-black  bg-white rounded-lg w-full font-inktrap"
           >
-            View Checkpoint Status
+            VISIT IRL.ENERGY
           </Button>
+          <img src="/rings.svg" className="h-auto" />
+          <img src="/poweredbyrefraction.svg" className="h-auto" />
+
+         
         </div>
       )}
 

@@ -39,37 +39,56 @@ export default function Auth({ children }: AuthProps) {
 
   if (ready && !user) {
     return (
-      <div className="flex flex-col gap-6 w-full max-w-xl mx-auto">
+      <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto">
         <div className="flex flex-col gap-1">
-          <h1 className="text-white text-3xl font-inktrap uppercase">
-            Start Your
+          <h1 className="text-black text-3xl font-inktrap uppercase">
+           CHECK IN TO 
           </h1>
           <p
             style={{ lineHeight: "80px" }}
-            className="text-white text-8xl font-inktrap uppercase leading-2.5"
+            className="text-black text-8xl font-inktrap uppercase leading-2.5"
           >
-            IRL Side Quest
+             EARN POINTS AND REWARDS 
           </p>
+          <h1 className="text-black text-3xl font-inktrap uppercase">
+           ON THE IRL NETWORK
+          </h1>
         </div>
-        <img src="/info.png" alt="IRL Side Quest" className="w-full h-auto" />
+        
+        <img src="/info.svg" alt="IRL Side Quest" className="w-full h-auto" />
         <div className="relative  flex flex-col gap-3  dark:border-r justify-between">
           <div className="flex-auto text-black font-light text-lg text-left max-w-4xl mx-auto">
+            
+          <img src="/checkpoint.svg" alt="Ledger" className="w-full h-auto" />
+          <p
+            style={{ lineHeight: "80px" }}
+            className="text-black text-6xl font-inktrap uppercase leading-2.5"
+          >
+            BE THE FIRST TO ACCESS THE IRL AIRDROP
+          </p>
             <p className="text-base font-anonymous">
-              {`In partnership with Reown and Syndicate, and powered by Refraction's global network of artists, creatives and culture institutions, IRL bridges tangible and virtual worlds, forming the connective tissue between decentralized internet and lived reality.`}
+              {`Powered by Refraction, the IRL network uses blockchain technology to reward audiences, artists and fans for creating and engaging with culture.`}
               <br />
-              <br />
-              Let’s get started! Click the button below to login and unlock the
-              first checkpoint on your Side Quest, earning you $WCT and IRL
-              points on the Syndicate powered IRL protocol.
+              <br/> 
+              Check in to earn IRL, gain exclusive access to experiences and rewards, and help build the new creative economy.
             </p>
           </div>
+          <h1 className="text-black text-3xl  font-inktrap uppercase">
+           CLAIM
+          </h1>
+          <p
+            style={{ lineHeight: "80px" }}
+            className="text-black text-8xl font-inktrap uppercase leading-2.5"
+          >
+            YOUR POINTS
+          </p>
           <Button
             className="bg-white text-[#F24405] rounded-lg hover:bg-white/80 justify-center w-full max-w-4xl text-xl font-inktrap uppercase my-4"
             onClick={login}
           >
-            Email Sign-In
+            CHECK IN
           </Button>
-          <img src="/checkpoint.png" alt="Ledger" className="w-full h-auto" />
+          <img src="/irlfooterlogo.svg" alt="irl" className="w-full h-auto" />
         </div>
       </div>
     );

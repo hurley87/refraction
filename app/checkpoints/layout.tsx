@@ -18,12 +18,12 @@ export default function RootLayout({
   return (
     <div className="h-screen">
       <div
-        style={{ backgroundImage: "url('/bg.svg')" }}
+        style={{ backgroundImage: "url('/bg.png')" }}
         className={`flex flex-col gap-6 p-6`}
       >
         <div className="flex justify-between items-center">
           <Link href="/">
-            <Image src="/logo.png" alt="IRL" width={49} height={25} />
+            <Image src="/irl.svg" alt="IRL" width={49} height={25} />
           </Link>
           <Header />
         </div>
