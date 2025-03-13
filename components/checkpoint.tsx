@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useCheckInStatus } from "@/hooks/useCheckInStatus";
 import { usePrivy } from "@privy-io/react-auth";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Auth from "./auth";
 import { testPublicClient } from "@/lib/publicClient";
@@ -19,9 +19,15 @@ export default function Checkpoint({ id }: CheckpointProps) {
   const email = user?.email;
   const { checkinStatus, setCheckinStatus } = useCheckInStatus(address, id);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const hasAttemptedCheckIn = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
+    // Skip if we've already attempted a check-in in this session
+    if (hasAttemptedCheckIn.current) {
+      return;
+    }
+
     const autoCheckIn = async () => {
       // Only proceed if we have the required user data and aren't already checking in
       if (!user || !address || isCheckingIn) {
@@ -34,6 +40,9 @@ export default function Checkpoint({ id }: CheckpointProps) {
         if (checkinStatus) {
           return;
         }
+
+        // Mark that we've attempted a check-in to prevent duplicate attempts
+        hasAttemptedCheckIn.current = true;
 
         // Double-check with the contract to ensure we have the latest status
         const isAlreadyCheckedIn = await testPublicClient.readContract({
@@ -51,12 +60,15 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
         // If we get here, user is not checked in, so proceed with check-in
         setIsCheckingIn(true);
-        setCheckinStatus(true);
 
+        // Make the API call to check in
         await fetch("/api/checkin", {
           method: "POST",
           body: JSON.stringify({ checkpoint: id, walletAddress: address }),
         });
+
+        // Update the status after successful check-in
+        setCheckinStatus(true);
 
         if (id === "3" && email) {
           await fetch("/api/send", {
@@ -71,13 +83,19 @@ export default function Checkpoint({ id }: CheckpointProps) {
         }
       } catch (error) {
         console.error("Failed to auto check-in:", error);
+        // Reset the attempt flag on error so we can try again if needed
+        hasAttemptedCheckIn.current = false;
       } finally {
         setIsCheckingIn(false);
       }
     };
 
-    autoCheckIn();
-  }, [user, address, checkinStatus, id, email, isCheckingIn]);
+    // Only run the auto check-in if we have a user and the checkinStatus is not null
+    // This ensures we don't run before the hook has had a chance to fetch the initial status
+    if (user && checkinStatus !== null) {
+      autoCheckIn();
+    }
+  }, [user, address, id, email, checkinStatus]);
 
   return (
     <Auth>
@@ -88,7 +106,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
       )}
       {id === "1" && checkinStatus && (
         <div className="flex flex-col items-center gap-6">
-          
           <div>
             <h1 className="text-3xl font-inktrap justify-center text-black uppercase">
               {`YOU EARNED`}
@@ -102,14 +119,12 @@ export default function Checkpoint({ id }: CheckpointProps) {
           </div>
           <img src="/checkpoint1.svg" className="w-2/3 h-auto mx-auto" />
           <p className=" font-inktrap text-3xl font-light">
-            
-             {`You’ve just gained future access to events, rewards and bespoke experiences.`}
+            {`You've just gained future access to events, rewards and bespoke experiences.`}
             <br />
             <br />
-           {`Learn more and be the first to know about the latest IRL network news`}
-            
+            {`Learn more and be the first to know about the latest IRL network news`}
           </p>
-           <Button
+          <Button
             onClick={() => router.push("/")}
             className="text-black  bg-white rounded-lg w-full font-inktrap"
           >
@@ -117,8 +132,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
           </Button>
           <img src="/rings.svg" className="h-auto" />
           <img src="/poweredbyrefraction.svg" className="h-auto" />
-
-         
         </div>
       )}
 
@@ -195,7 +208,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
           </div>
           <img src="/logos.png" className="w-full h-auto" />
           <p className="text-base font-anonymous font-light">
-            {`You’ve tracked down the Syndicate van, and have continued to earn IRL points and $WCT.`}
+            {`You've tracked down the Syndicate van, and have continued to earn IRL points and $WCT.`}
             <br />
             <br />
             {`In partnership with Reown and Syndicate, and powered by Refraction's global network of artists, creatives and culture institutions, IRL bridges tangible and virtual worlds, forming the connective tissue between decentralized internet and lived reality.`}
