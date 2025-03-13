@@ -99,12 +99,12 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
   return (
     <Auth>
-      {id === "1" && !checkinStatus && (
+      {!checkinStatus && (
         <div className="flex justify-center items text-center w-full h-screen font-inktrap text-2xl pt-10">
           Loading ...
         </div>
       )}
-      {id === "1" && checkinStatus && (
+      {checkinStatus && (
         <div className="flex flex-col items-center text-center py-10 gap-6">
           <div className="flex flex-col items-center gap-6">
             <div>
