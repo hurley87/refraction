@@ -55,7 +55,21 @@ export default function Auth({ children }: AuthProps) {
           </h1>
         </div>
 
-        <img src="/info.svg" alt="IRL Side Quest" className="w-full h-auto" />
+        <div className="flex justify-between">
+          <div className="flex flex-col gap-1">
+            <p className="text-black text-sm font-inktrap ">Powered by</p>
+            <img
+              src="/refraction.png"
+              alt="Refraction"
+              className="w-auto h-[16px]"
+            />
+          </div>
+          <img
+            src="/bhx.png"
+            alt="IRL Side Quest"
+            className="w-[46px] h-[46px]"
+          />
+        </div>
         <div className="flex flex-col gap-3  justify-between">
           <div className="flex flex-col gap-3 justify-between py-10">
             <div
