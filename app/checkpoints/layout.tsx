@@ -18,8 +18,7 @@ export default function RootLayout({
   return (
     <div className="h-screen">
       <div
-        style={{ backgroundImage: "url('/bg.png')" }}
-        className={`flex flex-col gap-6 p-6`}
+        className={`flex flex-col gap-6 p-6 bg-gradient-to-b from-[#64C2D7] via-[#FFE600] to-[#F09BC2]`}
       >
         <div className="flex justify-between items-center">
           <Link href="/">

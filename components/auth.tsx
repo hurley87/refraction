@@ -41,54 +41,65 @@ export default function Auth({ children }: AuthProps) {
     return (
       <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto">
         <div className="flex flex-col gap-1">
-          <h1 className="text-black text-3xl font-inktrap uppercase">
-           CHECK IN TO 
+          <h1 className="text-black text-xl font-inktrap uppercase">
+            CHECK IN TO
           </h1>
           <p
-            style={{ lineHeight: "80px" }}
-            className="text-black text-8xl font-inktrap uppercase leading-2.5"
-          >
-             EARN POINTS AND REWARDS 
-          </p>
-          <h1 className="text-black text-3xl font-inktrap uppercase">
-           ON THE IRL NETWORK
-          </h1>
-        </div>
-        
-        <img src="/info.svg" alt="IRL Side Quest" className="w-full h-auto" />
-        <div className="relative  flex flex-col gap-3  dark:border-r justify-between">
-          <div className="flex-auto text-black font-light text-lg text-left max-w-4xl mx-auto">
-            
-          <img src="/checkpoint.svg" alt="Ledger" className="w-full h-auto" />
-          <p
-            style={{ lineHeight: "80px" }}
+            style={{ lineHeight: "60px" }}
             className="text-black text-6xl font-inktrap uppercase leading-2.5"
           >
-            BE THE FIRST TO ACCESS THE IRL AIRDROP
+            EARN POINTS & REWARDS
           </p>
-            <p className="text-base font-anonymous">
-              {`Powered by Refraction, the IRL network uses blockchain technology to reward audiences, artists and fans for creating and engaging with culture.`}
-              <br />
-              <br/> 
-              Check in to earn IRL, gain exclusive access to experiences and rewards, and help build the new creative economy.
+          <h1 className="text-black text-3xl font-inktrap uppercase">
+            ON THE IRL NETWORK
+          </h1>
+        </div>
+
+        <img src="/info.svg" alt="IRL Side Quest" className="w-full h-auto" />
+        <div className="flex flex-col gap-3  justify-between">
+          <div className="flex flex-col gap-3 justify-between py-10">
+            <div
+              style={{
+                backgroundImage: "url('/checkpoint.svg')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+              className="flex flex-col gap-3 justify-between h-screen p-4"
+            >
+              <p
+                style={{ lineHeight: "40px" }}
+                className="text-[#FFE600] text-3xl font-inktrap uppercase leading-2.5 rwr text-right"
+              >
+                BE THE FIRST TO ACCESS THE IRL AIRDROP
+              </p>
+              <p className="text-base font-anonymous text-[#FFE600]">
+                {`Powered by Refraction, the IRL network uses blockchain technology to reward audiences, artists and fans for creating and engaging with culture.`}
+                <br />
+                <br />
+                Check in to earn IRL, gain exclusive access to experiences and
+                rewards, and help build the new creative economy.
+              </p>
+            </div>
+          </div>
+          <div>
+            <h1 className="text-black text-4xl text-center font-inktrap uppercase">
+              CLAIM
+            </h1>
+            <p className="text-black text-2xl font-inktrap uppercase leading-2.5 text-center">
+              YOUR POINTS
             </p>
           </div>
-          <h1 className="text-black text-3xl  font-inktrap uppercase">
-           CLAIM
-          </h1>
-          <p
-            style={{ lineHeight: "80px" }}
-            className="text-black text-8xl font-inktrap uppercase leading-2.5"
-          >
-            YOUR POINTS
-          </p>
           <Button
-            className="bg-white text-[#F24405] rounded-lg hover:bg-white/80 justify-center w-full max-w-4xl text-xl font-inktrap uppercase my-4"
+            className="bg-white text-black rounded-lg hover:bg-white/80 justify-center w-full max-w-4xl text-xl font-inktrap uppercase my-4"
             onClick={login}
           >
             CHECK IN
           </Button>
-          <img src="/irlfooterlogo.svg" alt="irl" className="w-full h-auto" />
+          <img
+            src="/irlfooterlogo.svg"
+            alt="irl"
+            className="w-full h-auto mt-10"
+          />
         </div>
       </div>
     );

@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { X, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function Header() {
-  const { user, logout } = usePrivy();
+  const { user, logout, login } = usePrivy();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMenuMounted, setIsMenuMounted] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -30,7 +31,15 @@ export default function Header() {
 
   // If user is not defined, return null
   if (!user) {
-    return null;
+    return (
+      <Button
+        className="bg-white text-black rounded-lg hover:bg-white/80 justify-center font-inktrap uppercase"
+        size="sm"
+        onClick={login}
+      >
+        CHECK IN
+      </Button>
+    );
   }
 
   return (
@@ -44,7 +53,6 @@ export default function Header() {
           {/* Green circle indicating logged in status */}
         </button>
       </header>
-
       {/* Full screen menu with transitions */}
       {isMenuMounted && (
         <div
