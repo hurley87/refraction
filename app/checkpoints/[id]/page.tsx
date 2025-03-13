@@ -6,10 +6,11 @@ interface CheckpointPageProps {
 
 export default async function CheckpointPage({ params }: CheckpointPageProps) {
   const id = params.id as `0x${string}`;
+  console.log(id);
 
   return (
     <div className="flex flex-col w-full justify-centerfont-sans  ">
-      <Checkpoint id={id} />
+      <Checkpoint id={"4"} />
     </div>
   );
 }
