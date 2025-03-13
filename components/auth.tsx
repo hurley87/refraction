@@ -55,7 +55,7 @@ export default function Auth({ children }: AuthProps) {
           </h1>
         </div>
 
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
           <div className="flex flex-col gap-1">
             <p className="text-black text-sm font-inktrap ">Powered by</p>
             <img
