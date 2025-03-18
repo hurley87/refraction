@@ -3,6 +3,7 @@ import { publicClient } from "@/lib/publicClient";
 import { createCollectorClient } from "@zoralabs/protocol-sdk";
 import { Token } from "./token";
 import { Coin } from "./coin";
+import Image from "next/image";
 
 export const Tokens = () => {
   const chainId = 8453;
@@ -84,11 +85,16 @@ export const Tokens = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex justify-start items-center p-4 sm:p-8 bg-[#DBDFF2]/50">
-        DIG Shibuya Mints
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div className="flex flex-col">
+      <Image
+        src="mints-title-bar.svg"
+        alt="mints"
+        width={1726}
+        height={244}
+        className="w-auto h-auto"
+      />
+
+      <div className="grid grid-cols-1 bg-[#ffffff] sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {coins.map((coin: any) => (
           <Coin key={coin.tokenAddress} coin={coin} />
         ))}

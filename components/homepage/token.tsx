@@ -55,7 +55,7 @@ export const Token = ({
   if (error) return <div>Error loading tokens</div>;
 
   return (
-    <div className="flex flex-col gap-3 bg-[#DBDFF2]/50 p-4 sm:p-8 rounded-lg max-w-[600px] font-sans h-full">
+    <div className="flex flex-col gap-3 bg-[#ffffff] p-4 sm:p-8 rounded-lg max-w-[600px] font-sans h-full">
       <div
         className="w-full aspect-square relative rounded-lg overflow-hidden"
         style={{
@@ -76,7 +76,7 @@ export const Token = ({
           >
             <Button
               size="lg"
-              className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90  sm:w-auto"
+              className="bg-gradient-to-r from-[#EE95BC] to-[#ED2D24]  inline-block text-black  uppercase  hover:bg-[#DDDDDD]/90  sm:w-auto"
             >
               Mint
             </Button>

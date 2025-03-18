@@ -1,4 +1,3 @@
-import { Header } from "@/components/homepage/header";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
@@ -6,44 +5,19 @@ import { Tokens } from "@/components/homepage/tokens";
 
 export default function Home() {
   return (
-    <div className="p-2 sm:p-4 flex flex-col w-full gap-4 font-grotesk">
-      <Header />
-
+    <div className="p-2 sm:p-4 flex flex-col w-full  bg-black font-grotesk">
       {/* Hero Section */}
-      <div className="p-4 sm:p-8 bg-black rounded-sm flex flex-col gap-8 md:gap-12 ">
-        <div className="flex flex-col md:flex-row md:gap-12 gap-6">
-          <h2 className="text-[#00E232] text-2xl sm:text-5xl w-full">
-            {`Developed by Refraction, a pioneer in web3 arts and culture, the IRL
-            protocol realizes the blockchain's potential to revolutionize the
-            creative industry.`}
-          </h2>
-          <div className="w-full md:w-3/5">
-            <Image
-              src="/images/spectrum.png"
-              alt="spectrum"
-              width={400}
-              height={400}
-              className="w-full h-auto"
-            />
-          </div>
-        </div>
-        <div className="flex flex-col gap-4">
-          <Image
-            src="/images/lockup_image.png"
-            alt="spectrum"
-            width={1200}
-            height={600}
-            className="w-full h-auto"
-          />
-        </div>
-      </div>
-
-      <Tokens />
-
+      <Image
+        src="lockup@2x.svg"
+        alt="spectrum"
+        width={1200}
+        height={600}
+        className="w-full h-auto"
+      />
       {/* Red Section */}
-      <div className="p-4 sm:p-8 bg-[#FFE1E1] rounded-sm flex flex-col gap-6 sm:gap-8 md:gap-10">
+      <div className="p-4 sm:p-8 bg-[#E04220] rounded-sm flex flex-col gap-6 sm:gap-8 md:gap-10">
         <div className="flex flex-row gap-4">
-          <h2 className="text-[#FF0000] text-2xl sm:text-3xl md:text-4xl">
+          <h2 className="text-[#FFF7AD] text-2xl sm:text-3xl md:text-4xl">
             {`The IRL ecosystem reimagines the experience economy through its blockchain, token, and protocol, establishing a decentralized foundation for a new era of cultural participation. Rewarding meaningful contributions and creating direct pathways for monetization and interaction, the IRL protocol empowers artists, creators, and audiences to participate in a system that incentivizes collaboration and innovation.`}
           </h2>
         </div>
@@ -55,51 +29,54 @@ export default function Home() {
           >
             <Button
               size="lg"
-              className="uppercase bg-[#FF0000] hover:bg-[#FF0000]/90 text-[#95FF0F] w-full"
+              className="uppercase bg-[#FFF7AD] hover:bg-[#FF0000]/90 text-[#E04220] w-full"
             >
               Join the Community
             </Button>
           </Link>
 
           <Image
-            src="/images/call_out_vector.png"
-            alt="vector"
+            src="community-rings.svg"
+            alt="rings"
             width={200}
             height={100}
-            className="h-auto w-32 sm:w-auto"
-          />
-        </div>
-        <div className="flex flex-col gap-4 relative">
-          <Image
-            src="/images/callout-gradient-overlay.png"
-            alt="overlay"
-            width={1200}
-            height={600}
-            className="w-full h-auto m-auto absolute z-10"
-          />
-          <Image
-            src="/images/call_out_image.png"
-            alt="crewdem"
-            width={1200}
-            height={600}
-            className="w-full h-auto m-auto z-0"
+            className="h-auto w-32 align-right sm:w-auto"
           />
         </div>
       </div>
 
+      <div className="flex flex-col gap-4 relative">
+        <Image
+          src="/images/callout-gradient-overlay.png"
+          alt="overlay"
+          width={1200}
+          height={600}
+          className="w-full h-auto m-auto absolute z-10"
+        />
+        <Image
+          src="/images/call_out_image.png"
+          alt="crewdem"
+          width={1200}
+          height={600}
+          className="w-full h-auto m-auto z-0"
+        />
+      </div>
+
+      <Tokens />
+
       {/* Purple Section */}
-      <div className="flex flex-col md:flex-row justify-between items-center bg-[#E7E3FF] rounded-sm p-4 sm:p-8 gap-6">
-        <h1 className="text-4xl sm:text-5xl md:text-7xl text-[#6101FF]">
+      <div className="flex flex-col md:flex-row justify-between items-center bg-gradient-to-r from-[#FFE600] from-10% to-[#F09BC2] to-90% rounded-sm p-4 sm:p-8 gap-6">
+        <h1 className="text-4xl sm:text-5xl md:text-7xl font-inktrap text-[#000000]">
           Earn IRL
         </h1>
         <div className="flex flex-col gap-6 w-full md:w-1/2">
-          <p className="text-[#6101FF] text-base sm:text-lg">
+          <p className="text-[#000000] text-base sm:text-lg">
             {`With real-world utility supported by existing cultural networks, the IRL protocol transcends traditional crypto applications and sets the stage for an inclusive, expansive framework for global cultural engagement.  As much a loyalty points system as a web3 platform, IRL changes how we experience for the better.`}
           </p>
           <Link target="_blank" href="https://linkin.bio/refractionfestival/">
             <Button
               size="lg"
-              className="uppercase bg-[#6101FF] hover:bg-[#6101FF]/90 text-[#FFFFFF] w-full sm:w-auto"
+              className="uppercase bg-[#FFF7AD] hover:bg-[#F09BC2]/90 text-[#000000] w-full sm:w-auto"
             >
               Learn more
             </Button>
@@ -119,7 +96,7 @@ export default function Home() {
           >
             <Button
               size="lg"
-              className="uppercase bg-gradient-to-r from-orange-500 from-10% via-yellow-500 via-30% to-green-500 to-90% hover:bg-orange-500 text-[#221204] w-full sm:w-auto"
+              className="uppercase bg-gradient-to-r from-[#64C4DE] from-10% to-[#ED9DC2] to-90% hover:bg-white text-[#221204] w-full sm:w-auto"
             >
               Sign Up
             </Button>
@@ -150,7 +127,7 @@ export default function Home() {
         </div>
 
         <Image
-          src="/images/footer-logo.png"
+          src="irl-logo-footer.svg"
           alt="footer logo"
           width={1200}
           height={200}
