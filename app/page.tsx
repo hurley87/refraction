@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { Tokens } from "@/components/homepage/tokens";
-
+import { Events } from "@/components/homepage/events";
 export default function Home() {
   return (
     <div className="p-2 sm:p-4 flex flex-col w-full  bg-black font-grotesk">
@@ -63,6 +63,8 @@ export default function Home() {
       </div>
 
       <Tokens />
+
+      <Events />
 
       {/* Purple Section */}
       <div className="flex flex-col md:flex-row justify-between items-center bg-gradient-to-r from-[#FFE600] from-10% to-[#F09BC2] to-90% rounded-sm p-4 sm:p-8 gap-6">
