@@ -34,7 +34,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
         return;
       }
 
-      // First verify if the user is already checked in directly from the contract
       try {
         // If checkinStatus is already true, no need to check again
         if (checkinStatus) {
