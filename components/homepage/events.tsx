@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Event } from "./event";
+//import { Event } from "./event";
 /*  
     // Event format
       <Event
