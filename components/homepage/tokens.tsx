@@ -100,7 +100,7 @@ export const Tokens = () => {
         ))}
         {tokens.map((token: any) => (
           <Token
-            key={token.tokenId}
+            key={`${token.tokenId}-${token.tokenContract}`}
             tokenId={token.tokenId}
             tokenContract={token.tokenContract}
             collectorClient={collectorClient}

@@ -28,16 +28,14 @@ export const Token = ({
           tokenId,
           mintType: "1155",
         });
-
         const tokenURI = await getIPSFData(
           token.tokenURI.replace("ipfs://", "")
         );
         const name = tokenURI.name;
-        const image = `https://ipfs.decentralized-content.com/ipfs/${tokenURI.image.replace(
+        const image = `https://ipfs.io/ipfs/${tokenURI.image.replace(
           "ipfs://",
           ""
         )}`;
-
         setName(name.toUpperCase());
         setImage(image);
         setCreator(token.creator);

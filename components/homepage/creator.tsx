@@ -19,7 +19,7 @@ export default function Creator({ creator }: CreatorProps) {
       const data = await response.json();
       setUsername(data.username);
 
-      const image = `https://ipfs.decentralized-content.com/ipfs/${data.avatar.replace(
+      const image = `https://ipfs.io/ipfs/${data.avatar.replace(
         "ipfs://",
         ""
       )}`;
