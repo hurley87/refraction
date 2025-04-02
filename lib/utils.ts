@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export async function getIPSFData(ipfs: string) {
-  const url = `https://ipfs.decentralized-content.com/ipfs/${ipfs}`;
+  const url = `https://ipfs.io/ipfs/${ipfs}`;
   const response = await fetch(url);
   const data = await response.json();
   return data;
