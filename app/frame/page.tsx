@@ -37,17 +37,9 @@ export default function FramePage() {
   }
 
   return (
-    <div className="p-2 sm:p-4 flex flex-col w-full bg-black font-grotesk">
-      <div className="p-4 sm:p-8 bg-[#E04220] rounded-sm flex flex-col gap-6 sm:gap-8 md:gap-10">
-        <div className="flex flex-col text-center items-center gap-4">
-          <Image
-            src="/lockup@2x.svg"
-            alt="IRL Logo"
-            width={200}
-            height={100}
-            className="w-44 h-auto mb-2"
-          />
-
+    <div className="flex flex-col justify-between items-center min-h-screen w-full bg-black font-grotesk p-2 sm:p-4">
+      <div className="p-4 sm:p-8 bg-[#E04220] rounded-sm flex flex-col items-center justify-center w-full gap-6 sm:gap-8 md:gap-10">
+        <div className="flex flex-col text-center items-center gap-4 w-full">
           <h1 className="text-2xl font-bold font-grotesk text-[#FFF7AD]">
             Welcome to IRL
           </h1>
@@ -55,30 +47,30 @@ export default function FramePage() {
           <p className="text-[#FFF7AD] pb-6 max-w-md">
             Add IRL and get notified when we launch
           </p>
-
-          {!isAdded && (
-            <Button
-              size="lg"
-              onClick={handleAddToWaitlist}
-              className="uppercase bg-[#FFF7AD] hover:bg-[#FF0000]/90 text-[#E04220] w-full max-w-md font-inktrap"
-            >
-              Add IRL
-            </Button>
-          )}
-
-          {isAdded && (
-            <Button
-              size="lg"
-              disabled
-              className="uppercase bg-[#FFF7AD] text-[#E04220] w-full max-w-md font-inktrap opacity-80"
-            >
-              Added!
-            </Button>
-          )}
         </div>
       </div>
 
-      <div className="mt-8 text-center">
+      <div className="flex flex-col items-center w-full mt-auto mb-8">
+        {!isAdded && (
+          <Button
+            size="lg"
+            onClick={handleAddToWaitlist}
+            className="uppercase bg-[#FFF7AD] hover:bg-[#FF0000]/90 text-[#E04220] w-full max-w-md font-inktrap text-xl py-8 h-auto"
+          >
+            Add IRL
+          </Button>
+        )}
+
+        {isAdded && (
+          <Button
+            size="lg"
+            disabled
+            className="uppercase bg-[#FFF7AD] text-[#E04220] w-full max-w-md font-inktrap text-xl py-8 h-auto opacity-80"
+          >
+            Added!
+          </Button>
+        )}
+
         <Image
           src="/irl-logo-footer.svg"
           alt="IRL logo footer"
