@@ -4,7 +4,7 @@ const appUrl = "https://www.irl.energy";
 
 const frame = {
   version: "next",
-  imageUrl: `${appUrl}/logo.jpg`,
+  imageUrl: `${appUrl}/logo.png`,
   button: {
     title: "Join IRL",
     action: {
