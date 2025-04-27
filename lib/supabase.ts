@@ -12,3 +12,25 @@ export type NumberAssignment = {
   assigned_number: number;
   created_at: string;
 };
+
+export type Notification = {
+  id: number;
+  user_address: string;
+  created_at: string;
+};
+
+export type WebhookNotification = {
+  fid: number;
+  url?: string;
+  token?: string;
+};
+
+export const insertNotification = async (notification: WebhookNotification) => {
+  const { data, error } = await supabase
+    .from("irlnotifications")
+    .insert(notification);
+  if (error) {
+    throw error;
+  }
+  return data;
+};

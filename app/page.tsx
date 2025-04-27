@@ -3,6 +3,41 @@ import Link from "next/link";
 import Image from "next/image";
 import { Tokens } from "@/components/homepage/tokens";
 import { Events } from "@/components/homepage/events";
+import { Metadata } from "next";
+
+const appUrl = "https://www.irl.energy";
+
+const frame = {
+  version: "next",
+  imageUrl: `${appUrl}/logo.jpg`,
+  button: {
+    title: "Join IRL",
+    action: {
+      type: "launch_frame",
+      name: "IRL",
+      url: `${appUrl}/frame`,
+      splashImageUrl: `${appUrl}/logo.png`,
+      splashBackgroundColor: "#FFFFFF",
+    },
+  },
+};
+
+export const revalidate = 300;
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "IRL",
+    openGraph: {
+      title: "IRL",
+      description:
+        "The IRL protocol empowers artists, creators, and audiences to participate in a system that incentivizes collaboration and innovation.",
+    },
+    other: {
+      "fc:frame": JSON.stringify(frame),
+    },
+  };
+}
+
 export default function Home() {
   return (
     <div className="p-2 sm:p-4 flex flex-col w-full  bg-black font-grotesk">
