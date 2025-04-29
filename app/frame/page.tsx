@@ -45,17 +45,18 @@ export default function FramePage() {
           </h1>
 
           <p className="text-[#FFF7AD] pb-6 max-w-md">
-            Add IRL and get notified when we launch
+            Gain future access to events, rewards and bespoke experiences.
           </p>
         </div>
       </div>
+      <img src="/checkpoint1.svg" className="w-3/4 h-auto mx-auto mt-10" />
 
       <div className="flex flex-col items-center w-full mt-auto mb-8">
         {!isAdded && (
           <Button
             size="lg"
             onClick={handleAddToWaitlist}
-            className="uppercase bg-[#FFF7AD] hover:bg-[#FF0000]/90 text-[#E04220] w-full max-w-md font-inktrap text-xl py-8 h-auto"
+            className="uppercase bg-[#FFF7AD] hover:bg-[#FF0000]/90 text-[#E04220] w-full max-w-md font-inktrap text-4xl py-10 h-auto rounded-2xl shadow-lg shadow-white hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
           >
             Add IRL
           </Button>
