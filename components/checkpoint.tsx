@@ -6,8 +6,6 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Auth from "./auth";
-import { testPublicClient } from "@/lib/publicClient";
-import { checkinABI, checkinAddress } from "@/lib/checkin";
 
 interface CheckpointProps {
   id: string;
@@ -15,9 +13,11 @@ interface CheckpointProps {
 
 export default function Checkpoint({ id }: CheckpointProps) {
   const { user } = usePrivy();
+  console.log("user", user);
   const address = user?.wallet?.address as `0x${string}`;
-  const email = user?.email;
+  const email = user?.email?.address;
   const { checkinStatus, setCheckinStatus } = useCheckInStatus(address, id);
+  console.log("checkinStatus", checkinStatus);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const hasAttemptedCheckIn = useRef(false);
   const router = useRouter();
@@ -40,22 +40,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
           return;
         }
 
-        // Mark that we've attempted a check-in to prevent duplicate attempts
-        hasAttemptedCheckIn.current = true;
-
-        // Double-check with the contract to ensure we have the latest status
-        const isAlreadyCheckedIn = await testPublicClient.readContract({
-          address: checkinAddress,
-          abi: checkinABI,
-          functionName: "hasUserCheckedIn",
-          args: [address, id],
-        });
-
-        // If already checked in, update the local state and exit
-        if (isAlreadyCheckedIn) {
-          setCheckinStatus(true);
-          return;
-        }
+        // Mark that we've attempted a check-in to prevent duplicate attempt
 
         // If we get here, user is not checked in, so proceed with check-in
         setIsCheckingIn(true);
@@ -63,23 +48,11 @@ export default function Checkpoint({ id }: CheckpointProps) {
         // Make the API call to check in
         await fetch("/api/checkin", {
           method: "POST",
-          body: JSON.stringify({ checkpoint: id, walletAddress: address }),
+          body: JSON.stringify({ walletAddress: address, email }),
         });
 
         // Update the status after successful check-in
         setCheckinStatus(true);
-
-        if (id === "3" && email) {
-          await fetch("/api/send", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email,
-            }),
-          });
-        }
       } catch (error) {
         console.error("Failed to auto check-in:", error);
         // Reset the attempt flag on error so we can try again if needed

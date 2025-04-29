@@ -25,6 +25,13 @@ export type WebhookNotification = {
   token?: string;
 };
 
+export type Checkin = {
+  id?: number;
+  address: string;
+  email: string;
+  created_at?: string;
+};
+
 export const insertNotification = async (notification: WebhookNotification) => {
   const { data, error } = await supabase
     .from("irlnotifications")
@@ -33,4 +40,34 @@ export const insertNotification = async (notification: WebhookNotification) => {
     throw error;
   }
   return data;
+};
+
+export const insertCheckin = async (checkin: Checkin) => {
+  const { data, error } = await supabase.from("irlcheckins").insert(checkin);
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+};
+
+export const getCheckinByAddress = async (address: string) => {
+  try {
+    const { data, error } = await supabase
+      .from("irlcheckins")
+      .select("*")
+      .eq("address", address);
+
+    console.log("data", data);
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
 };

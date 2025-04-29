@@ -10,6 +10,8 @@ interface AuthProps {
 export default function Auth({ children }: AuthProps) {
   const { user, login, ready, linkEmail } = usePrivy();
 
+  console.log("user", user);
+
   if (!ready) {
     return (
       <div className="flex justify-center items text-center w-full h-screen font-inktrap text-2xl pt-10">
