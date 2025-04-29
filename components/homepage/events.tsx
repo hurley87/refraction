@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-//import { Event } from "./event";
+import { Event } from "./event";
 /*  
     // Event format
       <Event
@@ -26,7 +26,33 @@ export const Events = () => {
       />
 
       <div className="grid grid-cols-1 bg-[#ffffff] sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
-        
+        <Event
+            event={{
+            id: 1,
+            title: "IRL @ Public Records w/ Rodeo",
+            location: "NYC",
+            date: "April 30 2025",
+            image: "public-records-apr-30.png",
+          }}
+        /> 
+        <Event
+            event={{
+            id: 2,
+            title: "IRL @ Pony w/Livepeer,",
+            location: "NYC",
+            date: "May 1 2025",
+            image: "irl-daydream-greenpoint.png",
+          }}
+        /> 
+        <Event
+            event={{
+            id: 3,
+            title: "IRL @ Standard Time w/Aptos, Polygon & Cold Pod",
+            location: "Toronto",
+            date: "May 16 2025",
+            image: "refraction-standard-time.png",
+          }}
+        /> 
       </div>
     </div>
   );
