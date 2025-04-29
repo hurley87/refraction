@@ -49,7 +49,7 @@ export default function FramePage() {
           </p>
         </div>
       </div>
-      <img src="/checkpoint1.svg" className="w-3/4 h-auto mx-auto mt-10" />
+      <img src="/checkpoint1.svg" className="w-3/4 h-auto mx-auto mt-6" />
 
       <div className="flex flex-col items-center w-full mt-auto mb-8">
         {!isAdded && (
