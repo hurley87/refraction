@@ -41,7 +41,7 @@ export const Events = () => {
             title: "IRL @ Pony w/Livepeer,",
             location: "NYC",
             date: "May 1 2025",
-            image: "irl-daydream-greenpoint.png",
+            image: "irl-daydream-greenpoint-portrait.png",
           }}
         /> 
         <Event

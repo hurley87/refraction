@@ -12,7 +12,7 @@ export const Event = ({ event }: { event: Event }) => {
   return (
     <div className="flex flex-col gap-3 bg-[#63C3D8]/50 p-4 sm:p-8 rounded-lg max-w-[600px] font-sans h-full">
       <div
-        className="w-full aspect-square relative rounded-lg overflow-hidden"
+        className="w-full aspect-[12/16] relative rounded-lg overflow-hidden"
         style={{
           backgroundImage: `url(${event.image})`,
           backgroundPosition: "center",
