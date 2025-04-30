@@ -12,7 +12,6 @@ export default function FramePage() {
 
   useEffect(() => {
     const initializeFrame = async () => {
-      // Hide splash screen when component is mounted
       await sdk.actions.ready();
       setIsReady(true);
 
