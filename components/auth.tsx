@@ -55,6 +55,12 @@ export default function Auth({ children }: AuthProps) {
           <h1 className="text-black text-3xl font-inktrap uppercase">
             ON THE IRL NETWORK
           </h1>
+          <Button
+            className="bg-white text-black rounded-lg hover:bg-white/80 justify-center w-full max-w-4xl text-xl font-inktrap uppercase my-4"
+            onClick={login}
+          >
+            CHECK IN
+          </Button>
         </div>
 
         <div className="flex justify-between items-center">
