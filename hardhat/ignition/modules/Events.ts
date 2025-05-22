@@ -1,9 +1,9 @@
-import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
+// import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-const EventsModule = buildModule("EventsModule", (m) => {
-  const events = m.contract("Events", []);
+// const EventsModule = buildModule("EventsModule", (m) => {
+//   const events = m.contract("Events", []);
 
-  return { events };
-});
+//   return { events };
+// });
 
-export default EventsModule;
+// export default EventsModule;
