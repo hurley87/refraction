@@ -6,7 +6,7 @@ export const publicClient = createPublicClient({
   transport: http(),
 }) as any;
 
-const chain = defineChain({
+export const irlChain = defineChain({
   id: 63821,
   name: "IRL",
   nativeCurrency: {
@@ -22,7 +22,7 @@ const chain = defineChain({
 });
 
 export const testPublicClient = createPublicClient({
-  chain,
+  chain: irlChain,
   transport: http("https://rpc.testnet.irl.syndicate.io"),
 }) as any;
 

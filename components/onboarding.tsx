@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { z } from "zod";
-import { publicClient } from "@/lib/publicClient";
+import { publicClient, irlChain } from "@/lib/publicClient";
 import { userManagerABI, userManagerAddress } from "@/lib/contracts/UserManager";
-import { base } from "viem/chains";
 import { createWalletClient, custom } from "viem";
 
 const usernameSchema = z
@@ -66,7 +65,7 @@ export default function Onboarding() {
       const provider = (await wallet.getEthereumProvider()) as any;
       const walletClient = await createWalletClient({
         account: address,
-        chain: base,
+        chain: irlChain,
         transport: custom(provider),
       });
 
@@ -119,7 +118,7 @@ export default function Onboarding() {
           />
         </div>
         {wallet ? (
-          walletChainId === base.id.toString() ? (
+          walletChainId === irlChain.id.toString() ? (
             <Button
               className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90 sm:w-auto"
               disabled={isLoading}
@@ -130,9 +129,9 @@ export default function Onboarding() {
           ) : (
             <Button
               className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90 sm:w-auto"
-              onClick={() => wallet.switchChain(base.id)}
+              onClick={() => wallet.switchChain(irlChain.id)}
             >
-              Switch to Base
+              Switch to IRL
             </Button>
           )
         ) : (
