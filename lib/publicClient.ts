@@ -1,10 +1,4 @@
 import { createPublicClient, defineChain, http } from "viem";
-import { base, baseSepolia } from "viem/chains";
-
-export const publicClient = createPublicClient({
-  chain: base,
-  transport: http(),
-}) as any;
 
 export const irlChain = defineChain({
   id: 63821,
@@ -21,12 +15,12 @@ export const irlChain = defineChain({
   },
 });
 
-export const testPublicClient = createPublicClient({
+export const publicClient = createPublicClient({
   chain: irlChain,
   transport: http("https://rpc.testnet.irl.syndicate.io"),
 }) as any;
 
-export const irlPublicClient = createPublicClient({
-  chain: baseSepolia,
+export const testPublicClient = createPublicClient({
+  chain: irlChain,
   transport: http("https://rpc.testnet.irl.syndicate.io"),
 }) as any;

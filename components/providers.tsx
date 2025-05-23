@@ -1,13 +1,10 @@
 "use client";
 
 import { PrivyProvider } from "@privy-io/react-auth";
-import { base } from "viem/chains";
-import {
-  QueryClient,
-  QueryClientProvider,
-} from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { irlChain } from "@/lib/publicClient";
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient();
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID!;
@@ -23,7 +20,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           appearance: {
             theme: "dark",
           },
-          defaultChain: base,
+          supportedChains: [irlChain],
+          defaultChain: irlChain,
         }}
       >
         {children}

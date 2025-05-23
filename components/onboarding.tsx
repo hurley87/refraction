@@ -8,7 +8,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { z } from "zod";
 import { publicClient, irlChain } from "@/lib/publicClient";
-import { userManagerABI, userManagerAddress } from "@/lib/contracts/UserManager";
+import {
+  userManagerABI,
+  userManagerAddress,
+} from "@/lib/contracts/UserManager";
 import { createWalletClient, custom } from "viem";
 
 const usernameSchema = z
@@ -17,11 +20,25 @@ const usernameSchema = z
   .regex(/^[a-zA-Z0-9_]+$/, "Invalid username");
 
 export default function Onboarding() {
-  const { user, login } = usePrivy();
+  const { user, login, logout } = usePrivy();
   const { wallets } = useWallets();
-  const address = user?.wallet?.address as `0x${string}` | undefined;
-  const wallet = wallets.find((w) => w.address === address);
-  const walletChainId = wallet?.chainId.split(":" )[1];
+
+  console.log("user", user);
+  console.log("wallets", wallets);
+
+  // Get the primary wallet address
+  const address = (user?.wallet?.address || wallets[0]?.address) as
+    | `0x${string}`
+    | undefined;
+  console.log("address:", address);
+
+  // Find the wallet object
+  const wallet = wallets.find((w) => w.address === address) || wallets[0];
+  console.log("wallet:", wallet);
+
+  // Parse chain ID safely
+  const walletChainId = wallet?.chainId?.split(":")[1];
+  console.log("walletChainId:", walletChainId);
 
   const [usernameInput, setUsernameInput] = useState("");
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
@@ -31,13 +48,32 @@ export default function Onboarding() {
     if (!address) return;
     const fetchUsername = async () => {
       try {
-        const data: any = await publicClient.readContract({
+        // Step 1: Get the user ID from address
+        const userId = await publicClient.readContract({
           address: userManagerAddress,
           abi: userManagerABI,
-          functionName: "getUser",
+          functionName: "addressToId",
           args: [address],
         });
-        const name = Array.isArray(data) ? data[1] : undefined;
+
+        console.log("userId", userId);
+
+        // Check if userId is 0 (no user registered for this address)
+        if (!userId || userId === BigInt(0)) {
+          console.log("No user ID found for address");
+          return;
+        }
+
+        // Step 2: Get the username using the user ID
+        const name = await publicClient.readContract({
+          address: userManagerAddress,
+          abi: userManagerABI,
+          functionName: "getName",
+          args: [userId],
+        });
+
+        console.log("name", name);
+
         if (name && typeof name === "string" && name.length > 0) {
           setCurrentUsername(name);
         }
@@ -62,6 +98,19 @@ export default function Onboarding() {
 
     try {
       setIsLoading(true);
+
+      console.log("walletChainId", walletChainId);
+      console.log("irlChain.id", irlChain.id);
+      console.log("wallet", wallet);
+
+      // Ensure we're on the correct chain before proceeding
+      if (walletChainId !== irlChain.id.toString()) {
+        await wallet.switchChain(irlChain.id);
+        toast.info("Switching to IRL chain...");
+        // Wait a bit for the chain switch to complete
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
       const provider = (await wallet.getEthereumProvider()) as any;
       const walletClient = await createWalletClient({
         account: address,
@@ -89,6 +138,23 @@ export default function Onboarding() {
     }
   };
 
+  const handleChainSwitch = async () => {
+    if (!wallet) {
+      toast.error("No wallet connected");
+      return;
+    }
+
+    try {
+      await wallet.switchChain(irlChain.id);
+      toast.success("Switched to IRL chain");
+    } catch (err) {
+      console.error("Error switching chain:", err);
+      toast.error(
+        "Failed to switch chain. Please switch manually in your wallet."
+      );
+    }
+  };
+
   if (!user) {
     return (
       <div className="p-6 flex justify-center">
@@ -105,6 +171,8 @@ export default function Onboarding() {
       </div>
     );
   }
+
+  console.log("wallet", wallet);
 
   return (
     <div className="p-6">
@@ -129,7 +197,7 @@ export default function Onboarding() {
           ) : (
             <Button
               className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90 sm:w-auto"
-              onClick={() => wallet.switchChain(irlChain.id)}
+              onClick={handleChainSwitch}
             >
               Switch to IRL
             </Button>
@@ -142,6 +210,7 @@ export default function Onboarding() {
             Connect Wallet
           </Button>
         )}
+        <button onClick={logout}>Logout</button>
       </div>
     </div>
   );
