@@ -13,6 +13,7 @@
     "@farcaster/frame-node": "^0.0.22",
     "@farcaster/frame-sdk": "^0.0.36",
     "@pinata/sdk": "^2.1.0",
+    "@privy-io/chains": "^0.0.1",
     "@privy-io/react-auth": "^1.90.0",
     "@privy-io/server-auth": "^1.16.2",
     "@radix-ui/react-dialog": "^1.1.1",

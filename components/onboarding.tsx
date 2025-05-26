@@ -19,6 +19,28 @@ const usernameSchema = z
   .min(1, "Username is required")
   .regex(/^[a-zA-Z0-9_]+$/, "Invalid username");
 
+// Helper function to safely get chain ID
+const getWalletChainId = (wallet: any): string | undefined => {
+  if (!wallet) return undefined;
+
+  // Check if chainId is already a string number
+  if (typeof wallet.chainId === "string" && !wallet.chainId.includes(":")) {
+    return wallet.chainId;
+  }
+
+  // Parse chain ID from format like "eip155:8453"
+  if (typeof wallet.chainId === "string" && wallet.chainId.includes(":")) {
+    return wallet.chainId.split(":")[1];
+  }
+
+  // If chainId is a number
+  if (typeof wallet.chainId === "number") {
+    return wallet.chainId.toString();
+  }
+
+  return undefined;
+};
+
 export default function Onboarding() {
   const { user, login, logout } = usePrivy();
   const { wallets } = useWallets();
@@ -35,14 +57,30 @@ export default function Onboarding() {
   // Find the wallet object
   const wallet = wallets.find((w) => w.address === address) || wallets[0];
   console.log("wallet:", wallet);
+  console.log("wallet type:", wallet?.walletClientType);
+  console.log("wallet chainId:", wallet?.chainId);
 
   // Parse chain ID safely
-  const walletChainId = wallet?.chainId?.split(":")[1];
+  const walletChainId = getWalletChainId(wallet);
   console.log("walletChainId:", walletChainId);
 
   const [usernameInput, setUsernameInput] = useState("");
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentChainId, setCurrentChainId] = useState<string | undefined>(
+    walletChainId
+  );
+
+  // Update currentChainId when wallet changes
+  useEffect(() => {
+    if (wallet) {
+      const chainId = getWalletChainId(wallet);
+      if (chainId) {
+        setCurrentChainId(chainId);
+        console.log("Updated currentChainId:", chainId);
+      }
+    }
+  }, [wallet, wallet?.chainId]);
 
   useEffect(() => {
     if (!address) return;
@@ -99,19 +137,66 @@ export default function Onboarding() {
     try {
       setIsLoading(true);
 
-      console.log("walletChainId", walletChainId);
+      console.log("currentChainId", currentChainId);
       console.log("irlChain.id", irlChain.id);
       console.log("wallet", wallet);
 
       // Ensure we're on the correct chain before proceeding
-      if (walletChainId !== irlChain.id.toString()) {
-        await wallet.switchChain(irlChain.id);
-        toast.info("Switching to IRL chain...");
-        // Wait a bit for the chain switch to complete
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (currentChainId !== irlChain.id.toString()) {
+        try {
+          // Try to switch chain directly first
+          await wallet.switchChain(irlChain.id);
+          toast.info("Switching to IRL chain...");
+          setCurrentChainId(irlChain.id.toString());
+
+          // Wait a bit for the chain switch to complete
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        } catch (switchError: any) {
+          console.error("Direct chain switch failed:", switchError);
+
+          // If direct switch fails, try adding the chain first
+          const provider = await wallet.getEthereumProvider();
+
+          if (!provider) {
+            toast.error("Unable to get wallet provider");
+            return;
+          }
+
+          try {
+            await provider.request({
+              method: "wallet_addEthereumChain",
+              params: [
+                {
+                  chainId: `0x${irlChain.id.toString(16)}`,
+                  chainName: irlChain.name,
+                  nativeCurrency: irlChain.nativeCurrency,
+                  rpcUrls: [irlChain.rpcUrls.default.http[0]],
+                  blockExplorerUrls: irlChain.blockExplorers
+                    ? [irlChain.blockExplorers.default.url]
+                    : undefined,
+                },
+              ],
+            });
+          } catch (addError: any) {
+            console.log("Chain might already be added:", addError);
+          }
+
+          // Try switching again
+          await wallet.switchChain(irlChain.id);
+          toast.info("Switching to IRL chain...");
+          setCurrentChainId(irlChain.id.toString());
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
       }
 
-      const provider = (await wallet.getEthereumProvider()) as any;
+      // Get provider after chain switch
+      const provider = await wallet.getEthereumProvider();
+
+      if (!provider) {
+        toast.error("Unable to get wallet provider");
+        return;
+      }
+
       const walletClient = await createWalletClient({
         account: address,
         chain: irlChain,
@@ -145,13 +230,69 @@ export default function Onboarding() {
     }
 
     try {
-      await wallet.switchChain(irlChain.id);
-      toast.success("Switched to IRL chain");
-    } catch (err) {
-      console.error("Error switching chain:", err);
-      toast.error(
-        "Failed to switch chain. Please switch manually in your wallet."
-      );
+      console.log("Starting chain switch...");
+      console.log("Wallet object:", wallet);
+      console.log("Current chainId:", wallet.chainId);
+
+      // Try to switch chain using the wallet's switchChain method
+      try {
+        await wallet.switchChain(irlChain.id);
+        console.log("Chain switched successfully");
+
+        // Update the current chain ID
+        setCurrentChainId(irlChain.id.toString());
+
+        // Force a small delay to ensure the chain switch is reflected
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        toast.success("Switched to IRL chain");
+      } catch (switchError: any) {
+        console.error("Error during switchChain:", switchError);
+
+        // If switchChain fails, try adding the chain first
+        const provider = await wallet.getEthereumProvider();
+
+        if (!provider) {
+          toast.error("Unable to get wallet provider");
+          return;
+        }
+
+        try {
+          await provider.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: `0x${irlChain.id.toString(16)}`,
+                chainName: irlChain.name,
+                nativeCurrency: irlChain.nativeCurrency,
+                rpcUrls: [irlChain.rpcUrls.default.http[0]],
+                blockExplorerUrls: irlChain.blockExplorers
+                  ? [irlChain.blockExplorers.default.url]
+                  : undefined,
+              },
+            ],
+          });
+          console.log("Chain added successfully");
+
+          // Try switching again after adding
+          await wallet.switchChain(irlChain.id);
+          setCurrentChainId(irlChain.id.toString());
+          toast.success("Switched to IRL chain");
+        } catch (addError: any) {
+          console.error("Error adding chain:", addError);
+          throw addError;
+        }
+      }
+    } catch (err: any) {
+      console.error("Error switching chain - Full error:", err);
+      console.error("Error type:", typeof err);
+      console.error("Error message:", err?.message);
+      console.error("Error stack:", err?.stack);
+
+      const errorMessage =
+        err?.message ||
+        "Failed to switch chain. Please switch manually in your wallet.";
+      toast.error(errorMessage);
     }
   };
 
@@ -186,7 +327,7 @@ export default function Onboarding() {
           />
         </div>
         {wallet ? (
-          walletChainId === irlChain.id.toString() ? (
+          currentChainId === irlChain.id.toString() ? (
             <Button
               className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90 sm:w-auto"
               disabled={isLoading}
