@@ -5,8 +5,8 @@ import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 
-// Configure PDF.js worker to use the local file
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.js";
+// Configure PDF.js worker to use the CDN version that matches react-pdf
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export default function PDFViewer() {
   const [numPages, setNumPages] = useState<number | null>(null);
@@ -40,7 +40,7 @@ export default function PDFViewer() {
           </div>
         )}
         <Document
-          file="/pdfs/livepaper.pdf"
+          file="/livepaper.pdf"
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={onDocumentLoadError}
           loading={
@@ -74,4 +74,4 @@ export default function PDFViewer() {
       </div>
     </div>
   );
-} 
+}
