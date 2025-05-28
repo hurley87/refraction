@@ -29,8 +29,8 @@ export default function PDFViewer() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 p-2 sm:p-4">
-      <div className="w-full max-w-[100vw] mx-auto bg-white rounded-lg shadow-lg p-2 sm:p-4">
+    <div className="w-full min-h-screen bg-white">
+      <div className="w-full bg-gray-50">
         {error && (
           <div className="text-red-500 text-center mb-4 p-4 bg-red-50 rounded">
             <p className="font-bold">Error loading PDF:</p>
@@ -39,7 +39,7 @@ export default function PDFViewer() {
         )}
         
         {loading && (
-          <div className="text-center mb-4 p-4 bg-blue-50 rounded">
+          <div className="text-center mb-4 p-4 bg-black rounded">
             Loading PDF...
           </div>
         )}
@@ -49,7 +49,7 @@ export default function PDFViewer() {
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={onDocumentLoadError}
           loading={
-            <div className="text-center p-4 bg-blue-50 rounded">
+            <div className="text-center p-4 bg-black rounded">
               Loading PDF...
             </div>
           }
@@ -62,15 +62,15 @@ export default function PDFViewer() {
         >
           {numPages &&
             Array.from({ length: numPages }, (_, idx) => (
-              <div key={`page_${idx + 1}`} className="w-full flex justify-center mb-8">
+              <div key={`page_${idx + 1}`} className="w-full flex justify-center">
                 <Page
                   pageNumber={idx + 1}
                   renderTextLayer={true}
                   renderAnnotationLayer={true}
-                  className="max-w-full"
-                  width={Math.min(window.innerWidth - 32, 800)} // Responsive width
+                  className="w-full"
+                  width={window.innerWidth}
                   loading={
-                    <div className="text-center p-4 bg-blue-50 rounded">
+                    <div className="text-center p-4 bg-black rounded">
                       Loading page {idx + 1}...
                     </div>
                   }
