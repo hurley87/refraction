@@ -153,7 +153,7 @@ export default function Home() {
                     : social === "farcaster"
                     ? "https://farcaster.xyz/refraction"
                     : social === "universal"
-                    ? "https://universal.xyz/refraction"
+                    ? "https://universaleverything.io/0x1e42639e984fc2c3bce89e762e5596251dc61bf9?assetGroup=grid"
                     : social === "towns"
                     ? "https://app.towns.com/t/0xf19e5997fa4df2e12a3961fc7e9ad09c7a301244/"
                     : social === "telegram"
