@@ -26,15 +26,25 @@ export const Events = () => {
       />
 
       <div className="grid grid-cols-1 bg-[#ffffff] sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
-        <Event
+         <Event
             event={{
-            id: 1,
-            title: "IRL @ Public Records w/ Rodeo",
+            id: 4,
+            title: "React X Refraction Present Reset",
             location: "NYC",
-            date: "April 30 2025",
-            image: "public-records-apr-30.png",
+            date: "June 26 2025",
+            image: "nftnyc-aptos.png",
           }}
         /> 
+         <Event
+            event={{
+            id: 3,
+            title: "IRL @ Standard Time w/Aptos, Polygon & Cold Pod",
+            location: "Toronto",
+            date: "May 16 2025",
+            image: "refraction-standard-time.png",
+          }}
+        /> 
+       
         <Event
             event={{
             id: 2,
@@ -44,15 +54,17 @@ export const Events = () => {
             image: "irl-daydream-greenpoint-portrait.png",
           }}
         /> 
-        <Event
+
+         <Event
             event={{
-            id: 3,
-            title: "IRL @ Standard Time w/Aptos, Polygon & Cold Pod",
-            location: "Toronto",
-            date: "May 16 2025",
-            image: "refraction-standard-time.png",
+            id: 1,
+            title: "IRL @ Public Records w/ Rodeo",
+            location: "NYC",
+            date: "April 30 2025",
+            image: "public-records-apr-30.png",
           }}
         /> 
+       
       </div>
     </div>
   );
