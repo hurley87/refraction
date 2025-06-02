@@ -1,5 +1,7 @@
 import { createPublicClient, defineChain, http } from "viem";
 
+const IRl_RPC_URL = "https://smartrpc.testnet.irl.syndicate.io";
+
 export const irlChain = defineChain({
   id: 63821,
   name: "IRL",
@@ -11,10 +13,10 @@ export const irlChain = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ["https://rpc.testnet.irl.syndicate.io"],
+      http: [IRl_RPC_URL],
     },
     public: {
-      http: ["https://rpc.testnet.irl.syndicate.io"],
+      http: [IRl_RPC_URL],
     },
   },
   blockExplorers: {
@@ -28,10 +30,10 @@ export const irlChain = defineChain({
 
 export const publicClient = createPublicClient({
   chain: irlChain,
-  transport: http("https://rpc.testnet.irl.syndicate.io"),
+  transport: http(IRl_RPC_URL),
 }) as any;
 
 export const testPublicClient = createPublicClient({
   chain: irlChain,
-  transport: http("https://rpc.testnet.irl.syndicate.io"),
+  transport: http(IRl_RPC_URL),
 }) as any;
