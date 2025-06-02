@@ -22,6 +22,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           loginMethods: ["email"],
           embeddedWallets: {
             createOnLogin: "users-without-wallets",
+            noPromptOnSignature: true,
+            showWalletUIs: false,
           },
           appearance: {
             theme: "dark",
