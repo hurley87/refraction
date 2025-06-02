@@ -9,7 +9,7 @@ const queryClient = new QueryClient();
 
 const irlChainOverride = addRpcUrlOverrideToChain(
   irlChain,
-  "https://rpc.testnet.irl.syndicate.io"
+  "https://smartrpc.testnet.irl.syndicate.io"
 );
 
 export default function Providers({ children }: { children: React.ReactNode }) {
