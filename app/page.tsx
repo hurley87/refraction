@@ -139,16 +139,26 @@ export default function Home() {
             </Button>
           </Link>
           <div className="flex gap-4 justify-center sm:justify-end">
-            {["twitter", "instagram", "lenster"].map((social) => (
+            {["instagram", "x", "farcaster", "lens", "universal", "towns", "telegram"].map((social) => (
               <Link
                 key={social}
                 target="_blank"
                 href={
-                  social === "twitter"
+                    social === "x"
                     ? "https://www.x.com/refractiondao"
                     : social === "instagram"
                     ? "https://instagram.com/refractionfestival"
-                    : "https://www.lensfrens.xyz/refraction"
+                    : social === "lens"
+                    ? "https://www.lensfrens.xyz/refraction"
+                    : social === "farcaster"
+                    ? "https://farcaster.xyz/refraction"
+                    : social === "universal"
+                    ? "https://universaleverything.io/0x1e42639e984fc2c3bce89e762e5596251dc61bf9?assetGroup=grid"
+                    : social === "towns"
+                    ? "https://app.towns.com/t/0xf19e5997fa4df2e12a3961fc7e9ad09c7a301244/"
+                    : social === "telegram"
+                    ? "http://t.me/refractioncommunity"
+                    : ""
                 }
               >
                 <Image
