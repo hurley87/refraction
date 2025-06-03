@@ -29,7 +29,7 @@ export const Events = () => {
          <Event
             event={{
             id: 4,
-            title: "React X Refraction Present Reset",
+            title: "Refraction X Reown Present Reset",
             location: "NYC",
             date: "June 26 2025",
             image: "nftnyc-aptos.png",
