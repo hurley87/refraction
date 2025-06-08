@@ -162,25 +162,6 @@ export default function Onboarding() {
             return;
           }
 
-          try {
-            await provider.request({
-              method: "wallet_addEthereumChain",
-              params: [
-                {
-                  chainId: `0x${irlChain.id.toString(16)}`,
-                  chainName: irlChain.name,
-                  nativeCurrency: irlChain.nativeCurrency,
-                  rpcUrls: [irlChain.rpcUrls.default.http[0]],
-                  blockExplorerUrls: irlChain.blockExplorers
-                    ? [irlChain.blockExplorers.default.url]
-                    : undefined,
-                },
-              ],
-            });
-          } catch (addError: any) {
-            console.log("Chain might already be added:", addError);
-          }
-
           // Try switching again
           await wallet.switchChain(irlChain.id);
           toast.info("Switching to IRL chain...");
@@ -258,22 +239,6 @@ export default function Onboarding() {
         }
 
         try {
-          await provider.request({
-            method: "wallet_addEthereumChain",
-            params: [
-              {
-                chainId: `0x${irlChain.id.toString(16)}`,
-                chainName: irlChain.name,
-                nativeCurrency: irlChain.nativeCurrency,
-                rpcUrls: [irlChain.rpcUrls.default.http[0]],
-                blockExplorerUrls: irlChain.blockExplorers
-                  ? [irlChain.blockExplorers.default.url]
-                  : undefined,
-              },
-            ],
-          });
-          console.log("Chain added successfully");
-
           // Try switching again after adding
           await wallet.switchChain(irlChain.id);
           setCurrentChainId(irlChain.id.toString());
