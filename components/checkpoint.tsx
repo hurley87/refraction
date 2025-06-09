@@ -77,36 +77,178 @@ export default function Checkpoint({ id }: CheckpointProps) {
         </div>
       )}
       {checkinStatus && (
-        <div className="flex flex-col items-center text-center py-10 gap-6">
-          <div className="flex flex-col items-center gap-6">
-            <div>
-              <h1 className="text-4xl font-inktrap justify-center  uppercase text-[#E04220]">
-                {`YOU EARNED`}
+        <div className="min-h-screen bg-gradient-to-b from-cyan-400 via-teal-400 to-yellow-400 to-pink-400">
+          <div className="flex flex-col items-center text-center px-4 py-8 gap-6">
+            {/* Header Section */}
+            <div className="flex flex-col items-center gap-4">
+              <h1 className="text-5xl font-inktrap uppercase text-yellow-300 font-bold">
+                YOU EARNED
               </h1>
-              <p
-                style={{ lineHeight: "70px" }}
-                className="text-7xl font-inktrap uppercase text-[#E04220]"
-              >
+              <h2 className="text-5xl font-inktrap uppercase text-yellow-300 font-bold">
                 POINTS
+              </h2>
+            </div>
+
+            {/* Box Icon */}
+            <div className="relative w-48 h-48 my-6">
+              <div className="w-full h-full border-4 border-yellow-300 rounded-lg flex items-center justify-center bg-transparent">
+                <div className="text-center">
+                  <div className="text-yellow-300 text-sm font-inktrap mb-2">
+                    TAP YOUR PHONE
+                  </div>
+                  <div className="w-12 h-8 bg-yellow-300 rounded-full mx-auto mb-2"></div>
+                  <div className="text-yellow-300 text-lg font-inktrap font-bold">
+                    IRL
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Points Earned Card */}
+            <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600 font-inktrap text-sm">
+                  You Earned
+                </span>
+                <span className="text-2xl">+</span>
+              </div>
+              <div className="text-4xl font-bold text-black font-inktrap mb-2">
+                100 <span className="text-lg font-normal">pts</span>
+              </div>
+              <p className="text-gray-600 text-sm font-inktrap mb-4">
+                You've just gained access to events, rewards and bespoke
+                experiences.
+              </p>
+
+              {/* Rewards Section */}
+              <div className="mb-4">
+                <div className="text-xs text-gray-500 font-inktrap mb-2">
+                  REWARDS
+                </div>
+                <div className="flex gap-2 mb-3">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="w-12 h-12 bg-gray-100 rounded-lg border-2 border-gray-200"
+                    ></div>
+                  ))}
+                </div>
+                <Button className="bg-teal-500 text-white w-full rounded-lg font-inktrap text-sm">
+                  Rewards →
+                </Button>
+              </div>
+            </div>
+
+            {/* Total Points Card */}
+            <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
+              <div className="text-xs text-gray-500 font-inktrap mb-2">
+                YOUR POINTS
+              </div>
+              <div className="text-4xl font-bold text-black font-inktrap mb-4">
+                310 <span className="text-lg font-normal">pts</span>
+              </div>
+
+              <div className="text-xs text-gray-500 font-inktrap mb-2">
+                YOUR PLACE
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-xs">👤</span>
+                  </div>
+                  <span className="text-gray-600 font-inktrap">9380</span>
+                </div>
+                <Button className="bg-yellow-400 text-black rounded-lg font-inktrap text-sm px-4 py-2">
+                  Leaderboard →
+                </Button>
+              </div>
+            </div>
+
+            {/* Opportunities Section */}
+            <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
+              <div className="text-xs text-gray-500 font-inktrap mb-2">
+                EARN MORE
+              </div>
+              <h3 className="text-lg font-inktrap text-black mb-4">
+                Opportunities to earn more points
+              </h3>
+
+              <div className="flex gap-3">
+                <div className="bg-gray-50 rounded-lg p-4 flex-1">
+                  <div className="text-xs text-gray-500 font-inktrap mb-1">
+                    QUEST
+                  </div>
+                  <h4 className="text-sm font-inktrap text-black mb-1">
+                    Quest Title
+                  </h4>
+                  <p className="text-xs text-gray-400 font-inktrap mb-2">
+                    Description
+                  </p>
+                  <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                    <span className="text-xs">→</span>
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4 flex-1">
+                  <div className="text-xs text-gray-500 font-inktrap mb-1">
+                    QUEST
+                  </div>
+                  <h4 className="text-sm font-inktrap text-black mb-1">
+                    Quest Title
+                  </h4>
+                  <p className="text-xs text-gray-400 font-inktrap mb-2">
+                    Description
+                  </p>
+                  <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                    <span className="text-xs">→</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Section */}
+            <div className="mt-12 px-4">
+              <p className="text-white font-inktrap text-xl font-light mb-6 leading-relaxed">
+                Learn more and be the first to know about the latest IRL network
+                news
+              </p>
+              <Button
+                onClick={() => router.push("/")}
+                className="text-black bg-white rounded-lg w-full font-inktrap py-3 text-lg hover:bg-gray-100"
+              >
+                Visit IRL.ENERGY →
+              </Button>
+            </div>
+
+            {/* Decorative Elements */}
+            <div className="mt-12 opacity-20">
+              <div className="w-48 h-48 mx-auto">
+                {/* Rings pattern */}
+                {[1, 2, 3, 4, 5].map((ring) => (
+                  <div
+                    key={ring}
+                    className="absolute inset-0 border border-white rounded-full"
+                    style={{
+                      width: `${ring * 40}px`,
+                      height: `${ring * 40}px`,
+                      left: "50%",
+                      top: "50%",
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  ></div>
+                ))}
+              </div>
+            </div>
+
+            {/* Powered by Refraction */}
+            <div className="mt-8 mb-8">
+              <p className="text-white text-xs font-inktrap opacity-60">
+                POWERED BY
+              </p>
+              <p className="text-white text-lg font-inktrap font-bold">
+                REFRACTION
               </p>
             </div>
-            <img src="/checkpoint1.svg" className="w-2/3 h-auto mx-auto" />
-            <p className=" font-inktrap text-2xl font-light">
-              {`You've just gained future access to events, rewards and bespoke experiences.`}
-            </p>
           </div>
-
-          <p className=" font-inktrap text-3xl font-light pt-80">
-            {`Learn more and be the first to know about the latest IRL network news`}
-          </p>
-          <Button
-            onClick={() => router.push("/")}
-            className="text-black  bg-white rounded-lg w-full font-inktrap"
-          >
-            VISIT IRL.ENERGY
-          </Button>
-          <img src="/rings.svg" className="h-auto my-20" />
-          <img src="/poweredbyrefraction.svg" className="h-auto" />
         </div>
       )}
     </Auth>
