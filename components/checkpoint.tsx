@@ -77,7 +77,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
         </div>
       )}
       {checkinStatus && (
-        <div className="min-h-screen bg-gradient-to-b from-cyan-400 via-teal-400 to-yellow-400 to-pink-400">
+        <div className="min-h-screen bg-gradient-to-b from-cyan-400 via-teal-400 to-yellow-400">
           <div className="flex flex-col items-center text-center px-4 py-8 gap-6">
             {/* Header Section */}
             <div className="flex flex-col items-center gap-4">
@@ -116,8 +116,8 @@ export default function Checkpoint({ id }: CheckpointProps) {
                 100 <span className="text-lg font-normal">pts</span>
               </div>
               <p className="text-gray-600 text-sm font-inktrap mb-4">
-                You've just gained access to events, rewards and bespoke
-                experiences.
+                {`You've just gained access to events, rewards and bespoke
+                experiences.`}
               </p>
 
               {/* Rewards Section */}
