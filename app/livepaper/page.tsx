@@ -1,15 +1,19 @@
 "use client";
 
-import { Viewer, Worker } from "@react-pdf-viewer/core";
+import dynamic from "next/dynamic";
+
+// Dynamically import the PDF viewer to prevent SSR issues
+const PDFViewer = dynamic(() => import("./pdf-viewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-96">Loading PDF...</div>
+  ),
+});
 
 export default function Home() {
   return (
     <main>
-      <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.js">
-        <div>
-          <Viewer fileUrl="/pdfs/livepaper.pdf" />
-        </div>
-      </Worker>
+      <PDFViewer />
     </main>
   );
 }
