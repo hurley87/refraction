@@ -1,3 +1,4 @@
+import Auth from "@/components/auth";
 import GameMapbox from "@/components/game-mapbox";
 import type { Metadata } from "next";
 
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function GamePage() {
-  return <GameMapbox />;
+  return (
+    <Auth>
+      <GameMapbox />
+    </Auth>
+  );
 }

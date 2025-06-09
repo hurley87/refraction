@@ -46,6 +46,7 @@ export default function Auth({ children }: AuthProps) {
           <h1 className="text-black text-xl font-inktrap uppercase">
             CHECK IN TO
           </h1>
+          p
           <p
             style={{ lineHeight: "60px" }}
             className="text-black text-6xl font-inktrap uppercase leading-2.5"

@@ -77,7 +77,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
         </div>
       )}
       {checkinStatus && (
-        <div className="min-h-screen bg-gradient-to-b from-cyan-400 via-teal-400 to-yellow-400">
+        <div className="min-h-screen bg-gradient-to-b from-cyan-400 via-teal-400 to-yellow-400 font-grotesk">
           <div className="flex flex-col items-center text-center px-4 py-8 gap-6">
             {/* Header Section */}
             <div className="flex flex-col items-center gap-4">
@@ -115,7 +115,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
               <div className="text-4xl font-bold text-black font-inktrap mb-2">
                 100 <span className="text-lg font-normal">pts</span>
               </div>
-              <p className="text-gray-600 text-sm font-inktrap mb-4">
+              <p className="text-gray-600 text-sm font-anonymous mb-4">
                 {`You've just gained access to events, rewards and bespoke
                 experiences.`}
               </p>
@@ -181,7 +181,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
                   <h4 className="text-sm font-inktrap text-black mb-1">
                     Quest Title
                   </h4>
-                  <p className="text-xs text-gray-400 font-inktrap mb-2">
+                  <p className="text-xs text-gray-400 font-anonymous mb-2">
                     Description
                   </p>
                   <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
@@ -195,7 +195,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
                   <h4 className="text-sm font-inktrap text-black mb-1">
                     Quest Title
                   </h4>
-                  <p className="text-xs text-gray-400 font-inktrap mb-2">
+                  <p className="text-xs text-gray-400 font-anonymous mb-2">
                     Description
                   </p>
                   <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
@@ -207,7 +207,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
             {/* Footer Section */}
             <div className="mt-12 px-4">
-              <p className="text-white font-inktrap text-xl font-light mb-6 leading-relaxed">
+              <p className="text-white font-anonymous text-xl font-light mb-6 leading-relaxed">
                 Learn more and be the first to know about the latest IRL network
                 news
               </p>
