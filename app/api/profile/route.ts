@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getUserProfile,
-  updateUserProfile,
   createOrUpdateUserProfile,
   type UserProfile,
 } from "@/lib/supabase";
