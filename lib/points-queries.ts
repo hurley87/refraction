@@ -423,6 +423,7 @@ export async function getAvailableActivities(
   db: DbClient,
   userWalletAddress: string
 ) {
+  console.log("getAvailableActivities", userWalletAddress);
   const result = await db.query(
     "SELECT * FROM points_activity_config WHERE is_active = true ORDER BY category, base_points"
   );
