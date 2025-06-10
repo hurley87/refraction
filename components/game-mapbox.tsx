@@ -3,8 +3,11 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin } from "lucide-react";
+import { Search, MapPin, Trophy } from "lucide-react";
 import Header from "./header";
+import { useLocationGame } from "@/hooks/useLocationGame";
+import { toast } from "sonner";
+import { usePrivy } from "@privy-io/react-auth";
 
 interface LocationSuggestion {
   place_id: string;
@@ -17,10 +20,17 @@ interface LocationSuggestion {
 }
 
 export default function GameMapbox() {
+  const { user } = usePrivy();
+  console.log("user", user);
+  const walletAddress = user?.wallet?.address;
   const [query, setQuery] = useState("Williamsburg, NY");
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [selected, setSelected] = useState<LocationSuggestion | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [playerData, setPlayerData] = useState<any>(null);
+  const [pointsEarned, setPointsEarned] = useState<number>(0);
+
+  const { performCheckin, isCheckinLoading } = useLocationGame();
 
   useEffect(() => {
     if (query.length < 2) {
@@ -46,6 +56,24 @@ export default function GameMapbox() {
     setQuery(loc.display_name);
     setSuggestions([]);
     setConfirmed(false);
+  };
+
+  const handleCheckin = async () => {
+    if (!selected || !walletAddress) {
+      toast.error("Please select a location and connect your wallet");
+      return;
+    }
+
+    const result = await performCheckin({
+      walletAddress,
+      locationData: selected,
+    });
+
+    if (result?.success) {
+      setConfirmed(true);
+      setPointsEarned(result.pointsEarned);
+      setPlayerData(result.player);
+    }
   };
 
   // Use Mapbox Static Images API
@@ -78,15 +106,33 @@ export default function GameMapbox() {
             </h2>
           </div>
 
+          {/* Player Stats Card */}
+          {playerData && (
+            <div className="bg-blue-100 rounded-2xl p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-700 mb-1 font-inktrap">
+                    Your Total Points
+                  </p>
+                  <p className="text-3xl font-inktrap font-bold text-black">
+                    {playerData.total_points} pts
+                  </p>
+                </div>
+                <Trophy className="w-8 h-8 text-yellow-600" />
+              </div>
+            </div>
+          )}
+
           {/* Points Card */}
           <div className="bg-orange-100 rounded-2xl p-4 mb-6 relative">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-700 mb-1 font-inktrap">
-                  You Earned
+                  {confirmed ? "You Earned" : "You Can Earn"}
                 </p>
                 <p className="text-5xl font-inktrap font-bold text-black">
-                  <span className="text-lg font-normal">+</span>100{" "}
+                  <span className="text-lg font-normal">+</span>
+                  {confirmed ? pointsEarned : 100}{" "}
                   <span className="text-lg font-normal">pts</span>
                 </p>
               </div>
@@ -110,9 +156,9 @@ export default function GameMapbox() {
           {/* Location Input Section */}
           <div className="mb-6">
             <h3 className="text-lg font-inktrap text-black mb-4">
-              Confirm your location to
+              {confirmed ? "Location Confirmed!" : "Confirm your location to"}
               <br />
-              earn your first points
+              {confirmed ? "Points Earned!" : "earn your first points"}
             </h3>
 
             <div className="bg-white rounded-2xl p-4 mb-4">
@@ -125,18 +171,20 @@ export default function GameMapbox() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   className="bg-gray-50 border-0 rounded-full pl-4 pr-12 py-3 text-black placeholder:text-gray-500"
+                  disabled={confirmed}
                 />
                 <Button
                   size="sm"
                   className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 p-0"
                   variant="ghost"
+                  disabled={confirmed}
                 >
                   <Search className="w-4 h-4 text-gray-600" />
                 </Button>
               </div>
             </div>
 
-            {suggestions.length > 0 && (
+            {suggestions.length > 0 && !confirmed && (
               <ul className="bg-white rounded-2xl mb-4 max-h-60 overflow-auto">
                 {suggestions.map((loc) => (
                   <li
@@ -177,30 +225,42 @@ export default function GameMapbox() {
               <span className="text-black font-inktrap">{query}</span>
             </div>
             <Button
-              onClick={() => setConfirmed(true)}
-              className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-inktrap py-3 rounded-full"
+              onClick={handleCheckin}
+              disabled={
+                !selected || !walletAddress || confirmed || isCheckinLoading
+              }
+              className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-inktrap py-3 rounded-full disabled:opacity-50"
             >
-              Confirm to Earn Points
-              <svg
-                className="w-4 h-4 ml-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
+              {isCheckinLoading
+                ? "Checking in..."
+                : confirmed
+                ? "Points Earned!"
+                : "Confirm to Earn Points"}
+              {!confirmed && (
+                <svg
+                  className="w-4 h-4 ml-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              )}
             </Button>
           </div>
 
           {confirmed && (
             <div className="text-center py-4">
               <p className="text-xl font-inktrap font-bold text-green-600">
-                Points earned!
+                🎉 Congratulations! You earned {pointsEarned} points!
+              </p>
+              <p className="text-sm text-gray-700 mt-2">
+                Total Points: {playerData?.total_points || 0}
               </p>
             </div>
           )}
