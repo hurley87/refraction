@@ -112,7 +112,7 @@ export default function LeaderboardPage() {
         <Header />
 
         {/* Dashboard Header */}
-        <div className="px-4 pt-8 mb-6">
+        <div className="px-0 pt-8 mb-6">
           <div className="bg-white rounded-2xl p-4 flex items-center justify-between">
             <h1 className="text-xl font-inktrap font-bold text-black">
               Dashboard

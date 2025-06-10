@@ -310,3 +310,88 @@ export const getPlayerStats = async (playerId: number) => {
     totalPoints: player.total_points,
   };
 };
+
+export type UserProfile = {
+  id?: string;
+  wallet_address: string;
+  email?: string;
+  name?: string;
+  username?: string;
+  twitter_handle?: string;
+  towns_handle?: string;
+  farcaster_handle?: string;
+  telegram_handle?: string;
+  profile_picture_url?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+// User Profile functions
+export const createOrUpdateUserProfile = async (
+  profile: Omit<UserProfile, "id" | "created_at" | "updated_at">
+) => {
+  const { data: existingProfile } = await supabase
+    .from("user_profiles")
+    .select("*")
+    .eq("wallet_address", profile.wallet_address)
+    .single();
+
+  if (existingProfile) {
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .update({
+        email: profile.email || existingProfile.email,
+        name: profile.name || existingProfile.name,
+        username: profile.username || existingProfile.username,
+        twitter_handle: profile.twitter_handle,
+        towns_handle: profile.towns_handle,
+        farcaster_handle: profile.farcaster_handle,
+        telegram_handle: profile.telegram_handle,
+        profile_picture_url:
+          profile.profile_picture_url || existingProfile.profile_picture_url,
+      })
+      .eq("wallet_address", profile.wallet_address)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } else {
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .insert(profile)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+};
+
+export const getUserProfile = async (walletAddress: string) => {
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("*")
+    .eq("wallet_address", walletAddress)
+    .single();
+
+  if (error && error.code !== "PGRST116") throw error; // PGRST116 = not found
+  return data;
+};
+
+export const updateUserProfile = async (
+  walletAddress: string,
+  updates: Partial<
+    Omit<UserProfile, "id" | "wallet_address" | "created_at" | "updated_at">
+  >
+) => {
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .update(updates)
+    .eq("wallet_address", walletAddress)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};

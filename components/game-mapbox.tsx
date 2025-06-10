@@ -97,7 +97,7 @@ export default function GameMapbox() {
           <Header />
 
           {/* Main Content */}
-          <div className="px-4 pt-8">
+          <div className="px-0 pt-8">
             {/* Success Title */}
             <div className="mb-6">
               <h1 className="text-5xl font-inktrap text-center font-bold text-yellow-400 leading-tight mb-4">
@@ -345,7 +345,7 @@ export default function GameMapbox() {
         <Header />
 
         {/* Main Content */}
-        <div className="px-4 pt-8">
+        <div className="px-0 pt-8">
           {/* Title Section */}
           <div className="mb-6">
             <h1 className="text-lg font-inktrap text-black mb-2">LOCATION</h1>
