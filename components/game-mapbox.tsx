@@ -143,8 +143,8 @@ export default function GameMapbox() {
                 </Button>
               </div>
               <p className="text-sm text-black font-anonymous">
-                You've just gained access to events, rewards and bespoke
-                experiences.
+                {`You've just gained access to events, rewards and bespoke
+                experiences.`}
               </p>
             </div>
 
