@@ -2,6 +2,7 @@
 // These queries work with the points system database schema
 
 export interface DbClient {
+  userStats;
   query: (sql: string, params?: any[]) => Promise<any>;
 }
 
@@ -422,8 +423,6 @@ export async function getAvailableActivities(
   db: DbClient,
   userWalletAddress: string
 ) {
-  const userStats = await getUserStats(db, userWalletAddress);
-
   const result = await db.query(
     "SELECT * FROM points_activity_config WHERE is_active = true ORDER BY category, base_points"
   );

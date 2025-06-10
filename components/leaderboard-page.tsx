@@ -1,42 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Trophy, ChevronRight, Gift, Menu } from "lucide-react";
+import { Trophy, ChevronRight, Menu } from "lucide-react";
 import Header from "./header";
 import { usePrivy } from "@privy-io/react-auth";
 import {
   PointsActivity,
-  PointsActivityConfig,
   POINTS_ACTIVITIES_CONFIG,
-  getActiveActivities,
-  getActivitiesByCategory,
-  PointsCategory,
 } from "@/lib/points-activities";
-
-interface LeaderboardEntry {
-  id: string;
-  wallet_address: string;
-  username?: string;
-  total_points: number;
-  rank: number;
-  badge_level: number;
-  badge_name: string;
-}
 
 export default function LeaderboardPage() {
   const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
 
   // Mock data - replace with actual API calls
-  const [playerData, setPlayerData] = useState({
+  const playerData = {
     total_points: 310,
     rank: 2380,
     badge_level: 4,
     badge_name: "Badge Name",
     points_to_next_level: 690,
     next_level_threshold: 1000,
-  });
+  };
 
   const [pointsActivity] = useState<PointsActivity[]>([
     {
@@ -112,11 +98,6 @@ export default function LeaderboardPage() {
       processed: true,
     },
   ]);
-
-  const progressPercentage =
-    ((playerData.next_level_threshold - playerData.points_to_next_level) /
-      playerData.next_level_threshold) *
-    100;
 
   return (
     <div

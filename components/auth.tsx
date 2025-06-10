@@ -12,7 +12,6 @@ export default function Auth({ children }: AuthProps) {
   const { user, login, ready, linkEmail } = usePrivy();
   const [username, setUsername] = useState("");
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
-  const [playerData, setPlayerData] = useState(null);
   const [needsUsername, setNeedsUsername] = useState(false);
 
   console.log("user", user);
@@ -31,7 +30,6 @@ export default function Auth({ children }: AuthProps) {
           if (response.ok) {
             const result = await response.json();
             const existingPlayer = result.player;
-            setPlayerData(existingPlayer);
 
             // If player exists but has no username, prompt for username
             if (existingPlayer && !existingPlayer.username) {
@@ -75,7 +73,6 @@ export default function Auth({ children }: AuthProps) {
 
       if (result.success) {
         // Player created successfully
-        setPlayerData(result.player);
         setNeedsUsername(false);
       } else {
         console.error("Failed to create player:", result.error);
@@ -128,25 +125,43 @@ export default function Auth({ children }: AuthProps) {
             Choose your username to start earning points
           </p>
 
-          <div className="flex flex-col gap-4">
+          <div className="bg-white rounded-2xl p-4 mb-4">
+            <p className="text-sm text-gray-600 mb-3 font-inktrap">
+              ENTER YOUR USERNAME
+            </p>
             <input
               type="text"
               placeholder="Enter your username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 text-lg font-inktrap border-2 border-gray-300 rounded-lg focus:outline-none focus:border-[#F24405] bg-white text-black"
+              className="w-full bg-gray-50 border-0 rounded-full pl-4 pr-4 py-3 text-black placeholder:text-gray-500 font-inktrap focus:outline-none"
               maxLength={20}
               disabled={isCreatingPlayer}
             />
-
-            <Button
-              className="bg-[#F24405] text-white rounded-lg hover:bg-[#F24405]/80 justify-center w-full text-xl font-inktrap py-4 uppercase disabled:opacity-50"
-              onClick={handleCreatePlayer}
-              disabled={!username.trim() || isCreatingPlayer}
-            >
-              {isCreatingPlayer ? "CREATING PLAYER..." : "START EARNING"}
-            </Button>
           </div>
+
+          <Button
+            className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-inktrap py-3 rounded-full disabled:opacity-50 uppercase"
+            onClick={handleCreatePlayer}
+            disabled={!username.trim() || isCreatingPlayer}
+          >
+            {isCreatingPlayer ? "CREATING PLAYER..." : "START EARNING"}
+            {!isCreatingPlayer && (
+              <svg
+                className="w-4 h-4 ml-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            )}
+          </Button>
 
           <div className="flex justify-between items-center mt-8">
             <div className="flex flex-col gap-1">

@@ -15,7 +15,6 @@ import {
   Heart,
   Star,
   Zap,
-  Shield,
   Gift,
   ChevronDown,
   ChevronUp,
@@ -256,7 +255,7 @@ export default function PointsActivitiesGuide() {
             Pro Tips
           </h3>
           <ul className="text-sm text-gray-600 space-y-2 text-left max-w-2xl mx-auto">
-            <li>• Daily activities reset every 24 hours - don't miss out!</li>
+            <li>{`• Daily activities reset every 24 hours - don't miss out!`}</li>
             <li>• Maintain streaks for bonus multipliers on daily check-ins</li>
             <li>
               • Some activities have requirements - level up to unlock more
