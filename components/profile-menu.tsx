@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { X, LogOut, Edit3 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserProfile } from "@/lib/supabase";
@@ -27,7 +26,6 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
     telegram_handle: "",
     profile_picture_url: "",
   });
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isMenuMounted, setIsMenuMounted] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -56,7 +54,6 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
   const fetchProfile = async () => {
     if (!user?.wallet?.address) return;
 
-    setLoading(true);
     try {
       const response = await fetch(
         `/api/profile?wallet_address=${user.wallet.address}`
@@ -76,8 +73,6 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
       });
     } catch (error) {
       console.error("Error fetching profile:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
