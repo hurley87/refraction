@@ -118,7 +118,6 @@ export default function LeaderboardPage() {
 
   const renderPaginationButtons = () => {
     const buttons: React.ReactNode[] = [];
-    const maxVisiblePages = 5;
 
     // Always show first page
     if (currentPage > 3) {
