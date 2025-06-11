@@ -6,15 +6,15 @@ import Header from "./header";
 
 // Mock leaderboard data
 const leaderboardData = [
-  { rank: 1, name: "Name of Member", points: 1005, color: "bg-blue-500" },
-  { rank: 2, name: "Name of Member", points: 1005, color: "bg-green-500" },
-  { rank: 3, name: "Name of Member", points: 1005, color: "bg-purple-500" },
-  { rank: 4, name: "Name of Member", points: 1005, color: "bg-orange-500" },
-  { rank: 5, name: "Name of Member", points: 1005, color: "bg-blue-600" },
-  { rank: 6, name: "Name of Member", points: 1005, color: "bg-pink-500" },
-  { rank: 7, name: "Name of Member", points: 1005, color: "bg-teal-500" },
-  { rank: 8, name: "Name of Member", points: 1005, color: "bg-blue-400" },
-  { rank: 9, name: "Name of Member", points: 1005, color: "bg-yellow-500" },
+  { rank: 1, name: "Member", points: 1005, color: "bg-blue-500" },
+  { rank: 2, name: "Member", points: 1005, color: "bg-green-500" },
+  { rank: 3, name: "Member", points: 1005, color: "bg-purple-500" },
+  { rank: 4, name: "Member", points: 1005, color: "bg-orange-500" },
+  { rank: 5, name: "Member", points: 1005, color: "bg-blue-600" },
+  { rank: 6, name: "Member", points: 1005, color: "bg-pink-500" },
+  { rank: 7, name: "Member", points: 1005, color: "bg-teal-500" },
+  { rank: 8, name: "Member", points: 1005, color: "bg-blue-400" },
+  { rank: 9, name: "Member", points: 1005, color: "bg-yellow-500" },
 ];
 
 export default function LeaderboardPage() {
@@ -116,9 +116,6 @@ export default function LeaderboardPage() {
 
                   {/* Name with colored dot */}
                   <div className="flex items-center gap-2">
-                    <div
-                      className={`w-3 h-3 rounded-full ${entry.color}`}
-                    ></div>
                     <span className="font-inktrap text-black text-sm">
                       {entry.name}
                     </span>
