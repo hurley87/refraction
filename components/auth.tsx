@@ -186,7 +186,7 @@ export default function Auth({ children }: AuthProps) {
   if (ready && !user) {
     return (
       <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto">
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 p-4">
           <h1 className="text-black text-xl font-inktrap uppercase">
             CHECK IN TO
           </h1>
@@ -200,14 +200,14 @@ export default function Auth({ children }: AuthProps) {
             ON THE IRL NETWORK
           </h1>
           <Button
-            className="bg-white text-black rounded-lg hover:bg-white/80 justify-center w-full max-w-4xl text-xl font-inktrap uppercase my-4"
+            className="bg-white text-black rounded-full hover:bg-white/80 justify-center w-full max-w-4xl text-xl font-inktrap uppercase my-4"
             onClick={login}
           >
             CHECK IN
           </Button>
         </div>
 
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center px-4">
           <div className="flex flex-col gap-1">
             <p className="text-black text-sm font-inktrap ">Powered by</p>
             <img
@@ -223,14 +223,14 @@ export default function Auth({ children }: AuthProps) {
           />
         </div>
         <div className="flex flex-col gap-3  justify-between">
-          <div className="flex flex-col gap-3 justify-between py-10">
+          <div className="flex flex-col gap-3 justify-between py-10 ">
             <div
               style={{
                 backgroundImage: "url('/checkpoint.svg')",
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }}
-              className="flex flex-col gap-3 justify-between h-screen p-4"
+              className="flex flex-col gap-3 justify-between h-screen p-4 rounded-2xl overflow-hidden"
             >
               <p
                 style={{ lineHeight: "40px" }}
@@ -247,7 +247,7 @@ export default function Auth({ children }: AuthProps) {
               </p>
             </div>
           </div>
-          <div>
+          <div className="p-4">
             <h1 className="text-black text-4xl text-center font-inktrap uppercase">
               CLAIM
             </h1>
@@ -255,12 +255,14 @@ export default function Auth({ children }: AuthProps) {
               YOUR POINTS
             </p>
           </div>
-          <Button
-            className="bg-white text-black rounded-lg hover:bg-white/80 justify-center w-full max-w-4xl text-xl font-inktrap uppercase my-4"
-            onClick={login}
-          >
-            CHECK IN
-          </Button>
+          <div className="px-4">
+            <Button
+              className="bg-white text-black rounded-full hover:bg-white/80 justify-center text-xl w-full font-inktrap uppercase "
+              onClick={login}
+            >
+              CHECK IN
+            </Button>
+          </div>
           <img
             src="/irlfooterlogo.svg"
             alt="irl"

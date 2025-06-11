@@ -1,103 +1,28 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Trophy, ChevronRight, Menu } from "lucide-react";
+import { Menu, ArrowRight } from "lucide-react";
 import Header from "./header";
-import { usePrivy } from "@privy-io/react-auth";
-import {
-  PointsActivity,
-  POINTS_ACTIVITIES_CONFIG,
-} from "@/lib/points-activities";
+
+// Mock leaderboard data
+const leaderboardData = [
+  { rank: 1, name: "Name of Member", points: 1005, color: "bg-blue-500" },
+  { rank: 2, name: "Name of Member", points: 1005, color: "bg-green-500" },
+  { rank: 3, name: "Name of Member", points: 1005, color: "bg-purple-500" },
+  { rank: 4, name: "Name of Member", points: 1005, color: "bg-orange-500" },
+  { rank: 5, name: "Name of Member", points: 1005, color: "bg-blue-600" },
+  { rank: 6, name: "Name of Member", points: 1005, color: "bg-pink-500" },
+  { rank: 7, name: "Name of Member", points: 1005, color: "bg-teal-500" },
+  { rank: 8, name: "Name of Member", points: 1005, color: "bg-blue-400" },
+  { rank: 9, name: "Name of Member", points: 1005, color: "bg-yellow-500" },
+];
 
 export default function LeaderboardPage() {
-  const { user } = usePrivy();
-  const walletAddress = user?.wallet?.address;
-
-  // Mock data - replace with actual API calls
+  // Mock user data
   const playerData = {
     total_points: 310,
-    rank: 2380,
-    badge_level: 4,
-    badge_name: "Badge Name",
-    points_to_next_level: 690,
-    next_level_threshold: 1000,
+    rank: 178,
   };
-
-  const [pointsActivity] = useState<PointsActivity[]>([
-    {
-      id: "1",
-      user_wallet_address: walletAddress || "",
-      activity_type: "daily_checkin",
-      points_earned: 30,
-      description: "Daily check-in completed",
-      created_at: "2024-01-01T10:00:00Z",
-      processed: true,
-    },
-    {
-      id: "2",
-      user_wallet_address: walletAddress || "",
-      activity_type: "social_share",
-      points_earned: 20,
-      description: "Shared content on social media",
-      created_at: "2024-01-01T14:30:00Z",
-      processed: true,
-    },
-    {
-      id: "3",
-      user_wallet_address: walletAddress || "",
-      activity_type: "transaction_complete",
-      points_earned: 25,
-      description: "Completed a transaction",
-      created_at: "2024-01-02T09:15:00Z",
-      processed: true,
-    },
-    {
-      id: "4",
-      user_wallet_address: walletAddress || "",
-      activity_type: "community_post",
-      points_earned: 30,
-      description: "Created a community post",
-      created_at: "2024-01-02T16:45:00Z",
-      processed: true,
-    },
-    {
-      id: "5",
-      user_wallet_address: walletAddress || "",
-      activity_type: "nft_mint",
-      points_earned: 150,
-      description: "Minted an NFT",
-      created_at: "2024-01-03T11:20:00Z",
-      processed: true,
-    },
-    {
-      id: "6",
-      user_wallet_address: walletAddress || "",
-      activity_type: "referral_signup",
-      points_earned: 100,
-      description: "Friend signed up using referral",
-      created_at: "2024-01-03T18:00:00Z",
-      processed: true,
-    },
-    {
-      id: "7",
-      user_wallet_address: walletAddress || "",
-      activity_type: "achievement_unlock",
-      points_earned: 100,
-      description: "Unlocked first achievement",
-      created_at: "2024-01-04T12:30:00Z",
-      processed: true,
-    },
-    {
-      id: "8",
-      user_wallet_address: walletAddress || "",
-      activity_type: "level_up",
-      points_earned: 200,
-      description: "Advanced to level 2",
-      created_at: "2024-01-04T20:15:00Z",
-      processed: true,
-    },
-  ]);
 
   return (
     <div
@@ -111,11 +36,11 @@ export default function LeaderboardPage() {
         {/* Status Bar */}
         <Header />
 
-        {/* Dashboard Header */}
+        {/* Leaderboard Header */}
         <div className="px-0 pt-8 mb-6">
           <div className="bg-white rounded-2xl p-4 flex items-center justify-between">
             <h1 className="text-xl font-inktrap font-bold text-black">
-              Dashboard
+              Leaderboard
             </h1>
             <Button variant="ghost" size="sm" className="p-2">
               <Menu className="w-5 h-5 text-gray-600" />
@@ -124,155 +49,131 @@ export default function LeaderboardPage() {
         </div>
 
         {/* Main Content */}
-        <div className="px-4 space-y-4">
-          {/* Your Points Card */}
+        <div className="px-0 space-y-4">
+          {/* Your Place and Points Card */}
           <div className="bg-white rounded-2xl p-4">
-            <p className="text-xs font-inktrap text-gray-600 mb-2 uppercase tracking-wide">
-              YOUR POINTS
-            </p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-inktrap font-bold text-black">
-                {playerData.total_points}
-              </span>
-              <span className="text-lg font-inktrap text-gray-600">pts</span>
-            </div>
-            <hr className="my-4 border-gray-200" />
-
-            {/* Your Place Section */}
-            <div className="flex items-center justify-between">
+            <div className="grid grid-cols-2 gap-6">
+              {/* Your Place */}
               <div>
-                <p className="text-xs font-inktrap text-gray-600 mb-2 uppercase tracking-wide">
+                <p className="text-xs font-inktrap text-gray-600 mb-3 uppercase tracking-wide">
                   YOUR PLACE
                 </p>
-                <div className="flex items-center gap-3">
-                  <div className="bg-gray-100 rounded-full px-3 py-1 flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-gray-600" />
-                    <span className="font-inktrap font-medium text-black">
+                <div className="flex items-center">
+                  <div className="bg-gray-100 rounded-full px-4 py-2 flex items-center gap-2 border border-gray-300">
+                    <span className="font-inktrap font-medium text-black text-lg">
                       {playerData.rank}
                     </span>
+                    <ArrowRight className="w-4 h-4 text-gray-600" />
                   </div>
                 </div>
               </div>
-              <Button className="bg-yellow-400 hover:bg-yellow-500 text-black font-inktrap rounded-full px-6 py-2">
-                Leaderboard
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </div>
 
-          {/* Your Level Card */}
-          <div className="bg-white rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-4">
+              {/* Your Points */}
               <div>
-                <p className="text-xs font-inktrap text-gray-600 mb-2 uppercase tracking-wide">
-                  YOUR LEVEL
+                <p className="text-xs font-inktrap text-gray-600 mb-3 uppercase tracking-wide">
+                  YOUR POINTS
                 </p>
-                <p className="text-lg font-inktrap font-medium text-black">
-                  {playerData.badge_name}
-                </p>
-              </div>
-              <div className="text-6xl font-inktrap font-bold text-black">
-                {playerData.badge_level}
-              </div>
-            </div>
-
-            <hr className="my-4 border-gray-200" />
-
-            {/* Next Level Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-inktrap text-gray-600 mb-1 uppercase tracking-wide">
-                    NEXT LEVEL
-                  </p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-inktrap font-bold text-black">
-                      {playerData.points_to_next_level}
-                    </span>
-                    <span className="text-sm font-inktrap text-gray-600">
-                      pts left
-                    </span>
-                  </div>
-                </div>
-                <Button className="bg-teal-400 hover:bg-teal-500 text-black font-inktrap rounded-full px-6 py-2">
-                  Rewards
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-inktrap text-gray-600">
-                  <span>100</span>
-                  <span>250</span>
-                  <span>500</span>
-                  <span>750</span>
-                  <span>1000</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-8 overflow-hidden">
-                  <div className="grid grid-cols-4 h-full">
-                    <div className="bg-gray-400 border-r border-white"></div>
-                    <div className="bg-gray-400 border-r border-white"></div>
-                    <div className="bg-gray-400 border-r border-white"></div>
-                    <div className="bg-gray-200"></div>
-                  </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-inktrap font-bold text-black">
+                    {playerData.total_points}
+                  </span>
+                  <span className="text-sm font-inktrap text-gray-600">
+                    pts
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Points Activity Card */}
-          <div className="bg-yellow-100 rounded-2xl p-4 mb-6">
-            <h3 className="text-lg font-inktrap font-medium text-black mb-4">
-              Points Activity
-            </h3>
-
+          {/* Leaderboard Table */}
+          <div className="bg-white rounded-2xl p-4">
             {/* Table Header */}
-            <div className="grid grid-cols-4 gap-4 pb-2 border-b border-gray-300 mb-2">
+            <div className="grid grid-cols-3 gap-4 pb-3 border-b border-gray-200 mb-4">
               <span className="text-xs font-inktrap text-gray-600 uppercase tracking-wide">
-                REWARD
+                PLACE
               </span>
               <span className="text-xs font-inktrap text-gray-600 uppercase tracking-wide">
-                POINTS
+                NAME
               </span>
-              <span className="text-xs font-inktrap text-gray-600 uppercase tracking-wide">
-                DESCRIPTION
-              </span>
-              <span className="text-xs font-inktrap text-gray-600 uppercase tracking-wide">
-                EVE
+              <span className="text-xs font-inktrap text-gray-600 uppercase tracking-wide text-right">
+                PTS
               </span>
             </div>
 
-            {/* Activity List */}
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {pointsActivity.map((activity) => {
-                const activityConfig = POINTS_ACTIVITIES_CONFIG.find(
-                  (config) => config.type === activity.activity_type
-                );
-
-                return (
-                  <div
-                    key={activity.id}
-                    className="grid grid-cols-4 gap-4 items-center py-2 border-b border-gray-200 last:border-b-0"
-                  >
-                    <div className="flex items-center">
-                      <span className="text-lg">
-                        {activityConfig?.icon || "🏷️"}
-                      </span>
-                    </div>
-                    <span className="font-inktrap font-medium text-black">
-                      {activity.points_earned}
-                    </span>
-                    <span className="font-inktrap text-black text-sm">
-                      {activity.description}
-                    </span>
-                    <span className="font-inktrap text-black text-sm">
-                      {activityConfig?.category || "activity"}
+            {/* Leaderboard Entries */}
+            <div className="space-y-2">
+              {leaderboardData.map((entry) => (
+                <div
+                  key={entry.rank}
+                  className="bg-gray-50 rounded-2xl p-4 grid grid-cols-3 gap-4 items-center"
+                >
+                  {/* Rank */}
+                  <div className="flex items-center">
+                    <span className="text-lg font-inktrap font-medium text-black w-6">
+                      {entry.rank}
                     </span>
                   </div>
-                );
-              })}
+
+                  {/* Name with colored dot */}
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-3 h-3 rounded-full ${entry.color}`}
+                    ></div>
+                    <span className="font-inktrap text-black text-sm">
+                      {entry.name}
+                    </span>
+                  </div>
+
+                  {/* Points */}
+                  <div className="text-right">
+                    <span className="font-inktrap font-medium text-black">
+                      {entry.points}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-center gap-2 py-6">
+            {/* Page 1 (active) */}
+            <button className="w-10 h-10 rounded-full bg-black text-white font-inktrap font-medium text-sm flex items-center justify-center">
+              1
+            </button>
+
+            {/* Page 2 */}
+            <button className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50">
+              2
+            </button>
+
+            {/* Page 3 */}
+            <button className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50">
+              3
+            </button>
+
+            {/* Ellipsis */}
+            <span className="px-2 text-gray-500 font-inktrap">...</span>
+
+            {/* Page 44 */}
+            <button className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50">
+              44
+            </button>
+
+            {/* Page 45 */}
+            <button className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50">
+              45
+            </button>
+
+            {/* Page 46 */}
+            <button className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50">
+              46
+            </button>
+
+            {/* Next button */}
+            <button className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50">
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
