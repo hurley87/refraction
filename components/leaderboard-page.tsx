@@ -1,27 +1,201 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
+import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
-import { Menu, ArrowRight } from "lucide-react";
+import { Menu, ArrowRight, Trophy, User } from "lucide-react";
 import Header from "./header";
+import { useLocationGame } from "@/hooks/useLocationGame";
 
-// Mock leaderboard data
-const leaderboardData = [
-  { rank: 1, name: "Member", points: 1005, color: "bg-blue-500" },
-  { rank: 2, name: "Member", points: 1005, color: "bg-green-500" },
-  { rank: 3, name: "Member", points: 1005, color: "bg-purple-500" },
-  { rank: 4, name: "Member", points: 1005, color: "bg-orange-500" },
-  { rank: 5, name: "Member", points: 1005, color: "bg-blue-600" },
-  { rank: 6, name: "Member", points: 1005, color: "bg-pink-500" },
-  { rank: 7, name: "Member", points: 1005, color: "bg-teal-500" },
-  { rank: 8, name: "Member", points: 1005, color: "bg-blue-400" },
-  { rank: 9, name: "Member", points: 1005, color: "bg-yellow-500" },
-];
+interface UserStats {
+  rank: number;
+  total_points: number;
+}
+
+interface LeaderboardUser {
+  player_id: number;
+  wallet_address: string;
+  username?: string;
+  email?: string;
+  total_points: number;
+  total_checkins: number;
+  rank: number;
+}
 
 export default function LeaderboardPage() {
-  // Mock user data
-  const playerData = {
-    total_points: 310,
-    rank: 178,
+  const { user } = usePrivy();
+  const { fetchLeaderboard, leaderboard, isLeaderboardLoading } =
+    useLocationGame();
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const itemsPerPage = 9;
+  const currentUserAddress = user?.wallet?.address;
+
+  // Fetch leaderboard data
+  useEffect(() => {
+    const loadLeaderboard = async () => {
+      await fetchLeaderboard(50); // Fetch more entries for pagination
+    };
+    loadLeaderboard();
+  }, []);
+
+  // Fetch current user's stats
+  useEffect(() => {
+    const loadUserStats = async () => {
+      if (!currentUserAddress) return;
+
+      setIsLoadingUserStats(true);
+      try {
+        const response = await fetch(
+          `/api/player?walletAddress=${encodeURIComponent(currentUserAddress)}`
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+          const player = result.player;
+
+          if (player) {
+            // Calculate rank from leaderboard or make separate API call
+            const userRank =
+              leaderboard.findIndex(
+                (entry) => entry.wallet_address === currentUserAddress
+              ) + 1;
+
+            setUserStats({
+              rank: userRank || 999, // Default rank if not found in top leaderboard
+              total_points: player.total_points || 0,
+            });
+          } else {
+            // New user with no data
+            setUserStats({
+              rank: 999,
+              total_points: 0,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user stats:", error);
+        setUserStats({
+          rank: 999,
+          total_points: 0,
+        });
+      } finally {
+        setIsLoadingUserStats(false);
+      }
+    };
+
+    if (currentUserAddress && leaderboard.length > 0) {
+      loadUserStats();
+    }
+  }, [currentUserAddress, leaderboard]);
+
+  // Calculate pagination
+  useEffect(() => {
+    const pages = Math.ceil(leaderboard.length / itemsPerPage);
+    setTotalPages(pages || 1);
+  }, [leaderboard]);
+
+  // Get current page data
+  const getCurrentPageData = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return leaderboard.slice(startIndex, endIndex);
+  };
+
+  const formatWalletAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const renderPaginationButtons = () => {
+    const buttons: React.ReactNode[] = [];
+    const maxVisiblePages = 5;
+
+    // Always show first page
+    if (currentPage > 3) {
+      buttons.push(
+        <button
+          key={1}
+          onClick={() => handlePageChange(1)}
+          className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
+        >
+          1
+        </button>
+      );
+
+      if (currentPage > 4) {
+        buttons.push(
+          <span key="ellipsis1" className="px-2 text-gray-500 font-inktrap">
+            ...
+          </span>
+        );
+      }
+    }
+
+    // Show pages around current page
+    const start = Math.max(1, currentPage - 1);
+    const end = Math.min(totalPages, currentPage + 1);
+
+    for (let i = start; i <= end; i++) {
+      buttons.push(
+        <button
+          key={i}
+          onClick={() => handlePageChange(i)}
+          className={`w-10 h-10 rounded-full font-inktrap font-medium text-sm flex items-center justify-center ${
+            i === currentPage
+              ? "bg-black text-white"
+              : "bg-white text-black border border-gray-200 hover:bg-gray-50"
+          }`}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Show last page if needed
+    if (currentPage < totalPages - 2) {
+      if (currentPage < totalPages - 3) {
+        buttons.push(
+          <span key="ellipsis2" className="px-2 text-gray-500 font-inktrap">
+            ...
+          </span>
+        );
+      }
+
+      buttons.push(
+        <button
+          key={totalPages}
+          onClick={() => handlePageChange(totalPages)}
+          className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
+        >
+          {totalPages}
+        </button>
+      );
+    }
+
+    // Next button
+    if (currentPage < totalPages) {
+      buttons.push(
+        <button
+          key="next"
+          onClick={() => handlePageChange(currentPage + 1)}
+          className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
+        >
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      );
+    }
+
+    return buttons;
   };
 
   return (
@@ -51,39 +225,53 @@ export default function LeaderboardPage() {
         {/* Main Content */}
         <div className="px-0 space-y-4">
           {/* Your Place and Points Card */}
-          <div className="bg-white rounded-2xl p-4">
-            <div className="grid grid-cols-2 gap-6">
-              {/* Your Place */}
-              <div>
-                <p className="text-xs font-inktrap text-gray-600 mb-3 uppercase tracking-wide">
-                  YOUR PLACE
-                </p>
-                <div className="flex items-center">
-                  <div className="bg-gray-100 rounded-full px-4 py-2 flex items-center gap-2 border border-gray-300">
-                    <span className="font-inktrap font-medium text-black text-lg">
-                      {playerData.rank}
-                    </span>
-                    <ArrowRight className="w-4 h-4 text-gray-600" />
+          {currentUserAddress && (
+            <div className="bg-white rounded-2xl p-4">
+              <div className="grid grid-cols-2 gap-6">
+                {/* Your Place */}
+                <div>
+                  <p className="text-xs font-inktrap text-gray-600 mb-3 uppercase tracking-wide">
+                    YOUR PLACE
+                  </p>
+                  <div className="flex items-center">
+                    <div className="bg-gray-100 rounded-full px-4 py-2 flex items-center gap-2 border border-gray-300">
+                      {isLoadingUserStats ? (
+                        <div className="w-6 h-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                      ) : (
+                        <>
+                          <span className="font-inktrap font-medium text-black text-lg">
+                            {userStats?.rank || "?"}
+                          </span>
+                          <ArrowRight className="w-4 h-4 text-gray-600" />
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Your Points */}
+                <div>
+                  <p className="text-xs font-inktrap text-gray-600 mb-3 uppercase tracking-wide">
+                    YOUR POINTS
+                  </p>
+                  <div className="flex items-baseline gap-2">
+                    {isLoadingUserStats ? (
+                      <div className="w-16 h-8 bg-gray-200 animate-pulse rounded"></div>
+                    ) : (
+                      <>
+                        <span className="text-2xl font-inktrap font-bold text-black">
+                          {userStats?.total_points || 0}
+                        </span>
+                        <span className="text-sm font-inktrap text-gray-600">
+                          pts
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
-
-              {/* Your Points */}
-              <div>
-                <p className="text-xs font-inktrap text-gray-600 mb-3 uppercase tracking-wide">
-                  YOUR POINTS
-                </p>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-inktrap font-bold text-black">
-                    {playerData.total_points}
-                  </span>
-                  <span className="text-sm font-inktrap text-gray-600">
-                    pts
-                  </span>
-                </div>
-              </div>
             </div>
-          </div>
+          )}
 
           {/* Leaderboard Table */}
           <div className="bg-white rounded-2xl p-4">
@@ -100,78 +288,91 @@ export default function LeaderboardPage() {
               </span>
             </div>
 
+            {/* Loading State */}
+            {isLeaderboardLoading && (
+              <div className="space-y-2">
+                {[...Array(itemsPerPage)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-gray-50 rounded-2xl p-4 grid grid-cols-3 gap-4 items-center animate-pulse"
+                  >
+                    <div className="w-6 h-6 bg-gray-200 rounded"></div>
+                    <div className="w-20 h-4 bg-gray-200 rounded"></div>
+                    <div className="w-12 h-4 bg-gray-200 rounded ml-auto"></div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Leaderboard Entries */}
-            <div className="space-y-2">
-              {leaderboardData.map((entry) => (
-                <div
-                  key={entry.rank}
-                  className="bg-gray-50 rounded-2xl p-4 grid grid-cols-3 gap-4 items-center"
-                >
-                  {/* Rank */}
-                  <div className="flex items-center">
-                    <span className="text-lg font-inktrap font-medium text-black w-6">
-                      {entry.rank}
-                    </span>
-                  </div>
+            {!isLeaderboardLoading && (
+              <div className="space-y-2">
+                {getCurrentPageData().length > 0 ? (
+                  getCurrentPageData().map((entry: LeaderboardUser) => (
+                    <div
+                      key={entry.player_id}
+                      className={`rounded-2xl p-4 grid grid-cols-3 gap-4 items-center ${
+                        entry.wallet_address === currentUserAddress
+                          ? "bg-blue-50 border-2 border-blue-200"
+                          : "bg-gray-50"
+                      }`}
+                    >
+                      {/* Rank */}
+                      <div className="flex items-center gap-2">
+                        {entry.rank <= 3 && (
+                          <Trophy
+                            className={`w-4 h-4 ${
+                              entry.rank === 1
+                                ? "text-yellow-500"
+                                : entry.rank === 2
+                                ? "text-gray-400"
+                                : "text-orange-500"
+                            }`}
+                          />
+                        )}
+                        <span className="text-lg font-inktrap font-medium text-black">
+                          {entry.rank}
+                        </span>
+                      </div>
 
-                  {/* Name with colored dot */}
-                  <div className="flex items-center gap-2">
-                    <span className="font-inktrap text-black text-sm">
-                      {entry.name}
-                    </span>
-                  </div>
+                      {/* Name */}
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-gray-500" />
+                        <span className="font-inktrap text-black text-sm truncate">
+                          {entry.username ||
+                            formatWalletAddress(entry.wallet_address)}
+                        </span>
+                      </div>
 
-                  {/* Points */}
-                  <div className="text-right">
-                    <span className="font-inktrap font-medium text-black">
-                      {entry.points}
-                    </span>
+                      {/* Points */}
+                      <div className="text-right">
+                        <span className="font-inktrap font-medium text-black">
+                          {entry.total_points.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-600 font-inktrap">
+                      No players yet!
+                    </p>
+                    <p className="text-sm text-gray-500 font-inktrap">
+                      Be the first to check in and earn points
+                    </p>
                   </div>
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-center gap-2 py-6">
-            {/* Page 1 (active) */}
-            <button className="w-10 h-10 rounded-full bg-black text-white font-inktrap font-medium text-sm flex items-center justify-center">
-              1
-            </button>
-
-            {/* Page 2 */}
-            <button className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50">
-              2
-            </button>
-
-            {/* Page 3 */}
-            <button className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50">
-              3
-            </button>
-
-            {/* Ellipsis */}
-            <span className="px-2 text-gray-500 font-inktrap">...</span>
-
-            {/* Page 44 */}
-            <button className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50">
-              44
-            </button>
-
-            {/* Page 45 */}
-            <button className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50">
-              45
-            </button>
-
-            {/* Page 46 */}
-            <button className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50">
-              46
-            </button>
-
-            {/* Next button */}
-            <button className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50">
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
+          {!isLeaderboardLoading && totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 py-6">
+              {renderPaginationButtons()}
+            </div>
+          )}
         </div>
 
         {/* Bottom IRL Section */}
