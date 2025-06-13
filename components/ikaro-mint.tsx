@@ -3,11 +3,10 @@
 import { usePrivy } from "@privy-io/react-auth";
 import Auth from "./auth";
 import { Button } from "./ui/button";
-import { CheckCircle, Circle } from "lucide-react";
 
 export default function IkaroMint() {
-  const { user, login, ready } = usePrivy();
-  const address = user?.wallet?.address as `0x${string}`;
+  const { user, login } = usePrivy();
+  // const address = user?.wallet?.address as `0x${string}`;
 
   if (!user) {
     return (
