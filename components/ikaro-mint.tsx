@@ -1,4 +1,3 @@
-
 "use client";
 
 import { usePrivy } from "@privy-io/react-auth";
@@ -31,7 +30,7 @@ export default function IkaroMint() {
         <div className="w-full space-y-4">
           <Image src="/images/ikaro.png" alt="Ikaro Mint" width={1272} height={618} />
           <h1 className="text-4xl font-inktrap">PCO BY IKARO CAVALCANTE  </h1>
-          <p className="text-lg">On June 26 at Public Records NYC, Serpentine and ArtDAO team up with Refraction to debut the first digital artworks from Brazilian multimedia artist     Ikaro Cavalcante: a video game developed through PCO, Serpentine's creative ownership protocol. The artwork will be available as both a 1/1 and an open edition mint, with each purchase unlocking $IRL points—culture's on-chain rewards system. The launch will take place during RESET, a full-venue takeover powered by IRL, featuring music from INVT, Ash Lauryn, and more.
+          <p className="text-lg">On June 26 at Public Records NYC, Serpentine and ArtDAO team up with Refraction to debut the first digital artworks from Brazilian multimedia artist     Ikaro Cavalcante: a video game developed through PCO, Serpentine&apos;s creative ownership protocol. The artwork will be available as both a 1/1 and an open edition mint, with each purchase unlocking $IRL points—culture&apos;s on-chain rewards system. The launch will take place during RESET, a full-venue takeover powered by IRL, featuring music from INVT, Ash Lauryn, and more.
           </p>
           
           <div className="flex items-center justify-center mb-4">
@@ -64,7 +63,7 @@ export default function IkaroMint() {
         <div className="w-full space-y-4">
           <Image src="/images/ikaro.png" alt="Ikaro Mint" width={1272} height={618} />
           <h1 className="text-4xl font-inktrap">1/1 BY IKARO CAVALCANTE  </h1>
-          <p className="text-lg">On June 26 at Public Records NYC, Serpentine and ArtDAO team up with Refraction to debut the first digital artworks from Brazilian multimedia artist     Ikaro Cavalcante: a video game developed through PCO, Serpentine's creative ownership protocol. The artwork will be available as both a 1/1 and an open edition mint, with each purchase unlocking $IRL points—culture's on-chain rewards system. The launch will take place during RESET, a full-venue takeover powered by IRL, featuring music from INVT, Ash Lauryn, and more.
+          <p className="text-lg">On June 26 at Public Records NYC, Serpentine and ArtDAO team up with Refraction to debut the first digital artworks from Brazilian multimedia artist     Ikaro Cavalcante: a video game developed through PCO, Serpentine&apos;s creative ownership protocol. The artwork will be available as both a 1/1 and an open edition mint, with each purchase unlocking $IRL points—culture&apos;s on-chain rewards system. The launch will take place during RESET, a full-venue takeover powered by IRL, featuring music from INVT, Ash Lauryn, and more.
           </p>
           
       
