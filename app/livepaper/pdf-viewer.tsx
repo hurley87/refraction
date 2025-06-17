@@ -32,13 +32,13 @@ export default function PDFViewer() {
   }
 
   return (
-    <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
-      <div style={{ height: "750px" }} className="w-full">
+    <div className="w-full h-[750px]">
+      <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
         <Viewer
           fileUrl="/pdfs/livepaper.pdf"
           plugins={[defaultLayoutPluginInstance]}
         />
-      </div>
-    </Worker>
+      </Worker>
+    </div>
   );
 }
