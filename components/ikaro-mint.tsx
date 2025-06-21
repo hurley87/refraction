@@ -19,20 +19,19 @@ import Link from "next/link";
 import { ToastAction } from "./ui/toast";
 
 export default function IkaroMint() {
-  const { user, login, linkEmail } = usePrivy();
+  const { user, login } = usePrivy();
   const minterAccount = user?.wallet?.address as `0x${string}`;
   const creatorContract = "0x26bbea7803dcac346d5f5f135b57cf2c752a02be" as `0x${string}`; // sepolia manifold creator contract
   const instanceId = "4204538096" as `0x${string}`; // app ID for ikaro edition on sepolia
   const ikaroEditionContract = "0x75fde1ccc4422470be667642a9d2a7e14925c2d6" as `0x${string}`; // sepolia ikaro edition contract
   //const ikaroEditionContract = "0x8a442d543edee974c7dcbf4f14454ec6ec671bee" as `0x${string}`; // base ikaro edition contract 
-  const [mintComment, setMintComment] = useState("");
-  const [quantityToMint, setQuantityToMint] = useState(1);
+  //const [quantityToMint, setQuantityToMint] = useState(1);
   const [isMinting, setIsMinting] = useState(false);
   const publicClient = createPublicClient({
     chain: sepolia,
     transport: http(),
   }) as PublicClient;
-  const mintType = "1155" as const;
+  //const mintType = "1155" as const;np
   const { wallets } = useWallets();
   const wallet = wallets.find((wallet) => (wallet.address as `0x${string}`) === minterAccount
   );
