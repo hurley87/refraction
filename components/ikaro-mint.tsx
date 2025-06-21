@@ -1,14 +1,141 @@
 "use client";
 
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useState, useEffect } from "react";
+import { ERC1155CreatorCoreABI } from "@/lib/contracts/ERC1155CreatorCore";
+import {
+  createPublicClient,
+  createWalletClient,
+  custom,
+  http,
+  PublicClient,
+} from "viem";
+import { sepolia } from "viem/chains";
+import { useToast } from "@/hooks/use-toast";
 import Auth from "./auth";
 import { Button } from "./ui/button";
-import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import { ToastAction } from "./ui/toast";
 
 export default function IkaroMint() {
   const { user, login } = usePrivy();
+  const minterAccount = user?.wallet?.address as `0x${string}`;
+  const creatorContract = "0x26bbea7803dcac346d5f5f135b57cf2c752a02be" as `0x${string}`; // sepolia manifold creator contract
+  const instanceId = "4204538096" as `0x${string}`; // app ID for ikaro edition on sepolia
+  const ikaroEditionContract = "0x75fde1ccc4422470be667642a9d2a7e14925c2d6" as `0x${string}`; // sepolia ikaro edition contract
+  //const ikaroEditionContract = "0x8a442d543edee974c7dcbf4f14454ec6ec671bee" as `0x${string}`; // base ikaro edition contract 
+  //const [quantityToMint, setQuantityToMint] = useState(1);
+  const [isMinting, setIsMinting] = useState(false);
+  const publicClient = createPublicClient({
+    chain: sepolia,
+    transport: http(),
+  }) as PublicClient;
+  //const mintType = "1155" as const;np
+  const { wallets } = useWallets();
+  const wallet = wallets.find((wallet) => (wallet.address as `0x${string}`) === minterAccount
+  );
+  const chain = sepolia;
+  const chainId = wallet?.chainId.split(":")[1];
+  const { toast } = useToast();
+
   const [count, setCount] = useState(1);
+  const [mintPrice, setMintPrice] = useState<bigint>(BigInt(0));
+
+  useEffect(() => {
+    const getMintPrice = async () => {
+      try {
+        const price = await publicClient.readContract({
+          address: creatorContract,
+          abi: ERC1155CreatorCoreABI,
+          functionName: 'MINT_FEE',
+        });
+        setMintPrice(price as bigint);
+      } catch {
+        console.error("Error getting price");
+      }
+    };
+    getMintPrice();
+  }, [publicClient, creatorContract]);
+
+  const handleMint = async () => {
+    setIsMinting(true);
+
+    try {
+      const ethereumProvider = (await wallet?.getEthereumProvider()) as any;
+
+      const walletClient = await createWalletClient({
+        account: minterAccount,
+        chain,
+        transport: custom(ethereumProvider),
+      });
+      let hash;
+      if (count>1){
+        hash = await walletClient.writeContract({
+          address: creatorContract,
+          abi: ERC1155CreatorCoreABI,
+          functionName: 'mintBatch',
+          args: [ikaroEditionContract, instanceId, count, 0, [], minterAccount],
+          value: mintPrice * BigInt(count)
+        });
+      }
+      else{
+        hash = await walletClient.writeContract({
+          address: creatorContract,
+          abi: ERC1155CreatorCoreABI,
+          functionName: 'mint',
+          args: [ikaroEditionContract, instanceId, 0, [], minterAccount],
+          value: mintPrice * BigInt(count)
+        });
+      }
+
+      await publicClient.waitForTransactionReceipt({
+        hash,
+      });
+
+      toast({
+        title: "Minted!",
+        description: "View transaction",
+        action: (
+          <Link target="_blank" href={`https://sepolia.etherscan.io/tx/${hash}`}>
+            <ToastAction altText="Goto schedule to undo">View</ToastAction>
+          </Link>
+        ),
+      });
+
+      setIsMinting(false);
+      setCount(1);
+    } catch {
+      console.error("Error minting");
+      toast({
+        title: "Error",
+        description: "Error minting",
+        variant: "destructive",
+      });
+      setIsMinting(false);
+      return;
+    }
+  };
+
+
+  const switchNetwork = async () => {
+    if (!wallet) {
+      toast({
+        title: "Error",
+        description: "Minting requires a wallet.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      //switch to sepolia
+      await wallet?.switchChain(11155111);
+    } catch {
+      console.error("Error switching network");
+    }
+  };
+
+
 
   const increment = () => setCount(prev => prev + 1);
   const decrement = () => setCount(prev => Math.max(1, prev - 1));
@@ -53,10 +180,24 @@ export default function IkaroMint() {
               </div>
             </div>
           </div>
+          {chainId !== "11155111" ? (
+                      <Button
+                        size="lg"
+                        className="bg-yellow-500 hover:bg-yellow-400 text-black"
+                        onClick={switchNetwork}
+                      >
+                        Switch Network
+                      </Button>
+                    ) : (
+            <Button 
+              className="bg-[#ff0000] text-blackrounded-lg hover:bg-black hover:text-white w-full max-w-4xl text-xl font-inktrap"
+              onClick={handleMint}
+              
+            >
 
-          <Button className="bg-[#ff0000] text-blackrounded-lg hover:bg-black hover:text-white w-full max-w-4xl text-xl font-inktrap">
-            Buy Now
+              {isMinting ? "Minting..." : "Buy Now"}
           </Button>
+            )}
         </div>
       </div>
       <div className="flex flex-col items-center justify-center py-6 w-full">

@@ -23,7 +23,7 @@ export async function GET(
     const avatar = data.user_profile?.avatar || "";
 
     return NextResponse.json({ username, avatar });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Failed to fetch user data" },
       { status: 500 }
