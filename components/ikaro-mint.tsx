@@ -30,7 +30,7 @@ export default function IkaroMint() {
     chain: sepolia,
     transport: http(),
   }) as PublicClient;
-  const mintType = "1155" as const;
+ 
   const { wallets } = useWallets();
   const wallet = wallets.find((wallet) => (wallet.address as `0x${string}`) === minterAccount
   );
