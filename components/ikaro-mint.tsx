@@ -51,8 +51,8 @@ export default function IkaroMint() {
           functionName: 'MINT_FEE',
         });
         setMintPrice(price as bigint);
-      } catch (error) {
-        console.error("Error getting price:", error);
+      } catch {
+        console.error("Error getting price");
       }
     };
     getMintPrice();
@@ -104,9 +104,9 @@ export default function IkaroMint() {
       });
 
       setIsMinting(false);
-      setQuantityToMint(1);
-    } catch (error) {
-      console.error("Error minting:", error);
+      setCount(1);
+    } catch {
+      console.error("Error minting");
       toast({
         title: "Error",
         description: "Error minting",
@@ -130,8 +130,8 @@ export default function IkaroMint() {
     try {
       //switch to sepolia
       await wallet?.switchChain(11155111);
-    } catch (error) {
-      console.error("Error switching network:", error);
+    } catch {
+      console.error("Error switching network");
     }
   };
 

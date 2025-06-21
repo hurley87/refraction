@@ -151,7 +151,7 @@ export async function GET(req: NextRequest) {
             ...event,
             timestamp: Number(block.timestamp),
           };
-        } catch (error) {
+        } catch {
           // If we can't get the timestamp, just return the event as is
           return event;
         }

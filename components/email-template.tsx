@@ -12,7 +12,6 @@ import {
   Hr,
 } from "@react-email/components";
 
-interface EmailTemplateProps {}
 const URL =
   "https://app.towns.com/t/0xf19e5997fa4df2e12a3961fc7e9ad09c7a301244/";
 
@@ -74,7 +73,7 @@ const secondaryHeaderText = {
   lineHeight: "24px",
 };
 
-export const EmailTemplate: React.FC<Readonly<EmailTemplateProps>> = ({}) => (
+export const EmailTemplate: React.FC = () => (
   <Html>
     <Head />
     <Preview>Welcome to $IRL!</Preview>
