@@ -41,7 +41,7 @@ export default function ProfileNotFound() {
             USER NOT FOUND
           </h2>
           <p className="text-gray-600 text-sm font-inktrap max-w-sm">
-            The profile you're looking for doesn't exist or hasn't been created yet.
+            {`The profile you're looking for doesn't exist or hasn't been created yet.`}
           </p>
         </div>
 
