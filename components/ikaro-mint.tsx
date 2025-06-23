@@ -39,7 +39,6 @@ export default function IkaroMint() {
   const { toast } = useToast();
 
   const [count, setCount] = useState(1);
-  const fee = BigInt(500000000000000); // 0.0005 ETH in gwei
   const [mintFee, setMintFee] = useState<bigint>(BigInt(500000000000000));
   const [mintPrice, setMintPrice] = useState<bigint>(BigInt(0));
 
