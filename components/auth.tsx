@@ -14,7 +14,7 @@ export default function Auth({ children }: AuthProps) {
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
   const [needsUsername, setNeedsUsername] = useState(false);
 
-  console.log("user", user);
+  //console.log("user", user);
 
   // Check for existing player data when user is ready and has wallet
   useEffect(() => {
