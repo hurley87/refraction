@@ -43,17 +43,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
           const playerData = await playerResponse.json();
           if (playerData.success && playerData.player) {
             setTotalPoints(playerData.player.total_points);
-
-            // Get leaderboard to find player's rank
-            const leaderboardResponse = await fetch(
-              "/api/leaderboard?limit=1000"
-            );
-            if (leaderboardResponse.ok) {
-              const leaderboardData = await leaderboardResponse.json();
-              if (leaderboardData.success && leaderboardData.leaderboard) {
-                // Player rank fetched but not displayed in current UI
-              }
-            }
           }
         }
       } catch (error) {

@@ -12,7 +12,7 @@ interface ProfilePageProps {
 async function getProfile(walletAddress: string): Promise<UserProfile | null> {
   try {
     // For server-side fetch, we can use a relative URL or construct the full URL
-    const baseUrl = "http://localhost:3000"; // Default for development
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL; // Default for development
 
     const response = await fetch(
       `${baseUrl}/api/profile?wallet_address=${walletAddress}`,
