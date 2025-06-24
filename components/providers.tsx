@@ -10,7 +10,7 @@ const queryClient = new QueryClient();
 
 const irlChainOverride = addRpcUrlOverrideToChain(
   irlChain,
-  "https://smartrpc.testnet.irl.syndicate.io",
+  "https://smartrpc.testnet.irl.syndicate.io"
 );
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -20,7 +20,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <PrivyProvider
         appId={appId}
         config={{
-          loginMethods: ["email", "wallet"],
+          loginMethods: ["email"],
           embeddedWallets: {
             createOnLogin: "users-without-wallets",
             showWalletUIs: false,
