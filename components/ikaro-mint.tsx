@@ -39,17 +39,39 @@ export default function IkaroMint() {
   const { toast } = useToast();
 
   const [count, setCount] = useState(1);
+  const [mintFee, setMintFee] = useState<bigint>(BigInt(500000000000000));
   const [mintPrice, setMintPrice] = useState<bigint>(BigInt(0));
 
   useEffect(() => {
-    const getMintPrice = async () => {
+    const getMintFee = async () => {
       try {
-        const price = await publicClient.readContract({
+        const fee = await publicClient.readContract({
           address: creatorContract,
           abi: ERC1155CreatorCoreABI,
           functionName: 'MINT_FEE',
         });
-        setMintPrice(price as bigint);
+        setMintFee(fee as bigint);
+      } catch {
+        console.error("Error getting mint fee");
+      }
+    };
+    getMintFee();
+  }, [publicClient, creatorContract]);
+
+    useEffect(() => {
+    const getMintPrice = async () => {
+      try {
+        const claim = await publicClient.readContract({
+          address: creatorContract,
+          abi: ERC1155CreatorCoreABI,
+          functionName: 'getClaim',
+          args: [ikaroEditionContract, instanceId],
+        });
+
+        // Type assertion to handle unknown type
+        //console.log("claim", claim);
+        const claimData = claim as { cost: bigint };
+        setMintPrice(claimData.cost);
       } catch {
         console.error("Error getting price");
       }
@@ -74,14 +96,15 @@ export default function IkaroMint() {
         console.log("instanceId", instanceId);
         console.log("count", count);
         console.log("mintPrice", mintPrice);
+        console.log("mintFee", mintFee);
         console.log("minterAccount", minterAccount);
-        console.log("mintPrice * BigInt(count)", mintPrice * BigInt(count));
+        console.log("mintFee * BigInt(count)", mintFee * BigInt(count));
         hash = await walletClient.writeContract({
           address: creatorContract,
           abi: ERC1155CreatorCoreABI,
           functionName: 'mintBatch',
           args: [ikaroEditionContract, instanceId, count, [] , [], minterAccount],
-          value: mintPrice * BigInt(count) 
+          value: mintFee * BigInt(count) + mintPrice * BigInt(count)
         });
       }
       else{
@@ -89,13 +112,14 @@ export default function IkaroMint() {
         console.log("instanceId", instanceId);
         console.log("mintPrice", mintPrice);
         console.log("minterAccount", minterAccount);
+        console.log("mintFee", mintFee);
         console.log("mintPrice ", mintPrice);
         hash = await walletClient.writeContract({
           address: creatorContract,
           abi: ERC1155CreatorCoreABI,
           functionName: 'mint',
           args: [ikaroEditionContract, instanceId, 0, [], minterAccount],
-          value: mintPrice 
+          value: mintFee + mintPrice
         });
       }
 
