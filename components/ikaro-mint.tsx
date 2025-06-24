@@ -2,11 +2,13 @@
 
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useState, useEffect } from "react";
-import { ERC1155CreatorCoreABI } from "@/lib/contracts/ERC1155CreatorCore";
+import { ERC1155CreatorCoreABI } from "@/lib/contracts/Manifold/ERC1155CreatorCore";
+import { MarketPlaceCoreABI } from "@/lib/contracts/Manifold/MarketPlaceCore";
 import {
   createPublicClient,
   createWalletClient,
   custom,
+  
   http,
   PublicClient,
 } from "viem";
@@ -21,10 +23,19 @@ import { ToastAction } from "./ui/toast";
 export default function IkaroMint() {
   const { user, login } = usePrivy();
   const minterAccount = user?.wallet?.address as `0x${string}`;
+
+  /* test specific data */ 
   const creatorContract = "0x26bbea7803dcac346d5f5f135b57cf2c752a02be" as `0x${string}`; // sepolia manifold creator contract
-  const instanceId = "4204538096" as `0x${string}`; // app ID for ikaro edition on sepolia
+  
   const ikaroEditionContract = "0x75fde1ccc4422470be667642a9d2a7e14925c2d6" as `0x${string}`; // sepolia ikaro edition contract
+  const editionInstanceId = BigInt(4204538096); // app ID for ikaro edition on sepolia
+  const marketPlaceCoreContract = "0x5246807fB65d87b0d0a234e0F3D42374DE83b421" as `0x${string}`; // sepolia market place contract
+  const auctionInstanceId = BigInt(4206227696) ; // app ID for ikaro auction on sepolia
+  const ikaroAuctionContract = "0x64b7E24f9CD7c0E64B1AdfCe568a9f4aacb034DA" as `0x${string}`; // sepolia ikaro auction contract
+  const auctionListingId = 1349; // auction listing id for ikaro auction on sepolia
   //const ikaroEditionContract = "0x8a442d543edee974c7dcbf4f14454ec6ec671bee" as `0x${string}`; // base ikaro edition contract 
+
+
   const [isMinting, setIsMinting] = useState(false);
   const publicClient = createPublicClient({
     chain: sepolia,
@@ -41,6 +52,8 @@ export default function IkaroMint() {
   const [count, setCount] = useState(1);
   const [mintFee, setMintFee] = useState<bigint>(BigInt(500000000000000));
   const [mintPrice, setMintPrice] = useState<bigint>(BigInt(0));
+  const [listingCurrentPrice, setListingCurrentPrice] = useState<bigint>(BigInt(0));
+  const [listing, setListing] = useState<any>(null);
 
   useEffect(() => {
     const getMintFee = async () => {
@@ -65,7 +78,7 @@ export default function IkaroMint() {
           address: creatorContract,
           abi: ERC1155CreatorCoreABI,
           functionName: 'getClaim',
-          args: [ikaroEditionContract, instanceId],
+          args: [ikaroEditionContract, BigInt(editionInstanceId)],
         });
 
         // Type assertion to handle unknown type
@@ -78,6 +91,49 @@ export default function IkaroMint() {
     };
     getMintPrice();
   }, [publicClient, creatorContract]);
+
+   useEffect(() => {
+    const getListingCurrentPrice = async () => {
+      try {
+        const listingCurrentPrice = await publicClient.readContract({
+          address: marketPlaceCoreContract,
+          abi: MarketPlaceCoreABI,
+          functionName: 'getListingCurrentPrice',
+          args: [auctionListingId],
+        });
+
+        // Type assertion to handle unknown type
+        console.log("listingCurrentPrice", listingCurrentPrice);
+      
+        setListingCurrentPrice(listingCurrentPrice as bigint);
+      } catch {
+        console.error("Error getting listing current price");
+      }
+    };
+    getListingCurrentPrice();
+  }, [publicClient, creatorContract]);
+
+  useEffect(() => {
+    const getListing = async () => {
+      try {
+         const listing = await publicClient.readContract({
+          address: marketPlaceCoreContract,
+          abi: MarketPlaceCoreABI,
+          functionName: 'getListing',
+          args: [auctionListingId],
+        });
+
+        // Type assertion to handle unknown type
+        console.log(listing);
+      
+        setListing(listing as string[]);
+      } catch {
+        console.error("Error getting listing data");
+      }
+    };
+    getListing();
+  }, [publicClient, creatorContract]);
+
 
   const handleMint = async () => {
     setIsMinting(true);
@@ -93,7 +149,7 @@ export default function IkaroMint() {
       let hash;
       if ( count > 1 ){
         console.log("ikarocontactAddress", ikaroEditionContract);
-        console.log("instanceId", instanceId);
+        console.log("instanceId", editionInstanceId);
         console.log("count", count);
         console.log("mintPrice", mintPrice);
         console.log("mintFee", mintFee);
@@ -103,13 +159,13 @@ export default function IkaroMint() {
           address: creatorContract,
           abi: ERC1155CreatorCoreABI,
           functionName: 'mintBatch',
-          args: [ikaroEditionContract, instanceId, count, [] , [], minterAccount],
+          args: [ikaroEditionContract, editionInstanceId, count, [] , [], minterAccount],
           value: mintFee * BigInt(count) + mintPrice * BigInt(count)
         });
       }
       else{
         console.log("ikarocontactAddress", ikaroEditionContract);
-        console.log("instanceId", instanceId);
+        console.log("instanceId", editionInstanceId);
         console.log("mintPrice", mintPrice);
         console.log("minterAccount", minterAccount);
         console.log("mintFee", mintFee);
@@ -118,7 +174,7 @@ export default function IkaroMint() {
           address: creatorContract,
           abi: ERC1155CreatorCoreABI,
           functionName: 'mint',
-          args: [ikaroEditionContract, instanceId, 0, [], minterAccount],
+          args: [ikaroEditionContract, editionInstanceId, 0, [], minterAccount],
           value: mintFee + mintPrice
         });
       }
