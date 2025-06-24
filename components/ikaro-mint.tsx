@@ -78,7 +78,7 @@ export default function IkaroMint() {
           address: creatorContract,
           abi: ERC1155CreatorCoreABI,
           functionName: 'getClaim',
-          args: [ikaroEditionContract, BigInt(editionInstanceId)],
+          args: [ikaroEditionContract, editionInstanceId],
         });
 
         // Type assertion to handle unknown type
@@ -90,7 +90,7 @@ export default function IkaroMint() {
       }
     };
     getMintPrice();
-  }, [publicClient, creatorContract]);
+  }, [publicClient, creatorContract, editionInstanceId]);
 
    useEffect(() => {
     const getListingCurrentPrice = async () => {
