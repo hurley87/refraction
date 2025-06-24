@@ -186,7 +186,7 @@ export default function Auth({ children }: AuthProps) {
   if (ready && !user) {
     return (
       <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto">
-        <div className="flex flex-col gap-1 p-0">
+        <div className="flex flex-col gap-1 p-0 pt-10">
           <h1 className="text-black text-xl font-inktrap uppercase">
             CHECK IN TO
           </h1>
