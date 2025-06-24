@@ -13,13 +13,27 @@ export default function Header() {
   // If user is not defined, return login button
   if (!user) {
     return (
-      <Button
-        className="bg-white text-black rounded-lg hover:bg-white/80 justify-center font-inktrap uppercase"
-        size="sm"
-        onClick={login}
-      >
-        CHECK IN
-      </Button>
+      <div className="flex justify-between items-center">
+        <div className="bg-white rounded-full px-4 py-2">
+          <Link href="/">
+            <img
+              src="/logo2.svg"
+              alt="IRL"
+              className="w-full h-auto"
+              style={{ width: "35px", height: "auto" }}
+            />
+          </Link>
+        </div>
+
+        {/* Profile Menu */}
+        <Button
+          className="bg-white text-black px-4 py-2 text-lg hover:bg-white/80 justify-center font-inktrap uppercase rounded-full items-center"
+          size="sm"
+          onClick={login}
+        >
+          CHECK IN
+        </Button>
+      </div>
     );
   }
 
