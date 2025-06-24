@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trophy, Medal, Award, MapPin, User } from "lucide-react";
+import { Trophy, MapPin, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocationGame } from "@/hooks/useLocationGame";
 
@@ -15,23 +15,6 @@ export default function Leaderboard() {
       fetchLeaderboard(20);
     }
   }, [showLeaderboard]);
-
-  const getRankIcon = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return <Trophy className="w-6 h-6 text-yellow-500" />;
-      case 2:
-        return <Medal className="w-6 h-6 text-gray-400" />;
-      case 3:
-        return <Award className="w-6 h-6 text-orange-500" />;
-      default:
-        return (
-          <span className="w-6 h-6 flex items-center justify-center text-gray-600 font-bold">
-            #{rank}
-          </span>
-        );
-    }
-  };
 
   const formatWalletAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -110,7 +93,6 @@ export default function Leaderboard() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      {getRankIcon(player.rank)}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <User className="w-4 h-4 text-gray-500" />

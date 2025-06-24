@@ -10,7 +10,7 @@ export default function ProfileNotFound() {
           PROFILE NOT FOUND
         </h1>
         <Link
-          href="/"
+          href="/leaderboard"
           className="text-black p-2 rounded-full hover:bg-gray-100 transition-colors"
           aria-label="Back to home"
         >

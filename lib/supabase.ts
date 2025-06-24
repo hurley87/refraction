@@ -30,6 +30,7 @@ export type Checkin = {
   address: string;
   email: string;
   created_at?: string;
+  checkpoint: string;
 };
 
 export const insertNotification = async (notification: WebhookNotification) => {
@@ -52,6 +53,63 @@ export const insertCheckin = async (checkin: Checkin) => {
   return data;
 };
 
+export const upsertCheckpoint = async (
+  address: string,
+  email: string,
+  newCheckpoint: string
+) => {
+  // First, get the existing record
+  const existingCheckin = await getCheckinByAddress(address);
+
+  if (existingCheckin && existingCheckin.length > 0) {
+    // Parse existing checkpoints (assuming they're stored as comma-separated or single value)
+    const currentCheckpoints = existingCheckin[0].checkpoint
+      ? existingCheckin[0].checkpoint.split(",").map((c) => c.trim())
+      : [];
+
+    // Check if checkpoint already exists
+    if (currentCheckpoints.includes(newCheckpoint)) {
+      throw new Error(`Already checked in to ${newCheckpoint}`);
+    }
+
+    // Add new checkpoint
+    currentCheckpoints.push(newCheckpoint);
+    const updatedCheckpoints = currentCheckpoints.join(", ");
+
+    // Update the existing record
+    const { data, error } = await supabase
+      .from("irlcheckins")
+      .update({
+        checkpoint: updatedCheckpoints,
+        email: email || existingCheckin[0].email, // Keep existing email if no new one provided
+      })
+      .eq("address", address)
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } else {
+    // Insert new record
+    const { data, error } = await supabase
+      .from("irlcheckins")
+      .insert({
+        address,
+        email,
+        checkpoint: newCheckpoint,
+      })
+      .select();
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  }
+};
+
 export const getCheckinByAddress = async (address: string) => {
   try {
     const { data, error } = await supabase
@@ -66,6 +124,34 @@ export const getCheckinByAddress = async (address: string) => {
     }
 
     return data;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+};
+
+export const getCheckinByAddressAndCheckpoint = async (
+  address: string,
+  checkpoint: string
+) => {
+  try {
+    const { data, error } = await supabase
+      .from("irlcheckins")
+      .select("*")
+      .eq("address", address);
+
+    if (error) {
+      throw error;
+    }
+
+    // Filter by checkpoint since checkpoints are now stored as comma-separated values
+    const filteredData = data?.filter((checkin) => {
+      if (!checkin.checkpoint) return false;
+      const checkpoints = checkin.checkpoint.split(",").map((c) => c.trim());
+      return checkpoints.includes(checkpoint);
+    });
+
+    return filteredData || [];
   } catch (error) {
     console.error(error);
     return null;
@@ -331,14 +417,14 @@ export const createOrUpdateUserProfile = async (
   profile: Omit<UserProfile, "id" | "created_at" | "updated_at">
 ) => {
   const { data: existingProfile } = await supabase
-    .from("user_profiles")
+    .from("players")
     .select("*")
     .eq("wallet_address", profile.wallet_address)
     .single();
 
   if (existingProfile) {
     const { data, error } = await supabase
-      .from("user_profiles")
+      .from("players")
       .update({
         email: profile.email || existingProfile.email,
         name: profile.name || existingProfile.name,
@@ -358,7 +444,7 @@ export const createOrUpdateUserProfile = async (
     return data;
   } else {
     const { data, error } = await supabase
-      .from("user_profiles")
+      .from("players")
       .insert(profile)
       .select()
       .single();
@@ -370,7 +456,7 @@ export const createOrUpdateUserProfile = async (
 
 export const getUserProfile = async (walletAddress: string) => {
   const { data, error } = await supabase
-    .from("user_profiles")
+    .from("players")
     .select("*")
     .eq("wallet_address", walletAddress)
     .single();
@@ -386,7 +472,7 @@ export const updateUserProfile = async (
   >
 ) => {
   const { data, error } = await supabase
-    .from("user_profiles")
+    .from("players")
     .update(updates)
     .eq("wallet_address", walletAddress)
     .select()
@@ -394,4 +480,55 @@ export const updateUserProfile = async (
 
   if (error) throw error;
   return data;
+};
+
+// Award points for profile field completion
+export const awardProfileFieldPoints = async (
+  walletAddress: string,
+  fieldType: string,
+  fieldValue: string
+) => {
+  try {
+    // Check if points have already been awarded for this field
+    const { data: existingActivity } = await supabase
+      .from("points_activities")
+      .select("id")
+      .eq("user_wallet_address", walletAddress)
+      .eq("activity_type", fieldType)
+      .limit(1);
+
+    // If points already awarded for this field, don't award again
+    if (existingActivity && existingActivity.length > 0) {
+      return {
+        success: false,
+        reason: "Points already awarded for this field",
+      };
+    }
+
+    // Award 5 points for the field
+    const { data, error } = await supabase
+      .from("points_activities")
+      .insert({
+        user_wallet_address: walletAddress,
+        activity_type: fieldType,
+        points_earned: 5,
+        description: `Added ${fieldType.replace(
+          "profile_field_",
+          ""
+        )} to profile`,
+        metadata: { field_value: fieldValue },
+        processed: true,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return { success: true, activity: data };
+  } catch (error) {
+    console.error("Error awarding profile field points:", error);
+    return { success: false, error: error };
+  }
 };

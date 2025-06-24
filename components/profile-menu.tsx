@@ -96,8 +96,16 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
         throw new Error("Failed to update profile");
       }
 
-      // Show success feedback (you could add a toast notification here)
-      toast.success("Profile updated successfully");
+      const result = await response.json();
+
+      // Show success feedback with points info
+      let successMessage = "Profile updated successfully";
+      if (result.pointsAwarded && result.pointsAwarded.length > 0) {
+        const totalPoints = result.pointsAwarded.length * 5;
+        successMessage += ` - Earned ${totalPoints} points!`;
+      }
+
+      toast.success(successMessage);
     } catch (error) {
       console.error("Error saving profile:", error);
       // Show error feedback
@@ -138,27 +146,6 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-start px-4 pb-4 gap-6 overflow-y-auto">
-        {/* Profile Picture */}
-        <div className="flex flex-col items-center">
-          <div
-            style={{
-              background:
-                "linear-gradient(90deg, #2400FF 14.58%, #FA00FF 52.6%, #FF0000 86.46%)",
-            }}
-            className="w-24 h-24 rounded-full flex items-center justify-center mb-4"
-          >
-            {profile.profile_picture_url ? (
-              <img
-                src={profile.profile_picture_url}
-                alt="Profile"
-                className="w-full h-full rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-600 via-purple-600 to-red-600"></div>
-            )}
-          </div>
-        </div>
-
         {/* Form Fields */}
         <div className="w-full max-w-sm space-y-4">
           {/* Email */}

@@ -27,6 +27,14 @@ export interface PointsActivityConfig {
 export type PointsActivityType =
   | "daily_checkin"
   | "profile_complete"
+  | "profile_field_email"
+  | "profile_field_name"
+  | "profile_field_username"
+  | "profile_field_twitter"
+  | "profile_field_towns"
+  | "profile_field_farcaster"
+  | "profile_field_telegram"
+  | "profile_field_picture"
   | "social_share"
   | "referral_signup"
   | "referral_complete"
@@ -107,6 +115,86 @@ export const POINTS_ACTIVITIES_CONFIG: PointsActivityConfig[] = [
     category: "onboarding",
     base_points: 100,
     max_total_points: 100,
+    is_active: true,
+  },
+  {
+    type: "profile_field_email",
+    name: "Add Email",
+    description: "Add your email address to your profile",
+    icon: "📧",
+    category: "onboarding",
+    base_points: 5,
+    max_total_points: 5,
+    is_active: true,
+  },
+  {
+    type: "profile_field_name",
+    name: "Add Name",
+    description: "Add your name to your profile",
+    icon: "👤",
+    category: "onboarding",
+    base_points: 5,
+    max_total_points: 5,
+    is_active: true,
+  },
+  {
+    type: "profile_field_username",
+    name: "Add Username",
+    description: "Add your username to your profile",
+    icon: "🏷️",
+    category: "onboarding",
+    base_points: 5,
+    max_total_points: 5,
+    is_active: true,
+  },
+  {
+    type: "profile_field_twitter",
+    name: "Add X Handle",
+    description: "Add your X (Twitter) handle to your profile",
+    icon: "🐦",
+    category: "social",
+    base_points: 5,
+    max_total_points: 5,
+    is_active: true,
+  },
+  {
+    type: "profile_field_towns",
+    name: "Add Towns Handle",
+    description: "Add your Towns handle to your profile",
+    icon: "🏘️",
+    category: "social",
+    base_points: 5,
+    max_total_points: 5,
+    is_active: true,
+  },
+  {
+    type: "profile_field_farcaster",
+    name: "Add Farcaster Handle",
+    description: "Add your Farcaster handle to your profile",
+    icon: "🔗",
+    category: "social",
+    base_points: 5,
+    max_total_points: 5,
+    is_active: true,
+  },
+  {
+    type: "profile_field_telegram",
+    name: "Add Telegram Handle",
+    description: "Add your Telegram handle to your profile",
+    icon: "💬",
+    category: "social",
+    base_points: 5,
+    max_total_points: 5,
+    is_active: true,
+  },
+  {
+    type: "profile_field_picture",
+    name: "Add Profile Picture",
+    description: "Add a profile picture to your profile",
+    icon: "🖼️",
+    category: "onboarding",
+    base_points: 5,
+    max_total_points: 5,
     is_active: true,
   },
   {

@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { Button } from "@/components/ui/button";
-import { Menu, ArrowRight, Trophy, User } from "lucide-react";
+import { ArrowRight, Trophy } from "lucide-react";
 import Header from "./header";
+import Link from "next/link";
 import { useLocationGame } from "@/hooks/useLocationGame";
 
 interface UserStats {
@@ -215,9 +215,6 @@ export default function LeaderboardPage() {
             <h1 className="text-xl font-inktrap font-bold text-black">
               Leaderboard
             </h1>
-            <Button variant="ghost" size="sm" className="p-2">
-              <Menu className="w-5 h-5 text-gray-600" />
-            </Button>
           </div>
         </div>
 
@@ -233,18 +230,13 @@ export default function LeaderboardPage() {
                     YOUR PLACE
                   </p>
                   <div className="flex items-center">
-                    <div className="bg-gray-100 rounded-full px-4 py-2 flex items-center gap-2 border border-gray-300">
-                      {isLoadingUserStats ? (
-                        <div className="w-6 h-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-                      ) : (
-                        <>
-                          <span className="font-inktrap font-medium text-black text-lg">
-                            {userStats?.rank || "?"}
-                          </span>
-                          <ArrowRight className="w-4 h-4 text-gray-600" />
-                        </>
-                      )}
-                    </div>
+                    {isLoadingUserStats ? (
+                      <div className="w-6 h-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                    ) : (
+                      <span className="text-2xl font-inktrap font-bold text-black">
+                        {userStats?.rank || "?"}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -318,17 +310,6 @@ export default function LeaderboardPage() {
                     >
                       {/* Rank */}
                       <div className="flex items-center gap-2">
-                        {entry.rank <= 3 && (
-                          <Trophy
-                            className={`w-4 h-4 ${
-                              entry.rank === 1
-                                ? "text-yellow-500"
-                                : entry.rank === 2
-                                ? "text-gray-400"
-                                : "text-orange-500"
-                            }`}
-                          />
-                        )}
                         <span className="text-lg font-inktrap font-medium text-black">
                           {entry.rank}
                         </span>
@@ -336,11 +317,12 @@ export default function LeaderboardPage() {
 
                       {/* Name */}
                       <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-gray-500" />
-                        <span className="font-inktrap text-black text-sm truncate">
-                          {entry.username ||
-                            formatWalletAddress(entry.wallet_address)}
-                        </span>
+                        <Link href={`/profiles/${entry.wallet_address}`}>
+                          <span className="font-inktrap text-black text-sm truncate">
+                            {entry.username ||
+                              formatWalletAddress(entry.wallet_address)}
+                          </span>
+                        </Link>
                       </div>
 
                       {/* Points */}

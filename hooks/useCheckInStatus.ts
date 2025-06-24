@@ -1,16 +1,16 @@
 import { useEffect, useState, useRef } from "react";
 
-export function useCheckInStatus(address: string, checkinId: string) {
+export function useCheckInStatus(address: string, checkpoint: string) {
   const [checkinStatus, setCheckinStatus] = useState<boolean | null>(null);
   const isFetching = useRef(false);
 
   useEffect(() => {
-    // Reset status when address or checkinId changes
+    // Reset status when address or checkpoint changes
     setCheckinStatus(null);
 
     const fetchCheckins = async () => {
       // Skip if we don't have the required data or if we're already fetching
-      if (!address || !checkinId || isFetching.current) {
+      if (!address || !checkpoint || isFetching.current) {
         return;
       }
 
@@ -18,7 +18,11 @@ export function useCheckInStatus(address: string, checkinId: string) {
       isFetching.current = true;
 
       try {
-        const response = await fetch(`/api/checkin-status?address=${address}`);
+        const response = await fetch(
+          `/api/checkin-status?address=${address}&checkpoint=${encodeURIComponent(
+            checkpoint
+          )}`
+        );
         console.log("response", response);
         if (!response.ok) {
           throw new Error("Failed to fetch check-in status");
@@ -33,10 +37,10 @@ export function useCheckInStatus(address: string, checkinId: string) {
       }
     };
 
-    if (address && checkinId) {
+    if (address && checkpoint) {
       fetchCheckins();
     }
-  }, [address, checkinId]);
+  }, [address, checkpoint]);
 
   return { checkinStatus, setCheckinStatus };
 }

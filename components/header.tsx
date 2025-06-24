@@ -4,6 +4,7 @@ import { useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import ProfileMenu from "./profile-menu";
+import Link from "next/link";
 
 export default function Header() {
   const { user, login } = usePrivy();
@@ -25,12 +26,14 @@ export default function Header() {
   return (
     <div className="flex justify-between items-center">
       <div className="bg-white rounded-full px-4 py-2">
-        <img
-          src="/logo2.svg"
-          alt="IRL"
-          className="w-full h-auto"
-          style={{ width: "35px", height: "auto" }}
-        />
+        <Link href="/">
+          <img
+            src="/logo2.svg"
+            alt="IRL"
+            className="w-full h-auto"
+            style={{ width: "35px", height: "auto" }}
+          />
+        </Link>
       </div>
       <div className="flex items-center justify-end bg-white rounded-full px-4 py-2">
         <button

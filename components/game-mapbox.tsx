@@ -200,7 +200,9 @@ export default function GameMapbox() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-gray-600" />
-                    <span className="font-inktrap text-black">2390</span>
+                    <span className="font-inktrap text-black">
+                      {playerData?.rank || "—"}
+                    </span>
                   </div>
                   <Button className="bg-yellow-400 hover:bg-yellow-500 text-black font-inktrap px-4 py-2 rounded-full text-sm">
                     Leaderboard

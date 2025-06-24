@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getUserProfile,
   createOrUpdateUserProfile,
+  awardProfileFieldPoints,
   type UserProfile,
 } from "@/lib/supabase";
 
@@ -9,6 +10,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const walletAddress = searchParams.get("wallet_address");
+
+    console.log("walletAddress", walletAddress);
 
     if (!walletAddress) {
       return NextResponse.json(
@@ -18,6 +21,8 @@ export async function GET(request: NextRequest) {
     }
 
     const profile = await getUserProfile(walletAddress);
+
+    console.log("profile", profile);
 
     if (!profile) {
       return NextResponse.json(
@@ -92,12 +97,67 @@ export async function PUT(request: NextRequest) {
         profileData.profile_picture_url.trim();
     }
 
+    // Get the current profile to compare what's new
+    const currentProfile = await getUserProfile(wallet_address);
+
     const updatedProfile = await createOrUpdateUserProfile({
       wallet_address,
       ...validatedData,
     });
 
-    return NextResponse.json(updatedProfile, { status: 200 });
+    // Award points for new fields that were filled out
+    const profileFieldsMap = {
+      email: "profile_field_email",
+      name: "profile_field_name",
+      username: "profile_field_username",
+      twitter_handle: "profile_field_twitter",
+      towns_handle: "profile_field_towns",
+      farcaster_handle: "profile_field_farcaster",
+      telegram_handle: "profile_field_telegram",
+      profile_picture_url: "profile_field_picture",
+    };
+
+    const pointsAwarded: Array<{
+      field: string;
+      points: number;
+      activity: any;
+    }> = [];
+
+    for (const [fieldName, activityType] of Object.entries(profileFieldsMap)) {
+      const newValue = validatedData[fieldName as keyof typeof validatedData];
+      const currentValue = currentProfile?.[fieldName as keyof UserProfile];
+
+      // Award points if:
+      // 1. New value exists and is not empty
+      // 2. Current value was empty or null (first time filling)
+      if (
+        newValue &&
+        newValue.trim() &&
+        (!currentValue || !currentValue.trim())
+      ) {
+        const result = await awardProfileFieldPoints(
+          wallet_address,
+          activityType,
+          newValue
+        );
+
+        if (result.success) {
+          pointsAwarded.push({
+            field: fieldName,
+            points: 5,
+            activity: result.activity,
+          });
+        }
+      }
+    }
+
+    return NextResponse.json(
+      {
+        profile: updatedProfile,
+        pointsAwarded,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error updating profile:", error);
     return NextResponse.json(
