@@ -1,6 +1,7 @@
 export const sassoon = [
   {
     checkpoint: "2",
+    image: "/sassoon/2.png",
     title: "PATTERN STUDY",
     subtitle: "Nicolas Sassoon",
     content:
@@ -8,6 +9,7 @@ export const sassoon = [
   },
   {
     checkpoint: "3",
+    image: "/sassoon/3.png",
     title: "Return to Bypass",
     subtitle: "IXShells",
     content:
@@ -15,6 +17,7 @@ export const sassoon = [
   },
   {
     checkpoint: "4",
+    image: "/sassoon/4.png",
     title: "Lashlights",
     subtitle: "Lovid",
     content:
@@ -22,6 +25,7 @@ export const sassoon = [
   },
   {
     checkpoint: "4",
+    image: "/sassoon/4.png",
     title: "Lashlights",
     subtitle: "Lovid",
     content:
@@ -29,6 +33,7 @@ export const sassoon = [
   },
   {
     checkpoint: "5",
+    image: "/sassoon/5.png",
     title: "Will",
     subtitle: "Emily Edelman",
     content:
@@ -36,6 +41,7 @@ export const sassoon = [
   },
   {
     checkpoint: "6",
+    image: "/sassoon/6.png",
     title: "baud-0",
     subtitle: "P1xelfool",
     content:
@@ -43,6 +49,7 @@ export const sassoon = [
   },
   {
     checkpoint: "7",
+    image: "/sassoon/7.png",
     title: "(HND.)",
     subtitle: "Jah x Latasha",
     content:
@@ -50,18 +57,21 @@ export const sassoon = [
   },
   {
     checkpoint: "8",
+    image: "/sassoon/8.png",
     title: "Bye Byte",
     subtitle: "Setta Studio x Danny Daze",
     content: "",
   },
   {
     checkpoint: "9",
+    image: "/sassoon/9.png",
     title: "Consciousness Terrain",
     subtitle: "Sky Goodman",
     content: "",
   },
   {
     checkpoint: "10",
+    image: "/sassoon/10.png",
     title: "Gentleman's Genes",
     subtitle: "Lorna Mills",
     content: "",

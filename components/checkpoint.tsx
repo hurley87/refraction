@@ -133,6 +133,11 @@ export default function Checkpoint({ id }: CheckpointProps) {
                 }}
               >
                 <div className="mb-6">
+                  <img
+                    src={sassoonContent.image}
+                    alt={sassoonContent.title}
+                    className="w-full h-auto mb-6"
+                  />
                   <h3 className="text-white text-2xl font-inktrap font-bold mb-1">
                     {sassoonContent.title}
                   </h3>
