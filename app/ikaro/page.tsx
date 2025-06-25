@@ -1,5 +1,4 @@
 import IkaroMint from "@/components/ikaro-mint";
-import Image from "next/image";
 
 export default async function IkaroMintPage() {
   return (
