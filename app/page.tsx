@@ -89,9 +89,9 @@ export default function Home() {
           <div className="flex justify-center">
             <div className="space-y-6 sm:space-y-8">
               <p className="text-white text-lg sm:text-xl lg:text-3xl leading-relaxed max-w-xl text-left font-inktrap">
-                Developed by Refraction, a pioneer in web3 arts and culture, the
+                {`Developed by Refraction, a pioneer in web3 arts and culture, the
                 IRL protocol realizes the blockchain's potential to
-                revolutionize the creative industry.
+                revolutionize the creative industry.`}
               </p>
             </div>
           </div>
