@@ -44,6 +44,7 @@ export default function IkaroMint() {
   };
 
   const [isMinting, setIsMinting] = useState(false);
+  const [isOpenEdition, setIsOpenEdition] = useState(false);
   const publicClient = createPublicClient({
     chain: sepolia,
     transport: http(),
@@ -58,7 +59,7 @@ export default function IkaroMint() {
 
   const [count, setCount] = useState(1);
   const [mintFee, setMintFee] = useState<bigint>(BigInt(500000000000000));
-  const [mintPrice, setMintPrice] = useState<bigint>(BigInt(0));
+  const [mintPrice, setMintPrice] = useState<bigint>(BigInt(1200000000000000));
   const [listingCurrentPrice, setListingCurrentPrice] = useState<bigint>(BigInt(0));
 
 
@@ -218,66 +219,208 @@ export default function IkaroMint() {
 
   return (
     <Auth>
-      <div className="flex flex-col items-center justify-center py-6 w-full">
-        <div className="w-full space-y-4">
-          <Image src="/images/ikaro.png" alt="Ikaro Mint" width={1272} height={618} />
-          <h1 className="text-4xl font-inktrap">PCO BY IKARO CAVALCANTE  </h1>
-          <p className="text-lg">On June 26 at Public Records NYC, Serpentine and ArtDAO team up with Refraction to debut the first digital artworks from Brazilian multimedia artist     Ikaro Cavalcante: a video game developed through PCO, Serpentine&apos;s creative ownership protocol. The artwork will be available as both a 1/1 and an open edition mint, with each purchase unlocking $IRL points—culture&apos;s on-chain rewards system. The launch will take place during RESET, a full-venue takeover powered by IRL, featuring music from INVT, Ash Lauryn, and more.
+      <div className="flex flex-col lg:flex-row gap-8 py-6 w-full px-4 rounded-xl">
+        {/* Left Column - Single Image */}
+        <div className="lg:w-2/3">
+          <Image 
+            src={isOpenEdition ? "/images/ikaro/ikaro-openedition.png" : "/images/ikaro/ikaro-oneofone.png"} 
+            alt="Ikaro Mint" 
+            width={1920} 
+            height={1080} 
+            className="w-full h-auto object-cover rounded-xl shadow-lg"
+          />
+          <p className="mt-4 text-2xl text-black font-grotesk text-center">
+            {isOpenEdition 
+              ? "Fractured Entry, 2025"
+              : "Within Abruption, 2025"
+            }
           </p>
-          
-          <div className="flex items-center justify-center mb-4">
-            <div className="flex border border-[#F24405] rounded-lg overflow-hidden">
-              <button 
-                onClick={decrement}
-                className="w-12 h-8 bg-black text-[#F24405] hover:bg-black/70 text-lg  font-hmalpha border-r border-[#F24405]"
-              >
-                -
-              </button>
-              
-              <button 
-                onClick={increment}
-                className="w-12 h-8 bg-black text-[#F24405] hover:bg-black/70  font-hmalpha text-lg "
-              >
-                +
-              </button>
-              <div className="w-16 h-8 bg-transparent flex items-center justify-center border-r border-[#F24405]">
-                <span className="text-lg font-mono">{count}</span>
+        </div>
+
+        {/* Right Column - Four Rows */}
+        <div className="lg:w-1/3 flex flex-col space-y-6 rounded-lg shadow-lg">
+          {/* Row 1 - Title */}
+          <div className="space-y-4 text-white">
+            <h1 className="text-4xl font-inktrap">PCO</h1>
+            <p className="text-2xl font-inktrap">IKARO CAVALCANTE</p>
+          </div>
+
+          {/* Row 2 - Price and Expiration */}
+           <div className="space-y-4 text-white">
+            <div className="bg-white text-black p-4 rounded-xl">
+              <div className="flex justify-between items-center mb-2">
+                <div className="text-lg font-inktrap">{isOpenEdition ? "Buy for" : "Auction"}</div>
+                <div className="bg-white text-black px-3 py-1 rounded-full shadow-lg text-sm">
+                  <span className="flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    7 days left
+                  </span>
+                </div>
+              </div>
+              <div className="text-2xl font-mono">
+                {isOpenEdition ? weiToEth(mintPrice+mintFee) + " Ξ / each" : "1 ETH (minimum bid)"} 
               </div>
             </div>
           </div>
-          {chainId !== "11155111" ? (
-            <Button
-              size="lg"
-              className="bg-yellow-500 hover:bg-yellow-400 text-black"
-              onClick={switchNetwork}
-            >
-              Switch Network
-            </Button>
+
+          {/* Row 3 - Toggle Button */}
+          <div className="flex items-center justify-start w-full rounded-lg  ">
+            <div className="bg-transparent border border-gray-300 rounded-lg  p-1 flex w-full relative">
+              <button 
+                className={`flex-1 py-2 rounded-lg font-inktrap text-sm transition-all ${
+                  !isOpenEdition 
+                    ? 'bg-white text-black' 
+                    : 'text-black hover:bg-black hover:text-white'
+                }`}
+                onClick={() => setIsOpenEdition(false)}
+              >
+                1/1
+              </button>
+              <button 
+                className={`flex-1 py-2 rounded-lg font-inktrap text-sm transition-all ${
+                  isOpenEdition 
+                    ? 'bg-white text-black' 
+                    : 'text-black hover:bg-black hover:text-white'
+                }`}
+                onClick={() => setIsOpenEdition(true)}
+              >
+                Open Edition
+              </button>
+            </div>
+          </div>
+
+          {/* Row 4 & 5 - Combined Quantity Selector and Mint Button */}
+          <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
+            <div>
+              {isOpenEdition ? (
+                
+                chainId !== "11155111" ? (
+                  <Button
+                    size="lg"
+                    className="bg-yellow-500 hover:bg-yellow-400 text-black w-full"
+                    onClick={switchNetwork}
+                  >
+                    Switch Network
+                  </Button>
+                ) : (
+                  <Button 
+                    className="bg-black text-white rounded-full hover:bg-black/80 w-full text-xl font-grotesk flex items-center justify-between px-6"
+                    onClick={handleMint}
+                  >
+                    {isMinting ? (
+                      "Minting..."
                     ) : (
-            <Button 
-              className="bg-[#ff0000] text-blackrounded-lg hover:bg-black hover:text-white w-full max-w-4xl text-xl font-inktrap"
-              onClick={handleMint}
-            >
-              {isMinting ? "Minting..." : "Buy Now"}
-          </Button>
+                      <>
+                        <span>Buy Now</span>
+                        <span>{weiToEth(BigInt(count)*(mintPrice+mintFee))} ETH</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                      </>
+                    )}
+                  </Button>
+                )
+              ) : (
+                 <Button 
+                    className="bg-black text-white rounded-full hover:bg-black/80 w-full text-xl font-grotesk flex items-center justify-between px-6"
+                  onClick={() => window.open(auctionURL, '_blank')}
+                >
+                  <span>Place Bid</span>
+                        <span>{Number(weiToEth(listingCurrentPrice))}  ETH</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                </Button>
+              )}
+            </div>
+            {/* Quantity Selector */}
+            {isOpenEdition && (
+              <div className="flex items-center justify-center">
+                <div className="bg-gray-50 rounded-xl flex w-full">
+                  <button 
+                    onClick={decrement}
+                    className="w-1/4 py-2 text-black hover:bg-gray-100 text-xl font-mono border-r border-gray-200 rounded-l-xl transition-all bg-white"
+                  >
+                    <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center mx-auto shadow-sm">
+                      -
+                    </div>
+                  </button>
+                  <div className="w-2/4 py-2 bg-white flex items-center justify-center border-r rounded-full border-2 border-black">
+                    <span className="text-xl font-mono text-black">{count}</span>
+                  </div>
+                  <button 
+                    onClick={increment}
+                    className="w-1/4 py-2 text-black hover:bg-gray-100 text-xl font-mono rounded-r-xl transition-all bg-white"
+                  >
+                    <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center mx-auto shadow-sm">
+                      +
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              
             )}
-        </div>
-      </div>
-      <div className="flex flex-col items-center justify-center py-6 w-full">
-        <div className="w-full space-y-4">
-          <Image src="/images/ikaro.png" alt="Ikaro Mint" width={1272} height={618} />
-          <h1 className="text-4xl font-inktrap">1/1 BY IKARO CAVALCANTE  </h1>
-          <p className="text-lg">On June 26 at Public Records NYC, Serpentine and ArtDAO team up with Refraction to debut the first digital artworks from Brazilian multimedia artist     Ikaro Cavalcante: a video game developed through PCO, Serpentine&apos;s creative ownership protocol. The artwork will be available as both a 1/1 and an open edition mint, with each purchase unlocking $IRL points—culture&apos;s on-chain rewards system. The launch will take place during RESET, a full-venue takeover powered by IRL, featuring music from INVT, Ash Lauryn, and more.
-          </p>
-          
-      
-          <p className="text-lg">Minimum Bid : <b>{weiToEth(listingCurrentPrice)} ETH</b></p>
-          <Button 
-            className="bg-[#ff0000] text-black rounded-lg hover:bg-black hover:text-white w-full max-w-4xl text-xl font-inktrap"
-            onClick={() => window.open(auctionURL, '_blank')}
-          >
-            { listingCurrentPrice > 0 ? "Place bid" : "Place bid"}
-          </Button>
+
+            {/* Mint Button */}
+            
+          </div>
+
+          {/* Row 6 - Description and about artist */}
+         
+            <div className="space-y-4 bg-white text-black p-6 rounded-xl shadow-lg">
+              {!isOpenEdition ? (
+                <>
+                  <p className="text-lg font-grotesk leading-relaxed">
+                    <span className="text-[11px]">📖 DETAILS</span><br/>
+                    <b>Within Abruption, 2025</b><br/><br/>
+                    Digital 3D artwork – sculpture, lighting and composition by Ikaro Cavalcante (occulted)<br/><br/>
+                    Suspended between rupture and emergence, <b>Within Abruption</b> appears as the first weapon in the game, while also marking an inaugural moment. It is not merely a combat object, but an artifact of passage, a trace from a time being reconfigured, traversed by memory and projection.<br/><br/>  
+                    The figure, rising like a totem over a terrain of mist and shadow, seems to hold the precise moment in which something begins to shift. The suspended, unfinished body carries a subtle tension, as if inhabiting the threshold suggested by the game's title, Between the Abyss and Redemption.<br/><br/>
+                    Here, the scythe is not just an extension of the body, but a symbolic continuation of its own instability. A form that cuts through space not to wound, but to open fractures, suggest directions, and carve out moments of stillness.<br/><br/>
+                    The work navigates contrasts: lightness and rigidity, silence and impulse. In this piece, Ikaro's sculptural gesture gives shape not only to a weapon, but to a state of transition. A fragment of perception. A delicate artifact from a world still in the making.<br/><br/>
+                    As the game's first asset, <b>Within Abruption</b>  does not begin a narrative. It signals a point of inflection. From this displacement, everything begins to breathe.
+                  </p>
+                  <p className="text-lg font-grotesk leading-relaxed">
+                    <span className="text-[11px]">👤 ABOUT THE ARTIST</span><br/>
+                    Ikaro Cavalcante is a Brazilian Non-binary Artist focused on CGI, having gone through graphic design, tattoo and performance. Digi.gxl and Inserto member with works for MAI.art, Coeval, Fact, Love mag, AVYSS, i-D.
+                  </p>
+                  <p className="text-lg font-grotesk leading-relaxed">
+                    <span className="text-[11px]">🌐 WEBSITE</span><br/>
+                    <a href="https://linktr.ee/occulted" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-gray-900/10 text-black rounded-full px-4 py-2 hover:bg-gray-100">
+                      <span>https://linktr.ee/occulted</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </a>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg font-grotesk leading-relaxed">
+                    <span className="text-[11px]">📖 DETAILS</span><br/>
+                    <b>Fractured Entry, 2025</b><br/><br/>
+                    Digital artwork by Ikaro Cavalcante (occulted)<br/><br/>
+                    The first revealed fragment from the universe of <b>Between the Abyss and Redemption</b>, this piece functions as an inaugural fissure. <b>Fractured Entry</b> revisits the silhouette of the scythe as both a graphic and symbolic gesture. A form that cuts through emptiness to carve a passage. It continues the artist's visual research into contrast, text, and figure, offering a broken, partial, yet ritualistic entry into a world in motion.
+                  </p>
+                  <p className="text-lg font-grotesk leading-relaxed">
+                    <span className="text-[11px]">👤 ABOUT THE ARTIST</span><br/>
+                    Ikaro Cavalcante is a Brazilian Non-binary Artist focused on CGI, having gone through graphic design, tattoo and performance. Digi.gxl and Inserto member with works for MAI.art, Coeval, Fact, Love mag, AVYSS, i-D.
+                  </p>
+                  <p className="text-lg font-grotesk leading-relaxed">
+                    <span className="text-[11px]">🌐 WEBSITE</span><br/>
+                    <a href="https://linktr.ee/occulted" target="_blank" rel="noopener noreferrer" className="flex items-center justify-between bg-gray-900/10 text-black rounded-full px-4 py-2 hover:bg-gray-100">
+                      <span>https://linktr.ee/occulted</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </a>
+                  </p>
+                </>
+              )}
+            </div>
         </div>
       </div>
     </Auth>
