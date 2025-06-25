@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, Trophy } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
 import Header from "./header";
 import { useLocationGame } from "@/hooks/useLocationGame";
 import { toast } from "sonner";
