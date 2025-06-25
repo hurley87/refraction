@@ -89,7 +89,10 @@ export default function Checkpoint({ id }: CheckpointProps) {
         if (response.ok) {
           const result = await response.json();
           setCheckinStatus(true);
-          if (result?.player?.total_points) {
+          if (
+            result?.player &&
+            typeof result.player.total_points === "number"
+          ) {
             setTotalPoints(result.player.total_points);
           }
         }
