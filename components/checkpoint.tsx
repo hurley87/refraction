@@ -76,8 +76,8 @@ export default function Checkpoint({ id }: CheckpointProps) {
         // If we get here, user is not checked in, so proceed with check-in
         setIsCheckingIn(true);
 
-        // Make the API call to check in
-        await fetch("/api/checkin", {
+        // Make the API call to check in and update points
+        const response = await fetch("/api/checkin", {
           method: "POST",
           body: JSON.stringify({
             walletAddress: address,
@@ -86,8 +86,13 @@ export default function Checkpoint({ id }: CheckpointProps) {
           }),
         });
 
-        // Update the status after successful check-in
-        setCheckinStatus(true);
+        if (response.ok) {
+          const result = await response.json();
+          setCheckinStatus(true);
+          if (result?.player?.total_points) {
+            setTotalPoints(result.player.total_points);
+          }
+        }
       } catch (error) {
         console.error("Failed to auto check-in:", error);
         // Reset the attempt flag on error so we can try again if needed
