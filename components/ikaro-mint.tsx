@@ -266,23 +266,23 @@ export default function IkaroMint() {
           </div>
 
           {/* Row 3 - Toggle Button */}
-          <div className="flex items-center justify-start w-full rounded-lg  ">
-            <div className="bg-transparent border border-gray-300 rounded-lg  p-1 flex w-full relative">
+          <div className="flex items-center justify-start w-full rounded-xl  bg-transparent  ">
+            <div className="bg-transparent  p-1 flex w-full relative">
               <button 
-                className={`flex-1 py-2 rounded-lg font-inktrap text-sm transition-all ${
+                className={`flex-1 py-2 rounded-lg font-inktrap text-sm rounded-l-xl transition-all ${
                   !isOpenEdition 
-                    ? 'bg-white text-black' 
-                    : 'text-black hover:bg-black hover:text-white'
+                    ? 'bg-white text-black border border-gray-500' 
+                    : 'text-black hover:bg-black hover:text-white border border-gray-500'
                 }`}
                 onClick={() => setIsOpenEdition(false)}
               >
                 1/1
               </button>
               <button 
-                className={`flex-1 py-2 rounded-lg font-inktrap text-sm transition-all ${
+                className={`flex-1 py-2  font-inktrap text-sm rounded-r-xl transition-all ${
                   isOpenEdition 
-                    ? 'bg-white text-black' 
-                    : 'text-black hover:bg-black hover:text-white'
+                    ? 'bg-white text-black border border-gray-500' 
+                    : 'text-black hover:bg-black hover:text-white border border-gray-500'
                 }`}
                 onClick={() => setIsOpenEdition(true)}
               >
@@ -328,7 +328,7 @@ export default function IkaroMint() {
                   onClick={() => window.open(auctionURL, '_blank')}
                 >
                   <span>Place Bid</span>
-                        <span>{Number(weiToEth(listingCurrentPrice))}  ETH</span>
+                        {listingCurrentPrice > 0 ? (<span>{Number(weiToEth(listingCurrentPrice))}  ETH</span>) : ""}
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
@@ -338,10 +338,10 @@ export default function IkaroMint() {
             {/* Quantity Selector */}
             {isOpenEdition && (
               <div className="flex items-center justify-center">
-                <div className="bg-gray-50 rounded-xl flex w-full">
+                <div className="bg-white rounded-xl flex w-full overflow-hidden">
                   <button 
                     onClick={decrement}
-                    className="w-1/4 py-2 text-black hover:bg-gray-100 text-xl font-mono border-r border-gray-200 rounded-l-xl transition-all bg-white"
+                    className="w-1/4 py-2 text-black hover:bg-gray-100 text-xl font-mono transition-all bg-white"
                   >
                     <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center mx-auto shadow-sm">
                       -
@@ -352,7 +352,7 @@ export default function IkaroMint() {
                   </div>
                   <button 
                     onClick={increment}
-                    className="w-1/4 py-2 text-black hover:bg-gray-100 text-xl font-mono rounded-r-xl transition-all bg-white"
+                    className="w-1/4 py-2 text-black hover:bg-gray-100 text-xl font-mono transition-all bg-white"
                   >
                     <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center mx-auto shadow-sm">
                       +
