@@ -1,8 +1,5 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import Image from "next/image";
-import { Tokens } from "@/components/homepage/tokens";
-import { Events } from "@/components/homepage/events";
 import { Metadata } from "next";
 
 const appUrl = "https://www.irl.energy";
@@ -22,8 +19,6 @@ const frame = {
   },
 };
 
-export const revalidate = 300;
-
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "IRL",
@@ -40,147 +35,149 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function Home() {
   return (
-    <div className="p-2 sm:p-4 flex flex-col w-full  bg-black font-grotesk">
+    <div
+      style={{
+        background:
+          "linear-gradient(0deg, #EE91B7 0%, #FFE600 37.5%, #1BA351 66.34%, #61BFD1 100%)",
+      }}
+      className="min-h-screen"
+    >
       {/* Hero Section */}
-      <Image
-        src="lockup@2x.svg"
-        alt="spectrum"
-        width={1200}
-        height={600}
-        className="w-full h-auto"
-      />
-      {/* Red Section */}
-      <div className="p-4 sm:p-8 bg-[#E04220] rounded-sm flex flex-col gap-6 sm:gap-8 md:gap-10">
-        <div className="flex flex-row gap-4">
-          <h2 className="text-[#FFF7AD] text-2xl sm:text-3xl md:text-4xl">
-            {`The IRL ecosystem reimagines the experience economy through its blockchain, token, and protocol, establishing a decentralized foundation for a new era of cultural participation. Rewarding meaningful contributions and creating direct pathways for monetization and interaction, the IRL protocol empowers artists, creators, and audiences to participate in a system that incentivizes collaboration and innovation.`}
-          </h2>
+      <section
+        style={{
+          backgroundImage: "url('/home/hero.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+        className="relative min-h-screen flex flex-col justify-center items-start px-4 sm:px-8 lg:px-16 py-8 sm:py-16 rounded-b-4xl"
+      >
+        {/* Logo/Header */}
+        <div className="absolute top-4 sm:top-8 left-4 sm:left-8 lg:left-16">
+          <div className="text-white text-4xl font-bold font-inktrap">IRL</div>
         </div>
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <Link
-            target="_blank"
-            href="https://linkin.bio/refractionfestival/"
-            className="w-full sm:w-auto"
-          >
-            <Button
-              size="lg"
-              className="uppercase bg-[#FFF7AD] hover:bg-[#FF0000]/90 text-[#E04220] w-full"
-            >
-              Join the Community
-            </Button>
-          </Link>
 
-          <Image
-            src="community-rings.svg"
-            alt="rings"
-            width={200}
-            height={100}
-            className="h-auto w-32 align-right sm:w-auto"
-          />
-        </div>
-      </div>
+        {/* Main Content */}
+        <div className="max-w-6xl w-full mt-16 sm:mt-24">
+          <h1 className="text-[#FFE600] font-inktrap text-4xl sm:text-6xl lg:text-7xl font-bold leading-tight mb-6 sm:mb-8">
+            BRIDGING CULTURE
+            <br />
+            AND TECHNOLOGY
+          </h1>
 
-      <div className="flex flex-col gap-4 relative">
-        <Image
-          src="/images/callout-gradient-overlay.png"
-          alt="overlay"
-          width={1200}
-          height={600}
-          className="w-full h-auto m-auto absolute z-10"
-        />
-        <Image
-          src="/images/call_out_image.png"
-          alt="crewdem"
-          width={1200}
-          height={600}
-          className="w-full h-auto m-auto z-0"
-        />
-      </div>
-
-      <Tokens />
-
-      <Events />
-
-      {/* Purple Section */}
-      <div className="flex flex-col md:flex-row justify-between items-center bg-gradient-to-r from-[#FFE600] from-10% to-[#F09BC2] to-90% rounded-sm p-4 sm:p-8 gap-6">
-        <h1 className="text-4xl sm:text-5xl md:text-7xl font-inktrap text-[#000000]">
-          Earn IRL
-        </h1>
-        <div className="flex flex-col gap-6 w-full md:w-1/2">
-          <p className="text-[#000000] text-base sm:text-lg">
-            {`With real-world utility supported by existing cultural networks, the IRL protocol transcends traditional crypto applications and sets the stage for an inclusive, expansive framework for global cultural engagement.  As much a loyalty points system as a web3 platform, IRL changes how we experience for the better.`}
+          <p className="text-[#FFE600] font-inktrap text-lg sm:text-xl lg:text-2xl max-w-2xl mb-8 sm:mb-12 leading-relaxed">
+            Earn Points. Unlock Rewards.
+            <br />
+            Revolutionize the Creative Economy.
           </p>
-          <Link target="_blank" href="https://linkin.bio/refractionfestival/">
+          <Link href="/game">
             <Button
               size="lg"
-              className="uppercase bg-[#FFF7AD] hover:bg-[#F09BC2]/90 text-[#000000] w-full sm:w-auto"
+              className="bg-white hover:bg-white/90 font-inktrap text-black font-semibold text-base px-8 sm:px-12 py-3 sm:py-4 rounded-full"
             >
-              Learn more
+              START YOUR FIRST POINTS
             </Button>
           </Link>
+          <p className="text-[#FFE600] font-inktrap text-sm sm:text-base pt-4">
+            POWERED BY <span className="font-bold">REFRACTION</span>
+          </p>
         </div>
-      </div>
+      </section>
 
-      {/* Footer Section */}
-      <div className="flex flex-col gap-6 bg-[#221204] rounded-sm p-4 sm:p-8">
-        <p className="text-white text-lg sm:text-xl">
-          Stay up to date with our newsletter
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-between">
-          <Link
-            target="_blank"
-            href="https://confirmsubscription.com/h/y/2D65DCC50191F65F"
-          >
-            <Button
-              size="lg"
-              className="uppercase bg-gradient-to-r from-[#64C4DE] from-10% to-[#ED9DC2] to-90% hover:bg-white text-[#221204] w-full sm:w-auto"
-            >
-              Sign Up
-            </Button>
-          </Link>
-          <div className="flex gap-4 justify-center sm:justify-end">
-            {["instagram", "x", "farcaster", "lens", "universal", "towns", "telegram"].map((social) => (
-              <Link
-                key={social}
-                target="_blank"
-                href={
-                    social === "x"
-                    ? "https://www.x.com/refractiondao"
-                    : social === "instagram"
-                    ? "https://instagram.com/refractionfestival"
-                    : social === "lens"
-                    ? "https://www.lensfrens.xyz/refraction"
-                    : social === "farcaster"
-                    ? "https://farcaster.xyz/refraction"
-                    : social === "universal"
-                    ? "https://universaleverything.io/0x1e42639e984fc2c3bce89e762e5596251dc61bf9?assetGroup=grid"
-                    : social === "towns"
-                    ? "https://app.towns.com/t/0xf19e5997fa4df2e12a3961fc7e9ad09c7a301244/"
-                    : social === "telegram"
-                    ? "http://t.me/refractioncommunity"
-                    : ""
-                }
-              >
-                <Image
-                  src={`/images/${social}.png`}
-                  alt={social}
-                  width={16}
-                  height={16}
-                  className="h-4 w-auto"
-                />
-              </Link>
-            ))}
+      {/* IRL Section */}
+      <section className="py-48">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16">
+          <div className="flex justify-center">
+            <div className="space-y-6 sm:space-y-8">
+              <p className="text-white text-lg sm:text-xl lg:text-3xl leading-relaxed max-w-xl text-left font-inktrap">
+                Developed by Refraction, a pioneer in web3 arts and culture, the
+                IRL protocol realizes the blockchain's potential to
+                revolutionize the creative industry.
+              </p>
+            </div>
           </div>
         </div>
+      </section>
 
-        <Image
-          src="irl-logo-footer.svg"
-          alt="footer logo"
-          width={1200}
-          height={200}
-          className="w-full h-auto mt-6 sm:mt-10"
+      {/* Airdrop Section */}
+      <section
+        style={{
+          backgroundImage: "url('/home/airdrop.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+        className="relative py-16 sm:py-24 lg:py-32 rounded-xl w-full"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+            <div className="order-1 lg:order-1">
+              {/* Image placeholder - user will add later */}
+              <div className="aspect-square rounded-lg"></div>
+            </div>
+            <div className="order-2 lg:order-2">
+              <h2 className="text-[#FFE600] text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6 sm:mb-8 font-inktrap">
+                BE THE FIRST
+                <br />
+                TO ACCESS THE
+                <br />
+                IRL AIRDROP
+              </h2>
+
+              <div className="space-y-4 sm:space-y-6 mb-8 sm:mb-12">
+                <p className=" text-base sm:text-lg leading-relaxed font-inktrap text-[#FFE600]">
+                  Powered by Refraction, the IRL network uses blockchain
+                  technology to reward audiences for artists with fans for
+                  creating and engaging with culture.
+                </p>
+                <p className="text-[#FFE600] font-inktrap text-base sm:text-lg leading-relaxed">
+                  Check in to earn IRL, gain exclusive access to experiences and
+                  rewards, and help build the new creative economy.
+                </p>
+              </div>
+              <Link href="/game">
+                <Button
+                  size="lg"
+                  className="bg-white hover:bg-white/90 text-black font-semibold text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 rounded-full w-full sm:w-auto font-inktraps"
+                >
+                  COMPLETE YOUR FIRST CHALLENGE
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Claim Points Section */}
+      <section className=" py-16 sm:py-24 lg:py-32">
+        <div className="max-w-4xl mx-auto px-4 sm:px-8 lg:px-16 text-center">
+          <h2 className="text-black text-5xl sm:text-6xl lg:text-7xl font-bold mb-8 sm:mb-12 font-inktrap">
+            CLAIM
+            <br />
+            YOUR POINTS
+          </h2>
+
+          <p className="text-black text-lg sm:text-xl lg:text-2xl mb-8 sm:mb-12 leading-relaxed max-w-2xl mx-auto font-inktrap">
+            Check in to earn points on the IRL network, with instant access to
+            future rewards and experiences.
+          </p>
+          <Link href="/game">
+            <Button
+              size="lg"
+              className="bg-white hover:bg-white/90 text-black font-inktrap font-semibold text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 rounded-full"
+            >
+              Check In to Earn Points
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer Section */}
+      <section className="py-16 sm:py-24">
+        <img
+          src="/irlfooterlogo.svg"
+          alt="irl"
+          className="w-full h-auto mt-10"
         />
-      </div>
+      </section>
     </div>
   );
 }
