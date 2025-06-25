@@ -60,7 +60,7 @@ export default function IkaroMint() {
   const [mintFee, setMintFee] = useState<bigint>(BigInt(500000000000000));
   const [mintPrice, setMintPrice] = useState<bigint>(BigInt(0));
   const [listingCurrentPrice, setListingCurrentPrice] = useState<bigint>(BigInt(0));
-  const [listing, setListing] = useState<any>(null);
+
 
   useEffect(() => {
     const getMintFee = async () => {
