@@ -99,13 +99,6 @@ export default function GameMapbox() {
           {/* Main Content */}
           <div className="px-0 pt-8">
             {/* Success Title */}
-            <div className="mb-6">
-              <h1 className="text-5xl font-inktrap text-center font-bold text-yellow-400 leading-tight mb-4">
-                YOU EARNED
-                <br />
-                POINTS
-              </h1>
-            </div>
 
             {/* Map thumbnail */}
             <div className="rounded-2xl overflow-hidden mb-6">
@@ -134,51 +127,11 @@ export default function GameMapbox() {
                     <span className="text-lg font-inktrap text-black">pts</span>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  className="w-8 h-8 rounded-full bg-yellow-400 hover:bg-yellow-500 p-0"
-                  variant="ghost"
-                >
-                  <span className="text-black text-lg">+</span>
-                </Button>
               </div>
               <p className="text-sm text-black font-anonymous">
                 {`You've just gained access to events, rewards and bespoke
                 experiences.`}
               </p>
-            </div>
-
-            {/* Rewards Section */}
-            <div className="bg-white rounded-2xl p-4 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-inktrap text-gray-600 uppercase">
-                  REWARDS
-                </h3>
-              </div>
-              <div className="flex gap-3 mb-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="w-16 h-16 bg-gray-100 rounded-xl border-2 border-dashed border-gray-300"
-                  />
-                ))}
-              </div>
-              <Button className="w-full bg-cyan-400 hover:bg-cyan-500 text-black font-inktrap py-2 rounded-full">
-                Rewards
-                <svg
-                  className="w-4 h-4 ml-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </Button>
             </div>
 
             {/* Your Points Card */}
@@ -193,93 +146,12 @@ export default function GameMapbox() {
                 <span className="text-lg font-inktrap text-black">pts</span>
               </div>
 
-              <div className="border-t border-gray-200 pt-4">
-                <h4 className="text-sm font-inktrap text-gray-600 uppercase mb-3">
-                  YOUR PLACE
-                </h4>
+              <div className="pt-0">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-gray-600" />
-                    <span className="font-inktrap text-black">
-                      {playerData?.rank || "—"}
-                    </span>
-                  </div>
-                  <Button className="bg-yellow-400 hover:bg-yellow-500 text-black font-inktrap px-4 py-2 rounded-full text-sm">
+                  <Button className="bg-yellow-400 hover:bg-yellow-500 text-black font-inktrap px-4 py-2 rounded-full text-sm w-full">
                     Leaderboard
                     <svg
                       className="w-4 h-4 ml-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Earn More Section */}
-            <div className="bg-white rounded-2xl p-4 mb-6">
-              <h3 className="text-sm font-inktrap text-gray-600 uppercase mb-3">
-                EARN MORE
-              </h3>
-              <p className="text-black font-inktrap mb-4">
-                Opportunities to earn more points
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-inktrap text-gray-600 uppercase">
-                      QUEST
-                    </span>
-                  </div>
-                  <h4 className="font-inktrap text-black text-sm mb-1">
-                    Quest Title
-                  </h4>
-                  <p className="text-xs text-gray-600 mb-3">Description</p>
-                  <Button
-                    size="sm"
-                    className="w-6 h-6 rounded-full bg-yellow-400 hover:bg-yellow-500 p-0"
-                    variant="ghost"
-                  >
-                    <svg
-                      className="w-3 h-3 text-black"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </Button>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-inktrap text-gray-600 uppercase">
-                      QUEST
-                    </span>
-                  </div>
-                  <h4 className="font-inktrap text-black text-sm mb-1">
-                    Quest Title
-                  </h4>
-                  <p className="text-xs text-gray-600 mb-3">Description</p>
-                  <Button
-                    size="sm"
-                    className="w-6 h-6 rounded-full bg-yellow-400 hover:bg-yellow-500 p-0"
-                    variant="ghost"
-                  >
-                    <svg
-                      className="w-3 h-3 text-black"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -302,7 +174,7 @@ export default function GameMapbox() {
                 Learn more and be the first to know about the latest IRL network
                 news
               </h3>
-              <Button className="bg-white hover:bg-gray-100 text-black font-inktrap px-6 py-3 rounded-full">
+              <Button className="bg-white hover:bg-gray-100 text-black font-inktrap px-6 py-3 rounded-full w-full">
                 Visit IRL.ENERGY
                 <svg
                   className="w-4 h-4 ml-2"
