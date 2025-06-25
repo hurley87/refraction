@@ -14,14 +14,14 @@ import {
 } from "viem";
 import { sepolia } from "viem/chains";
 import { useToast } from "@/hooks/use-toast";
-import Auth from "./auth";
+import Auth from "./ikaro-auth";
 import { Button } from "./ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { ToastAction } from "./ui/toast";
 
 export default function IkaroMint() {
-  const { user, login } = usePrivy();
+  const { user } = usePrivy();
   const minterAccount = user?.wallet?.address as `0x${string}`;
 
   /* test specific data */ 
@@ -215,17 +215,6 @@ export default function IkaroMint() {
 
   const increment = () => setCount(prev => prev + 1);
   const decrement = () => setCount(prev => Math.max(1, prev - 1));
-
-  if (!user) {
-    return (
-      <Button
-        className="bg-white text-[#F24405] rounded-lg hover:bg-white/80 w-full max-w-4xl text-xl font-inktrap"
-        onClick={login}
-      >
-        Get Started
-      </Button>
-    );
-  }
 
   return (
     <Auth>

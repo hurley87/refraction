@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import Image from "next/image";
 import Link from "next/link";
-import Auth from "@/components/auth";
-import Header from "@/components/header";
+import Auth from "@/components/ikaro-auth";
+import Header from "@/components/ikaro-header";
 
 export const metadata: Metadata = {
   title: "$IRL",
@@ -18,11 +18,11 @@ export default function RootLayout({
   return (
     <div className="h-screen">
       <div
-        className={`flex flex-col gap-6 p-6 bg-gradient-to-b from-[#64C2D7] via-[#FFE600] to-[#F09BC2]`}
+        className={`flex flex-col gap-6 p-6 bg-gradient-to-b from-[#61BFD1] via-[#1BA351] to-[#FFE600]`}
       >
         <div className="flex justify-between items-center">
           <Link href="/">
-            <Image src="/irl.svg" alt="IRL" width={49} height={25} />
+            <Image src="/images/ikaro/irl-logo.png" alt="IRL" width={40} height={40} />
           </Link>
           <Header />
         </div>
