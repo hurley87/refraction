@@ -18,11 +18,11 @@ export default function Header() {
 
         {/* Profile Menu */}
         <Button
-          className="bg-white text-black px-4 py-2 text-lg hover:bg-white/80 justify-center font-inktrap uppercase rounded-full items-center"
+          className="bg-white text-black px-4 py-2 text-lg hover:bg-white/80 justify-center font-grotesk rounded-full items-center"
           size="sm"
           onClick={login}
         >
-          CONNECT WALLET
+          Connect Wallet
         </Button>
       </div>
     );
