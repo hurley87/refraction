@@ -30,11 +30,18 @@ export default function IkaroMint() {
   const ikaroEditionContract = "0x75fde1ccc4422470be667642a9d2a7e14925c2d6" as `0x${string}`; // sepolia ikaro edition contract
   const editionInstanceId = BigInt(4204538096); // app ID for ikaro edition on sepolia
   const marketPlaceCoreContract = "0x5246807fB65d87b0d0a234e0F3D42374DE83b421" as `0x${string}`; // sepolia market place contract
-  const auctionInstanceId = BigInt(4206227696) ; // app ID for ikaro auction on sepolia
-  const ikaroAuctionContract = "0x64b7E24f9CD7c0E64B1AdfCe568a9f4aacb034DA" as `0x${string}`; // sepolia ikaro auction contract
+  //const auctionInstanceId = BigInt(4206227696) ; // app ID for ikaro auction on sepolia
+  //const ikaroAuctionContract = "0x64b7E24f9CD7c0E64B1AdfCe568a9f4aacb034DA" as `0x${string}`; // sepolia ikaro auction contract
   const auctionListingId = 1349; // auction listing id for ikaro auction on sepolia
   //const ikaroEditionContract = "0x8a442d543edee974c7dcbf4f14454ec6ec671bee" as `0x${string}`; // base ikaro edition contract 
 
+  const auctionURL = "https://manifold.xyz/@220136848/id/4206227696";
+
+  // Helper function to convert wei to ETH
+  const weiToEth = (wei: bigint): string => {
+    const eth = Number(wei) / Math.pow(10, 18);
+    return eth.toFixed(4);
+  };
 
   const [isMinting, setIsMinting] = useState(false);
   const publicClient = createPublicClient({
@@ -112,28 +119,6 @@ export default function IkaroMint() {
     };
     getListingCurrentPrice();
   }, [publicClient, creatorContract]);
-
-  useEffect(() => {
-    const getListing = async () => {
-      try {
-         const listing = await publicClient.readContract({
-          address: marketPlaceCoreContract,
-          abi: MarketPlaceCoreABI,
-          functionName: 'getListing',
-          args: [auctionListingId],
-        });
-
-        // Type assertion to handle unknown type
-        console.log(listing);
-      
-        setListing(listing as string[]);
-      } catch {
-        console.error("Error getting listing data");
-      }
-    };
-    getListing();
-  }, [publicClient, creatorContract]);
-
 
   const handleMint = async () => {
     setIsMinting(true);
@@ -297,9 +282,12 @@ export default function IkaroMint() {
           </p>
           
       
-
-          <Button className="bg-[#ff0000] text-blackrounded-lg hover:bg-black hover:text-white w-full max-w-4xl text-xl font-inktrap">
-            Buy Now
+          <p className="text-lg">Minimum Bid : <b>{weiToEth(listingCurrentPrice)} ETH</b></p>
+          <Button 
+            className="bg-[#ff0000] text-black rounded-lg hover:bg-black hover:text-white w-full max-w-4xl text-xl font-inktrap"
+            onClick={() => window.open(auctionURL, '_blank')}
+          >
+            { listingCurrentPrice > 0 ? "Place bid" : "Place bid"}
           </Button>
         </div>
       </div>
