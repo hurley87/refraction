@@ -4,8 +4,7 @@ import { useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import ProfileMenu from "./profile-menu";
-import Link from "next/link";
-import Image from "next/image";
+
 
 export default function Header() {
   const { user, login } = usePrivy();

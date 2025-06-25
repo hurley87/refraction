@@ -378,10 +378,10 @@ export default function IkaroMint() {
                     <b>Within Abruption, 2025</b><br/><br/>
                     Digital 3D artwork – sculpture, lighting and composition by Ikaro Cavalcante (occulted)<br/><br/>
                     Suspended between rupture and emergence, <b>Within Abruption</b> appears as the first weapon in the game, while also marking an inaugural moment. It is not merely a combat object, but an artifact of passage, a trace from a time being reconfigured, traversed by memory and projection.<br/><br/>  
-                    The figure, rising like a totem over a terrain of mist and shadow, seems to hold the precise moment in which something begins to shift. The suspended, unfinished body carries a subtle tension, as if inhabiting the threshold suggested by the game's title, Between the Abyss and Redemption.<br/><br/>
+                    The figure, rising like a totem over a terrain of mist and shadow, seems to hold the precise moment in which something begins to shift. The suspended, unfinished body carries a subtle tension, as if inhabiting the threshold suggested by the game&apos;s title, Between the Abyss and Redemption.<br/><br/>
                     Here, the scythe is not just an extension of the body, but a symbolic continuation of its own instability. A form that cuts through space not to wound, but to open fractures, suggest directions, and carve out moments of stillness.<br/><br/>
-                    The work navigates contrasts: lightness and rigidity, silence and impulse. In this piece, Ikaro's sculptural gesture gives shape not only to a weapon, but to a state of transition. A fragment of perception. A delicate artifact from a world still in the making.<br/><br/>
-                    As the game's first asset, <b>Within Abruption</b>  does not begin a narrative. It signals a point of inflection. From this displacement, everything begins to breathe.
+                    The work navigates contrasts: lightness and rigidity, silence and impulse. In this piece, Ikaro&apos;s sculptural gesture gives shape not only to a weapon, but to a state of transition. A fragment of perception. A delicate artifact from a world still in the making.<br/><br/>
+                    As the game&apos;s first asset, <b>Within Abruption</b>  does not begin a narrative. It signals a point of inflection. From this displacement, everything begins to breathe.
                   </p>
                   <p className="text-lg font-grotesk leading-relaxed">
                     <span className="text-[11px]">👤 ABOUT THE ARTIST</span><br/>
@@ -403,7 +403,7 @@ export default function IkaroMint() {
                     <span className="text-[11px]">📖 DETAILS</span><br/>
                     <b>Fractured Entry, 2025</b><br/><br/>
                     Digital artwork by Ikaro Cavalcante (occulted)<br/><br/>
-                    The first revealed fragment from the universe of <b>Between the Abyss and Redemption</b>, this piece functions as an inaugural fissure. <b>Fractured Entry</b> revisits the silhouette of the scythe as both a graphic and symbolic gesture. A form that cuts through emptiness to carve a passage. It continues the artist's visual research into contrast, text, and figure, offering a broken, partial, yet ritualistic entry into a world in motion.
+                    The first revealed fragment from the universe of <b>Between the Abyss and Redemption</b>, this piece functions as an inaugural fissure. <b>Fractured Entry</b> revisits the silhouette of the scythe as both a graphic and symbolic gesture. A form that cuts through emptiness to carve a passage. It continues the artist&apos;s visual research into contrast, text, and figure, offering a broken, partial, yet ritualistic entry into a world in motion.
                   </p>
                   <p className="text-lg font-grotesk leading-relaxed">
                     <span className="text-[11px]">👤 ABOUT THE ARTIST</span><br/>
