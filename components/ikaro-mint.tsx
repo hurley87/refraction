@@ -238,7 +238,7 @@ export default function IkaroMint() {
         </div>
 
         {/* Right Column - Four Rows */}
-        <div className="lg:w-1/3 flex flex-col space-y-6 rounded-lg shadow-lg">
+        <div className="lg:w-1/3 flex flex-col space-y-6 rounded-lg">
           {/* Row 1 - Title */}
           <div className="space-y-4 text-white">
             <h1 className="text-4xl font-inktrap">PCO</h1>
