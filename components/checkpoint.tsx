@@ -136,12 +136,15 @@ export default function Checkpoint({ id }: CheckpointProps) {
                   <img
                     src={sassoonContent.image}
                     alt={sassoonContent.title}
-                    className="w-full h-auto mb-6"
+                    style={{
+                      boxShadow: "0px 4px 24px 4px rgba(0, 0, 0, 0.35)",
+                    }}
+                    className="w-full h-auto mb-6 rounded-sm overflow-hidden"
                   />
-                  <h3 className="text-white text-2xl font-inktrap font-bold mb-1">
+                  <h3 className="text-white text-5xl font-inktrap font-bold mb-1">
                     {sassoonContent.title}
                   </h3>
-                  <h4 className="text-white text-lg font-inktrap opacity-80">
+                  <h4 className="text-white text-2xl font-inktrap">
                     {sassoonContent.subtitle}
                   </h4>
                 </div>
@@ -176,7 +179,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
               <div className="flex justify-between items-center">
                 <Link href="/leaderboard" className="w-full">
-                  <Button className="bg-yellow-400 hover:bg-yellow-500 text-black rounded-lg font-inktrap text-sm px-4 py-2 w-full">
+                  <Button className="bg-yellow-400 hover:bg-yellow-500 text-black rounded-full font-inktrap text-sm px-4 py-2 w-full">
                     Leaderboard →
                   </Button>
                 </Link>
@@ -185,18 +188,25 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
             {/* Footer Section */}
             <div className="mt-12 px-4 max-w-sm ">
-              <p className="text-white font-anonymous text-xl font-light mb-6">
+              <p className="text-black font-anonymous text-2xl font-semibold mb-6">
                 Learn more and be the first to know about the latest IRL network
                 news.
               </p>
               <Button
                 onClick={() => router.push("/")}
-                className="text-black bg-white rounded-lg w-full font-inktrap py-3 text-lg hover:bg-gray-100"
+                className="text-black bg-white rounded-full w-full font-inktrap py-3 text-lg hover:bg-gray-100"
               >
                 Visit IRL.ENERGY →
               </Button>
             </div>
-
+            {/* Bottom IRL Section */}
+            <div className="py-20">
+              <img
+                src="/irl-bottom-logo.svg"
+                alt="IRL"
+                className="w-full h-auto"
+              />
+            </div>
             {/* Powered by Refraction */}
             <div className="mt-8 mb-8">
               <p className="text-white text-xs font-inktrap opacity-60">
