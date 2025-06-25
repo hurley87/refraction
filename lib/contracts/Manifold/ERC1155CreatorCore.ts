@@ -489,4 +489,4 @@ export const ERC1155CreatorCoreABI = [
     outputs: [],
     stateMutability: "nonpayable"
   }
-]
+] as const;
