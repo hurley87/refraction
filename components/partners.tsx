@@ -41,7 +41,7 @@ const partners = [
 export default function Partners() {
   return (
     <section className="py-20 bg-transparent items-center justify-center">
-      <div className="container mx-auto px-4 max-w-7xl">
+      <div className="container mx-auto px-4 max-w-7xl flex flex-col items-center justify-center">
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-inktrap text-black mb-6">
@@ -51,23 +51,23 @@ export default function Partners() {
         </div>
 
         {/* Partners Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-6 lg:gap-8 items-center mb-16 items-center justify-center">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-6 lg:gap-8 items-center mb-16 justify-center w-full max-w-6xl">
           {partners.map((partner, index) => (
             <div
               key={index}
               className="group relative"
             >
-              <div className="flex items-center justify-center p-6 bg-black rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-gray-200">
-                <div className="relative w-full h-20 flex items-center justify-center">
+              <div className="flex items-center justify-center p-6 bg-transparent rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 ">
+                <div className="relative w-full h-32 flex items-center justify-center">
                   {/* Partner Logo */}
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center">
-                      <div className="w-20 h-16 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
+                      <div className="w-32 h-24 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform duration-300">
                         <Image
                           src={partner.logo}
                           alt={partner.name}
-                          width={80}
-                          height={64}
+                          width={128}
+                          height={96}
                           className="max-w-full max-h-full object-contain"
                           onError={(e) => {
                             // Hide the image if it fails to load
@@ -75,8 +75,8 @@ export default function Partners() {
                           }}
                         />
                       </div>
-                      <p className="text-xs font-grotesk text-gray-700 font-medium leading-tight">
-                        {partner.name}
+                      <p className="text-xs font-grotesk text-white font-medium leading-tight">
+                       
                       </p>
                     </div>
                   </div>
@@ -99,7 +99,7 @@ export default function Partners() {
                 onClick={() => {
                     window.open("mailto:info@refractionfestival.com", "_blank");
                 }}
-                className="bg-black text-white px-8 py-4 rounded-full font-grotesk hover:bg-gray-800 transition-colors duration-300 shadow-lg hover:shadow-xl">
+                className="bg-black text-white px-8 py-4 rounded-full font-inktrap hover:bg-gray-800 transition-colors duration-300 shadow-lg hover:shadow-xl">
               Become a Partner
             </button>
           </div>
