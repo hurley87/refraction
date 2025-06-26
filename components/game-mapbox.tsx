@@ -149,7 +149,7 @@ export default function GameMapbox() {
 
               <div className="pt-0">
                 <div className="flex items-center justify-between">
-                  <Link href="/leaderboard">
+                  <Link className="w-full" href="/leaderboard">
                     <Button className="bg-yellow-400 hover:bg-yellow-500 text-black font-inktrap px-4 py-2 rounded-full text-sm w-full">
                       Leaderboard
                       <svg
@@ -177,7 +177,7 @@ export default function GameMapbox() {
                 Learn more and be the first to know about the latest IRL network
                 news
               </h3>
-              <Link href="/">
+              <Link className="w-full" href="/">
                 <Button className="bg-white hover:bg-gray-100 text-black font-inktrap px-6 py-3 rounded-full w-full">
                   Visit IRL.ENERGY
                   <svg
