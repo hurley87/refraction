@@ -304,10 +304,14 @@ export default function IkaroMint() {
                 <div className="text-lg font-inktrap">{isOpenEdition ? "Buy for" : "Auction"}</div>
                 <div className="bg-white text-black px-3 py-1 rounded-full shadow-lg text-sm">
                   <span className="flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    {timeLeft.days > 0 
+                    {isOpenEdition ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    ) : (
+                        ""
+                    )}
+                    {isOpenEdition ? (timeLeft.days > 0 
                       ? `${timeLeft.days}d ${timeLeft.hours.toString().padStart(2, '0')}:${timeLeft.minutes.toString().padStart(2, '0')}:${timeLeft.seconds.toString().padStart(2, '0')}`
                       : timeLeft.hours > 0 
                         ? `${timeLeft.hours.toString().padStart(2, '0')}:${timeLeft.minutes.toString().padStart(2, '0')}:${timeLeft.seconds.toString().padStart(2, '0')}`
@@ -316,15 +320,15 @@ export default function IkaroMint() {
                           : timeLeft.seconds > 0
                             ? `${timeLeft.seconds}s`
                             : "Expired"
-                    }
+                    ) : ""}
                   </span>
                 </div>
               </div>
               <div className="text-2xl font-inktrap">
-                {isOpenEdition ? weiToEth(mintPrice) + " Ξ / edition" : "1 ETH (minimum bid)"} 
+                {isOpenEdition ? weiToEth(mintPrice) + " Ξ / edition" : ".25 ETH"} 
               </div>
               <div className="text-md opacity-50 uppercase font-grotesk">
-                {isOpenEdition ? " + mint fee" : ""}
+                {isOpenEdition ? " + mint fee" : "(minimum bid)"}
                 
               </div>
             </div>
