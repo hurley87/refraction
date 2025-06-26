@@ -14,7 +14,6 @@ import {
 //import { sepolia } from "viem/chains";
 import {  base } from "viem/chains";
 import { useToast } from "@/hooks/use-toast";
-import { useIkaroContractData } from "@/hooks/useIkaroContractData";
 import Auth from "./ikaro-auth";
 import { Button } from "./ui/button";
 import Image from "next/image";
@@ -25,8 +24,25 @@ export default function IkaroMint() {
   const { user } = usePrivy();
   const minterAccount = user?.wallet?.address as `0x${string}`;
 
-  // Fetch contract data from API
-  const { data: contractData, loading: contractLoading, error: contractError, refetch } = useIkaroContractData();
+  
+/*********************************************   SEPOLIA TEST DATA   ******************************************************
+  const creatorContract = "0x26bbea7803dcac346d5f5f135b57cf2c752a02be" as `0x${string}`; // sepolia manifold creator contract
+
+  //const ikaroEditionContract = "0x75fde1ccc4422470be667642a9d2a7e14925c2d6" as `0x${string}`; // sepolia ikaro edition contract
+  //const editionInstanceId = BigInt(4204538096); // app ID for ikaro edition on sepolia
+  //const marketPlaceCoreContract = "0x5246807fB65d87b0d0a234e0F3D42374DE83b421" as `0x${string}`; // sepolia market place contract
+  //const auctionInstanceId = BigInt(4206227696) ; // app ID for ikaro auction on sepolia
+  //const ikaroAuctionContract = "0x64b7E24f9CD7c0E64B1AdfCe568a9f4aacb034DA" as `0x${string}`; // sepolia ikaro auction contract
+  //const auctionListingId = 1349; // auction listing id for ikaro auction on sepolia
+  //const ikaroEditionContract = "0x8a442d543edee974c7dcbf4f14454ec6ec671bee" as `0x${string}`; // base ikaro edition contract 
+  const auctionURL = "https://manifold.xyz/@220136848/id/4206227696";
+  const chain = sepolia;
+   const publicClient = createPublicClient({
+    chain: sepolia,
+    transport: http(),
+  }) as PublicClient; 
+   ************************************************************************************************************/
+
 
   /* prod data*/
   const ikaroEditionContract = "0x52344cbbb2b6e59cd38b8d8771739a41c552c949" as `0x${string}`; //  ikaro edition contract  on base
@@ -43,6 +59,8 @@ export default function IkaroMint() {
     transport: http(),
   }) as PublicClient;
 
+
+  
   // Helper function to convert wei to ETH
   const weiToEth = (wei: bigint): string => {
     const eth = Number(wei) / Math.pow(10, 18);
@@ -52,21 +70,20 @@ export default function IkaroMint() {
   const [isMinting, setIsMinting] = useState(false);
   const [isOpenEdition, setIsOpenEdition] = useState(true);
  
+ 
   const { wallets } = useWallets();
   const wallet = wallets.find((wallet) => (wallet.address as `0x${string}`) === minterAccount
   );
 
+  
   const chainId = wallet?.chainId.split(":")[1];
   const { toast } = useToast();
 
   const [count, setCount] = useState(1);
-  
-  // Use contract data from API
-  const mintFee = contractData ? BigInt(contractData.mintFee) : BigInt(0);
-  const mintPrice = contractData ? BigInt(contractData.mintPrice) : BigInt(0);
-  const listingCurrentPrice = contractData ? BigInt(contractData.listingCurrentPrice) : BigInt(0);
-  const endDate = contractData ? contractData.endDate : 1756252800;
-  
+  const [mintFee, setMintFee] = useState<bigint>(BigInt(500000000000000));
+  const [mintPrice, setMintPrice] = useState<bigint>(BigInt(1200000000000000));
+  const endDate = 1756252800; // Unix timestamp for Aug 25, 2025 00:00:00 UTC
+  const [listingCurrentPrice, setListingCurrentPrice] = useState<bigint>(BigInt(0));
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   // Calculate time remaining
@@ -94,6 +111,64 @@ export default function IkaroMint() {
 
     return () => clearInterval(timer);
   }, [endDate]);
+
+  useEffect(() => {
+    const getMintFee = async () => {
+      try {
+        const fee = await publicClient.readContract({
+          address: creatorContract,
+          abi: ERC1155CreatorCoreABI,
+          functionName: 'MINT_FEE',
+        });
+        setMintFee(fee as bigint);
+      } catch {
+        console.error("Error getting mint fee");
+      }
+    };
+    getMintFee();
+  }, [publicClient, creatorContract]);
+
+    useEffect(() => {
+    const getMintPrice = async () => {
+      try {
+        const claim = await publicClient.readContract({
+          address: creatorContract,
+          abi: ERC1155CreatorCoreABI,
+          functionName: 'getClaim',
+          args: [ikaroEditionContract, editionInstanceId],
+        });
+
+        // Type assertion to handle unknown type
+        //console.log("claim", claim);
+        const claimData = claim as { cost: bigint };
+        setMintPrice(claimData.cost);
+      } catch {
+        console.error("Error getting price");
+      }
+    };
+    getMintPrice();
+  }, [publicClient, creatorContract, editionInstanceId]);
+
+   useEffect(() => {
+    const getListingCurrentPrice = async () => {
+      try {
+        const listingCurrentPrice = await publicClient.readContract({
+          address: marketPlaceCoreContract,
+          abi: MarketPlaceCoreABI,
+          functionName: 'getListingCurrentPrice',
+          args: [auctionListingId],
+        });
+
+        // Type assertion to handle unknown type
+        console.log("listingCurrentPrice", listingCurrentPrice);
+      
+        setListingCurrentPrice(listingCurrentPrice as bigint);
+      } catch {
+        console.error("Error getting listing current price");
+      }
+    };
+    getListingCurrentPrice();
+  }, [publicClient, creatorContract]);
 
   const handleMint = async () => {
     setIsMinting(true);
