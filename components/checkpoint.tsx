@@ -149,7 +149,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
                     }}
                     className="w-full h-auto mb-6 rounded-sm overflow-hidden"
                   />
-                  <h3 className="text-white text-5xl font-inktrap font-bold mb-1">
+                  <h3 className="text-white text-3xl font-inktrap font-bold mb-1">
                     {sassoonContent.title}
                   </h3>
                   <h4 className="text-white text-2xl font-inktrap">
