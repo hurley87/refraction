@@ -31,7 +31,7 @@ export default function Header() {
   return (
     <div className="flex justify-between items-center">
      
-      <div className="flex items-center justify-end bg-white rounded-full px-4 py-2">
+      <div className="flex items-center justify-end bg-white rounded-full px-2 py-2">
         <button
           style={{
             background:
