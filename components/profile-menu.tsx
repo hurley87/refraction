@@ -126,7 +126,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
 
   return (
     <div
-      className={`fixed inset-0 bg-white z-50 flex flex-col transition-all duration-300 ease-in-out ${
+      className={`fixed font-inktrap inset-0 bg-white z-50 flex flex-col transition-all duration-300 ease-in-out ${
         isMenuVisible ? "opacity-100" : "opacity-0"
       }`}
     >
@@ -174,21 +174,21 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
             >
               NAME
             </Label>
-            <div className="relative">
+            <div className="flex gap-3">
               <Input
                 id="name"
                 type="text"
                 placeholder="Your name"
                 value={profile.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                className="bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3 pr-12"
+                className="flex-1 bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3"
               />
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600 disabled:opacity-50"
+                className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-full px-4 py-3 font-inktrap text-xs uppercase transition-colors flex items-center justify-center min-w-[80px]"
               >
-                <Edit3 size={16} />
+                {saving ? "..." : "SAVE"}
               </button>
             </div>
           </div>
@@ -215,7 +215,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
               >
                 X
               </Label>
-              <div className="relative">
+              <div className="flex gap-3">
                 <Input
                   id="twitter"
                   type="text"
@@ -224,14 +224,14 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
                   onChange={(e) =>
                     handleInputChange("twitter_handle", e.target.value)
                   }
-                  className="bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3 pr-12"
+                  className="flex-1 bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3"
                 />
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600 disabled:opacity-50"
+                  className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-full px-4 py-3 font-inktrap text-xs uppercase transition-colors flex items-center justify-center min-w-[80px]"
                 >
-                  <Edit3 size={16} />
+                  {saving ? "..." : "SAVE"}
                 </button>
               </div>
             </div>
@@ -244,7 +244,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
               >
                 TOWNS
               </Label>
-              <div className="relative">
+              <div className="flex gap-3">
                 <Input
                   id="towns"
                   type="text"
@@ -253,14 +253,14 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
                   onChange={(e) =>
                     handleInputChange("towns_handle", e.target.value)
                   }
-                  className="bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3 pr-12"
+                  className="flex-1 bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3"
                 />
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600 disabled:opacity-50"
+                  className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-full px-4 py-3 font-inktrap text-xs uppercase transition-colors flex items-center justify-center min-w-[80px]"
                 >
-                  <Edit3 size={16} />
+                  {saving ? "..." : "SAVE"}
                 </button>
               </div>
             </div>
@@ -273,7 +273,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
               >
                 FARCASTER
               </Label>
-              <div className="relative">
+              <div className="flex gap-3">
                 <Input
                   id="farcaster"
                   type="text"
@@ -282,14 +282,14 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
                   onChange={(e) =>
                     handleInputChange("farcaster_handle", e.target.value)
                   }
-                  className="bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3 pr-12"
+                  className="flex-1 bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3"
                 />
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600 disabled:opacity-50"
+                  className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-full px-4 py-3 font-inktrap text-xs uppercase transition-colors flex items-center justify-center min-w-[80px]"
                 >
-                  <Edit3 size={16} />
+                  {saving ? "..." : "SAVE"}
                 </button>
               </div>
             </div>
@@ -302,7 +302,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
               >
                 TELEGRAM
               </Label>
-              <div className="relative">
+              <div className="flex gap-3">
                 <Input
                   id="telegram"
                   type="text"
@@ -311,14 +311,14 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
                   onChange={(e) =>
                     handleInputChange("telegram_handle", e.target.value)
                   }
-                  className="bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3 pr-12"
+                  className="flex-1 bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3"
                 />
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-600 disabled:opacity-50"
+                  className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-full px-4 py-3 font-inktrap text-xs uppercase transition-colors flex items-center justify-center min-w-[80px]"
                 >
-                  <Edit3 size={16} />
+                  {saving ? "..." : "SAVE"}
                 </button>
               </div>
             </div>

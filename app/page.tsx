@@ -74,7 +74,7 @@ export default function Home() {
               size="lg"
               className="bg-white hover:bg-white/90 font-inktrap text-black font-semibold text-base px-8 sm:px-12 py-3 sm:py-4 rounded-full"
             >
-              START YOUR FIRST POINTS
+              Check In to Earn Points
             </Button>
           </Link>
           <p className="text-[#FFE600] font-inktrap text-sm sm:text-base pt-4">
@@ -136,9 +136,9 @@ export default function Home() {
               <Link href="/game">
                 <Button
                   size="lg"
-                  className="bg-white hover:bg-white/90 text-black font-semibold text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 rounded-full w-full sm:w-auto font-inktraps"
+                  className="bg-white hover:bg-white/90 text-black font-semibold text-base sm:text-lg px-8 sm:px-12 py-3 sm:py-4 rounded-full w-full sm:w-auto font-inktrap"
                 >
-                  COMPLETE YOUR FIRST CHALLENGE
+                  Complete Your First Challenge
                 </Button>
               </Link>
             </div>
