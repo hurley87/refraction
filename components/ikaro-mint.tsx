@@ -219,16 +219,17 @@ export default function IkaroMint() {
 
   return (
     <Auth>
-      <div className="flex flex-col lg:flex-row gap-8 py-6 w-full px-4 rounded-xl">
+      <div className="flex flex-col lg:flex-row gap-8 py-6 w-full px-2 lg:px-4 rounded-xl">
         {/* Left Column - Single Image */}
         <div className="lg:w-2/3">
-          <Image 
-            src={isOpenEdition ? "/images/ikaro/ikaro-openedition.png" : "/images/ikaro/ikaro-oneofone.png"} 
-            alt="Ikaro Mint" 
-            width={1920} 
-            height={1080} 
-            className="w-full h-auto object-cover rounded-xl shadow-lg"
-          />
+          <div className="relative w-full aspect-[4/3] lg:aspect-[16/9]">
+            <Image 
+              src={isOpenEdition ? "/images/ikaro/ikaro-openedition.png" : "/images/ikaro/ikaro-oneofone.png"} 
+              alt="Ikaro Mint" 
+              fill
+              className="object-contain "
+            />
+          </div>
           <p className="mt-4 text-2xl text-black font-grotesk text-center">
             {isOpenEdition 
               ? "Fractured Entry, 2025"
