@@ -1,6 +1,6 @@
 "use client";
 
-import { sepolia, mainnet } from "viem/chains";
+import { sepolia, mainnet, base } from "viem/chains";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { irlChain } from "@/lib/publicClient";
@@ -28,7 +28,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           appearance: {
             theme: "dark",
           },
-          supportedChains: [irlChainOverride, mainnet, sepolia],
+          supportedChains: [irlChainOverride, mainnet, sepolia, base],
           defaultChain: irlChainOverride,
         }}
       >
