@@ -162,7 +162,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
               </div>
             ) : (
               <div className="rounded-xl p-4 w-full my-6 mx-4 max-w-sm bg-black text-left">
-                <h4 className="text-white text-2xl font-inktrap">
+                <h4 className="text-white text-2xl font-inktrap text-center">
                   Find the other checkpoints to earn more points.
                 </h4>
               </div>
