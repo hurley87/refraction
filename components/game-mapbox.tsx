@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, MapPin, Link } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
 import Header from "./header";
 import { useLocationGame } from "@/hooks/useLocationGame";
 import { toast } from "sonner";
 import { usePrivy } from "@privy-io/react-auth";
+import Link from "next/link";
 
 interface LocationSuggestion {
   place_id: string;
