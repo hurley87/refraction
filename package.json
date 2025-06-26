@@ -33,8 +33,10 @@
     "@tanstack/react-query": "^5.66.9",
     "@zoralabs/coins-sdk": "^0.0.2-sdkalpha.2",
     "@zoralabs/protocol-sdk": "^0.11.12",
+    "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "crypto-browserify": "^3.12.1",
     "lucide-react": "^0.441.0",
     "n": "^10.2.0",
     "next": "^14.2.29",
@@ -44,10 +46,11 @@
     "react-dom": "^18",
     "resend": "^4.0.1-alpha.0",
     "sonner": "^1.7.2",
+    "stream-browserify": "^3.0.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0",
-    "viem": "^2.7.15",
+    "viem": "^2.21.40",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -59,6 +62,11 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "resolutions": {
+    "@noble/curves": "1.9.2",
+    "@noble/hashes": "1.8.0",
+    "ox": "0.7.1"
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }
