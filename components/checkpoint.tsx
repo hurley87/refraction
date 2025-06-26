@@ -133,7 +133,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
             </div>
 
             {/* Content Section */}
-            {sassoonContent ? (
+            {sassoonContent && (
               <div
                 className="rounded-xl p-4 w-full my-6 mx-4 max-w-sm bg-black text-left"
                 style={{
@@ -158,20 +158,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
                 </div>
                 <div className="text-white font-anonymous text-base leading-relaxed whitespace-pre-line">
                   {sassoonContent.content}
-                </div>
-              </div>
-            ) : (
-              <div className="relative w-48 h-48 my-6">
-                <div className="w-full h-full border-4 border-yellow-300 rounded-lg flex items-center justify-center bg-transparent">
-                  <div className="text-center">
-                    <div className="text-yellow-300 text-sm font-inktrap mb-2">
-                      TAP YOUR PHONE
-                    </div>
-                    <div className="w-12 h-8 bg-yellow-300 rounded-full mx-auto mb-2"></div>
-                    <div className="text-yellow-300 text-lg font-inktrap font-bold">
-                      IRL
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
