@@ -8,11 +8,11 @@ import {
   createPublicClient,
   createWalletClient,
   custom,
-  
   http,
   PublicClient,
 } from "viem";
-import { sepolia } from "viem/chains";
+//import { sepolia } from "viem/chains";
+import {  base } from "viem/chains";
 import { useToast } from "@/hooks/use-toast";
 import Auth from "./ikaro-auth";
 import { Button } from "./ui/button";
@@ -24,19 +24,43 @@ export default function IkaroMint() {
   const { user } = usePrivy();
   const minterAccount = user?.wallet?.address as `0x${string}`;
 
-  /* test specific data */ 
-  const creatorContract = "0x26bbea7803dcac346d5f5f135b57cf2c752a02be" as `0x${string}`; // sepolia manifold creator contract
   
-  const ikaroEditionContract = "0x75fde1ccc4422470be667642a9d2a7e14925c2d6" as `0x${string}`; // sepolia ikaro edition contract
-  const editionInstanceId = BigInt(4204538096); // app ID for ikaro edition on sepolia
-  const marketPlaceCoreContract = "0x5246807fB65d87b0d0a234e0F3D42374DE83b421" as `0x${string}`; // sepolia market place contract
+/*********************************************   SEPOLIA TEST DATA   ******************************************************
+  const creatorContract = "0x26bbea7803dcac346d5f5f135b57cf2c752a02be" as `0x${string}`; // sepolia manifold creator contract
+
+  //const ikaroEditionContract = "0x75fde1ccc4422470be667642a9d2a7e14925c2d6" as `0x${string}`; // sepolia ikaro edition contract
+  //const editionInstanceId = BigInt(4204538096); // app ID for ikaro edition on sepolia
+  //const marketPlaceCoreContract = "0x5246807fB65d87b0d0a234e0F3D42374DE83b421" as `0x${string}`; // sepolia market place contract
   //const auctionInstanceId = BigInt(4206227696) ; // app ID for ikaro auction on sepolia
   //const ikaroAuctionContract = "0x64b7E24f9CD7c0E64B1AdfCe568a9f4aacb034DA" as `0x${string}`; // sepolia ikaro auction contract
-  const auctionListingId = 1349; // auction listing id for ikaro auction on sepolia
+  //const auctionListingId = 1349; // auction listing id for ikaro auction on sepolia
   //const ikaroEditionContract = "0x8a442d543edee974c7dcbf4f14454ec6ec671bee" as `0x${string}`; // base ikaro edition contract 
-
   const auctionURL = "https://manifold.xyz/@220136848/id/4206227696";
+  const chain = sepolia;
+   const publicClient = createPublicClient({
+    chain: sepolia,
+    transport: http(),
+  }) as PublicClient; 
+   ************************************************************************************************************/
 
+
+  /* prod data*/
+  const ikaroEditionContract = "0x52344cbbb2b6e59cd38b8d8771739a41c552c949" as `0x${string}`; //  ikaro edition contract  on base
+  const editionInstanceId = BigInt(4205168880); // app ID for ikaro edition on base
+  const marketPlaceCoreContract = "0xa8863bf1c8933f649e7b03Eb72109E5E187505Ea" as `0x${string}`; //  market place contract  on mainnet
+  //const ikaroAuctionContract = "0x9109C9C752fd59FB3e7bAf24e6f7Ea4e3aAb0c0c" as `0x${string}`; //  ikaro auction contract  on mainnet
+  const creatorContract = "0x26bbea7803dcac346d5f5f135b57cf2c752a02be" as `0x${string}`; //  manifold creator contract on base
+  const auctionListingId = 1349
+  const auctionURL = "https://gallery.manifold.xyz/0x9109c9c752fd59fb3e7baf24e6f7ea4e3aab0c0c/1";
+  //const editionURL = "https://manifold.xyz/@occulted/id/4205168880";
+  const chain = base;
+  const publicClient = createPublicClient({
+    chain: base,
+    transport: http(),
+  }) as PublicClient;
+
+
+  
   // Helper function to convert wei to ETH
   const weiToEth = (wei: bigint): string => {
     const eth = Number(wei) / Math.pow(10, 18);
@@ -45,23 +69,48 @@ export default function IkaroMint() {
 
   const [isMinting, setIsMinting] = useState(false);
   const [isOpenEdition, setIsOpenEdition] = useState(true);
-  const publicClient = createPublicClient({
-    chain: sepolia,
-    transport: http(),
-  }) as PublicClient;
+ 
  
   const { wallets } = useWallets();
   const wallet = wallets.find((wallet) => (wallet.address as `0x${string}`) === minterAccount
   );
-  const chain = sepolia;
+
+  
   const chainId = wallet?.chainId.split(":")[1];
   const { toast } = useToast();
 
   const [count, setCount] = useState(1);
   const [mintFee, setMintFee] = useState<bigint>(BigInt(500000000000000));
   const [mintPrice, setMintPrice] = useState<bigint>(BigInt(1200000000000000));
+  const endDate = 1756252800; // Unix timestamp for Aug 25, 2025 00:00:00 UTC
   const [listingCurrentPrice, setListingCurrentPrice] = useState<bigint>(BigInt(0));
+  const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
+  // Calculate time remaining
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = Math.floor(Date.now() / 1000); // Current time in seconds
+      const timeRemaining = endDate - now;
+      
+      if (timeRemaining > 0) {
+        const days = Math.floor(timeRemaining / (24 * 60 * 60));
+        const hours = Math.floor((timeRemaining % (24 * 60 * 60)) / (60 * 60));
+        const minutes = Math.floor((timeRemaining % (60 * 60)) / 60);
+        const seconds = timeRemaining % 60;
+        setTimeLeft({ days, hours, minutes, seconds });
+      } else {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      }
+    };
+
+    // Calculate immediately
+    calculateTimeLeft();
+    
+    // Update every second
+    const timer = setInterval(calculateTimeLeft, 1000);
+
+    return () => clearInterval(timer);
+  }, [endDate]);
 
   useEffect(() => {
     const getMintFee = async () => {
@@ -173,7 +222,7 @@ export default function IkaroMint() {
         title: "Minted!",
         description: "View transaction",
         action: (
-          <Link target="_blank" href={`https://sepolia.etherscan.io/tx/${hash}`}>
+          <Link target="_blank" href={`https://basescan.org/tx/${hash}`}>
             <ToastAction altText="Goto schedule to undo">View</ToastAction>
           </Link>
         ),
@@ -206,7 +255,9 @@ export default function IkaroMint() {
     }
     try {
       //switch to sepolia
-      await wallet?.switchChain(11155111);
+      //await wallet?.switchChain(11155111);
+      //switch to base
+      await wallet?.switchChain(8453);
     } catch {
       console.error("Error switching network");
     }
@@ -256,7 +307,16 @@ export default function IkaroMint() {
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    7 days left
+                    {timeLeft.days > 0 
+                      ? `${timeLeft.days}d ${timeLeft.hours.toString().padStart(2, '0')}:${timeLeft.minutes.toString().padStart(2, '0')}:${timeLeft.seconds.toString().padStart(2, '0')}`
+                      : timeLeft.hours > 0 
+                        ? `${timeLeft.hours.toString().padStart(2, '0')}:${timeLeft.minutes.toString().padStart(2, '0')}:${timeLeft.seconds.toString().padStart(2, '0')}`
+                        : timeLeft.minutes > 0
+                          ? `${timeLeft.minutes.toString().padStart(2, '0')}:${timeLeft.seconds.toString().padStart(2, '0')}`
+                          : timeLeft.seconds > 0
+                            ? `${timeLeft.seconds}s`
+                            : "Expired"
+                    }
                   </span>
                 </div>
               </div>
@@ -301,7 +361,8 @@ export default function IkaroMint() {
             <div>
               {isOpenEdition ? (
                 
-                chainId !== "11155111" ? (
+                // chainId !== "11155111" ? (
+                chainId !== "8453" ? (
                   <Button
                     size="lg"
                     className="bg-yellow-500 hover:bg-yellow-400 text-black w-full"
