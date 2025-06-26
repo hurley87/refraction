@@ -37,7 +37,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
       try {
         // Get player data
         const playerResponse = await fetch(
-          `/api/player?walletAddress=${address}`
+          `/api/player?walletAddress=${address}`,
         );
         if (playerResponse.ok) {
           const playerData = await playerResponse.json();
@@ -133,7 +133,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
             </div>
 
             {/* Content Section */}
-            {sassoonContent && (
+            {sassoonContent ? (
               <div
                 className="rounded-xl p-4 w-full my-6 mx-4 max-w-sm bg-black text-left"
                 style={{
@@ -159,6 +159,12 @@ export default function Checkpoint({ id }: CheckpointProps) {
                 <div className="text-white font-anonymous text-base leading-relaxed whitespace-pre-line">
                   {sassoonContent.content}
                 </div>
+              </div>
+            ) : (
+              <div className="rounded-xl p-4 w-full my-6 mx-4 max-w-sm bg-black text-left">
+                <h4 className="text-white text-2xl font-inktrap">
+                  Find the other checkpoints to earn more points.
+                </h4>
               </div>
             )}
 
