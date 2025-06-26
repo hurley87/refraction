@@ -81,7 +81,7 @@ export default function IkaroMint() {
 
   const [count, setCount] = useState(1);
   const [mintFee, setMintFee] = useState<bigint>(BigInt(500000000000000));
-  const [mintPrice, setMintPrice] = useState<bigint>(BigInt(1200000000000000));
+  const [mintPrice, setMintPrice] = useState<bigint>(BigInt(1100000000000000));
   const endDate = 1756252800; // Unix timestamp for Aug 25, 2025 00:00:00 UTC
   const [listingCurrentPrice, setListingCurrentPrice] = useState<bigint>(BigInt(0));
   const [timeLeft, setTimeLeft] = useState<{ days: number; hours: number; minutes: number; seconds: number }>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
