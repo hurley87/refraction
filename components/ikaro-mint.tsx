@@ -44,7 +44,7 @@ export default function IkaroMint() {
   };
 
   const [isMinting, setIsMinting] = useState(false);
-  const [isOpenEdition, setIsOpenEdition] = useState(false);
+  const [isOpenEdition, setIsOpenEdition] = useState(true);
   const publicClient = createPublicClient({
     chain: sepolia,
     transport: http(),
@@ -227,7 +227,7 @@ export default function IkaroMint() {
               src={isOpenEdition ? "/images/ikaro/ikaro-openedition.png" : "/images/ikaro/ikaro-oneofone.png"} 
               alt="Ikaro Mint" 
               fill
-              className="object-contain "
+              className="object-contain"
             />
           </div>
           <p className="mt-4 text-2xl text-black font-grotesk text-center">
@@ -239,7 +239,7 @@ export default function IkaroMint() {
         </div>
 
         {/* Right Column - Four Rows */}
-        <div className="lg:w-1/3 flex flex-col space-y-6 rounded-lg">
+        <div className="lg:w-1/3 flex flex-col space-y-1 rounded-lg">
           {/* Row 1 - Title */}
           <div className="space-y-4 text-white">
             <h1 className="text-4xl font-inktrap">PCO</h1>
@@ -260,30 +260,34 @@ export default function IkaroMint() {
                   </span>
                 </div>
               </div>
-              <div className="text-2xl font-mono">
-                {isOpenEdition ? weiToEth(mintPrice+mintFee) + " Ξ / each" : "1 ETH (minimum bid)"} 
+              <div className="text-2xl font-inktrap">
+                {isOpenEdition ? weiToEth(mintPrice) + " Ξ / edition" : "1 ETH (minimum bid)"} 
+              </div>
+              <div className="text-md opacity-50 uppercase font-grotesk">
+                {isOpenEdition ? " + mint fee" : ""}
+                
               </div>
             </div>
           </div>
 
           {/* Row 3 - Toggle Button */}
-          <div className="flex items-center justify-start w-full rounded-xl  bg-transparent  ">
-            <div className="bg-transparent  p-1 flex w-full relative">
+          <div className="flex items-center justify-start w-full rounded-xl bg-emerald-400 ">
+            <div className="flex w-full relative">
               <button 
-                className={`flex-1 py-2 rounded-lg font-inktrap text-sm rounded-l-xl transition-all ${
-                  !isOpenEdition 
-                    ? 'bg-white text-black border border-gray-500' 
-                    : 'text-black hover:bg-black hover:text-white border border-gray-500'
+                className={`flex-1 py-2 font-inktrap text-sm rounded-xl transition-all ${
+                  isOpenEdition 
+                    ? 'text-black bg-emerald-400 hover:text-white hover:bg-black ' 
+                    : '  bg-white text-black'
                 }`}
                 onClick={() => setIsOpenEdition(false)}
               >
                 1/1
               </button>
               <button 
-                className={`flex-1 py-2  font-inktrap text-sm rounded-r-xl transition-all ${
+                className={`flex-1 py-2  font-inktrap text-sm rounded-xl transition-all ${
                   isOpenEdition 
-                    ? 'bg-white text-black border border-gray-500' 
-                    : 'text-black hover:bg-black hover:text-white border border-gray-500'
+                    ? 'bg-white text-black ' 
+                    : 'text-black hover:bg-black hover:text-white  '
                 }`}
                 onClick={() => setIsOpenEdition(true)}
               >
