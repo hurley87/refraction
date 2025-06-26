@@ -41,7 +41,7 @@ const partners = [
 export default function Partners() {
   return (
     <section className="py-20 bg-transparent items-center justify-center">
-      <div className="container mx-auto px-4 max-w-7xl">
+      <div className="container mx-auto px-4 max-w-7xl flex flex-col items-center justify-center">
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-inktrap text-black mb-6">
@@ -51,7 +51,7 @@ export default function Partners() {
         </div>
 
         {/* Partners Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-6 lg:gap-8 items-center mb-16  justify-center">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-6 lg:gap-8 items-center mb-16 justify-center w-full max-w-6xl">
           {partners.map((partner, index) => (
             <div
               key={index}
@@ -99,7 +99,7 @@ export default function Partners() {
                 onClick={() => {
                     window.open("mailto:info@refractionfestival.com", "_blank");
                 }}
-                className="bg-black text-white px-8 py-4 rounded-full font-grotesk hover:bg-gray-800 transition-colors duration-300 shadow-lg hover:shadow-xl">
+                className="bg-black text-white px-8 py-4 rounded-full font-inktrap hover:bg-gray-800 transition-colors duration-300 shadow-lg hover:shadow-xl">
               Become a Partner
             </button>
           </div>
