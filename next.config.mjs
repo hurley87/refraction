@@ -14,8 +14,8 @@ const ContentSecurityPolicy = `
 
 const securityHeaders = [
   {
-    key: 'Content-Security-Policy',
-    value: ContentSecurityPolicy.replace(/\n/g, ''),
+    key: "Content-Security-Policy",
+    value: ContentSecurityPolicy.trim().replace(/\s+/g, " "),
   },
 ];
 
@@ -29,8 +29,8 @@ const nextConfig = {
     // Resolve noble package conflicts using dynamic imports
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@noble/curves': '@noble/curves',
-      '@noble/hashes': '@noble/hashes',
+      "@noble/curves": "@noble/curves",
+      "@noble/hashes": "@noble/hashes",
     };
 
     // Optimize webpack for better dependency resolution
@@ -47,9 +47,9 @@ const nextConfig = {
         fs: false,
         net: false,
         tls: false,
-        crypto: 'crypto-browserify',
-        stream: 'stream-browserify',
-        buffer: 'buffer',
+        crypto: "crypto-browserify",
+        stream: "stream-browserify",
+        buffer: "buffer",
       };
     }
 
@@ -58,7 +58,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/:path*',
+        source: "/:path*",
         headers: securityHeaders,
       },
     ];
