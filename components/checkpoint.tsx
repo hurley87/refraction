@@ -115,7 +115,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
   return (
     <Auth>
       {!checkinStatus && (
-        <div className="flex justify-center items text-center w-full h-screen font-inktrap text-2xl pt-10">
+        <div className="flex items-center justify-center text-center w-full min-h-dvh font-inktrap text-2xl">
           Loading ...
         </div>
       )}

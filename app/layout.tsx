@@ -22,7 +22,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>
+      <body className="min-h-dvh">
         <Providers>{children}</Providers>
         <Toaster />
       </body>
