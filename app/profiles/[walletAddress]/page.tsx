@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { UserProfile } from "@/lib/supabase";
-import { X } from "lucide-react";
 import Link from "next/link";
 
 interface ProfilePageProps {
@@ -18,7 +17,7 @@ async function getProfile(walletAddress: string): Promise<UserProfile | null> {
       `${baseUrl}/api/profile?wallet_address=${walletAddress}`,
       {
         cache: "no-store", // Ensure fresh data
-      }
+      },
     );
 
     if (!response.ok) {
