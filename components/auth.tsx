@@ -88,7 +88,7 @@ export default function Auth({ children }: AuthProps) {
 
   if (!ready) {
     return (
-      <div className="flex justify-center items text-center w-full h-screen font-inktrap text-2xl pt-10">
+      <div className="flex items-center justify-center text-center w-full min-h-dvh font-inktrap text-2xl">
         Loading...
       </div>
     );
@@ -230,7 +230,7 @@ export default function Auth({ children }: AuthProps) {
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }}
-              className="flex flex-col gap-3 justify-between h-screen p-4 rounded-2xl overflow-hidden"
+              className="flex flex-col gap-3 justify-between h-[calc(100dvh-5rem)] p-4 rounded-2xl overflow-hidden"
             >
               <p
                 style={{ lineHeight: "40px" }}
