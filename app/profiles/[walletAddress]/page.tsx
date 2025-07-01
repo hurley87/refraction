@@ -86,19 +86,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </div>
           </div>
 
-          {/* Email */}
-          {profile.email && (
-            <div className="space-y-2">
-              <p className="text-black text-sm font-inktrap uppercase font-semibold">
-                EMAIL
-              </p>
-              <div className="bg-gray-100 rounded-full px-4 py-3">
-                <p className="text-black text-sm font-inktrap">
-                  {profile.email}
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Social Handles Section */}
           {(profile.twitter_handle ||
