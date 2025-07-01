@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { UserProfile } from "@/lib/supabase";
-import { X } from "lucide-react";
 import Link from "next/link";
 
 interface ProfilePageProps {
@@ -18,7 +17,7 @@ async function getProfile(walletAddress: string): Promise<UserProfile | null> {
       `${baseUrl}/api/profile?wallet_address=${walletAddress}`,
       {
         cache: "no-store", // Ensure fresh data
-      }
+      },
     );
 
     if (!response.ok) {
@@ -57,17 +56,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   return (
     <div className="min-h-screen bg-white flex flex-col font-grotesk">
       {/* Header */}
-      <div className="flex justify-between items-center p-4">
+      <div className="flex items-center justify-center p-4">
         <h1 className="text-black text-lg font-medium font-inktrap uppercase">
           {profile.name || profile.username || "PROFILE"}
         </h1>
-        <Link
-          href="/leaderboard"
-          className="text-black p-2 rounded-full hover:bg-gray-100 transition-colors"
-          aria-label="Back to home"
-        >
-          <X size={24} />
-        </Link>
       </div>
 
       {/* Content */}
