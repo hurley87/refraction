@@ -91,16 +91,14 @@ export default function Partners() {
 
         {/* Call to Action */}
         <div className="text-center">
-          <p className="text-lg text-gray-600 font-grotesk mb-6 max-w-2xl mx-auto">
-            Partner with the IRL network 
-          </p>
+          
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button 
                 onClick={() => {
                     window.open("mailto:partnerships@refractionfestival.com", "_blank");
                 }}
                 className="bg-black text-white px-8 py-4 rounded-full font-inktrap hover:bg-gray-800 transition-colors duration-300 shadow-lg hover:shadow-xl">
-              Become a Partner
+              Partner with the IRL network 
             </button>
           </div>
         </div>
