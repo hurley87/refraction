@@ -78,7 +78,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </div>
           </div>
 
-
           {/* Social Handles Section */}
           {(profile.twitter_handle ||
             profile.towns_handle ||
