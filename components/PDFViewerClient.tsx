@@ -17,21 +17,26 @@ const PDFViewerClient = () => {
 
   useEffect(() => {
     const updatePageWidth = () => {
-      const screenWidth = window.innerWidth;
-      if (screenWidth < 640) {
-        setPageWidth(screenWidth - 32); // Small mobile
-      } else if (screenWidth < 768) {
-        setPageWidth(screenWidth - 48); // Large mobile
-      } else if (screenWidth < 1024) {
-        setPageWidth(screenWidth - 64); // Tablet
-      } else {
-        setPageWidth(800); // Desktop
+      if (typeof window !== 'undefined') {
+        const screenWidth = window.innerWidth;
+        if (screenWidth < 640) {
+          setPageWidth(screenWidth - 32); // Small mobile
+        } else if (screenWidth < 768) {
+          setPageWidth(screenWidth - 48); // Large mobile
+        } else if (screenWidth < 1024) {
+          setPageWidth(screenWidth - 64); // Tablet
+        } else {
+          setPageWidth(800); // Desktop
+        }
       }
     };
 
     updatePageWidth();
-    window.addEventListener('resize', updatePageWidth);
-    return () => window.removeEventListener('resize', updatePageWidth);
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', updatePageWidth);
+      return () => window.removeEventListener('resize', updatePageWidth);
+    }
   }, []);
 
   return (
