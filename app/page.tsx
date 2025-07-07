@@ -54,13 +54,7 @@ export default function Home() {
       >
         {/* Logo/Header */}
         <div className="absolute top-4 sm:top-6 md:top-8 left-4 sm:left-6 md:left-8 lg:left-16 w-[32px] h-[32px] sm:w-[36px] sm:h-[36px] md:w-[40px] md:h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center">
-          <Image
-            src="/home/IRL.png"
-            alt="irl"
-            width={27.312}
-            height={14}
-            className="w-auto h-auto max-w-[20px] sm:max-w-[24px] md:max-w-[27px]"
-          />
+          <Image src="/home/IRL.png" alt="irl" width={27.312} height={14} />
         </div>
 
         {/* Main Content */}
@@ -102,7 +96,6 @@ export default function Home() {
                 alt="refraction"
                 width={100}
                 height={100}
-                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-[100px] lg:h-[100px]"
               />
             </p>
           </div>
@@ -181,9 +174,9 @@ export default function Home() {
       </section>
 
       {/* Claim Points Section */}
-      <section className="py-12 sm:py-16 md:py-20 lg:py-24 xl:py-48 px-4 sm:px-6 md:px-8">
-        <div className="max-w-[488px] mx-auto text-center flex flex-col items-center justify-center gap-6 sm:gap-8">
-          <h2 className="text-black text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[61px] font-bold font-inktrap leading-tight">
+      <section className="py-12 sm:py-16 md:py-20 lg:py-24 xl:py-48">
+        <div className="max-w-[468px] mx-auto text-center flex flex-col items-center justify-center gap-6 sm:gap-8">
+          <h2 className="text-black text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold font-inktrap leading-tight">
             CLAIM
             <br />
             YOUR POINTS
@@ -192,7 +185,7 @@ export default function Home() {
             Check in to earn points on the IRL network, with instant access to
             future rewards and experiences.
           </p>
-          <Link className="w-full max-w-[280px] sm:max-w-[320px]" href="/game">
+          <Link className="w-full" href="/game">
             <Button
               size="lg"
               className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
