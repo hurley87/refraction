@@ -9,6 +9,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = `/pdfjs/pdf.worker.min.mjs`;
 const PDFViewerClient = () => {
   const [numPages, setNumPages] = useState(null);
   const [pageWidth, setPageWidth] = useState(800);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
@@ -35,6 +36,58 @@ const PDFViewerClient = () => {
 
   return (
     <div style={{ padding: "1rem", maxWidth: "100%" }}>
+      {/* Page Navigation */}
+      {numPages && (
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "center", 
+          alignItems: "center",
+          marginBottom: "1rem",
+          gap: "1rem"
+        }}>
+          <button
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage <= 1}
+            style={{
+              padding: "0.5rem 1rem",
+              backgroundColor: currentPage <= 1 ? "#ccc" : "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: currentPage <= 1 ? "not-allowed" : "pointer",
+              fontSize: "0.9rem",
+            }}
+          >
+            Previous
+          </button>
+          
+          <span style={{ 
+            fontSize: "0.9rem", 
+            color: "#666",
+            minWidth: "80px",
+            textAlign: "center"
+          }}>
+            {currentPage} of {numPages}
+          </span>
+          
+          <button
+            onClick={() => setCurrentPage(Math.min(numPages, currentPage + 1))}
+            disabled={currentPage >= numPages}
+            style={{
+              padding: "0.5rem 1rem",
+              backgroundColor: currentPage >= numPages ? "#ccc" : "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: currentPage >= numPages ? "not-allowed" : "pointer",
+              fontSize: "0.9rem",
+            }}
+          >
+            Next
+          </button>
+        </div>
+      )}
+
       <div
         style={{
           display: "flex",
@@ -76,16 +129,12 @@ const PDFViewerClient = () => {
             </div>
           }
         >
-          {Array.from(new Array(numPages), (el, index) => (
-            <div key={`page_${index + 1}`} style={{ marginBottom: "1rem", width: "100%" }}>
-              <Page
-                pageNumber={index + 1}
-                renderTextLayer={true}
-                renderAnnotationLayer={true}
-                width={pageWidth}
-              />
-            </div>
-          ))}
+          <Page
+            pageNumber={currentPage}
+            renderTextLayer={true}
+            renderAnnotationLayer={true}
+            width={pageWidth}
+          />
         </Document>
       </div>
       
