@@ -44,6 +44,7 @@
     "pdfjs-dist": "3.4.120",
     "react": "^18",
     "react-dom": "^18",
+    "react-pdf": "^10.0.1",
     "resend": "^4.0.1-alpha.0",
     "sonner": "^1.7.2",
     "stream-browserify": "^3.0.0",
