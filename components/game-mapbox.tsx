@@ -227,11 +227,9 @@ export default function GameMapbox() {
         <div className="px-0 pt-8">
           {/* Title Section */}
           <div className="mb-6">
-            <h1 className="text-lg font-inktrap text-black mb-2">LOCATION</h1>
+            <h1 className="text-lg mb-1">Put Yourself</h1>
             <h2 className="text-4xl font-inktrap font-bold text-black leading-tight">
-              EARN POINTS
-              <br />
-              EVERYWHERE
+              ON THE MAP
             </h2>
           </div>
 
@@ -266,7 +264,7 @@ export default function GameMapbox() {
 
           {/* Location Input Section */}
           <div className="mb-6">
-            <h3 className="text-lg font-inktrap text-black mb-4">
+            <h3 className="text-lg mb-4 leading-tight">
               Confirm your location to
               <br />
               earn your first points
@@ -336,9 +334,11 @@ export default function GameMapbox() {
             <Button
               onClick={handleCheckin}
               disabled={!selected || !walletAddress || isCheckinLoading}
-              className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-inktrap py-3 rounded-full disabled:opacity-50"
+              className="w-full bg-[#313131] hover:bg-[#313131]/80 text-white font-inktrap py-3 rounded-full disabled:opacity-50 flex justify-between"
             >
-              {isCheckinLoading ? "Checking in..." : "Confirm to Earn Points"}
+              <span>
+                {isCheckinLoading ? "Checking in..." : "Confirm to Earn Points"}
+              </span>
               <svg
                 className="w-4 h-4 ml-2"
                 fill="none"

@@ -59,13 +59,13 @@ export default function Home() {
 
         {/* Main Content */}
         <div className="max-w-6xl w-full mt-16 sm:mt-20 md:mt-24">
-          <h1 className="text-[#FFE600] font-inktrap text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight mb-4 sm:mb-6 md:mb-8">
+          <h1 className="text-[#FFE600] font-inktrap text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight mb-4 sm:mb-6">
             BRIDGING CULTURE
             <br />
             AND TECHNOLOGY
           </h1>
 
-          <p className="text-[#FFE600] font-inktrap text-base sm:text-lg md:text-xl lg:text-2xl max-w-2xl mb-8 sm:mb-10 md:mb-12 lg:mb-[57px] leading-relaxed font-light">
+          <p className="text-[#FFE600] font-grotesk sm:text-lg md:text-xl lg:text-2xl max-w-2xl mb-8 sm:mb-10 md:mb-12 lg:mb-[57px] leading-relaxed">
             Earn Points. Unlock Rewards.
             <br />
             Revolutionize the Creative Economy.
@@ -112,7 +112,7 @@ export default function Home() {
           className="hidden lg:block"
         />
         <div className="flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-12 md:py-16 lg:py-0 ">
-          <p className="text-white text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl leading-relaxed max-w-xl text-center lg:text-left font-inktrap">
+          <p className="text-white text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl leading-relaxed max-w-xl text-center lg:text-left font-grotesk">
             {`Developed by Refraction, a pioneer in web3 arts and culture, the
                 IRL protocol realizes the blockchain's potential to
                 revolutionize the creative industry.`}
@@ -142,12 +142,12 @@ export default function Home() {
         <div className="flex flex-col items-start justify-center lg:justify-end w-full lg:w-[420px]">
           <div className="max-w-lg w-full">
             <div className="space-y-4 sm:space-y-5 mb-6 sm:mb-8">
-              <p className="text-sm sm:text-base md:text-lg leading-relaxed font-inktrap text-[#FFE600]">
+              <p className="text-sm sm:text-base md:text-lg leading-relaxed font-grotesk text-[#FFE600]">
                 Powered by Refraction, the IRL network uses blockchain
                 technology to reward audiences for artists with fans for
                 creating and engaging with culture.
               </p>
-              <p className="text-[#FFE600] font-inktrap text-sm sm:text-base md:text-lg leading-relaxed">
+              <p className="text-[#FFE600] font-grotesk text-sm sm:text-base md:text-lg leading-relaxed">
                 Check in to earn IRL, gain exclusive access to experiences and
                 rewards, and help build the new creative economy.
               </p>
@@ -174,14 +174,14 @@ export default function Home() {
       </section>
 
       {/* Claim Points Section */}
-      <section className="py-12 sm:py-16 md:py-20 lg:py-24 xl:py-48">
+      <section className="py-12 sm:py-16 md:py-20 lg:py-24 xl:py-48 lg:pb-10">
         <div className="max-w-[468px] mx-auto text-center flex flex-col items-center justify-center gap-6 sm:gap-8">
           <h2 className="text-black text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold font-inktrap leading-tight">
             CLAIM
             <br />
             YOUR POINTS
           </h2>
-          <p className="text-black text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-inktrap">
+          <p className="text-black text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-anonymous">
             Check in to earn points on the IRL network, with instant access to
             future rewards and experiences.
           </p>
@@ -206,8 +206,8 @@ export default function Home() {
       </section>
 
       {/* Social Media Section */}
-      <section className="py-8 sm:py-12 px-4 sm:px-6">
-        <div className="text-center font-inktrap text-sm sm:text-base md:text-lg mb-4 sm:mb-6">
+      <section className="py-8 px-4 sm:px-6">
+        <div className="text-center font-grotesk text-sm sm:text-base md:text-lg mb-4">
           Follow
         </div>
         <div className="flex justify-center gap-3 sm:gap-4 md:gap-6 flex-wrap">
