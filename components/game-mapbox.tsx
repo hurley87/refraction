@@ -271,22 +271,22 @@ export default function GameMapbox() {
             </h3>
 
             <div className="bg-white rounded-2xl p-4 mb-4">
-              <p className="text-sm text-gray-600 mb-3 font-inktrap">
+              <p className="text-xs text-gray-600 mb-1 font-grotesk">
                 SEARCH FOR LOCATION
               </p>
-              <div className="relative">
+              <div className="relative flex gap-2 items-center">
                 <Input
                   placeholder="Williamsburg, NY"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  className="bg-gray-50 border-0 rounded-full pl-4 pr-12 py-3 text-black placeholder:text-gray-500"
+                  className="bg-gray-50 border border-[#313131] rounded-full pl-4 pr-12 py-3 text-black placeholder:text-gray-500"
                 />
                 <Button
                   size="sm"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 p-0"
+                  className="w-10 h-8 rounded-full bg-gray-200 hover:bg-gray-300 p-0 flex justify-center items-center"
                   variant="ghost"
                 >
-                  <Search className="w-4 h-4 text-gray-600" />
+                  <Search className="w-4 h-4 text-black" />
                 </Button>
               </div>
             </div>
@@ -324,12 +324,14 @@ export default function GameMapbox() {
 
           {/* Location Confirmation */}
           <div className="bg-white rounded-2xl p-4 mb-6">
-            <p className="text-sm text-gray-600 mb-3 font-inktrap">
-              YOUR LOCATION
-            </p>
-            <div className="flex items-center gap-3 mb-4">
-              <MapPin className="w-5 h-5 text-gray-600" />
-              <span className="text-black font-inktrap">{query}</span>
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="w-3 h-3 text-gray-600" />
+              <p className="text-xs text-gray-600 font-grotesk">
+                YOUR LOCATION
+              </p>
+            </div>
+            <div className="flex items-center gap-3 mb-4 border border-[#B5B5B5] rounded-full p-2">
+              <span className="text-black font-grotesk">{query}</span>
             </div>
             <Button
               onClick={handleCheckin}
