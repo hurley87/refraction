@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { UserProfile } from "@/lib/supabase";
 import Link from "next/link";
+import PointsActivity from "@/components/points-activity";
 
 interface ProfilePageProps {
   params: {
@@ -144,6 +145,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </>
           )}
         </div>
+
+        {/* Points Activity Section */}
+        <PointsActivity walletAddress={profile.wallet_address} />
 
         {/* Back to Home Button */}
         <div className="w-full max-w-sm mt-4">
