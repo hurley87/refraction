@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Famous landmarks fallback database
+// Famous landmarks fallback database (same as Mapbox)
 const FAMOUS_LANDMARKS = [
   {
     name: "CN Tower",
@@ -65,7 +65,7 @@ const FAMOUS_LANDMARKS = [
 ];
 
 /**
- * Geocoding API route using Mapbox Geocoding API
+ * Geocoding API route using Google Places API
  * @param request - Next.js request object
  * @returns JSON response with location data or error
  */
@@ -80,15 +80,15 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const apiKey = process.env.MAPBOX_ACCESS_TOKEN;
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: "Mapbox access token not configured" },
+      { error: "Google Places API key not configured" },
       { status: 500 },
     );
   }
 
-  console.log(`[Mapbox Geocode API] Processing query: "${query}"`);
+  console.log(`[Google Places API] Processing query: "${query}"`);
 
   try {
     // First, check for famous landmarks in our fallback database
@@ -104,119 +104,119 @@ export async function GET(request: NextRequest) {
       display_name: landmark.display_name,
       lat: landmark.lat,
       lon: landmark.lon,
-      type: "poi",
+      type: "landmark",
       name: landmark.name,
       context: landmark.display_name.split(", ").slice(1).join(", "),
       category: landmark.category,
       landmark: landmark.landmark,
       maki: landmark.maki,
-      relevance: 1.0, // High relevance for exact matches
+      relevance: 1.0,
     }));
 
     console.log(
-      `[Mapbox Geocode API] Found ${landmarkMatches.length} landmark matches`,
+      `[Google Places API] Found ${landmarkMatches.length} landmark matches`,
     );
 
-    // Then try Mapbox API for additional results
-    const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+    // Then try Google Places API for additional results
+    const googleUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(
       query,
-    )}.json?access_token=${apiKey}&limit=8&types=poi&proximity=ip&autocomplete=false`;
+    )}&key=${apiKey}&type=establishment`;
 
-    console.log(`[Mapbox Geocode API] Trying POI search: ${mapboxUrl}`);
+    console.log(`[Google Places API] Trying text search: ${googleUrl}`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    const response = await fetch(mapboxUrl, {
+    const response = await fetch(googleUrl, {
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`Mapbox API HTTP error! status: ${response.status}`);
+      throw new Error(
+        `Google Places API HTTP error! status: ${response.status}`,
+      );
     }
 
     const data = await response.json();
     console.log(
-      `[Mapbox Geocode API] Raw response features:`,
-      data.features?.length || 0,
+      `[Google Places API] Raw response results:`,
+      data.results?.length || 0,
     );
 
-    let mapboxLocations = data.features.map((feature: any) => {
-      // Enhanced landmark detection
+    if (data.error_message) {
+      console.error(`[Google Places API] Error:`, data.error_message);
+      return NextResponse.json({ error: data.error_message }, { status: 400 });
+    }
+
+    let googleLocations = (data.results || []).map((place: any) => {
+      // Categorize the place type
+      const types = place.types || [];
       const isLandmark =
-        feature.properties?.category?.includes("landmark") ||
-        feature.properties?.category?.includes("monument") ||
-        feature.place_type?.includes("poi") ||
-        feature.properties?.maki === "monument" ||
-        feature.properties?.maki === "attraction" ||
-        feature.properties?.landmark === true;
+        types.includes("tourist_attraction") ||
+        types.includes("museum") ||
+        types.includes("amusement_park") ||
+        types.includes("park") ||
+        types.includes("monument");
+
+      const isRestaurant =
+        types.includes("restaurant") ||
+        types.includes("food") ||
+        types.includes("meal_takeaway") ||
+        types.includes("cafe");
+
+      const isBar =
+        types.includes("bar") ||
+        types.includes("night_club") ||
+        types.includes("liquor_store");
+
+      const isRetail =
+        types.includes("store") ||
+        types.includes("shopping_mall") ||
+        types.includes("clothing_store");
+
+      // Determine primary category
+      let category = "establishment";
+      let maki = "marker";
+
+      if (isLandmark) {
+        category = "landmark";
+        maki = "monument";
+      } else if (isRestaurant) {
+        category = "restaurant";
+        maki = "restaurant";
+      } else if (isBar) {
+        category = "bar";
+        maki = "bar";
+      } else if (isRetail) {
+        category = "retail";
+        maki = "shop";
+      }
 
       return {
-        place_id: feature.id,
-        display_name: feature.place_name,
-        lat: feature.center[1].toString(), // Mapbox uses [lng, lat] format
-        lon: feature.center[0].toString(),
-        type: feature.place_type?.[0] || "location",
-        name: feature.text,
-        context: feature.context?.map((c: any) => c.text).join(", "),
-        category: feature.properties?.category || "",
+        place_id: place.place_id,
+        display_name: `${place.name}, ${place.formatted_address}`,
+        lat: place.geometry.location.lat.toString(),
+        lon: place.geometry.location.lng.toString(),
+        type: "poi",
+        name: place.name,
+        context: place.formatted_address,
+        category: category,
         landmark: isLandmark,
-        maki: feature.properties?.maki || "",
-        relevance: feature.relevance || 0,
+        maki: maki,
+        relevance: place.rating ? place.rating / 5.0 : 0.5,
+        rating: place.rating || null,
+        price_level: place.price_level || null,
+        user_ratings_total: place.user_ratings_total || 0,
+        types: types,
       };
     });
 
-    // If no POI results from Mapbox, try a broader search
-    if (mapboxLocations.length === 0) {
-      console.log(`[Mapbox Geocode API] No POI results, trying broader search`);
+    // Combine landmark matches with Google results
+    const allLocations = [...landmarkMatches, ...googleLocations];
 
-      const broadUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
-        query,
-      )}.json?access_token=${apiKey}&limit=5&types=poi,place,locality,neighborhood,address&proximity=ip`;
-
-      const broadResponse = await fetch(broadUrl, {
-        signal: controller.signal,
-      });
-
-      if (broadResponse.ok) {
-        const broadData = await broadResponse.json();
-        console.log(
-          `[Mapbox Geocode API] Broad search found:`,
-          broadData.features?.length || 0,
-        );
-
-        mapboxLocations = broadData.features.map((feature: any) => {
-          const isLandmark =
-            feature.properties?.category?.includes("landmark") ||
-            feature.properties?.category?.includes("monument") ||
-            feature.place_type?.includes("poi") ||
-            feature.properties?.maki === "monument" ||
-            feature.properties?.maki === "attraction" ||
-            feature.properties?.landmark === true;
-
-          return {
-            place_id: feature.id,
-            display_name: feature.place_name,
-            lat: feature.center[1].toString(),
-            lon: feature.center[0].toString(),
-            type: feature.place_type?.[0] || "location",
-            name: feature.text,
-            context: feature.context?.map((c: any) => c.text).join(", "),
-            category: feature.properties?.category || "",
-            landmark: isLandmark,
-            maki: feature.properties?.maki || "",
-            relevance: feature.relevance || 0,
-          };
-        });
-      }
-    }
-
-    // Combine landmark matches with Mapbox results
-    const allLocations = [...landmarkMatches, ...mapboxLocations];
-
-    // Remove duplicates (in case Mapbox also returns our landmarks)
+    // Remove duplicates (in case Google also returns our landmarks)
     const uniqueLocations = allLocations.filter(
       (location, index, self) =>
         index ===
@@ -227,7 +227,7 @@ export async function GET(request: NextRequest) {
         ),
     );
 
-    // Sort results to prioritize landmarks and POIs
+    // Sort results to prioritize landmarks and popular places
     const sortedLocations = uniqueLocations.sort((a, b) => {
       // First priority: our curated landmarks
       if (
@@ -245,25 +245,31 @@ export async function GET(request: NextRequest) {
       if (a.landmark && !b.landmark) return -1;
       if (!a.landmark && b.landmark) return 1;
 
-      // Third priority: POIs
-      if (a.type === "poi" && b.type !== "poi") return -1;
-      if (a.type !== "poi" && b.type === "poi") return 1;
+      // Third priority: highly rated places
+      const aRating = a.rating || 0;
+      const bRating = b.rating || 0;
+      const aPopularity = aRating * Math.log(a.user_ratings_total + 1) || 0;
+      const bPopularity = bRating * Math.log(b.user_ratings_total + 1) || 0;
+
+      if (aPopularity !== bPopularity) {
+        return bPopularity - aPopularity;
+      }
 
       // Fourth priority: relevance score
       return b.relevance - a.relevance;
     });
 
     console.log(
-      `[Mapbox Geocode API] Final results: ${sortedLocations.length} locations (${landmarkMatches.length} landmarks, ${mapboxLocations.length} mapbox)`,
+      `[Google Places API] Final results: ${sortedLocations.length} locations (${landmarkMatches.length} landmarks, ${googleLocations.length} google)`,
     );
     console.log(
-      `[Mapbox Geocode API] Top result:`,
+      `[Google Places API] Top result:`,
       sortedLocations[0]?.name || "none",
     );
 
     return NextResponse.json(sortedLocations);
   } catch (error) {
-    console.error("Mapbox geocoding error:", error);
+    console.error("Google Places API error:", error);
     return NextResponse.json(
       { error: "Failed to fetch location data" },
       { status: 500 },

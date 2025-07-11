@@ -18,13 +18,20 @@ interface LocationSuggestion {
   type?: string;
   name?: string;
   context?: string;
+  category?: string;
+  landmark?: boolean;
+  maki?: string;
+  relevance?: number;
+  rating?: number;
+  price_level?: number;
+  user_ratings_total?: number;
+  types?: string[];
 }
 
 export default function GameMapbox() {
   const { user } = usePrivy();
-  console.log("user", user);
   const walletAddress = user?.wallet?.address;
-  const [query, setQuery] = useState("Williamsburg, NY");
+  const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [selected, setSelected] = useState<LocationSuggestion | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -41,11 +48,21 @@ export default function GameMapbox() {
 
     const controller = new AbortController();
 
-    // Use Mapbox Geocoding API
-    fetch(`/api/geocode-mapbox?q=${encodeURIComponent(query)}`, {
+    // Try Google Places API first, fallback to Mapbox
+    fetch(`/api/geocode-google?q=${encodeURIComponent(query)}`, {
       signal: controller.signal,
     })
       .then((res) => res.json())
+      .then((data) => {
+        if (data.error) {
+          console.log("Google Places API failed, trying Mapbox:", data.error);
+          // Fallback to Mapbox
+          return fetch(`/api/geocode-mapbox?q=${encodeURIComponent(query)}`, {
+            signal: controller.signal,
+          }).then((res) => res.json());
+        }
+        return data;
+      })
       .then((data) => setSuggestions(data))
       .catch(() => {});
 
@@ -276,7 +293,7 @@ export default function GameMapbox() {
               </p>
               <div className="relative flex gap-2 items-center">
                 <Input
-                  placeholder="Williamsburg, NY"
+                  placeholder="CN Tower, Joe's Pizza, Blue Note Jazz Club..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   className="bg-gray-50 border border-[#313131] rounded-full pl-4 pr-12 py-3 text-black placeholder:text-gray-500"
@@ -291,21 +308,91 @@ export default function GameMapbox() {
               </div>
             </div>
 
-            {suggestions.length > 0 && (
-              <ul className="bg-white rounded-2xl mb-4 max-h-60 overflow-auto">
-                {suggestions.map((loc) => (
-                  <li
-                    key={loc.place_id}
-                    className="p-4 cursor-pointer hover:bg-gray-50 border-b last:border-b-0"
-                    onClick={() => handleSelect(loc)}
-                  >
-                    <div className="font-inktrap text-black">{loc.name}</div>
-                    <div className="text-sm text-gray-600">
-                      {loc.display_name}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+            {query.length > 2 && (
+              <div>
+                {suggestions.length > 0 ? (
+                  <ul className="bg-white rounded-2xl mb-4 max-h-60 overflow-auto">
+                    {suggestions.map((loc) => (
+                      <li
+                        key={loc.place_id}
+                        className={`p-4 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 ${
+                          loc.landmark ? "bg-blue-50 border-blue-200" : ""
+                        }`}
+                        onClick={() => handleSelect(loc)}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          {loc.landmark && (
+                            <span className="text-blue-600 text-xs bg-blue-100 px-2 py-1 rounded-full font-anonymous">
+                              LANDMARK
+                            </span>
+                          )}
+                          {loc.category === "restaurant" && (
+                            <span className="text-orange-600 text-xs bg-orange-100 px-2 py-1 rounded-full font-anonymous">
+                              RESTAURANT
+                            </span>
+                          )}
+                          {loc.category === "bar" && (
+                            <span className="text-purple-600 text-xs bg-purple-100 px-2 py-1 rounded-full font-anonymous">
+                              BAR
+                            </span>
+                          )}
+                          {loc.category === "retail" && (
+                            <span className="text-pink-600 text-xs bg-pink-100 px-2 py-1 rounded-full font-anonymous">
+                              SHOP
+                            </span>
+                          )}
+                          {loc.type === "poi" &&
+                            !loc.landmark &&
+                            !loc.category && (
+                              <span className="text-green-600 text-xs bg-green-100 px-2 py-1 rounded-full font-anonymous">
+                                POI
+                              </span>
+                            )}
+                          <div className="font-inktrap text-black">
+                            {loc.name}
+                          </div>
+                        </div>
+
+                        <div className="text-sm text-gray-600 mb-2">
+                          {loc.display_name}
+                        </div>
+
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          {loc.rating && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-yellow-500">★</span>
+                              <span>{loc.rating.toFixed(1)}</span>
+                              {loc.user_ratings_total && (
+                                <span className="text-gray-400">
+                                  ({loc.user_ratings_total})
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {loc.price_level && (
+                            <div className="flex items-center">
+                              <span className="text-green-600">
+                                {"$".repeat(loc.price_level)}
+                              </span>
+                            </div>
+                          )}
+                          {loc.category && (
+                            <div className="capitalize">{loc.category}</div>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="bg-white rounded-2xl mb-4 p-4 text-center">
+                    <p className="text-gray-500 text-sm">
+                      No results found. Try searching for landmarks ("CN
+                      Tower"), restaurants ("Joe's Pizza"), or bars ("Blue Note
+                      Jazz Club")
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -331,7 +418,16 @@ export default function GameMapbox() {
               </p>
             </div>
             <div className="flex items-center gap-3 mb-4 border border-[#B5B5B5] rounded-full p-2">
-              <span className="text-black font-grotesk">{query}</span>
+              <span className="text-black font-grotesk">
+                {selected
+                  ? selected.display_name
+                  : query || "No location selected"}
+              </span>
+              {selected?.landmark && (
+                <span className="text-blue-600 text-xs bg-blue-100 px-2 py-1 rounded-full font-anonymous">
+                  LANDMARK
+                </span>
+              )}
             </div>
             <Button
               onClick={handleCheckin}

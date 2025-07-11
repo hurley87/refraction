@@ -2,6 +2,20 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Environment Variables
+
+Create a `.env.local` file in the root directory and add:
+
+```bash
+MAPBOX_ACCESS_TOKEN=your_mapbox_access_token_here
+GOOGLE_PLACES_API_KEY=your_google_places_api_key_here
+```
+
+To get these API keys:
+
+- **Mapbox**: Sign up at [mapbox.com](https://mapbox.com) and get your access token
+- **Google Places**: Enable the Places API in [Google Cloud Console](https://console.cloud.google.com) and create an API key
+
 First, run the development server:
 
 ```bash
