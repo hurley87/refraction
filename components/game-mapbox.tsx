@@ -147,8 +147,8 @@ export default function GameMapbox() {
                 </div>
               </div>
               <p className="text-sm text-black font-anonymous">
-                {`You've just gained access to events, rewards and bespoke
-                experiences.`}
+                You&apos;ve just gained access to events, rewards and bespoke
+                experiences.
               </p>
             </div>
 
@@ -386,9 +386,9 @@ export default function GameMapbox() {
                 ) : (
                   <div className="bg-white rounded-2xl mb-4 p-4 text-center">
                     <p className="text-gray-500 text-sm">
-                      No results found. Try searching for landmarks ("CN
-                      Tower"), restaurants ("Joe's Pizza"), or bars ("Blue Note
-                      Jazz Club")
+                      No results found. Try searching for landmarks (&quot;CN
+                      Tower&quot;), restaurants (&quot;Joe&apos;s Pizza&quot;),
+                      or bars (&quot;Blue Note Jazz Club&quot;)
                     </p>
                   </div>
                 )}

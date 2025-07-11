@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: data.error_message }, { status: 400 });
     }
 
-    let googleLocations = (data.results || []).map((place: any) => {
+    const googleLocations = (data.results || []).map((place: any) => {
       // Categorize the place type
       const types = place.types || [];
       const isLandmark =
