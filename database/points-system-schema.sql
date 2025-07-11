@@ -241,7 +241,6 @@ $$ LANGUAGE plpgsql;
 -- Sample data population (for testing)
 INSERT INTO points_activity_config (activity_type, name, description, icon, category, base_points, max_daily_points, is_active) VALUES
 ('daily_checkin', 'Daily Check-in', 'Check in daily to earn points', '📅', 'engagement', 10, 10, true),
-('checkpoint_checkin', 'Checkpoint Check-in', 'Check in to an IRL checkpoint to earn points', '📍', 'engagement', 100, NULL, true),
 ('wallet_connect', 'Connect Wallet', 'Connect your first wallet', '💳', 'onboarding', 50, NULL, true),
 ('transaction_complete', 'Complete Transaction', 'Complete a transaction', '💸', 'trading', 25, 500, true),
 ('social_share', 'Social Share', 'Share on social media', '📢', 'social', 20, 100, true),
