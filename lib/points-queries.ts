@@ -2,7 +2,6 @@
 // These queries work with the points system database schema
 
 export interface DbClient {
-  userStats;
   query: (sql: string, params?: any[]) => Promise<any>;
 }
 

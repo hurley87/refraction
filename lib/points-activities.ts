@@ -26,6 +26,7 @@ export interface PointsActivityConfig {
 
 export type PointsActivityType =
   | "daily_checkin"
+  | "checkpoint_checkin"
   | "profile_complete"
   | "profile_field_email"
   | "profile_field_name"
@@ -231,6 +232,15 @@ export const POINTS_ACTIVITIES_CONFIG: PointsActivityConfig[] = [
         description: "2x points for 30+ day streak",
       },
     ],
+    is_active: true,
+  },
+  {
+    type: "checkpoint_checkin",
+    name: "Checkpoint Check-in",
+    description: "Check in to an IRL checkpoint to earn points",
+    icon: "📍",
+    category: "engagement",
+    base_points: 100,
     is_active: true,
   },
 
