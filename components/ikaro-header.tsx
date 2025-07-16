@@ -31,19 +31,7 @@ export default function Header() {
   return (
     <div className="flex justify-between items-center">
      
-      <div className="flex items-center justify-end bg-white rounded-full px-2 py-2">
-        <button
-          style={{
-            background:
-              "linear-gradient(90deg, #2400FF 14.58%, #FA00FF 52.6%, #FF0000 86.46%)",
-          }}
-          onClick={() => setIsMenuOpen(true)}
-          className="flex items-center justify-center rounded-full w-6 h-6 transition-colors"
-          aria-label="Open user menu"
-        >
-          {/* Gradient circle indicating logged in status */}
-        </button>
-      </div>
+
 
       {/* Profile Menu */}
       <ProfileMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
