@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import Link from "next/link";
+
 
 export default function IRLPage() {
   return (
@@ -15,7 +15,7 @@ export default function IRLPage() {
       {/* Row 2: Subheading */}
       <div className="text-center max-w-[60%] mx-auto">
         <p className="text-xl lg:text-2xl uppercase text-black leading-relaxed font-inktrap">
-          JOIN 1168 ARTISTS AND 200 GLOBAL PARTNERS IN COLLECTIVELY OWNING CULTURE'S REWARDS PROGRAM.
+          JOIN 1168 ARTISTS AND 200 GLOBAL PARTNERS IN COLLECTIVELY OWNING CULTURE&apos;S REWARDS PROGRAM.
         </p>
       </div>
 
