@@ -74,8 +74,8 @@ export default function RootLayout({
             <div className="flex-[0.4] flex flex-col justify-center border-r border-black h-full">
               <div className="p-2 lg:px-4 h-full flex flex-col justify-center items-center">
                 <p className="text-lg text-black font-inktrap mb-2 uppercase">powered by</p>
-                <div className="w-16 h-8 bg-gray-200 rounded flex items-center justify-center">
-                  <p className="text-xs text-gray-500 font-inktrap uppercase"><Image src="/logo.svg" alt="Refraction Logo" width={108.38} height={55.55} /></p>
+                <div className="w-48 h-8 rounded flex items-center justify-center">
+                  <Image src="/refraction-wordmark.png" alt="Refraction Logo" width={1138} height={134} />
                 </div>
               </div>
             </div>
