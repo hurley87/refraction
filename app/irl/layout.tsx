@@ -35,7 +35,7 @@ export default function RootLayout({
           </div>
 
           {/* Column 2: About Link - 13.33% width */}
-          <div className="flex-[0.133] flex justify-start border-r border-black h-full">
+          <div className="flex-[0.133] flex justify-center border-r border-black h-full">
             <Link 
               href="/about" 
               className="text-black hover:text-gray-200 transition-colors duration-200 font-medium p-2 lg:px-4 h-full flex items-center font-inktrap uppercase"
@@ -45,7 +45,7 @@ export default function RootLayout({
           </div>
 
           {/* Column 3: Join Link - 13.33% width */}
-          <div className="flex-[0.133] flex justify-end border-r border-black h-full">
+          <div className="flex-[0.133] flex justify-center border-r border-black h-full">
             <Link 
               href="/join" 
               className="text-black hover:text-gray-200 transition-colors duration-200 font-medium p-2 lg:px-4 h-full flex items-center font-inktrap uppercase"
@@ -55,7 +55,7 @@ export default function RootLayout({
           </div>
 
           {/* Column 4: FAQs Link - 13.33% width */}
-          <div className="flex-[0.134] flex justify-end h-full">
+          <div className="flex-[0.134] flex justify-center h-full">
             <Link 
               href="/faqs" 
               className="text-black hover:text-gray-200 transition-colors duration-200 font-medium p-2 lg:px-4 h-full flex items-center font-inktrap uppercase"
@@ -74,14 +74,14 @@ export default function RootLayout({
             <div className="flex-[0.4] flex flex-col justify-center border-r border-black h-full">
               <div className="p-2 lg:px-4 h-full flex flex-col justify-center items-center">
                 <p className="text-lg text-black font-inktrap mb-2 uppercase">powered by</p>
-                <div className="w-16 h-8 bg-gray-200 rounded flex items-center justify-center">
-                  <p className="text-xs text-gray-500 font-inktrap uppercase"><Image src="/images/irl-powered-by-refraction.svg" alt="Refraction Logo" width={108.38} height={55.55} /></p>
+                <div className="w-48 h-8 rounded flex items-center justify-center">
+                  <Image src="/refraction-wordmark.png" alt="Refraction Logo" width={1138} height={134} />
                 </div>
               </div>
             </div>
 
             {/* Column 2: Follow Us + Social Links */}
-            <div className="flex-[0.3] flex flex-col justify-center border-r border-black h-full">
+            <div className="flex-[0.3] flex flex-col items-center border-r border-black h-full">
               <div className="p-2 lg:px-4 h-full flex flex-col justify-center">
                 <p className="text-lg text-black font-inktrap mb-2 uppercase">follow us</p>
                 <div className="flex gap-2 sm:gap-3">
