@@ -21,10 +21,8 @@ export default function IRLPage() {
 
       {/* Row 3: Membership Card Image */}
       <div className="flex justify-center">
-        <div className="w-80 h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-          <p className="text-gray-500 font-inktrap">
-            <Image src="/images/irl-card.png" alt="IRL Membership Card" width={320} height={180} />
-          </p>
+        <div className="w-96 h-64 bg-gray-200 rounded-lg flex items-center justify-center">
+          <Image src="/images/irl-card.png" alt="IRL Membership Card" width={384} height={256} />
         </div>
       </div>
 
@@ -36,7 +34,7 @@ export default function IRLPage() {
             alt="IRL" 
             width={108.38} 
             height={55.55} 
-            className="w-24 h-auto"
+            className="w-32 h-auto"
           />
         </div>
         <div className="flex-1 flex justify-center">
@@ -50,26 +48,20 @@ export default function IRLPage() {
       </div>
 
       {/* Row 5: Three Image Columns */}
-      <div className="flex justify-between max-w-6xl mx-auto space-x-8">
+      <div className="flex justify-between max-w-6xl mx-auto space-x-2 sm:space-x-4 lg:space-x-8">
         <div className="flex-1">
           <div className="w-full rounded-lg flex items-center justify-center">
-            <p className="text-gray-500 font-inktrap">
-              <Image src="/images/irl-memberships-1.png" alt="IRL" width={489.79} height={621.26} />
-            </p>
+            <Image src="/images/irl-memberships-1.png" alt="IRL" width={600} height={800} />
           </div>
         </div>
         <div className="flex-1">
-          <div className="w-full  rounded-lg flex items-center justify-center">
-            <p className="text-gray-500 font-inktrap">
-              <Image src="/images/irl-memberships-2.png" alt="IRL" width={369.3} height={524.19} />
-            </p>
+          <div className="w-full rounded-lg flex items-center justify-center">
+            <Image src="/images/irl-memberships-2.png" alt="IRL" width={450} height={640} />
           </div>
         </div>
         <div className="flex-1">
-          <div className="w-full  rounded-lg flex items-center justify-center">
-            <p className="text-gray-500 font-inktrap">
-              <Image src="/images/irl-memberships-3.png" alt="IRL" width={459.68} height={627.58} />
-            </p>
+          <div className="w-full rounded-lg flex items-center justify-center">
+            <Image src="/images/irl-memberships-3.png" alt="IRL" width={560} height={800} />
           </div>
         </div>
       </div>
@@ -89,7 +81,7 @@ export default function IRLPage() {
       </div>
 
       {/* Row 7: Three Description Columns */}
-      <div className="flex justify-between max-w-6xl mx-auto space-x-8">
+      <div className="flex justify-between max-w-6xl mx-auto space-x-2 sm:space-x-4 lg:space-x-8">
         <div className="flex-1">
           <p className="lg:text-lg text-sm text-black text-center font-inktrap">
             GET YOUR ONBOARDING EMAIL AND CLAIM YOUR TEE
@@ -108,20 +100,20 @@ export default function IRLPage() {
       </div>
 
       {/* Row 8: Three Image Columns */}
-      <div className="flex justify-between max-w-6xl mx-auto space-x-8">
+      <div className="flex justify-betweenI max-w-6xl mx-auto space-x-2 sm:space-x-4 lg:space-x-8">
         <div className="flex-1">
           <div className="w-full rounded-lg flex items-center justify-center">
-            <Image src="/images/irl-tshirt-mockup.png" alt="IRL" width={489.79} height={621.26} />
+            <Image src="/images/irl-tshirt-mockup.png" alt="IRL" width={600} height={800} />
           </div>
         </div>
         <div className="flex-1">
-          <div className="w-full rounded-lg flex items-center justify-center align-top">
-            <Image src="/images/irl-app.svg" alt="IRL" width={210} height={140} />
+          <div className="w-full rounded-lg flex items-center justify-center">
+            <Image src="/images/irl-phone-mockup.png" alt="IRL" width={500} height={340} />
           </div>
         </div>
-      <div className="flex-1">
+        <div className="flex-1">
           <div className="w-full rounded-lg flex items-center justify-center">
-            <Image src="/images/irl-token.svg" alt="IRL" width={110.27} height={110.56} />
+            <Image src="/images/irl-token.png" alt="IRL" width={300} height={300} />
           </div>
         </div>
       </div>
