@@ -21,7 +21,7 @@ export default function IRLPage() {
 
       {/* Row 3: Membership Card Image */}
       <div className="flex justify-center">
-        <div className="w-96 h-64 bg-gray-200 rounded-lg flex items-center justify-center">
+        <div className="w-96 h-64 rounded-lg flex items-center justify-center">
           <Image src="/images/irl-card.png" alt="IRL Membership Card" width={384} height={256} />
         </div>
       </div>
