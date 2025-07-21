@@ -72,7 +72,7 @@ export default function RootLayout({
           <div className="flex justify-between items-center h-32 lg:h-24">
             {/* Column 1: Powered by + Refraction Logo */}
             <div className="flex-[0.3] flex flex-col justify-center border-r border-black h-full">
-              <div className="p-1 lg:px-4 h-full flex flex-col justify-center items-center">
+              <div className="p-1 lg:px-4 h-full flex flex-col justify-center align-bottom items-center">
                 <p className="text-sm lg:text-lg text-black font-inktrap uppercase mb-0.5 lg:mb-1">powered by</p>
                 <div className="w-32 h-16 lg:w-48 lg:h-24 rounded flex items-center justify-center">
                   <Image src="/refraction.png" alt="Refraction Logo" width={162} height={18} className="w-[90%] h-full object-contain" />
@@ -81,7 +81,7 @@ export default function RootLayout({
             </div>
 
             {/* Column 2: Follow Us + Social Links */}
-            <div className="flex-[0.3] flex flex-col justify-center border-r border-black h-full">
+            <div className="flex-[0.3] flex flex-col justify-center items-center border-r border-black h-full">
               <div className="p-1 lg:px-4 h-full flex flex-col justify-center">
                 <p className="text-sm lg:text-lg text-black justify-center font-inktrap mb-1 lg:mb-2 uppercase">follow us</p>
                 <div className="flex gap-1 sm:gap-3">
@@ -166,15 +166,15 @@ export default function RootLayout({
             </div>
 
             {/* Column 3: Copyright + Links */}
-            <div className="flex-[0.4] flex flex-col justify-center h-full">
-              <div className="p-2 lg:px-16 h-full flex flex-col justify-center">
-                <p className="text-xs lg:text-md text-black font-inktrap uppercase mb-2 lg:mb-4 leading-tight">2025 IRL REFRACTION ALL RIGHTS RESERVED.</p>
+            <div className="flex-[0.4] flex flex-col items-center justify-center h-full">
+              <div className="p-2 lg:px-16 h-full flex flex-col  items-center justify-center">
+                <p className="text-md lg:text-md text-black font-inktrap uppercase mb-2 lg:mb-4 ">2025 IRL REFRACTION ALL RIGHTS RESERVED.</p>
                 <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 lg:space-x-4">
                   <div className="flex justify-center sm:justify-start">
-                    <Link href="/privacy" className="text-xs lg:text-md text-black hover:text-gray-600 transition-colors duration-200 font-inktrap">PRIVACY POLICY</Link>
+                    <Link href="/privacy" className="text-md lg:text-md text-black hover:text-gray-600 transition-colors duration-200 font-inktrap">PRIVACY POLICY</Link>
                   </div>
                   <div className="flex justify-center sm:justify-start">
-                    <Link href="/terms" className="text-xs lg:text-md text-black hover:text-gray-600 font-inktrap">TERMS OF SERVICE
+                    <Link href="/terms" className="text-md lg:text-md text-black hover:text-gray-600 font-inktrap">TERMS OF SERVICE
                     </Link>
                   </div>
                 </div>
