@@ -14,14 +14,14 @@ export async function POST(request: NextRequest) {
     if (!walletAddress) {
       return NextResponse.json(
         { error: "Wallet address is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!username || username.trim().length < 1) {
       return NextResponse.json(
         { error: "Username is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,6 +35,25 @@ export async function POST(request: NextRequest) {
 
     const player = await createOrUpdatePlayer(playerData);
 
+    // === Sync the player data to Airtable via internal API ===
+    try {
+      // Derive the base URL (e.g., https://example.com) from the incoming request
+      const baseUrl = new URL(request.url).origin;
+      await fetch(`${baseUrl}/api/add-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: player.id,
+          createdAt: player.created_at,
+          ethAddress: player.wallet_address,
+          email: player.email ?? "",
+        }),
+      });
+    } catch (airtableSyncError) {
+      console.error("Failed to sync user to Airtable:", airtableSyncError);
+      // We log the error but do NOT block the main response
+    }
+
     return NextResponse.json({
       success: true,
       player,
@@ -44,7 +63,7 @@ export async function POST(request: NextRequest) {
     console.error("Player creation API error:", error);
     return NextResponse.json(
       { error: "Failed to create player profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -57,7 +76,7 @@ export async function GET(request: NextRequest) {
     if (!walletAddress) {
       return NextResponse.json(
         { error: "Wallet address is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,7 +94,7 @@ export async function GET(request: NextRequest) {
     console.error("Get player API error:", error);
     return NextResponse.json(
       { error: "Failed to get player data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -88,14 +107,14 @@ export async function PATCH(request: NextRequest) {
     if (!walletAddress) {
       return NextResponse.json(
         { error: "Wallet address is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!username || username.trim().length < 1) {
       return NextResponse.json(
         { error: "Username is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -125,7 +144,7 @@ export async function PATCH(request: NextRequest) {
     console.error("Player update API error:", error);
     return NextResponse.json(
       { error: "Failed to update player profile" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
