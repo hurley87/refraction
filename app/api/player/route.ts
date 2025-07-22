@@ -43,9 +43,7 @@ export async function POST(request: NextRequest) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: player.id,
           createdAt: player.created_at,
-          ethAddress: player.wallet_address,
           email: player.email ?? "",
         }),
       });

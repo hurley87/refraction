@@ -4,13 +4,13 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     // Parse and validate the request body
-    const { id, createdAt, ethAddress, email } = await request.json();
+    const { createdAt, email } = await request.json();
 
-    if (!id || !createdAt || !ethAddress || !email) {
+    if (!createdAt || !email) {
       return NextResponse.json(
         {
           error:
-            "Missing required field(s). id, createdAt, ethAddress and email are mandatory.",
+            "Missing required field(s). createdAt and email are mandatory.",
         },
         { status: 400 },
       );
@@ -37,9 +37,7 @@ export async function POST(request: NextRequest) {
       records: [
         {
           fields: {
-            ID: id,
             "Created at": createdAt,
-            "Ethereum account": ethAddress,
             "Email account": email,
           },
         },
