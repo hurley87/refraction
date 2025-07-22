@@ -19,7 +19,8 @@ export async function POST(request: NextRequest) {
     // Read Airtable credentials from env
     const AIRTABLE_PAT = process.env.AIRTABLE_PAT;
     const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
-    const TABLE_NAME = "Users";
+    // Allow overriding the Airtable table name via env; fall back to the default "IRL"
+    const TABLE_NAME = process.env.AIRTABLE_TABLE_NAME ?? "IRL";
 
     if (!AIRTABLE_PAT || !AIRTABLE_BASE_ID) {
       return NextResponse.json(
@@ -28,7 +29,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${TABLE_NAME}`;
+    // Use encodeURIComponent to safely handle spaces or special characters in the table name
+    const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(TABLE_NAME)}`;
 
     // Build Airtable payload
     const payload = {
