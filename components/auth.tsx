@@ -23,8 +23,8 @@ export default function Auth({ children }: AuthProps) {
         try {
           const response = await fetch(
             `/api/player?walletAddress=${encodeURIComponent(
-              user.wallet.address
-            )}`
+              user.wallet.address,
+            )}`,
           );
 
           if (response.ok) {
@@ -116,7 +116,7 @@ export default function Auth({ children }: AuthProps) {
   // Show username prompt after login
   if (ready && user && needsUsername) {
     return (
-      <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto">
+      <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto h-screen">
         <div className="flex flex-col gap-4">
           <h1 className="text-black text-2xl font-inktrap uppercase text-center">
             WELCOME TO THE IRL NETWORK
