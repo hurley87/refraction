@@ -4,7 +4,7 @@ import { useEffect } from "react";
 export default function LivepaperPage() {
   useEffect(() => {
     // Redirect to the PDF file
-    window.location.href = "/livepaper.pdf";
+    window.location.href = "/pdfs/livepaper-v7.pdf";
   }, []);
 
   return (
