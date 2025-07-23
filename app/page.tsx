@@ -270,7 +270,7 @@ export default function Home() {
           </Link>
           <Link
             target="_blank"
-            href="https://www.instagram.com/irl_energy/"
+            href="https://www.instagram.com/refractionfestival/"
             className="hover:opacity-80 transition-opacity"
           >
             <svg
