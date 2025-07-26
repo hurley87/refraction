@@ -63,6 +63,7 @@ const config: Config = {
         ledger: ["Ledger", "sans-serif"],
         hmalpha: ["HMAlpha", "sans-serif"],
         inktrap: ["Inktrap", "sans-serif"],
+        pleasure: ["Pleasure", "sans-serif"],
       },
     },
   },
