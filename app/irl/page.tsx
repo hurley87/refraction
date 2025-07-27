@@ -149,7 +149,7 @@ export default function IRLPage() {
                       <ul className="text-white space-y-2 font-pleasure text-sm">
                         <li className="flex items-center gap-2 uppercase">
                           <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                          <span>Artist Airdrops from Refraction's Global Network of Digital Pioneers</span>
+                          <span>Artist Airdrops from Refraction&apos;s Global Network of Digital Pioneers</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
@@ -204,7 +204,7 @@ export default function IRLPage() {
                     <ul className="text-white space-y-2 text-sm">
                       <li className="flex items-center gap-2">
                         <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                        <span>Artist Airdrops from Refraction's Global Network of Digital Pioneers</span>
+                        <span>Artist Airdrops from Refraction&apos;s Global Network of Digital Pioneers</span>
                       </li>
                       <li className="flex items-center gap-2">
                         <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
