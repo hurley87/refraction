@@ -6,6 +6,13 @@
 }
 
 @font-face {
+  font-family: 'Pleasure';
+  src: url('/fonts/Pleasure-Variable-Trial.ttf') format('truetype');
+  font-weight: normal;
+}
+
+
+@font-face {
   font-family: 'Ledger';
   src: url('/fonts/LedgerMono-Regular.ttf') format('truetype');
   font-weight: normal;
