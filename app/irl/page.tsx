@@ -3,9 +3,41 @@ import Image from "next/image";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+
+const carouselData = [
+  {
+    text: "Get your onboarding Email and claim your T Shirt",
+    image: "irl-shirt-4000x2250.png",
+    width: 4000,
+    height: 2250,
+    step: 1,
+    stepText: "step one"
+  },
+  {
+    text: "Download the IRL app",
+    image: "irl-app-6000x6857.png",
+    transform: "rotate(15deg)",
+    width: 6000,
+    height: 6857,
+    step: 2,
+    stepText: "step two"
+  },
+  {
+    text: "Your IRL points are auto-applied to your account",
+    image: "irl-token-285x202.png",
+    width: 285,
+    height: 202,
+    step: 3,
+    stepText: "step three"
+  }
+];
+
 
 export default function IRLPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [imageLoading, setImageLoading] = useState(false);
 
   useEffect(() => {
     // Scroll to middle card on mobile
@@ -20,6 +52,14 @@ export default function IRLPage() {
         behavior: 'smooth'
       });
     }
+  }, []);
+
+  // Preload all carousel images
+  useEffect(() => {
+    carouselData.forEach((item) => {
+      const img = new window.Image();
+      img.src = `/${item.image}`;
+    });
   }, []);
 
     return (
@@ -54,7 +94,7 @@ export default function IRLPage() {
       </div>
 
       {/* Video Background Section with Three Columns */}
-      <div className="relative w-full  lg:h-[1000px] overflow-hidden rounded-xl  p-20">
+      <div className="relative w-full  lg:h-[1000px] overflow-hidden rounded-xl  p-20 pb-32">
         {/* Video Background */}
         <video 
           autoPlay 
@@ -232,7 +272,7 @@ export default function IRLPage() {
           </div>
           
           {/* Desktop layout */}
-          <div className="hidden lg:flex w-full gap-12 xl:gap-20 overflow-x-auto">
+          <div className="hidden lg:flex w-full gap-12 xl:gap-20">
           <div className="flex-1 min-w-[300px] bg-black bg-opacity-70 rounded-xl p-6 flex flex-col justify-between">
             {/* Row 1: Title and Price */}
             <div className="flex justify-between items-center mb-4">
@@ -377,6 +417,162 @@ export default function IRLPage() {
         </div>
       </div>
 
+
+             <div className="max-w-4xl mx-auto py-16 px-4">
+                  {/* Carousel Container */}
+         <div className="flex flex-col items-center text-center min-h-fit">
+           {/* Row 1 */}
+           <p className="text-lg font-pleasure text-black mb-2">
+             Earn your points in
+           </p>
+
+           {/* Row 2 */}
+           <h2 className="text-4xl font-pleasure uppercase text-black mb-8">
+             three easy steps
+           </h2>
+
+           {/* Desktop: Two Column Layout */}
+           <div className="hidden lg:flex w-full gap-12 items-center h-96">
+             {/* Left Column - Text Content */}
+             <div className="flex-1 text-left">
+               {/* Row 4 - Current Item Number */}
+               <div className="text-6xl font-pleasure text-white mb-4">
+                 <div className="w-24 h-24 rounded-full bg-[#B5B5B5] flex items-center justify-center">
+                   {carouselData[currentIndex].step}
+                 </div>
+               </div>
+
+               {/* Row 5 - Step Text */}
+               <p className="text-sm font-sans uppercase text-black mb-4">
+                 {carouselData[currentIndex].stepText}
+               </p>
+
+               {/* Row 6 - Description */}
+               <p className="text-lg font-pleasure text-black mb-8">
+                 {carouselData[currentIndex].text}
+               </p>
+             </div>
+
+             {/* Right Column - Image */}
+             <div className="flex-1">
+               <div className="relative w-full">
+                 <Image
+                   src={`/${carouselData[currentIndex].image}`}
+                   width={carouselData[currentIndex].width}
+                   height={carouselData[currentIndex].height}
+                   alt={`Step ${carouselData[currentIndex].step}`}
+                   className="object-contain w-full h-auto max-h-80"
+                   style={carouselData[currentIndex].transform ? { transform: carouselData[currentIndex].transform } : {}}
+                   onLoad={() => setImageLoading(false)}
+                   unoptimized={true}
+                 />
+               </div>
+             </div>
+           </div>
+
+                      {/* Mobile: Vertical Stack */}
+           <div className="lg:hidden w-full min-h-96 mb-8">
+             {/* Row 3 - Images */}
+             <div className="relative w-full mb-8">
+               <Image
+                 src={`/${carouselData[currentIndex].image}`}
+                 width={carouselData[currentIndex].width}
+                 height={carouselData[currentIndex].height}
+                 alt={`Step ${carouselData[currentIndex].step}`}
+                 className="object-contain w-full h-auto max-h-80"
+                 style={carouselData[currentIndex].transform ? { transform: carouselData[currentIndex].transform } : {}}
+                 onLoad={() => setImageLoading(false)}
+                 unoptimized={true}
+               />
+             </div>
+
+             {/* Row 4 - Current Item Number */}
+             <div className="text-6xl font-pleasure text-white mb-4 flex justify-center">
+               <div className="w-24 h-24 rounded-full bg-[#B5B5B5] flex items-center justify-center">
+                 {carouselData[currentIndex].step}
+               </div>
+             </div>
+
+             {/* Row 5 - Step Text */}
+             <p className="text-sm uppercase font-sans text-black mb-4">
+               {carouselData[currentIndex].stepText}
+             </p>
+
+             {/* Row 6 - Description */}
+             <p className="text-lg font-pleasure text-black mb-8">
+               {carouselData[currentIndex].text}
+             </p>
+
+             {/* Row 7 - Navigation Arrows */}
+             <div className="flex gap-4 justify-center">
+               <button 
+                 onClick={() => {
+                   setImageLoading(true);
+                   setCurrentIndex(currentIndex > 0 ? currentIndex - 1 : carouselData.length - 1);
+                 }} 
+                 className="p-2 hover:opacity-70 transition-opacity"
+                 disabled={imageLoading}
+               >
+                 <Image 
+                   src="/up-button.png"
+                   alt="Previous"
+                   width={32}
+                   height={32}
+                 />
+               </button>
+               <button 
+                 onClick={() => {
+                   setImageLoading(true);
+                   setCurrentIndex(currentIndex < carouselData.length - 1 ? currentIndex + 1 : 0);
+                 }} 
+                 className="p-2 hover:opacity-70 transition-opacity"
+                 disabled={imageLoading}
+               >
+                 <Image
+                   src="/down-button.png" 
+                   alt="Next"
+                   width={32}
+                   height={32}
+                 />
+               </button>
+             </div>
+           </div>
+
+           {/* Desktop Navigation Arrows */}
+           <div className="hidden lg:flex gap-4 mb-8">
+                         <button 
+               onClick={() => {
+                 setImageLoading(true);
+                 setCurrentIndex(currentIndex > 0 ? currentIndex - 1 : carouselData.length - 1);
+               }} 
+               className="p-2 hover:opacity-70 transition-opacity"
+               disabled={imageLoading}
+             >
+               <Image 
+                 src="/up-button.png"
+                 alt="Previous"
+                 width={32}
+                 height={32}
+               />
+             </button>
+                           <button 
+                onClick={() => {
+                  setImageLoading(true);
+                  setCurrentIndex(currentIndex < carouselData.length - 1 ? currentIndex + 1 : 0);
+                }} 
+                className="p-2 hover:opacity-70 transition-opacity"
+                disabled={imageLoading}
+              >
+               <Image
+                 src="/down-button.png" 
+                 alt="Next"
+                 width={32}
+                 height={32}
+               />
+             </button>
+          </div>
+        </div>
+      </div>
     
 
       {/* Row 6: Two Columns - Text and Button */}
