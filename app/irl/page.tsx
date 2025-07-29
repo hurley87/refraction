@@ -39,13 +39,26 @@ export default function IRLPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoading, setImageLoading] = useState(false);
 
+  const handlePrevious = () => {
+    setImageLoading(true);
+    const newIndex = currentIndex > 0 ? currentIndex - 1 : carouselData.length - 1;
+    setCurrentIndex(newIndex);
+  };
+
+  const handleNext = () => {
+    setImageLoading(true);
+    const newIndex = currentIndex < carouselData.length - 1 ? currentIndex + 1 : 0;
+    setCurrentIndex(newIndex);
+  };
+
   useEffect(() => {
     // Scroll to middle card on mobile
     if (scrollContainerRef.current && window.innerWidth < 1024) {
       const container = scrollContainerRef.current;
       const cardWidth = 320; // w-80 = 320px
       const gap = 32; // gap-8 = 32px
-      const middleCardPosition = cardWidth + gap; // Position of middle card
+      const padding = 16; // px-4 = 16px
+      const middleCardPosition = cardWidth + gap + padding; // Position of middle card
       
       container.scrollTo({
         left: middleCardPosition,
@@ -123,7 +136,7 @@ export default function IRLPage() {
         {/* Three Column Flexbox Overlay */}
         <div className="relative z-10 lg:flex lg:flex-row h-auto lg:h-[600px] lg:gap-12 xl:gap-20">
           {/* Mobile horizontal scroll container */}
-          <div ref={scrollContainerRef} className="lg:hidden flex overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4 -mx-8 px-8">
+          <div ref={scrollContainerRef} className="lg:hidden flex overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4 px-4">
             <div className="flex gap-8 min-w-max">
               {/* Card 1: Membership */}
               <div className="w-80 flex-shrink-0 snap-center">
@@ -187,24 +200,24 @@ export default function IRLPage() {
                     {/* Row 2: Bullet Points */}
                     <div className="flex-1 mb-4">
                       <ul className="text-white space-y-2 font-pleasure text-sm">
-                        <li className="flex items-center gap-2 uppercase">
-                          <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                        <li className="flex items-start gap-2">
+                          <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
                           <span>Artist Airdrops from Refraction&apos;s Global Network of Digital Pioneers</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                        <li className="flex items-start gap-2">
+                          <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
                           <span>GLOBAL EVENT ACCESS PRIORITY RSVP & EXCLUSIVE PERKS AT IRL PARTNER EVENTS WORLDWIDE.</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                        <li className="flex items-start gap-2">
+                          <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
                           <span>25,000 IRL POINTS AUTOMATICALLY CREDITED. (POINTS CONVERT MONTHLY INTO IRL TOKENS VIA THE EPOCH SYSTEM. EARLY ADOPTERS GET HIGHER RATES.)</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                          <span>IRL TOKEN ELIGIBILITY UNLOCKFUTURE STAKING, REWARDS, AND ON-CHAIN GOVERNANCE.</span>
+                        <li className="flex items-start gap-2">
+                          <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
+                          <span>IRL TOKEN ELIGIBILITY UNLOCK FUTURE STAKING, REWARDS, AND ON-CHAIN GOVERNANCE.</span>
                         </li>
-                        <li className="flex items-center gap-2">
-                          <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                        <li className="flex items-start gap-2">
+                          <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
                           <span>LIMITED-EDITION IRL TEE</span>
                         </li>
                       </ul>
@@ -273,7 +286,7 @@ export default function IRLPage() {
           
           {/* Desktop layout */}
           <div className="hidden lg:flex w-full gap-12 xl:gap-20">
-          <div className="flex-1 min-w-[300px] bg-black bg-opacity-70 rounded-xl p-6 flex flex-col justify-between">
+          <div className="flex-1 min-w-[300px] bg-black bg-opacity-70 rounded-xl p-6 flex flex-col justify-between h-full min-h-[600px]">
             {/* Row 1: Title and Price */}
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-2xl font-bold text-white font-inktrap">Membership</h3>
@@ -332,25 +345,25 @@ export default function IRLPage() {
             
                {/* Row 2: Bullet Points */}
               <div className="flex-1 mb-4">
-                <ul className="text-white space-y-2  font-pleasuretext-sm">
-                  <li className="flex items-center gap-2 uppercase">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                <ul className="text-white space-y-2 font-pleasure text-xs">
+                  <li className="flex items-start gap-2">
+                    <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
                     <span>Artist Airdrops from Refraction’s Global Network of Digital Pioneers</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                  <li className="flex items-start gap-2">
+                    <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
                     <span>GLOBAL EVENT ACCESS PRIORITY RSVP & EXCLUSIVE PERKS AT IRL PARTNER EVENTS WORLDWIDE.</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                  <li className="flex items-start gap-2">
+                    <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
                     <span>25,000 IRL POINTS AUTOMATICALLY CREDITED. (POINTS CONVERT MONTHLY INTO IRL TOKENS VIA THE EPOCH SYSTEM. EARLY ADOPTERS GET HIGHER RATES.)</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                  <li className="flex items-start gap-2">
+                    <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
                     <span>IRL TOKEN ELIGIBILITY UNLOCKFUTURE STAKING, REWARDS, AND ON-CHAIN GOVERNANCE.</span>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                  <li className="flex items-start gap-2">
+                    <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
                     <span>LIMITED-EDITION IRL TEE</span>
                   </li>
                 
@@ -364,7 +377,7 @@ export default function IRLPage() {
                 </button>
             </div>
           </div>
-          <div className="flex-1 min-w-[300px] bg-black bg-opacity-70 rounded-xl p-8 lg:p-6 flex flex-col justify-between">
+          <div className="flex-1 min-w-[300px] bg-black bg-opacity-70 rounded-xl p-8 lg:p-6 flex flex-col justify-between h-full min-h-[600px]">
             {/* Row 1: Title and Price */}
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-2xl font-bold text-white font-inktrap">Affiliate Membership</h3>
@@ -385,19 +398,19 @@ export default function IRLPage() {
                           {/* Row 2: Bullet Points */}
               <div className="flex-1 mb-4 font-pleasure">
                 <ul className="text-white space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
+                  <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
                     <span>Artist Airdrops from Refraction’s Global Network of Digital Pioneers</span>
                   </li>
-                  <li className="flex items-center gap-2">
+                  <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
                     <span>GLOBAL EVENT ACCESS PRIORITY RSVP & EXCLUSIVE PERKS AT IRL PARTNER EVENTS WORLDWIDE.</span>
                   </li>
-                  <li className="flex items-center gap-2">
+                  <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
                     <span>25,000 IRL POINTS AUTOMATICALLY CREDITED. (POINTS CONVERT MONTHLY INTO IRL TOKENS VIA THE EPOCH SYSTEM. EARLY ADOPTERS GET HIGHER RATES.)</span>
                   </li>
-                <li className="flex items-center gap-2">
+                <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
                     <span>IRL TOKEN ELIGIBILITY UNLOCK FUTURE STAKING, REWARDS, AND ON-CHAIN GOVERNANCE.</span>
                   </li>
@@ -420,14 +433,14 @@ export default function IRLPage() {
 
              <div className="max-w-4xl mx-auto py-16 px-4">
                   {/* Carousel Container */}
-         <div className="flex flex-col items-center text-center min-h-fit">
+         <div className="flex flex-col items-start min-h-fit">
            {/* Row 1 */}
-           <p className="text-lg font-pleasure text-black mb-2">
+           <p className="text-lg font-pleasure text-black mb-2 text-left">
              Earn your points in
            </p>
 
            {/* Row 2 */}
-           <h2 className="text-4xl font-pleasure uppercase text-black mb-8">
+           <h2 className="text-4xl font-pleasure uppercase text-black mb-8 text-left">
              three easy steps
            </h2>
 
@@ -494,24 +507,22 @@ export default function IRLPage() {
              </div>
 
              {/* Row 5 - Step Text */}
-             <p className="text-sm uppercase font-sans text-black mb-4">
+             <p className="text-sm uppercase font-sans text-black mb-4 text-center">
                {carouselData[currentIndex].stepText}
              </p>
 
              {/* Row 6 - Description */}
-             <p className="text-lg font-pleasure text-black mb-8">
+             <p className="text-lg font-pleasure text-black mb-8 text-center">
                {carouselData[currentIndex].text}
              </p>
 
              {/* Row 7 - Navigation Arrows */}
-             <div className="flex gap-4 justify-center">
+             <div className="flex gap-4 justify-center items-center relative z-10">
                <button 
-                 onClick={() => {
-                   setImageLoading(true);
-                   setCurrentIndex(currentIndex > 0 ? currentIndex - 1 : carouselData.length - 1);
-                 }} 
+                 onClick={handlePrevious}
                  className="p-2 hover:opacity-70 transition-opacity"
                  disabled={imageLoading}
+                 type="button"
                >
                  <Image 
                    src="/up-button.png"
@@ -521,12 +532,10 @@ export default function IRLPage() {
                  />
                </button>
                <button 
-                 onClick={() => {
-                   setImageLoading(true);
-                   setCurrentIndex(currentIndex < carouselData.length - 1 ? currentIndex + 1 : 0);
-                 }} 
+                 onClick={handleNext}
                  className="p-2 hover:opacity-70 transition-opacity"
                  disabled={imageLoading}
+                 type="button"
                >
                  <Image
                    src="/down-button.png" 
@@ -539,14 +548,12 @@ export default function IRLPage() {
            </div>
 
            {/* Desktop Navigation Arrows */}
-           <div className="hidden lg:flex gap-4 mb-8">
+           <div className="hidden lg:flex gap-4 mb-8 relative z-10">
                          <button 
-               onClick={() => {
-                 setImageLoading(true);
-                 setCurrentIndex(currentIndex > 0 ? currentIndex - 1 : carouselData.length - 1);
-               }} 
+               onClick={handlePrevious}
                className="p-2 hover:opacity-70 transition-opacity"
                disabled={imageLoading}
+               type="button"
              >
                <Image 
                  src="/up-button.png"
@@ -556,12 +563,9 @@ export default function IRLPage() {
                />
              </button>
                            <button 
-                onClick={() => {
-                  setImageLoading(true);
-                  setCurrentIndex(currentIndex < carouselData.length - 1 ? currentIndex + 1 : 0);
-                }} 
+                onClick={handleNext}
                 className="p-2 hover:opacity-70 transition-opacity"
-                disabled={imageLoading}
+                type="button"
               >
                <Image
                  src="/down-button.png" 
@@ -576,18 +580,20 @@ export default function IRLPage() {
     
 
       {/* Row 6: Two Columns - Text and Button */}
-      <div className="flex flex-col lg:flex-row items-center justify-between py-12 max-w-6xl mx-auto space-y-6 lg:space-y-0">
-        <div className="flex-1">
-          <p className="lg:text-4xl text-2xl text-black font-pleasure uppercase text-center">
-            already a refract pass holder? unlock your perks
-          </p>
+      <section className="py-12 sm:py-16 md:py-20 lg:py-24 xl:py-48 lg:pb-10">
+        <div className="max-w-[468px] mx-auto text-center flex flex-col items-center justify-center gap-6 sm:gap-8">
+          <div className="flex-1">
+            <p className="lg:text-4xl text-2xl text-black font-pleasure uppercase text-center">
+              already a refract pass holder? unlock your perks
+            </p>
+          </div>
+          <div className="flex-1 flex justify-center lg:justify-end">
+            <button className="bg-black text-white px-8 py-4 rounded-full hover:bg-gray-800 transition-colors duration-200 font-inktrap uppercase">
+              fill out membership form
+            </button>
+          </div>
         </div>
-        <div className="flex-1 flex justify-center lg:justify-end">
-          <button className="bg-black text-white px-8 py-4 rounded-full hover:bg-gray-800 transition-colors duration-200 font-inktrap uppercase">
-            fill out membership form
-          </button>
-        </div>
-      </div>
+      </section>
 
 
       {/* Claim Points Section */}
