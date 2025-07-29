@@ -57,7 +57,7 @@ export default function IRLPage() {
       const container = scrollContainerRef.current;
       const cardWidth = 320; // w-80 = 320px
       const gap = 32; // gap-8 = 32px
-      const padding = 16; // px-4 = 16px
+      const padding = 24; // px-6 = 24px
       const middleCardPosition = cardWidth + gap + padding; // Position of middle card
       
       container.scrollTo({
@@ -107,20 +107,25 @@ export default function IRLPage() {
       </div>
 
       {/* Video Background Section with Three Columns */}
-      <div className="relative w-full  lg:h-[1000px] overflow-hidden rounded-xl  p-20 pb-32">
+      <div className="relative w-full lg:h-[1000px] overflow-hidden rounded-xl lg:p-20 lg:pb-32">
         {/* Video Background */}
         <video 
           autoPlay 
           loop 
           muted 
+          playsInline
+          preload="metadata"
           className="absolute inset-0 w-full h-full object-cover"
         >
           <source src="/video-reel.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
         
+        {/* Fallback Background Image for Mobile */}
+        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-900 via-pink-900 to-orange-900 lg:hidden"></div>
+        
         {/* Text Overlay - Two Rows */}
-        <div className="relative z-10 flex flex-col justify-start pt-8 pb-10">
+        <div className="relative z-10 flex flex-col justify-start lg:pt-8 lg:pb-10 pt-4 pb-6">
           <div className="lg:text-left text-center  mb-4">
             <h2 className="text-4xl lg:text-8xl font-bold text-[#ffe600] font-inktrap">
               Earn Rewards
@@ -136,7 +141,7 @@ export default function IRLPage() {
         {/* Three Column Flexbox Overlay */}
         <div className="relative z-10 lg:flex lg:flex-row h-auto lg:h-[600px] lg:gap-12 xl:gap-20">
           {/* Mobile horizontal scroll container */}
-          <div ref={scrollContainerRef} className="lg:hidden flex overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4 px-4">
+          <div ref={scrollContainerRef} className="lg:hidden flex overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4 px-6">
             <div className="flex gap-8 min-w-max">
               {/* Card 1: Membership */}
               <div className="w-80 flex-shrink-0 snap-center">
