@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+// Ensure the handler runs dynamically at request time
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 /**
  * Update Airtable records with the latest player points.
  *
