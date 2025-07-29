@@ -202,7 +202,7 @@ export default function IRLPage() {
                       <ul className="text-white space-y-2 font-pleasure text-sm">
                         <li className="flex items-start gap-2">
                           <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                          <span>Artist Airdrops from Refraction's Global Network of Digital Pioneers</span>
+                          <span>Artist Airdrops from Refraction&apos;s Global Network of Digital Pioneers</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
