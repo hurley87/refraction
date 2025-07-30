@@ -17,7 +17,7 @@ const carouselData = [
   {
     text: "Download the IRL app",
     image: "irl-app-6000x6857.png",
-    transform: "rotate(15deg)",
+    //transform: "rotate(15deg)",
     width: 6000,
     height: 6857,
     step: 2,
@@ -25,7 +25,7 @@ const carouselData = [
   },
   {
     text: "Your IRL points are auto-applied to your account",
-    image: "irl-token-285x202.png",
+    image: "plus.svg",
     width: 285,
     height: 202,
     step: 3,
@@ -445,7 +445,7 @@ export default function IRLPage() {
            </p>
 
            {/* Row 2 */}
-           <h2 className="text-4xl font-pleasure uppercase text-black mb-8 text-left">
+           <h2 className="text-4xl font-pleasure-standard-bold uppercase text-black mb-8 text-left">
              three easy steps
            </h2>
 
@@ -454,7 +454,7 @@ export default function IRLPage() {
              {/* Left Column - Text Content */}
              <div className="flex-1 text-left">
                {/* Row 4 - Current Item Number */}
-               <div className="text-6xl font-pleasure text-white mb-4">
+               <div className="text-6xl font-abc-monument-bold text-white mb-4">
                  <div className="w-24 h-24 rounded-full bg-[#B5B5B5] flex items-center justify-center">
                    {carouselData[currentIndex].step}
                  </div>
@@ -480,7 +480,7 @@ export default function IRLPage() {
                    height={carouselData[currentIndex].height}
                    alt={`Step ${carouselData[currentIndex].step}`}
                    className="object-contain w-full h-auto max-h-80"
-                   style={carouselData[currentIndex].transform ? { transform: carouselData[currentIndex].transform } : {}}
+                   
                    onLoad={() => setImageLoading(false)}
                    unoptimized={true}
                  />
@@ -498,14 +498,14 @@ export default function IRLPage() {
                  height={carouselData[currentIndex].height}
                  alt={`Step ${carouselData[currentIndex].step}`}
                  className="object-contain w-full h-auto max-h-80"
-                 style={carouselData[currentIndex].transform ? { transform: carouselData[currentIndex].transform } : {}}
+                
                  onLoad={() => setImageLoading(false)}
                  unoptimized={true}
                />
              </div>
 
              {/* Row 4 - Current Item Number */}
-             <div className="text-6xl font-pleasure text-white mb-4 flex justify-center">
+             <div className="text-6xl font-abc-monument-bold text-white mb-4 flex justify-center">
                <div className="w-24 h-24 rounded-full bg-[#B5B5B5] flex items-center justify-center">
                  {carouselData[currentIndex].step}
                </div>
