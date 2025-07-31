@@ -7,8 +7,8 @@ import { useState } from "react";
 
 const carouselData = [
   {
-    text: "Get your onboarding Email and claim your T Shirt → ",
-    subtext: "Apply for membership, get your onboarding email, and claim your &apos;IN REAL LIFE&apos; tee",
+    text: "Apply for membership, get your onboarding email, and claim your 'IN REAL LIFE' tee →",
+    
     image: "irl-shirt-4000x2250.png",
     width: 4000,
     height: 2250,
@@ -16,8 +16,8 @@ const carouselData = [
     stepText: "step one"
   },
   {
-    text: "Download the IRL app →",
-    subtext: "Complete your profile on the IRL App",
+    text: "Complete your profile on the IRL App →",
+    
     image: "irl-app-6000x6857.png",
     //transform: "rotate(15deg)",
     width: 6000,
@@ -484,7 +484,7 @@ export default function MembershipPage() {
 
                {/* Row 6 - Description */}
                <p className="text-lg font-pleasure text-black mb-8">
-                 <b>{carouselData[currentIndex].text}</b> {carouselData[currentIndex].subtext}
+                 <b>{carouselData[currentIndex].text}</b>
                </p>
              </div>
 
@@ -496,7 +496,11 @@ export default function MembershipPage() {
                    width={carouselData[currentIndex].width}
                    height={carouselData[currentIndex].height}
                    alt={`Step ${carouselData[currentIndex].step}`}
-                   className="object-contain w-full h-auto max-h-96 lg:max-h-[500px]"
+                   className={`object-contain w-full h-auto ${
+                     carouselData[currentIndex].step === 3 
+                       ? 'max-h-48 lg:max-h-64' 
+                       : 'max-h-96 lg:max-h-[500px]'
+                   }`}
                    
                    onLoad={() => setImageLoading(false)}
                    unoptimized={true}
@@ -514,7 +518,11 @@ export default function MembershipPage() {
                  width={carouselData[currentIndex].width}
                  height={carouselData[currentIndex].height}
                  alt={`Step ${carouselData[currentIndex].step}`}
-                 className="object-contain w-full h-auto max-h-80"
+                 className={`object-contain w-full h-auto ${
+                   carouselData[currentIndex].step === 3 
+                     ? 'max-h-40' 
+                     : 'max-h-80'
+                 }`}
                 
                  onLoad={() => setImageLoading(false)}
                  unoptimized={true}
@@ -605,15 +613,30 @@ export default function MembershipPage() {
       <section className="py-12 sm:py-16 md:py-20 lg:py-24 xl:py-48 lg:pb-10">
         <div className="max-w-[468px] mx-auto text-center flex flex-col items-center justify-center gap-6 sm:gap-8">
           <div className="flex-1">
-            <p className="lg:text-4xl text-2xl text-black font-pleasure uppercase text-center">
-              already a refract pass holder? unlock your perks
+            <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-black font-inktrap  text-center mb-4">
+             <span >Already A Refract Pass Holder?</span> 
+            </p>
+            <p className=" text-sm sm:text-base md:text-lg  text-black font-abc-monument-regular  text-center">
+              <span >Unlock your benefits by filling out the membership form below</span>
             </p>
           </div>
-          <div className="flex-1 flex justify-center lg:justify-end">
+          <div className="w-full">
             <Link href="https://airtable.com/appvZLHmZscDDAgE8/pag0WduGqOusMmok2/form" target="_blank">
-              <button className="bg-black text-white px-8 py-4 rounded-full hover:bg-gray-800 transition-colors duration-200 font-pleasure-standard-regularç uppercase">
-                fill out membership form
-              </button>
+               <Button
+              size="lg"
+              className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
+            >
+              <span className="text-black font-light">
+               Fill Out Membership Form
+              </span>
+              <Image
+                src="/home/arrow-right.svg"
+                alt="arrow-right"
+                width={24}
+                height={24}
+                className="w-5 h-5 sm:w-6 sm:h-6"
+              />
+            </Button>
             </Link>
           </div>
         </div>
