@@ -7,7 +7,8 @@ import { useState } from "react";
 
 const carouselData = [
   {
-    text: "Get your onboarding Email and claim your T Shirt",
+    text: "Get your onboarding Email and claim your T Shirt → ",
+    subtext: "Apply for membership, get your onboarding email, and claim your &apos;IN REAL LIFE&apos; tee",
     image: "irl-shirt-4000x2250.png",
     width: 4000,
     height: 2250,
@@ -15,7 +16,8 @@ const carouselData = [
     stepText: "step one"
   },
   {
-    text: "Download the IRL app",
+    text: "Download the IRL app →",
+    subtext: "Complete your profile on the IRL App",
     image: "irl-app-6000x6857.png",
     //transform: "rotate(15deg)",
     width: 6000,
@@ -26,8 +28,8 @@ const carouselData = [
   {
     text: "Your IRL points are auto-applied to your account",
     image: "plus.svg",
-    width: 285,
-    height: 202,
+    width: 357,
+    height: 253,
     step: 3,
     stepText: "step three"
   }
@@ -88,13 +90,13 @@ export default function MembershipPage() {
       {/* Row 2: Main Heading */}
       <div className="text-center max-w-[90%] sm:max-w-[80%] lg:max-w-[40%] mx-auto px-4">
         <h1 className="text-4xl sm:text-6xl lg:text-8xl font-bold text-black font-inktrap leading-tight">
-          Become a founding member of IRL
+          Become a Founding Member of IRL
         </h1>
       </div>
 
       {/* Row 3: Subheading */}
       <div className="text-center max-w-[90%] sm:max-w-[80%] lg:max-w-[40%] mx-auto px-4">
-        <p className="text-lg sm:text-xl lg:text-2xl text-gray-700 leading-relaxed font-inktrap">
+        <p className="text-lg sm:text-xl lg:text-2xl text-gray-700 leading-relaxed font-pleasure">
           Join 1168 artists and 200 global partners in collectively owning culture&apos;s rewards program.
         </p>
       </div>
@@ -310,7 +312,7 @@ export default function MembershipPage() {
             
                           {/* Row 2: Bullet Points */}
               <div className="flex-1 mb-4 font-pleasure">
-                <ul className="text-white space-y-2 text-sm">
+                <ul className="text-white space-y-2 text-sm font-pleasure-standard-regular">
                   <li className="flex items-center gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
                     <span>Earn IRL Points</span>
@@ -354,36 +356,38 @@ export default function MembershipPage() {
             
                {/* Row 2: Bullet Points */}
               <div className="flex-1 mb-4">
-                <ul className="text-white space-y-2 font-pleasure text-xs">
+                <ul className="text-white space-y-2  font-pleasure-standard-regular text-sm">
                   <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                    <span>Artist Airdrops from Refraction’s Global Network of Digital Pioneers</span>
+                    <span>Artist airdrops from refraction&apos;s global network of digital pioneers</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                    <span>GLOBAL EVENT ACCESS PRIORITY RSVP & EXCLUSIVE PERKS AT IRL PARTNER EVENTS WORLDWIDE.</span>
+                    <span>Global event access priority RSVP & exclusive perks at IRL partner events worldwide.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                    <span>25,000 IRL POINTS AUTOMATICALLY CREDITED. (POINTS CONVERT MONTHLY INTO IRL TOKENS VIA THE EPOCH SYSTEM. EARLY ADOPTERS GET HIGHER RATES.)</span>
+                    <span>25,000 IRL points automatically credited. (Points convert monthly into IRL tokens via the epoch system. Early adopters get higher rates.)</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                    <span>IRL TOKEN ELIGIBILITY UNLOCKFUTURE STAKING, REWARDS, AND ON-CHAIN GOVERNANCE.</span>
+                    <span>IRL token eligibility unlockfuture staking, rewards, and on-chain governance.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                    <span>LIMITED-EDITION IRL TEE</span>
+                    <span>Limited-edition IRL tee</span>
                   </li>
                 
                 </ul>
             </div>
             
              {/* Row 3: Button */}
-                             <button className="bg-white text-black px-4 sm:px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-300 transition-colors duration-200 font-inktrap whitespace-nowrap uppercase">
+             <Link href="https://airtable.com/appygGt0rRgfh6qxA/shrkshw6J2OMYuae7" target="_blank">
+                  <button className="bg-white text-black px-4 sm:px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-300 transition-colors duration-200 font-inktrap whitespace-nowrap uppercase">
                   <span className="text-xs sm:text-sm">Become a founding member</span>
                   <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
                 </button>
+            </Link>
             </div>
           </div>
           <div className="flex-1 min-w-[300px] bg-black bg-opacity-70 rounded-xl p-8 lg:p-6 flex flex-col justify-between h-full min-h-[600px]">
@@ -409,22 +413,26 @@ export default function MembershipPage() {
             
                           {/* Row 2: Bullet Points */}
               <div className="flex-1 mb-4 font-pleasure">
-                <ul className="text-white space-y-2 text-sm">
+                <ul className="text-white space-y-2 font-pleasure-standard-regular  text-sm">
                   <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                    <span>Artist Airdrops from Refraction’s Global Network of Digital Pioneers</span>
+                    <span>Artist airdrops from refraction&apos;s global network of digital pioneers</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                    <span>GLOBAL EVENT ACCESS PRIORITY RSVP & EXCLUSIVE PERKS AT IRL PARTNER EVENTS WORLDWIDE.</span>
+                    <span>Global event access priority RSVP & exclusive perks at IRL partner events worldwide.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                    <span>25,000 IRL POINTS AUTOMATICALLY CREDITED. (POINTS CONVERT MONTHLY INTO IRL TOKENS VIA THE EPOCH SYSTEM. EARLY ADOPTERS GET HIGHER RATES.)</span>
+                    <span>25,000 IRL points automatically credited. (Points convert monthly into IRL tokens via the epoch system. Early adopters get higher rates.)</span>
                   </li>
                 <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                    <span>IRL TOKEN ELIGIBILITY UNLOCK FUTURE STAKING, REWARDS, AND ON-CHAIN GOVERNANCE.</span>
+                    <span>IRL token eligibility unlock future staking, rewards, and on-chain governance.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                    <span>Limited-edition IRL tee</span>
                   </li>
 
                 
@@ -445,7 +453,7 @@ export default function MembershipPage() {
       </div>
 
 
-             <div className="max-w-4xl mx-auto py-16 px-4">
+             <div className="max-w-6xl mx-auto py-16 px-4">
                   {/* Carousel Container */}
          <div className="flex flex-col items-start min-h-fit">
            {/* Row 1 */}
@@ -459,36 +467,36 @@ export default function MembershipPage() {
            </h2>
 
            {/* Desktop: Two Column Layout */}
-           <div className="hidden lg:flex w-full gap-12 items-center h-96">
+           <div className="hidden lg:flex w-full gap-12 items-center h-[600px]">
              {/* Left Column - Text Content */}
-             <div className="flex-1 text-left">
+             <div className="flex-[0.4] text-left">
                {/* Row 4 - Current Item Number */}
-               <div className="text-6xl font-abc-monument-bold text-white mb-4">
-                 <div className="w-24 h-24 rounded-full bg-[#B5B5B5] flex items-center justify-center">
+               <div className="text-4xl font-abc-monument-bold text-white mb-4">
+                 <div className="w-16 h-16 rounded-full bg-[#B5B5B5] flex items-center justify-center">
                    {carouselData[currentIndex].step}
                  </div>
                </div>
 
                {/* Row 5 - Step Text */}
-               <p className="text-sm font-sans uppercase text-black mb-4">
+               <p className="text-sm font-pleasure-standard-regular uppercase text-black mb-4">
                  {carouselData[currentIndex].stepText}
                </p>
 
                {/* Row 6 - Description */}
                <p className="text-lg font-pleasure text-black mb-8">
-                 {carouselData[currentIndex].text}
+                 <b>{carouselData[currentIndex].text}</b> {carouselData[currentIndex].subtext}
                </p>
              </div>
 
              {/* Right Column - Image */}
-             <div className="flex-1">
+             <div className="flex-[0.6]">
                <div className="relative w-full">
                  <Image
                    src={`/${carouselData[currentIndex].image}`}
                    width={carouselData[currentIndex].width}
                    height={carouselData[currentIndex].height}
                    alt={`Step ${carouselData[currentIndex].step}`}
-                   className="object-contain w-full h-auto max-h-80"
+                   className="object-contain w-full h-auto max-h-96 lg:max-h-[500px]"
                    
                    onLoad={() => setImageLoading(false)}
                    unoptimized={true}
@@ -521,7 +529,7 @@ export default function MembershipPage() {
              </div>
 
              {/* Row 5 - Step Text */}
-             <p className="text-sm uppercase font-sans text-black mb-4 text-center">
+             <p className="text-sm uppercase font-pleasure-standard-regular text-black mb-4 text-center">
                {carouselData[currentIndex].stepText}
              </p>
 
@@ -603,7 +611,7 @@ export default function MembershipPage() {
           </div>
           <div className="flex-1 flex justify-center lg:justify-end">
             <Link href="https://airtable.com/appvZLHmZscDDAgE8/pag0WduGqOusMmok2/form" target="_blank">
-              <button className="bg-black text-white px-8 py-4 rounded-full hover:bg-gray-800 transition-colors duration-200 font-pleasure-standard-regular uppercase">
+              <button className="bg-black text-white px-8 py-4 rounded-full hover:bg-gray-800 transition-colors duration-200 font-pleasure-standard-regularç uppercase">
                 fill out membership form
               </button>
             </Link>
