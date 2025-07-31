@@ -34,7 +34,7 @@ const carouselData = [
 ];
 
 
-export default function IRLPage() {
+export default function MembershipPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoading, setImageLoading] = useState(false);
@@ -100,9 +100,11 @@ export default function IRLPage() {
       </div>
 
       <div className="flex flex-col items-center space-y-4">
-        <button className="bg-white text-black px-8 py-4 h-16 flex items-center gap-2 rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase">
-          Earn your first points <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
-        </button>
+        <Link href="/game">
+          <button className="bg-white text-black px-8 py-4 h-16 flex items-center gap-2 rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase">
+            Earn your first points <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
+          </button>
+        </Link>
         <Image src="/poweredbyrefraction.svg" alt="IRL Membership Card" width={300} height={150} />
       </div>
 
@@ -326,10 +328,12 @@ export default function IRLPage() {
             </div>
             
             {/* Row 3: Button */}
-            <button className="bg-gray-800 text-white px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap uppercase">
-              <span>Sign up for free</span>
-              <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
-            </button>
+            <Link href="/">
+              <button className="bg-gray-800 text-white px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap uppercase">
+                <span>Sign up for free</span>
+                <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
+              </button>
+            </Link>
           </div>
           
           <div className="flex-1 min-w-[300px] rounded-xl p-[2px] bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500">
@@ -387,9 +391,12 @@ export default function IRLPage() {
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-2xl font-bold text-white font-inktrap">Affiliate Membership</h3>
               <span className="text-xl text-white font-inktrap font-semibold">
-                <button className="bg-white text-black text-xs px-4 py-2 h-8 flex items-center gap-2 rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase whitespace-nowrap">
-                  Contact Us <Image src="/arrow-right.svg" alt="IRL" width={16} height={16} />
-                </button></span>
+                <Link href="mailto:partnerships@refractionfestival.com">
+                  <button className="bg-white text-black text-xs px-4 py-2 h-8 flex items-center gap-2 rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase whitespace-nowrap">
+                    Contact Us <Image src="/arrow-right.svg" alt="IRL" width={16} height={16} />
+                  </button>
+                </Link>
+              </span>
             </div>
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center justify-center gap-2 w-full">
@@ -425,10 +432,12 @@ export default function IRLPage() {
             </div>
             
             {/* Row 3: Button */}
-            <button className="bg-gray-800 text-white  px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap whitespace-nowrap uppercase">
-              <span>Get In Touch</span>
-              <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
-            </button>
+            <Link href="mailto:partnerships@refractionfestival.com">
+              <button className="bg-gray-800 text-white  px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap whitespace-nowrap uppercase">
+                <span>Get In Touch</span>
+                <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
+              </button>
+            </Link>
           </div>
           
           </div>
@@ -593,9 +602,11 @@ export default function IRLPage() {
             </p>
           </div>
           <div className="flex-1 flex justify-center lg:justify-end">
-            <button className="bg-black text-white px-8 py-4 rounded-full hover:bg-gray-800 transition-colors duration-200 font-inktrap uppercase">
-              fill out membership form
-            </button>
+            <Link href="https://airtable.com/appvZLHmZscDDAgE8/pag0WduGqOusMmok2/form" target="_blank">
+              <button className="bg-black text-white px-8 py-4 rounded-full hover:bg-gray-800 transition-colors duration-200 font-pleasure-standard-regular uppercase">
+                fill out membership form
+              </button>
+            </Link>
           </div>
         </div>
       </section>
