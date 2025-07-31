@@ -8,7 +8,7 @@ import { useState } from "react";
 const carouselData = [
   {
     text: "Get your onboarding Email and claim your T Shirt → ",
-    subtext: "Apply for membership, get your onboarding email, and claim your ‘IN REAL LIFE’ tee",
+    subtext: "Apply for membership, get your onboarding email, and claim your &apos;IN REAL LIFE&apos; tee",
     image: "irl-shirt-4000x2250.png",
     width: 4000,
     height: 2250,
@@ -359,7 +359,7 @@ export default function MembershipPage() {
                 <ul className="text-white space-y-2  font-pleasure-standard-regular text-sm">
                   <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                    <span>Artist airdrops from refraction's global network of digital pioneers</span>
+                    <span>Artist airdrops from refraction&apos;s global network of digital pioneers</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
@@ -416,7 +416,7 @@ export default function MembershipPage() {
                 <ul className="text-white space-y-2 font-pleasure-standard-regular  text-sm">
                   <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                    <span>Artist airdrops from refraction's global network of digital pioneers</span>
+                    <span>Artist airdrops from refraction&apos;s global network of digital pioneers</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
