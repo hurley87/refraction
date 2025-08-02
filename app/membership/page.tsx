@@ -331,9 +331,9 @@ export default function MembershipPage() {
             
             {/* Row 3: Button */}
             <Link href="/">
-              <button className="bg-gray-800 text-white px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap uppercase">
+              <button className="bg-gray-800 text-white px-8 lg:w-full py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap uppercase">
                 <span>Sign up for free</span>
-                <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
+                <Image src="/white-arrow-right.svg" alt="IRL" width={20} height={20} />
               </button>
             </Link>
           </div>
@@ -383,7 +383,7 @@ export default function MembershipPage() {
             
              {/* Row 3: Button */}
              <Link href="https://airtable.com/appygGt0rRgfh6qxA/shrkshw6J2OMYuae7" target="_blank">
-                  <button className="bg-white text-black px-4 sm:px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-300 transition-colors duration-200 font-inktrap whitespace-nowrap uppercase">
+                  <button className="bg-white text-black px-6 sm:px-6 md:px-2 lg:w-full py-4 h-16 md:text-sm flex items-center justify-between rounded-full hover:bg-gray-300 transition-colors duration-200 font-inktrap whitespace-nowrap uppercase">
                   <span className="text-xs sm:text-sm">Become a founding member</span>
                   <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
                 </button>
@@ -441,9 +441,9 @@ export default function MembershipPage() {
             
             {/* Row 3: Button */}
             <Link href="mailto:partnerships@refractionfestival.com">
-              <button className="bg-gray-800 text-white  px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap whitespace-nowrap uppercase">
+              <button className="bg-gray-800 text-white  lg:w-full px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap whitespace-nowrap uppercase">
                 <span>Get In Touch</span>
-                <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
+                <Image src="/white-arrow-right.svg" alt="IRL" width={20} height={20} />
               </button>
             </Link>
           </div>
@@ -651,7 +651,7 @@ export default function MembershipPage() {
             <br />
             YOUR POINTS
           </h2>
-          <p className="text-black text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-anonymous">
+          <p className="text-black text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-abc-monument-regular">
             Check in to earn points on the IRL network, with instant access to
             future rewards and experiences.
           </p>
