@@ -383,7 +383,7 @@ export default function MembershipPage() {
             
              {/* Row 3: Button */}
              <Link href="https://airtable.com/appygGt0rRgfh6qxA/shrkshw6J2OMYuae7" target="_blank">
-                  <button className="bg-white text-black px-6 sm:px-6 md:px-2  py-4 h-16 md:text-sm flex items-center justify-between rounded-full hover:bg-gray-300 transition-colors duration-200 font-inktrap uppercase">
+                  <button className="bg-white text-black px-6 sm:px-6 md:px-2  py-4 h-16 md:text-sm flex items-center justify-between rounded-full hover:bg-gray-300 transition-colors duration-200 font-inktrap w-full uppercase">
                   <span className="text-xs sm:text-sm">Become a founding member</span>
                   <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
                 </button>
@@ -548,62 +548,86 @@ export default function MembershipPage() {
 
              {/* Row 7 - Navigation Arrows */}
              <div className="flex gap-4 justify-center items-center relative z-10">
+               {currentIndex > 0 ? (
                <button 
                  onClick={handlePrevious}
                  className="p-2 hover:opacity-70 transition-opacity"
                  disabled={imageLoading}
                  type="button"
                >
+               
                  <Image 
                    src="/up-button.png"
                    alt="Previous"
                    width={32}
                    height={32}
-                 />
+                    />
+                  
                </button>
+                ):(
+                null
+                )}  
+                 {currentIndex < carouselData.length -1 ? (
                <button 
                  onClick={handleNext}
                  className="p-2 hover:opacity-70 transition-opacity"
                  disabled={imageLoading}
                  type="button"
                >
+                
                  <Image
                    src="/down-button.png" 
                    alt="Next"
                    width={32}
                    height={32}
                  />
+                
                </button>
+                ):(
+                  null
+                 )}
              </div>
            </div>
 
            {/* Desktop Navigation Arrows */}
            <div className="hidden lg:flex gap-4 mb-8 relative z-10">
-                         <button 
+            {currentIndex > 0 ? (
+            <button 
                onClick={handlePrevious}
                className="p-2 hover:opacity-70 transition-opacity"
                disabled={imageLoading}
                type="button"
              >
+              
                <Image 
                  src="/up-button.png"
                  alt="Previous"
                  width={32}
                  height={32}
                />
+            
              </button>
-                           <button 
+                ):(
+                null
+               )}
+              {currentIndex < carouselData.length -1 ? (
+              <button 
                 onClick={handleNext}
                 className="p-2 hover:opacity-70 transition-opacity"
                 type="button"
               >
+              
                <Image
                  src="/down-button.png" 
                  alt="Next"
                  width={32}
                  height={32}
                />
+              
              </button>
+              ):(
+                null
+               )}
           </div>
         </div>
       </div>
