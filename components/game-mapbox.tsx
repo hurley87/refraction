@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, MapPin } from "lucide-react";
@@ -29,10 +29,11 @@ export default function GameMapbox() {
 
   const { performCheckin, isCheckinLoading } = useLocationGame();
 
-  const generateMapUrl = (location: LocationSuggestion) => {
-    // Generate a simple static map URL using OpenStreetMap tiles
-    return `https://via.placeholder.com/400x128/f3f4f6/6b7280?text=Map+of+${encodeURIComponent(location.display_name.split(",")[0])}`;
-  };
+  // Use Mapbox Static Images API
+  const mapUrl = selected
+    ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s-marker+ff0000(${selected.lon},${selected.lat})/${selected.lon},${selected.lat},13,0/400x300@2x?access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}`
+    : "https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/-73.9442,40.7081,12,0/400x300@2x?access_token=" +
+      process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
   async function geocodePlace(query: string): Promise<LocationSuggestion[]> {
     const res = await fetch(
@@ -45,19 +46,14 @@ export default function GameMapbox() {
   }
 
   const handleSearch = async () => {
-    // If a location is already selected, reset the form to allow new search
-    if (selected) {
-      setSelected(null);
-      setQuery("");
-      setSuggestions([]);
-      setConfirmed(false);
-      return;
-    }
-
     if (query.length < 2) {
       setSuggestions([]);
       return;
     }
+
+    // Clear previous selection to allow new search
+    setSelected(null);
+    setConfirmed(false);
 
     try {
       const data = await geocodePlace(query);
@@ -117,7 +113,7 @@ export default function GameMapbox() {
             {/* Map thumbnail */}
             <div className="rounded-2xl overflow-hidden mb-6">
               <img
-                src={selected ? generateMapUrl(selected) : ""}
+                src={mapUrl}
                 alt="Location where points were earned"
                 className="w-full h-32 object-cover"
                 onError={(e) => {
@@ -307,7 +303,7 @@ export default function GameMapbox() {
 
             {query.length > 2 && !selected && (
               <div>
-                {suggestions.length > 0 ? (
+                {suggestions.length > 0 && (
                   <ul className="bg-white rounded-2xl mb-4 max-h-60 overflow-auto">
                     {suggestions.map((loc, index) => (
                       <li
@@ -321,17 +317,22 @@ export default function GameMapbox() {
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <div className="bg-white rounded-2xl mb-4 p-4 text-center">
-                    <p className="text-gray-500 text-sm">
-                      No results found. Try searching for landmarks (&quot;CN
-                      Tower&quot;), restaurants (&quot;Joe&apos;s Pizza&quot;),
-                      or bars (&quot;Blue Note Jazz Club&quot;)
-                    </p>
-                  </div>
                 )}
               </div>
             )}
+          </div>
+
+          {/* Map Section */}
+          <div className="rounded-2xl overflow-hidden mb-4">
+            <img
+              src={mapUrl}
+              alt="Map showing location"
+              className="w-full h-48 object-cover"
+              onError={(e) => {
+                console.error("Failed to load Mapbox image");
+                e.currentTarget.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" font-family="Arial" font-size="16" fill="%236b7280">Map unavailable</text></svg>`;
+              }}
+            />
           </div>
 
           {/* Location Confirmation - only show when location is selected */}
