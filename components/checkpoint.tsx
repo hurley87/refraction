@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Auth from "./auth";
 import Link from "next/link";
-import { sassoon } from "@/lib/sassoon";
+import { mutek } from "@/lib/mutek";
 
 interface CheckpointProps {
   id: string;
@@ -27,7 +27,8 @@ export default function Checkpoint({ id }: CheckpointProps) {
   const router = useRouter();
 
   // Find matching sassoon content
-  const sassoonContent = sassoon.find((item) => item.checkpoint === id);
+  
+  const mutekContent = mutek.find((item) => item.checkpoint === id);
 
   // Fetch player stats (rank and points)
   useEffect(() => {
@@ -133,7 +134,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
             </div>
 
             {/* Content Section */}
-            {sassoonContent && (
+            {mutekContent && (
               <div
                 className="rounded-xl p-4 w-full my-6 mx-4 max-w-sm bg-black text-left"
                 style={{
@@ -142,22 +143,22 @@ export default function Checkpoint({ id }: CheckpointProps) {
               >
                 <div className="mb-6">
                   <img
-                    src={sassoonContent.image}
-                    alt={sassoonContent.title}
+                    src={mutekContent.image}
+                    alt={mutekContent.title}
                     style={{
                       boxShadow: "0px 4px 24px 4px rgba(0, 0, 0, 0.35)",
                     }}
                     className="w-full h-auto mb-6 rounded-sm overflow-hidden"
                   />
                   <h3 className="text-white text-3xl font-inktrap font-bold mb-1">
-                    {sassoonContent.title}
+                    {mutekContent.title}
                   </h3>
                   <h4 className="text-white text-2xl font-inktrap">
-                    {sassoonContent.subtitle}
+                    {mutekContent.subtitle}
                   </h4>
                 </div>
                 <div className="text-white font-anonymous text-base leading-relaxed whitespace-pre-line">
-                  {sassoonContent.content}
+                  {mutekContent.content}
                 </div>
               </div>
             )}
