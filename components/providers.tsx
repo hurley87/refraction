@@ -5,6 +5,7 @@ import { PrivyProvider } from "@privy-io/react-auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { irlChain } from "@/lib/publicClient";
 import { addRpcUrlOverrideToChain } from "@privy-io/chains";
+import { WagmiProvider, createConfig, http } from "wagmi";
 
 const queryClient = new QueryClient();
 
@@ -15,9 +16,20 @@ const irlChainOverride = addRpcUrlOverrideToChain(
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID!;
+  const wagmiConfig = createConfig({
+    chains: [irlChainOverride, mainnet, sepolia, base],
+    transports: {
+      [irlChainOverride.id]: http(irlChainOverride.rpcUrls.default.http[0]),
+      [mainnet.id]: http(),
+      [sepolia.id]: http(),
+      [base.id]: http(),
+    },
+    ssr: true,
+  });
   return (
-    <QueryClientProvider client={queryClient}>
-      <PrivyProvider
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <PrivyProvider
         appId={appId}
         config={{
           loginMethods: ["email", "wallet"],
@@ -31,9 +43,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           supportedChains: [irlChainOverride, mainnet, sepolia, base],
           defaultChain: irlChainOverride,
         }}
-      >
-        {children}
-      </PrivyProvider>
-    </QueryClientProvider>
+        >
+          {children}
+        </PrivyProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
   );
 }

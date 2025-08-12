@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import { testPublicClient } from "@/lib/publicClient";
 import { checkinAddress } from "@/lib/checkin";
 import {
