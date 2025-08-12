@@ -79,7 +79,7 @@ const TimeLeft = ({
 
 export default function PerkDetailPage() {
   const params = useParams();
-  const { user } = usePrivy();
+  const { user, login } = usePrivy();
   const address = user?.wallet?.address;
   const queryClient = useQueryClient();
   const perkId = params.perkId as string;
@@ -550,22 +550,16 @@ export default function PerkDetailPage() {
           )}
 
           {/* Connect Wallet Message */}
-          {!address && (
-            <div className="bg-white rounded-2xl p-4 text-center">
-              <p className="text-sm font-inktrap text-gray-600">
-                Connect your wallet to redeem this perk
-              </p>
-            </div>
-          )}
+          {/* Removed duplicate Connect Wallet button here to keep a single CTA below */}
 
           {/* Action Button */}
           <div className="bg-white rounded-2xl p-4">
             {!address ? (
               <button
-                className="w-full py-3 rounded-full font-inktrap font-medium text-sm bg-gray-100 text-gray-500"
-                disabled
+                onClick={login}
+                className="w-full py-3 rounded-full font-inktrap font-medium text-sm bg-black text-white hover:bg-gray-800"
               >
-                Connect Wallet to Redeem
+                Connect Wallet
               </button>
             ) : isExpired ? (
               <button
