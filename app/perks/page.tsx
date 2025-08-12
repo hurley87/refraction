@@ -132,8 +132,8 @@ export default function PerksPage() {
   const userPoints = userStats?.total_points || 0;
 
   const canAfford = (perk: Perk) => userPoints >= perk.points_threshold;
-  
-  const hasRedeemed = (perkId: string) => 
+
+  const hasRedeemed = (perkId: string) =>
     userRedemptions.some((redemption: any) => redemption.perk_id === perkId);
 
   return (
@@ -311,15 +311,18 @@ export default function PerksPage() {
                       </div>
 
                       {/* Status Messages */}
-                      {!affordable && address && !isExpired && !userRedeemed && (
-                        <div className="text-xs text-red-600 mb-3 font-inktrap">
-                          Need{" "}
-                          {(
-                            perk.points_threshold - userPoints
-                          ).toLocaleString()}{" "}
-                          more points
-                        </div>
-                      )}
+                      {!affordable &&
+                        address &&
+                        !isExpired &&
+                        !userRedeemed && (
+                          <div className="text-xs text-red-600 mb-3 font-inktrap">
+                            Need{" "}
+                            {(
+                              perk.points_threshold - userPoints
+                            ).toLocaleString()}{" "}
+                            more points
+                          </div>
+                        )}
 
                       {/* Action Button */}
                       <Link href={`/perks/${perk.id}`}>
