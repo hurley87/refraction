@@ -30,33 +30,8 @@ export default function Checkpoint({ id }: CheckpointProps) {
   // Find matching sassoon content
   const mutekContent = mutek.find((item) => item.checkpoint === id);
 
-  // Parse content to separate English and French
-  const parseContent = (content: string) => {
-    const lines = content.split('\n');
-    const englishLines: string[] = [];
-    const frenchLines: string[] = [];
-    let isFrench = false;
 
-    for (const line of lines) {
-      // Check if we've reached the French section (look for "Bienvenue")
-      if (line.includes('Bienvenue')) {
-        isFrench = true;
-      }
-      
-      if (isFrench) {
-        frenchLines.push(line);
-      } else {
-        englishLines.push(line);
-      }
-    }
-
-    return {
-      english: englishLines.join('\n').trim(),
-      french: frenchLines.join('\n').trim()
-    };
-  };
-
-  const contentParts = mutekContent ? parseContent(mutekContent.content) : { english: '', french: '' };
+  
 
   // Fetch player stats (rank and points)
   useEffect(() => {
@@ -213,7 +188,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
                 </div>
                 
                 <div className="text-white font-anonymous text-base leading-relaxed whitespace-pre-line">
-                  {language === 'english' ? contentParts.english : contentParts.french}
+                  {language === 'english' ? mutekContent.content : mutekContent.content_fr}
                 </div>
               </div>
             )}
