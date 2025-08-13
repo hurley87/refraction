@@ -56,7 +56,7 @@ export const insertCheckin = async (checkin: Checkin) => {
 export const upsertCheckpoint = async (
   address: string,
   email: string,
-  newCheckpoint: string
+  newCheckpoint: string,
 ) => {
   // First, get the existing record
   const existingCheckin = await getCheckinByAddress(address);
@@ -132,7 +132,7 @@ export const getCheckinByAddress = async (address: string) => {
 
 export const getCheckinByAddressAndCheckpoint = async (
   address: string,
-  checkpoint: string
+  checkpoint: string,
 ) => {
   try {
     const { data, error } = await supabase
@@ -203,7 +203,7 @@ export type LeaderboardEntry = {
 
 // Player functions
 export const createOrUpdatePlayer = async (
-  player: Omit<Player, "id" | "created_at" | "updated_at">
+  player: Omit<Player, "id" | "created_at" | "updated_at">,
 ) => {
   const { data: existingPlayer } = await supabase
     .from("players")
@@ -250,7 +250,7 @@ export const getPlayerByWallet = async (walletAddress: string) => {
 
 // Location functions
 export const createOrGetLocation = async (
-  locationData: Omit<Location, "id" | "created_at">
+  locationData: Omit<Location, "id" | "created_at">,
 ) => {
   const { data: existingLocation } = await supabase
     .from("locations")
@@ -275,7 +275,7 @@ export const createOrGetLocation = async (
 // Player location checkin functions
 export const checkUserLocationCheckin = async (
   playerId: number,
-  locationId: number
+  locationId: number,
 ) => {
   const { data, error } = await supabase
     .from("player_location_checkins")
@@ -289,7 +289,7 @@ export const checkUserLocationCheckin = async (
 };
 
 export const createLocationCheckin = async (
-  checkin: Omit<PlayerLocationCheckin, "id" | "created_at">
+  checkin: Omit<PlayerLocationCheckin, "id" | "created_at">,
 ) => {
   const { data, error } = await supabase
     .from("player_location_checkins")
@@ -303,7 +303,7 @@ export const createLocationCheckin = async (
 
 export const updatePlayerPoints = async (
   playerId: number,
-  pointsToAdd: number
+  pointsToAdd: number,
 ) => {
   // First get current points
   const { data: currentPlayer, error: fetchError } = await supabase
@@ -356,7 +356,7 @@ export const getLeaderboard = async (limit: number = 10) => {
         total_checkins: count || 0,
         rank: index + 1,
       };
-    })
+    }),
   );
 
   return leaderboard;
@@ -382,7 +382,7 @@ export const getPlayerStats = async (playerId: number) => {
         latitude,
         longitude
       )
-    `
+    `,
     )
     .eq("player_id", playerId)
     .order("created_at", { ascending: false });
@@ -414,7 +414,7 @@ export type UserProfile = {
 
 // User Profile functions
 export const createOrUpdateUserProfile = async (
-  profile: Omit<UserProfile, "id" | "created_at" | "updated_at">
+  profile: Omit<UserProfile, "id" | "created_at" | "updated_at">,
 ) => {
   const { data: existingProfile } = await supabase
     .from("players")
@@ -469,7 +469,7 @@ export const updateUserProfile = async (
   walletAddress: string,
   updates: Partial<
     Omit<UserProfile, "id" | "wallet_address" | "created_at" | "updated_at">
-  >
+  >,
 ) => {
   const { data, error } = await supabase
     .from("players")
@@ -486,7 +486,7 @@ export const updateUserProfile = async (
 export const awardProfileFieldPoints = async (
   walletAddress: string,
   fieldType: string,
-  fieldValue: string
+  fieldValue: string,
 ) => {
   try {
     // Check if points have already been awarded for this field
@@ -514,7 +514,7 @@ export const awardProfileFieldPoints = async (
         points_earned: 5,
         description: `Added ${fieldType.replace(
           "profile_field_",
-          ""
+          "",
         )} to profile`,
         metadata: { field_value: fieldValue },
         processed: true,
@@ -567,13 +567,21 @@ export type UserPerkRedemption = {
 };
 
 // Admin functions - check against Privy user email directly
+export const ADMIN_EMAILS = [
+  "dhurls99@gmail.com",
+  "kaitlyn@refractionfestival.com",
+  "jim@refractionfestival.com",
+];
+
 export const checkAdminPermission = (email: string | undefined) => {
-  // Check if the user's email matches the admin email
-  return email === 'dhurls99@gmail.com';
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email);
 };
 
 // Perk CRUD functions
-export const createPerk = async (perk: Omit<Perk, "id" | "created_at" | "updated_at">) => {
+export const createPerk = async (
+  perk: Omit<Perk, "id" | "created_at" | "updated_at">,
+) => {
   const { data, error } = await supabase
     .from("perks")
     .insert(perk)
@@ -584,7 +592,10 @@ export const createPerk = async (perk: Omit<Perk, "id" | "created_at" | "updated
   return data;
 };
 
-export const updatePerk = async (id: string, updates: Partial<Omit<Perk, "id" | "created_at">>) => {
+export const updatePerk = async (
+  id: string,
+  updates: Partial<Omit<Perk, "id" | "created_at">>,
+) => {
   const { data, error } = await supabase
     .from("perks")
     .update(updates)
@@ -597,17 +608,17 @@ export const updatePerk = async (id: string, updates: Partial<Omit<Perk, "id" | 
 };
 
 export const deletePerk = async (id: string) => {
-  const { error } = await supabase
-    .from("perks")
-    .delete()
-    .eq("id", id);
+  const { error } = await supabase.from("perks").delete().eq("id", id);
 
   if (error) throw error;
 };
 
 export const getAllPerks = async (activeOnly: boolean = true) => {
-  let query = supabase.from("perks").select("*").order("created_at", { ascending: false });
-  
+  let query = supabase
+    .from("perks")
+    .select("*")
+    .order("created_at", { ascending: false });
+
   if (activeOnly) {
     query = query
       .eq("is_active", true)
@@ -638,13 +649,15 @@ export const getAvailablePerksForUser = async (walletAddress: string) => {
   // Get all active perks that user can afford and haven't expired
   const { data: perks, error } = await supabase
     .from("perks")
-    .select(`
+    .select(
+      `
       *,
       user_perk_redemptions!left(
         id,
         redeemed_at
       )
-    `)
+    `,
+    )
     .eq("is_active", true)
     .lte("points_threshold", userPoints)
     .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`);
@@ -652,19 +665,21 @@ export const getAvailablePerksForUser = async (walletAddress: string) => {
   if (error) throw error;
 
   // Filter out already redeemed perks
-  return perks?.filter(perk => {
-    const redemption = perk.user_perk_redemptions.find(
-      (r: any) => r.user_wallet_address === walletAddress
-    );
-    return !redemption;
-  }) || [];
+  return (
+    perks?.filter((perk) => {
+      const redemption = perk.user_perk_redemptions.find(
+        (r: any) => r.user_wallet_address === walletAddress,
+      );
+      return !redemption;
+    }) || []
+  );
 };
 
 export const redeemPerk = async (perkId: string, walletAddress: string) => {
   // Check if user has enough points
   const userStats = await getPlayerByWallet(walletAddress);
   const perk = await getPerkById(perkId);
-  
+
   if (!userStats || userStats.total_points < perk.points_threshold) {
     throw new Error("Insufficient points to redeem this perk");
   }
@@ -702,12 +717,14 @@ export const redeemPerk = async (perkId: string, walletAddress: string) => {
       discount_code_id: availableCode.id,
       user_wallet_address: walletAddress,
     })
-    .select(`
+    .select(
+      `
       *,
       perk_discount_codes (
         code
       )
-    `)
+    `,
+    )
     .single();
 
   if (error) throw error;
@@ -717,7 +734,8 @@ export const redeemPerk = async (perkId: string, walletAddress: string) => {
 export const getUserPerkRedemptions = async (walletAddress: string) => {
   const { data, error } = await supabase
     .from("user_perk_redemptions")
-    .select(`
+    .select(
+      `
       *,
       perks (
         title,
@@ -728,7 +746,8 @@ export const getUserPerkRedemptions = async (walletAddress: string) => {
       perk_discount_codes (
         code
       )
-    `)
+    `,
+    )
     .eq("user_wallet_address", walletAddress)
     .order("redeemed_at", { ascending: false });
 
@@ -738,9 +757,9 @@ export const getUserPerkRedemptions = async (walletAddress: string) => {
 
 // Discount code functions
 export const createDiscountCodes = async (perkId: string, codes: string[]) => {
-  const discountCodes = codes.map(code => ({
+  const discountCodes = codes.map((code) => ({
     perk_id: perkId,
-    code: code.trim()
+    code: code.trim(),
   }));
 
   const { data, error } = await supabase
