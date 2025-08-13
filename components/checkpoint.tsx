@@ -21,14 +21,42 @@ export default function Checkpoint({ id }: CheckpointProps) {
   const { checkinStatus, setCheckinStatus } = useCheckInStatus(address, id);
   console.log("checkinStatus", checkinStatus);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [language, setLanguage] = useState<'english' | 'french'>('english');
 
   const [totalPoints, setTotalPoints] = useState<number>(310);
   const hasAttemptedCheckIn = useRef(false);
   const router = useRouter();
 
   // Find matching sassoon content
-  
   const mutekContent = mutek.find((item) => item.checkpoint === id);
+
+  // Parse content to separate English and French
+  const parseContent = (content: string) => {
+    const lines = content.split('\n');
+    const englishLines: string[] = [];
+    const frenchLines: string[] = [];
+    let isFrench = false;
+
+    for (const line of lines) {
+      // Check if we've reached the French section (look for "Bienvenue")
+      if (line.includes('Bienvenue')) {
+        isFrench = true;
+      }
+      
+      if (isFrench) {
+        frenchLines.push(line);
+      } else {
+        englishLines.push(line);
+      }
+    }
+
+    return {
+      english: englishLines.join('\n').trim(),
+      french: frenchLines.join('\n').trim()
+    };
+  };
+
+  const contentParts = mutekContent ? parseContent(mutekContent.content) : { english: '', french: '' };
 
   // Fetch player stats (rank and points)
   useEffect(() => {
@@ -157,8 +185,35 @@ export default function Checkpoint({ id }: CheckpointProps) {
                     {mutekContent.subtitle}
                   </h4>
                 </div>
+                
+                {/* Language Toggle */}
+                <div className="flex justify-end mb-4">
+                  <div className="flex bg-gray-800 rounded-full p-1">
+                    <button
+                      onClick={() => setLanguage('english')}
+                      className={`px-4 py-2 rounded-full text-sm font-inktrap transition-colors ${
+                        language === 'english'
+                          ? 'bg-yellow-400 text-black'
+                          : 'text-white hover:text-gray-300'
+                      }`}
+                    >
+                      EN
+                    </button>
+                    <button
+                      onClick={() => setLanguage('french')}
+                      className={`px-4 py-2 rounded-full text-sm font-inktrap transition-colors ${
+                        language === 'french'
+                          ? 'bg-yellow-400 text-black'
+                          : 'text-white hover:text-gray-300'
+                      }`}
+                    >
+                      FR
+                    </button>
+                  </div>
+                </div>
+                
                 <div className="text-white font-anonymous text-base leading-relaxed whitespace-pre-line">
-                  {mutekContent.content}
+                  {language === 'english' ? contentParts.english : contentParts.french}
                 </div>
               </div>
             )}
