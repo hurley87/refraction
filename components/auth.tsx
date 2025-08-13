@@ -13,6 +13,7 @@ export default function Auth({ children }: AuthProps) {
   const [username, setUsername] = useState("");
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
   const [needsUsername, setNeedsUsername] = useState(false);
+  const [language, setLanguage] = useState<'english' | 'french'>('english');
 
   //console.log("user", user);
 
@@ -173,7 +174,7 @@ export default function Auth({ children }: AuthProps) {
               />
             </div>
             <img
-              src="/bhx.png"
+              src="/mutek/mutek-logo.svg"
               alt="IRL Side Quest"
               className="w-[46px] h-[46px]"
             />
@@ -217,9 +218,9 @@ export default function Auth({ children }: AuthProps) {
             />
           </div>
           <img
-            src="/bhx.png"
+            src="/mutek/mutek-logo.svg"
             alt="IRL Side Quest"
-            className="w-[46px] h-[46px]"
+            className="w-[128px] h-[28.75px]"
           />
         </div>
         <div className="flex flex-col gap-3  justify-between">
@@ -236,17 +237,43 @@ export default function Auth({ children }: AuthProps) {
                 style={{ lineHeight: "40px" }}
                 className="text-[#FFE600] text-3xl font-inktrap uppercase leading-2.5 rwr text-right"
               >
-                BE THE FIRST TO ACCESS THE IRL AIRDROP
+                {language === 'english' ? 'BE THE FIRST TO ACCESS THE IRL AIRDROP' : 'SOYEZ LES PREMIERS À ACCÉDER À L\'AIRDROP IRL'}
               </p>
-              <p className="text-base font-anonymous text-[#FFE600]">
-                {`Powered by Refraction, the IRL network uses blockchain technology to reward audiences, artists and fans for creating and engaging with culture.`}
-                <br />
-                <br />
-                Check in to earn IRL, gain exclusive access to experiences and
-                rewards, and help build the new creative economy.
+              
+              <p className="text-base font-anonymous text-[#FFE600] whitespace-pre-line">
+                {language === 'english' 
+                  ? `CHECK IN TO THE MUTEK VILLAGE NUMÉRIQUE SCAVENGER HUNT TO EARN POINTS & REWARDS ON THE IRL NETWORK \n\nVISIT ALL 5 IRL CHECKPOINTS FOR A CHANCE TO WIN A 2026 MUTEK PASSPORT \n\nPowered by Refraction, the IRL network uses blockchain technology to reward audiences, artists and fans for creating and engaging with culture. \n\nCheck in to earn IRL, gain exclusive access to experiences and rewards, and help build the new creative economy.`
+                  : `INSCRIVEZ-VOUS À LA CHASSE AU TRÉSOR DU VILLAGE NUMÉRIQUE MUTEK POUR GAGNER DES POINTS ET DES RÉCOMPENSES SUR LE RÉSEAU IRL\n\nVISITEZ LES 5 POINTS DE CONTRÔLE IRL POUR AVOIR UNE CHANCE DE GAGNER UN PASSEPORT MUTEK 2026\n\n Propulsé par Refraction, IRL est un système de récompenses culturelles qui vous permet de gagner des points en participant à des événements que vous aimez déjà, comme des fêtes, des concerts, des expositions ou de petites quêtes en ligne.\n\nInscrivez-vous pour gagner des points, obtenir un accès exclusif à des expériences et des récompenses, et contribuer à bâtir la nouvelle économie créative.`
+                }
               </p>
             </div>
           </div>
+          {/* Language Toggle */}
+          <div className="flex justify-center mb-4">
+            <div className="flex bg-gray-800 rounded-full p-1">
+              <button
+                onClick={() => setLanguage('english')}
+                className={`px-4 py-2 rounded-full text-sm font-inktrap transition-colors ${
+                  language === 'english'
+                    ? 'bg-yellow-400 text-black'
+                    : 'text-white hover:text-gray-300'
+                }`}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => setLanguage('french')}
+                className={`px-4 py-2 rounded-full text-sm font-inktrap transition-colors ${
+                  language === 'french'
+                    ? 'bg-yellow-400 text-black'
+                    : 'text-white hover:text-gray-300'
+                }`}
+              >
+                FR
+              </button>
+            </div>
+          </div>
+          
           <div className="p-4">
             <h1 className="text-black text-4xl text-center font-inktrap uppercase">
               CLAIM
