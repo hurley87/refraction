@@ -645,7 +645,7 @@ export default function MembershipPage() {
             </p>
           </div>
           <div className="w-full">
-            <Link href="https://airtable.com/appvZLHmZscDDAgE8/pag0WduGqOusMmok2/form" target="_blank">
+            <Link href="https://airtable.com/appygGt0rRgfh6qxA/shrkshw6J2OMYuae7" target="_blank">
                <Button
               size="lg"
               className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
