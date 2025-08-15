@@ -60,15 +60,11 @@ export default function Home() {
         {/* Main Content */}
         <div className="max-w-6xl w-full mt-16 sm:mt-20 md:mt-24">
           <h1 className="text-[#FFE600] font-inktrap text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight mb-4 sm:mb-6">
-            BRIDGING CULTURE
-            <br />
-            AND TECHNOLOGY
+            CULTURE&apos;S REWARDS PROGRAM
           </h1>
 
           <p className="text-[#FFE600] font-grotesk sm:text-lg md:text-xl lg:text-2xl max-w-2xl mb-8 sm:mb-10 md:mb-12 lg:mb-[57px] leading-relaxed">
-            Earn Points. Unlock Rewards.
-            <br />
-            Revolutionize the Creative Economy.
+            Always earn rewards, just for showing up to the things you love.<br/>
           </p>
 
           <div className="flex flex-col gap-4 w-full max-w-[260px] sm:max-w-[280px] md:max-w-[300px]">
@@ -78,7 +74,7 @@ export default function Home() {
                 className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
               >
                 <span className="text-black font-light">
-                  Earn Your First Points
+                  Start Earning Points
                 </span>
                 <Image
                   src="/home/arrow-right.svg"
@@ -113,11 +109,29 @@ export default function Home() {
         />
         <div className="flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-12 md:py-16 lg:py-0 ">
           <p className="text-white text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl leading-relaxed max-w-xl text-center lg:text-left font-grotesk">
-            {`Developed by Refraction, a pioneer in web3 arts and culture, the
-                IRL protocol realizes the blockchain's potential to
-                revolutionize the creative industry.`}
+            {`Check in at clubs, galleries, festivals, and more to earn and unlock exclusive perks across our global partner network: Resident Advisor, MUTEK, Serpentine, and 200+ others.`}
           </p>
+          <div className="w-full flex justify-center lg:justify-start mt-6">
+            <Link href="mailto:partnerships@refractionfestival.com">
+              <Button
+                size="lg"
+                className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
+              >
+                <span className="text-black font-light">
+                  Become An Affiliate Partner
+                </span>
+                <Image
+                  src="/home/arrow-right.svg"
+                  alt="arrow-right"
+                  width={24}
+                  height={24}
+                  className="w-5 h-5 sm:w-6 sm:h-6"
+                />
+              </Button>
+            </Link>
+          </div>
         </div>
+        
       </div>
 
       {/* Airdrop Section */}
@@ -131,11 +145,9 @@ export default function Home() {
       >
         <div className="flex flex-col items-start justify-center lg:justify-end w-full lg:w-1/2 mb-8 lg:mb-0">
           <h2 className="text-[#FFE600] text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[61px] font-bold leading-tight mb-6 sm:mb-8 font-inktrap w-full">
-            BE THE FIRST
+            BECOME A 
             <br />
-            TO ACCESS THE
-            <br />
-            IRL AIRDROP
+            FOUNDING MEMBER
           </h2>
         </div>
 
@@ -143,22 +155,19 @@ export default function Home() {
           <div className="max-w-lg w-full">
             <div className="space-y-4 sm:space-y-5 mb-6 sm:mb-8">
               <p className="text-sm sm:text-base md:text-lg leading-relaxed font-grotesk text-[#FFE600]">
-                Powered by Refraction, the IRL network uses blockchain
-                technology to reward audiences for artists with fans for
-                creating and engaging with culture.
+                IRL is built by insiders - the same people throwing the parties, curating the lineups, and making the art.
               </p>
               <p className="text-[#FFE600] font-grotesk text-sm sm:text-base md:text-lg leading-relaxed">
-                Check in to earn IRL, gain exclusive access to experiences and
-                rewards, and help build the new creative economy.
+                We know what makes culture tick because we’re part of it, and we built IRL to reward the people who are, too.
               </p>
             </div>
-            <Link href="/game" className="w-full">
+            <Link href="https://airtable.com/appygGt0rRgfh6qxA/shrkshw6J2OMYuae7" className="w-full">
               <Button
                 size="lg"
                 className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
               >
                 <span className="text-black font-light">
-                  Earn Your First Points
+                  Apply For Founding Membership
                 </span>
                 <Image
                   src="/home/arrow-right.svg"
