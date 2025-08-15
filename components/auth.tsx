@@ -235,15 +235,15 @@ export default function Auth({ children }: AuthProps) {
             >
               <p
                 style={{ lineHeight: "40px" }}
-                className="text-[#FFE600] text-3xl font-inktrap uppercase leading-2.5 rwr text-right"
+                className="text-[#FFE600] text-3xl font-inktrap uppercase leading-2.5 rwr text-right whitespace-pre-line"
               >
-                {language === 'english' ? 'BE THE FIRST TO ACCESS THE IRL AIRDROP' : 'SOYEZ LES PREMIERS À ACCÉDER À L\'AIRDROP IRL'}
+                {language === 'english' ? 'CHECK IN TO THE MUTEK VILLAGE NUMÉRIQUE SCAVENGER HUNT TO EARN POINTS & REWARDS ON THE IRL NETWORK \n\nVISIT ALL 5 IRL CHECKPOINTS FOR A CHANCE TO WIN A 2026 MUTEK PASSPORT' : 'INSCRIVEZ-VOUS À LA CHASSE AU TRÉSOR DU VILLAGE NUMÉRIQUE MUTEK POUR GAGNER DES POINTS ET DES RÉCOMPENSES SUR LE RÉSEAU IRL\n\nVISITEZ LES 5 POINTS DE CONTRÔLE IRL POUR AVOIR UNE CHANCE DE GAGNER UN PASSEPORT MUTEK 2026\n\n '}
               </p>
               
               <p className="text-base font-anonymous text-[#FFE600] whitespace-pre-line">
                 {language === 'english' 
-                  ? `CHECK IN TO THE MUTEK VILLAGE NUMÉRIQUE SCAVENGER HUNT TO EARN POINTS & REWARDS ON THE IRL NETWORK \n\nVISIT ALL 5 IRL CHECKPOINTS FOR A CHANCE TO WIN A 2026 MUTEK PASSPORT \n\nPowered by Refraction, the IRL network uses blockchain technology to reward audiences, artists and fans for creating and engaging with culture. \n\nCheck in to earn IRL, gain exclusive access to experiences and rewards, and help build the new creative economy.`
-                  : `INSCRIVEZ-VOUS À LA CHASSE AU TRÉSOR DU VILLAGE NUMÉRIQUE MUTEK POUR GAGNER DES POINTS ET DES RÉCOMPENSES SUR LE RÉSEAU IRL\n\nVISITEZ LES 5 POINTS DE CONTRÔLE IRL POUR AVOIR UNE CHANCE DE GAGNER UN PASSEPORT MUTEK 2026\n\n Propulsé par Refraction, IRL est un système de récompenses culturelles qui vous permet de gagner des points en participant à des événements que vous aimez déjà, comme des fêtes, des concerts, des expositions ou de petites quêtes en ligne.\n\nInscrivez-vous pour gagner des points, obtenir un accès exclusif à des expériences et des récompenses, et contribuer à bâtir la nouvelle économie créative.`
+                  ? `Powered by Refraction, the IRL network uses blockchain technology to reward audiences, artists and fans for creating and engaging with culture. \n\nCheck in to earn IRL, gain exclusive access to experiences and rewards, and help build the new creative economy.`
+                  : `Propulsé par Refraction, IRL est un système de récompenses culturelles qui vous permet de gagner des points en participant à des événements que vous aimez déjà, comme des fêtes, des concerts, des expositions ou de petites quêtes en ligne.\n\nInscrivez-vous pour gagner des points, obtenir un accès exclusif à des expériences et des récompenses, et contribuer à bâtir la nouvelle économie créative.`
                 }
               </p>
             </div>
