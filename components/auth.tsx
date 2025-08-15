@@ -235,7 +235,7 @@ export default function Auth({ children }: AuthProps) {
             >
               <p
                 style={{ lineHeight: "40px" }}
-                className="text-[#FFE600] text-3xl font-inktrap uppercase leading-2.5 rwr text-right whitespace-pre-line"
+                className="text-[#FFE600] text-lg sm:text-xl md:text-2xl lg:text-3xl font-inktrap uppercase leading-2.5 rwr text-right whitespace-pre-line"
               >
                 {language === 'english' ? 'CHECK IN TO THE MUTEK VILLAGE NUMÉRIQUE SCAVENGER HUNT TO EARN POINTS & REWARDS ON THE IRL NETWORK \n\nVISIT ALL 5 IRL CHECKPOINTS FOR A CHANCE TO WIN A 2026 MUTEK PASSPORT' : 'INSCRIVEZ-VOUS À LA CHASSE AU TRÉSOR DU VILLAGE NUMÉRIQUE MUTEK POUR GAGNER DES POINTS ET DES RÉCOMPENSES SUR LE RÉSEAU IRL\n\nVISITEZ LES 5 POINTS DE CONTRÔLE IRL POUR AVOIR UNE CHANCE DE GAGNER UN PASSEPORT MUTEK 2026\n\n '}
               </p>
