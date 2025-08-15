@@ -22,6 +22,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
   console.log("checkinStatus", checkinStatus);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [language, setLanguage] = useState<'english' | 'french'>('english');
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
   const [totalPoints, setTotalPoints] = useState<number>(310);
   const hasAttemptedCheckIn = useRef(false);
@@ -211,6 +212,27 @@ export default function Checkpoint({ id }: CheckpointProps) {
               </div>
             </div>
 
+            {/* Map Card */}
+            <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
+              <div className="text-xs text-gray-500 font-inktrap mb-2">
+                {language === 'english' ? 'MUTEK MAP' : 'PLAN DU LIEU DE MUTEK'}
+              </div>
+              <div className="mb-4">
+                <img
+                  src="/mutek/mutek-map.jpg"
+                  alt="IRL Venue Map"
+                  className="w-full h-auto rounded-lg shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                  onClick={() => setIsMapModalOpen(true)}
+                />
+              </div>
+              <div className="text-sm text-gray-600 font-anonymous">
+                {language === 'english' 
+                  ? 'Explore the IRL network venue and discover all checkpoints'
+                  : 'Explorez le lieu du réseau IRL et découvrez tous les points de contrôle'
+                }
+              </div>
+            </div>
+
             {/* Footer Section */}
             <div className="mt-12 px-4 max-w-sm ">
               <p className="text-black font-anonymous text-2xl font-semibold mb-6">
@@ -241,6 +263,29 @@ export default function Checkpoint({ id }: CheckpointProps) {
                 REFRACTION
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Map Modal */}
+      {isMapModalOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setIsMapModalOpen(false)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <button
+              onClick={() => setIsMapModalOpen(false)}
+              className="absolute top-4 right-4 text-white text-2xl font-bold bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-75 transition-colors z-10"
+            >
+              ×
+            </button>
+            <img
+              src="/mutek/mutek-map.jpg"
+              alt="IRL Venue Map - Full Size"
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         </div>
       )}
