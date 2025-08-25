@@ -44,28 +44,45 @@ export default function Home() {
       className="min-h-screen"
     >
       {/* Hero Section */}
-      <section
-        style={{
-          backgroundImage: "url('/home/hero.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-        className="relative min-h-screen flex flex-col justify-center items-start px-4 sm:px-6 md:px-8 lg:px-16 py-8 sm:py-12 md:py-16 rounded-b-4xl"
-      >
+      <section className="relative min-h-screen flex flex-col justify-center items-start px-4 sm:px-6 md:px-8 lg:px-16 py-8 sm:py-12 md:py-16 rounded-b-4xl overflow-hidden">
+        {/* Video Background */}
+        <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/video-reel.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        
+        {/* Fallback Background Image for Mobile */}
+        <div 
+          style={{
+            backgroundImage: "url('/home/hero.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+          className="absolute inset-0 w-full h-full lg:hidden"
+        ></div>
         {/* Logo/Header */}
-        <div className="absolute top-4 sm:top-6 md:top-8 left-4 sm:left-6 md:left-8 lg:left-16 w-[32px] h-[32px] sm:w-[36px] sm:h-[36px] md:w-[40px] md:h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center">
+        <div className="absolute top-4 sm:top-6 md:top-8 left-4 sm:left-6 md:left-8 lg:left-16 w-[40px] h-[40px] sm:w-[40px] sm:h-[40px] md:w-[40px] md:h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center">
           <Image src="/home/IRL.png" alt="irl" width={27.312} height={14} />
         </div>
 
         {/* Main Content */}
-        <div className="max-w-6xl w-full mt-16 sm:mt-20 md:mt-24">
-          <h1 className="text-[#FFE600] font-inktrap text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight mb-4 sm:mb-6">
+        <div className="relative z-10 max-w-6xl w-full mt-16 sm:mt-20 md:mt-24">
+         
+        
+          <p className="display1 text-[#FFE600] font-inktrap  font-bold leading-tight mb-4 sm:mb-6">  
             CULTURE&apos;S REWARDS PROGRAM
-          </h1>
-
-          <p className="text-[#FFE600] font-grotesk sm:text-lg md:text-xl lg:text-2xl max-w-2xl mb-8 sm:mb-10 md:mb-12 lg:mb-[57px] leading-relaxed">
-            Always earn rewards, just for showing up to the things you love.<br/>
           </p>
+
+          <h4 className="text-[#FFE600] font-grotesk l mb-8 sm:mb-10 md:mb-12 lg:mb-[57px] leading-relaxed">
+            Always earn rewards, just for showing up to the things you love.<br/>
+          </h4>
 
           <div className="flex flex-col gap-4 w-full max-w-[260px] sm:max-w-[280px] md:max-w-[300px]">
             <Link href="/game">
@@ -73,9 +90,9 @@ export default function Home() {
                 size="lg"
                 className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
               >
-                <span className="text-black font-light">
+                <h4 className="text-black font-light">
                   Start Earning Points
-                </span>
+                </h4>
                 <Image
                   src="/home/arrow-right.svg"
                   alt="arrow-right"
@@ -85,41 +102,56 @@ export default function Home() {
                 />
               </Button>
             </Link>
-            <p className="text-[#FFE600] font-inktrap text-xs sm:text-sm flex w-full justify-between items-center px-4">
-              <span className="text-[10px] sm:text-[11px]">POWERED BY</span>
-              <Image
-                src="/home/Logo.svg"
-                alt="refraction"
-                width={100}
-                height={100}
-              />
-            </p>
+            <div className="text-[#FFE600] font-inktrap flex w-full justify-between items-center px-4">
+              <h4 className="">POWERED BY</h4>
+              <div className="flex-1 flex justify-end">
+                <Image
+                  src="/home/Logo.svg"
+                  alt="refraction"
+                  width={100}
+                  height={100}
+                  className="w-full max-w-[100px] h-auto"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* IRL Section */}
-      <div className="flex flex-col lg:flex-row">
+      <div className="flex flex-col lg:flex-row justify-center" style={{ minHeight: '700px' }}>
+
+        {/* Show ABOUT text only on mobile (below lg) */}
+        <div className="block lg:hidden w-full text-left mb-1 pl-4">
+          <span className="text-white font-inktrap text-lg tracking-wide">ABOUT</span>
+        </div>
+        <Image
+          src="/irl-logo-footer.svg"
+          alt="irl"
+          width={827}
+          height={969}
+          className="block lg:hidden pl-4"
+        />
         <Image
           src="/home/irl-logo.png"
           alt="irl"
           width={827}
           height={969}
-          className="hidden lg:block"
+          className="hidden lg:block "
         />
-        <div className="flex flex-col items-center justify-center px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-12 md:py-16 lg:py-0 ">
-          <p className="text-white text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl leading-relaxed max-w-xl text-center lg:text-left font-grotesk">
+        <div className="flex flex-col items-center justify-center text-left px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-12 md:py-16 lg:py-0 ">
+          <h3 className="text-white text-base leading-relaxed max-w-xl text-left font-pleasure">
             {`Check in at clubs, galleries, festivals, and more to earn and unlock exclusive perks across our global partner network: Resident Advisor, MUTEK, Serpentine, and 200+ others.`}
-          </p>
-          <div className="w-full flex justify-center lg:justify-start mt-6">
+          </h3>
+          <div className="w-full flex justify-left lg:justify-start mt-6">
             <Link href="mailto:partnerships@refractionfestival.com">
               <Button
                 size="lg"
                 className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
               >
-                <span className="text-black font-light">
+                <h4 className="text-black font-light">
                   Become An Affiliate Partner
-                </span>
+                </h4>
                 <Image
                   src="/home/arrow-right.svg"
                   alt="arrow-right"
@@ -141,23 +173,23 @@ export default function Home() {
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
-        className="relative rounded-xl w-full min-h-[600px] sm:min-h-[700px] md:min-h-[800px] lg:min-h-[900px] xl:h-[1017px] flex flex-col lg:flex-row justify-between p-4 sm:p-6 md:p-8 lg:p-12 xl:p-20"
+        className="relative rounded-xl w-full min-h-[1400px] flex flex-col lg:flex-row justify-between p-4 sm:p-6 md:p-8 lg:p-12 xl:p-20"
       >
-        <div className="flex flex-col items-start justify-center lg:justify-end w-full lg:w-1/2 mb-8 lg:mb-0">
-          <h2 className="text-[#FFE600] text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[61px] font-bold leading-tight mb-6 sm:mb-8 font-inktrap w-full">
+        <div className="flex flex-col items-end justify-end w-full lg:w-1/2 mb-8 lg:mb-0">
+          <div className="display2 text-[#FFE600] font-bold leading-tight mb-6 sm:mb-8 font-inktrap w-full text-right">
             BECOME A 
             <br />
             FOUNDING MEMBER
-          </h2>
+          </div>
         </div>
 
         <div className="flex flex-col items-start justify-center lg:justify-end w-full lg:w-[420px]">
           <div className="max-w-lg w-full">
             <div className="space-y-4 sm:space-y-5 mb-6 sm:mb-8">
-              <p className="text-sm sm:text-base md:text-lg leading-relaxed font-grotesk text-[#FFE600]">
-                IRL is built by insiders - the same people throwing the parties, curating the lineups, and making the art.
-              </p>
-              <p className="text-[#FFE600] font-grotesk text-sm sm:text-base md:text-lg leading-relaxed">
+                              <p className="body-large leading-relaxed text-[#FFE600]">
+                  IRL is built by insiders - the same people throwing the parties, curating the lineups, and making the art.
+                </p>
+                <p className="body-large leading-relaxed text-[#FFE600]">
                 We know what makes culture tick because we’re part of it, and we built IRL to reward the people who are, too.
               </p>
             </div>
@@ -166,9 +198,9 @@ export default function Home() {
                 size="lg"
                 className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
               >
-                <span className="text-black font-light">
+                <h4 className="text-black font-light">
                   Apply For Founding Membership
-                </span>
+                </h4>
                 <Image
                   src="/home/arrow-right.svg"
                   alt="arrow-right"
@@ -184,13 +216,14 @@ export default function Home() {
 
       {/* Claim Points Section */}
       <section className="py-12 sm:py-16 md:py-20 lg:py-24 xl:py-48 lg:pb-10">
-        <div className="max-w-[468px] mx-auto text-center flex flex-col items-center justify-center gap-6 sm:gap-8">
-          <h2 className="text-black text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold font-inktrap leading-tight">
-            CLAIM
-            <br />
-            YOUR POINTS
-          </h2>
-          <p className="text-black text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-anonymous">
+        <div className="max-w-[468px] mx-auto text-center flex flex-col items-center justify-center gap-8 sm:gap-10">
+          <p className="text-black font-bold font-inktrap leading-tight display1">
+          CLAIM
+          </p>
+          <p className="text-black font-bold font-inktrap leading-tight display2 -mt-4">
+          YOUR POINTS
+          </p>
+          <p className="text-black body-large leading-relaxed max-w-2xl mx-auto ">
             Check in to earn points on the IRL network, with instant access to
             future rewards and experiences.
           </p>
@@ -199,9 +232,9 @@ export default function Home() {
               size="lg"
               className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
             >
-              <span className="text-black font-light">
+              <h4 className="text-black font-light">
                 Earn Your First Points
-              </span>
+              </h4>
               <Image
                 src="/home/arrow-right.svg"
                 alt="arrow-right"
@@ -216,10 +249,10 @@ export default function Home() {
 
       {/* Social Media Section */}
       <section className="py-8 px-4 sm:px-6">
-        <div className="text-center font-grotesk text-sm sm:text-base md:text-lg mb-4">
+        <div className="text-center font-grotesk body-smallmb-4">
           Follow
         </div>
-        <div className="flex justify-center gap-3 sm:gap-4 md:gap-6 flex-wrap">
+        <div className="flex justify-between gap-3 sm:gap-4 md:gap-6 flex-wrap">
           <Link
             target="_blank"
             href="https://x.com/RefractionDAO"
@@ -296,17 +329,47 @@ export default function Home() {
               />
             </svg>
           </Link>
+          <Link
+            target="_blank"
+            href="https://t.me/refractioncommunity"
+            className="hover:opacity-80 transition-opacity"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 48 48"
+              fill="none"
+              className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12"
+            >
+              <path
+                d="M24 4C12.954 4 4 12.954 4 24C4 35.046 12.954 44 24 44C35.046 44 44 35.046 44 24C44 12.954 35.046 4 24 4ZM35.607 15.607L33.393 35.607C33.179 36.821 32.571 37.071 31.5 36.607L24 31.607L20.5 35C20.179 35.321 19.893 35.607 19.25 35.607L19.607 28.607L31.5 17.607C31.857 17.286 31.429 17.071 30.964 17.393L16.5 26.607L9.607 24.607C8.393 24.179 8.393 23.5 9.857 23.107L34.143 14.393C35.179 14.036 36.071 14.607 35.607 15.607Z"
+                fill="black"
+              />
+            </svg>
+          </Link>
         </div>
       </section>
 
       {/* Footer Section */}
       <section className="py-8 sm:py-12 md:py-16 lg:py-24 px-4 sm:px-6">
         <img
+          src="/irlfooterlogo.svg"
+          alt="irl"
+          className="w-full h-auto mt-6 sm:mt-8 md:mt-10 max-w-full object-contain block lg:hidden"
+        />
+        <img
           src="/home/footer.svg"
           alt="irl"
-          className="w-full h-auto mt-6 sm:mt-8 md:mt-10 max-w-full object-contain"
+          className="w-full h-auto mt-6 sm:mt-8 md:mt-10 max-w-full object-contain hidden lg:block"
         />
+         <div className="w-full flex justify-center items-center">
+        <p className="body-small text-white dark:text-white font-mono tracking-wide uppercase">
+          copyright &bull; refraction &bull; 2025
+        </p>
+      </div>
       </section>
+      
     </div>
   );
 }

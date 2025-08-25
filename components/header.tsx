@@ -20,7 +20,7 @@ export default function Header() {
               src="/logo2.svg"
               alt="IRL"
               className="w-full h-auto"
-              style={{ width: "35px", height: "auto" }}
+              style={{ width: "40", height: "auto" }}
             />
           </Link>
         </div>
@@ -45,7 +45,7 @@ export default function Header() {
             src="/logo2.svg"
             alt="IRL"
             className="w-full h-auto"
-            style={{ width: "35px", height: "auto" }}
+            style={{ width: "40", height: "auto" }}
           />
         </Link>
       </div>

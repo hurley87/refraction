@@ -1,5 +1,110 @@
 @import "./fonts.css";
+/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind base;
+/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind components;
+/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind utilities;
+
+@layer base {
+  h1 {
+    font-size: 2.4375rem; /* 39px */
+    line-height: 2.5rem; /* 40px */
+    font-weight: 700;
+    font-family: var(--font-inktrap);
+  }
+  
+  h2 {
+    font-size: 1.9375rem; /* 31px */
+    line-height: 2rem; /* 32px */
+    font-weight: 700;
+    font-family: var(--font-inktrap);
+  }
+  
+  h3 {
+    font-size: 1.5625rem; /* 25px */
+    line-height: 1.75rem; /* 28px */
+    font-weight: 600;
+    font-family: var(--font-inktrap);
+  }
+  
+  h4 {
+    font-size: 1rem; /* 16px */
+    line-height: 1rem; /* 16px */
+    font-weight: 600;
+    font-family: var(--font-inktrap);
+  }
+
+
+
+  .title1 {
+    font-size: 1.9375rem; /* 31px */
+    line-height: 2rem; /* 32px */
+    font-weight: 700;
+    font-family: var(--font-inktrap);
+  }
+
+  .title2 {
+    font-size: 1.5625rem; /* 25px */
+    line-height: 2rem; /* 32px */
+    font-weight: 600;
+    font-family: var(--font-inktrap);
+  }
+
+  .title3 {
+    font-size: 1.25rem; /* 20px */
+    line-height: 1.5rem; /* 24px */
+    font-weight: 600;
+    font-family: var(--font-inktrap);
+  }
+
+  .title4 {
+    font-size: 0.8125rem; /* 13px */
+    line-height: 1rem; /* 16px */
+    font-weight: 600;
+    font-family: var(--font-inktrap);
+  }
+
+  .display1 {
+    font-size: 3.8125rem; /* 61px */
+    line-height: 4rem; /* 64px */
+    font-weight: 700;
+    font-family: var(--font-inktrap);
+  }
+
+  .display2 {
+    font-size: 3rem; /* 48px */
+    line-height: 3rem; /* 48px */
+    font-weight: 700;
+    font-family: var(--font-inktrap);
+  }
+
+  .display0 {
+    font-size: 4.75rem; /* 76px */
+    line-height: 6.25rem; /* 100px */
+    font-weight: 700;
+    font-family: var(--font-inktrap);
+  }
+
+  .body-large {
+    font-size: 1rem; /* 16px */
+    line-height: 1.5rem; /* 24px */
+    font-weight: 400;
+    font-family: var(--font-monument);
+  }
+
+  .body-medium {
+    font-size: 0.8125rem; /* 13px */
+    line-height: 1.25rem; /* 20px */
+    font-weight: 400;
+    font-family: var(--font-monument);
+  }
+
+  .body-small {
+    font-size: 0.6875rem; /* 11px */
+    line-height: 1rem; /* 16px */
+    font-weight: 400;
+    font-family: var(--font-inktrap);
+  }
+}
 
