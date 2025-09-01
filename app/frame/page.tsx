@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { sdk } from "@farcaster/frame-sdk";
+import miniappSdk from "@farcaster/miniapp-sdk";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
@@ -12,22 +12,22 @@ export default function FramePage() {
 
   useEffect(() => {
     const initializeFrame = async () => {
-      await sdk.actions.ready();
+      await miniappSdk.actions.ready();
       setIsReady(true);
 
       // Check if user has added the app
-      const context = await sdk.context;
+      const context = await miniappSdk.context;
       console.log("context", context);
       setIsAdded(context?.client?.added);
     };
-    if (sdk && !isSDKLoaded) {
+    if (miniappSdk && !isSDKLoaded) {
       setIsSDKLoaded(true);
       initializeFrame();
     }
   }, [isSDKLoaded]);
 
   const handleAddToWaitlist = async () => {
-    await sdk.actions.addFrame();
+    await miniappSdk.actions.addFrame();
     setIsAdded(true);
   };
 
