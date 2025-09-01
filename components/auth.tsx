@@ -16,7 +16,7 @@ export default function Auth({ children }: AuthProps) {
   const [username, setUsername] = useState("");
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
   const [needsUsername, setNeedsUsername] = useState(false);
-  const [language, setLanguage] = useState<'english' | 'french'>('english');
+  const [language, setLanguage] = useState<"english" | "french">("english");
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
 
   // Initialize miniapp SDK
@@ -129,18 +129,19 @@ export default function Auth({ children }: AuthProps) {
 
   if (ready && user && !user.email) {
     return (
-      <div className="flex justify-center w-fit mx-auto">
-        <div className="flex flex-col gap-4">
-          <p className="text-white font-inktrap">Link your email for updates</p>
-          <div>
-            <Button
-              className="bg-white text-[#F24405] rounded-lg hover:bg-white/80 justify-center w-full max-w-4xl text-xl font-inktrap py-5"
-              size="lg"
-              onClick={linkEmail}
-            >
-              Link Email
-            </Button>
-          </div>
+      <div className="flex items-center justify-center w-full min-h-dvh px-4">
+        <div className="w-full max-w-md text-center">
+          <p className="text-white text-xl font-inktrap mb-3">
+            Link your email for updates
+          </p>
+          <Button
+            className="w-full bg-white text-[#F24405] rounded-xl hover:bg-white/90 text-xl font-inktrap py-5 shadow-md"
+            size="lg"
+            onClick={linkEmail}
+            aria-label="Link your email"
+          >
+            Link Email
+          </Button>
         </div>
       </div>
     );
@@ -286,14 +287,15 @@ export default function Auth({ children }: AuthProps) {
                 style={{ lineHeight: "40px" }}
                 className="text-[#FFE600] text-lg sm:text-xl md:text-2xl lg:text-3xl font-inktrap uppercase leading-2.5 rwr text-right whitespace-pre-line"
               >
-                {language === 'english' ? 'CHECK IN TO THE MUTEK VILLAGE NUMÉRIQUE SCAVENGER HUNT TO EARN POINTS & REWARDS ON THE IRL NETWORK \n\nVISIT ALL 5 IRL CHECKPOINTS FOR A CHANCE TO WIN A 2026 MUTEK PASSPORT' : 'INSCRIVEZ-VOUS À LA CHASSE AU TRÉSOR DU VILLAGE NUMÉRIQUE MUTEK POUR GAGNER DES POINTS ET DES RÉCOMPENSES SUR LE RÉSEAU IRL\n\nVISITEZ LES 5 POINTS DE CONTRÔLE IRL POUR AVOIR UNE CHANCE DE GAGNER UN PASSEPORT MUTEK 2026\n\n '}
+                {language === "english"
+                  ? "CHECK IN TO THE MUTEK VILLAGE NUMÉRIQUE SCAVENGER HUNT TO EARN POINTS & REWARDS ON THE IRL NETWORK \n\nVISIT ALL 5 IRL CHECKPOINTS FOR A CHANCE TO WIN A 2026 MUTEK PASSPORT"
+                  : "INSCRIVEZ-VOUS À LA CHASSE AU TRÉSOR DU VILLAGE NUMÉRIQUE MUTEK POUR GAGNER DES POINTS ET DES RÉCOMPENSES SUR LE RÉSEAU IRL\n\nVISITEZ LES 5 POINTS DE CONTRÔLE IRL POUR AVOIR UNE CHANCE DE GAGNER UN PASSEPORT MUTEK 2026\n\n "}
               </p>
-              
+
               <p className="text-base font-anonymous text-[#FFE600] whitespace-pre-line">
-                {language === 'english' 
+                {language === "english"
                   ? `Powered by Refraction, the IRL network uses blockchain technology to reward audiences, artists and fans for creating and engaging with culture. \n\nCheck in to earn IRL, gain exclusive access to experiences and rewards, and help build the new creative economy.`
-                  : `Propulsé par Refraction, IRL est un système de récompenses culturelles qui vous permet de gagner des points en participant à des événements que vous aimez déjà, comme des fêtes, des concerts, des expositions ou de petites quêtes en ligne.\n\nInscrivez-vous pour gagner des points, obtenir un accès exclusif à des expériences et des récompenses, et contribuer à bâtir la nouvelle économie créative.`
-                }
+                  : `Propulsé par Refraction, IRL est un système de récompenses culturelles qui vous permet de gagner des points en participant à des événements que vous aimez déjà, comme des fêtes, des concerts, des expositions ou de petites quêtes en ligne.\n\nInscrivez-vous pour gagner des points, obtenir un accès exclusif à des expériences et des récompenses, et contribuer à bâtir la nouvelle économie créative.`}
               </p>
             </div>
           </div>
@@ -301,28 +303,28 @@ export default function Auth({ children }: AuthProps) {
           <div className="flex justify-center mb-4">
             <div className="flex bg-gray-800 rounded-full p-1">
               <button
-                onClick={() => setLanguage('english')}
+                onClick={() => setLanguage("english")}
                 className={`px-4 py-2 rounded-full text-sm font-inktrap transition-colors ${
-                  language === 'english'
-                    ? 'bg-yellow-400 text-black'
-                    : 'text-white hover:text-gray-300'
+                  language === "english"
+                    ? "bg-yellow-400 text-black"
+                    : "text-white hover:text-gray-300"
                 }`}
               >
                 EN
               </button>
               <button
-                onClick={() => setLanguage('french')}
+                onClick={() => setLanguage("french")}
                 className={`px-4 py-2 rounded-full text-sm font-inktrap transition-colors ${
-                  language === 'french'
-                    ? 'bg-yellow-400 text-black'
-                    : 'text-white hover:text-gray-300'
+                  language === "french"
+                    ? "bg-yellow-400 text-black"
+                    : "text-white hover:text-gray-300"
                 }`}
               >
                 FR
               </button>
             </div>
           </div>
-          
+
           <div className="p-4">
             <h1 className="text-black text-4xl text-center font-inktrap uppercase">
               CLAIM
