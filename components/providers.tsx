@@ -3,23 +3,15 @@
 import { sepolia, mainnet, base } from "viem/chains";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { irlChain } from "@/lib/publicClient";
-import { addRpcUrlOverrideToChain } from "@privy-io/chains";
 import { WagmiProvider, createConfig, http } from "wagmi";
 
 const queryClient = new QueryClient();
 
-const irlChainOverride = addRpcUrlOverrideToChain(
-  irlChain,
-  "https://smartrpc.testnet.irl.syndicate.io"
-);
-
 export default function Providers({ children }: { children: React.ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID!;
   const wagmiConfig = createConfig({
-    chains: [irlChainOverride, mainnet, sepolia, base],
+    chains: [mainnet, sepolia, base],
     transports: {
-      [irlChainOverride.id]: http(irlChainOverride.rpcUrls.default.http[0]),
       [mainnet.id]: http(),
       [sepolia.id]: http(),
       [base.id]: http(),
@@ -30,19 +22,20 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <PrivyProvider
-        appId={appId}
-        config={{
-          loginMethods: ["email", "wallet"],
-          embeddedWallets: {
-            createOnLogin: "users-without-wallets",
-            showWalletUIs: false,
-          },
-          appearance: {
-            theme: "dark",
-          },
-          supportedChains: [irlChainOverride, mainnet, sepolia, base],
-          defaultChain: irlChainOverride,
-        }}
+          appId={appId}
+          config={{
+            loginMethods: ["email", "wallet"],
+            embeddedWallets: {
+              createOnLogin: "users-without-wallets",
+              showWalletUIs: false,
+            },
+            appearance: {
+              theme: "dark",
+              walletList: ["detected_wallets"],
+            },
+            supportedChains: [mainnet, sepolia, base],
+            defaultChain: base,
+          }}
         >
           {children}
         </PrivyProvider>
