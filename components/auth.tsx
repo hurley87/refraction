@@ -11,41 +11,70 @@ interface AuthProps {
 }
 
 export default function Auth({ children }: AuthProps) {
-  const { user, ready, linkEmail, authenticated } = usePrivy();
+  const { user, ready, linkEmail, authenticated, login } = usePrivy();
   const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
   const [username, setUsername] = useState("");
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
   const [needsUsername, setNeedsUsername] = useState(false);
   const [language, setLanguage] = useState<"english" | "french">("english");
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
+  const [isMiniApp, setIsMiniApp] = useState(false);
 
-  // Initialize miniapp SDK
+  // Initialize miniapp SDK and detect context
   useEffect(() => {
-    if (miniappSdk && !isSDKLoaded) {
-      setIsSDKLoaded(true);
-      miniappSdk.actions.ready();
-    }
+    const initializeSDK = async () => {
+      if (miniappSdk && !isSDKLoaded) {
+        setIsSDKLoaded(true);
+        const isMiniAppContext = await miniappSdk.isInMiniApp();
+        setIsMiniApp(isMiniAppContext);
+        if (isMiniAppContext) {
+          miniappSdk.actions.ready();
+        }
+      }
+    };
+    initializeSDK();
   }, [isSDKLoaded]);
 
-  // Auto-login for Farcaster users via miniapp SDK
+  // Auto-login based on context
   useEffect(() => {
     if (ready && !authenticated && isSDKLoaded) {
-      const login = async () => {
+      const handleAutoLogin = async () => {
         try {
-          const { nonce } = await initLoginToMiniApp();
-          const result = await miniappSdk.actions.signIn({ nonce });
-          await loginToMiniApp({
-            message: result.message,
-            signature: result.signature,
-          });
+          if (isMiniApp) {
+            // Miniapp login flow
+            const { nonce } = await initLoginToMiniApp();
+            const result = await miniappSdk.actions.signIn({ nonce });
+            await loginToMiniApp({
+              message: result.message,
+              signature: result.signature,
+            });
+          }
+          // For regular web context, don't auto-login, let user initiate
         } catch (error) {
-          console.error("Login failed:", error);
-          // Fallback to regular login if miniapp login fails
+          console.error("Auto-login failed:", error);
         }
       };
-      login();
+      handleAutoLogin();
     }
-  }, [ready, authenticated, isSDKLoaded, initLoginToMiniApp, loginToMiniApp]);
+  }, [ready, authenticated, isSDKLoaded, isMiniApp, initLoginToMiniApp, loginToMiniApp]);
+
+  // Helper function to handle login based on context
+  const handleLogin = async () => {
+    try {
+      if (isMiniApp) {
+        const { nonce } = await initLoginToMiniApp();
+        const result = await miniappSdk.actions.signIn({ nonce });
+        await loginToMiniApp({
+          message: result.message,
+          signature: result.signature,
+        });
+      } else {
+        login();
+      }
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
+  };
 
   //console.log("user", user);
 
@@ -235,24 +264,7 @@ export default function Auth({ children }: AuthProps) {
           </h1>
           <Button
             className="bg-white text-black rounded-full hover:bg-white/80 justify-center w-full max-w-4xl text-xl font-inktrap uppercase my-4"
-            onClick={() => {
-              // Trigger manual login if auto-login didn't work
-              if (isSDKLoaded) {
-                const login = async () => {
-                  try {
-                    const { nonce } = await initLoginToMiniApp();
-                    const result = await miniappSdk.actions.signIn({ nonce });
-                    await loginToMiniApp({
-                      message: result.message,
-                      signature: result.signature,
-                    });
-                  } catch (error) {
-                    console.error("Manual login failed:", error);
-                  }
-                };
-                login();
-              }
-            }}
+            onClick={handleLogin}
           >
             CHECK IN
           </Button>
@@ -336,24 +348,7 @@ export default function Auth({ children }: AuthProps) {
           <div className="px-4">
             <Button
               className="bg-white text-black rounded-full hover:bg-white/80 justify-center text-xl w-full font-inktrap uppercase "
-              onClick={() => {
-                // Trigger manual login if auto-login didn't work
-                if (isSDKLoaded) {
-                  const login = async () => {
-                    try {
-                      const { nonce } = await initLoginToMiniApp();
-                      const result = await miniappSdk.actions.signIn({ nonce });
-                      await loginToMiniApp({
-                        message: result.message,
-                        signature: result.signature,
-                      });
-                    } catch (error) {
-                      console.error("Manual login failed:", error);
-                    }
-                  };
-                  login();
-                }
-              }}
+              onClick={handleLogin}
             >
               CHECK IN
             </Button>
