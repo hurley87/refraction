@@ -1,6 +1,8 @@
 "use client";
 
 import { usePrivy } from "@privy-io/react-auth";
+import { useLoginToMiniApp } from "@privy-io/react-auth/farcaster";
+import miniappSdk from "@farcaster/miniapp-sdk";
 import { Button } from "./ui/button";
 import { useState, useEffect } from "react";
 
@@ -9,11 +11,41 @@ interface AuthProps {
 }
 
 export default function Auth({ children }: AuthProps) {
-  const { user, login, ready, linkEmail } = usePrivy();
+  const { user, ready, linkEmail, authenticated } = usePrivy();
+  const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
   const [username, setUsername] = useState("");
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
   const [needsUsername, setNeedsUsername] = useState(false);
   const [language, setLanguage] = useState<'english' | 'french'>('english');
+  const [isSDKLoaded, setIsSDKLoaded] = useState(false);
+
+  // Initialize miniapp SDK
+  useEffect(() => {
+    if (miniappSdk && !isSDKLoaded) {
+      setIsSDKLoaded(true);
+      miniappSdk.actions.ready();
+    }
+  }, [isSDKLoaded]);
+
+  // Auto-login for Farcaster users via miniapp SDK
+  useEffect(() => {
+    if (ready && !authenticated && isSDKLoaded) {
+      const login = async () => {
+        try {
+          const { nonce } = await initLoginToMiniApp();
+          const result = await miniappSdk.actions.signIn({ nonce });
+          await loginToMiniApp({
+            message: result.message,
+            signature: result.signature,
+          });
+        } catch (error) {
+          console.error("Login failed:", error);
+          // Fallback to regular login if miniapp login fails
+        }
+      };
+      login();
+    }
+  }, [ready, authenticated, isSDKLoaded, initLoginToMiniApp, loginToMiniApp]);
 
   //console.log("user", user);
 
@@ -202,7 +234,24 @@ export default function Auth({ children }: AuthProps) {
           </h1>
           <Button
             className="bg-white text-black rounded-full hover:bg-white/80 justify-center w-full max-w-4xl text-xl font-inktrap uppercase my-4"
-            onClick={login}
+            onClick={() => {
+              // Trigger manual login if auto-login didn't work
+              if (isSDKLoaded) {
+                const login = async () => {
+                  try {
+                    const { nonce } = await initLoginToMiniApp();
+                    const result = await miniappSdk.actions.signIn({ nonce });
+                    await loginToMiniApp({
+                      message: result.message,
+                      signature: result.signature,
+                    });
+                  } catch (error) {
+                    console.error("Manual login failed:", error);
+                  }
+                };
+                login();
+              }
+            }}
           >
             CHECK IN
           </Button>
@@ -285,7 +334,24 @@ export default function Auth({ children }: AuthProps) {
           <div className="px-4">
             <Button
               className="bg-white text-black rounded-full hover:bg-white/80 justify-center text-xl w-full font-inktrap uppercase "
-              onClick={login}
+              onClick={() => {
+                // Trigger manual login if auto-login didn't work
+                if (isSDKLoaded) {
+                  const login = async () => {
+                    try {
+                      const { nonce } = await initLoginToMiniApp();
+                      const result = await miniappSdk.actions.signIn({ nonce });
+                      await loginToMiniApp({
+                        message: result.message,
+                        signature: result.signature,
+                      });
+                    } catch (error) {
+                      console.error("Manual login failed:", error);
+                    }
+                  };
+                  login();
+                }
+              }}
             >
               CHECK IN
             </Button>

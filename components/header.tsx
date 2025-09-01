@@ -1,14 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
+import { useLoginToMiniApp } from "@privy-io/react-auth/farcaster";
+import miniappSdk from "@farcaster/miniapp-sdk";
 import { Button } from "@/components/ui/button";
 import ProfileMenu from "./profile-menu";
 import Link from "next/link";
 
 export default function Header() {
-  const { user, login } = usePrivy();
+  const { user } = usePrivy();
+  const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSDKLoaded, setIsSDKLoaded] = useState(false);
+
+  // Initialize miniapp SDK
+  useEffect(() => {
+    if (miniappSdk && !isSDKLoaded) {
+      setIsSDKLoaded(true);
+      miniappSdk.actions.ready();
+    }
+  }, [isSDKLoaded]);
+
+  const handleLogin = async () => {
+    if (isSDKLoaded) {
+      try {
+        const { nonce } = await initLoginToMiniApp();
+        const result = await miniappSdk.actions.signIn({ nonce });
+        await loginToMiniApp({
+          message: result.message,
+          signature: result.signature,
+        });
+      } catch (error) {
+        console.error("Header login failed:", error);
+      }
+    }
+  };
 
   // If user is not defined, return login button
   if (!user) {
@@ -29,7 +56,7 @@ export default function Header() {
         <Button
           className="bg-white text-black px-4 py-2 text-lg hover:bg-white/80 justify-center font-inktrap uppercase rounded-full items-center"
           size="sm"
-          onClick={login}
+          onClick={handleLogin}
         >
           CHECK IN
         </Button>
