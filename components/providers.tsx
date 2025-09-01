@@ -24,7 +24,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <PrivyProvider
           appId={appId}
           config={{
-            loginMethods: ["email", "wallet"],
+            loginMethods: ["email", "wallet", "farcaster"],
             embeddedWallets: {
               createOnLogin: "users-without-wallets",
               showWalletUIs: false,
