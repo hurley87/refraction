@@ -9,31 +9,41 @@ import ProfileMenu from "./profile-menu";
 import Link from "next/link";
 
 export default function Header() {
-  const { user } = usePrivy();
+  const { user, login } = usePrivy();
   const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
+  const [isMiniApp, setIsMiniApp] = useState(false);
 
-  // Initialize miniapp SDK
+  // Initialize miniapp SDK and detect context
   useEffect(() => {
-    if (miniappSdk && !isSDKLoaded) {
-      setIsSDKLoaded(true);
-      miniappSdk.actions.ready();
-    }
+    const initializeSDK = async () => {
+      if (miniappSdk && !isSDKLoaded) {
+        setIsSDKLoaded(true);
+        const isMiniAppContext = await miniappSdk.isInMiniApp();
+        setIsMiniApp(isMiniAppContext);
+        if (isMiniAppContext) {
+          miniappSdk.actions.ready();
+        }
+      }
+    };
+    initializeSDK();
   }, [isSDKLoaded]);
 
   const handleLogin = async () => {
-    if (isSDKLoaded) {
-      try {
+    try {
+      if (isMiniApp) {
         const { nonce } = await initLoginToMiniApp();
         const result = await miniappSdk.actions.signIn({ nonce });
         await loginToMiniApp({
           message: result.message,
           signature: result.signature,
         });
-      } catch (error) {
-        console.error("Header login failed:", error);
+      } else {
+        login();
       }
+    } catch (error) {
+      console.error("Header login failed:", error);
     }
   };
 
