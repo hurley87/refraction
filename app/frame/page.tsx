@@ -4,31 +4,64 @@ import { useEffect, useState } from "react";
 import miniappSdk from "@farcaster/miniapp-sdk";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { usePrivy } from "@privy-io/react-auth";
+import { useLoginToMiniApp } from "@privy-io/react-auth/farcaster";
 
 export default function FramePage() {
   const [isReady, setIsReady] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
 
-  useEffect(() => {
-    const initializeFrame = async () => {
-      await miniappSdk.actions.ready();
-      setIsReady(true);
+  const { ready, authenticated } = usePrivy();
+  const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
 
-      // Check if user has added the app
-      const context = await miniappSdk.context;
-      console.log("context", context);
-      setIsAdded(context?.client?.added);
-    };
+  // Initialize miniapp SDK
+  useEffect(() => {
     if (miniappSdk && !isSDKLoaded) {
       setIsSDKLoaded(true);
-      initializeFrame();
+      miniappSdk.actions.ready();
+      setIsReady(true);
     }
   }, [isSDKLoaded]);
 
+  // Auto-login for Farcaster users via miniapp SDK
+  useEffect(() => {
+    if (ready && !authenticated && isReady) {
+      const login = async () => {
+        try {
+          const { nonce } = await initLoginToMiniApp();
+          const result = await miniappSdk.actions.signIn({ nonce });
+          await loginToMiniApp({
+            message: result.message,
+            signature: result.signature,
+          });
+        } catch (error) {
+          console.error("Login failed:", error);
+        }
+      };
+      login();
+    }
+  }, [ready, authenticated, isReady, initLoginToMiniApp, loginToMiniApp]);
+
+  // Check if user has added the app
+  useEffect(() => {
+    const checkAddedStatus = async () => {
+      if (isReady) {
+        const context = await miniappSdk.context;
+        console.log("context", context);
+        setIsAdded(context?.client?.added);
+      }
+    };
+    checkAddedStatus();
+  }, [isReady]);
+
   const handleAddToWaitlist = async () => {
-    await miniappSdk.actions.addFrame();
-    setIsAdded(true);
+    try {
+      await miniappSdk.actions.addFrame();
+      setIsAdded(true);
+    } catch (error) {
+      console.error("Failed to add frame:", error);
+    }
   };
 
   if (!isReady) {
