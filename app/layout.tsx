@@ -8,6 +8,14 @@ import Script from "next/script";
 export const metadata: Metadata = {
   title: "$IRL",
   description: "$IRL is your key to unlocking a new way to experience culture",
+  themeColor: "#000000", // Change this to your desired color
+  appleWebApp: {
+    statusBarStyle: "black-translucent", // Options: "default", "black", "black-translucent"
+  },
+  other: {
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
+    "msapplication-navbutton-color": "#000000",
+  },
 };
 
 export default function RootLayout({
