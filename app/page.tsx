@@ -46,10 +46,10 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative min-h-screen flex flex-col justify-center items-start px-4 sm:px-6 md:px-8 lg:px-16 py-8 sm:py-12 md:py-16 rounded-b-4xl overflow-hidden">
         {/* Video Background */}
-        <video 
-          autoPlay 
-          loop 
-          muted 
+        <video
+          autoPlay
+          loop
+          muted
           playsInline
           preload="metadata"
           className="absolute inset-0 w-full h-full object-cover"
@@ -57,9 +57,9 @@ export default function Home() {
           <source src="/video-reel.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        
+
         {/* Fallback Background Image for Mobile */}
-        <div 
+        <div
           style={{
             backgroundImage: "url('/home/hero.png')",
             backgroundSize: "cover",
@@ -74,25 +74,22 @@ export default function Home() {
 
         {/* Main Content */}
         <div className="relative z-10 max-w-6xl w-full mt-16 sm:mt-20 md:mt-24">
-         
-        
-          <p className="display1 text-[#FFE600] font-inktrap  font-bold leading-tight mb-4 sm:mb-6">  
+          <p className="display1 text-[#FFE600] font-inktrap  font-bold leading-tight mb-4 sm:mb-6">
             CULTURE&apos;S REWARDS PROGRAM
           </p>
 
           <h4 className="text-[#FFE600] font-grotesk l mb-8 sm:mb-10 md:mb-12 lg:mb-[57px] leading-relaxed">
-            Always earn rewards, just for showing up to the things you love.<br/>
+            Always earn rewards, just for showing up to the things you love.
+            <br />
           </h4>
 
           <div className="flex flex-col gap-4 w-full max-w-[260px] sm:max-w-[280px] md:max-w-[300px]">
-            <Link href="/game">
+            <Link href="/interactive-map">
               <Button
                 size="lg"
                 className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
               >
-                <h4 className="text-black font-light">
-                  Start Earning Points
-                </h4>
+                <h4 className="text-black font-light">Start Earning Points</h4>
                 <Image
                   src="/home/arrow-right.svg"
                   alt="arrow-right"
@@ -119,11 +116,15 @@ export default function Home() {
       </section>
 
       {/* IRL Section */}
-      <div className="flex flex-col lg:flex-row justify-center" style={{ minHeight: '700px' }}>
-
+      <div
+        className="flex flex-col lg:flex-row justify-center"
+        style={{ minHeight: "700px" }}
+      >
         {/* Show ABOUT text only on mobile (below lg) */}
         <div className="block lg:hidden w-full text-left mb-1 pl-4">
-          <span className="text-white font-inktrap text-lg tracking-wide">ABOUT</span>
+          <span className="text-white font-inktrap text-lg tracking-wide">
+            ABOUT
+          </span>
         </div>
         <Image
           src="/irl-logo-footer.svg"
@@ -163,7 +164,6 @@ export default function Home() {
             </Link>
           </div>
         </div>
-        
       </div>
 
       {/* Airdrop Section */}
@@ -177,7 +177,7 @@ export default function Home() {
       >
         <div className="flex flex-col items-end justify-end w-full lg:w-1/2 mb-8 lg:mb-0">
           <div className="display2 text-[#FFE600] font-bold leading-tight mb-6 sm:mb-8 font-inktrap w-full text-right">
-            BECOME A 
+            BECOME A
             <br />
             FOUNDING MEMBER
           </div>
@@ -186,14 +186,19 @@ export default function Home() {
         <div className="flex flex-col items-start justify-center lg:justify-end w-full lg:w-[420px]">
           <div className="max-w-lg w-full">
             <div className="space-y-4 sm:space-y-5 mb-6 sm:mb-8">
-                              <p className="body-large leading-relaxed text-[#FFE600]">
-                  IRL is built by insiders - the same people throwing the parties, curating the lineups, and making the art.
-                </p>
-                <p className="body-large leading-relaxed text-[#FFE600]">
-                We know what makes culture tick because we’re part of it, and we built IRL to reward the people who are, too.
+              <p className="body-large leading-relaxed text-[#FFE600]">
+                IRL is built by insiders - the same people throwing the parties,
+                curating the lineups, and making the art.
+              </p>
+              <p className="body-large leading-relaxed text-[#FFE600]">
+                We know what makes culture tick because we’re part of it, and we
+                built IRL to reward the people who are, too.
               </p>
             </div>
-            <Link href="https://airtable.com/appygGt0rRgfh6qxA/shrkshw6J2OMYuae7" className="w-full">
+            <Link
+              href="https://airtable.com/appygGt0rRgfh6qxA/shrkshw6J2OMYuae7"
+              className="w-full"
+            >
               <Button
                 size="lg"
                 className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
@@ -218,10 +223,10 @@ export default function Home() {
       <section className="py-12 sm:py-16 md:py-20 lg:py-24 xl:py-48 lg:pb-10">
         <div className="max-w-[468px] mx-auto text-center flex flex-col items-center justify-center gap-8 sm:gap-10">
           <p className="text-black font-bold font-inktrap leading-tight display1">
-          CLAIM
+            CLAIM
           </p>
           <p className="text-black font-bold font-inktrap leading-tight display2 -mt-4">
-          YOUR POINTS
+            YOUR POINTS
           </p>
           <p className="text-black body-large leading-relaxed max-w-2xl mx-auto ">
             Check in to earn points on the IRL network, with instant access to
@@ -232,9 +237,7 @@ export default function Home() {
               size="lg"
               className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
             >
-              <h4 className="text-black font-light">
-                Earn Your First Points
-              </h4>
+              <h4 className="text-black font-light">Earn Your First Points</h4>
               <Image
                 src="/home/arrow-right.svg"
                 alt="arrow-right"
@@ -249,9 +252,7 @@ export default function Home() {
 
       {/* Social Media Section */}
       <section className="py-8 px-4 sm:px-6">
-        <div className="text-center font-grotesk body-smallmb-4">
-          Follow
-        </div>
+        <div className="text-center font-grotesk body-smallmb-4">Follow</div>
         <div className="flex justify-between gap-3 sm:gap-4 md:gap-6 flex-wrap">
           <Link
             target="_blank"
@@ -363,13 +364,12 @@ export default function Home() {
           alt="irl"
           className="w-full h-auto mt-6 sm:mt-8 md:mt-10 max-w-full object-contain hidden lg:block"
         />
-         <div className="w-full flex justify-center items-center">
-        <p className="body-small text-white dark:text-white font-mono tracking-wide uppercase">
-          copyright &bull; refraction &bull; 2025
-        </p>
-      </div>
+        <div className="w-full flex justify-center items-center">
+          <p className="body-small text-white dark:text-white font-mono tracking-wide uppercase">
+            copyright &bull; refraction &bull; 2025
+          </p>
+        </div>
       </section>
-      
     </div>
   );
 }

@@ -179,6 +179,12 @@ export type Location = {
   points_value: number;
   type?: string;
   context?: string;
+  coin_address?: string;
+  coin_symbol?: string;
+  coin_name?: string;
+  coin_transaction_hash?: string;
+  creator_wallet_address?: string;
+  creator_username?: string;
   created_at?: string;
 };
 
