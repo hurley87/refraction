@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const walletAddress = searchParams.get("walletAddress");
 
     // Base query
-    let query = supabase.from("locations").select("*");
+    const query = supabase.from("locations").select("*");
 
     // If filtering by player's check-ins, join through player_location_checkins
     if (walletAddress) {
@@ -61,11 +61,13 @@ export async function GET(request: NextRequest) {
             .limit(1)
             .maybeSingle();
 
+          const playerRel: any = (firstCheckin as any)?.players;
+          const creator = Array.isArray(playerRel) ? playerRel[0] : playerRel;
+
           return {
             ...loc,
-            creator_wallet_address:
-              firstCheckin?.players?.wallet_address || null,
-            creator_username: firstCheckin?.players?.username || null,
+            creator_wallet_address: creator?.wallet_address || null,
+            creator_username: creator?.username || null,
           };
         } catch {
           return { ...loc };
