@@ -115,7 +115,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
     if (user && checkinStatus !== null) {
       autoCheckIn();
     }
-  }, [user, address, id, email, checkinStatus]);
+  }, [user, address, id, email, checkinStatus, isCheckingIn, setCheckinStatus]);
 
   return (
     <Auth>
