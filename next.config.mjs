@@ -4,12 +4,14 @@
  */
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.privy.io;
-  connect-src 'self' https://*.privy.io;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.privy.io https://api.mapbox.com https://*.mapbox.com;
+  connect-src 'self' https://*.privy.io https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com https://*.mapbox.com;
   img-src 'self' data: blob: https:;
-  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.mapbox.com https://*.mapbox.com;
   font-src 'self' https://fonts.gstatic.com;
   frame-src https://*.privy.io;
+  worker-src 'self' blob:;
+  child-src 'self' blob:;
 `;
 
 const securityHeaders = [

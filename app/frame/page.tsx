@@ -4,16 +4,13 @@ import { useEffect, useState } from "react";
 import miniappSdk from "@farcaster/miniapp-sdk";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { usePrivy } from "@privy-io/react-auth";
-import { useLoginToMiniApp } from "@privy-io/react-auth/farcaster";
 
 export default function FramePage() {
   const [isReady, setIsReady] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
 
-  const { ready, authenticated } = usePrivy();
-  const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
+  // Removed Farcaster miniapp hook (not available in current SDK)
 
   // Initialize miniapp SDK
   useEffect(() => {
@@ -24,24 +21,7 @@ export default function FramePage() {
     }
   }, [isSDKLoaded]);
 
-  // Auto-login for Farcaster users via miniapp SDK
-  useEffect(() => {
-    if (ready && !authenticated && isReady) {
-      const login = async () => {
-        try {
-          const { nonce } = await initLoginToMiniApp();
-          const result = await miniappSdk.actions.signIn({ nonce });
-          await loginToMiniApp({
-            message: result.message,
-            signature: result.signature,
-          });
-        } catch (error) {
-          console.error("Login failed:", error);
-        }
-      };
-      login();
-    }
-  }, [ready, authenticated, isReady, initLoginToMiniApp, loginToMiniApp]);
+  // Auto-login disabled until Farcaster miniapp hook is available in SDK
 
   // Check if user has added the app
   useEffect(() => {

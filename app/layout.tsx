@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
 
 import "./globals.css";
+import "mapbox-gl/dist/mapbox-gl.css";
 import Providers from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
+import dynamic from "next/dynamic";
+
+const MobileFooterNav = dynamic(
+  () => import("@/components/mobile-footer-nav"),
+  {
+    ssr: false,
+  },
+);
 
 export const metadata: Metadata = {
   title: "$IRL",
@@ -38,6 +47,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-dvh">
         <Providers>{children}</Providers>
+        <MobileFooterNav />
         <Toaster />
       </body>
     </html>

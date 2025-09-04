@@ -330,6 +330,40 @@ export const updatePlayerPoints = async (
   return data;
 };
 
+export const listAllLocations = async () => {
+  const { data, error } = await supabase
+    .from("locations")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
+};
+
+export const listLocationsByWallet = async (walletAddress: string) => {
+  const { data: player, error: playerError } = await supabase
+    .from("players")
+    .select("id")
+    .eq("wallet_address", walletAddress)
+    .single();
+
+  if (playerError) return [];
+
+  const { data, error } = await supabase
+    .from("player_location_checkins")
+    .select(
+      `
+      locations (
+        id, name, display_name, latitude, longitude, place_id, points_value, type, context, created_at
+      )
+    `,
+    )
+    .eq("player_id", player.id);
+
+  if (error) throw error;
+  return (data || []).map((row: any) => row.locations).filter(Boolean);
+};
+
 export const getLeaderboard = async (limit: number = 10) => {
   const { data: players, error } = await supabase
     .from("players")
