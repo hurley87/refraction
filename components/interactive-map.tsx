@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -320,37 +320,6 @@ export default function InteractiveMap() {
       </Map>
 
       {/* Bottom overlay removed per request */}
-    </div>
-  );
-}
-
-function HowToPanel({ position = "absolute" as "absolute" | "static" }) {
-  const [isOpen, setIsOpen] = useState(true);
-  const containerClass =
-    position === "absolute"
-      ? "absolute bottom-4 left-4 right-4 z-10 max-w-xl"
-      : "relative z-10";
-  return (
-    <div className={containerClass}>
-      <div className="bg-black/80 text-white rounded-2xl overflow-hidden">
-        <button
-          onClick={() => setIsOpen((v) => !v)}
-          className="w-full flex items-center justify-between px-4 py-3 text-sm"
-        >
-          <span className="font-semibold">How to use</span>
-          <span className="ml-3 text-xs opacity-80">
-            {isOpen ? "Hide" : "Show"}
-          </span>
-        </button>
-        {isOpen && (
-          <div className="px-4 pb-4 text-sm space-y-1">
-            <p>• Search for locations using the search bar</p>
-            <p>• Click anywhere on the map to place a marker</p>
-            <p>• Click on markers to see details and check in</p>
-            <p>• Earn 100 points for each unique location check-in!</p>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

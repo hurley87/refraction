@@ -5,7 +5,6 @@ import InteractiveMap from "@/components/interactive-map";
 import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 
 export default function InteractiveMapPage() {
   const { user, login } = usePrivy();
@@ -24,7 +23,7 @@ export default function InteractiveMapPage() {
         className="min-h-screen p-4 pb-0 font-grotesk"
       >
         <div className="min-h-screen max-w-lg mx-auto">
-          <Header />
+          {/* Header removed on this screen */}
 
           <div className="px-0 pt-8">
             <div className="bg-yellow-100 rounded-2xl p-6 mb-6 relative">
