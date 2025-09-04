@@ -47,6 +47,7 @@ export default function InteractiveMap() {
   const [searchSuggestions, setSuggestions] = useState<LocationSuggestion[]>(
     [],
   );
+  const [isHowToOpen, setIsHowToOpen] = useState(true);
 
   const mapRef = useRef<any>(null);
 
@@ -243,7 +244,26 @@ export default function InteractiveMap() {
           </div>
         )}
 
-        {/* How To under search - removed per request */}
+        {/* How To under search (collapsible) */}
+        <div className="bg-white/90 backdrop-blur rounded-2xl p-3 shadow-lg">
+          <button
+            onClick={() => setIsHowToOpen((v) => !v)}
+            className="w-full flex items-center justify-between text-sm px-1 py-1"
+          >
+            <span className="font-semibold">How to use</span>
+            <span className="ml-3 text-xs opacity-80">
+              {isHowToOpen ? "Hide" : "Show"}
+            </span>
+          </button>
+          {isHowToOpen && (
+            <div className="pt-2 text-sm space-y-1">
+              <p>• Search for locations using the search bar</p>
+              <p>• Tap existing markers to view details</p>
+              <p>• Press Check In in the popup to earn points</p>
+              <p>• Each unique location check-in earns 100 points</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Map */}
