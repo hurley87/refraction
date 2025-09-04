@@ -68,7 +68,8 @@ const config: Config = {
         "pleasure-standard-regular": ["Pleasure-Standard-Regular", "sans-serif"],
         "inktrap-regular": ["Inktrap-Regular", "sans-serif"],
         "abc-monument-bold": ["ABC-Monument-Bold", "sans-serif"],
-        "abc-monument-regular": ["ABC-Monument-Regular", "sans-serif"]
+        "abc-monument-regular": ["ABC-Monument-Regular", "sans-serif"],
+        
       },
     },
   },
