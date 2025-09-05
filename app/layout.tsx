@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import "mapbox-gl/dist/mapbox-gl.css";
 import Providers from "@/components/providers";
@@ -14,9 +15,23 @@ const MobileFooterNav = dynamic(
   },
 );
 
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-space-grotesk",
+});
+
 export const metadata: Metadata = {
   title: "$IRL",
   description: "$IRL is your key to unlocking a new way to experience culture",
+  themeColor: "#000000", // Change this to your desired color
+  appleWebApp: {
+    statusBarStyle: "black-translucent", // Options: "default", "black", "black-translucent"
+  },
+  other: {
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
+    "msapplication-navbutton-color": "#000000",
+  },
 };
 
 export default function RootLayout({
@@ -25,12 +40,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+     <html lang="en" className={spaceGrotesk.variable}>
       <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap"
-          rel="stylesheet"
-        />
+       
         {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}"
