@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, X, Share2, CheckCircle2 } from "lucide-react";
+import miniappSdk from "@farcaster/miniapp-sdk";
 
 interface CoinLocationFormProps {
   locationName?: string;
@@ -47,21 +48,20 @@ export default function CoinLocationForm({
   // Share functionality
   const shareText = `Just created ${formData.name} (${formData.symbol}) coin at ${locationName}! 🪙\n\nCoin: ${coinAddress}\nTx: ${transactionHash}\n\nCheck it out on Refraction!`;
 
-  const handleShareFarcaster = () => {
-    // Check if we're in a Farcaster miniapp
-    if (typeof window !== "undefined" && (window as any).farcaster) {
-      try {
-        (window as any).farcaster.actions.composeCast({
+  const handleShareFarcaster = async () => {
+    try {
+      const inMiniApp = await miniappSdk.isInMiniApp();
+      if (inMiniApp) {
+        await miniappSdk.actions.composeCast({
           text: shareText,
-          url: `${window.location.origin}/coin/${coinAddress}`,
+          embeds: [`${window.location.origin}`],
         });
-      } catch {
-        console.log("Farcaster action failed, falling back to Twitter");
-        handleShareTwitter();
+        return;
       }
-    } else {
-      handleShareTwitter();
+    } catch {
+      // noop, will fall back to Twitter below
     }
+    handleShareTwitter();
   };
 
   const handleShareTwitter = () => {
