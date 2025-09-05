@@ -373,14 +373,12 @@ export default function InteractiveMap() {
 
       const publicClient = createPublicClient({
         chain: base,
-        transport: http(
-          "https://api.developer.coinbase.com/rpc/v1/base/9JqOI8zEKX55lCKRSJ53WaGXAcZ7omfd",
-        ),
+        transport: http(process.env.NEXT_PUBLIC_BASE_RPC_URL),
       });
 
       // Create the coin using Zora SDK
       const coinCreationArgs = {
-        creator: "0x9bf0324ef4da39bafda2988cd4112a3391ac0377",
+        creator: walletAddress as `0x${string}`,
         name: coinFormData.name,
         symbol: coinFormData.symbol,
         metadata: createMetadataParameters.metadata,
@@ -717,8 +715,8 @@ export default function InteractiveMap() {
 
       {/* Coin Form Modal */}
       {showCoinForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 pb-28 overflow-y-auto">
-          <div className="w-full max-w-md my-8">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-0 md:p-4 md:pb-28 overflow-y-auto">
+          <div className="w-full h-full md:h-auto md:max-w-md md:my-8">
             <CoinLocationForm
               locationName={selectedMarker?.name}
               locationAddress={selectedMarker?.display_name}

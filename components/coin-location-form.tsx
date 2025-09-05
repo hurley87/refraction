@@ -128,7 +128,7 @@ export default function CoinLocationForm({
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 sm:p-6 w-full mx-auto max-h-[90vh] overflow-y-auto">
+    <div className="bg-white rounded-none md:rounded-2xl p-4 sm:p-6 w-full h-full md:h-auto mx-auto md:max-h-[90vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-inktrap font-bold text-black">
           Create Coin Location
@@ -255,7 +255,7 @@ export default function CoinLocationForm({
         </div>
 
         {/* Submit Buttons */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-3 pt-4 pb-8 md:pb-0">
           <Button
             type="button"
             variant="outline"

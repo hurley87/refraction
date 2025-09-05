@@ -18,7 +18,7 @@ export default function MobileFooterNav({
 
   return (
     <div
-      className={`fixed bottom-4 left-0 right-0 z-50 ${showOnDesktop ? "" : "md:hidden"} flex justify-center`}
+      className={`fixed bottom-4 left-0 right-0 z-40 ${showOnDesktop ? "" : "md:hidden"} flex justify-center`}
     >
       <nav className="bg-white/90 backdrop-blur rounded-full shadow px-4 py-2 flex items-center gap-6">
         <Link
