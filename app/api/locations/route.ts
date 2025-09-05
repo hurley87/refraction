@@ -84,3 +84,71 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const {
+      place_id,
+      display_name,
+      name,
+      lat,
+      lon,
+      type,
+      coinAddress,
+      coinMetadata,
+      transactionHash,
+      coinSymbol,
+      coinName,
+      walletAddress,
+      username,
+    } = body;
+
+    // Validate required fields
+    if (!place_id || !display_name || !name || !lat || !lon) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
+    }
+
+    // Insert the new location
+    const { data: locationData, error: locationError } = await supabase
+      .from("locations")
+      .insert({
+        place_id,
+        display_name,
+        name,
+        latitude: parseFloat(lat),
+        longitude: parseFloat(lon),
+        type: type || "location",
+        points_value: 100, // Default points value
+        coin_address: coinAddress || null,
+        coin_transaction_hash: transactionHash || null,
+        coin_symbol: coinSymbol || null,
+        coin_name: coinName || null,
+        creator_wallet_address: walletAddress || null,
+        creator_username: username || null,
+        context: JSON.stringify({
+          coinAddress: coinAddress || null,
+          coinMetadata: coinMetadata || null,
+          transactionHash: transactionHash || null,
+        }),
+      })
+      .select()
+      .single();
+
+    if (locationError) throw locationError;
+
+    return NextResponse.json({
+      success: true,
+      location: locationData,
+    });
+  } catch (error) {
+    console.error("Create location API error:", error);
+    return NextResponse.json(
+      { error: "Failed to create location" },
+      { status: 500 },
+    );
+  }
+}

@@ -19,6 +19,7 @@ import {
 import { setApiKey } from "@zoralabs/coins-sdk";
 import { createWalletClient, createPublicClient, http, custom } from "viem";
 import { base } from "viem/chains";
+import miniappSdk from "@farcaster/miniapp-sdk";
 
 interface MarkerData {
   latitude: number;
@@ -67,6 +68,9 @@ export default function InteractiveMap() {
     address: string;
     transactionHash: string;
   } | null>(null);
+  const [farcasterUsername, setFarcasterUsername] = useState<string | null>(
+    null,
+  );
   const { wallets } = useWallets();
   const wallet = wallets.find(
     (wallet) => (wallet.address as `0x${string}`) === walletAddress,
@@ -109,6 +113,16 @@ export default function InteractiveMap() {
       }
     };
   }, [wallet]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const ctx: any = await (miniappSdk as any)?.context;
+        const username = ctx?.user?.username ?? null;
+        if (username) setFarcasterUsername(username);
+      } catch {}
+    })();
+  }, []);
 
   const switchToBase = async () => {
     if (!ethProvider) return;
@@ -419,6 +433,10 @@ export default function InteractiveMap() {
           coinAddress: result.address,
           coinMetadata: createMetadataParameters,
           transactionHash: result.hash,
+          coinSymbol: coinFormData.symbol,
+          coinName: coinFormData.name,
+          walletAddress: walletAddress,
+          username: farcasterUsername,
         };
 
         // Save to your backend (you may want to implement this API endpoint)
@@ -439,7 +457,7 @@ export default function InteractiveMap() {
             };
 
             setMarkers((current) => [...current, newPermanentMarker]);
-            
+
             // Set success state instead of closing immediately
             setCoinCreationSuccess(true);
             setCreatedCoinData({
