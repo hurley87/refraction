@@ -86,7 +86,9 @@ export default function InteractiveMap() {
     let handler: any;
     let providerRef: any;
     (async () => {
-      const provider = (await wallet?.getEthereumProvider()) as any;
+      const provider =
+        ((await wallet?.getEthereumProvider?.()) as any) ||
+        (typeof window !== "undefined" ? (window as any).ethereum : null);
       providerRef = provider;
       setEthProvider(provider ?? null);
       try {
@@ -310,8 +312,15 @@ export default function InteractiveMap() {
 
       console.log("Metadata created:", createMetadataParameters);
 
+      console.log("wallet", wallet);
+
       // Create wallet and public clients for the transaction
-      const ethereumProvider = (await wallet?.getEthereumProvider()) as any;
+      const ethereumProvider =
+        ((await wallet?.getEthereumProvider?.()) as any) ||
+        (typeof window !== "undefined" ? (window as any).ethereum : null);
+
+      console.log("ethereumProvider", ethereumProvider);
+
       if (!ethereumProvider) {
         toast.error("No wallet provider found");
         return;
@@ -323,6 +332,9 @@ export default function InteractiveMap() {
         const currentChainId = await ethereumProvider.request({
           method: "eth_chainId",
         });
+
+        console.log("currentChainId", currentChainId);
+
         if (currentChainId !== targetChainIdHex) {
           try {
             await ethereumProvider.request({
