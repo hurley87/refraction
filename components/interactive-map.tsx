@@ -402,60 +402,55 @@ export default function InteractiveMap() {
       console.log("Coin address:", result.address);
       console.log("Deployment details:", result.deployment);
 
-      // if (result.address) {
-      //   // Save the location with coin data to your backend
-      //   const locationData = {
-      //     place_id: selectedMarker.place_id,
-      //     display_name: selectedMarker.display_name,
-      //     name: selectedMarker.name,
-      //     lat: selectedMarker.latitude.toString(),
-      //     lon: selectedMarker.longitude.toString(),
-      //     type: "location",
-      //     coinAddress: result.address,
-      //     coinMetadata: createMetadataParameters,
-      //     transactionHash: result.hash,
-      //   };
+      if (result.address) {
+        // Save the location with coin data to your backend
+        const locationData = {
+          place_id: selectedMarker.place_id,
+          display_name: selectedMarker.display_name,
+          name: selectedMarker.name,
+          lat: selectedMarker.latitude.toString(),
+          lon: selectedMarker.longitude.toString(),
+          type: "location",
+          coinAddress: result.address,
+          coinMetadata: createMetadataParameters,
+          transactionHash: result.hash,
+        };
 
-      //   // Save to your backend (you may want to implement this API endpoint)
-      //   try {
-      //     const response = await fetch("/api/locations", {
-      //       method: "POST",
-      //       headers: {
-      //         "Content-Type": "application/json",
-      //       },
-      //       body: JSON.stringify(locationData),
-      //     });
+        // Save to your backend (you may want to implement this API endpoint)
+        try {
+          const response = await fetch("/api/locations", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(locationData),
+          });
 
-      //     if (response.ok) {
-      //       // Remove from temp markers and add to permanent markers
-      //       setTempMarkers((current) =>
-      //         current.filter((m) => m.place_id !== selectedMarker.place_id),
-      //       );
+          if (response.ok) {
+            const newPermanentMarker: MarkerData = {
+              ...selectedMarker,
+              creator_wallet_address: walletAddress,
+              creator_username: null,
+            };
 
-      //       const newPermanentMarker: MarkerData = {
-      //         ...selectedMarker,
-      //         creator_wallet_address: walletAddress,
-      //         creator_username: null,
-      //       };
+            setMarkers((current) => [...current, newPermanentMarker]);
+            setSelectedMarker(null);
+            setPopupInfo(null);
+            setShowCoinForm(false);
 
-      //       setMarkers((current) => [...current, newPermanentMarker]);
-      //       setSelectedMarker(null);
-      //       setPopupInfo(null);
-      //       setShowCoinForm(false);
-
-      //       toast.success(
-      //         `Coin Location created! 🪙 Address: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`,
-      //       );
-      //     } else {
-      //       toast.error("Failed to save location data");
-      //     }
-      //   } catch (saveError) {
-      //     console.error("Error saving location:", saveError);
-      //     toast.error("Coin created but failed to save location data");
-      //   }
-      // } else {
-      //   toast.error("Failed to create coin");
-      // }
+            toast.success(
+              `Coin Location created! 🪙 Address: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`,
+            );
+          } else {
+            toast.error("Failed to save location data");
+          }
+        } catch (saveError) {
+          console.error("Error saving location:", saveError);
+          toast.error("Coin created but failed to save location data");
+        }
+      } else {
+        toast.error("Failed to create coin");
+      }
     } catch (error) {
       console.error("Error creating coin location:", error);
       toast.error(
@@ -577,15 +572,10 @@ export default function InteractiveMap() {
                 locations
               </p>
               <p>
-                • <strong>Blue markers:</strong> Existing locations (check-in
-                for points)
+                • <strong>Markers:</strong> Click to check in
               </p>
               <p>
-                • <strong>Orange markers:</strong> New locations (create + coin)
-              </p>
-              <p>
-                • <strong>Coins:</strong> Each location can have its own Zora
-                coin!
+                • <strong>Coins:</strong> Each location has its own Zora coin!
               </p>
             </div>
           )}
