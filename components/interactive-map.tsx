@@ -6,10 +6,19 @@ import { Search, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocationGame } from "@/hooks/useLocationGame";
-import { useLocationCoin } from "@/hooks/useLocationCoin";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import MobileFooterNav from "@/components/mobile-footer-nav";
+import CoinLocationForm, { CoinFormData } from "./coin-location-form";
+import {
+  createMetadataBuilder,
+  createZoraUploaderForCreator,
+  createCoin,
+  CreateConstants,
+} from "@zoralabs/coins-sdk";
+import { setApiKey } from "@zoralabs/coins-sdk";
+import { createWalletClient, createPublicClient, http, custom } from "viem";
+import { base } from "viem/chains";
 
 interface MarkerData {
   latitude: number;
@@ -35,7 +44,6 @@ export default function InteractiveMap() {
   const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
   const { performCheckin, isCheckinLoading } = useLocationGame();
-  const { createLocationWithCoin, isCreating } = useLocationCoin();
 
   const [viewState, setViewState] = useState({
     longitude: -73.9442,
@@ -52,8 +60,76 @@ export default function InteractiveMap() {
     [],
   );
   const [isHowToOpen, setIsHowToOpen] = useState(true);
+  const [showCoinForm, setShowCoinForm] = useState(false);
+  const [isCreatingCoin, setIsCreatingCoin] = useState(false);
+  const { wallets } = useWallets();
+  const wallet = wallets.find(
+    (wallet) => (wallet.address as `0x${string}`) === walletAddress,
+  );
+  const [ethProvider, setEthProvider] = useState<any>(null);
+  const [isOnBase, setIsOnBase] = useState<boolean>(true);
 
   const mapRef = useRef<any>(null);
+
+  // Initialize Zora SDK API key (client-side; for production prefer a server route)
+  useEffect(() => {
+    const apiKey = process.env.NEXT_PUBLIC_ZORA_API_KEY as string | undefined;
+    if (apiKey) {
+      setApiKey(apiKey);
+    } else {
+      console.warn("NEXT_PUBLIC_ZORA_API_KEY is not set");
+    }
+  }, []);
+
+  // Track wallet provider and chain; expose Switch to Base button
+  useEffect(() => {
+    let handler: any;
+    let providerRef: any;
+    (async () => {
+      const provider = (await wallet?.getEthereumProvider()) as any;
+      providerRef = provider;
+      setEthProvider(provider ?? null);
+      try {
+        const chainId = await provider?.request?.({ method: "eth_chainId" });
+        setIsOnBase(chainId === "0x2105");
+      } catch {}
+      handler = (cid: string) => setIsOnBase(cid === "0x2105");
+      provider?.on?.("chainChanged", handler);
+    })();
+    return () => {
+      if (handler && providerRef?.removeListener) {
+        providerRef.removeListener("chainChanged", handler);
+      }
+    };
+  }, [wallet]);
+
+  const switchToBase = async () => {
+    if (!ethProvider) return;
+    const targetChainIdHex = "0x2105";
+    try {
+      await ethProvider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: targetChainIdHex }],
+      });
+    } catch {
+      await ethProvider.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: targetChainIdHex,
+            chainName: "Base",
+            nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+            rpcUrls: ["https://mainnet.base.org"],
+            blockExplorerUrls: ["https://basescan.org"],
+          },
+        ],
+      });
+      await ethProvider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: targetChainIdHex }],
+      });
+    }
+  };
 
   // Load markers from DB on mount
   useEffect(() => {
@@ -215,48 +291,181 @@ export default function InteractiveMap() {
     setSelectedMarker(marker);
   };
 
-  const handleCreateLocationWithCoin = async () => {
-    if (!selectedMarker || !walletAddress) {
+  const handleCreateLocationWithCoin = async (coinFormData: CoinFormData) => {
+    if (!selectedMarker || !walletAddress || !user?.wallet) {
       toast.error("Please select a location and connect your wallet");
       return;
     }
 
-    const locationData = {
-      place_id: selectedMarker.place_id,
-      display_name: selectedMarker.display_name,
-      name: selectedMarker.name,
-      lat: selectedMarker.latitude.toString(),
-      lon: selectedMarker.longitude.toString(),
-      type: "location",
-    };
+    setIsCreatingCoin(true);
 
-    const result = await createLocationWithCoin({
-      locationData,
-      createCoin: true,
-    });
+    try {
+      // Create metadata using Zora Coins SDK
+      const { createMetadataParameters } = await createMetadataBuilder()
+        .withName(coinFormData.name)
+        .withSymbol(coinFormData.symbol)
+        .withDescription(coinFormData.description)
+        .withImage(coinFormData.image!)
+        .upload(createZoraUploaderForCreator(walletAddress as `0x${string}`));
 
-    if (result.success) {
-      // Remove from temp markers and add to permanent markers
-      setTempMarkers((current) =>
-        current.filter((m) => m.place_id !== selectedMarker.place_id),
-      );
+      console.log("Metadata created:", createMetadataParameters);
 
-      const newPermanentMarker: MarkerData = {
-        ...selectedMarker,
-        creator_wallet_address: walletAddress,
-        creator_username: null,
+      // Create wallet and public clients for the transaction
+      const ethereumProvider = (await wallet?.getEthereumProvider()) as any;
+      if (!ethereumProvider) {
+        toast.error("No wallet provider found");
+        return;
+      }
+
+      // Ensure wallet is on Base before proceeding
+      try {
+        const targetChainIdHex = "0x2105"; // Base mainnet
+        const currentChainId = await ethereumProvider.request({
+          method: "eth_chainId",
+        });
+        if (currentChainId !== targetChainIdHex) {
+          try {
+            await ethereumProvider.request({
+              method: "wallet_switchEthereumChain",
+              params: [{ chainId: targetChainIdHex }],
+            });
+          } catch {
+            // If Base is not added, add it, then switch
+            await ethereumProvider.request({
+              method: "wallet_addEthereumChain",
+              params: [
+                {
+                  chainId: targetChainIdHex,
+                  chainName: "Base",
+                  nativeCurrency: {
+                    name: "Ether",
+                    symbol: "ETH",
+                    decimals: 18,
+                  },
+                  rpcUrls: ["https://mainnet.base.org"],
+                  blockExplorerUrls: ["https://basescan.org"],
+                },
+              ],
+            });
+            await ethereumProvider.request({
+              method: "wallet_switchEthereumChain",
+              params: [{ chainId: targetChainIdHex }],
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to ensure Base network:", e);
+        toast.error("Please switch your wallet to Base");
+        return;
+      }
+
+      const walletClient = createWalletClient({
+        chain: base,
+        transport: custom(ethereumProvider),
+        account: walletAddress as `0x${string}`,
+      });
+
+      const publicClient = createPublicClient({
+        chain: base,
+        transport: http(
+          "https://api.developer.coinbase.com/rpc/v1/base/9JqOI8zEKX55lCKRSJ53WaGXAcZ7omfd",
+        ),
+      });
+
+      // Create the coin using Zora SDK
+      const coinCreationArgs = {
+        creator: walletAddress as `0x${string}`,
+        name: coinFormData.name,
+        symbol: coinFormData.symbol,
+        metadata: createMetadataParameters.metadata,
+        currency: CreateConstants.ContentCoinCurrencies.ETH,
+        chainId: base.id,
       };
 
-      setMarkers((current) => [...current, newPermanentMarker]);
-      setSelectedMarker(null);
-      setPopupInfo(null);
+      console.log("Creating coin with args:", coinCreationArgs);
+      console.log("walletAddress", walletAddress);
+      console.log("createMetadataParameters", createMetadataParameters);
+      console.log("currency", CreateConstants.ContentCoinCurrencies.ETH);
+      console.log("publicClient", publicClient);
 
-      if (result.coinAddress) {
-        toast.success(`Coin Location created! 🪙`);
-      } else {
-        toast.success("Coin Location created! 📍");
-      }
+      const result = await createCoin({
+        call: coinCreationArgs,
+        walletClient,
+        publicClient,
+      });
+
+      console.log("Coin creation result:", result);
+
+      // if (result.address) {
+      //   // Save the location with coin data to your backend
+      //   const locationData = {
+      //     place_id: selectedMarker.place_id,
+      //     display_name: selectedMarker.display_name,
+      //     name: selectedMarker.name,
+      //     lat: selectedMarker.latitude.toString(),
+      //     lon: selectedMarker.longitude.toString(),
+      //     type: "location",
+      //     coinAddress: result.address,
+      //     coinMetadata: createMetadataParameters,
+      //     transactionHash: result.hash,
+      //   };
+
+      //   // Save to your backend (you may want to implement this API endpoint)
+      //   try {
+      //     const response = await fetch("/api/locations", {
+      //       method: "POST",
+      //       headers: {
+      //         "Content-Type": "application/json",
+      //       },
+      //       body: JSON.stringify(locationData),
+      //     });
+
+      //     if (response.ok) {
+      //       // Remove from temp markers and add to permanent markers
+      //       setTempMarkers((current) =>
+      //         current.filter((m) => m.place_id !== selectedMarker.place_id),
+      //       );
+
+      //       const newPermanentMarker: MarkerData = {
+      //         ...selectedMarker,
+      //         creator_wallet_address: walletAddress,
+      //         creator_username: null,
+      //       };
+
+      //       setMarkers((current) => [...current, newPermanentMarker]);
+      //       setSelectedMarker(null);
+      //       setPopupInfo(null);
+      //       setShowCoinForm(false);
+
+      //       toast.success(
+      //         `Coin Location created! 🪙 Address: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`,
+      //       );
+      //     } else {
+      //       toast.error("Failed to save location data");
+      //     }
+      //   } catch (saveError) {
+      //     console.error("Error saving location:", saveError);
+      //     toast.error("Coin created but failed to save location data");
+      //   }
+      // } else {
+      //   toast.error("Failed to create coin");
+      // }
+    } catch (error) {
+      console.error("Error creating coin location:", error);
+      toast.error(
+        "Failed to create coin location: " + (error as Error).message,
+      );
+    } finally {
+      setIsCreatingCoin(false);
     }
+  };
+
+  const handleShowCoinForm = () => {
+    if (!selectedMarker || !walletAddress) {
+      toast.error("Please select a location and connect your wallet");
+      return;
+    }
+    setShowCoinForm(true);
   };
 
   const handleCheckin = async () => {
@@ -301,6 +510,15 @@ export default function InteractiveMap() {
         <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 md:p-4 shadow-xl">
           <div className="flex gap-2 items-center">
             {/* Desktop-only back button */}
+            {!isOnBase && ethProvider && (
+              <Button
+                onClick={switchToBase}
+                size="sm"
+                className="rounded-full bg-black/80 text-white hover:bg-black px-3 h-11 md:h-12"
+              >
+                Switch to Base
+              </Button>
+            )}
             <Input
               placeholder="Search for locations..."
               value={searchQuery}
@@ -465,13 +683,13 @@ export default function InteractiveMap() {
               {tempMarkers.find((m) => m.place_id === popupInfo.place_id) ? (
                 // This is a temporary marker - show coin location option
                 <Button
-                  onClick={handleCreateLocationWithCoin}
-                  disabled={!walletAddress || isCreating}
+                  onClick={handleShowCoinForm}
+                  disabled={!walletAddress || isCreatingCoin}
                   className="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 text-xs py-2 flex items-center justify-center gap-1"
                   size="sm"
                 >
                   <Coins className="w-3 h-3" />
-                  {isCreating ? "Creating..." : "Coin Location"}
+                  {isCreatingCoin ? "Creating..." : "Coin Location"}
                 </Button>
               ) : (
                 // This is a permanent marker - show check in option
@@ -488,6 +706,19 @@ export default function InteractiveMap() {
           </Popup>
         )}
       </Map>
+
+      {/* Coin Form Modal */}
+      {showCoinForm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <CoinLocationForm
+            locationName={selectedMarker?.name}
+            locationAddress={selectedMarker?.display_name}
+            onSubmit={handleCreateLocationWithCoin}
+            onCancel={() => setShowCoinForm(false)}
+            isLoading={isCreatingCoin}
+          />
+        </div>
+      )}
 
       {/* Mobile nav on all screens for this page */}
       <MobileFooterNav showOnDesktop />
