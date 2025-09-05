@@ -188,17 +188,14 @@ export default function InteractiveMap() {
             name: feature.text || "New Location",
           };
 
-          setTempMarkers((current) => [...current, newMarker]);
+          // Do not render a temp marker. Open the create coin form directly.
           setSelectedMarker(newMarker);
-          setPopupInfo(newMarker);
-          toast.success(
-            "Location marker added! Click to create location with coin.",
-          );
+          setShowCoinForm(true);
         }
       }
     } catch (error) {
       console.error("Reverse geocoding failed:", error);
-      // Still add marker even if reverse geocoding fails
+      // Still allow creating even if reverse geocoding fails
       const newMarker: MarkerData = {
         latitude,
         longitude,
@@ -207,12 +204,9 @@ export default function InteractiveMap() {
         name: "New Location",
       };
 
-      setTempMarkers((current) => [...current, newMarker]);
+      // Do not render a temp marker. Open the create coin form directly.
       setSelectedMarker(newMarker);
-      setPopupInfo(newMarker);
-      toast.success(
-        "Location marker added! Click to create location with coin.",
-      );
+      setShowCoinForm(true);
     }
   };
 
@@ -386,7 +380,7 @@ export default function InteractiveMap() {
 
       // Create the coin using Zora SDK
       const coinCreationArgs = {
-        creator: walletAddress as `0x${string}`,
+        creator: "0x9bf0324ef4da39bafda2988cd4112a3391ac0377",
         name: coinFormData.name,
         symbol: coinFormData.symbol,
         metadata: createMetadataParameters.metadata,
@@ -723,7 +717,7 @@ export default function InteractiveMap() {
 
       {/* Coin Form Modal */}
       {showCoinForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 pb-28 overflow-y-auto">
           <div className="w-full max-w-md my-8">
             <CoinLocationForm
               locationName={selectedMarker?.name}
