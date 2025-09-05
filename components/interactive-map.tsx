@@ -62,6 +62,11 @@ export default function InteractiveMap() {
   const [isHowToOpen, setIsHowToOpen] = useState(true);
   const [showCoinForm, setShowCoinForm] = useState(false);
   const [isCreatingCoin, setIsCreatingCoin] = useState(false);
+  const [coinCreationSuccess, setCoinCreationSuccess] = useState(false);
+  const [createdCoinData, setCreatedCoinData] = useState<{
+    address: string;
+    transactionHash: string;
+  } | null>(null);
   const { wallets } = useWallets();
   const wallet = wallets.find(
     (wallet) => (wallet.address as `0x${string}`) === walletAddress,
@@ -373,7 +378,7 @@ export default function InteractiveMap() {
 
       const publicClient = createPublicClient({
         chain: base,
-        transport: http(process.env.NEXT_PUBLIC_BASE_RPC_URL),
+        transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
       });
 
       // Create the coin using Zora SDK
@@ -434,13 +439,13 @@ export default function InteractiveMap() {
             };
 
             setMarkers((current) => [...current, newPermanentMarker]);
-            setSelectedMarker(null);
-            setPopupInfo(null);
-            setShowCoinForm(false);
-
-            toast.success(
-              `Coin Location created! 🪙 Address: ${result.address.slice(0, 6)}...${result.address.slice(-4)}`,
-            );
+            
+            // Set success state instead of closing immediately
+            setCoinCreationSuccess(true);
+            setCreatedCoinData({
+              address: result.address,
+              transactionHash: result.hash,
+            });
           } else {
             toast.error("Failed to save location data");
           }
@@ -467,6 +472,16 @@ export default function InteractiveMap() {
       return;
     }
     setShowCoinForm(true);
+    setCoinCreationSuccess(false);
+    setCreatedCoinData(null);
+  };
+
+  const handleCloseCoinForm = () => {
+    setShowCoinForm(false);
+    setCoinCreationSuccess(false);
+    setCreatedCoinData(null);
+    setSelectedMarker(null);
+    setPopupInfo(null);
   };
 
   const handleCheckin = async () => {
@@ -711,8 +726,11 @@ export default function InteractiveMap() {
               locationName={selectedMarker?.name}
               locationAddress={selectedMarker?.display_name}
               onSubmit={handleCreateLocationWithCoin}
-              onCancel={() => setShowCoinForm(false)}
+              onCancel={handleCloseCoinForm}
               isLoading={isCreatingCoin}
+              isSuccess={coinCreationSuccess}
+              coinAddress={createdCoinData?.address}
+              transactionHash={createdCoinData?.transactionHash}
             />
           </div>
         </div>
