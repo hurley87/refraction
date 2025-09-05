@@ -52,7 +52,7 @@ export default function InteractiveMap() {
   });
 
   const [markers, setMarkers] = useState<MarkerData[]>([]);
-  const [tempMarkers, setTempMarkers] = useState<MarkerData[]>([]);
+  const [tempMarkers] = useState<MarkerData[]>([]);
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const [popupInfo, setPopupInfo] = useState<MarkerData | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
