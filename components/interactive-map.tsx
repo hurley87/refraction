@@ -394,7 +394,9 @@ export default function InteractiveMap() {
         publicClient,
       });
 
-      console.log("Coin creation result:", result);
+      console.log("Transaction hash:", result.hash);
+      console.log("Coin address:", result.address);
+      console.log("Deployment details:", result.deployment);
 
       // if (result.address) {
       //   // Save the location with coin data to your backend
@@ -709,14 +711,16 @@ export default function InteractiveMap() {
 
       {/* Coin Form Modal */}
       {showCoinForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <CoinLocationForm
-            locationName={selectedMarker?.name}
-            locationAddress={selectedMarker?.display_name}
-            onSubmit={handleCreateLocationWithCoin}
-            onCancel={() => setShowCoinForm(false)}
-            isLoading={isCreatingCoin}
-          />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-md my-8">
+            <CoinLocationForm
+              locationName={selectedMarker?.name}
+              locationAddress={selectedMarker?.display_name}
+              onSubmit={handleCreateLocationWithCoin}
+              onCancel={() => setShowCoinForm(false)}
+              isLoading={isCreatingCoin}
+            />
+          </div>
         </div>
       )}
 

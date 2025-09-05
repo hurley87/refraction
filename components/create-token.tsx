@@ -16,8 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { custom } from "viem";
+import { Address, custom } from "viem";
 import { createWalletClient } from "viem";
+import { createCoin, CreateConstants } from "@zoralabs/coins-sdk";
 
 export default function CreateToken() {
   const { login, user } = usePrivy();
@@ -29,7 +30,7 @@ export default function CreateToken() {
   const [selectedEventAddress, setSelectedEventAddress] = useState<string>("");
   const { wallets } = useWallets();
   const wallet = wallets.find(
-    (wallet) => (wallet.address as `0x${string}`) === address
+    (wallet) => (wallet.address as `0x${string}`) === address,
   );
   const walletChainId = wallet?.chainId.split(":")[1];
 
@@ -97,22 +98,43 @@ export default function CreateToken() {
         transport: custom(ethereumProvider),
       });
 
-      const { parameters } = await creatorClient.create1155OnExistingContract({
-        contractAddress: selectedEventAddress as `0x${string}`,
-        token: {
-          tokenMetadataURI,
-        },
-        account: address as `0x${string}`,
-      });
+      const args: {
+        creator: Address;
+        name: string;
+        symbol: string;
+        metadata: {
+          type: "RAW_URI";
+          uri: string;
+        };
+        currency: "ETH";
+        chainId: 8453;
+        startingMarketCap: "LOW";
+        platformReferrerAddress: Address;
+      } = {
+        creator: address as Address,
+        name: imageName,
+        symbol: imageName,
+        metadata: { type: "RAW_URI" as const, uri: "ipfs://bafy..." },
+        currency: CreateConstants.ContentCoinCurrencies.ETH,
+        chainId: base.id,
+        startingMarketCap: CreateConstants.StartingMarketCaps.LOW,
+        platformReferrerAddress: "0xOptionalReferrer" as Address,
+      };
 
       // simulate the transaction
-      const { request } = await publicClient.simulateContract(parameters);
+      const result = await createCoin({
+        call: args,
+        walletClient,
+        publicClient,
+        options: {
+          // account: optional override
+          // skipValidateTransaction: false by default
+        },
+      });
 
-      // execute the transaction
-      const hash = await walletClient.writeContract(request);
-
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      console.log("receipt", receipt);
+      console.log("Transaction hash:", result.hash);
+      console.log("Coin address:", result.address);
+      console.log("Deployment details:", result.deployment);
 
       toast.success("Successfully created token!");
     } catch (error) {

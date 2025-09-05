@@ -128,7 +128,7 @@ export default function CoinLocationForm({
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-auto">
+    <div className="bg-white rounded-2xl p-4 sm:p-6 w-full mx-auto max-h-[90vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-inktrap font-bold text-black">
           Create Coin Location
