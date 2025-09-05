@@ -8,7 +8,6 @@ import { Label } from "./ui/label";
 import { toast } from "sonner";
 import { publicClient } from "@/lib/publicClient";
 import { base } from "viem/chains";
-import { createCreatorClient } from "@zoralabs/protocol-sdk";
 import {
   Select,
   SelectContent,
@@ -45,8 +44,7 @@ export default function CreateToken() {
     },
   ];
 
-  const chainId = base.id;
-  const creatorClient = createCreatorClient({ chainId, publicClient });
+  // Removed unused creatorClient
 
   const addImageToken = async () => {
     try {
@@ -114,7 +112,7 @@ export default function CreateToken() {
         creator: address as Address,
         name: imageName,
         symbol: imageName,
-        metadata: { type: "RAW_URI" as const, uri: "ipfs://bafy..." },
+        metadata: { type: "RAW_URI" as const, uri: tokenMetadataURI },
         currency: CreateConstants.ContentCoinCurrencies.ETH,
         chainId: base.id,
         startingMarketCap: CreateConstants.StartingMarketCaps.LOW,
