@@ -2,15 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Star } from "lucide-react";
 
-export default function MobileFooterNav() {
+type MobileFooterNavProps = {
+  showOnDesktop?: boolean;
+};
+
+export default function MobileFooterNav({
+  showOnDesktop = false,
+}: MobileFooterNavProps) {
   const pathname = usePathname();
 
   const linkClasses = (active: boolean) =>
     `p-2 rounded-full ${active ? "bg-gray-100 text-black" : "text-gray-700"}`;
 
   return (
-    <div className="fixed bottom-4 left-0 right-0 z-50 md:hidden flex justify-center">
+    <div
+      className={`fixed bottom-4 left-0 right-0 z-50 ${showOnDesktop ? "" : "md:hidden"} flex justify-center`}
+    >
       <nav className="bg-white/90 backdrop-blur rounded-full shadow px-4 py-2 flex items-center gap-6">
         <Link
           href="/"
@@ -45,14 +54,7 @@ export default function MobileFooterNav() {
           className={linkClasses(pathname === "/leaderboard")}
           aria-label="Leaderboard"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="w-5 h-5"
-          >
-            <path d="M9 3H5a2 2 0 0 0-2 2v14h6V3zm12 8h-6v8h6V11zM15 3h-6v18h6V3z" />
-          </svg>
+          <Star className="w-5 h-5" />
         </Link>
       </nav>
     </div>

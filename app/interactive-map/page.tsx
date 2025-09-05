@@ -5,6 +5,7 @@ import InteractiveMap from "@/components/interactive-map";
 import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import MobileFooterNav from "@/components/mobile-footer-nav";
 
 export default function InteractiveMapPage() {
   const { user, login } = usePrivy();
@@ -94,6 +95,7 @@ export default function InteractiveMapPage() {
             />
           </div>
         </div>
+        <MobileFooterNav showOnDesktop />
       </div>
     );
   }
@@ -116,6 +118,7 @@ export default function InteractiveMapPage() {
             Connect Wallet
           </Button>
         </div>
+        <MobileFooterNav showOnDesktop />
       </div>
     );
   }
@@ -123,6 +126,7 @@ export default function InteractiveMapPage() {
   return (
     <div className="fixed inset-0 font-grotesk">
       <InteractiveMap />
+      <MobileFooterNav showOnDesktop />
     </div>
   );
 }

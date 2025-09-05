@@ -9,6 +9,8 @@ import { useLocationGame } from "@/hooks/useLocationGame";
 import { useLocationCoin } from "@/hooks/useLocationCoin";
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import MobileFooterNav from "@/components/mobile-footer-nav";
 
 interface MarkerData {
   latitude: number;
@@ -32,6 +34,7 @@ interface LocationSuggestion {
 
 export default function InteractiveMap() {
   const { user } = usePrivy();
+  const router = useRouter();
   const walletAddress = user?.wallet?.address;
   const { performCheckin, isCheckinLoading } = useLocationGame();
   const { createLocationWithCoin, isCreating } = useLocationCoin();
@@ -299,6 +302,7 @@ export default function InteractiveMap() {
       <div className="absolute top-4 left-4 right-4 z-10 space-y-2 max-w-xl">
         <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 md:p-4 shadow-xl">
           <div className="flex gap-2 items-center">
+            {/* Desktop-only back button */}
             <Input
               placeholder="Search for locations..."
               value={searchQuery}
@@ -329,22 +333,6 @@ export default function InteractiveMap() {
             </div>
           )}
         </div>
-
-        {/* Controls */}
-        {selectedMarker && (
-          <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 md:p-4 shadow-xl">
-            <div className="flex gap-2">
-              <Button
-                onClick={handleCheckin}
-                disabled={!walletAddress || isCheckinLoading}
-                className="flex-1 bg-green-600 hover:bg-green-700 shadow-md"
-                size="sm"
-              >
-                {isCheckinLoading ? "Checking in..." : "Check In"}
-              </Button>
-            </div>
-          </div>
-        )}
 
         {/* How To under search (collapsible) */}
         <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-xl">
@@ -503,7 +491,8 @@ export default function InteractiveMap() {
         )}
       </Map>
 
-      {/* Bottom overlay removed per request */}
+      {/* Mobile nav on all screens for this page */}
+      <MobileFooterNav showOnDesktop />
     </div>
   );
 }
