@@ -9,7 +9,6 @@ import { useLocationGame } from "@/hooks/useLocationGame";
 import { useLocationCoin } from "@/hooks/useLocationCoin";
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import MobileFooterNav from "@/components/mobile-footer-nav";
 
 interface MarkerData {
@@ -34,7 +33,6 @@ interface LocationSuggestion {
 
 export default function InteractiveMap() {
   const { user } = usePrivy();
-  const router = useRouter();
   const walletAddress = user?.wallet?.address;
   const { performCheckin, isCheckinLoading } = useLocationGame();
   const { createLocationWithCoin, isCreating } = useLocationCoin();
