@@ -20,6 +20,7 @@ import { setApiKey } from "@zoralabs/coins-sdk";
 import { createWalletClient, createPublicClient, http, custom } from "viem";
 import { base } from "viem/chains";
 import miniappSdk from "@farcaster/miniapp-sdk";
+import { supabase } from "@/lib/supabase";
 
 interface MarkerData {
   latitude: number;
@@ -306,6 +307,33 @@ export default function InteractiveMap() {
     setSelectedMarker(marker);
   };
 
+  // Function to upload coin image to Supabase storage
+  const uploadCoinImage = async (imageFile: File, coinAddress: string, walletAddress: string): Promise<string | null> => {
+    try {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${walletAddress}/${coinAddress}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('coin-images')
+        .upload(fileName, imageFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) throw error;
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('coin-images')
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Error uploading coin image:', error);
+      return null;
+    }
+  };
+
   const handleCreateLocationWithCoin = async (coinFormData: CoinFormData) => {
     if (!selectedMarker || !walletAddress || !user?.wallet) {
       toast.error("Please select a location and connect your wallet");
@@ -422,6 +450,12 @@ export default function InteractiveMap() {
       console.log("Deployment details:", result.deployment);
 
       if (result.address) {
+        // Upload coin image to Supabase storage
+        let coinImageUrl: string | null = null;
+        if (coinFormData.image) {
+          coinImageUrl = await uploadCoinImage(coinFormData.image, result.address, walletAddress);
+        }
+
         // Save the location with coin data to your backend
         const locationData = {
           place_id: selectedMarker.place_id,
@@ -437,6 +471,7 @@ export default function InteractiveMap() {
           coinName: coinFormData.name,
           walletAddress: walletAddress,
           username: farcasterUsername,
+          coinImageUrl: coinImageUrl,
         };
 
         // Save to your backend (you may want to implement this API endpoint)

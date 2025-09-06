@@ -102,6 +102,7 @@ export async function POST(request: NextRequest) {
       coinName,
       walletAddress,
       username,
+      coinImageUrl,
     } = body;
 
     // Validate required fields
@@ -127,12 +128,14 @@ export async function POST(request: NextRequest) {
         coin_transaction_hash: transactionHash || null,
         coin_symbol: coinSymbol || null,
         coin_name: coinName || null,
+        coin_image_url: coinImageUrl || null,
         creator_wallet_address: walletAddress || null,
         creator_username: username || null,
         context: JSON.stringify({
           coinAddress: coinAddress || null,
           coinMetadata: coinMetadata || null,
           transactionHash: transactionHash || null,
+          coinImageUrl: coinImageUrl || null,
         }),
       })
       .select()
