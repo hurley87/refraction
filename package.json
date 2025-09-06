@@ -14,7 +14,7 @@
     "@farcaster/miniapp-sdk": "0.1.9",
     "@pinata/sdk": "^2.1.0",
     "@privy-io/chains": "^0.0.1",
-    "@privy-io/react-auth": "2.24.0",
+    "@privy-io/react-auth": "^2.21.4",
     "@privy-io/server-auth": "1.32.2",
     "@radix-ui/react-dialog": "^1.1.1",
     "@radix-ui/react-icons": "^1.3.0",
