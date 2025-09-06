@@ -44,6 +44,7 @@ export default function CoinLocationForm({
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  console.log("transactionHash", transactionHash);
 
   // Share functionality
   const shareText = `Just created ${formData.name} (${formData.symbol}) coin at ${locationName}!\n\nCA:\n${coinAddress}\n\nCheck it out on IRL!`;
@@ -192,13 +193,6 @@ export default function CoinLocationForm({
               <div className="bg-gray-50 rounded-lg p-3 mb-4">
                 <p className="text-xs text-gray-500 mb-1">Coin Address</p>
                 <p className="text-sm font-mono break-all">{coinAddress}</p>
-              </div>
-            )}
-
-            {transactionHash && (
-              <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                <p className="text-xs text-gray-500 mb-1">Transaction Hash</p>
-                <p className="text-sm font-mono break-all">{transactionHash}</p>
               </div>
             )}
           </div>

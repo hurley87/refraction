@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Star } from "lucide-react";
+import { Star, List } from "lucide-react";
 
 type MobileFooterNavProps = {
   showOnDesktop?: boolean;
@@ -48,6 +48,13 @@ export default function MobileFooterNav({
           >
             <path d="M15.5 4.5 9 2 3.5 4.5v17L9 19l6.5 2.5L21 19v-17l-5.5 2.5zm-6.5.882 5 1.923v11.313l-5-1.923V5.382z" />
           </svg>
+        </Link>
+        <Link
+          href="/coins"
+          className={linkClasses(pathname === "/coins")}
+          aria-label="Coins"
+        >
+          <List className="w-5 h-5" />
         </Link>
         <Link
           href="/leaderboard"
