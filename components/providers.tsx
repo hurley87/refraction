@@ -1,37 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { sepolia, mainnet, base } from "viem/chains";
+import { base } from "viem/chains";
 import { PrivyProvider } from "@privy-io/react-auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import miniappSdk from "@farcaster/miniapp-sdk";
 
 const queryClient = new QueryClient();
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID!;
-  const [isMiniApp, setIsMiniApp] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const inMini = await miniappSdk.isInMiniApp();
-        if (mounted) setIsMiniApp(inMini);
-      } catch {
-        if (mounted) setIsMiniApp(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
   const wagmiConfig = createConfig({
-    chains: [mainnet, sepolia, base],
+    chains: [base],
     transports: {
-      [mainnet.id]: http(),
-      [sepolia.id]: http(),
       [base.id]: http(),
     },
     ssr: true,
@@ -42,19 +23,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <PrivyProvider
           appId={appId}
           config={{
-            loginMethods: ["email", "wallet", "farcaster"],
-            // Disable embedded wallets in Mini App contexts
-            embeddedWallets: isMiniApp
-              ? undefined
-              : {
-                  createOnLogin: "users-without-wallets",
-                  showWalletUIs: false,
-                },
+            loginMethods: ["wallet", "farcaster"],
             appearance: {
               theme: "dark",
               walletList: ["detected_wallets"],
             },
-            supportedChains: [mainnet, sepolia, base],
+            supportedChains: [base],
             defaultChain: base,
           }}
         >
