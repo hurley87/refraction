@@ -46,7 +46,7 @@ export default function CoinLocationForm({
   const [dragActive, setDragActive] = useState(false);
 
   // Share functionality
-  const shareText = `Just created ${formData.name} (${formData.symbol}) coin at ${locationName}! 🪙\n\nCoin: ${coinAddress}\nTx: ${transactionHash}\n\nCheck it out on Refraction!`;
+  const shareText = `Just created ${formData.name} (${formData.symbol}) coin at ${locationName}! 🪙\n\nCA:\n${coinAddress}\n\nCheck it out on IRL!`;
 
   const handleShareFarcaster = async () => {
     try {
