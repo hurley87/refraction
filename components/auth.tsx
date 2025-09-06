@@ -11,7 +11,13 @@ interface AuthProps {
 }
 
 export default function Auth({ children }: AuthProps) {
-  const { user, ready, linkEmail, authenticated, login } = usePrivy();
+  const {
+    user,
+    ready,
+    // linkEmail,
+    authenticated,
+    login,
+  } = usePrivy();
   const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
   const [username, setUsername] = useState("");
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
@@ -165,25 +171,25 @@ export default function Auth({ children }: AuthProps) {
     );
   }
 
-  if (ready && user && !user.email) {
-    return (
-      <div className="flex items-center justify-center w-full min-h-dvh px-4">
-        <div className="w-full max-w-md text-center">
-          <p className="text-white text-xl font-inktrap mb-3">
-            Link your email for updates
-          </p>
-          <Button
-            className="w-full bg-white text-[#F24405] rounded-xl hover:bg-white/90 text-xl font-inktrap py-5 shadow-md"
-            size="lg"
-            onClick={linkEmail}
-            aria-label="Link your email"
-          >
-            Link Email
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // if (ready && user && !user.email) {
+  //   return (
+  //     <div className="flex items-center justify-center w-full min-h-dvh px-4">
+  //       <div className="w-full max-w-md text-center">
+  //         <p className="text-white text-xl font-inktrap mb-3">
+  //           Link your email for updates
+  //         </p>
+  //         <Button
+  //           className="w-full bg-white text-[#F24405] rounded-xl hover:bg-white/90 text-xl font-inktrap py-5 shadow-md"
+  //           size="lg"
+  //           onClick={linkEmail}
+  //           aria-label="Link your email"
+  //         >
+  //           Link Email
+  //         </Button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Show username prompt after login
   if (ready && user && needsUsername) {
