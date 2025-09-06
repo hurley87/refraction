@@ -93,10 +93,8 @@ export default function InteractiveMap() {
   );
   const [ethProvider, setEthProvider] = useState<any>(null);
   const [isOnBase, setIsOnBase] = useState<boolean>(true);
-
   const mapRef = useRef<any>(null);
 
-  // Initialize Zora SDK API key (client-side; for production prefer a server route)
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_ZORA_API_KEY as string | undefined;
     if (apiKey) {
