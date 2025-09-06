@@ -1,76 +1,86 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import InteractiveMap from "@/components/interactive-map";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { usePrivy } from "@privy-io/react-auth";
 import MobileFooterNav from "@/components/mobile-footer-nav";
-import miniappSdk from "@farcaster/miniapp-sdk";
-import { useLoginToMiniApp } from "@privy-io/react-auth/farcaster";
 import { Button } from "@/components/ui/button";
+import { Sparkles, Map, Coins } from "lucide-react";
 
 export default function InteractiveMapPage() {
   const { ready, authenticated, login } = usePrivy();
-  const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
-  const [isSDKLoaded, setIsSDKLoaded] = useState(false);
-  const { wallets } = useWallets();
-  console.log("walletsWWWWW", wallets);
-  // an effect to ensure if we are in mini app context
-  useEffect(() => {
-    if (miniappSdk && !isSDKLoaded) {
-      setIsSDKLoaded(true);
-      miniappSdk.actions.ready();
-    }
-  }, [isSDKLoaded]);
 
-  // here we handle the login user automatically with farcaster (removes the need for the user to click the login button, can be removed if you want to use the login button)
-  // when you open in TBA, if the user has added their TBA wallet to their farcaster account as an verified auth address, they will be logged in automatically
-  // change this useEffect to your needs
-  useEffect(() => {
-    console.log("ready", ready);
-    console.log("authenticated", authenticated);
-    if (ready && !authenticated) {
-      const login = async () => {
-        // Initialize a new login attempt to get a nonce for the Farcaster wallet to sign
-        const { nonce } = await initLoginToMiniApp();
-        console.log("nonce", nonce);
-        // Request a signature from Farcaster
-        const result = await miniappSdk.actions.signIn({ nonce: nonce });
-        console.log("result", result);
-        // Send the received signature from Farcaster to Privy for authentication
-        // or pass a SIWF message signed by an auth address
-        await loginToMiniApp({
-          message: result.message,
-          signature: result.signature,
-        });
-      };
-      login();
-    }
-  }, [ready, authenticated]);
+  if (!ready) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login screen when not authenticated
+  if (!authenticated) {
+    return (
+      <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-zinc-50 via-white to-zinc-100 dark:from-zinc-950 dark:via-zinc-900 dark:to-black">
+        {/* Decorative background */}
+        <div className="pointer-events-none absolute -top-40 -left-40 h-80 w-80 rounded-full bg-gradient-to-tr from-fuchsia-400/30 to-sky-400/30 blur-3xl dark:from-fuchsia-500/20 dark:to-sky-500/20" />
+        <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-gradient-to-tr from-blue-400/30 to-violet-400/30 blur-3xl dark:from-blue-500/20 dark:to-violet-500/20" />
+
+        <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
+          <div className="w-full max-w-md">
+            <div className="rounded-3xl border border-zinc-200/60 bg-white/70 p-8 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-zinc-200/60 bg-white/70 px-3 py-1 text-xs font-medium text-zinc-700 shadow-sm dark:border-white/10 dark:bg-white/10 dark:text-zinc-300">
+                <Sparkles className="h-3.5 w-3.5 text-fuchsia-500" />
+                Location-based coins on Base
+              </div>
+              <h1 className="mb-2 bg-gradient-to-r from-fuchsia-500 to-sky-500 bg-clip-text text-3xl font-bold text-transparent">
+                Welcome to Refraction
+              </h1>
+              <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">
+                Create and trade coins at real-world locations. Sign in to get
+                started.
+              </p>
+
+              <div className="mb-6 grid grid-cols-3 gap-3 text-xs">
+                <div className="rounded-xl border border-zinc-200/60 bg-white/70 p-3 text-center dark:border-white/10 dark:bg-white/10">
+                  <Map className="mx-auto mb-1 h-4 w-4 text-sky-500" />
+                  Discover
+                </div>
+                <div className="rounded-xl border border-zinc-200/60 bg-white/70 p-3 text-center dark:border-white/10 dark:bg-white/10">
+                  <Coins className="mx-auto mb-1 h-4 w-4 text-amber-500" />
+                  Create
+                </div>
+                <div className="rounded-xl border border-zinc-200/60 bg-white/70 p-3 text-center dark:border-white/10 dark:bg-white/10">
+                  <Sparkles className="mx-auto mb-1 h-4 w-4 text-fuchsia-500" />
+                  Earn
+                </div>
+              </div>
+
+              <Button
+                onClick={login}
+                size="lg"
+                className="group relative inline-flex w-full items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-6 py-3 text-white shadow-lg transition-all hover:shadow-blue-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+              >
+                <span className="absolute inset-0 -z-10 rounded-2xl bg-white/20 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
+                Continue
+              </Button>
+
+              <p className="mt-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
+                By continuing, you agree to our Terms and Privacy Policy.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-4 ">
-      <h1 className="text-2xl font-bold text-center">
-        Privy Farcaster Miniapp Demo
-      </h1>
-      {wallets[0] && (
-        <div className="text-sm text-gray-500 text-center">
-          Connected Wallet: {wallets[0].address.slice(0, 6)}...
-          {wallets[0].address.slice(-4)}
-        </div>
-      )}
-
-      <div className="flex flex-col gap-2">
-        {authenticated ? (
-          <div className="fixed inset-0 font-grotesk">
-            <InteractiveMap />
-            <MobileFooterNav showOnDesktop />
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2 w-fit mx-auto">
-            <Button onClick={login}>Login</Button>
-          </div>
-        )}
-      </div>
+    <div className="fixed inset-0 font-grotesk">
+      <InteractiveMap />
+      <MobileFooterNav showOnDesktop />
     </div>
   );
 }
