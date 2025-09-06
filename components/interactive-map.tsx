@@ -313,7 +313,7 @@ export default function InteractiveMap() {
       const fileExt = imageFile.name.split('.').pop();
       const fileName = `${walletAddress}/${coinAddress}.${fileExt}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('coin-images')
         .upload(fileName, imageFile, {
           cacheControl: '3600',
