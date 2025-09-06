@@ -14,8 +14,10 @@ export default function InteractiveMapPage() {
       className="min-h-screen p-4 pb-0 font-grotesk"
     >
       <Auth>
-        <InteractiveMap />
-        <MobileFooterNav showOnDesktop />
+        <div className="fixed inset-0 font-grotesk">
+          <InteractiveMap />
+          <MobileFooterNav showOnDesktop />
+        </div>
       </Auth>
     </div>
   );

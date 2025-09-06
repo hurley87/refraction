@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Star, List } from "lucide-react";
-import { usePrivy } from "@privy-io/react-auth";
 
 type MobileFooterNavProps = {
   showOnDesktop?: boolean;
@@ -13,14 +12,9 @@ export default function MobileFooterNav({
   showOnDesktop = false,
 }: MobileFooterNavProps) {
   const pathname = usePathname();
-  const { user } = usePrivy();
 
   const linkClasses = (active: boolean) =>
     `p-2 rounded-full ${active ? "bg-gray-100 text-black" : "text-gray-700"}`;
-
-  if (!user) {
-    return null;
-  }
 
   return (
     <div

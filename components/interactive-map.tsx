@@ -97,6 +97,10 @@ export default function InteractiveMap() {
             name: loc.name,
             creator_wallet_address: loc.creator_wallet_address ?? null,
             creator_username: loc.creator_username ?? null,
+            coin_address: loc.coin_address ?? null,
+            coin_name: loc.coin_name ?? null,
+            coin_symbol: loc.coin_symbol ?? null,
+            coin_image_url: loc.coin_image_url ?? null,
           }),
         );
         setMarkers(dbMarkers);
