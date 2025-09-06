@@ -24,6 +24,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           appId={appId}
           config={{
             loginMethods: ["farcaster"],
+            appearance: {
+              walletList: ["detected_wallets"],
+            },
             supportedChains: [base],
             defaultChain: base,
           }}
