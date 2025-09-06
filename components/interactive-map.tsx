@@ -20,7 +20,7 @@ import { setApiKey } from "@zoralabs/coins-sdk";
 import { createWalletClient, createPublicClient, http, custom } from "viem";
 import { base } from "viem/chains";
 import miniappSdk from "@farcaster/miniapp-sdk";
-import { supabase } from "@/lib/supabase";
+// Supabase is server-only; do not import it in client components.
 
 interface MarkerData {
   latitude: number;
@@ -307,31 +307,25 @@ export default function InteractiveMap() {
     setSelectedMarker(marker);
   };
 
-  // Function to upload coin image to Supabase storage
+  // Function to upload coin image via server API (Supabase usage is server-side only)
   const uploadCoinImage = async (
     imageFile: File,
     coinAddress: string,
     walletAddress: string,
   ): Promise<string | null> => {
     try {
-      const fileExt = imageFile.name.split(".").pop();
-      const fileName = `${walletAddress}/${coinAddress}.${fileExt}`;
+      const formData = new FormData();
+      formData.append("file", imageFile);
+      formData.append("coinAddress", coinAddress);
+      formData.append("walletAddress", walletAddress);
 
-      const { error } = await supabase.storage
-        .from("coin-images")
-        .upload(fileName, imageFile, {
-          cacheControl: "3600",
-          upsert: true,
-        });
-
-      if (error) throw error;
-
-      // Get the public URL
-      const { data: urlData } = supabase.storage
-        .from("coin-images")
-        .getPublicUrl(fileName);
-
-      return urlData.publicUrl;
+      const res = await fetch("/api/coin-images/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const json = await res.json();
+      return (json.publicUrl as string) ?? null;
     } catch (error) {
       console.error("Error uploading coin image:", error);
       return null;
