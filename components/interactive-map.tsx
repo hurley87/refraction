@@ -97,6 +97,8 @@ export default function InteractiveMap() {
 
   // Initialize Farcaster SDK
   useEffect(() => {
+    console.log("miniappSdk", miniappSdk);
+    console.log("isSDKLoaded", isSDKLoaded);
     if (miniappSdk && !isSDKLoaded) {
       setIsSDKLoaded(true);
       miniappSdk.actions.ready();
@@ -138,11 +140,16 @@ export default function InteractiveMap() {
 
   // Automatic login flow for Farcaster Mini App users
   useEffect(() => {
+    console.log("ready", ready);
+    console.log("authenticated", authenticated);
     if (ready && !authenticated) {
       const login = async () => {
         try {
           const { nonce } = await initLoginToMiniApp();
+          console.log("nonce", nonce);
           const result = await miniappSdk.actions.signIn({ nonce });
+          console.log("result", result);
+          console.log("loginToMiniApp", loginToMiniApp);
           await loginToMiniApp({
             message: result.message,
             signature: result.signature,
@@ -161,6 +168,7 @@ export default function InteractiveMap() {
       try {
         const ctx: any = await (miniappSdk as any)?.context;
         const username = ctx?.user?.username ?? null;
+        console.log("username", username);
         if (username) setFarcasterUsername(username);
       } catch {}
     })();
@@ -704,30 +712,6 @@ export default function InteractiveMap() {
     );
   }
 
-  // Show login state when not authenticated
-  if (!authenticated) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center max-w-md mx-auto p-6">
-          <Coins className="w-16 h-16 text-blue-600 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Welcome to Refraction
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Connect your wallet to start creating and trading location-based
-            coins
-          </p>
-          <Button
-            onClick={login}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
-          >
-            Connect Wallet
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   // Show wallet connection state when authenticated but no wallets
   if (authenticated && wallets.length === 0) {
     return (
@@ -738,8 +722,9 @@ export default function InteractiveMap() {
             Connect Your Wallet
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            You need to connect a wallet to create and trade location-based coins. 
-            Please add Base App Wallet as an auth address in your Farcaster settings.
+            You need to connect a wallet to create and trade location-based
+            coins. Please add Base App Wallet as an auth address in your
+            Farcaster settings.
           </p>
           <Button
             onClick={login}
