@@ -87,11 +87,13 @@ export default function InteractiveMap() {
     null,
   );
   const { wallets } = useWallets();
+  console.log("wallets", wallets);
   // If user is authenticated via Privy but has no wallets in context,
   // they might need an embedded wallet provisioned or to link one.
   const wallet = wallets.find(
     (wallet) => (wallet.address as `0x${string}`) === walletAddress,
   );
+  console.log("wallet", wallet);
   const [ethProvider, setEthProvider] = useState<any>(null);
   const [isOnBase, setIsOnBase] = useState<boolean>(true);
   const mapRef = useRef<any>(null);
@@ -133,7 +135,7 @@ export default function InteractiveMap() {
   useEffect(() => {
     console.log("ready", ready);
     console.log("authenticated", authenticated);
-    if (ready && !authenticated) {
+    if (ready) {
       const autoLogin = async () => {
         try {
           const { nonce } = await initLoginToMiniApp();
@@ -151,7 +153,7 @@ export default function InteractiveMap() {
       };
       autoLogin();
     }
-  }, [ready, authenticated, initLoginToMiniApp, loginToMiniApp]);
+  }, [ready, authenticated]);
 
   // Get Farcaster username
   useEffect(() => {
