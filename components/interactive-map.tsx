@@ -77,6 +77,8 @@ export default function InteractiveMap() {
     null,
   );
   const { wallets } = useWallets();
+  console.log("walletAddress", walletAddress);
+  console.log("wallets", wallets);
   const wallet = wallets.find(
     (wallet) => (wallet.address as `0x${string}`) === walletAddress,
   );
@@ -586,9 +588,10 @@ export default function InteractiveMap() {
             Connect Your Wallet
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Connect your wallet to start creating and trading location-based coins
+            Connect your wallet to start creating and trading location-based
+            coins
           </p>
-          <Button 
+          <Button
             onClick={connectWallet}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
           >
