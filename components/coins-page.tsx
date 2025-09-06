@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import Header from "./header";
 import { toast } from "sonner";
 import { tradeCoin } from "@zoralabs/coins-sdk";
-import { createWalletClient, createPublicClient, http, custom, parseEther } from "viem";
+import {
+  createWalletClient,
+  createPublicClient,
+  http,
+  custom,
+  parseEther,
+} from "viem";
 import { base } from "viem/chains";
 
 interface CoinData {
@@ -49,8 +55,12 @@ export default function CoinsPage() {
           // Filter only locations with coins and sort by created_at desc
           const coinsData = data.locations
             .filter((location: any) => location.coin_address)
-            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-          
+            .sort(
+              (a: any, b: any) =>
+                new Date(b.created_at).getTime() -
+                new Date(a.created_at).getTime(),
+            );
+
           setCoins(coinsData);
           setTotalPages(Math.ceil(coinsData.length / itemsPerPage));
         }
@@ -82,7 +92,7 @@ export default function CoinsPage() {
 
     try {
       // Get ethereum provider
-      const ethereumProvider = 
+      const ethereumProvider =
         ((await wallet?.getEthereumProvider?.()) as any) ||
         (typeof window !== "undefined" ? (window as any).ethereum : null);
 
@@ -182,14 +192,14 @@ export default function CoinsPage() {
           className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
         >
           1
-        </button>
+        </button>,
       );
 
       if (currentPage > 4) {
         buttons.push(
           <span key="ellipsis1" className="px-2 text-gray-500 font-inktrap">
             ...
-          </span>
+          </span>,
         );
       }
     }
@@ -210,7 +220,7 @@ export default function CoinsPage() {
           }`}
         >
           {i}
-        </button>
+        </button>,
       );
     }
 
@@ -220,7 +230,7 @@ export default function CoinsPage() {
         buttons.push(
           <span key="ellipsis2" className="px-2 text-gray-500 font-inktrap">
             ...
-          </span>
+          </span>,
         );
       }
 
@@ -231,7 +241,7 @@ export default function CoinsPage() {
           className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
         >
           {totalPages}
-        </button>
+        </button>,
       );
     }
 
@@ -244,7 +254,7 @@ export default function CoinsPage() {
           className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
         >
           <ArrowRight className="w-4 h-4" />
-        </button>
+        </button>,
       );
     }
 
@@ -270,9 +280,7 @@ export default function CoinsPage() {
         {/* Coins Header */}
         <div className="px-0 pt-8 mb-6">
           <div className="bg-white rounded-2xl p-4 flex items-center justify-between">
-            <h1 className="text-xl font-inktrap font-bold text-black">
-              Coins
-            </h1>
+            <h1 className="text-xl font-inktrap font-bold text-black">Coins</h1>
           </div>
         </div>
 
@@ -282,10 +290,7 @@ export default function CoinsPage() {
           {isLoading && (
             <div className="space-y-4">
               {[...Array(itemsPerPage)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-2xl p-4 animate-pulse"
-                >
+                <div key={i} className="bg-white rounded-2xl p-4 animate-pulse">
                   <div className="flex gap-4">
                     <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
                     <div className="flex-1">
@@ -304,46 +309,47 @@ export default function CoinsPage() {
             <div className="space-y-4">
               {getCurrentPageData().length > 0 ? (
                 getCurrentPageData().map((coin: CoinData) => (
-                  <div
-                    key={coin.id}
-                    className="bg-white rounded-2xl p-4"
-                  >
+                  <div key={coin.id} className="bg-white rounded-2xl p-4">
                     <div className="flex gap-4 items-start">
                       {/* Coin Image */}
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                        {coin.coin_image_url ? (
-                          <img
-                            src={coin.coin_image_url}
-                            alt={coin.coin_name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Coins className="w-8 h-8 text-gray-400" />
-                          </div>
-                        )}
-                      </div>
 
                       {/* Coin Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-inktrap font-semibold text-black truncate">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <h3 className="font-inktrap text-sm truncate">
                             {coin.coin_name}
                           </h3>
-                          <span className="font-inktrap text-sm text-gray-500 ml-2">
+                          <span className="font-inktrap text-sm  text-gray-500 ml-2">
                             ${coin.coin_symbol}
                           </span>
                         </div>
-                        
-                        <p className="text-sm text-gray-600 mb-2 truncate">
-                          {coin.display_name}
-                        </p>
-
-                        {coin.creator_wallet_address && (
-                          <p className="text-xs text-gray-500 mb-3">
-                            Created by {coin.creator_username || formatWalletAddress(coin.creator_wallet_address)}
+                        <div className="rounded-2xl overflow-hidden bg-gray-100">
+                          {coin.coin_image_url ? (
+                            <img
+                              src={coin.coin_image_url}
+                              alt={coin.coin_name}
+                              className="w-full h-auto"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Coins className="w-8 h-8 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <p className="text-xs text-gray-600 text-wrap">
+                            {coin.display_name}
                           </p>
-                        )}
+                          {coin.creator_wallet_address && (
+                            <p className="text-xs text-gray-500">
+                              Created by{" "}
+                              {coin.creator_username ||
+                                formatWalletAddress(
+                                  coin.creator_wallet_address,
+                                )}
+                            </p>
+                          )}
+                        </div>
 
                         {/* Check In Button */}
                         <Button
@@ -352,7 +358,9 @@ export default function CoinsPage() {
                           className="w-full bg-green-500 hover:bg-green-600 text-white text-sm py-2"
                           size="sm"
                         >
-                          {tradingCoinId === coin.id ? "Checking in..." : "Check In"}
+                          {tradingCoinId === coin.id
+                            ? "Checking in..."
+                            : "Check In"}
                         </Button>
                       </div>
                     </div>
@@ -361,9 +369,7 @@ export default function CoinsPage() {
               ) : (
                 <div className="bg-white rounded-2xl p-8 text-center">
                   <Coins className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-600 font-inktrap">
-                    No coins yet!
-                  </p>
+                  <p className="text-gray-600 font-inktrap">No coins yet!</p>
                   <p className="text-sm text-gray-500 font-inktrap">
                     Create the first coin location
                   </p>
