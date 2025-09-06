@@ -1,9 +1,9 @@
 "use client";
 
 import InteractiveMap from "@/components/interactive-map";
-import { ConnectButton } from "@/components/connect-button";
 import MobileFooterNav from "@/components/mobile-footer-nav";
 import { usePrivy } from "@privy-io/react-auth";
+import { Button } from "@react-email/components";
 
 export default function InteractiveMapPage() {
   const { ready, authenticated, login } = usePrivy();
@@ -23,7 +23,7 @@ export default function InteractiveMapPage() {
             Sign in to access the interactive map and check in.
           </p>
           <div className="flex justify-center">
-            <ConnectButton />
+            <Button onClick={login}>Connect Wallet</Button>
           </div>
         </div>
       </div>
