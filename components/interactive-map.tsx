@@ -6,7 +6,7 @@ import { Search, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocationGame } from "@/hooks/useLocationGame";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { usePrivy, useWallets, useConnectWallet } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import MobileFooterNav from "@/components/mobile-footer-nav";
 import CoinLocationForm, { CoinFormData } from "./coin-location-form";
@@ -82,7 +82,7 @@ export default function InteractiveMap() {
   );
   const [ethProvider, setEthProvider] = useState<any>(null);
   const [isOnBase, setIsOnBase] = useState<boolean>(true);
-
+  const { connectWallet } = useConnectWallet();
   const mapRef = useRef<any>(null);
 
   // Initialize Zora SDK API key (client-side; for production prefer a server route)
@@ -576,7 +576,13 @@ export default function InteractiveMap() {
     }
   };
 
-  // Clearing markers disabled since markers come from DB
+  if (!wallets[0]) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <Button onClick={connectWallet}>Connect Wallet</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full relative">
