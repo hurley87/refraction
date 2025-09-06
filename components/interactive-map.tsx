@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 // import { useLocationGame } from "@/hooks/useLocationGame";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useLoginToMiniApp } from "@privy-io/react-auth/farcaster";
 import { toast } from "sonner";
 import MobileFooterNav from "@/components/mobile-footer-nav";
 import CoinLocationForm, { CoinFormData } from "./coin-location-form";
@@ -54,7 +55,8 @@ interface LocationSuggestion {
 }
 
 export default function InteractiveMap() {
-  const { user } = usePrivy();
+  const { ready, authenticated, user, login } = usePrivy();
+  const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
   const walletAddress = user?.wallet?.address;
   // const { performCheckin } = useLocationGame();
 
@@ -127,6 +129,26 @@ export default function InteractiveMap() {
     };
   }, [wallet]);
 
+  // Automatic login flow for Farcaster Mini App users
+  useEffect(() => {
+    if (ready && !authenticated) {
+      const autoLogin = async () => {
+        try {
+          const { nonce } = await initLoginToMiniApp();
+          const result = await miniappSdk.actions.signIn({ nonce: nonce });
+          await loginToMiniApp({
+            message: result.message,
+            signature: result.signature,
+          });
+        } catch (error) {
+          console.error("Auto-login failed:", error);
+        }
+      };
+      autoLogin();
+    }
+  }, [ready, authenticated, initLoginToMiniApp, loginToMiniApp]);
+
+  // Get Farcaster username
   useEffect(() => {
     (async () => {
       try {
@@ -662,6 +684,42 @@ export default function InteractiveMap() {
   };
 
   // Clearing markers disabled since markers come from DB
+
+  // Show loading state while Privy is initializing
+  if (!ready) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login state when not authenticated
+  if (!authenticated) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center max-w-md mx-auto p-6">
+          <Coins className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Welcome to Refraction
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Connect your wallet to start creating and trading location-based
+            coins
+          </p>
+          <Button
+            onClick={login}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
+          >
+            Connect Wallet
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full relative">
