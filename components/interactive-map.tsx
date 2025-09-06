@@ -634,7 +634,7 @@ export default function InteractiveMap() {
       console.log("Trading coin:", selectedMarker.coin_address);
       console.log("Trade amount:", tradeAmount);
 
-      const result = await tradeCoin({
+      await tradeCoin({
         tradeParameters: {
           sell: { type: "eth" },
           buy: {
@@ -649,32 +649,7 @@ export default function InteractiveMap() {
         publicClient,
       });
 
-      console.log("Trade transaction hash:", result.hash);
-
-      // Perform checkin after successful trade
-      const locationData = {
-        place_id: selectedMarker.place_id,
-        display_name: selectedMarker.display_name,
-        name: selectedMarker.name,
-        lat: selectedMarker.latitude.toString(),
-        lon: selectedMarker.longitude.toString(),
-        type: "location",
-      };
-
-      const checkinResult = await performCheckin({
-        walletAddress,
-        locationData,
-      });
-
-      if (checkinResult?.success) {
-        setSelectedMarker(null);
-        setPopupInfo(null);
-        toast.success(
-          `Traded ${selectedMarker.coin_symbol} and earned ${checkinResult.pointsEarned} points! 🪙`,
-        );
-      } else {
-        toast.success(`Successfully traded ${selectedMarker.coin_symbol}! 🪙`);
-      }
+      toast.success(`Successfully bought ${selectedMarker.coin_symbol}! 🪙`);
     } catch (error) {
       console.error("Error trading coin:", error);
       toast.error("Failed to trade coin: " + (error as Error).message);
