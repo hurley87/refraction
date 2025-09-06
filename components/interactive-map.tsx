@@ -15,9 +15,16 @@ import {
   createZoraUploaderForCreator,
   createCoin,
   CreateConstants,
+  tradeCoin,
 } from "@zoralabs/coins-sdk";
 import { setApiKey } from "@zoralabs/coins-sdk";
-import { createWalletClient, createPublicClient, http, custom } from "viem";
+import {
+  createWalletClient,
+  createPublicClient,
+  http,
+  custom,
+  parseEther,
+} from "viem";
 import { base } from "viem/chains";
 import miniappSdk from "@farcaster/miniapp-sdk";
 // Supabase is server-only; do not import it in client components.
@@ -49,7 +56,7 @@ interface LocationSuggestion {
 export default function InteractiveMap() {
   const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
-  const { performCheckin, isCheckinLoading } = useLocationGame();
+  const { performCheckin } = useLocationGame();
 
   const [viewState, setViewState] = useState({
     longitude: -73.9442,
@@ -69,6 +76,7 @@ export default function InteractiveMap() {
   const [showCoinForm, setShowCoinForm] = useState(false);
   const [isCreatingCoin, setIsCreatingCoin] = useState(false);
   const [coinCreationSuccess, setCoinCreationSuccess] = useState(false);
+  const [isTradingCoin, setIsTradingCoin] = useState(false);
   const [createdCoinData, setCreatedCoinData] = useState<{
     address: string;
     transactionHash: string;
@@ -552,35 +560,126 @@ export default function InteractiveMap() {
   };
 
   const handleCheckin = async () => {
-    if (!selectedMarker || !walletAddress) {
-      toast.error("Please select a location and connect your wallet");
+    if (!selectedMarker || !walletAddress || !selectedMarker.coin_address) {
+      toast.error(
+        "Please select a location with a coin and connect your wallet",
+      );
       return;
     }
 
-    const locationData = {
-      place_id: selectedMarker.place_id,
-      display_name: selectedMarker.display_name,
-      name: selectedMarker.name,
-      lat: selectedMarker.latitude.toString(),
-      lon: selectedMarker.longitude.toString(),
-      type: "location",
-    };
+    setIsTradingCoin(true);
 
-    const result = await performCheckin({
-      walletAddress,
-      locationData,
-    });
+    try {
+      // Ensure wallet is on Base before proceeding
+      const ethereumProvider =
+        ((await wallet?.getEthereumProvider?.()) as any) ||
+        (typeof window !== "undefined" ? (window as any).ethereum : null);
 
-    if (result?.success) {
-      // Remove the marker after successful checkin
-      setMarkers((current) =>
-        current.filter((m) => m.place_id !== selectedMarker.place_id),
-      );
-      setSelectedMarker(null);
-      setPopupInfo(null);
-      toast.success(
-        `Checked in successfully! Earned ${result.pointsEarned} points!`,
-      );
+      if (!ethereumProvider) {
+        toast.error("No wallet provider found");
+        return;
+      }
+
+      // Ensure on Base network
+      const targetChainIdHex = "0x2105"; // Base mainnet
+      const currentChainId = await ethereumProvider.request({
+        method: "eth_chainId",
+      });
+
+      if (currentChainId !== targetChainIdHex) {
+        try {
+          await ethereumProvider.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: targetChainIdHex }],
+          });
+        } catch {
+          await ethereumProvider.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: targetChainIdHex,
+                chainName: "Base",
+                nativeCurrency: {
+                  name: "Ether",
+                  symbol: "ETH",
+                  decimals: 18,
+                },
+                rpcUrls: ["https://mainnet.base.org"],
+                blockExplorerUrls: ["https://basescan.org"],
+              },
+            ],
+          });
+          await ethereumProvider.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: targetChainIdHex }],
+          });
+        }
+      }
+
+      // Create wallet clients
+      const walletClient = createWalletClient({
+        chain: base,
+        transport: custom(ethereumProvider),
+        account: walletAddress as `0x${string}`,
+      });
+
+      const publicClient = createPublicClient({
+        chain: base,
+        transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
+      });
+
+      // Trade 0.0001 ETH worth of the coin
+      const tradeAmount = "100000000000000"; // 0.0001 ETH in wei
+
+      console.log("Trading coin:", selectedMarker.coin_address);
+      console.log("Trade amount:", tradeAmount);
+
+      const result = await tradeCoin({
+        tradeParameters: {
+          sell: { type: "eth" },
+          buy: {
+            type: "erc20",
+            address: selectedMarker.coin_address as `0x${string}`, // Creator Coin address
+          },
+          amountIn: parseEther("0.0001"), // 0.001 ETH
+          slippage: 0.05, // 5% slippage tolerance
+          sender: walletAddress as `0x${string}`,
+        },
+        walletClient,
+        publicClient,
+      });
+
+      console.log("Trade transaction hash:", result.hash);
+
+      // Perform checkin after successful trade
+      const locationData = {
+        place_id: selectedMarker.place_id,
+        display_name: selectedMarker.display_name,
+        name: selectedMarker.name,
+        lat: selectedMarker.latitude.toString(),
+        lon: selectedMarker.longitude.toString(),
+        type: "location",
+      };
+
+      const checkinResult = await performCheckin({
+        walletAddress,
+        locationData,
+      });
+
+      if (checkinResult?.success) {
+        setSelectedMarker(null);
+        setPopupInfo(null);
+        toast.success(
+          `Traded ${selectedMarker.coin_symbol} and earned ${checkinResult.pointsEarned} points! 🪙`,
+        );
+      } else {
+        toast.success(`Successfully traded ${selectedMarker.coin_symbol}! 🪙`);
+      }
+    } catch (error) {
+      console.error("Error trading coin:", error);
+      toast.error("Failed to trade coin: " + (error as Error).message);
+    } finally {
+      setIsTradingCoin(false);
     }
   };
 
@@ -746,13 +845,13 @@ export default function InteractiveMap() {
             <div className="p-3 min-w-64 max-w-80">
               {/* Coin Information */}
               {popupInfo.coin_address && (
-                <div className="mb-3 pb-3">
-                  <div className="flex items-center gap-3 mb-2">
+                <div className="">
+                  <div className="flex items-center gap-2 mb-2">
                     {popupInfo.coin_image_url && (
                       <img
                         src={popupInfo.coin_image_url}
                         alt={popupInfo.coin_name || "Coin"}
-                        className="w-10 h-10 rounded-full object-cover"
+                        className="w-10 h-10 rounded-lg object-cover"
                       />
                     )}
                     <div className="flex-1">
@@ -798,11 +897,13 @@ export default function InteractiveMap() {
                 // This is a permanent marker - show check in option
                 <Button
                   onClick={handleCheckin}
-                  disabled={!walletAddress || isCheckinLoading}
+                  disabled={
+                    !walletAddress || isTradingCoin || !popupInfo.coin_address
+                  }
                   className="w-fit mx-auto px-4 bg-green-500 hover:bg-green-600 text-xs py-1 text-white"
                   size="sm"
                 >
-                  {isCheckinLoading ? "Checking in..." : "Check In"}
+                  {isTradingCoin ? "Checking in..." : "Check In"}
                 </Button>
               )}
             </div>
