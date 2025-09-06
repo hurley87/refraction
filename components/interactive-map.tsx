@@ -2,10 +2,9 @@
 
 import { useState, useRef, useEffect } from "react";
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
-import { Search, Coins } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useLocationGame } from "@/hooks/useLocationGame";
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import MobileFooterNav from "@/components/mobile-footer-nav";
@@ -44,7 +43,7 @@ interface LocationSuggestion {
 export default function InteractiveMap() {
   const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
-  const { performCheckin, isCheckinLoading } = useLocationGame();
+  const [userUsername, setUserUsername] = useState<string | null>(null);
 
   const [viewState, setViewState] = useState({
     longitude: -73.9442,
@@ -80,6 +79,28 @@ export default function InteractiveMap() {
       console.warn("NEXT_PUBLIC_ZORA_API_KEY is not set");
     }
   }, []);
+
+  // Fetch user's username from database
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (walletAddress) {
+        try {
+          const response = await fetch(
+            `/api/player?walletAddress=${encodeURIComponent(walletAddress)}`,
+          );
+          if (response.ok) {
+            const result = await response.json();
+            if (result.player?.username) {
+              setUserUsername(result.player.username);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      }
+    };
+    fetchUserData();
+  }, [walletAddress]);
 
   // Load markers from DB on mount
   useEffect(() => {
@@ -320,7 +341,7 @@ export default function InteractiveMap() {
         coinDescription: coinFormData.description,
         coinImageUrl: coinImageUrl,
         userWalletAddress: walletAddress,
-        username: null,
+        username: userUsername,
         metadata: createMetadataParameters.metadata, // Pass metadata to server
       };
 
@@ -347,7 +368,7 @@ export default function InteractiveMap() {
       const newPermanentMarker: MarkerData = {
         ...selectedMarker,
         creator_wallet_address: walletAddress,
-        creator_username: null,
+        creator_username: userUsername,
         coin_address: result.coin.address,
         coin_name: coinFormData.name,
         coin_symbol: coinFormData.symbol,
@@ -374,55 +395,12 @@ export default function InteractiveMap() {
     }
   };
 
-  const handleShowCoinForm = () => {
-    if (!selectedMarker || !walletAddress) {
-      toast.error("Please select a location and connect your wallet");
-      return;
-    }
-    setShowCoinForm(true);
-    setCoinCreationSuccess(false);
-    setCreatedCoinData(null);
-  };
-
   const handleCloseCoinForm = () => {
     setShowCoinForm(false);
     setCoinCreationSuccess(false);
     setCreatedCoinData(null);
     setSelectedMarker(null);
     setPopupInfo(null);
-  };
-
-  const handleCheckin = async () => {
-    if (!selectedMarker || !walletAddress) {
-      toast.error("Please select a location and connect your wallet");
-      return;
-    }
-
-    const locationData = {
-      place_id: selectedMarker.place_id,
-      display_name: selectedMarker.display_name,
-      name: selectedMarker.name,
-      lat: selectedMarker.latitude.toString(),
-      lon: selectedMarker.longitude.toString(),
-      type: "location",
-    };
-
-    const result = await performCheckin({
-      walletAddress,
-      locationData,
-    });
-
-    if (result?.success) {
-      // Remove the marker after successful checkin
-      setMarkers((current) =>
-        current.filter((m) => m.place_id !== selectedMarker.place_id),
-      );
-      setSelectedMarker(null);
-      setPopupInfo(null);
-      toast.success(
-        `Checked in successfully! Earned ${result.pointsEarned} points!`,
-      );
-    }
   };
 
   return (
@@ -575,7 +553,7 @@ export default function InteractiveMap() {
             <div className="p-3 min-w-64 max-w-80">
               {/* Coin Information */}
               {popupInfo.coin_address && (
-                <div className="mb-3 border-b pb-3">
+                <div className="">
                   <div className="flex items-center gap-3 mb-2">
                     {popupInfo.coin_image_url && (
                       <img
@@ -586,11 +564,10 @@ export default function InteractiveMap() {
                     )}
                     <div className="flex-1">
                       <h3 className="font-semibold text-sm">
-                        {popupInfo.coin_name} ({popupInfo.coin_symbol})
+                        {popupInfo.coin_name}
                       </h3>
                       <p className="text-xs text-gray-500 font-mono break-all">
-                        {popupInfo.coin_address.slice(0, 6)}...
-                        {popupInfo.coin_address.slice(-4)}
+                        ${popupInfo.coin_symbol}
                       </p>
                     </div>
                   </div>
@@ -599,7 +576,6 @@ export default function InteractiveMap() {
 
               {/* Location Information */}
               <div className="mb-3">
-                <h4 className="font-semibold text-sm">{popupInfo.name}</h4>
                 <p className="text-xs text-gray-600 mt-1">
                   {popupInfo.display_name}
                 </p>
@@ -612,30 +588,6 @@ export default function InteractiveMap() {
                   </p>
                 )}
               </div>
-
-              {/* Different buttons for temp vs permanent markers */}
-              {tempMarkers.find((m) => m.place_id === popupInfo.place_id) ? (
-                // This is a temporary marker - show coin location option
-                <Button
-                  onClick={handleShowCoinForm}
-                  disabled={!walletAddress || isCreatingCoin}
-                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-xs py-2 flex items-center justify-center gap-1"
-                  size="sm"
-                >
-                  <Coins className="w-3 h-3" />
-                  {isCreatingCoin ? "Creating..." : "Coin Location"}
-                </Button>
-              ) : (
-                // This is a permanent marker - show check in option
-                <Button
-                  onClick={handleCheckin}
-                  disabled={!walletAddress || isCheckinLoading}
-                  className="w-full bg-green-500 hover:bg-green-600 text-xs py-1"
-                  size="sm"
-                >
-                  {isCheckinLoading ? "Checking in..." : "Check In Here"}
-                </Button>
-              )}
             </div>
           </Popup>
         )}

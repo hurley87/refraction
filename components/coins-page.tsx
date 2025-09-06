@@ -1,20 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { ArrowRight, Coins } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import Header from "./header";
 import { toast } from "sonner";
-import { tradeCoin } from "@zoralabs/coins-sdk";
-import {
-  createWalletClient,
-  createPublicClient,
-  http,
-  custom,
-  parseEther,
-} from "viem";
-import { base } from "viem/chains";
 
 interface CoinData {
   id: number;
@@ -33,17 +22,12 @@ interface CoinData {
 }
 
 export default function CoinsPage() {
-  const { user } = usePrivy();
-  const { wallets } = useWallets();
   const [coins, setCoins] = useState<CoinData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [tradingCoinId, setTradingCoinId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   const itemsPerPage = 9;
-  const walletAddress = user?.wallet?.address;
-  const wallet = wallets.find((w) => w.address === walletAddress);
 
   // Fetch all coins
   useEffect(() => {
@@ -80,98 +64,6 @@ export default function CoinsPage() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return coins.slice(startIndex, endIndex);
-  };
-
-  const handleTradeCoin = async (coin: CoinData) => {
-    if (!walletAddress || !wallet) {
-      toast.error("Please connect your wallet");
-      return;
-    }
-
-    setTradingCoinId(coin.id);
-
-    try {
-      // Get ethereum provider
-      const ethereumProvider =
-        ((await wallet?.getEthereumProvider?.()) as any) ||
-        (typeof window !== "undefined" ? (window as any).ethereum : null);
-
-      if (!ethereumProvider) {
-        toast.error("No wallet provider found");
-        return;
-      }
-
-      // Ensure on Base network
-      const targetChainIdHex = "0x2105"; // Base mainnet
-      const currentChainId = await ethereumProvider.request({
-        method: "eth_chainId",
-      });
-
-      if (currentChainId !== targetChainIdHex) {
-        try {
-          await ethereumProvider.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: targetChainIdHex }],
-          });
-        } catch {
-          await ethereumProvider.request({
-            method: "wallet_addEthereumChain",
-            params: [
-              {
-                chainId: targetChainIdHex,
-                chainName: "Base",
-                nativeCurrency: {
-                  name: "Ether",
-                  symbol: "ETH",
-                  decimals: 18,
-                },
-                rpcUrls: ["https://mainnet.base.org"],
-                blockExplorerUrls: ["https://basescan.org"],
-              },
-            ],
-          });
-          await ethereumProvider.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: targetChainIdHex }],
-          });
-        }
-      }
-
-      // Create wallet clients
-      const walletClient = createWalletClient({
-        chain: base,
-        transport: custom(ethereumProvider),
-        account: walletAddress as `0x${string}`,
-      });
-
-      const publicClient = createPublicClient({
-        chain: base,
-        transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
-      });
-
-      // Trade 0.0001 ETH worth of the coin
-      await tradeCoin({
-        tradeParameters: {
-          sell: { type: "eth" },
-          buy: {
-            type: "erc20",
-            address: coin.coin_address as `0x${string}`,
-          },
-          amountIn: parseEther("0.0001"), // 0.0001 ETH
-          slippage: 0.05, // 5% slippage tolerance
-          sender: walletAddress as `0x${string}`,
-        },
-        walletClient,
-        publicClient,
-      });
-
-      toast.success(`Successfully bought ${coin.coin_symbol}! 🪙`);
-    } catch (error) {
-      console.error("Error trading coin:", error);
-      toast.error("Failed to trade coin: " + (error as Error).message);
-    } finally {
-      setTradingCoinId(null);
-    }
   };
 
   const handlePageChange = (page: number) => {
@@ -350,18 +242,6 @@ export default function CoinsPage() {
                             </p>
                           )}
                         </div>
-
-                        {/* Check In Button */}
-                        <Button
-                          onClick={() => handleTradeCoin(coin)}
-                          disabled={!walletAddress || tradingCoinId === coin.id}
-                          className="w-full bg-green-500 hover:bg-green-600 text-white text-sm py-2"
-                          size="sm"
-                        >
-                          {tradingCoinId === coin.id
-                            ? "Checking in..."
-                            : "Check In"}
-                        </Button>
                       </div>
                     </div>
                   </div>
