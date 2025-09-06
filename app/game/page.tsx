@@ -1,5 +1,3 @@
-import Auth from "@/components/auth";
-import GameMapbox from "@/components/game-mapbox";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -15,9 +13,7 @@ export default function GamePage() {
           "linear-gradient(0deg, #EE91B7 0%, #FFE600 37.5%, #1BA351 66.34%, #61BFD1 100%)",
       }}
     >
-      <Auth>
-        <GameMapbox />
-      </Auth>
+      not founds
     </div>
   );
 }

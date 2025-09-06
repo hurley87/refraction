@@ -75,15 +75,16 @@ export default function Home() {
         {/* Main Content */}
         <div className="relative z-10 max-w-6xl w-full mt-16 sm:mt-20 md:mt-24 flex flex-col min-h-[700px]">
           <div className="flex-1">
-            <p className="display2 text-[#FFE600] font-inktrap font-bold leading-tight mb-4 sm:mb-6">  
+            <p className="display2 text-[#FFE600] font-inktrap font-bold leading-tight mb-4 sm:mb-6">
               CULTURE&apos;S REWARDS PROGRAM
             </p>
-          <h4 className="text-[#FFE600] font-grotesk leading-relaxed">
-              Always earn rewards, just for showing up to the things you love.<br/>
+            <h4 className="text-[#FFE600] font-grotesk leading-relaxed">
+              Always earn rewards, just for showing up to the things you love.
+              <br />
             </h4>
-        </div>
+          </div>
           <div className="flex flex-col gap-4 w-full sm:max-w-[280px] md:max-w-[300px] mt-auto">
-            <Link href="/game" className="w-full sm:w-auto">
+            <Link href="/interactive-map" className="w-full sm:w-auto">
               <Button
                 size="lg"
                 className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
@@ -115,7 +116,10 @@ export default function Home() {
       </section>
 
       {/* IRL Section */}
-      <div className="flex flex-col lg:flex-row justify-center lg:pb-0" style={{ minHeight: '700px' }}>
+      <div
+        className="flex flex-col lg:flex-row justify-center lg:pb-0"
+        style={{ minHeight: "700px" }}
+      >
         {/* Show ABOUT text only on mobile (below lg) */}
         <div className="block lg:hidden w-full text-left mb-1 pl-6">
           <h4 className="text-white text-lg tracking-wide">ABOUT</h4>
@@ -140,7 +144,10 @@ export default function Home() {
               {`Check in at clubs, galleries, festivals, and more to earn and unlock exclusive perks across our global partner network: Resident Advisor, MUTEK, Serpentine, and 200+ others.`}
             </h3>
             <div className="w-full lg:w-auto flex-shrink-0 pt-12">
-              <Link href="mailto:partnerships@refractionfestival.com" className="block w-full">
+              <Link
+                href="mailto:partnerships@refractionfestival.com"
+                className="block w-full"
+              >
                 <Button
                   size="lg"
                   className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full lg:w-auto"
@@ -199,9 +206,7 @@ export default function Home() {
                 size="lg"
                 className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
               >
-                <h4 className="text-black">
-                  Apply For Founding Membership
-                </h4>
+                <h4 className="text-black">Apply For Founding Membership</h4>
                 <Image
                   src="/home/arrow-right.svg"
                   alt="arrow-right"
@@ -228,13 +233,12 @@ export default function Home() {
             Check in to earn points on the IRL network, with instant access to
             future rewards and experiences.
           </p>
-          <Link className="w-full" href="/game">
+          <Link className="w-full" href="/interactive-map">
             <Button
               size="lg"
               className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
             >
-               <h4 className="text-black font-light">
-                Earn Your First Points</h4>
+              <h4 className="text-black font-light">Earn Your First Points</h4>
               <Image
                 src="/home/arrow-right.svg"
                 alt="arrow-right"
@@ -248,7 +252,7 @@ export default function Home() {
       </section>
 
       {/* Social Media Section */}
-       {/* Newsletter & Social Media Section */}
+      {/* Newsletter & Social Media Section */}
       <section className="py-8 px-4 sm:px-6 lg:px-12 xl:px-20">
         <div className="flex flex-col lg:flex-row justify-between gap-8 lg:gap-20">
           {/* Column 1: Social Media (Mobile Top) */}
@@ -357,7 +361,6 @@ export default function Home() {
 
           {/* Column 2: Newsletter Signup (Mobile Bottom) */}
           <div className="w-full lg:w-1/2 order-2 lg:order-1">
-
             <h3 className="text-black body-large mb-6 uppercase lg:normal-case">
               Stay Up to Date With Our Newsletter
             </h3>
@@ -369,8 +372,7 @@ export default function Home() {
                 value="you@yourname.com"
                 required
               />
-            
-          
+
               <Button
                 type="submit"
                 size="lg"
@@ -386,7 +388,6 @@ export default function Home() {
               </Button>
             </form>
           </div>
-          
         </div>
       </section>
 

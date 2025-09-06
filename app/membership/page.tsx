@@ -8,22 +8,22 @@ import { useState } from "react";
 const carouselData = [
   {
     text: "Apply for membership, get your onboarding email, and claim your 'IN REAL LIFE' tee →",
-    
+
     image: "irl-shirt-4000x2250.png",
     width: 4000,
     height: 2250,
     step: 1,
-    stepText: "step one"
+    stepText: "step one",
   },
   {
     text: "Complete your profile on the IRL App →",
-    
+
     image: "irl-app-6000x6857.png",
     //transform: "rotate(15deg)",
     width: 6000,
     height: 6857,
     step: 2,
-    stepText: "step two"
+    stepText: "step two",
   },
   {
     text: "Your IRL points are auto-applied to your account",
@@ -31,10 +31,9 @@ const carouselData = [
     width: 357,
     height: 253,
     step: 3,
-    stepText: "step three"
-  }
+    stepText: "step three",
+  },
 ];
-
 
 export default function MembershipPage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -43,13 +42,15 @@ export default function MembershipPage() {
 
   const handlePrevious = () => {
     setImageLoading(true);
-    const newIndex = currentIndex > 0 ? currentIndex - 1 : carouselData.length - 1;
+    const newIndex =
+      currentIndex > 0 ? currentIndex - 1 : carouselData.length - 1;
     setCurrentIndex(newIndex);
   };
 
   const handleNext = () => {
     setImageLoading(true);
-    const newIndex = currentIndex < carouselData.length - 1 ? currentIndex + 1 : 0;
+    const newIndex =
+      currentIndex < carouselData.length - 1 ? currentIndex + 1 : 0;
     setCurrentIndex(newIndex);
   };
 
@@ -61,10 +62,10 @@ export default function MembershipPage() {
       const gap = 32; // gap-8 = 32px
       const padding = 24; // px-6 = 24px
       const middleCardPosition = cardWidth + gap + padding; // Position of middle card
-      
+
       container.scrollTo({
         left: middleCardPosition,
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     }
   }, []);
@@ -77,14 +78,18 @@ export default function MembershipPage() {
     });
   }, []);
 
-    return (
-    
+  return (
     <div className="min-h-screen bg-transparent p-2 space-y-10">
-
-       {/* Row 1: Membership Card Image */}
+      {/* Row 1: Membership Card Image */}
       <div className="flex justify-center">
         <div className="w-96 h-64 rounded-lg flex items-center justify-center">
-          <Image src="/irl-card-animated.gif" alt="IRL Membership Card" width={590*2} height={347*2} unoptimized={true} />
+          <Image
+            src="/irl-card-animated.gif"
+            alt="IRL Membership Card"
+            width={590 * 2}
+            height={347 * 2}
+            unoptimized={true}
+          />
         </div>
       </div>
       {/* Row 2: Main Heading */}
@@ -97,26 +102,33 @@ export default function MembershipPage() {
       {/* Row 3: Subheading */}
       <div className="text-center max-w-[90%] sm:max-w-[80%] lg:max-w-[40%] mx-auto px-4">
         <p className="text-lg sm:text-xl lg:text-2xl text-gray-700 leading-relaxed font-pleasure">
-          Join 1168 artists and 200 global partners in collectively owning culture&apos;s rewards program.
+          Join 1168 artists and 200 global partners in collectively owning
+          culture&apos;s rewards program.
         </p>
       </div>
 
       <div className="flex flex-col items-center space-y-4">
-        <Link href="/game">
+        <Link href="/interactive-map">
           <button className="bg-white text-black px-8 py-4 h-16 flex items-center gap-2 rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase">
-            Earn your first points <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
+            Earn your first points{" "}
+            <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
           </button>
         </Link>
-        <Image src="/poweredbyrefraction.svg" alt="IRL Membership Card" width={300} height={150} />
+        <Image
+          src="/poweredbyrefraction.svg"
+          alt="IRL Membership Card"
+          width={300}
+          height={150}
+        />
       </div>
 
       {/* Video Background Section with Three Columns */}
       <div className="relative w-full lg:h-[1000px] overflow-hidden rounded-xl lg:p-20 lg:pb-32">
         {/* Video Background */}
-        <video 
-          autoPlay 
-          loop 
-          muted 
+        <video
+          autoPlay
+          loop
+          muted
           playsInline
           preload="metadata"
           className="absolute inset-0 w-full h-full object-cover"
@@ -124,10 +136,10 @@ export default function MembershipPage() {
           <source src="/video-reel.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        
+
         {/* Fallback Background Image for Mobile */}
         <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-900 via-pink-900 to-orange-900 lg:hidden"></div>
-        
+
         {/* Text Overlay - Two Rows */}
         <div className="relative z-10 flex flex-col justify-start lg:pt-8 lg:pb-10 pt-4 pb-6">
           <div className="lg:text-left text-center  mb-4">
@@ -141,531 +153,820 @@ export default function MembershipPage() {
             </p>
           </div>
         </div>
-        
+
         {/* Three Column Flexbox Overlay */}
         <div className="relative z-10 lg:flex lg:flex-row h-auto lg:h-[600px] lg:gap-12 xl:gap-20">
           {/* Mobile horizontal scroll container */}
-          <div ref={scrollContainerRef} className="lg:hidden flex overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4 px-6">
+          <div
+            ref={scrollContainerRef}
+            className="lg:hidden flex overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4 px-6"
+          >
             <div className="flex gap-8 min-w-max">
               {/* Card 1: Membership */}
               <div className="w-80 flex-shrink-0 snap-center">
                 <div className="bg-black bg-opacity-70 rounded-xl p-8 flex flex-col justify-between h-full">
                   {/* Row 1: Title and Price */}
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-2xl font-bold text-white font-inktrap">Membership</h3>
-                    <span className="text-xl text-white font-inktrap font-semibold">$Free</span>
+                    <h3 className="text-2xl font-bold text-white font-inktrap">
+                      Membership
+                    </h3>
+                    <span className="text-xl text-white font-inktrap font-semibold">
+                      $Free
+                    </span>
                   </div>
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="275" height="2" viewBox="0 0 397 2" fill="none">
-                        <path d="M0.333374 1L365.31 1L379.213 1L396.333 1" stroke="#D7D3D0"/>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="275"
+                        height="2"
+                        viewBox="0 0 397 2"
+                        fill="none"
+                      >
+                        <path
+                          d="M0.333374 1L365.31 1L379.213 1L396.333 1"
+                          stroke="#D7D3D0"
+                        />
                       </svg>
                     </div>
                   </div>
-                  
+
                   {/* Row 2: Bullet Points */}
                   <div className="flex-1 mb-4 font-pleasure">
                     <ul className="text-white space-y-2 text-sm">
                       <li className="flex items-center gap-2">
-                        <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                        <Image
+                          src="/check-circle.svg"
+                          alt="IRL"
+                          width={20}
+                          height={20}
+                        />
                         <span>Earn IRL Points</span>
                       </li>
                       <li className="flex items-center gap-2">
-                        <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                        <Image
+                          src="/check-circle.svg"
+                          alt="IRL"
+                          width={20}
+                          height={20}
+                        />
                         <span>Participate in Local Events</span>
                       </li>
                       <li className="flex items-center gap-2">
-                        <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                        <Image
+                          src="/check-circle.svg"
+                          alt="IRL"
+                          width={20}
+                          height={20}
+                        />
                         <span>Help Tailor rewards to your city</span>
                       </li>
                     </ul>
                   </div>
-                  
+
                   {/* Row 3: Button */}
                   <button className="bg-gray-800 text-white px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap whitespace-nowrap uppercase">
                     <span>Sign up for free</span>
-                    <Image src="/white-arrow-right.svg" alt="IRL" width={20} height={20} />
+                    <Image
+                      src="/white-arrow-right.svg"
+                      alt="IRL"
+                      width={20}
+                      height={20}
+                    />
                   </button>
                 </div>
               </div>
-              
+
               {/* Card 2: Refract Pass (Center) */}
               <div className="w-80 flex-shrink-0 snap-center">
                 <div className="rounded-xl p-[2px] bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500">
                   <div className="bg-black bg-opacity-70 rounded-xl p-8 flex flex-col justify-between h-full">
                     {/* Row 1: Title and Price */}
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-2xl font-bold font-inktrap text-white">Refract Pass</h3>
-                      <span className="text-xl text-white font-inktrap font-semibold">0.25 ETH</span>
+                      <h3 className="text-2xl font-bold font-inktrap text-white">
+                        Refract Pass
+                      </h3>
+                      <span className="text-xl text-white font-inktrap font-semibold">
+                        0.25 ETH
+                      </span>
                     </div>
                     <div className="flex justify-between items-center mb-4">
                       <div className="flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="275" height="2" viewBox="0 0 397 2" fill="none">
-                          <path d="M0.333374 1L365.31 1L379.213 1L396.333 1" stroke="#D7D3D0"/>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="275"
+                          height="2"
+                          viewBox="0 0 397 2"
+                          fill="none"
+                        >
+                          <path
+                            d="M0.333374 1L365.31 1L379.213 1L396.333 1"
+                            stroke="#D7D3D0"
+                          />
                         </svg>
                       </div>
                     </div>
-                    
+
                     {/* Row 2: Bullet Points */}
                     <div className="flex-1 mb-4">
                       <ul className="text-white space-y-2 font-pleasure text-sm">
                         <li className="flex items-start gap-2">
-                          <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                          <span>Artist Airdrops from Refraction&apos;s Global Network of Digital Pioneers</span>
+                          <Image
+                            src="/check-circle.svg"
+                            alt="IRL"
+                            width={16}
+                            height={16}
+                            className="mt-0.5 flex-shrink-0"
+                          />
+                          <span>
+                            Artist Airdrops from Refraction&apos;s Global
+                            Network of Digital Pioneers
+                          </span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                          <span>GLOBAL EVENT ACCESS PRIORITY RSVP & EXCLUSIVE PERKS AT IRL PARTNER EVENTS WORLDWIDE.</span>
+                          <Image
+                            src="/check-circle.svg"
+                            alt="IRL"
+                            width={16}
+                            height={16}
+                            className="mt-0.5 flex-shrink-0"
+                          />
+                          <span>
+                            GLOBAL EVENT ACCESS PRIORITY RSVP & EXCLUSIVE PERKS
+                            AT IRL PARTNER EVENTS WORLDWIDE.
+                          </span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                          <span>25,000 IRL POINTS AUTOMATICALLY CREDITED. (POINTS CONVERT MONTHLY INTO IRL TOKENS VIA THE EPOCH SYSTEM. EARLY ADOPTERS GET HIGHER RATES.)</span>
+                          <Image
+                            src="/check-circle.svg"
+                            alt="IRL"
+                            width={16}
+                            height={16}
+                            className="mt-0.5 flex-shrink-0"
+                          />
+                          <span>
+                            25,000 IRL POINTS AUTOMATICALLY CREDITED. (POINTS
+                            CONVERT MONTHLY INTO IRL TOKENS VIA THE EPOCH
+                            SYSTEM. EARLY ADOPTERS GET HIGHER RATES.)
+                          </span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                          <span>IRL TOKEN ELIGIBILITY UNLOCK FUTURE STAKING, REWARDS, AND ON-CHAIN GOVERNANCE.</span>
+                          <Image
+                            src="/check-circle.svg"
+                            alt="IRL"
+                            width={16}
+                            height={16}
+                            className="mt-0.5 flex-shrink-0"
+                          />
+                          <span>
+                            IRL TOKEN ELIGIBILITY UNLOCK FUTURE STAKING,
+                            REWARDS, AND ON-CHAIN GOVERNANCE.
+                          </span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
+                          <Image
+                            src="/check-circle.svg"
+                            alt="IRL"
+                            width={16}
+                            height={16}
+                            className="mt-0.5 flex-shrink-0"
+                          />
                           <span>LIMITED-EDITION IRL TEE</span>
                         </li>
                       </ul>
                     </div>
-                    
+
                     {/* Row 3: Button */}
-                                         <button className="bg-white text-black px-4 sm:px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap  uppercase">
-                        <span className="text-xs sm:text-sm">Become a founding member</span>
-                        <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
-                      </button>
+                    <button className="bg-white text-black px-4 sm:px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap  uppercase">
+                      <span className="text-xs sm:text-sm">
+                        Become a founding member
+                      </span>
+                      <Image
+                        src="/arrow-right.svg"
+                        alt="IRL"
+                        width={20}
+                        height={20}
+                      />
+                    </button>
                   </div>
                 </div>
               </div>
-              
+
               {/* Card 3: Affiliate Membership */}
               <div className="w-80 flex-shrink-0 snap-center">
                 <div className="bg-black bg-opacity-70 rounded-xl p-8 flex flex-col justify-between h-full">
                   {/* Row 1: Title and Price */}
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-2xl font-bold text-white font-inktrap">Affiliate Membership</h3>
+                    <h3 className="text-2xl font-bold text-white font-inktrap">
+                      Affiliate Membership
+                    </h3>
                     <span className="text-xl text-white font-inktrap font-semibold">
                       <button className="bg-white text-black text-xs px-4 py-2 h-8 flex items-center gap-2 rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase whitespace-nowrap">
-                        Contact Us <Image src="/arrow-right.svg" alt="IRL" width={16} height={16} />
+                        Contact Us{" "}
+                        <Image
+                          src="/arrow-right.svg"
+                          alt="IRL"
+                          width={16}
+                          height={16}
+                        />
                       </button>
                     </span>
                   </div>
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-2">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="275" height="2" viewBox="0 0 397 2" fill="none">
-                        <path d="M0.333374 1L365.31 1L379.213 1L396.333 1" stroke="#D7D3D0"/>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="275"
+                        height="2"
+                        viewBox="0 0 397 2"
+                        fill="none"
+                      >
+                        <path
+                          d="M0.333374 1L365.31 1L379.213 1L396.333 1"
+                          stroke="#D7D3D0"
+                        />
                       </svg>
                     </div>
                   </div>
-                  
+
                   {/* Row 2: Bullet Points */}
                   <div className="flex-1 mb-4 font-pleasure">
                     <ul className="text-white space-y-2 text-sm">
                       <li className="flex items-center gap-2">
-                        <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                        <span>Artist Airdrops from Refraction&apos;s Global Network of Digital Pioneers</span>
+                        <Image
+                          src="/check-circle.svg"
+                          alt="IRL"
+                          width={20}
+                          height={20}
+                        />
+                        <span>
+                          Artist Airdrops from Refraction&apos;s Global Network
+                          of Digital Pioneers
+                        </span>
                       </li>
                       <li className="flex items-center gap-2">
-                        <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                        <span>GLOBAL EVENT ACCESS PRIORITY RSVP & EXCLUSIVE PERKS AT IRL PARTNER EVENTS WORLDWIDE.</span>
+                        <Image
+                          src="/check-circle.svg"
+                          alt="IRL"
+                          width={20}
+                          height={20}
+                        />
+                        <span>
+                          GLOBAL EVENT ACCESS PRIORITY RSVP & EXCLUSIVE PERKS AT
+                          IRL PARTNER EVENTS WORLDWIDE.
+                        </span>
                       </li>
                       <li className="flex items-center gap-2">
-                        <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                        <span>25,000 IRL POINTS AUTOMATICALLY CREDITED. (POINTS CONVERT MONTHLY INTO IRL TOKENS VIA THE EPOCH SYSTEM. EARLY ADOPTERS GET HIGHER RATES.)</span>
+                        <Image
+                          src="/check-circle.svg"
+                          alt="IRL"
+                          width={20}
+                          height={20}
+                        />
+                        <span>
+                          25,000 IRL POINTS AUTOMATICALLY CREDITED. (POINTS
+                          CONVERT MONTHLY INTO IRL TOKENS VIA THE EPOCH SYSTEM.
+                          EARLY ADOPTERS GET HIGHER RATES.)
+                        </span>
                       </li>
                       <li className="flex items-center gap-2">
-                        <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                        <span>IRL TOKEN ELIGIBILITY UNLOCK FUTURE STAKING, REWARDS, AND ON-CHAIN GOVERNANCE.</span>
+                        <Image
+                          src="/check-circle.svg"
+                          alt="IRL"
+                          width={20}
+                          height={20}
+                        />
+                        <span>
+                          IRL TOKEN ELIGIBILITY UNLOCK FUTURE STAKING, REWARDS,
+                          AND ON-CHAIN GOVERNANCE.
+                        </span>
                       </li>
                     </ul>
                   </div>
-                  
+
                   {/* Row 3: Button */}
                   <button className="bg-gray-800 text-white px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase">
                     <span>Get In Touch</span>
-                    <Image src="/white-arrow-right.svg" alt="IRL" width={20} height={20} />
+                    <Image
+                      src="/white-arrow-right.svg"
+                      alt="IRL"
+                      width={20}
+                      height={20}
+                    />
                   </button>
                 </div>
               </div>
             </div>
           </div>
-          
+
           {/* Desktop layout */}
           <div className="hidden lg:flex w-full gap-12 xl:gap-20">
-          <div className="flex-1 min-w-[300px] bg-black bg-opacity-70 rounded-xl p-6 flex flex-col justify-between h-full min-h-[600px]">
-            {/* Row 1: Title and Price */}
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-2xl font-bold text-white font-inktrap">Membership</h3>
-              <span className="text-xl text-white font-inktrap font-semibold">$Free</span>
-            </div>
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center justify-center gap-2 w-full">
-                <svg xmlns="http://www.w3.org/2000/svg" width="300" height="2" viewBox="0 0 397 2" fill="none">
-                  <path d="M0.333374 1L365.31 1L379.213 1L396.333 1" stroke="#D7D3D0"/>
-                </svg>
-                
+            <div className="flex-1 min-w-[300px] bg-black bg-opacity-70 rounded-xl p-6 flex flex-col justify-between h-full min-h-[600px]">
+              {/* Row 1: Title and Price */}
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-bold text-white font-inktrap">
+                  Membership
+                </h3>
+                <span className="text-xl text-white font-inktrap font-semibold">
+                  $Free
+                </span>
               </div>
-            </div>
-            
-                          {/* Row 2: Bullet Points */}
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center justify-center gap-2 w-full">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="300"
+                    height="2"
+                    viewBox="0 0 397 2"
+                    fill="none"
+                  >
+                    <path
+                      d="M0.333374 1L365.31 1L379.213 1L396.333 1"
+                      stroke="#D7D3D0"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Row 2: Bullet Points */}
               <div className="flex-1 mb-4 font-pleasure">
                 <ul className="text-white space-y-2 text-sm font-pleasure-standard-regular">
                   <li className="flex items-center gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                    <Image
+                      src="/check-circle.svg"
+                      alt="IRL"
+                      width={20}
+                      height={20}
+                    />
                     <span>Earn IRL Points</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                    <Image
+                      src="/check-circle.svg"
+                      alt="IRL"
+                      width={20}
+                      height={20}
+                    />
                     <span>Participate in Local Events</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                    <Image
+                      src="/check-circle.svg"
+                      alt="IRL"
+                      width={20}
+                      height={20}
+                    />
                     <span>Help Tailor rewards to your city</span>
                   </li>
-                
                 </ul>
-            </div>
-            
-            {/* Row 3: Button */}
-            <Link href="/">
-              <button className="bg-gray-800 text-white px-8 lg:w-full py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap uppercase">
-                <span>Sign up for free</span>
-                <Image src="/white-arrow-right.svg" alt="IRL" width={20} height={20} />
-              </button>
-            </Link>
-          </div>
-          
-          <div className="flex-1 min-w-[300px] rounded-xl p-[2px] bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500">
-            <div className="bg-black bg-opacity-70 rounded-xl p-6 flex flex-col justify-between h-full min-h-[600px]">
-              {/* Row 1: Title and Price */}
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-2xl font-bold font-inktrap text-white">Refract Pass</h3>
-                <span className="text-xl text-white font-inktrap font-semibold">0.25 ETH</span>
               </div>
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center justify-center gap-2 w-full">
-                <svg xmlns="http://www.w3.org/2000/svg" width="300" height="2" viewBox="0 0 397 2" fill="none">
-                  <path d="M0.333374 1L365.31 1L379.213 1L396.333 1" stroke="#D7D3D0"/>
-                </svg>
-                
-              </div>
-            </div>
-            
-               {/* Row 2: Bullet Points */}
-              <div className="flex-1 mb-4">
-                <ul className="text-white space-y-2  font-pleasure-standard-regular text-sm">
-                  <li className="flex items-start gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                    <span>Artist airdrops from refraction&apos;s global network of digital pioneers</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                    <span>Global event access priority RSVP & exclusive perks at IRL partner events worldwide.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                    <span>25,000 IRL points automatically credited. (Points convert monthly into IRL tokens via the epoch system. Early adopters get higher rates.)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                    <span>IRL token eligibility unlockfuture staking, rewards, and on-chain governance.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={16} height={16} className="mt-0.5 flex-shrink-0" />
-                    <span>Limited-edition IRL tee</span>
-                  </li>
-                
-                </ul>
-            </div>
-            
-             {/* Row 3: Button */}
-             <Link href="https://airtable.com/appygGt0rRgfh6qxA/shrkshw6J2OMYuae7" target="_blank">
-                  <button className="bg-white text-black px-6 sm:px-6 md:px-2  py-4 h-16 md:text-sm flex items-center justify-between rounded-full hover:bg-gray-300 transition-colors duration-200 font-inktrap w-full uppercase">
-                  <span className="text-xs sm:text-sm">Become a founding member</span>
-                  <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
+
+              {/* Row 3: Button */}
+              <Link href="/">
+                <button className="bg-gray-800 text-white px-8 lg:w-full py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap uppercase">
+                  <span>Sign up for free</span>
+                  <Image
+                    src="/white-arrow-right.svg"
+                    alt="IRL"
+                    width={20}
+                    height={20}
+                  />
                 </button>
-            </Link>
+              </Link>
             </div>
-          </div>
-          <div className="flex-1 min-w-[300px] bg-black bg-opacity-70 rounded-xl p-8 lg:p-6 flex flex-col justify-between h-full min-h-[600px]">
-            {/* Row 1: Title and Price */}
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-2xl font-bold text-white font-inktrap">Affiliate Membership</h3>
-              <span className="text-xl text-white font-inktrap font-semibold">
-                <Link href="mailto:partnerships@refractionfestival.com">
-                  <button className="bg-white text-black text-xs px-4 py-2 h-8 flex items-center gap-2 rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase whitespace-nowrap">
-                    Contact Us <Image src="/arrow-right.svg" alt="IRL" width={16} height={16} />
+
+            <div className="flex-1 min-w-[300px] rounded-xl p-[2px] bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500">
+              <div className="bg-black bg-opacity-70 rounded-xl p-6 flex flex-col justify-between h-full min-h-[600px]">
+                {/* Row 1: Title and Price */}
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-2xl font-bold font-inktrap text-white">
+                    Refract Pass
+                  </h3>
+                  <span className="text-xl text-white font-inktrap font-semibold">
+                    0.25 ETH
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center justify-center gap-2 w-full">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="300"
+                      height="2"
+                      viewBox="0 0 397 2"
+                      fill="none"
+                    >
+                      <path
+                        d="M0.333374 1L365.31 1L379.213 1L396.333 1"
+                        stroke="#D7D3D0"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Row 2: Bullet Points */}
+                <div className="flex-1 mb-4">
+                  <ul className="text-white space-y-2  font-pleasure-standard-regular text-sm">
+                    <li className="flex items-start gap-2">
+                      <Image
+                        src="/check-circle.svg"
+                        alt="IRL"
+                        width={16}
+                        height={16}
+                        className="mt-0.5 flex-shrink-0"
+                      />
+                      <span>
+                        Artist airdrops from refraction&apos;s global network of
+                        digital pioneers
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Image
+                        src="/check-circle.svg"
+                        alt="IRL"
+                        width={16}
+                        height={16}
+                        className="mt-0.5 flex-shrink-0"
+                      />
+                      <span>
+                        Global event access priority RSVP & exclusive perks at
+                        IRL partner events worldwide.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Image
+                        src="/check-circle.svg"
+                        alt="IRL"
+                        width={16}
+                        height={16}
+                        className="mt-0.5 flex-shrink-0"
+                      />
+                      <span>
+                        25,000 IRL points automatically credited. (Points
+                        convert monthly into IRL tokens via the epoch system.
+                        Early adopters get higher rates.)
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Image
+                        src="/check-circle.svg"
+                        alt="IRL"
+                        width={16}
+                        height={16}
+                        className="mt-0.5 flex-shrink-0"
+                      />
+                      <span>
+                        IRL token eligibility unlockfuture staking, rewards, and
+                        on-chain governance.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Image
+                        src="/check-circle.svg"
+                        alt="IRL"
+                        width={16}
+                        height={16}
+                        className="mt-0.5 flex-shrink-0"
+                      />
+                      <span>Limited-edition IRL tee</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Row 3: Button */}
+                <Link
+                  href="https://airtable.com/appygGt0rRgfh6qxA/shrkshw6J2OMYuae7"
+                  target="_blank"
+                >
+                  <button className="bg-white text-black px-6 sm:px-6 md:px-2  py-4 h-16 md:text-sm flex items-center justify-between rounded-full hover:bg-gray-300 transition-colors duration-200 font-inktrap w-full uppercase">
+                    <span className="text-xs sm:text-sm">
+                      Become a founding member
+                    </span>
+                    <Image
+                      src="/arrow-right.svg"
+                      alt="IRL"
+                      width={20}
+                      height={20}
+                    />
                   </button>
                 </Link>
-              </span>
-            </div>
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center justify-center gap-2 w-full">
-                <svg xmlns="http://www.w3.org/2000/svg" width="300" height="2" viewBox="0 0 397 2" fill="none">
-                  <path d="M0.333374 1L365.31 1L379.213 1L396.333 1" stroke="#D7D3D0"/>
-                </svg>
-                
               </div>
             </div>
-            
-                          {/* Row 2: Bullet Points */}
+            <div className="flex-1 min-w-[300px] bg-black bg-opacity-70 rounded-xl p-8 lg:p-6 flex flex-col justify-between h-full min-h-[600px]">
+              {/* Row 1: Title and Price */}
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-bold text-white font-inktrap">
+                  Affiliate Membership
+                </h3>
+                <span className="text-xl text-white font-inktrap font-semibold">
+                  <Link href="mailto:partnerships@refractionfestival.com">
+                    <button className="bg-white text-black text-xs px-4 py-2 h-8 flex items-center gap-2 rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase whitespace-nowrap">
+                      Contact Us{" "}
+                      <Image
+                        src="/arrow-right.svg"
+                        alt="IRL"
+                        width={16}
+                        height={16}
+                      />
+                    </button>
+                  </Link>
+                </span>
+              </div>
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center justify-center gap-2 w-full">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="300"
+                    height="2"
+                    viewBox="0 0 397 2"
+                    fill="none"
+                  >
+                    <path
+                      d="M0.333374 1L365.31 1L379.213 1L396.333 1"
+                      stroke="#D7D3D0"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Row 2: Bullet Points */}
               <div className="flex-1 mb-4 font-pleasure">
                 <ul className="text-white space-y-2 font-pleasure-standard-regular  text-sm">
                   <li className="flex items-start gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                    <span>Artist airdrops from refraction&apos;s global network of digital pioneers</span>
+                    <Image
+                      src="/check-circle.svg"
+                      alt="IRL"
+                      width={20}
+                      height={20}
+                    />
+                    <span>
+                      Artist airdrops from refraction&apos;s global network of
+                      digital pioneers
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                    <span>Global event access priority RSVP & exclusive perks at IRL partner events worldwide.</span>
+                    <Image
+                      src="/check-circle.svg"
+                      alt="IRL"
+                      width={20}
+                      height={20}
+                    />
+                    <span>
+                      Global event access priority RSVP & exclusive perks at IRL
+                      partner events worldwide.
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                    <span>25,000 IRL points automatically credited. (Points convert monthly into IRL tokens via the epoch system. Early adopters get higher rates.)</span>
-                  </li>
-                <li className="flex items-start gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
-                    <span>IRL token eligibility unlock future staking, rewards, and on-chain governance.</span>
+                    <Image
+                      src="/check-circle.svg"
+                      alt="IRL"
+                      width={20}
+                      height={20}
+                    />
+                    <span>
+                      25,000 IRL points automatically credited. (Points convert
+                      monthly into IRL tokens via the epoch system. Early
+                      adopters get higher rates.)
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Image src="/check-circle.svg" alt="IRL" width={20} height={20} />
+                    <Image
+                      src="/check-circle.svg"
+                      alt="IRL"
+                      width={20}
+                      height={20}
+                    />
+                    <span>
+                      IRL token eligibility unlock future staking, rewards, and
+                      on-chain governance.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Image
+                      src="/check-circle.svg"
+                      alt="IRL"
+                      width={20}
+                      height={20}
+                    />
                     <span>Limited-edition IRL tee</span>
                   </li>
-
-                
                 </ul>
+              </div>
+
+              {/* Row 3: Button */}
+              <Link href="mailto:partnerships@refractionfestival.com">
+                <button className="bg-gray-800 text-white  lg:w-full px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap whitespace-nowrap uppercase">
+                  <span>Get In Touch</span>
+                  <Image
+                    src="/white-arrow-right.svg"
+                    alt="IRL"
+                    width={20}
+                    height={20}
+                  />
+                </button>
+              </Link>
             </div>
-            
-            {/* Row 3: Button */}
-            <Link href="mailto:partnerships@refractionfestival.com">
-              <button className="bg-gray-800 text-white  lg:w-full px-8 py-4 h-16 flex items-center justify-between rounded-full hover:bg-gray-600 transition-colors duration-200 font-inktrap whitespace-nowrap uppercase">
-                <span>Get In Touch</span>
-                <Image src="/white-arrow-right.svg" alt="IRL" width={20} height={20} />
-              </button>
-            </Link>
-          </div>
-          
           </div>
         </div>
       </div>
 
+      <div className="max-w-6xl mx-auto py-16 px-4">
+        {/* Carousel Container */}
+        <div className="flex flex-col items-start min-h-fit">
+          {/* Row 1 */}
+          <p className="text-lg font-pleasure text-black mb-2 text-left">
+            Earn your points in
+          </p>
 
-             <div className="max-w-6xl mx-auto py-16 px-4">
-                  {/* Carousel Container */}
-         <div className="flex flex-col items-start min-h-fit">
-           {/* Row 1 */}
-           <p className="text-lg font-pleasure text-black mb-2 text-left">
-             Earn your points in
-           </p>
+          {/* Row 2 */}
+          <h2 className="text-4xl font-pleasure-standard-bold uppercase text-black mb-8 text-left">
+            three easy steps
+          </h2>
 
-           {/* Row 2 */}
-           <h2 className="text-4xl font-pleasure-standard-bold uppercase text-black mb-8 text-left">
-             three easy steps
-           </h2>
+          {/* Desktop: Two Column Layout */}
+          <div className="hidden lg:flex w-full gap-12 items-center h-[600px]">
+            {/* Left Column - Text Content */}
+            <div className="flex-[0.4] text-left">
+              {/* Row 4 - Current Item Number */}
+              <div className="text-4xl font-abc-monument-bold text-white mb-4">
+                <div className="w-16 h-16 rounded-full bg-[#B5B5B5] flex items-center justify-center">
+                  {carouselData[currentIndex].step}
+                </div>
+              </div>
 
-           {/* Desktop: Two Column Layout */}
-           <div className="hidden lg:flex w-full gap-12 items-center h-[600px]">
-             {/* Left Column - Text Content */}
-             <div className="flex-[0.4] text-left">
-               {/* Row 4 - Current Item Number */}
-               <div className="text-4xl font-abc-monument-bold text-white mb-4">
-                 <div className="w-16 h-16 rounded-full bg-[#B5B5B5] flex items-center justify-center">
-                   {carouselData[currentIndex].step}
-                 </div>
-               </div>
+              {/* Row 5 - Step Text */}
+              <p className="text-sm font-pleasure-standard-regular uppercase text-black mb-4">
+                {carouselData[currentIndex].stepText}
+              </p>
 
-               {/* Row 5 - Step Text */}
-               <p className="text-sm font-pleasure-standard-regular uppercase text-black mb-4">
-                 {carouselData[currentIndex].stepText}
-               </p>
+              {/* Row 6 - Description */}
+              <p className="text-lg font-pleasure text-black mb-8">
+                <b>{carouselData[currentIndex].text}</b>
+              </p>
+            </div>
 
-               {/* Row 6 - Description */}
-               <p className="text-lg font-pleasure text-black mb-8">
-                 <b>{carouselData[currentIndex].text}</b>
-               </p>
-             </div>
+            {/* Right Column - Image */}
+            <div className="flex-[0.6]">
+              <div className="relative w-full">
+                <Image
+                  src={`/${carouselData[currentIndex].image}`}
+                  width={carouselData[currentIndex].width}
+                  height={carouselData[currentIndex].height}
+                  alt={`Step ${carouselData[currentIndex].step}`}
+                  className={`object-contain w-full h-auto ${
+                    carouselData[currentIndex].step === 3
+                      ? "max-h-48 lg:max-h-64"
+                      : "max-h-96 lg:max-h-[500px]"
+                  }`}
+                  onLoad={() => setImageLoading(false)}
+                  unoptimized={true}
+                />
+              </div>
+            </div>
+          </div>
 
-             {/* Right Column - Image */}
-             <div className="flex-[0.6]">
-               <div className="relative w-full">
-                 <Image
-                   src={`/${carouselData[currentIndex].image}`}
-                   width={carouselData[currentIndex].width}
-                   height={carouselData[currentIndex].height}
-                   alt={`Step ${carouselData[currentIndex].step}`}
-                   className={`object-contain w-full h-auto ${
-                     carouselData[currentIndex].step === 3 
-                       ? 'max-h-48 lg:max-h-64' 
-                       : 'max-h-96 lg:max-h-[500px]'
-                   }`}
-                   
-                   onLoad={() => setImageLoading(false)}
-                   unoptimized={true}
-                 />
-               </div>
-             </div>
-           </div>
+          {/* Mobile: Vertical Stack */}
+          <div className="lg:hidden w-full min-h-96 mb-8">
+            {/* Row 3 - Images */}
+            <div className="relative w-full mb-8">
+              <Image
+                src={`/${carouselData[currentIndex].image}`}
+                width={carouselData[currentIndex].width}
+                height={carouselData[currentIndex].height}
+                alt={`Step ${carouselData[currentIndex].step}`}
+                className={`object-contain w-full h-auto ${
+                  carouselData[currentIndex].step === 3
+                    ? "max-h-40"
+                    : "max-h-80"
+                }`}
+                onLoad={() => setImageLoading(false)}
+                unoptimized={true}
+              />
+            </div>
 
-                      {/* Mobile: Vertical Stack */}
-           <div className="lg:hidden w-full min-h-96 mb-8">
-             {/* Row 3 - Images */}
-             <div className="relative w-full mb-8">
-               <Image
-                 src={`/${carouselData[currentIndex].image}`}
-                 width={carouselData[currentIndex].width}
-                 height={carouselData[currentIndex].height}
-                 alt={`Step ${carouselData[currentIndex].step}`}
-                 className={`object-contain w-full h-auto ${
-                   carouselData[currentIndex].step === 3 
-                     ? 'max-h-40' 
-                     : 'max-h-80'
-                 }`}
-                
-                 onLoad={() => setImageLoading(false)}
-                 unoptimized={true}
-               />
-             </div>
+            {/* Row 4 - Current Item Number */}
+            <div className="text-6xl font-abc-monument-bold text-white mb-4 flex justify-center">
+              <div className="w-24 h-24 rounded-full bg-[#B5B5B5] flex items-center justify-center">
+                {carouselData[currentIndex].step}
+              </div>
+            </div>
 
-             {/* Row 4 - Current Item Number */}
-             <div className="text-6xl font-abc-monument-bold text-white mb-4 flex justify-center">
-               <div className="w-24 h-24 rounded-full bg-[#B5B5B5] flex items-center justify-center">
-                 {carouselData[currentIndex].step}
-               </div>
-             </div>
+            {/* Row 5 - Step Text */}
+            <p className="text-sm uppercase font-pleasure-standard-regular text-black mb-4 text-center">
+              {carouselData[currentIndex].stepText}
+            </p>
 
-             {/* Row 5 - Step Text */}
-             <p className="text-sm uppercase font-pleasure-standard-regular text-black mb-4 text-center">
-               {carouselData[currentIndex].stepText}
-             </p>
+            {/* Row 6 - Description */}
+            <p className="text-lg font-pleasure text-black mb-8 text-center">
+              {carouselData[currentIndex].text}
+            </p>
 
-             {/* Row 6 - Description */}
-             <p className="text-lg font-pleasure text-black mb-8 text-center">
-               {carouselData[currentIndex].text}
-             </p>
+            {/* Row 7 - Navigation Arrows */}
+            <div className="flex gap-4 justify-center items-center relative z-10">
+              {currentIndex > 0 ? (
+                <button
+                  onClick={handlePrevious}
+                  className="p-2 hover:opacity-70 transition-opacity"
+                  disabled={imageLoading}
+                  type="button"
+                >
+                  <Image
+                    src="/up-button.png"
+                    alt="Previous"
+                    width={32}
+                    height={32}
+                  />
+                </button>
+              ) : null}
+              {currentIndex < carouselData.length - 1 ? (
+                <button
+                  onClick={handleNext}
+                  className="p-2 hover:opacity-70 transition-opacity"
+                  disabled={imageLoading}
+                  type="button"
+                >
+                  <Image
+                    src="/down-button.png"
+                    alt="Next"
+                    width={32}
+                    height={32}
+                  />
+                </button>
+              ) : null}
+            </div>
+          </div>
 
-             {/* Row 7 - Navigation Arrows */}
-             <div className="flex gap-4 justify-center items-center relative z-10">
-               {currentIndex > 0 ? (
-               <button 
-                 onClick={handlePrevious}
-                 className="p-2 hover:opacity-70 transition-opacity"
-                 disabled={imageLoading}
-                 type="button"
-               >
-               
-                 <Image 
-                   src="/up-button.png"
-                   alt="Previous"
-                   width={32}
-                   height={32}
-                    />
-                  
-               </button>
-                ):(
-                null
-                )}  
-                 {currentIndex < carouselData.length -1 ? (
-               <button 
-                 onClick={handleNext}
-                 className="p-2 hover:opacity-70 transition-opacity"
-                 disabled={imageLoading}
-                 type="button"
-               >
-                
-                 <Image
-                   src="/down-button.png" 
-                   alt="Next"
-                   width={32}
-                   height={32}
-                 />
-                
-               </button>
-                ):(
-                  null
-                 )}
-             </div>
-           </div>
-
-           {/* Desktop Navigation Arrows */}
-           <div className="hidden lg:flex gap-4 mb-8 relative z-10">
+          {/* Desktop Navigation Arrows */}
+          <div className="hidden lg:flex gap-4 mb-8 relative z-10">
             {currentIndex > 0 ? (
-            <button 
-               onClick={handlePrevious}
-               className="p-2 hover:opacity-70 transition-opacity"
-               disabled={imageLoading}
-               type="button"
-             >
-              
-               <Image 
-                 src="/up-button.png"
-                 alt="Previous"
-                 width={32}
-                 height={32}
-               />
-            
-             </button>
-                ):(
-                null
-               )}
-              {currentIndex < carouselData.length -1 ? (
-              <button 
+              <button
+                onClick={handlePrevious}
+                className="p-2 hover:opacity-70 transition-opacity"
+                disabled={imageLoading}
+                type="button"
+              >
+                <Image
+                  src="/up-button.png"
+                  alt="Previous"
+                  width={32}
+                  height={32}
+                />
+              </button>
+            ) : null}
+            {currentIndex < carouselData.length - 1 ? (
+              <button
                 onClick={handleNext}
                 className="p-2 hover:opacity-70 transition-opacity"
                 type="button"
               >
-              
-               <Image
-                 src="/down-button.png" 
-                 alt="Next"
-                 width={32}
-                 height={32}
-               />
-              
-             </button>
-              ):(
-                null
-               )}
+                <Image
+                  src="/down-button.png"
+                  alt="Next"
+                  width={32}
+                  height={32}
+                />
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
-    
 
       {/* Row 6: Two Columns - Text and Button */}
       <section className="py-12 sm:py-16 md:py-20 lg:py-24 xl:py-48 lg:pb-10">
         <div className="max-w-[468px] mx-auto text-center flex flex-col items-center justify-center gap-6 sm:gap-8">
           <div className="flex-1">
             <p className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-black font-inktrap  text-center mb-4">
-             <span >Already A Refract Pass Holder?</span> 
+              <span>Already A Refract Pass Holder?</span>
             </p>
             <p className=" text-sm sm:text-base md:text-lg  text-black font-abc-monument-regular  text-center">
-              <span >Unlock your benefits by filling out the membership form below</span>
+              <span>
+                Unlock your benefits by filling out the membership form below
+              </span>
             </p>
           </div>
           <div className="w-full">
-            <Link href="https://airtable.com/appygGt0rRgfh6qxA/shrkshw6J2OMYuae7" target="_blank">
-               <Button
-              size="lg"
-              className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
+            <Link
+              href="https://airtable.com/appygGt0rRgfh6qxA/shrkshw6J2OMYuae7"
+              target="_blank"
             >
-              <span className="text-black font-light">
-               Fill Out Membership Form
-              </span>
-              <Image
-                src="/home/arrow-right.svg"
-                alt="arrow-right"
-                width={24}
-                height={24}
-                className="w-5 h-5 sm:w-6 sm:h-6"
-              />
-            </Button>
+              <Button
+                size="lg"
+                className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
+              >
+                <span className="text-black font-light">
+                  Fill Out Membership Form
+                </span>
+                <Image
+                  src="/home/arrow-right.svg"
+                  alt="arrow-right"
+                  width={24}
+                  height={24}
+                  className="w-5 h-5 sm:w-6 sm:h-6"
+                />
+              </Button>
             </Link>
           </div>
         </div>
       </section>
-
 
       {/* Claim Points Section */}
       <section className="py-12 sm:py-16 md:py-20 lg:py-24 xl:py-48 lg:pb-10">
@@ -679,7 +980,7 @@ export default function MembershipPage() {
             Check in to earn points on the IRL network, with instant access to
             future rewards and experiences.
           </p>
-          <Link className="w-full" href="/game">
+          <Link className="w-full" href="/interactive-maps">
             <Button
               size="lg"
               className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
@@ -792,8 +1093,6 @@ export default function MembershipPage() {
           className="w-full h-auto mt-6 sm:mt-8 md:mt-10 max-w-full object-contain"
         />
       </section>
-   
     </div>
-    
   );
 }
