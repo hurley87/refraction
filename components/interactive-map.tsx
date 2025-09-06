@@ -173,6 +173,10 @@ export default function InteractiveMap() {
             name: loc.name,
             creator_wallet_address: loc.creator_wallet_address ?? null,
             creator_username: loc.creator_username ?? null,
+            coin_address: loc.coin_address ?? null,
+            coin_name: loc.coin_name ?? null,
+            coin_symbol: loc.coin_symbol ?? null,
+            coin_image_url: loc.coin_image_url ?? null,
           }),
         );
         setMarkers(dbMarkers);
@@ -495,6 +499,10 @@ export default function InteractiveMap() {
               ...selectedMarker,
               creator_wallet_address: walletAddress,
               creator_username: null,
+              coin_address: result.address,
+              coin_name: coinFormData.name,
+              coin_symbol: coinFormData.symbol,
+              coin_image_url: coinImageUrl,
             };
 
             setMarkers((current) => [...current, newPermanentMarker]);
@@ -741,9 +749,9 @@ export default function InteractiveMap() {
                 <div className="mb-3 border-b pb-3">
                   <div className="flex items-center gap-3 mb-2">
                     {popupInfo.coin_image_url && (
-                      <img 
-                        src={popupInfo.coin_image_url} 
-                        alt={popupInfo.coin_name || "Coin"} 
+                      <img
+                        src={popupInfo.coin_image_url}
+                        alt={popupInfo.coin_name || "Coin"}
                         className="w-10 h-10 rounded-full object-cover"
                       />
                     )}
@@ -752,7 +760,8 @@ export default function InteractiveMap() {
                         {popupInfo.coin_name} ({popupInfo.coin_symbol})
                       </h3>
                       <p className="text-xs text-gray-500 font-mono break-all">
-                        {popupInfo.coin_address.slice(0, 6)}...{popupInfo.coin_address.slice(-4)}
+                        {popupInfo.coin_address.slice(0, 6)}...
+                        {popupInfo.coin_address.slice(-4)}
                       </p>
                     </div>
                   </div>
@@ -761,15 +770,27 @@ export default function InteractiveMap() {
 
               {/* Location Information */}
               <div className="mb-3">
-                <h4 className="font-semibold text-sm">{popupInfo.name}</h4>
-                <p className="text-xs text-gray-600 mt-1">
-                  {popupInfo.display_name}
-                </p>
-                {(popupInfo.creator_username || popupInfo.creator_wallet_address) && (
+                <div className="flex items-start gap-3">
+                  {popupInfo.coin_image_url && (
+                    <img
+                      src={popupInfo.coin_image_url}
+                      alt={popupInfo.coin_name || "Coin"}
+                      className="w-8 h-8 rounded-full object-cover mt-0.5"
+                    />
+                  )}
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-sm">{popupInfo.name}</h4>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {popupInfo.display_name}
+                    </p>
+                  </div>
+                </div>
+                {(popupInfo.creator_username ||
+                  popupInfo.creator_wallet_address) && (
                   <p className="text-xs text-gray-500 mt-1">
                     Created by{" "}
-                    {popupInfo.creator_username || 
-                     `${popupInfo.creator_wallet_address?.slice(0, 6)}...${popupInfo.creator_wallet_address?.slice(-4)}`}
+                    {popupInfo.creator_username ||
+                      `${popupInfo.creator_wallet_address?.slice(0, 6)}...${popupInfo.creator_wallet_address?.slice(-4)}`}
                   </p>
                 )}
               </div>

@@ -11,100 +11,117 @@
     font-size: 2.4375rem; /* 39px */
     line-height: 2.5rem; /* 40px */
     font-weight: 700;
-    font-family: 'Pleasure-Standard-Regular', sans-serif;
+    font-family: "Pleasure-Standard-Regular", sans-serif;
   }
-  
+
   h2 {
     font-size: 1.9375rem; /* 31px */
     line-height: 2rem; /* 32px */
     font-weight: 700;
-    font-family: 'Pleasure-Standard-Regular', sans-serif;
+    font-family: "Pleasure-Standard-Regular", sans-serif;
   }
-  
+
   h3 {
     font-size: 1.5625rem; /* 25px */
     line-height: 1.75rem; /* 28px */
     font-weight: 600;
-    font-family: 'Pleasure-Standard-Regular', sans-serif;
+    font-family: "Pleasure-Standard-Regular", sans-serif;
   }
-  
+
   h4 {
     font-size: 1rem; /* 16px */
     line-height: 1rem; /* 16px */
     font-weight: 600;
-    font-family: 'Pleasure-Standard-Regular', sans-serif;
+    font-family: "Pleasure-Standard-Regular", sans-serif;
   }
-
-
 
   .title1 {
     font-size: 1.9375rem; /* 31px */
     line-height: 2rem; /* 32px */
     font-weight: 700;
-    font-family: 'Inktrap-Regular', sans-serif;
+    font-family: "Inktrap-Regular", sans-serif;
   }
 
   .title2 {
     font-size: 1.5625rem; /* 25px */
     line-height: 2rem; /* 32px */
     font-weight: 600;
-    font-family: 'Inktrap-Regular', sans-serif;
+    font-family: "Inktrap-Regular", sans-serif;
   }
 
   .title3 {
     font-size: 1.25rem; /* 20px */
     line-height: 1.5rem; /* 24px */
     font-weight: 600;
-    font-family: 'Inktrap-Regular', sans-serif;
+    font-family: "Inktrap-Regular", sans-serif;
   }
 
   .title4 {
     font-size: 0.8125rem; /* 13px */
     line-height: 1rem; /* 16px */
     font-weight: 600;
-      font-family: 'Inktrap-Regular', sans-serif;
+    font-family: "Inktrap-Regular", sans-serif;
   }
 
   .display1 {
     font-size: 3.8125rem; /* 61px */
     line-height: 4rem; /* 64px */
     font-weight: 700;
-    font-family: 'Inktrap-Regular', sans-serif;
+    font-family: "Inktrap-Regular", sans-serif;
   }
 
   .display2 {
     font-size: 3rem; /* 48px */
     line-height: 3rem; /* 48px */
     font-weight: 700;
-    font-family: 'Inktrap-Regular', sans-serif;
+    font-family: "Inktrap-Regular", sans-serif;
   }
 
   .display0 {
     font-size: 4.75rem; /* 76px */
     line-height: 6.25rem; /* 100px */
     font-weight: 700;
-    font-family: 'Inktrap-Regular', sans-serif;
+    font-family: "Inktrap-Regular", sans-serif;
   }
 
   .body-large {
     font-size: 1rem; /* 16px */
     line-height: 1.5rem; /* 24px */
     font-weight: 400;
-    font-family: 'ABC-Monument-Grotesk', sans-serif;
+    font-family: "ABC-Monument-Grotesk", sans-serif;
   }
 
   .body-medium {
     font-size: 0.8125rem; /* 13px */
     line-height: 1.25rem; /* 20px */
     font-weight: 400;
-    font-family: 'ABC-Monument-Grotesk', sans-serif;
+    font-family: "ABC-Monument-Grotesk", sans-serif;
   }
 
   .body-small {
     font-size: 0.6875rem; /* 11px */
     line-height: 1rem; /* 16px */
     font-weight: 400;
-    font-family: 'ABC-Monument-Grotesk', sans-serif;
+    font-family: "ABC-Monument-Grotesk", sans-serif;
   }
 }
 
+/* Mapbox popup tuning to prevent layout breaks */
+.mapboxgl-popup-content {
+  /* Remove default padding; inner wrapper provides spacing */
+  padding: 0 !important;
+  border-radius: 12px !important;
+  overflow: hidden; /* keep inner button from overflowing rounded corners */
+  box-sizing: border-box;
+}
+
+.mapboxgl-popup-close-button {
+  top: 8px !important;
+  right: 8px !important;
+  line-height: 1 !important;
+}
+
+/* Ensure popup respects width constraints provided in content */
+.mapboxgl-popup {
+  max-width: 20rem; /* 320px, mirrors max-w-80 */
+}
