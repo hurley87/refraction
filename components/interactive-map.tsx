@@ -30,6 +30,10 @@ interface MarkerData {
   name: string;
   creator_wallet_address?: string | null;
   creator_username?: string | null;
+  coin_address?: string | null;
+  coin_name?: string | null;
+  coin_symbol?: string | null;
+  coin_image_url?: string | null;
 }
 
 interface LocationSuggestion {
@@ -731,19 +735,44 @@ export default function InteractiveMap() {
             closeOnClick={false}
             className="z-50"
           >
-            <div className="p-2 min-w-56">
-              <h3 className="font-semibold text-sm">{popupInfo.name}</h3>
-              <p className="text-xs text-gray-600 mt-1">
-                {popupInfo.display_name}
-              </p>
-              {(popupInfo.creator_username ||
-                popupInfo.creator_wallet_address) && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Created by{" "}
-                  {popupInfo.creator_username ||
-                    popupInfo.creator_wallet_address}
-                </p>
+            <div className="p-3 min-w-64 max-w-80">
+              {/* Coin Information */}
+              {popupInfo.coin_address && (
+                <div className="mb-3 border-b pb-3">
+                  <div className="flex items-center gap-3 mb-2">
+                    {popupInfo.coin_image_url && (
+                      <img 
+                        src={popupInfo.coin_image_url} 
+                        alt={popupInfo.coin_name || "Coin"} 
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    )}
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-sm">
+                        {popupInfo.coin_name} ({popupInfo.coin_symbol})
+                      </h3>
+                      <p className="text-xs text-gray-500 font-mono break-all">
+                        {popupInfo.coin_address.slice(0, 6)}...{popupInfo.coin_address.slice(-4)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
+
+              {/* Location Information */}
+              <div className="mb-3">
+                <h4 className="font-semibold text-sm">{popupInfo.name}</h4>
+                <p className="text-xs text-gray-600 mt-1">
+                  {popupInfo.display_name}
+                </p>
+                {(popupInfo.creator_username || popupInfo.creator_wallet_address) && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Created by{" "}
+                    {popupInfo.creator_username || 
+                     `${popupInfo.creator_wallet_address?.slice(0, 6)}...${popupInfo.creator_wallet_address?.slice(-4)}`}
+                  </p>
+                )}
+              </div>
 
               {/* Different buttons for temp vs permanent markers */}
               {tempMarkers.find((m) => m.place_id === popupInfo.place_id) ? (
@@ -751,7 +780,7 @@ export default function InteractiveMap() {
                 <Button
                   onClick={handleShowCoinForm}
                   disabled={!walletAddress || isCreatingCoin}
-                  className="w-full mt-2 bg-yellow-500 hover:bg-yellow-600 text-xs py-2 flex items-center justify-center gap-1"
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-xs py-2 flex items-center justify-center gap-1"
                   size="sm"
                 >
                   <Coins className="w-3 h-3" />
@@ -762,7 +791,7 @@ export default function InteractiveMap() {
                 <Button
                   onClick={handleCheckin}
                   disabled={!walletAddress || isCheckinLoading}
-                  className="w-full mt-2 bg-green-500 hover:bg-green-600 text-xs py-1"
+                  className="w-full bg-green-500 hover:bg-green-600 text-xs py-1"
                   size="sm"
                 >
                   {isCheckinLoading ? "Checking in..." : "Check In Here"}

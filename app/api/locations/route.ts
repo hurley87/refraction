@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const walletAddress = searchParams.get("walletAddress");
 
     // Base query
-    const query = supabase.from("locations").select("*");
+    const query = supabase.from("locations").select("id, name, display_name, latitude, longitude, place_id, points_value, type, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username");
 
     // If filtering by player's check-ins, join through player_location_checkins
     if (walletAddress) {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         .select(
           `
           locations (
-            id, name, display_name, latitude, longitude, place_id, points_value, type, context, created_at
+            id, name, display_name, latitude, longitude, place_id, points_value, type, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username
           )
         `,
         )
@@ -47,35 +47,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
     if (error) throw error;
 
-    // Attach creator info (first check-in's player) per location
-    const locationsWithCreator = await Promise.all(
-      (data || []).map(async (loc: any) => {
-        try {
-          const { data: firstCheckin } = await supabase
-            .from("player_location_checkins")
-            .select(
-              `player_id, created_at, players ( wallet_address, username )`,
-            )
-            .eq("location_id", loc.id)
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .maybeSingle();
-
-          const playerRel: any = (firstCheckin as any)?.players;
-          const creator = Array.isArray(playerRel) ? playerRel[0] : playerRel;
-
-          return {
-            ...loc,
-            creator_wallet_address: creator?.wallet_address || null,
-            creator_username: creator?.username || null,
-          };
-        } catch {
-          return { ...loc };
-        }
-      }),
-    );
-
-    return NextResponse.json({ locations: locationsWithCreator });
+    return NextResponse.json({ locations: data || [] });
   } catch (error) {
     console.error("Locations API error:", error);
     return NextResponse.json(
