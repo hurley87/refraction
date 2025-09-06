@@ -25,12 +25,16 @@ export default function InteractiveMapPage() {
   // when you open in TBA, if the user has added their TBA wallet to their farcaster account as an verified auth address, they will be logged in automatically
   // change this useEffect to your needs
   useEffect(() => {
+    console.log("ready", ready);
+    console.log("authenticated", authenticated);
     if (ready && !authenticated) {
       const login = async () => {
         // Initialize a new login attempt to get a nonce for the Farcaster wallet to sign
         const { nonce } = await initLoginToMiniApp();
+        console.log("nonce", nonce);
         // Request a signature from Farcaster
         const result = await miniappSdk.actions.signIn({ nonce: nonce });
+        console.log("result", result);
         // Send the received signature from Farcaster to Privy for authentication
         // or pass a SIWF message signed by an auth address
         await loginToMiniApp({

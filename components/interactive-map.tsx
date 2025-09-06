@@ -576,10 +576,25 @@ export default function InteractiveMap() {
     }
   };
 
+  // Show connect wallet if no wallets
   if (!wallets[0]) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
-        <Button onClick={connectWallet}>Connect Wallet</Button>
+      <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center max-w-md mx-auto p-6">
+          <Coins className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Connect Your Wallet
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Connect your wallet to start creating and trading location-based coins
+          </p>
+          <Button 
+            onClick={connectWallet}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
+          >
+            Connect Wallet
+          </Button>
+        </div>
       </div>
     );
   }
