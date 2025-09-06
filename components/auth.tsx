@@ -11,17 +11,11 @@ interface AuthProps {
 }
 
 export default function Auth({ children }: AuthProps) {
-  const {
-    user,
-    ready,
-    // linkEmail,
-    authenticated,
-    login,
-  } = usePrivy();
+  const { user, ready, linkEmail, authenticated, login } = usePrivy();
   const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
-  // const [username, setUsername] = useState("");
-  // const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
-  // const [needsUsername, setNeedsUsername] = useState(false);
+  const [username, setUsername] = useState("");
+  const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
+  const [needsUsername, setNeedsUsername] = useState(false);
   const [language, setLanguage] = useState<"english" | "french">("english");
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
   const [isMiniApp, setIsMiniApp] = useState(false);
@@ -49,9 +43,7 @@ export default function Auth({ children }: AuthProps) {
           if (isMiniApp) {
             // Miniapp login flow
             const { nonce } = await initLoginToMiniApp();
-            console.log("nonce", nonce);
             const result = await miniappSdk.actions.signIn({ nonce });
-            console.log("result", result);
             await loginToMiniApp({
               message: result.message,
               signature: result.signature,
@@ -94,74 +86,74 @@ export default function Auth({ children }: AuthProps) {
   //console.log("user", user);
 
   // Check for existing player data when user is ready and has wallet
-  // useEffect(() => {
-  //   const checkPlayerData = async () => {
-  //     if (user?.wallet?.address) {
-  //       try {
-  //         const response = await fetch(
-  //           `/api/player?walletAddress=${encodeURIComponent(
-  //             user.wallet.address,
-  //           )}`,
-  //         );
+  useEffect(() => {
+    const checkPlayerData = async () => {
+      if (user?.wallet?.address) {
+        try {
+          const response = await fetch(
+            `/api/player?walletAddress=${encodeURIComponent(
+              user.wallet.address,
+            )}`,
+          );
 
-  //         if (response.ok) {
-  //           const result = await response.json();
-  //           const existingPlayer = result.player;
+          if (response.ok) {
+            const result = await response.json();
+            const existingPlayer = result.player;
 
-  //           // If player exists but has no username, prompt for username
-  //           if (existingPlayer && !existingPlayer.username) {
-  //             setNeedsUsername(true);
-  //           }
-  //         } else if (response.status === 404) {
-  //           // New player, needs username
-  //           setNeedsUsername(true);
-  //         }
-  //       } catch (error) {
-  //         console.error("Error checking player data:", error);
-  //         // Assume new player if error occurs
-  //         setNeedsUsername(true);
-  //       }
-  //     }
-  //   };
+            // If player exists but has no username, prompt for username
+            if (existingPlayer && !existingPlayer.username) {
+              setNeedsUsername(true);
+            }
+          } else if (response.status === 404) {
+            // New player, needs username
+            setNeedsUsername(true);
+          }
+        } catch (error) {
+          console.error("Error checking player data:", error);
+          // Assume new player if error occurs
+          setNeedsUsername(true);
+        }
+      }
+    };
 
-  //   if (ready && user?.wallet?.address) {
-  //     checkPlayerData();
-  //   }
-  // }, [ready, user?.wallet?.address]);
+    if (ready && user?.wallet?.address) {
+      checkPlayerData();
+    }
+  }, [ready, user?.wallet?.address]);
 
-  // const handleCreatePlayer = async () => {
-  //   if (!username.trim() || !user?.wallet?.address) return;
+  const handleCreatePlayer = async () => {
+    if (!username.trim() || !user?.wallet?.address) return;
 
-  //   setIsCreatingPlayer(true);
-  //   try {
-  //     const response = await fetch("/api/player", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({
-  //         walletAddress: user.wallet.address,
-  //         email: user.email?.address || "",
-  //         username: username.trim(),
-  //       }),
-  //     });
+    setIsCreatingPlayer(true);
+    try {
+      const response = await fetch("/api/player", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          walletAddress: user.wallet.address,
+          email: user.email?.address || "",
+          username: username.trim(),
+        }),
+      });
 
-  //     const result = await response.json();
+      const result = await response.json();
 
-  //     if (result.success) {
-  //       // Player created successfully
-  //       setNeedsUsername(false);
-  //     } else {
-  //       console.error("Failed to create player:", result.error);
-  //       // TODO: Show error message to user
-  //     }
-  //   } catch (error) {
-  //     console.error("Error creating player:", error);
-  //     // TODO: Show error message to user
-  //   } finally {
-  //     setIsCreatingPlayer(false);
-  //   }
-  // };
+      if (result.success) {
+        // Player created successfully
+        setNeedsUsername(false);
+      } else {
+        console.error("Failed to create player:", result.error);
+        // TODO: Show error message to user
+      }
+    } catch (error) {
+      console.error("Error creating player:", error);
+      // TODO: Show error message to user
+    } finally {
+      setIsCreatingPlayer(false);
+    }
+  };
 
   if (!ready) {
     return (
@@ -171,95 +163,95 @@ export default function Auth({ children }: AuthProps) {
     );
   }
 
-  // if (ready && user && !user.email) {
-  //   return (
-  //     <div className="flex items-center justify-center w-full min-h-dvh px-4">
-  //       <div className="w-full max-w-md text-center">
-  //         <p className="text-white text-xl font-inktrap mb-3">
-  //           Link your email for updates
-  //         </p>
-  //         <Button
-  //           className="w-full bg-white text-[#F24405] rounded-xl hover:bg-white/90 text-xl font-inktrap py-5 shadow-md"
-  //           size="lg"
-  //           onClick={linkEmail}
-  //           aria-label="Link your email"
-  //         >
-  //           Link Email
-  //         </Button>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  if (ready && user && !user.email) {
+    return (
+      <div className="flex items-center justify-center w-full min-h-dvh px-4">
+        <div className="w-full max-w-md text-center">
+          <p className="text-white text-xl font-inktrap mb-3">
+            Link your email for updates
+          </p>
+          <Button
+            className="w-full bg-white text-[#F24405] rounded-xl hover:bg-white/90 text-xl font-inktrap py-5 shadow-md"
+            size="lg"
+            onClick={linkEmail}
+            aria-label="Link your email"
+          >
+            Link Email
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Show username prompt after login
-  // if (ready && user && needsUsername) {
-  //   return (
-  //     <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto h-screen">
-  //       <div className="flex flex-col gap-4">
-  //         <h1 className="text-black text-2xl font-inktrap uppercase text-center">
-  //           WELCOME TO THE IRL NETWORK
-  //         </h1>
-  //         <p className="text-black text-lg font-inktrap text-center">
-  //           Choose your username to start earning points
-  //         </p>
+  if (ready && user && needsUsername) {
+    return (
+      <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto h-screen">
+        <div className="flex flex-col gap-4">
+          <h1 className="text-black text-2xl font-inktrap uppercase text-center">
+            WELCOME TO THE IRL NETWORK
+          </h1>
+          <p className="text-black text-lg font-inktrap text-center">
+            Choose your username to start earning points
+          </p>
 
-  //         <div className="bg-white rounded-2xl p-4 mb-4">
-  //           <p className="text-sm text-gray-600 mb-3 font-inktrap">
-  //             ENTER YOUR USERNAME
-  //           </p>
-  //           <input
-  //             type="text"
-  //             placeholder="Enter your username"
-  //             value={username}
-  //             onChange={(e) => setUsername(e.target.value)}
-  //             className="w-full bg-gray-50 border-0 rounded-full pl-4 pr-4 py-3 text-black placeholder:text-gray-500 font-inktrap focus:outline-none"
-  //             maxLength={20}
-  //             disabled={isCreatingPlayer}
-  //           />
-  //         </div>
+          <div className="bg-white rounded-2xl p-4 mb-4">
+            <p className="text-sm text-gray-600 mb-3 font-inktrap">
+              ENTER YOUR USERNAME
+            </p>
+            <input
+              type="text"
+              placeholder="Enter your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full bg-gray-50 border-0 rounded-full pl-4 pr-4 py-3 text-black placeholder:text-gray-500 font-inktrap focus:outline-none"
+              maxLength={20}
+              disabled={isCreatingPlayer}
+            />
+          </div>
 
-  //         <Button
-  //           className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-inktrap py-3 rounded-full disabled:opacity-50 uppercase"
-  //           onClick={handleCreatePlayer}
-  //           disabled={!username.trim() || isCreatingPlayer}
-  //         >
-  //           {isCreatingPlayer ? "CREATING PLAYER..." : "START EARNING"}
-  //           {!isCreatingPlayer && (
-  //             <svg
-  //               className="w-4 h-4 ml-2"
-  //               fill="none"
-  //               stroke="currentColor"
-  //               viewBox="0 0 24 24"
-  //             >
-  //               <path
-  //                 strokeLinecap="round"
-  //                 strokeLinejoin="round"
-  //                 strokeWidth={2}
-  //                 d="M9 5l7 7-7 7"
-  //               />
-  //             </svg>
-  //           )}
-  //         </Button>
+          <Button
+            className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-inktrap py-3 rounded-full disabled:opacity-50 uppercase"
+            onClick={handleCreatePlayer}
+            disabled={!username.trim() || isCreatingPlayer}
+          >
+            {isCreatingPlayer ? "CREATING PLAYER..." : "START EARNING"}
+            {!isCreatingPlayer && (
+              <svg
+                className="w-4 h-4 ml-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            )}
+          </Button>
 
-  //         <div className="flex justify-between items-center mt-8">
-  //           <div className="flex flex-col gap-1">
-  //             <p className="text-black text-sm font-inktrap">Powered by</p>
-  //             <img
-  //               src="/refraction.png"
-  //               alt="Refraction"
-  //               className="w-auto h-[16px]"
-  //             />
-  //           </div>
-  //           <img
-  //             src="/mutek/mutek-logo.svg"
-  //             alt="IRL Side Quest"
-  //             className="w-[46px] h-[46px]"
-  //           />
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+          <div className="flex justify-between items-center mt-8">
+            <div className="flex flex-col gap-1">
+              <p className="text-black text-sm font-inktrap">Powered by</p>
+              <img
+                src="/refraction.png"
+                alt="Refraction"
+                className="w-auto h-[16px]"
+              />
+            </div>
+            <img
+              src="/mutek/mutek-logo.svg"
+              alt="IRL Side Quest"
+              className="w-[46px] h-[46px]"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (ready && !user) {
     return (
