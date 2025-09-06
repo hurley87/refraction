@@ -746,7 +746,7 @@ export default function InteractiveMap() {
             <div className="p-3 min-w-64 max-w-80">
               {/* Coin Information */}
               {popupInfo.coin_address && (
-                <div className="mb-3 border-b pb-3">
+                <div className="mb-3 pb-3">
                   <div className="flex items-center gap-3 mb-2">
                     {popupInfo.coin_image_url && (
                       <img
@@ -757,11 +757,10 @@ export default function InteractiveMap() {
                     )}
                     <div className="flex-1">
                       <h3 className="font-semibold text-sm">
-                        {popupInfo.coin_name} ({popupInfo.coin_symbol})
+                        {popupInfo.coin_name}
                       </h3>
                       <p className="text-xs text-gray-500 font-mono break-all">
-                        {popupInfo.coin_address.slice(0, 6)}...
-                        {popupInfo.coin_address.slice(-4)}
+                        ${popupInfo.coin_symbol}
                       </p>
                     </div>
                   </div>
@@ -770,21 +769,9 @@ export default function InteractiveMap() {
 
               {/* Location Information */}
               <div className="mb-3">
-                <div className="flex items-start gap-3">
-                  {popupInfo.coin_image_url && (
-                    <img
-                      src={popupInfo.coin_image_url}
-                      alt={popupInfo.coin_name || "Coin"}
-                      className="w-8 h-8 rounded-full object-cover mt-0.5"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-sm">{popupInfo.name}</h4>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {popupInfo.display_name}
-                    </p>
-                  </div>
-                </div>
+                <p className="text-xs text-gray-600 mt-1">
+                  {popupInfo.display_name}
+                </p>
                 {(popupInfo.creator_username ||
                   popupInfo.creator_wallet_address) && (
                   <p className="text-xs text-gray-500 mt-1">
@@ -812,10 +799,10 @@ export default function InteractiveMap() {
                 <Button
                   onClick={handleCheckin}
                   disabled={!walletAddress || isCheckinLoading}
-                  className="w-full bg-green-500 hover:bg-green-600 text-xs py-1"
+                  className="w-fit mx-auto px-4 bg-green-500 hover:bg-green-600 text-xs py-1 text-white"
                   size="sm"
                 >
-                  {isCheckinLoading ? "Checking in..." : "Check In Here"}
+                  {isCheckinLoading ? "Checking in..." : "Check In"}
                 </Button>
               )}
             </div>
