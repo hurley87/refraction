@@ -4,8 +4,12 @@ import { useEffect, useState } from "react";
 import miniappSdk from "@farcaster/miniapp-sdk";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { usePrivy } from "@privy-io/react-auth";
+import { useLoginToMiniApp } from "@privy-io/react-auth/farcaster";
 
 export default function FramePage() {
+  const { ready, authenticated } = usePrivy();
+  const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
   const [isReady, setIsReady] = useState(false);
   const [isAdded, setIsAdded] = useState(false);
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
@@ -44,6 +48,19 @@ export default function FramePage() {
     }
   };
 
+  const handleSignIn = async () => {
+    try {
+      const { nonce } = await initLoginToMiniApp();
+      const result = await miniappSdk.actions.signIn({ nonce });
+      await loginToMiniApp({
+        message: result.message,
+        signature: result.signature,
+      });
+    } catch (error) {
+      console.error("Failed to sign in:", error);
+    }
+  };
+
   if (!isReady) {
     return null;
   }
@@ -64,6 +81,15 @@ export default function FramePage() {
       <img src="/checkpoint1.svg" className="w-3/4 h-auto mx-auto" />
 
       <div className="flex flex-col items-center w-full mt-auto mb-8">
+        {!authenticated && ready && (
+          <Button
+            size="lg"
+            onClick={handleSignIn}
+            className="uppercase bg-[#FFF7AD] hover:bg-[#FF0000]/90 text-[#E04220] w-full max-w-md font-inktrap text-xl py-6 h-auto rounded-xl shadow-md mb-4"
+          >
+            Sign in with Farcaster
+          </Button>
+        )}
         {!isAdded && (
           <Button
             size="lg"

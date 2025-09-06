@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 // import { useLocationGame } from "@/hooks/useLocationGame";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { useLoginToMiniApp } from "@privy-io/react-auth/farcaster";
 import { toast } from "sonner";
 import MobileFooterNav from "@/components/mobile-footer-nav";
 import CoinLocationForm, { CoinFormData } from "./coin-location-form";
@@ -27,7 +26,6 @@ import {
   parseEther,
 } from "viem";
 import { base } from "viem/chains";
-import miniappSdk from "@farcaster/miniapp-sdk";
 // Supabase is server-only; do not import it in client components.
 
 interface MarkerData {
@@ -54,9 +52,14 @@ interface LocationSuggestion {
   context?: string;
 }
 
-export default function InteractiveMap() {
+interface InteractiveMapProps {
+  farcasterUsername: string | null;
+}
+
+export default function InteractiveMap({
+  farcasterUsername,
+}: InteractiveMapProps) {
   const { ready, authenticated, user, login } = usePrivy();
-  const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
   const walletAddress = user?.wallet?.address;
   // const { performCheckin } = useLocationGame();
 
@@ -83,27 +86,13 @@ export default function InteractiveMap() {
     address: string;
     transactionHash: string;
   } | null>(null);
-  const [farcasterUsername, setFarcasterUsername] = useState<string | null>(
-    null,
-  );
   const { wallets } = useWallets();
   const wallet = wallets.find(
     (wallet) => (wallet.address as `0x${string}`) === walletAddress,
   );
   const [ethProvider, setEthProvider] = useState<any>(null);
   const [isOnBase, setIsOnBase] = useState<boolean>(true);
-  const [isSDKLoaded, setIsSDKLoaded] = useState(false);
   const mapRef = useRef<any>(null);
-
-  // Initialize Farcaster SDK
-  useEffect(() => {
-    console.log("miniappSdk", miniappSdk);
-    console.log("isSDKLoaded", isSDKLoaded);
-    if (miniappSdk && !isSDKLoaded) {
-      setIsSDKLoaded(true);
-      miniappSdk.actions.ready();
-    }
-  }, [isSDKLoaded]);
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_ZORA_API_KEY as string | undefined;
@@ -138,41 +127,7 @@ export default function InteractiveMap() {
     };
   }, [wallet]);
 
-  // Automatic login flow for Farcaster Mini App users
-  useEffect(() => {
-    console.log("ready", ready);
-    console.log("authenticated", authenticated);
-    if (ready && !authenticated) {
-      const login = async () => {
-        try {
-          const { nonce } = await initLoginToMiniApp();
-          console.log("nonce", nonce);
-          const result = await miniappSdk.actions.signIn({ nonce });
-          console.log("result", result);
-          console.log("loginToMiniApp", loginToMiniApp);
-          await loginToMiniApp({
-            message: result.message,
-            signature: result.signature,
-          });
-        } catch (error) {
-          console.error("Auto-login failed:", error);
-        }
-      };
-      login();
-    }
-  }, [ready, authenticated, initLoginToMiniApp, loginToMiniApp]);
-
-  // Get Farcaster username
-  useEffect(() => {
-    (async () => {
-      try {
-        const ctx: any = await (miniappSdk as any)?.context;
-        const username = ctx?.user?.username ?? null;
-        console.log("username", username);
-        if (username) setFarcasterUsername(username);
-      } catch {}
-    })();
-  }, []);
+  // Farcaster username is passed in from the page via props
 
   const switchToBase = async () => {
     if (!ethProvider) return;
