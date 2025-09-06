@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 import InteractiveMap from "@/components/interactive-map";
-import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import MobileFooterNav from "@/components/mobile-footer-nav";
 
 export default function InteractiveMapPage() {
-  const { user, login } = usePrivy();
   const [playerData] = useState<any>(null);
   const [pointsEarned] = useState<number>(0);
   const [confirmed] = useState(false);
@@ -94,29 +92,6 @@ export default function InteractiveMapPage() {
               className="w-full h-auto"
             />
           </div>
-        </div>
-        <MobileFooterNav showOnDesktop />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
-          <h2 className="text-2xl font-inktrap font-bold mb-4">
-            Connect Your Wallet
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Connect your wallet to start exploring and earning points on the
-            interactive map.
-          </p>
-          <Button
-            onClick={login}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-          >
-            Connect Wallet
-          </Button>
         </div>
         <MobileFooterNav showOnDesktop />
       </div>
