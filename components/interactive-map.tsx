@@ -55,7 +55,7 @@ interface LocationSuggestion {
 }
 
 export default function InteractiveMap() {
-  const { ready, authenticated, user, login, createWallet } = usePrivy();
+  const { ready, authenticated, user, login } = usePrivy();
   const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
   const walletAddress = user?.wallet?.address;
   // const { performCheckin } = useLocationGame();
@@ -87,16 +87,21 @@ export default function InteractiveMap() {
     null,
   );
   const { wallets } = useWallets();
-  console.log("wallets", wallets);
-  // If user is authenticated via Privy but has no wallets in context,
-  // they might need an embedded wallet provisioned or to link one.
   const wallet = wallets.find(
     (wallet) => (wallet.address as `0x${string}`) === walletAddress,
   );
-  console.log("wallet", wallet);
   const [ethProvider, setEthProvider] = useState<any>(null);
   const [isOnBase, setIsOnBase] = useState<boolean>(true);
+  const [isSDKLoaded, setIsSDKLoaded] = useState(false);
   const mapRef = useRef<any>(null);
+
+  // Initialize Farcaster SDK
+  useEffect(() => {
+    if (miniappSdk && !isSDKLoaded) {
+      setIsSDKLoaded(true);
+      miniappSdk.actions.ready();
+    }
+  }, [isSDKLoaded]);
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_ZORA_API_KEY as string | undefined;
@@ -133,27 +138,22 @@ export default function InteractiveMap() {
 
   // Automatic login flow for Farcaster Mini App users
   useEffect(() => {
-    console.log("ready", ready);
-    console.log("authenticated", authenticated);
-    if (ready) {
-      const autoLogin = async () => {
+    if (ready && !authenticated) {
+      const login = async () => {
         try {
           const { nonce } = await initLoginToMiniApp();
-          console.log("nonce", nonce);
-          const result = await miniappSdk.actions.signIn({ nonce: nonce });
-          console.log("result", result);
+          const result = await miniappSdk.actions.signIn({ nonce });
           await loginToMiniApp({
             message: result.message,
             signature: result.signature,
           });
         } catch (error) {
           console.error("Auto-login failed:", error);
-          // Fallback to manual login if auto-login fails
         }
       };
-      autoLogin();
+      login();
     }
-  }, [ready, authenticated]);
+  }, [ready, authenticated, initLoginToMiniApp, loginToMiniApp]);
 
   // Get Farcaster username
   useEffect(() => {
@@ -728,24 +728,24 @@ export default function InteractiveMap() {
     );
   }
 
-  // Show wallet creation state when authenticated but no wallets
+  // Show wallet connection state when authenticated but no wallets
   if (authenticated && wallets.length === 0) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center max-w-md mx-auto p-6">
-          <Coins className="w-16 h-16 text-green-600 mx-auto mb-4" />
+          <Coins className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Create Your Wallet
+            Connect Your Wallet
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            You need a wallet to create and trade location-based coins.
-            We&apos;ll create an embedded wallet for you.
+            You need to connect a wallet to create and trade location-based coins. 
+            Please add Base App Wallet as an auth address in your Farcaster settings.
           </p>
           <Button
-            onClick={createWallet}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3"
+            onClick={login}
+            className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3"
           >
-            Create Wallet
+            Connect Wallet
           </Button>
         </div>
       </div>

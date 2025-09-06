@@ -988,6 +988,7 @@ export default function MembershipPage() {
               <span className="text-black font-light">
                 Earn Your First Points
               </span>
+              v   
               <Image
                 src="/home/arrow-right.svg"
                 alt="arrow-right"
