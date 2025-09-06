@@ -308,28 +308,32 @@ export default function InteractiveMap() {
   };
 
   // Function to upload coin image to Supabase storage
-  const uploadCoinImage = async (imageFile: File, coinAddress: string, walletAddress: string): Promise<string | null> => {
+  const uploadCoinImage = async (
+    imageFile: File,
+    coinAddress: string,
+    walletAddress: string,
+  ): Promise<string | null> => {
     try {
-      const fileExt = imageFile.name.split('.').pop();
+      const fileExt = imageFile.name.split(".").pop();
       const fileName = `${walletAddress}/${coinAddress}.${fileExt}`;
 
       const { error } = await supabase.storage
-        .from('coin-images')
+        .from("coin-images")
         .upload(fileName, imageFile, {
-          cacheControl: '3600',
-          upsert: true
+          cacheControl: "3600",
+          upsert: true,
         });
 
       if (error) throw error;
 
       // Get the public URL
       const { data: urlData } = supabase.storage
-        .from('coin-images')
+        .from("coin-images")
         .getPublicUrl(fileName);
 
       return urlData.publicUrl;
     } catch (error) {
-      console.error('Error uploading coin image:', error);
+      console.error("Error uploading coin image:", error);
       return null;
     }
   };
@@ -453,7 +457,11 @@ export default function InteractiveMap() {
         // Upload coin image to Supabase storage
         let coinImageUrl: string | null = null;
         if (coinFormData.image) {
-          coinImageUrl = await uploadCoinImage(coinFormData.image, result.address, walletAddress);
+          coinImageUrl = await uploadCoinImage(
+            coinFormData.image,
+            result.address,
+            walletAddress,
+          );
         }
 
         // Save the location with coin data to your backend
