@@ -13,6 +13,7 @@ export default function InteractiveMapPage() {
   const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
   const [isSDKLoaded, setIsSDKLoaded] = useState(false);
   const { wallets } = useWallets();
+  console.log("walletsWWWWW", wallets);
   // an effect to ensure if we are in mini app context
   useEffect(() => {
     if (miniappSdk && !isSDKLoaded) {
