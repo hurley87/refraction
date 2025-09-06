@@ -43,7 +43,9 @@ export default function Auth({ children }: AuthProps) {
           if (isMiniApp) {
             // Miniapp login flow
             const { nonce } = await initLoginToMiniApp();
+            console.log("nonce", nonce);
             const result = await miniappSdk.actions.signIn({ nonce });
+            console.log("result", result);
             await loginToMiniApp({
               message: result.message,
               signature: result.signature,
@@ -56,7 +58,14 @@ export default function Auth({ children }: AuthProps) {
       };
       handleAutoLogin();
     }
-  }, [ready, authenticated, isSDKLoaded, isMiniApp, initLoginToMiniApp, loginToMiniApp]);
+  }, [
+    ready,
+    authenticated,
+    isSDKLoaded,
+    isMiniApp,
+    initLoginToMiniApp,
+    loginToMiniApp,
+  ]);
 
   // Helper function to handle login based on context
   const handleLogin = async () => {
