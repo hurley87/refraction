@@ -10,7 +10,7 @@ const frame = {
     action: {
       type: "launch_frame",
       name: "IRL",
-      url: `${appUrl}/frame`,
+      url: `${appUrl}/interactive-map`,
       splashImageUrl: `${appUrl}/logo.png`,
       splashBackgroundColor: "#FFFFFF",
     },
