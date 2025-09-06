@@ -576,7 +576,7 @@ export default function InteractiveMap() {
 
               {/* Location Information */}
               <div className="mb-3">
-                <p className="text-xs text-gray-600 mt-1">
+                <p className="text-xs text-gray-600 mt-1 text-wrap break-all">
                   {popupInfo.display_name}
                 </p>
                 {(popupInfo.creator_username ||
