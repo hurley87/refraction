@@ -550,7 +550,7 @@ export default function InteractiveMap() {
             closeOnClick={false}
             className="z-50"
           >
-            <div className="p-3 min-w-64 max-w-80">
+            <div className="p-3">
               {/* Coin Information */}
               {popupInfo.coin_address && (
                 <div className="">
