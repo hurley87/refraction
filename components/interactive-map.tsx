@@ -5,7 +5,7 @@ import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import { Search, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// import { useLocationGame } from "@/hooks/useLocationGame";
+import { useLocationGame } from "@/hooks/useLocationGame";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import MobileFooterNav from "@/components/mobile-footer-nav";
@@ -15,17 +15,11 @@ import {
   createZoraUploaderForCreator,
   createCoin,
   CreateConstants,
-  tradeCoin,
 } from "@zoralabs/coins-sdk";
 import { setApiKey } from "@zoralabs/coins-sdk";
-import {
-  createWalletClient,
-  createPublicClient,
-  http,
-  custom,
-  parseEther,
-} from "viem";
+import { createWalletClient, createPublicClient, http, custom } from "viem";
 import { base } from "viem/chains";
+import miniappSdk from "@farcaster/miniapp-sdk";
 // Supabase is server-only; do not import it in client components.
 
 interface MarkerData {
@@ -52,16 +46,10 @@ interface LocationSuggestion {
   context?: string;
 }
 
-interface InteractiveMapProps {
-  farcasterUsername: string | null;
-}
-
-export default function InteractiveMap({
-  farcasterUsername,
-}: InteractiveMapProps) {
-  const { ready, authenticated, user, login } = usePrivy();
+export default function InteractiveMap() {
+  const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
-  // const { performCheckin } = useLocationGame();
+  const { performCheckin, isCheckinLoading } = useLocationGame();
 
   const [viewState, setViewState] = useState({
     longitude: -73.9442,
@@ -81,19 +69,23 @@ export default function InteractiveMap({
   const [showCoinForm, setShowCoinForm] = useState(false);
   const [isCreatingCoin, setIsCreatingCoin] = useState(false);
   const [coinCreationSuccess, setCoinCreationSuccess] = useState(false);
-  const [isTradingCoin, setIsTradingCoin] = useState(false);
   const [createdCoinData, setCreatedCoinData] = useState<{
     address: string;
     transactionHash: string;
   } | null>(null);
+  const [farcasterUsername, setFarcasterUsername] = useState<string | null>(
+    null,
+  );
   const { wallets } = useWallets();
   const wallet = wallets.find(
     (wallet) => (wallet.address as `0x${string}`) === walletAddress,
   );
   const [ethProvider, setEthProvider] = useState<any>(null);
   const [isOnBase, setIsOnBase] = useState<boolean>(true);
+
   const mapRef = useRef<any>(null);
 
+  // Initialize Zora SDK API key (client-side; for production prefer a server route)
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_ZORA_API_KEY as string | undefined;
     if (apiKey) {
@@ -127,7 +119,15 @@ export default function InteractiveMap({
     };
   }, [wallet]);
 
-  // Farcaster username is passed in from the page via props
+  useEffect(() => {
+    (async () => {
+      try {
+        const ctx: any = await (miniappSdk as any)?.context;
+        const username = ctx?.user?.username ?? null;
+        if (username) setFarcasterUsername(username);
+      } catch {}
+    })();
+  }, []);
 
   const switchToBase = async () => {
     if (!ethProvider) return;
@@ -173,10 +173,6 @@ export default function InteractiveMap({
             name: loc.name,
             creator_wallet_address: loc.creator_wallet_address ?? null,
             creator_username: loc.creator_username ?? null,
-            coin_address: loc.coin_address ?? null,
-            coin_name: loc.coin_name ?? null,
-            coin_symbol: loc.coin_symbol ?? null,
-            coin_image_url: loc.coin_image_url ?? null,
           }),
         );
         setMarkers(dbMarkers);
@@ -437,9 +433,6 @@ export default function InteractiveMap({
         metadata: createMetadataParameters.metadata,
         currency: CreateConstants.ContentCoinCurrencies.ETH,
         chainId: base.id,
-        startingMarketCap: CreateConstants.StartingMarketCaps.LOW,
-        platformReferrerAddress:
-          "0xbD78783a26252bAf756e22f0DE764dfDcDa7733c" as `0x${string}`,
       };
 
       console.log("Creating coin with args:", coinCreationArgs);
@@ -502,10 +495,6 @@ export default function InteractiveMap({
               ...selectedMarker,
               creator_wallet_address: walletAddress,
               creator_username: null,
-              coin_address: result.address,
-              coin_name: coinFormData.name,
-              coin_symbol: coinFormData.symbol,
-              coin_image_url: coinImageUrl,
             };
 
             setMarkers((current) => [...current, newPermanentMarker]);
@@ -555,142 +544,39 @@ export default function InteractiveMap({
   };
 
   const handleCheckin = async () => {
-    if (!selectedMarker || !walletAddress || !selectedMarker.coin_address) {
-      toast.error(
-        "Please select a location with a coin and connect your wallet",
-      );
+    if (!selectedMarker || !walletAddress) {
+      toast.error("Please select a location and connect your wallet");
       return;
     }
 
-    setIsTradingCoin(true);
+    const locationData = {
+      place_id: selectedMarker.place_id,
+      display_name: selectedMarker.display_name,
+      name: selectedMarker.name,
+      lat: selectedMarker.latitude.toString(),
+      lon: selectedMarker.longitude.toString(),
+      type: "location",
+    };
 
-    try {
-      // Ensure wallet is on Base before proceeding
-      const ethereumProvider =
-        ((await wallet?.getEthereumProvider?.()) as any) ||
-        (typeof window !== "undefined" ? (window as any).ethereum : null);
+    const result = await performCheckin({
+      walletAddress,
+      locationData,
+    });
 
-      if (!ethereumProvider) {
-        toast.error("No wallet provider found");
-        return;
-      }
-
-      // Ensure on Base network
-      const targetChainIdHex = "0x2105"; // Base mainnet
-      const currentChainId = await ethereumProvider.request({
-        method: "eth_chainId",
-      });
-
-      if (currentChainId !== targetChainIdHex) {
-        try {
-          await ethereumProvider.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: targetChainIdHex }],
-          });
-        } catch {
-          await ethereumProvider.request({
-            method: "wallet_addEthereumChain",
-            params: [
-              {
-                chainId: targetChainIdHex,
-                chainName: "Base",
-                nativeCurrency: {
-                  name: "Ether",
-                  symbol: "ETH",
-                  decimals: 18,
-                },
-                rpcUrls: ["https://mainnet.base.org"],
-                blockExplorerUrls: ["https://basescan.org"],
-              },
-            ],
-          });
-          await ethereumProvider.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: targetChainIdHex }],
-          });
-        }
-      }
-
-      // Create wallet clients
-      const walletClient = createWalletClient({
-        chain: base,
-        transport: custom(ethereumProvider),
-        account: walletAddress as `0x${string}`,
-      });
-
-      const publicClient = createPublicClient({
-        chain: base,
-        transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
-      });
-
-      // Trade 0.0001 ETH worth of the coin
-      const tradeAmount = "100000000000000"; // 0.0001 ETH in wei
-
-      console.log("Trading coin:", selectedMarker.coin_address);
-      console.log("Trade amount:", tradeAmount);
-
-      await tradeCoin({
-        tradeParameters: {
-          sell: { type: "eth" },
-          buy: {
-            type: "erc20",
-            address: selectedMarker.coin_address as `0x${string}`, // Creator Coin address
-          },
-          amountIn: parseEther("0.0001"), // 0.001 ETH
-          slippage: 0.05, // 5% slippage tolerance
-          sender: walletAddress as `0x${string}`,
-        },
-        walletClient,
-        publicClient,
-      });
-
-      toast.success(`Successfully bought ${selectedMarker.coin_symbol}! 🪙`);
-    } catch (error) {
-      console.error("Error trading coin:", error);
-      toast.error("Failed to trade coin: " + (error as Error).message);
-    } finally {
-      setIsTradingCoin(false);
+    if (result?.success) {
+      // Remove the marker after successful checkin
+      setMarkers((current) =>
+        current.filter((m) => m.place_id !== selectedMarker.place_id),
+      );
+      setSelectedMarker(null);
+      setPopupInfo(null);
+      toast.success(
+        `Checked in successfully! Earned ${result.pointsEarned} points!`,
+      );
     }
   };
 
   // Clearing markers disabled since markers come from DB
-
-  // Show loading state while Privy is initializing
-  if (!ready) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show wallet connection state when authenticated but no wallets
-  if (authenticated && wallets.length === 0) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center max-w-md mx-auto p-6">
-          <Coins className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            Connect Your Wallet
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            You need to connect a wallet to create and trade location-based
-            coins. Please add Base App Wallet as an auth address in your
-            Farcaster settings.
-          </p>
-          <Button
-            onClick={login}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3"
-          >
-            Connect Wallet
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full h-full relative">
@@ -852,21 +738,22 @@ export default function InteractiveMap({
             <div className="p-3 min-w-64 max-w-80">
               {/* Coin Information */}
               {popupInfo.coin_address && (
-                <div className="">
-                  <div className="flex items-center gap-2 mb-2">
+                <div className="mb-3 border-b pb-3">
+                  <div className="flex items-center gap-3 mb-2">
                     {popupInfo.coin_image_url && (
                       <img
                         src={popupInfo.coin_image_url}
                         alt={popupInfo.coin_name || "Coin"}
-                        className="w-10 h-10 rounded-lg object-cover"
+                        className="w-10 h-10 rounded-full object-cover"
                       />
                     )}
                     <div className="flex-1">
                       <h3 className="font-semibold text-sm">
-                        {popupInfo.coin_name}
+                        {popupInfo.coin_name} ({popupInfo.coin_symbol})
                       </h3>
                       <p className="text-xs text-gray-500 font-mono break-all">
-                        ${popupInfo.coin_symbol}
+                        {popupInfo.coin_address.slice(0, 6)}...
+                        {popupInfo.coin_address.slice(-4)}
                       </p>
                     </div>
                   </div>
@@ -875,6 +762,7 @@ export default function InteractiveMap({
 
               {/* Location Information */}
               <div className="mb-3">
+                <h4 className="font-semibold text-sm">{popupInfo.name}</h4>
                 <p className="text-xs text-gray-600 mt-1">
                   {popupInfo.display_name}
                 </p>
@@ -904,13 +792,11 @@ export default function InteractiveMap({
                 // This is a permanent marker - show check in option
                 <Button
                   onClick={handleCheckin}
-                  disabled={
-                    !walletAddress || isTradingCoin || !popupInfo.coin_address
-                  }
-                  className="w-fit mx-auto px-4 bg-green-500 hover:bg-green-600 text-xs py-1 text-white"
+                  disabled={!walletAddress || isCheckinLoading}
+                  className="w-full bg-green-500 hover:bg-green-600 text-xs py-1"
                   size="sm"
                 >
-                  {isTradingCoin ? "Checking in..." : "Check In"}
+                  {isCheckinLoading ? "Checking in..." : "Check In Here"}
                 </Button>
               )}
             </div>
