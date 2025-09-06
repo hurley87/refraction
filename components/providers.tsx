@@ -23,9 +23,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <PrivyProvider
           appId={appId}
           config={{
-            loginMethods: ["wallet", "farcaster"],
+            loginMethods: ["farcaster"],
             appearance: {
-              theme: "dark",
               walletList: ["detected_wallets"],
             },
             supportedChains: [base],
