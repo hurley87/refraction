@@ -5,7 +5,7 @@ import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import { Search, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useLocationGame } from "@/hooks/useLocationGame";
+// import { useLocationGame } from "@/hooks/useLocationGame";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import MobileFooterNav from "@/components/mobile-footer-nav";
@@ -56,7 +56,7 @@ interface LocationSuggestion {
 export default function InteractiveMap() {
   const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
-  const { performCheckin } = useLocationGame();
+  // const { performCheckin } = useLocationGame();
 
   const [viewState, setViewState] = useState({
     longitude: -73.9442,
