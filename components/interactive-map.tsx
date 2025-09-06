@@ -445,7 +445,7 @@ export default function InteractiveMap() {
         metadata: createMetadataParameters.metadata,
         currency: CreateConstants.ContentCoinCurrencies.ETH,
         chainId: base.id,
-        startingMarketCap: CreateConstants.StartingMarketCaps.LOW,
+        startingMarketCap: CreateConstants.StartingMarketCaps.HIGH,
         platformReferrerAddress:
           "0xbD78783a26252bAf756e22f0DE764dfDcDa7733c" as `0x${string}`,
       };
