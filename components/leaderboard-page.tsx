@@ -310,15 +310,15 @@ export default function LeaderboardPage() {
                     >
                       {/* Rank */}
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-inktrap font-medium text-black">
+                        <span className="text-base sm:text-lg font-inktrap font-medium text-black">
                           {entry.rank}
                         </span>
                       </div>
 
                       {/* Name */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <Link href={`/profiles/${entry.wallet_address}`}>
-                          <span className="font-inktrap text-black text-sm truncate">
+                          <span className="font-inktrap text-black text-xs sm:text-sm truncate">
                             {entry.username ||
                               formatWalletAddress(entry.wallet_address)}
                           </span>
@@ -327,7 +327,7 @@ export default function LeaderboardPage() {
 
                       {/* Points */}
                       <div className="text-right">
-                        <span className="font-inktrap font-medium text-black">
+                        <span className="font-inktrap font-medium text-black text-xs sm:text-sm">
                           {entry.total_points.toLocaleString()}
                         </span>
                       </div>
