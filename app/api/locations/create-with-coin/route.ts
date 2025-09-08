@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get server wallet private key from environment
-    const privateKey = process.env.SERVER_PRIVATE_KEY;
+    const privateKey = process.env.PRIVATE_KEY;
     if (!privateKey) {
       return NextResponse.json(
         { error: "Server wallet not configured" },
