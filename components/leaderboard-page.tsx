@@ -51,7 +51,7 @@ export default function LeaderboardPage() {
       setIsLoadingUserStats(true);
       try {
         const response = await fetch(
-          `/api/player?walletAddress=${encodeURIComponent(currentUserAddress)}`
+          `/api/player?walletAddress=${encodeURIComponent(currentUserAddress)}`,
         );
 
         if (response.ok) {
@@ -62,7 +62,7 @@ export default function LeaderboardPage() {
             // Calculate rank from leaderboard or make separate API call
             const userRank =
               leaderboard.findIndex(
-                (entry) => entry.wallet_address === currentUserAddress
+                (entry) => entry.wallet_address === currentUserAddress,
               ) + 1;
 
             setUserStats({
@@ -128,14 +128,14 @@ export default function LeaderboardPage() {
           className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
         >
           1
-        </button>
+        </button>,
       );
 
       if (currentPage > 4) {
         buttons.push(
           <span key="ellipsis1" className="px-2 text-gray-500 font-inktrap">
             ...
-          </span>
+          </span>,
         );
       }
     }
@@ -156,7 +156,7 @@ export default function LeaderboardPage() {
           }`}
         >
           {i}
-        </button>
+        </button>,
       );
     }
 
@@ -166,7 +166,7 @@ export default function LeaderboardPage() {
         buttons.push(
           <span key="ellipsis2" className="px-2 text-gray-500 font-inktrap">
             ...
-          </span>
+          </span>,
         );
       }
 
@@ -177,7 +177,7 @@ export default function LeaderboardPage() {
           className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
         >
           {totalPages}
-        </button>
+        </button>,
       );
     }
 
@@ -190,7 +190,7 @@ export default function LeaderboardPage() {
           className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
         >
           <ArrowRight className="w-4 h-4" />
-        </button>
+        </button>,
       );
     }
 
@@ -205,7 +205,7 @@ export default function LeaderboardPage() {
       }}
       className="min-h-screen p-4 pb-0 font-grotesk"
     >
-      <div className="min-h-screen max-w-lg mx-auto">
+      <div className="max-w-lg mx-auto">
         {/* Status Bar */}
         <Header />
 
