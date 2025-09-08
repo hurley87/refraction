@@ -5,7 +5,7 @@ import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import MobileFooterNav from "@/components/mobile-footer-nav";
 import CoinLocationForm, { CoinFormData } from "./coin-location-form";
@@ -69,6 +69,11 @@ export default function InteractiveMap() {
   } | null>(null);
 
   const mapRef = useRef<any>(null);
+  const { wallets } = useWallets();
+  console.log("wallets22222", wallets);
+  // const wallet = wallets.find(
+  //   (wallet) => (wallet.address as `0x${string}`) === walletAddress,
+  // );
 
   // Initialize Zora SDK API key
   useEffect(() => {

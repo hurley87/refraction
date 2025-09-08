@@ -1,8 +1,6 @@
 "use client";
 
 import { usePrivy } from "@privy-io/react-auth";
-import { useLoginToMiniApp } from "@privy-io/react-auth/farcaster";
-import miniappSdk from "@farcaster/miniapp-sdk";
 import { Button } from "./ui/button";
 import { useState, useEffect } from "react";
 
@@ -12,72 +10,17 @@ interface AuthProps {
 
 export default function Auth({ children }: AuthProps) {
   const { user, ready, linkEmail, authenticated, login } = usePrivy();
-  const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
   const [username, setUsername] = useState("");
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
   const [needsUsername, setNeedsUsername] = useState(false);
   const [language, setLanguage] = useState<"english" | "french">("english");
-  const [isSDKLoaded, setIsSDKLoaded] = useState(false);
-  const [isMiniApp, setIsMiniApp] = useState(false);
 
-  // Initialize miniapp SDK and detect context
-  useEffect(() => {
-    const initializeSDK = async () => {
-      if (miniappSdk && !isSDKLoaded) {
-        setIsSDKLoaded(true);
-        const isMiniAppContext = await miniappSdk.isInMiniApp();
-        setIsMiniApp(isMiniAppContext);
-        if (isMiniAppContext) {
-          miniappSdk.actions.ready();
-        }
-      }
-    };
-    initializeSDK();
-  }, [isSDKLoaded]);
+  // No Farcaster auto-login; use regular Privy login only
 
-  // Auto-login based on context
-  useEffect(() => {
-    if (ready && !authenticated && isSDKLoaded) {
-      const handleAutoLogin = async () => {
-        try {
-          if (isMiniApp) {
-            // Miniapp login flow
-            const { nonce } = await initLoginToMiniApp();
-            const result = await miniappSdk.actions.signIn({ nonce });
-            await loginToMiniApp({
-              message: result.message,
-              signature: result.signature,
-            });
-          }
-          // For regular web context, don't auto-login, let user initiate
-        } catch (error) {
-          console.error("Auto-login failed:", error);
-        }
-      };
-      handleAutoLogin();
-    }
-  }, [
-    ready,
-    authenticated,
-    isSDKLoaded,
-    isMiniApp,
-    initLoginToMiniApp,
-    loginToMiniApp,
-  ]);
-
-  // Helper function to handle login based on context
+  // Regular Privy login only
   const handleLogin = async () => {
     try {
-      if (isMiniApp) {
-        const { nonce } = await initLoginToMiniApp();
-        const result = await miniappSdk.actions.signIn({ nonce });
-        await loginToMiniApp({
-          message: result.message,
-          signature: result.signature,
-        });
-      } else {
-        login();
-      }
+      login();
     } catch (error) {
       console.error("Login failed:", error);
     }

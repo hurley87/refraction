@@ -2,46 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { useLoginToMiniApp } from "@privy-io/react-auth/farcaster";
-import miniappSdk from "@farcaster/miniapp-sdk";
 import { Button } from "@/components/ui/button";
 import ProfileMenu from "./profile-menu";
 import Link from "next/link";
 
 export default function Header() {
   const { user, login } = usePrivy();
-  const { initLoginToMiniApp, loginToMiniApp } = useLoginToMiniApp();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSDKLoaded, setIsSDKLoaded] = useState(false);
-  const [isMiniApp, setIsMiniApp] = useState(false);
-
-  // Initialize miniapp SDK and detect context
-  useEffect(() => {
-    const initializeSDK = async () => {
-      if (miniappSdk && !isSDKLoaded) {
-        setIsSDKLoaded(true);
-        const isMiniAppContext = await miniappSdk.isInMiniApp();
-        setIsMiniApp(isMiniAppContext);
-        if (isMiniAppContext) {
-          miniappSdk.actions.ready();
-        }
-      }
-    };
-    initializeSDK();
-  }, [isSDKLoaded]);
 
   const handleLogin = async () => {
     try {
-      if (isMiniApp) {
-        const { nonce } = await initLoginToMiniApp();
-        const result = await miniappSdk.actions.signIn({ nonce });
-        await loginToMiniApp({
-          message: result.message,
-          signature: result.signature,
-        });
-      } else {
-        login();
-      }
+      login();
     } catch (error) {
       console.error("Header login failed:", error);
     }
