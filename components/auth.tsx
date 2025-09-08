@@ -9,7 +9,7 @@ interface AuthProps {
 }
 
 export default function Auth({ children }: AuthProps) {
-  const { user, ready, linkEmail, authenticated, login } = usePrivy();
+  const { user, ready, linkEmail, login } = usePrivy();
   const [username, setUsername] = useState("");
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
   const [needsUsername, setNeedsUsername] = useState(false);
