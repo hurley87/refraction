@@ -3,6 +3,7 @@
 import InteractiveMap from "@/components/interactive-map";
 import MobileFooterNav from "@/components/mobile-footer-nav";
 import Auth from "@/components/auth";
+import FarcasterReady from "@/components/farcaster-ready";
 
 export default function InteractiveMapPage() {
   return (
@@ -13,6 +14,7 @@ export default function InteractiveMapPage() {
       }}
       className="min-h-screen p-4 pb-0 font-grotesk"
     >
+      <FarcasterReady />
       <Auth>
         <div className="fixed inset-0 font-grotesk">
           <InteractiveMap />

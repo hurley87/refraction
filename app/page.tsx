@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Metadata } from "next";
 import Image from "next/image";
+import FarcasterReady from "@/components/farcaster-ready";
 
 const appUrl = "https://www.irl.energy";
 
@@ -13,7 +14,7 @@ const frame = {
     action: {
       type: "launch_frame",
       name: "IRL",
-      url: `${appUrl}/interactive-map`,
+      url: `${appUrl}`,
       splashImageUrl: `${appUrl}/logo.png`,
       splashBackgroundColor: "#FFFFFF",
     },
@@ -43,6 +44,7 @@ export default function Home() {
       }}
       className="min-h-screen"
     >
+      <FarcasterReady />
       {/* Hero Section */}
       <section className="relative min-h-screen flex flex-col justify-center items-start px-4 sm:px-6 md:px-8 lg:px-16 py-8 sm:py-12 md:py-16 rounded-b-4xl overflow-hidden">
         {/* Video Background */}
