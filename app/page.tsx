@@ -4,6 +4,7 @@ import { Metadata } from "next";
 import Image from "next/image";
 
 const appUrl = "https://irl.energy";
+const show_newsletter = false;
 
 const miniapp = {
   version: "1",
@@ -363,34 +364,36 @@ export default function Home() {
           </div>
 
           {/* Column 2: Newsletter Signup (Mobile Bottom) */}
-          <div className="w-full lg:w-1/2 order-2 lg:order-1">
-            <h3 className="text-black body-large mb-6 uppercase lg:normal-case">
-              Stay Up to Date With Our Newsletter
-            </h3>
-            <form className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-full text-black placeholder-gray-500 focus:outline-none focus:border-black"
-                value="you@yourname.com"
-                required
-              />
-
-              <Button
-                type="submit"
-                size="lg"
-                className="bg-[#EDEDED] hover:bg-gray-800 text-black font-inktrap w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center"
-              >
-                <Image
-                  src="/home/arrow-right.svg"
-                  alt="arrow-right"
-                  width={24}
-                  height={24}
-                  className="w-5 h-5 sm:w-6 sm:h-6"
+          {show_newsletter && (
+            <div className="w-full lg:w-1/2 order-2 lg:order-1">
+              <h3 className="text-black body-large mb-6 uppercase lg:normal-case">
+                Stay Up to Date With Our Newsletter
+              </h3>
+              <form className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-full text-black placeholder-gray-500 focus:outline-none focus:border-black"
+                  value="you@yourname.com"
+                  required
                 />
-              </Button>
-            </form>
-          </div>
+
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="bg-[#EDEDED] hover:bg-gray-800 text-black font-inktrap w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center"
+                >
+                  <Image
+                    src="/home/arrow-right.svg"
+                    alt="arrow-right"
+                    width={24}
+                    height={24}
+                    className="w-5 h-5 sm:w-6 sm:h-6"
+                  />
+                </Button>
+              </form>
+            </div>
+          )}
         </div>
       </section>
 
