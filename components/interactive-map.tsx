@@ -5,7 +5,7 @@ import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import MobileFooterNav from "@/components/mobile-footer-nav";
 import CoinLocationForm, { CoinFormData } from "./coin-location-form";
@@ -69,13 +69,8 @@ export default function InteractiveMap() {
   } | null>(null);
 
   const mapRef = useRef<any>(null);
-  const { wallets } = useWallets();
-  console.log("wallets22222", wallets);
-  // const wallet = wallets.find(
-  //   (wallet) => (wallet.address as `0x${string}`) === walletAddress,
-  // );
+  const hasSetInitialLocationRef = useRef(false);
 
-  // Initialize Zora SDK API key
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_ZORA_API_KEY as string | undefined;
     if (apiKey) {
@@ -83,6 +78,29 @@ export default function InteractiveMap() {
     } else {
       console.warn("NEXT_PUBLIC_ZORA_API_KEY is not set");
     }
+  }, []);
+
+  // Center map on user's current location once on mount (with fallback)
+  useEffect(() => {
+    if (hasSetInitialLocationRef.current) return;
+    if (typeof window === "undefined" || !("geolocation" in navigator)) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        hasSetInitialLocationRef.current = true;
+        const { latitude, longitude } = position.coords;
+        setViewState((prev) => ({
+          ...prev,
+          latitude,
+          longitude,
+          zoom: Math.max(prev.zoom ?? 12, 14),
+        }));
+      },
+      (error) => {
+        console.warn("Geolocation error:", error);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+    );
   }, []);
 
   // Fetch user's username from database
