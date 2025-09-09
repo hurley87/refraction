@@ -7,6 +7,7 @@ import Providers from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
 import dynamic from "next/dynamic";
+import FarcasterReady from "@/components/farcaster-ready";
 
 const MobileFooterNav = dynamic(
   () => import("@/components/mobile-footer-nav"),
@@ -58,6 +59,7 @@ export default function RootLayout({
         </Script>
       </head>
       <body className="min-h-dvh">
+        <FarcasterReady />
         <Providers>{children}</Providers>
         <MobileFooterNav />
         <Toaster />

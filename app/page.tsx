@@ -2,23 +2,18 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Metadata } from "next";
 import Image from "next/image";
-import FarcasterReady from "@/components/farcaster-ready";
 
 const appUrl = "https://www.irl.energy";
 
-const frame = {
-  version: "next",
+const miniapp = {
+  version: "1",
+  name: "IRL",
+  iconUrl: `${appUrl}/logo.png`,
+  homeUrl: `${appUrl}`,
   imageUrl: `${appUrl}/logo.png`,
-  button: {
-    title: "Join IRL",
-    action: {
-      type: "launch_frame",
-      name: "IRL",
-      url: `${appUrl}`,
-      splashImageUrl: `${appUrl}/logo.png`,
-      splashBackgroundColor: "#FFFFFF",
-    },
-  },
+  buttonTitle: "Launch IRL",
+  splashImageUrl: `${appUrl}/logo.png`,
+  splashBackgroundColor: "#FFFFFF",
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
         "The IRL protocol empowers artists, creators, and audiences to participate in a system that incentivizes collaboration and innovation.",
     },
     other: {
-      "fc:frame": JSON.stringify(frame),
+      "fc:miniapp": JSON.stringify(miniapp),
     },
   };
 }
@@ -44,7 +39,6 @@ export default function Home() {
       }}
       className="min-h-screen"
     >
-      <FarcasterReady />
       {/* Hero Section */}
       <section className="relative min-h-screen flex flex-col justify-center items-start px-4 sm:px-6 md:px-8 lg:px-16 py-8 sm:py-12 md:py-16 rounded-b-4xl overflow-hidden">
         {/* Video Background */}
