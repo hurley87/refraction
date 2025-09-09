@@ -78,10 +78,10 @@ export async function POST(request: NextRequest) {
       creator: account.address,
       name: coinName,
       symbol: coinSymbol,
-      metadata: metadata, // Use metadata from frontend
-      currency: CreateConstants.ContentCoinCurrencies.ZORA,
+      metadata: metadata,
+      currency: CreateConstants.ContentCoinCurrencies.CREATOR_COIN,
       chainId: base.id,
-      startingMarketCap: CreateConstants.StartingMarketCaps.HIGH,
+      startingMarketCap: CreateConstants.StartingMarketCaps.LOW,
       platformReferrerAddress:
         "0x1d15241ac2bb3e426e2379234d6cbc545b4bfb67" as `0x${string}`,
     };
