@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       chainId: base.id,
       startingMarketCap: CreateConstants.StartingMarketCaps.HIGH,
       platformReferrerAddress:
-        "0xbD78783a26252bAf756e22f0DE764dfDcDa7733c" as `0x${string}`,
+        "0x1d15241ac2bb3e426e2379234d6cbc545b4bfb67" as `0x${string}`,
     };
 
     console.log("Creating coin with server wallet:", account.address);

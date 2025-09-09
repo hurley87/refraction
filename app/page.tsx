@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 import Image from "next/image";
 
-const appUrl = "https://www.irl.energy";
+const appUrl = "https://irl.energy";
 
 const miniapp = {
   version: "1",
@@ -11,9 +11,16 @@ const miniapp = {
   iconUrl: `${appUrl}/logo.png`,
   homeUrl: `${appUrl}`,
   imageUrl: `${appUrl}/logo.png`,
-  buttonTitle: "Launch IRL",
-  splashImageUrl: `${appUrl}/logo.png`,
-  splashBackgroundColor: "#FFFFFF",
+  button: {
+    title: "Launch IRL",
+    action: {
+      type: "launch_frame",
+      name: "IRL",
+      url: appUrl,
+      splashImageUrl: `${appUrl}/logo.png`,
+      splashBackgroundColor: "#f7f7f7",
+    },
+  },
 };
 
 export async function generateMetadata(): Promise<Metadata> {
