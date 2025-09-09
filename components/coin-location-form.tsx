@@ -183,16 +183,14 @@ export default function CoinLocationForm({
 
           <div>
             <h3 className="text-lg font-inktrap font-semibold text-black mb-2">
-              {formData.name} ({formData.symbol})
+              {formData.name}
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Your coin has been successfully created at {locationName}
-            </p>
+            <p className="text-sm text-gray-600 mb-4">${formData.symbol}</p>
 
             {coinAddress && (
-              <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <div className="bg-gray-50 rounded-lg p-1 mb-4">
                 <p className="text-xs text-gray-500 mb-1">Coin Address</p>
-                <p className="text-sm font-mono break-all">{coinAddress}</p>
+                <p className="text-xs font-mono break-all">{coinAddress}</p>
               </div>
             )}
           </div>
