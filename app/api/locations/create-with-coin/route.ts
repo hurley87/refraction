@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       name: coinName,
       symbol: coinSymbol,
       metadata: metadata, // Use metadata from frontend
-      currency: CreateConstants.ContentCoinCurrencies.ETH,
+      currency: CreateConstants.ContentCoinCurrencies.ZORA,
       chainId: base.id,
       startingMarketCap: CreateConstants.StartingMarketCaps.HIGH,
       platformReferrerAddress:

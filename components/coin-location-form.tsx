@@ -163,7 +163,7 @@ export default function CoinLocationForm({
     <div className="bg-white rounded-none md:rounded-2xl p-4 sm:p-6 pb-24 md:pb-6 w-full h-full md:h-auto mx-auto md:max-h-[90vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-inktrap font-bold text-black">
-          {isSuccess ? "Coin Created Successfully!" : "Create Coin Location"}
+          {isSuccess ? "Coin Created Successfully!" : "Coin a Location"}
         </h2>
         <button
           onClick={onCancel}
