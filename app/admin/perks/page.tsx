@@ -20,7 +20,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { type Perk, type PerkDiscountCode } from "@/lib/supabase";
+import {
+  checkAdminPermission,
+  type Perk,
+  type PerkDiscountCode,
+} from "@/lib/supabase";
 import { usePrivy } from "@privy-io/react-auth";
 
 export default function AdminPerksPage() {
@@ -45,8 +49,8 @@ export default function AdminPerksPage() {
   const [newCodes, setNewCodes] = useState("");
   const [perkCodes, setPerkCodes] = useState<PerkDiscountCode[]>([]);
 
-  // Check admin permissions using Privy user email
-  const isAdmin = user?.email?.address === "dhurls99@gmail.com";
+  // Check admin permissions using shared helper (email allowlist)
+  const isAdmin = checkAdminPermission(user?.email?.address);
   const adminLoading = false;
 
   // Fetch all perks
