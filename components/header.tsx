@@ -21,25 +21,26 @@ export default function Header() {
   // If user is not defined, return login button
   if (!user) {
     return (
-      <div className="flex justify-between items-center">
-        <div className="bg-white rounded-full px-4 py-2">
+      <div className="flex justify-between items-center w-full">
+        <div className="w-[40px] h-[40px] sm:w-[40px] sm:h-[40px] md:w-[40px] md:h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center">
           <Link href="/">
             <img
-              src="/logo2.svg"
+              src="/home/IRL.png"
               alt="IRL"
               className="w-full h-auto"
-              style={{ width: "40", height: "auto" }}
+              style={{ width: "40", height: "40" }}
             />
           </Link>
         </div>
 
         {/* Profile Menu */}
         <Button
-          className="bg-white text-black px-4 py-2 text-lg hover:bg-white/80 justify-center font-inktrap uppercase rounded-full items-center"
+          className="bg-white text-black text-lg hover:bg-white/80 justify-center font-inktrap rounded-full items-center"
           size="sm"
           onClick={handleLogin}
+          style={{ width: "123px", height: "40px" }}
         >
-          CHECK IN
+          Check In 
         </Button>
       </div>
     );

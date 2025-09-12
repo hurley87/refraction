@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
@@ -25,7 +25,6 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "$IRL",
   description: "$IRL is your key to unlocking a new way to experience culture",
-  themeColor: "#000000", // Change this to your desired color
   appleWebApp: {
     statusBarStyle: "black-translucent", // Options: "default", "black", "black-translucent"
   },
@@ -33,6 +32,10 @@ export const metadata: Metadata = {
     "apple-mobile-web-app-status-bar-style": "black-translucent",
     "msapplication-navbutton-color": "#000000",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
