@@ -77,94 +77,99 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
   if (!user) {
     const step = steps[currentStep - 1];
     return (
-      <div className="fixed inset-0 pointer-events-none flex flex-col">
-        {/* Top welcome pill */}
-        <div className="pointer-events-auto mx-4 mt-4 flex items-center justify-between rounded-full bg-white/95 shadow-xl px-4 py-3">
-          <div className="flex items-center">
-            <span className="font-inktrap">Welcome to IRL</span>
-          </div>
-          <button
-            onClick={login}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Log in
-          </button>
-        </div>
-
-        {/* Card filling remaining height */}
-        <div className="pointer-events-auto mx-4 md:mx-auto md:max-w-md flex-1 mt-4 mb-4">
-          <div className="h-full rounded-3xl bg-white/95 backdrop-blur shadow-2xl p-4 pb-6 flex flex-col">
-            {/* Faux image area expands to fill */}
-            <div className="rounded-2xl overflow-hidden bg-gray-100 flex-1 flex items-center justify-center">
-              {step?.imageSrc ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={step.imageSrc}
-                  alt={step.imageAlt || step.title}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="text-gray-400 text-sm">Screenshot</div>
-              )}
+      <>
+        {children}
+        <div className="fixed inset-0 z-50 pointer-events-none flex flex-col">
+          {/* Top welcome pill */}
+          <div className="pointer-events-auto mx-4 mt-4 flex items-center justify-between rounded-full bg-white/95 shadow-xl px-4 py-3">
+            <div className="flex items-center">
+              <span className="font-inktrap">Welcome to IRL</span>
             </div>
+            <button
+              onClick={login}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Log in
+            </button>
+          </div>
 
-            {/* Step content */}
-            <div className="mt-4 rounded-2xl bg-white p-4 shadow-inner flex flex-col">
-              <div className="flex items-center justify-between">
-                <p className="text-gray-500 text-sm">
-                  {currentStep}/{maxStep}
-                </p>
+          {/* Card filling remaining height */}
+          <div className="pointer-events-none mx-4 md:mx-auto md:max-w-md flex-1 mt-4 mb-4">
+            <div className="pointer-events-auto h-full rounded-3xl bg-white/95 backdrop-blur shadow-2xl p-4 pb-6 flex flex-col">
+              {/* Faux image area expands to fill */}
+              <div className="rounded-2xl overflow-hidden bg-gray-100 flex-1 flex items-center justify-center">
+                {step?.imageSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={step.imageSrc}
+                    alt={step.imageAlt || step.title}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="text-gray-400 text-sm">Screenshot</div>
+                )}
               </div>
-              <h3 className="mt-1 font-inktrap text-xl">{step.title}</h3>
-              {step.description && (
-                <p className="mt-2 text-sm text-gray-600">{step.description}</p>
-              )}
 
-              <div className="mt-4 flex-1" />
+              {/* Step content */}
+              <div className="mt-4 rounded-2xl bg-white p-4 shadow-inner flex flex-col">
+                <div className="flex items-center justify-between">
+                  <p className="text-gray-500 text-sm">
+                    {currentStep}/{maxStep}
+                  </p>
+                </div>
+                <h3 className="mt-1 font-inktrap text-xl">{step.title}</h3>
+                {step.description && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    {step.description}
+                  </p>
+                )}
 
-              {currentStep < maxStep ? (
-                <div className="mt-2 grid grid-cols-2 gap-3">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="w-full h-16 rounded-full text-base"
-                    onClick={goPrev}
-                    disabled={currentStep === 1}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    size="lg"
-                    className="w-full h-16 rounded-full text-base bg-black text-white hover:bg-black/90"
-                    onClick={goNext}
-                  >
-                    Next
-                  </Button>
-                </div>
-              ) : (
-                <div className="mt-2 grid grid-cols-2 gap-3">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="w-full h-16 rounded-full text-base"
-                    onClick={goPrev}
-                  >
-                    Back
-                  </Button>
-                  <Button
-                    size="lg"
-                    className="w-full h-16 rounded-full text-base bg-black text-white hover:bg-black/90"
-                    onClick={login}
-                  >
-                    {step.cta || "Get Started"}
-                  </Button>
-                </div>
-              )}
+                <div className="mt-4 flex-1" />
+
+                {currentStep < maxStep ? (
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="w-full h-16 rounded-full text-base"
+                      onClick={goPrev}
+                      disabled={currentStep === 1}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      size="lg"
+                      className="w-full h-16 rounded-full text-base bg-black text-white hover:bg-black/90"
+                      onClick={goNext}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="w-full h-16 rounded-full text-base"
+                      onClick={goPrev}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      size="lg"
+                      className="w-full h-16 rounded-full text-base bg-black text-white hover:bg-black/90"
+                      onClick={login}
+                    >
+                      {step.cta || "Get Started"}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 

@@ -242,7 +242,7 @@ export default function Home() {
               size="lg"
               className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
             >
-              <h4 className="text-black font-light">Check In to Earn Points</h4>
+              <h4 className="text-black font-light">Earn Your First Points</h4>
               <Image
                 src="/home/arrow-right.svg"
                 alt="arrow-right"
@@ -261,9 +261,9 @@ export default function Home() {
         <div className="flex flex-col lg:flex-row justify-between gap-8 lg:gap-20">
           {/* Column 1: Social Media (Mobile Top) */}
           <div className="w-full lg:w-1/2 order-1 lg:order-2">
-             <div className="text-black body-small font-abc-monument-regular uppercase mb-4 text-center">
-               Follow
-             </div>
+            <h3 className="text-black font-inktrap text-lg font-bold mb-4">
+              Follow Us
+            </h3>
             <div className="flex justify-between gap-4 sm:gap-6">
               <Link
                 target="_blank"
