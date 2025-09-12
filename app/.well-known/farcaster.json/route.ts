@@ -16,6 +16,21 @@ export async function GET() {
       buttonTitle: "Launch IRL",
       splashImageUrl: "https://irl.energy/logo.png",
       splashBackgroundColor: "#ffffff",
+      subtitle: "Map Your IRL World",
+      description:
+        "Check in. Earn points. Unlock perks. IRL makes every event and cultural experience more rewarding.",
+      primaryCategory: "social",
+      tags: ["IRL", "Points", "Rewards", "Culture", "Events"],
+      tagline:
+        "Check in. Earn points. Unlock perks. IRL makes every event and cultural experience more rewarding.",
+      ogTitle: "IRL",
+      ogDescription:
+        "Check in. Earn points. Unlock perks. IRL makes every event and cultural experience more rewarding.",
+      ogImageUrl: "https://irl.energy/feed.png",
+      ogImageWidth: 1200,
+      ogImageHeight: 630,
+      ogImageType: "image/png",
+      castShareUrl: "https://irl.energy",
       webhookUrl: "https://irl.energy/api/webhook",
     },
   };
