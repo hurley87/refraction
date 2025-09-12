@@ -9,17 +9,17 @@ const show_newsletter = false;
 const miniapp = {
   version: "1",
   name: "IRL",
-  iconUrl: `${appUrl}/logo.png`,
+  iconUrl: `${appUrl}/miniapp/icon.svg`,
   homeUrl: `${appUrl}/interactive-map`,
-  imageUrl: `${appUrl}/logo.png`,
+  imageUrl: `${appUrl}/miniapp/feed.png`,
   button: {
     title: "Launch IRL",
     action: {
       type: "launch_frame",
       name: "IRL",
       url: `${appUrl}/interactive-map`,
-      splashImageUrl: `${appUrl}/logo.png`,
-      splashBackgroundColor: "#f7f7f7",
+      splashImageUrl: `${appUrl}/logo.svg`,
+      splashBackgroundColor: "#ffffff",
     },
   },
 };

@@ -29,7 +29,7 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
         title: "Search For Locations",
         description:
           "Explore the live IRL map to discover galleries, venues, and pop-ups near you. Use search and zoom to focus on neighborhoods, see what's active, and line up your next check-in.",
-        imageSrc: "/onboarding/1.png",
+        imageSrc: "/miniapp/1.png",
         imageAlt: "Search UI",
       },
       {
@@ -37,7 +37,7 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
         title: "Tap Markers to Check In",
         description:
           "Tap any map marker to view photos, hours, and community notes. Check in when you visit to earn points, unlock perks, and build a personal trail of your IRL.",
-        imageSrc: "/onboarding/2.png",
+        imageSrc: "/miniapp/2.png",
         imageAlt: "Check in marker",
       },
       {
@@ -45,7 +45,7 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
         title: "Tokenize New Locations",
         description:
           "Add places that should be on the map by creating a location token. Provide a title, description, and image so others can discover it, then publish to contribute to the shared IRL graph.",
-        imageSrc: "/onboarding/3.png",
+        imageSrc: "/miniapp/3.png",
         imageAlt: "Create token form",
       },
       {
@@ -53,7 +53,7 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
         title: "View Token On Zora",
         description:
           "After creating, view and manage your location token on Zora with onchain provenance. Share the link, collect it, and collaborate with others to keep the record alive.",
-        imageSrc: "/onboarding/4.png",
+        imageSrc: "/miniapp/4.png",
         imageAlt: "Zora success state",
         cta: "Get Started",
       },
