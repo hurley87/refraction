@@ -176,7 +176,7 @@ export default function CoinLocationForm({
 
       {isSuccess ? (
         // Success State
-        <div className="space-y-6 text-center">
+        <div className="space-y-6 text-center mx-auto md:max-w-md">
           <div className="flex justify-center">
             <CheckCircle2 className="w-16 h-16 text-green-500" />
           </div>
@@ -195,17 +195,22 @@ export default function CoinLocationForm({
             )}
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <Button
+              onClick={onCancel}
+              variant="outline"
+              size="lg"
+              className="w-full h-16 rounded-full text-base"
+            >
+              Close
+            </Button>
             <Button
               onClick={handleShareFarcaster}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-inktrap flex items-center justify-center gap-2"
+              size="lg"
+              className="w-full h-16 rounded-full text-base bg-black text-white hover:bg-black/90 flex items-center justify-center gap-2"
             >
               <Share2 className="w-4 h-4" />
-              Share Coin
-            </Button>
-
-            <Button onClick={onCancel} variant="outline" className="w-full">
-              Close
+              Share Token
             </Button>
           </div>
         </div>
