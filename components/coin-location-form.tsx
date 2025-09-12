@@ -160,10 +160,10 @@ export default function CoinLocationForm({
   };
 
   return (
-    <div className="bg-white rounded-none md:rounded-2xl p-4 sm:p-6 pb-24 md:pb-6 w-full h-full md:h-auto mx-auto md:max-h-[90vh] overflow-y-auto">
+    <div className="bg-white rounded-2xl p-4 sm:p-6 pb-6 w-full mx-auto max-h-[85vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-inktrap font-bold text-black">
-          {isSuccess ? "Coin Created Successfully!" : "Coin a Location"}
+          {isSuccess ? "Coin Created Successfully!" : "Tokenize Location"}
         </h2>
         <button
           onClick={onCancel}
@@ -341,14 +341,16 @@ export default function CoinLocationForm({
               type="button"
               variant="outline"
               onClick={onCancel}
-              className="flex-1"
+              className="flex-1 h-16 rounded-full text-base"
+              size="lg"
               disabled={isLoading}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-black font-inktrap"
+              className="flex-1 h-16 rounded-full text-base bg-black text-white hover:bg-black/90"
+              size="lg"
               disabled={isLoading}
             >
               {isLoading ? "Creating..." : "Create Coin"}

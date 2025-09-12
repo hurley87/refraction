@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { ArrowRight, Coins } from "lucide-react";
-import Header from "./header";
+import React, { useState, useEffect, useRef } from "react";
+import { Coins } from "lucide-react";
 import { toast } from "sonner";
+import MobileFooterNav from "./mobile-footer-nav";
 
 interface CoinData {
   id: number;
@@ -24,8 +24,9 @@ interface CoinData {
 export default function CoinsPage() {
   const [coins, setCoins] = useState<CoinData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const itemsPerPage = 9;
 
@@ -46,7 +47,7 @@ export default function CoinsPage() {
             );
 
           setCoins(coinsData);
-          setTotalPages(Math.ceil(coinsData.length / itemsPerPage));
+          setVisibleCount(Math.min(itemsPerPage, coinsData.length));
         }
       } catch (error) {
         console.error("Error fetching coins:", error);
@@ -59,99 +60,33 @@ export default function CoinsPage() {
     loadCoins();
   }, []);
 
-  // Get current page data
-  const getCurrentPageData = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return coins.slice(startIndex, endIndex);
-  };
+  // Infinite scroll observer
+  useEffect(() => {
+    if (isLoading) return;
+    const sentinel = loadMoreRef.current;
+    if (!sentinel) return;
 
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        const hasMore = visibleCount < coins.length;
+        if (entry.isIntersecting && hasMore && !isLoadingMore) {
+          setIsLoadingMore(true);
+          // Defer to allow smooth UX; no network call, just reveal more
+          setTimeout(() => {
+            setVisibleCount((prev) =>
+              Math.min(prev + itemsPerPage, coins.length),
+            );
+            setIsLoadingMore(false);
+          }, 150);
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
 
-  const renderPaginationButtons = () => {
-    const buttons: React.ReactNode[] = [];
-
-    // Always show first page
-    if (currentPage > 3) {
-      buttons.push(
-        <button
-          key={1}
-          onClick={() => handlePageChange(1)}
-          className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
-        >
-          1
-        </button>,
-      );
-
-      if (currentPage > 4) {
-        buttons.push(
-          <span key="ellipsis1" className="px-2 text-gray-500 font-inktrap">
-            ...
-          </span>,
-        );
-      }
-    }
-
-    // Show pages around current page
-    const start = Math.max(1, currentPage - 1);
-    const end = Math.min(totalPages, currentPage + 1);
-
-    for (let i = start; i <= end; i++) {
-      buttons.push(
-        <button
-          key={i}
-          onClick={() => handlePageChange(i)}
-          className={`w-10 h-10 rounded-full font-inktrap font-medium text-sm flex items-center justify-center ${
-            i === currentPage
-              ? "bg-black text-white"
-              : "bg-white text-black border border-gray-200 hover:bg-gray-50"
-          }`}
-        >
-          {i}
-        </button>,
-      );
-    }
-
-    // Show last page if needed
-    if (currentPage < totalPages - 2) {
-      if (currentPage < totalPages - 3) {
-        buttons.push(
-          <span key="ellipsis2" className="px-2 text-gray-500 font-inktrap">
-            ...
-          </span>,
-        );
-      }
-
-      buttons.push(
-        <button
-          key={totalPages}
-          onClick={() => handlePageChange(totalPages)}
-          className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
-        >
-          {totalPages}
-        </button>,
-      );
-    }
-
-    // Next button
-    if (currentPage < totalPages) {
-      buttons.push(
-        <button
-          key="next"
-          onClick={() => handlePageChange(currentPage + 1)}
-          className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
-        >
-          <ArrowRight className="w-4 h-4" />
-        </button>,
-      );
-    }
-
-    return buttons;
-  };
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [isLoading, coins.length, visibleCount, isLoadingMore]);
 
   const formatWalletAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -163,19 +98,9 @@ export default function CoinsPage() {
         background:
           "linear-gradient(0deg, #61BFD1 0%, #1BA351 33.66%, #FFE600 62.5%, #EE91B7 100%)",
       }}
-      className="min-h-screen p-4 pb-0 font-grotesk"
+      className="min-h-screen p-4 pb-24 font-grotesk"
     >
       <div className="min-h-screen max-w-lg mx-auto">
-        {/* Status Bar */}
-        <Header />
-
-        {/* Coins Header */}
-        <div className="px-0 pt-8 mb-6">
-          <div className="bg-white rounded-2xl p-4 flex items-center justify-between">
-            <h1 className="text-xl font-inktrap font-bold text-black">Coins</h1>
-          </div>
-        </div>
-
         {/* Main Content */}
         <div className="px-0 space-y-4">
           {/* Loading State */}
@@ -183,13 +108,24 @@ export default function CoinsPage() {
             <div className="space-y-4">
               {[...Array(itemsPerPage)].map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl p-4 animate-pulse">
-                  <div className="flex gap-4">
-                    <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
-                    <div className="flex-1">
-                      <div className="w-32 h-5 bg-gray-200 rounded mb-2"></div>
-                      <div className="w-20 h-4 bg-gray-200 rounded mb-2"></div>
-                      <div className="w-full h-3 bg-gray-200 rounded"></div>
+                  <div className="flex flex-col gap-2 w-full">
+                    {/* Header with coin name and symbol */}
+                    <div className="flex items-center justify-between">
+                      <div className="w-24 h-4 bg-gray-200 rounded"></div>
+                      <div className="w-16 h-4 bg-gray-200 rounded"></div>
                     </div>
+
+                    {/* Coin image placeholder */}
+                    <div className="w-full h-96 bg-gray-200 rounded-2xl"></div>
+
+                    {/* Location and creator info */}
+                    <div className="flex flex-col gap-1">
+                      <div className="w-3/4 h-3 bg-gray-200 rounded"></div>
+                      <div className="w-1/2 h-3 bg-gray-200 rounded"></div>
+                    </div>
+
+                    {/* Trade button */}
+                    <div className="w-full h-11 bg-gray-200 rounded-full mt-3"></div>
                   </div>
                 </div>
               ))}
@@ -199,14 +135,14 @@ export default function CoinsPage() {
           {/* Coins List */}
           {!isLoading && (
             <div className="space-y-4">
-              {getCurrentPageData().length > 0 ? (
-                getCurrentPageData().map((coin: CoinData) => (
+              {coins.slice(0, visibleCount).length > 0 ? (
+                coins.slice(0, visibleCount).map((coin: CoinData) => (
                   <div key={coin.id} className="bg-white rounded-2xl p-4">
                     <div className="flex gap-4 items-start">
                       {/* Coin Image */}
 
                       {/* Coin Info */}
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 w-full">
                         <div className="flex items-center justify-between text-sm">
                           <h3 className="font-inktrap text-sm truncate">
                             {coin.coin_name}
@@ -215,7 +151,7 @@ export default function CoinsPage() {
                             ${coin.coin_symbol}
                           </span>
                         </div>
-                        <div className="rounded-2xl overflow-hidden bg-gray-100">
+                        <div className="rounded-2xl overflow-hidden bg-gray-100 w-full">
                           {coin.coin_image_url ? (
                             <img
                               src={coin.coin_image_url}
@@ -242,6 +178,14 @@ export default function CoinsPage() {
                             </p>
                           )}
                         </div>
+                        <a
+                          href={`https://zora.co/coin/base:${coin.coin_address}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 w-full rounded-full bg-black px-5 py-3 text-center font-inktrap text-base text-white hover:opacity-90"
+                        >
+                          Trade on Zora
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -255,15 +199,23 @@ export default function CoinsPage() {
                   </p>
                 </div>
               )}
+
+              {/* Infinite scroll sentinel */}
+              {!isLoading &&
+                coins.length > 0 &&
+                visibleCount < coins.length && (
+                  <div ref={loadMoreRef} className="h-8" />
+                )}
+              {isLoadingMore && (
+                <div className="flex justify-center py-4">
+                  <div className="h-5 w-5 rounded-full border-2 border-gray-300 border-t-black animate-spin" />
+                </div>
+              )}
             </div>
           )}
 
-          {/* Pagination */}
-          {!isLoading && totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 py-6">
-              {renderPaginationButtons()}
-            </div>
-          )}
+          {/* Spacer for bottom nav */}
+          <div className="h-8" />
         </div>
 
         {/* Bottom IRL Section */}
@@ -271,6 +223,9 @@ export default function CoinsPage() {
           <img src="/irl-bottom-logo.svg" alt="IRL" className="w-full h-auto" />
         </div>
       </div>
+
+      {/* Mobile footer navigation */}
+      <MobileFooterNav />
     </div>
   );
 }

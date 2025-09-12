@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import MobileFooterNav from "@/components/mobile-footer-nav";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import CoinLocationForm, { CoinFormData } from "./coin-location-form";
 import {
   createMetadataBuilder,
@@ -59,7 +60,7 @@ export default function InteractiveMap() {
   const [searchSuggestions, setSuggestions] = useState<LocationSuggestion[]>(
     [],
   );
-  const [isHowToOpen, setIsHowToOpen] = useState(true);
+  // Removed How To section state
   const [showCoinForm, setShowCoinForm] = useState(false);
   const [isCreatingCoin, setIsCreatingCoin] = useState(false);
   const [coinCreationSuccess, setCoinCreationSuccess] = useState(false);
@@ -430,7 +431,7 @@ export default function InteractiveMap() {
     <div className="w-full h-full relative">
       {/* Search Controls + How To */}
       <div className="absolute top-4 left-4 right-4 z-10 space-y-2 max-w-xl">
-        <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 md:p-4 shadow-xl">
+        <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 md:p-4 shadow-2xl">
           <div className="flex gap-2 items-center">
             <Input
               placeholder="Search for locations..."
@@ -441,7 +442,7 @@ export default function InteractiveMap() {
             <Button
               onClick={handleSearch}
               size="sm"
-              className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-blue-600 hover:bg-blue-700 p-0 shadow-md"
+              className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-black hover:bg-black/80 p-0 shadow-lg"
             >
               <Search className="w-5 h-5 text-white" />
             </Button>
@@ -449,7 +450,7 @@ export default function InteractiveMap() {
 
           {/* Search Results */}
           {searchSuggestions.length > 0 && (
-            <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-black/5 bg-white/80 dark:bg-zinc-900/70 backdrop-blur p-1 shadow-lg">
+            <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-black/5 bg-white/80 dark:bg-zinc-900/70 backdrop-blur p-1 shadow-2xl">
               {searchSuggestions.map((suggestion, index) => (
                 <div
                   key={index}
@@ -459,36 +460,6 @@ export default function InteractiveMap() {
                   {suggestion.display_name}
                 </div>
               ))}
-            </div>
-          )}
-        </div>
-
-        {/* How To under search (collapsible) */}
-        <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-xl">
-          <button
-            onClick={() => setIsHowToOpen((v) => !v)}
-            className="w-full flex items-center justify-between text-sm px-1 py-1"
-          >
-            <span className="font-semibold">How to use</span>
-            <span className="ml-3 text-xs opacity-80">
-              {isHowToOpen ? "Hide" : "Show"}
-            </span>
-          </button>
-          {isHowToOpen && (
-            <div className="pt-2 text-sm space-y-1">
-              <p>
-                • <strong>Search:</strong> Use the search bar to find locations
-              </p>
-              <p>
-                • <strong>Click Map:</strong> Click anywhere to create new
-                locations
-              </p>
-              <p>
-                • <strong>Markers:</strong> Click to check in
-              </p>
-              <p>
-                • <strong>Coins:</strong> Each location has its own Zora coin!
-              </p>
             </div>
           )}
         </div>
@@ -594,6 +565,14 @@ export default function InteractiveMap() {
                       </p>
                     </div>
                   </div>
+                  <a
+                    href={`https://zora.co/coin/base:${popupInfo.coin_address}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full rounded-full bg-black px-4 py-3 text-center text-sm font-medium text-white hover:opacity-90"
+                  >
+                    Trade on Zora
+                  </a>
                 </div>
               )}
 
@@ -616,23 +595,26 @@ export default function InteractiveMap() {
         )}
       </Map>
 
-      {/* Coin Form Modal */}
-      {showCoinForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-0 md:p-4 md:pb-28 overflow-y-auto">
-          <div className="w-full h-full md:h-auto md:max-w-md md:my-8">
-            <CoinLocationForm
-              locationName={selectedMarker?.name}
-              locationAddress={selectedMarker?.display_name}
-              onSubmit={handleCreateLocationWithCoin}
-              onCancel={handleCloseCoinForm}
-              isLoading={isCreatingCoin}
-              isSuccess={coinCreationSuccess}
-              coinAddress={createdCoinData?.address}
-              transactionHash={createdCoinData?.transactionHash}
-            />
-          </div>
-        </div>
-      )}
+      {/* Coin Form Dialog */}
+      <Dialog
+        open={showCoinForm}
+        onOpenChange={(open) => {
+          if (!open) handleCloseCoinForm();
+        }}
+      >
+        <DialogContent className="w-full max-w-md p-0 sm:rounded-2xl">
+          <CoinLocationForm
+            locationName={selectedMarker?.name}
+            locationAddress={selectedMarker?.display_name}
+            onSubmit={handleCreateLocationWithCoin}
+            onCancel={handleCloseCoinForm}
+            isLoading={isCreatingCoin}
+            isSuccess={coinCreationSuccess}
+            coinAddress={createdCoinData?.address}
+            transactionHash={createdCoinData?.transactionHash}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Mobile nav on all screens for this page */}
       <MobileFooterNav showOnDesktop />

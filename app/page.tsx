@@ -10,14 +10,14 @@ const miniapp = {
   version: "1",
   name: "IRL",
   iconUrl: `${appUrl}/logo.png`,
-  homeUrl: `${appUrl}`,
+  homeUrl: `${appUrl}/interactive-map`,
   imageUrl: `${appUrl}/logo.png`,
   button: {
     title: "Launch IRL",
     action: {
       type: "launch_frame",
       name: "IRL",
-      url: appUrl,
+      url: `${appUrl}/interactive-map`,
       splashImageUrl: `${appUrl}/logo.png`,
       splashBackgroundColor: "#f7f7f7",
     },

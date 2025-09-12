@@ -2,7 +2,7 @@
 
 import InteractiveMap from "@/components/interactive-map";
 import MobileFooterNav from "@/components/mobile-footer-nav";
-import Auth from "@/components/auth";
+import AuthOnboarding from "@/components/auth-onboarding";
 
 export default function InteractiveMapPage() {
   return (
@@ -13,12 +13,12 @@ export default function InteractiveMapPage() {
       }}
       className="min-h-screen p-4 pb-0 font-grotesk"
     >
-      <Auth>
+      <AuthOnboarding>
         <div className="fixed inset-0 font-grotesk">
           <InteractiveMap />
           <MobileFooterNav showOnDesktop />
         </div>
-      </Auth>
+      </AuthOnboarding>
     </div>
   );
 }
