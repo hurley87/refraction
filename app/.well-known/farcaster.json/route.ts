@@ -21,11 +21,10 @@ export async function GET() {
         "Check in. Earn points. Unlock perks. IRL makes every event and cultural experience more rewarding.",
       primaryCategory: "social",
       tags: ["IRL", "Points", "Rewards", "Culture", "Events"],
-      tagline:
-        "Check in. Earn points. Unlock perks. IRL makes every event and cultural experience more rewarding.",
-      ogTitle: "IRL",
+      tagline: "Check In, Own the Map",
+      ogTitle: "Check In with IRL",
       ogDescription:
-        "Check in. Earn points. Unlock perks. IRL makes every event and cultural experience more rewarding.",
+        "In the know, on the map. IRL is how the city checks in—and earns rewards.",
       ogImageUrl: "https://irl.energy/feed.png",
       ogImageWidth: 1200,
       ogImageHeight: 630,
