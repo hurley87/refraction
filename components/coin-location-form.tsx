@@ -165,13 +165,6 @@ export default function CoinLocationForm({
         <h2 className="text-xl font-inktrap font-bold text-black">
           {isSuccess ? "Coin Created Successfully!" : "Tokenize Location"}
         </h2>
-        <button
-          onClick={onCancel}
-          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-          disabled={isLoading}
-        >
-          <X className="w-5 h-5 text-gray-500" />
-        </button>
       </div>
 
       {isSuccess ? (
