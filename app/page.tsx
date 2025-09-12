@@ -12,6 +12,10 @@ const miniapp = {
   iconUrl: `${appUrl}/miniapp/icon.svg`,
   homeUrl: `${appUrl}/interactive-map`,
   imageUrl: `${appUrl}/miniapp/feed.png`,
+  subtitle: "Map Your IRL World",
+  description:
+    "Check in. Earn points. Unlock perks. IRL makes every event and cultural experience more rewarding.",
+  primaryCategory: "social",
   button: {
     title: "Launch IRL",
     action: {
