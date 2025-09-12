@@ -80,22 +80,9 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
       <>
         {children}
         <div className="fixed inset-0 z-50 pointer-events-none flex flex-col">
-          {/* Top welcome pill */}
-          <div className="pointer-events-auto mx-4 mt-4 flex items-center justify-between rounded-full bg-white/95 shadow-xl px-4 py-3">
-            <div className="flex items-center">
-              <span className="font-inktrap">Welcome to IRL</span>
-            </div>
-            <button
-              onClick={login}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Log in
-            </button>
-          </div>
-
           {/* Card filling remaining height */}
-          <div className="pointer-events-none mx-4 md:mx-auto md:max-w-md flex-1 mt-4 mb-4">
-            <div className="pointer-events-auto h-full rounded-3xl bg-white/95 backdrop-blur shadow-2xl p-4 pb-6 flex flex-col">
+          <div className="pointer-events-none pb-10">
+            <div className="pointer-events-auto h-full bg-white/95 backdrop-blur shadow-2xl p-4 pt-0 pb-6 flex flex-col">
               {/* Faux image area expands to fill */}
               <div className="rounded-2xl overflow-hidden bg-gray-100 flex-1 flex items-center justify-center">
                 {step?.imageSrc ? (
