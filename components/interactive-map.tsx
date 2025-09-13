@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
-import { Search, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePrivy } from "@privy-io/react-auth";
