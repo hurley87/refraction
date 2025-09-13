@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, Share2, CheckCircle2 } from "lucide-react";
+import { Upload, X, CheckCircle2 } from "lucide-react";
 import miniappSdk from "@farcaster/miniapp-sdk";
 
 interface CoinLocationFormProps {
@@ -55,7 +55,7 @@ export default function CoinLocationForm({
       if (inMiniApp) {
         await miniappSdk.actions.composeCast({
           text: shareText,
-          embeds: [`${window.location.origin}`],
+          embeds: [`https://zora.co/coin/base:${coinAddress}`],
         });
         return;
       }
@@ -66,7 +66,7 @@ export default function CoinLocationForm({
   };
 
   const handleShareTwitter = () => {
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(`${window.location.origin}/coin/${coinAddress}`)}`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(`https://zora.co/coin/base:${coinAddress}`)}`;
     window.open(twitterUrl, "_blank", "width=550,height=420");
   };
 
@@ -202,7 +202,6 @@ export default function CoinLocationForm({
               size="lg"
               className="w-full h-16 rounded-full text-base bg-black text-white hover:bg-black/90 flex items-center justify-center gap-2"
             >
-              <Share2 className="w-4 h-4" />
               Share Token
             </Button>
           </div>

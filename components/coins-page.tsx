@@ -98,7 +98,7 @@ export default function CoinsPage() {
         background:
           "linear-gradient(0deg, #61BFD1 0%, #1BA351 33.66%, #FFE600 62.5%, #EE91B7 100%)",
       }}
-      className="min-h-screen p-4 pb-24 font-grotesk"
+      className="min-h-screen p-2 pb-24 font-grotesk"
     >
       <div className="min-h-screen max-w-lg mx-auto">
         {/* Main Content */}
@@ -134,7 +134,7 @@ export default function CoinsPage() {
 
           {/* Coins List */}
           {!isLoading && (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {coins.slice(0, visibleCount).length > 0 ? (
                 coins.slice(0, visibleCount).map((coin: CoinData) => (
                   <div key={coin.id} className="bg-white rounded-2xl p-4">
@@ -142,15 +142,18 @@ export default function CoinsPage() {
                       {/* Coin Image */}
 
                       {/* Coin Info */}
-                      <div className="flex flex-col gap-2 w-full">
+                      <div className="flex flex-col gap-4 w-full">
                         <div className="flex items-center justify-between text-sm">
-                          <h3 className="font-inktrap text-sm truncate">
+                          <h3 className="text-base truncate">
                             {coin.coin_name}
                           </h3>
-                          <span className="font-inktrap text-sm  text-gray-500 ml-2">
+                          <span className="text-sm uppercase text-gray-500 ml-2 bg-[#EDEDED] px-2 py-1 rounded-full">
                             ${coin.coin_symbol}
                           </span>
                         </div>
+                        <p className="text-xs text-gray-600 text-wrap">
+                          {coin.display_name}
+                        </p>
                         <div className="rounded-2xl overflow-hidden bg-gray-100 w-full">
                           {coin.coin_image_url ? (
                             <img
@@ -164,28 +167,26 @@ export default function CoinsPage() {
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <p className="text-xs text-gray-600 text-wrap">
-                            {coin.display_name}
-                          </p>
-                          {coin.creator_wallet_address && (
-                            <p className="text-xs text-gray-500">
-                              Created by{" "}
-                              {coin.creator_username ||
-                                formatWalletAddress(
-                                  coin.creator_wallet_address,
-                                )}
-                            </p>
-                          )}
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col gap-1">
+                            {coin.creator_wallet_address && (
+                              <p className="text-xs uppercase text-gray-500 font-bold">
+                                {coin.creator_username ||
+                                  formatWalletAddress(
+                                    coin.creator_wallet_address,
+                                  )}
+                              </p>
+                            )}
+                          </div>
+                          <a
+                            href={`https://zora.co/coin/base:${coin.coin_address}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-full bg-[#B5B5B5] px-5 py-2 text-center text-base text-black hover:opacity-90"
+                          >
+                            Trade on Zora
+                          </a>
                         </div>
-                        <a
-                          href={`https://zora.co/coin/base:${coin.coin_address}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-3 w-full rounded-full bg-black px-5 py-3 text-center font-inktrap text-base text-white hover:opacity-90"
-                        >
-                          Trade on Zora
-                        </a>
                       </div>
                     </div>
                   </div>

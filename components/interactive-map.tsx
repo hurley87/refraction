@@ -544,11 +544,11 @@ export default function InteractiveMap() {
             closeOnClick={false}
             className="z-50"
           >
-            <div className="p-3">
+            <div className="p-3 flex flex-col gap-2">
               {/* Coin Information */}
               {popupInfo.coin_address && (
                 <div className="">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3">
                     {popupInfo.coin_image_url && (
                       <img
                         src={popupInfo.coin_image_url}
@@ -565,30 +565,30 @@ export default function InteractiveMap() {
                       </p>
                     </div>
                   </div>
+                </div>
+              )}
+              <p className="text-xs text-gray-600 mt-1 text-wrap break-all">
+                {popupInfo.display_name}
+              </p>
+              {/* Location Information */}
+              <div className="">
+                <div className="flex items-center gap-2 justify-between">
+                  {(popupInfo.creator_username ||
+                    popupInfo.creator_wallet_address) && (
+                    <p className="text-xs uppercase text-gray-500 font-bold">
+                      {popupInfo.creator_username ||
+                        `${popupInfo.creator_wallet_address?.slice(0, 6)}...${popupInfo.creator_wallet_address?.slice(-4)}`}
+                    </p>
+                  )}{" "}
                   <a
                     href={`https://zora.co/coin/base:${popupInfo.coin_address}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full rounded-full bg-black px-4 py-3 text-center text-sm font-medium text-white hover:opacity-90"
+                    className="block rounded-full bg-[#B5B5B5] px-2 py-1 text-center text-sm text-black hover:opacity-90"
                   >
                     Trade on Zora
                   </a>
                 </div>
-              )}
-
-              {/* Location Information */}
-              <div className="">
-                <p className="text-xs text-gray-600 mt-1 text-wrap break-all">
-                  {popupInfo.display_name}
-                </p>
-                {(popupInfo.creator_username ||
-                  popupInfo.creator_wallet_address) && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Created by{" "}
-                    {popupInfo.creator_username ||
-                      `${popupInfo.creator_wallet_address?.slice(0, 6)}...${popupInfo.creator_wallet_address?.slice(-4)}`}
-                  </p>
-                )}
               </div>
             </div>
           </Popup>
