@@ -434,7 +434,7 @@ export default function InteractiveMap() {
         <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 md:p-4 shadow-2xl">
           <div className="flex gap-2 items-center">
             <Input
-              placeholder="Search for locations..."
+              placeholder="Search an address"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 h-11 md:h-12 rounded-full bg-white/70 dark:bg-zinc-900/60 border border-transparent px-4 text-sm placeholder:text-zinc-400 shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
@@ -584,7 +584,7 @@ export default function InteractiveMap() {
                     href={`https://zora.co/coin/base:${popupInfo.coin_address}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block rounded-full bg-[#B5B5B5] px-2 py-1 text-center text-sm text-black hover:opacity-90"
+                    className="block rounded-full bg-[#B5B5B5] px-2 py-1 text-center text-xs text-black hover:opacity-90"
                   >
                     Trade on Zora
                   </a>
