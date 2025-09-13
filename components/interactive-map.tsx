@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
-import { Search } from "lucide-react";
+import { Search, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePrivy } from "@privy-io/react-auth";
@@ -431,20 +431,24 @@ export default function InteractiveMap() {
     <div className="w-full h-full relative">
       {/* Search Controls + How To */}
       <div className="absolute top-4 left-4 right-4 z-10 space-y-2 max-w-xl">
-        <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl border border-white/20 rounded-2xl p-3 md:p-4 shadow-2xl">
+        <div className="bg-[var(--UI-White-65,rgba(255,255,255,0.65))] border border-[var(--UI-White-65,rgba(255,255,255,0.65))] rounded-3xl p-3 md:p-4 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px]">
           <div className="flex gap-2 items-center">
             <Input
               placeholder="Search an address"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 h-11 md:h-12 rounded-full bg-white/70 dark:bg-zinc-900/60 border border-transparent px-4 text-sm placeholder:text-zinc-400 shadow-inner focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+              className="flex-1 h-11 md:h-12 rounded-full bg-transparent px-4 text-sm text-black placeholder:text-black/60 border border-[#B5B5B5] bg-white"
             />
             <Button
               onClick={handleSearch}
               size="sm"
-              className="w-11 h-11 md:w-12 md:h-12 rounded-full bg-black hover:bg-black/80 p-0 shadow-lg"
+              className="w-11 h-11 md:w-12 md:h-12 rounded-full  p-0"
             >
-              <Search className="w-5 h-5 text-white" />
+              <img
+                src="/miniapp/search.png"
+                alt="Search"
+                className="w-11 h-11"
+              />
             </Button>
           </div>
 
@@ -544,50 +548,42 @@ export default function InteractiveMap() {
             closeOnClick={false}
             className="z-50"
           >
-            <div className="p-3 flex flex-col gap-2">
-              {/* Coin Information */}
-              {popupInfo.coin_address && (
-                <div className="">
-                  <div className="flex items-center gap-3">
-                    {popupInfo.coin_image_url && (
-                      <img
-                        src={popupInfo.coin_image_url}
-                        alt={popupInfo.coin_name || "Coin"}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-sm">
-                        {popupInfo.coin_name}
-                      </h3>
-                      <p className="text-xs text-gray-500 font-mono break-all">
-                        ${popupInfo.coin_symbol}
-                      </p>
-                    </div>
-                  </div>
+            <div className=" bg-white rounded-2xl overflow-hidden shadow-lg">
+              {popupInfo.coin_image_url && (
+                <div className="p-2 pt-6 pb-0">
+                  <img
+                    src={popupInfo.coin_image_url}
+                    alt={popupInfo.coin_name || "Coin image"}
+                    className="w-full h-28 object-cover rounded-xl"
+                  />
                 </div>
               )}
-              <p className="text-xs text-gray-600 mt-1 text-wrap break-all">
-                {popupInfo.display_name}
-              </p>
-              {/* Location Information */}
-              <div className="">
-                <div className="flex items-center gap-2 justify-between">
-                  {(popupInfo.creator_username ||
-                    popupInfo.creator_wallet_address) && (
-                    <p className="text-xs uppercase text-gray-500 font-bold">
-                      {popupInfo.creator_username ||
-                        `${popupInfo.creator_wallet_address?.slice(0, 6)}...${popupInfo.creator_wallet_address?.slice(-4)}`}
-                    </p>
-                  )}{" "}
-                  <a
-                    href={`https://zora.co/coin/base:${popupInfo.coin_address}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block rounded-full bg-[#B5B5B5] px-2 py-1 text-center text-xs text-black hover:opacity-90"
-                  >
-                    Trade on Zora
-                  </a>
+              <div className="p-3 flex flex-col gap-2">
+                <h3 className="text-base font-semibold text-black whitespace-normal break-words leading-tight">
+                  {popupInfo.coin_name || popupInfo.name}
+                </h3>
+                <div className="flex items-center gap-1 text-[10px] tracking-wide uppercase text-gray-500">
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  <span className="whitespace-normal break-words leading-tight">
+                    {popupInfo.display_name}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  {popupInfo.coin_symbol && (
+                    <span className="text-xs uppercase text-gray-700 bg-[#EDEDED] px-3 py-1 rounded-full whitespace-nowrap">
+                      ${popupInfo.coin_symbol}
+                    </span>
+                  )}
+                  {popupInfo.coin_address && (
+                    <a
+                      href={`https://zora.co/coin/base:${popupInfo.coin_address}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full bg-[#B5B5B5] px-2 py-1 text-center text-sm text-black hover:opacity-90"
+                    >
+                      Trade on Zora
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
