@@ -84,7 +84,7 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
         <div className="fixed inset-0 z-50 pointer-events-none flex flex-col pb-[120px]">
           {/* Card filling remaining height */}
           <div className="pointer-events-none ">
-            <div className="pointer-events-auto h-full bg-white/95 backdrop-blur shadow-2xl p-4 pt-0 pb-6 flex flex-col overflow-y-auto">
+            <div className="pointer-events-auto h-full bg-white/95 backdrop-blur p-4 pt-0 pb-6 flex flex-col overflow-y-auto">
               {/* Faux image area expands to fill */}
               <div className="rounded-2xl overflow-hidden bg-gray-100 flex-1 flex items-center justify-center">
                 {step?.imageSrc ? (
@@ -101,7 +101,7 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
               </div>
 
               {/* Step content */}
-              <div className="mt-4 rounded-2xl bg-white p-4 shadow-inner flex flex-col">
+              <div className="mt-4 rounded-2xl bg-white p-4 flex flex-col">
                 <div className="flex items-center justify-between">
                   <p className="text-gray-500 text-sm">
                     {currentStep}/{maxStep}
