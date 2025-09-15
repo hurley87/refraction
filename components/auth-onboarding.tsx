@@ -79,9 +79,11 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
     return (
       <>
         {children}
-        <div className="fixed inset-0 z-50 pointer-events-none flex flex-col">
+        {/* Fixed white background to cover entire screen */}
+        <div className="fixed inset-0 z-40 bg-white" />
+        <div className="fixed inset-0 z-50 pointer-events-none flex flex-col pb-[120px]">
           {/* Card filling remaining height */}
-          <div className="pointer-events-none pb-[120px]">
+          <div className="pointer-events-none ">
             <div className="pointer-events-auto h-full bg-white/95 backdrop-blur shadow-2xl p-4 pt-0 pb-6 flex flex-col overflow-y-auto">
               {/* Faux image area expands to fill */}
               <div className="rounded-2xl overflow-hidden bg-gray-100 flex-1 flex items-center justify-center">

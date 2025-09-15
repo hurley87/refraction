@@ -263,26 +263,37 @@ export default function Onboarding() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex justify-center items-center pb-[120px] overflow-y-auto">
-        <Button onClick={login}>Connect Wallet</Button>
-      </div>
+      <>
+        {/* Fixed white background to cover entire screen */}
+        <div className="fixed inset-0 z-40 bg-white" />
+        <div className="fixed inset-0 z-50 min-h-screen flex justify-center items-center pb-[120px] overflow-y-auto">
+          <Button onClick={login}>Connect Wallet</Button>
+        </div>
+      </>
     );
   }
 
   if (currentUsername) {
     return (
-      <div className="min-h-screen flex flex-col gap-4 items-center justify-center pb-[120px] p-6 overflow-y-auto">
-        <p className="text-xl text-[#6101FF]">Your username</p>
-        <p className="text-2xl font-bold">{currentUsername}</p>
-      </div>
+      <>
+        {/* Fixed white background to cover entire screen */}
+        <div className="fixed inset-0 z-40 bg-white" />
+        <div className="fixed inset-0 z-50 min-h-screen flex flex-col gap-4 items-center justify-center pb-[120px] p-6 overflow-y-auto">
+          <p className="text-xl text-[#6101FF]">Your username</p>
+          <p className="text-2xl font-bold">{currentUsername}</p>
+        </div>
+      </>
     );
   }
 
   console.log("wallet", wallet);
 
   return (
-    <div className="min-h-screen flex items-center justify-center pb-[120px] p-6 overflow-y-auto">
-      <div className="flex flex-col gap-6 bg-[#DBDFF2]/50 p-4 sm:p-8 rounded-lg max-w-[600px] font-sans w-full">
+    <>
+      {/* Fixed white background to cover entire screen */}
+      <div className="fixed inset-0 z-40 bg-white" />
+      <div className="fixed inset-0 z-50 min-h-screen flex items-center justify-center pb-[120px] p-6 overflow-y-auto">
+        <div className="flex flex-col gap-6 bg-[#DBDFF2]/50 p-4 sm:p-8 rounded-lg max-w-[600px] font-sans w-full">
         <div className="grid w-full items-center gap-1.5">
           <Label className="text-[#6101FF]">Username</Label>
           <Input
@@ -317,7 +328,8 @@ export default function Onboarding() {
           </Button>
         )}
         <button onClick={logout}>Logout</button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
