@@ -25,7 +25,7 @@ export async function GET() {
       ogTitle: "Check In with IRL",
       ogDescription:
         "In the know, on the map. IRL is how the city checks in—and earns rewards.",
-      ogImageUrl: "https://irl.energy/feed.png",
+      ogImageUrl: "https://irl.energy/banner.png",
       ogImageWidth: 1200,
       ogImageHeight: 630,
       ogImageType: "image/png",

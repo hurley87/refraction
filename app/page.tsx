@@ -11,7 +11,7 @@ const miniapp = {
   name: "IRL",
   iconUrl: `${appUrl}/miniapp/icon.svg`,
   homeUrl: `${appUrl}/interactive-map`,
-  imageUrl: `${appUrl}/miniapp/feed.png`,
+  imageUrl: `${appUrl}/miniapp/banner.png`,
   subtitle: "Map Your IRL World",
   description:
     "Check in. Earn points. Unlock perks. IRL makes every event and cultural experience more rewarding.",
@@ -22,7 +22,7 @@ const miniapp = {
       type: "launch_frame",
       name: "IRL",
       url: `${appUrl}/interactive-map`,
-      splashImageUrl: `${appUrl}/logo.svg`,
+      splashImageUrl: `${appUrl}/miniapp/logo.svg`,
       splashBackgroundColor: "#ffffff",
     },
   },
