@@ -443,6 +443,7 @@ export type UserProfile = {
   email?: string;
   name?: string;
   username?: string;
+  website?: string;
   twitter_handle?: string;
   towns_handle?: string;
   farcaster_handle?: string;
@@ -469,6 +470,7 @@ export const createOrUpdateUserProfile = async (
         email: profile.email || existingProfile.email,
         name: profile.name || existingProfile.name,
         username: profile.username || existingProfile.username,
+        website: profile.website,
         twitter_handle: profile.twitter_handle,
         towns_handle: profile.towns_handle,
         farcaster_handle: profile.farcaster_handle,
