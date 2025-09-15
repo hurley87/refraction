@@ -8,6 +8,20 @@ import { Label } from "@/components/ui/label";
 import { UserProfile } from "@/lib/supabase";
 import { toast } from "sonner";
 
+// Reusable Pencil Icon Component
+const PencilIcon = ({ onClick, className = "" }: { onClick: () => void; className?: string }) => (
+  <button
+    onClick={onClick}
+    className={`w-6 h-6 bg-[#ededed] hover:bg-gray-300 text-black rounded-full flex items-center justify-center transition-colors shadow-sm ${className}`}
+    aria-label="Edit"
+  >
+    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 22h18" opacity="0.3" />
+    </svg>
+  </button>
+);
+
 interface ProfileMenuProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,6 +34,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
     email: "",
     name: "",
     username: "",
+    website: "",
     twitter_handle: "",
     towns_handle: "",
     farcaster_handle: "",
@@ -65,6 +80,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
         email: data.email || user.email?.address || "",
         name: data.name || "",
         username: data.username || "",
+        website: data.website || "",
         twitter_handle: data.twitter_handle || "",
         towns_handle: data.towns_handle || "",
         farcaster_handle: data.farcaster_handle || "",
@@ -125,68 +141,116 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
   if (!user || !isMenuMounted) return null;
 
   return (
+    
     <div
-      className={`fixed font-inktrap inset-0 bg-white z-50 flex flex-col transition-all duration-300 ease-in-out ${
+      className={`fixed font-inktrap inset-0 bg-[#ededed] z-50 flex flex-col transition-all duration-300 ease-in-out ${
         isMenuVisible ? "opacity-100" : "opacity-0"
       }`}
     >
-      {/* Header */}
-      <div className="flex justify-between items-center p-4">
-        <h1 className="text-black text-lg font-medium font-inktrap uppercase">
-          PROFILE
-        </h1>
-        <button
-          onClick={onClose}
-          className="text-black p-2 rounded-full hover:bg-gray-100 transition-colors"
-          aria-label="Close menu"
-        >
-          <X size={24} />
-        </button>
-      </div>
+      <div className="max-w-lg mx-auto w-full flex flex-col h-full">
+        {/* Close Button - Full Width Overlay */}
+        <div className="w-full p-4">
+          <div className="bg-white rounded-3xl">
+            <button
+              onClick={onClose}
+              className="w-full text-black h-10 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center"
+              aria-label="Close menu"
+            >
+              <X size={24} />
+            </button>
+          </div>
+        </div>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-start px-4 pb-4 gap-6 overflow-y-auto">
+        {/* Content */}
+        <div className="flex-1 flex flex-col justify-start px-4 pb-4 gap-2 min-h-0">
+          <div className="w-full bg-white overflow-y-auto rounded-3xl border border-gray-200 p-4 flex-1">
+        {/* Header */}
+        <div className="w-full sm:max-w-sm">
+          <div className="text-black body-small uppercase">
+            PROFILE
+          </div>
+        </div>
+
+        {/* Avatar Section */}
+        <div className="w-full sm:max-w-sm flex flex-col items-center space-y-4">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+              {profile.profile_picture_url ? (
+                <img
+                  src={profile.profile_picture_url}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                  <span className="text-gray-600 text-2xl font-medium">
+                    {profile.name ? profile.name.charAt(0).toUpperCase() : '?'}
+                  </span>
+                </div>
+              )}
+            </div>
+            <PencilIcon
+              onClick={() => {
+                // TODO: Implement image upload functionality
+                toast.info("Image upload coming soon!");
+              }}
+              className="absolute -bottom-1 -right-1 w-8 h-8"
+            />
+          </div>
+         
+        </div>
+
         {/* Form Fields */}
-        <div className="w-full max-w-sm space-y-4">
+        <div className="w-full sm:max-w-sm space-y-4">
           {/* Email */}
           <div className="space-y-2">
             <Label
               htmlFor="email"
-              className="text-black text-sm font-inktrap uppercase"
+              className="text-black body-small uppercase"
             >
               EMAIL
             </Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="name@gmail.com"
-              value={profile.email}
-              onChange={(e) => handleInputChange("email", e.target.value)}
-              className="bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3"
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@gmail.com"
+                value={profile.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
+                className="bg-white border-gray-300 text-black placeholder:text-gray-500 body-large rounded-full px-4 h-10 flex-1"
+              />
+              <PencilIcon
+                onClick={handleSave}  
+              />
+            </div>
           </div>
 
           {/* Name */}
           <div className="space-y-2">
             <Label
               htmlFor="name"
-              className="text-black text-sm font-inktrap uppercase"
+              className="text-black body-small uppercase"
             >
               NAME
             </Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="Your name"
-              value={profile.name}
-              onChange={(e) => handleInputChange("name", e.target.value)}
-              className="bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3"
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                id="name"
+                type="text"
+                placeholder="Your name"
+                value={profile.username}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                className="bg-white border-gray-300 text-black placeholder:text-gray-500 body-large rounded-full px-4 h-10 flex-1"
+              />
+              <PencilIcon
+                onClick={handleSave}
+              />
+            </div>
           </div>
 
           {/* Earn More Section */}
-          <div className="bg-yellow-200 rounded-lg p-4 my-6">
-            <p className="text-black text-sm font-inktrap uppercase font-semibold">
+          <div className="bg-[#ededed] rounded-lg p-4 my-6">
+            <p className="text-black uppercase body-small">
               EARN MORE
             </p>
             <p className="text-black text-sm font-inktrap">
@@ -198,84 +262,127 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
 
           {/* Social Handles */}
           <div className="space-y-4">
+            {/* Website */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="website"
+                className="text-black body-small uppercase"
+              >
+                WEBSITE
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="website"
+                  type="text"
+                  placeholder="www.yourwebsite.com"
+                  value={profile.website || "www."}
+                  onChange={(e) => handleInputChange("website", e.target.value)}
+                  className="bg-white border-gray-300 text-black placeholder:text-gray-500 body-large rounded-full px-4 h-10 flex-1"
+                />
+                <PencilIcon
+                  onClick={handleSave}
+                />
+              </div>
+            </div>
+
             {/* X (Twitter) */}
             <div className="space-y-2">
               <Label
                 htmlFor="twitter"
-                className="text-black text-sm font-inktrap uppercase"
+                className="text-black body-small uppercase"
               >
                 X
               </Label>
-              <Input
-                id="twitter"
-                type="text"
-                placeholder="Your X handle"
-                value={profile.twitter_handle}
-                onChange={(e) =>
-                  handleInputChange("twitter_handle", e.target.value)
-                }
-                className="bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="twitter"
+                  type="text"
+                  placeholder="Your X handle"
+                  value={profile.twitter_handle}
+                  onChange={(e) =>
+                    handleInputChange("twitter_handle", e.target.value)
+                  }
+                  className="bg-white border-gray-300 text-black placeholder:text-gray-500 body-large rounded-full px-4 h-10 flex-1"
+                />
+                <PencilIcon
+                  onClick={handleSave}
+                />
+              </div>
             </div>
 
             {/* Towns */}
             <div className="space-y-2">
               <Label
                 htmlFor="towns"
-                className="text-black text-sm font-inktrap uppercase"
+                className="text-black body-small uppercase"
               >
                 TOWNS
               </Label>
-              <Input
-                id="towns"
-                type="text"
-                placeholder="Your Towns handle"
-                value={profile.towns_handle}
-                onChange={(e) =>
-                  handleInputChange("towns_handle", e.target.value)
-                }
-                className="bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="towns"
+                  type="text"
+                  placeholder="Your Towns handle"
+                  value={profile.towns_handle}
+                  onChange={(e) =>
+                    handleInputChange("towns_handle", e.target.value)
+                  }
+                  className="bg-white border-gray-300 text-black placeholder:text-gray-500 body-large rounded-full px-4 h-10 flex-1"
+                />
+                <PencilIcon
+                  onClick={handleSave}
+                />
+              </div>
             </div>
 
             {/* Farcaster */}
             <div className="space-y-2">
               <Label
                 htmlFor="farcaster"
-                className="text-black text-sm font-inktrap uppercase"
+                className="text-black body-small uppercase"
               >
                 FARCASTER
               </Label>
-              <Input
-                id="farcaster"
-                type="text"
-                placeholder="Your Farcaster handle"
-                value={profile.farcaster_handle}
-                onChange={(e) =>
-                  handleInputChange("farcaster_handle", e.target.value)
-                }
-                className="bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="farcaster"
+                  type="text"
+                  placeholder="Your Farcaster handle"
+                  value={profile.farcaster_handle}
+                  onChange={(e) =>
+                    handleInputChange("farcaster_handle", e.target.value)
+                  }
+                  className="bg-white border-gray-300 text-black placeholder:text-gray-500 body-large rounded-full px-4 h-10 flex-1"
+                />
+                <PencilIcon
+                  onClick={handleSave}
+                />
+              </div>
             </div>
 
             {/* Telegram */}
             <div className="space-y-2">
               <Label
                 htmlFor="telegram"
-                className="text-black text-sm font-inktrap uppercase"
+                className="text-black body-small uppercase"
               >
                 TELEGRAM
               </Label>
-              <Input
-                id="telegram"
-                type="text"
-                placeholder="Your Telegram handle"
-                value={profile.telegram_handle}
-                onChange={(e) =>
-                  handleInputChange("telegram_handle", e.target.value)
-                }
-                className="bg-white border-gray-300 text-black placeholder:text-gray-500 rounded-full px-4 py-3"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="telegram"
+                  type="text"
+                  placeholder="Your Telegram handle"
+                  value={profile.telegram_handle}
+                  onChange={(e) =>
+                    handleInputChange("telegram_handle", e.target.value)
+                  }
+                  className="bg-white border-gray-300 text-black placeholder:text-gray-500 body-large rounded-full px-4 h-10 flex-1"
+                />
+                <PencilIcon
+                  onClick={handleSave}
+                />
+              </div>
             </div>
           </div>
 
@@ -284,7 +391,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-full px-4 py-3 font-inktrap text-xs uppercase transition-colors"
+              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-full px-4 h-10 font-inktrap text-xs uppercase transition-colors"
             >
               {saving ? "..." : "Save"}
             </button>
@@ -292,17 +399,19 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
         </div>
 
         {/* Log Out Button */}
-        <div className="w-full max-w-sm mt-8">
+        <div className="w-full sm:max-w-sm mt-8">
           <button
             onClick={() => {
               logout();
               onClose();
             }}
-            className="w-full bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors flex items-center justify-center gap-2 font-inktrap py-3"
+            className="w-full bg-[#313131] text-white hover:bg-gray-600 transition-colors flex items-center justify-between h-10 px-4 pl-4 pr-2 flex-shrink-0 self-stretch rounded-[100px]"
           >
+            <h4>Log Out</h4>
             <LogOut size={18} />
-            <span>Log Out</span>
           </button>
+        </div>
+        </div>
         </div>
       </div>
     </div>
