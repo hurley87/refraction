@@ -44,6 +44,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
   const [saving, setSaving] = useState(false);
   const [isMenuMounted, setIsMenuMounted] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const [website_link] = useState(false);
 
   // Handle menu open/close with transitions
   useEffect(() => {
@@ -239,7 +240,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
                 type="text"
                 placeholder="Your name"
                 value={profile.username}
-                onChange={(e) => handleInputChange("name", e.target.value)}
+                onChange={(e) => handleInputChange("username", e.target.value)}
                 className="bg-white border-gray-300 text-black placeholder:text-gray-500 body-large rounded-full px-4 h-10 flex-1"
               />
               <PencilIcon
@@ -250,10 +251,10 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
 
           {/* Earn More Section */}
           <div className="bg-[#ededed] rounded-lg p-4 my-6">
-            <p className="text-black uppercase body-small">
+            <p className="text-black uppercase font-bold body-small">
               EARN MORE
             </p>
-            <p className="text-black text-sm font-inktrap">
+            <p className="text-black  body-small">
               Add Social Handles
               <br />
               and receive points
@@ -263,27 +264,29 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
           {/* Social Handles */}
           <div className="space-y-4">
             {/* Website */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="website"
-                className="text-black body-small uppercase"
-              >
-                WEBSITE
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="website"
-                  type="text"
-                  placeholder="www.yourwebsite.com"
-                  value={profile.website || "www."}
-                  onChange={(e) => handleInputChange("website", e.target.value)}
-                  className="bg-white border-gray-300 text-black placeholder:text-gray-500 body-large rounded-full px-4 h-10 flex-1"
-                />
-                <PencilIcon
-                  onClick={handleSave}
-                />
+            {website_link && (
+              <div className="space-y-2">
+                <Label
+                  htmlFor="website"
+                  className="text-black body-small uppercase"
+                >
+                  WEBSITE
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="website"
+                    type="text"
+                    placeholder="www.yourwebsite.com"
+                    value={profile.website || "www."}
+                    onChange={(e) => handleInputChange("website", e.target.value)}
+                    className="bg-white border-gray-300 text-black placeholder:text-gray-500 body-large rounded-full px-4 h-10 flex-1"
+                  />
+                  <PencilIcon
+                    onClick={handleSave}
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* X (Twitter) */}
             <div className="space-y-2">
