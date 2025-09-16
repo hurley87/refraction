@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { ArrowRight, Trophy } from "lucide-react";
+import Image from "next/image";
 import Header from "./header";
 import Link from "next/link";
 import { useLocationGame } from "@/hooks/useLocationGame";
@@ -21,6 +22,22 @@ interface LeaderboardUser {
   total_checkins: number;
   rank: number;
 }
+
+// Helper function to get ordinal suffix
+const getOrdinalSuffix = (num: number): string => {
+  const j = num % 10;
+  const k = num % 100;
+  if (j === 1 && k !== 11) {
+    return "st";
+  }
+  if (j === 2 && k !== 12) {
+    return "nd";
+  }
+  if (j === 3 && k !== 13) {
+    return "rd";
+  }
+  return "th";
+};
 
 export default function LeaderboardPage() {
   const { user } = usePrivy();
@@ -57,6 +74,7 @@ export default function LeaderboardPage() {
         if (response.ok) {
           const result = await response.json();
           const player = result.player;
+          console.table(player);
 
           if (player) {
             // Calculate rank from leaderboard or make separate API call
@@ -201,7 +219,7 @@ export default function LeaderboardPage() {
     <div
       style={{
         background:
-          "linear-gradient(0deg, #61BFD1 0%, #1BA351 33.66%, #FFE600 62.5%, #EE91B7 100%)",
+          "linear-gradient(0deg, #61BFD1 0%, #EE91B7 26.92%, #FFE600 54.33%, #1BA351 100%)",        
       }}
       className="min-h-screen p-4 pb-0 font-grotesk"
     >
@@ -209,79 +227,70 @@ export default function LeaderboardPage() {
         {/* Status Bar */}
         <Header />
 
-        {/* Leaderboard Header */}
-        <div className="px-0 pt-8 mb-6">
-          <div className="bg-white rounded-2xl p-4 flex items-center justify-between">
-            <h1 className="text-xl font-inktrap font-bold text-black">
-              Leaderboard
-            </h1>
-          </div>
-        </div>
-
         {/* Main Content */}
-        <div className="px-0 space-y-4">
+        <div className="px-0 pt-4 space-y-4">
           {/* Your Place and Points Card */}
           {currentUserAddress && (
-            <div className="bg-white rounded-2xl p-4">
+            <div className="bg-white/20 backdrop-blur-md rounded-2xl p-4 border border-white/30">
               <div className="grid grid-cols-2 gap-6">
                 {/* Your Place */}
                 <div>
-                  <p className="text-xs font-inktrap text-gray-600 mb-3 uppercase tracking-wide">
-                    YOUR PLACE
-                  </p>
-                  <div className="flex items-center">
-                    {isLoadingUserStats ? (
-                      <div className="w-6 h-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-                    ) : (
-                      <span className="text-2xl font-inktrap font-bold text-black">
-                        {userStats?.rank || "?"}
-                      </span>
-                    )}
+                  <div className="flex items-center gap-2 mb-3">
+                    <Trophy className="w-4 h-4 text-white" />
+                    <p className="body-small text-white uppercase tracking-wide">
+                      Your Rank
+                    </p>
                   </div>
+                 
                 </div>
 
-                {/* Your Points */}
-                <div>
-                  <p className="text-xs font-inktrap text-gray-600 mb-3 uppercase tracking-wide">
-                    YOUR POINTS
-                  </p>
-                  <div className="flex items-baseline gap-2">
-                    {isLoadingUserStats ? (
-                      <div className="w-16 h-8 bg-gray-200 animate-pulse rounded"></div>
-                    ) : (
-                      <>
-                        <span className="text-2xl font-inktrap font-bold text-black">
-                          {userStats?.total_points || 0}
-                        </span>
-                        <span className="text-sm font-inktrap text-gray-600">
-                          pts
-                        </span>
-                      </>
-                    )}
-                  </div>
+                {/* Your Rank Display */}
+                <div className="flex items-center justify-end">
+                  {isLoadingUserStats ? (
+                    <div className="w-16 h-8 bg-gray-200 animate-pulse rounded"></div>
+                  ) : userStats?.rank ? (
+                    <div className="flex items-baseline gap-1">
+                      <div className="flex items-baseline">
+                        <div className="display1 text-white font-inktrap">
+                          {userStats.rank}
+                        </div>
+                        <h3 className="text-white font-inktrap font-normal">
+                          {getOrdinalSuffix(userStats.rank)}
+                        </h3>
+                      </div>
+                      <div className="w-[39px] h-[18px]">
+                        <Image src="/place.png" alt="Points" width={39} height={18} />
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="display1 text-white">?</span>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Leaderboard Table */}
+          {/* Leaderboard Table Header */}
           <div className="bg-white rounded-2xl p-4">
-            {/* Table Header */}
-            <div className="grid grid-cols-3 gap-4 pb-3 border-b border-gray-200 mb-4">
-              <span className="text-xs font-inktrap text-gray-600 uppercase tracking-wide">
+            <div className="grid grid-cols-3 gap-4">
+              <span className="body-small  text-gray-600 uppercase tracking-wide">
                 PLACE
               </span>
-              <span className="text-xs font-inktrap text-gray-600 uppercase tracking-wide">
+              <span className="body-small  text-gray-600 uppercase tracking-wide">
                 NAME
               </span>
-              <span className="text-xs font-inktrap text-gray-600 uppercase tracking-wide text-right">
+              <span className="body-small  text-gray-600 uppercase tracking-wide text-right">
                 PTS
               </span>
             </div>
+          </div>
+
+          {/* Leaderboard Entries */}
+          <div className="space-y-1">
 
             {/* Loading State */}
             {isLeaderboardLoading && (
-              <div className="space-y-2">
+              <>
                 {[...Array(itemsPerPage)].map((_, i) => (
                   <div
                     key={i}
@@ -292,25 +301,25 @@ export default function LeaderboardPage() {
                     <div className="w-12 h-4 bg-gray-200 rounded ml-auto"></div>
                   </div>
                 ))}
-              </div>
+              </>
             )}
 
             {/* Leaderboard Entries */}
             {!isLeaderboardLoading && (
-              <div className="space-y-2">
+              <>
                 {getCurrentPageData().length > 0 ? (
                   getCurrentPageData().map((entry: LeaderboardUser) => (
                     <div
                       key={entry.player_id}
-                      className={`rounded-2xl p-4 grid grid-cols-3 gap-4 items-center ${
+                      className={`rounded-2xl p-4 grid grid-cols-3 gap-4 items-center bg-white ${
                         entry.wallet_address === currentUserAddress
-                          ? "bg-blue-50 border-2 border-blue-200"
-                          : "bg-gray-50"
+                          ? "border-2 border-blue-200"
+                          : ""
                       }`}
                     >
                       {/* Rank */}
                       <div className="flex items-center gap-2">
-                        <span className="text-base sm:text-lg font-inktrap font-medium text-black">
+                        <span className="body-small  font-medium text-black">
                           {entry.rank}
                         </span>
                       </div>
@@ -334,7 +343,7 @@ export default function LeaderboardPage() {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8">
+                  <div className="bg-white rounded-2xl p-8 text-center">
                     <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-600 font-inktrap">
                       No players yet!
@@ -344,7 +353,7 @@ export default function LeaderboardPage() {
                     </p>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
 
