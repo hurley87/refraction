@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get('activeOnly') !== 'false';
-    
+
     const perks = await getAllPerks(activeOnly);
     return NextResponse.json({ perks });
   } catch (error) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  checkAdminPermission,
   type Perk,
   type PerkDiscountCode,
 } from "@/lib/supabase";
@@ -30,6 +29,24 @@ import { usePrivy } from "@privy-io/react-auth";
 export default function AdminPerksPage() {
   const { user, login } = usePrivy();
   const queryClient = useQueryClient();
+
+  // Check admin status with simple POST request
+  const checkAdminStatus = async () => {
+    if (!user?.email?.address) return false;
+
+    try {
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email.address })
+      });
+      const data = await response.json();
+      return data.isAdmin;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+  };
   const [editingPerk, setEditingPerk] = useState<Perk | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Perk>>({
@@ -49,9 +66,25 @@ export default function AdminPerksPage() {
   const [newCodes, setNewCodes] = useState("");
   const [perkCodes, setPerkCodes] = useState<PerkDiscountCode[]>([]);
 
-  // Check admin permissions using shared helper (email allowlist)
-  const isAdmin = checkAdminPermission(user?.email?.address);
-  const adminLoading = false;
+  // Admin check will be done server-side
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [adminLoading, setAdminLoading] = useState(true);
+
+  // Check admin status when user is available
+  useEffect(() => {
+    const verifyAdmin = async () => {
+      if (user?.email?.address) {
+        const adminStatus = await checkAdminStatus();
+        setIsAdmin(adminStatus);
+        setAdminLoading(false);
+      } else if (user === null) {
+        setIsAdmin(false);
+        setAdminLoading(false);
+      }
+    };
+
+    verifyAdmin();
+  }, [user]);
 
   // Fetch all perks
   const { data: perks = [], isLoading: perksLoading } = useQuery({
@@ -72,9 +105,7 @@ export default function AdminPerksPage() {
     ) => {
       const response = await fetch("/api/admin/perks", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(perkData),
       });
       if (!response.ok) throw new Error("Failed to create perk");
@@ -103,9 +134,7 @@ export default function AdminPerksPage() {
     }) => {
       const response = await fetch(`/api/admin/perks/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
       });
       if (!response.ok) throw new Error("Failed to update perk");
@@ -152,9 +181,7 @@ export default function AdminPerksPage() {
     }) => {
       const response = await fetch(`/api/admin/perks/${perkId}/codes`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ codes }),
       });
       if (!response.ok) throw new Error("Failed to create discount codes");
