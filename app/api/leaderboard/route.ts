@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const limitParam = searchParams.get("limit");
+    const offsetParam = searchParams.get("offset");
     const playerIdParam = searchParams.get("playerId");
 
     // If requesting specific player stats
@@ -28,6 +29,8 @@ export async function GET(request: NextRequest) {
 
     // Get leaderboard
     const limit = limitParam ? parseInt(limitParam) : 10;
+    const offset = offsetParam ? parseInt(offsetParam) : 0;
+    
     if (isNaN(limit) || limit < 1 || limit > 100) {
       return NextResponse.json(
         { error: "Limit must be between 1 and 100" },
@@ -35,7 +38,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const leaderboard = await getLeaderboard(limit);
+    if (isNaN(offset) || offset < 0) {
+      return NextResponse.json(
+        { error: "Offset must be 0 or greater" },
+        { status: 400 }
+      );
+    }
+
+    const leaderboard = await getLeaderboard(limit, offset);
 
     return NextResponse.json({
       success: true,
