@@ -299,7 +299,7 @@ export default function LeaderboardPage() {
           </div>
 
           {/* Jump To User Button */}
-          {showJumpButton && userStats?.rank && (
+          {showJumpButton && userStats?.rank && userStats.rank < 51 && (
             <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
               <button
                 onClick={hasJumpedToUser ? backToTop : jumpToUserRank}
