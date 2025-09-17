@@ -370,12 +370,12 @@ export const listLocationsByWallet = async (walletAddress: string) => {
   return (data || []).map((row: any) => row.locations).filter(Boolean);
 };
 
-export const getLeaderboard = async (limit: number = 10) => {
+export const getLeaderboard = async (limit: number = 10, offset: number = 0) => {
   const { data: players, error } = await supabase
     .from("players")
     .select("id, wallet_address, username, email, total_points")
     .order("total_points", { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
 
   if (error) throw error;
 
@@ -394,7 +394,7 @@ export const getLeaderboard = async (limit: number = 10) => {
         email: player.email,
         total_points: player.total_points,
         total_checkins: count || 0,
-        rank: index + 1,
+        rank: offset + index + 1, // Adjust rank based on offset
       };
     }),
   );

@@ -48,16 +48,58 @@ export default function LeaderboardPage() {
   const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
   const [showJumpButton, setShowJumpButton] = useState(false);
   const [hasJumpedToUser, setHasJumpedToUser] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreData, setHasMoreData] = useState(true);
+  const [extendedLeaderboard, setExtendedLeaderboard] = useState<LeaderboardUser[]>([]);
   const currentUserAddress = user?.wallet?.address;
   const currentUsername = user?.google?.name || user?.twitter?.name;
+  
+  const itemsPerPage = 50;
 
-  // Fetch leaderboard data
+  // Fetch initial leaderboard data
   useEffect(() => {
     const loadLeaderboard = async () => {
-      await fetchLeaderboard(50); // Fetch all entries for scrolling
+      await fetchLeaderboard(itemsPerPage); // Fetch first batch
     };
     loadLeaderboard();
   }, []);
+
+  // Sync hook's leaderboard with extended leaderboard
+  useEffect(() => {
+    if (leaderboard.length > 0 && extendedLeaderboard.length === 0) {
+      setExtendedLeaderboard(leaderboard);
+    }
+  }, [leaderboard]);
+
+  // Load more entries
+  const loadMoreEntries = async () => {
+    if (isLoadingMore || !hasMoreData) return;
+    
+    setIsLoadingMore(true);
+    try {
+      const response = await fetch(`/api/leaderboard?limit=${itemsPerPage}&offset=${currentPage * itemsPerPage}`);
+      const result = await response.json();
+      
+      if (response.ok && result.leaderboard?.length > 0) {
+        // Append new entries to extended leaderboard
+        setExtendedLeaderboard(prev => [...prev, ...result.leaderboard]);
+        setCurrentPage(prev => prev + 1);
+        
+        // Check if we got fewer items than requested (end of data)
+        if (result.leaderboard.length < itemsPerPage) {
+          setHasMoreData(false);
+        }
+      } else {
+        setHasMoreData(false);
+      }
+    } catch (error) {
+      console.error("Error loading more entries:", error);
+      setHasMoreData(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   // Fetch current user's stats
   useEffect(() => {
@@ -76,9 +118,9 @@ export default function LeaderboardPage() {
           console.table(player);
 
           if (player) {
-            // Calculate rank from leaderboard or make separate API call
+            // Calculate rank from extended leaderboard or make separate API call
             const userRank =
-              leaderboard.findIndex(
+              extendedLeaderboard.findIndex(
                 (entry) => entry.wallet_address === currentUserAddress,
               ) + 1;
 
@@ -105,23 +147,32 @@ export default function LeaderboardPage() {
       }
     };
 
-    if (currentUserAddress && leaderboard.length > 0) {
+    if (currentUserAddress && extendedLeaderboard.length > 0) {
       loadUserStats();
     }
-  }, [currentUserAddress, leaderboard]);
+  }, [currentUserAddress, extendedLeaderboard]);
 
-  // Handle scroll detection for Jump To button
+  // Handle scroll detection for Jump To button and infinite scroll
   useEffect(() => {
     const handleScroll = () => {
       const scrolled = window.scrollY > 200;
       setShowJumpButton(scrolled);
+      
+      // Infinite scroll detection
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollTop = document.documentElement.scrollTop;
+      const clientHeight = document.documentElement.clientHeight;
+      
+      if (scrollTop + clientHeight >= scrollHeight - 1000 && hasMoreData && !isLoadingMore) {
+        loadMoreEntries();
+      }
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [hasMoreData, isLoadingMore]);
 
-  // Jump to user's rank
+  // Jump to user's rank (simple version for top 100 only)
   const jumpToUserRank = () => {
     if (userStats?.rank) {
       const userElement = document.querySelector(`[data-rank="${userStats.rank}"]`);
@@ -238,8 +289,8 @@ export default function LeaderboardPage() {
             {/* Leaderboard Entries */}
             {!isLeaderboardLoading && (
               <>
-                {leaderboard.length > 0 ? (
-                  leaderboard.map((entry: LeaderboardUser) => (
+                {extendedLeaderboard.length > 0 ? (
+                  extendedLeaderboard.map((entry: LeaderboardUser) => (
                     <div
                       key={entry.player_id}
                       data-rank={entry.rank}
@@ -296,10 +347,24 @@ export default function LeaderboardPage() {
                 )}
               </>
             )}
+            
+            {/* Loading More Indicator */}
+            {isLoadingMore && (
+              <div className="bg-white rounded-2xl p-4 flex justify-center">
+                <div className="w-6 h-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+              </div>
+            )}
+            
+            {/* End of Data Indicator */}
+            {!hasMoreData && extendedLeaderboard.length > 0 && (
+              <div className="bg-white rounded-2xl p-4 text-center">
+                <p className="text-gray-500 body-small">End of leaderboard</p>
+              </div>
+            )}
           </div>
 
           {/* Jump To User Button */}
-          {showJumpButton && userStats?.rank && userStats.rank < 51 && (
+          {showJumpButton && userStats?.rank && userStats.rank <= 100 && (
             <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
               <button
                 onClick={hasJumpedToUser ? backToTop : jumpToUserRank}
@@ -331,10 +396,6 @@ export default function LeaderboardPage() {
           )}
         </div>
 
-        {/* Bottom IRL Section */}
-        <div className="py-6">
-          <img src="/irl-bottom-logo.svg" alt="IRL" className="w-full h-auto" />
-        </div>
       </div>
     </div>
   );
