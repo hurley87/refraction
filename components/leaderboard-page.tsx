@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { ArrowRight, Trophy } from "lucide-react";
+import {  Trophy, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Header from "./header";
 import Link from "next/link";
@@ -44,18 +44,17 @@ export default function LeaderboardPage() {
   const { fetchLeaderboard, leaderboard, isLeaderboardLoading } =
     useLocationGame();
 
-  const [currentPage, setCurrentPage] = useState(1);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
-  const [totalPages, setTotalPages] = useState(1);
-
-  const itemsPerPage = 9;
+  const [showJumpButton, setShowJumpButton] = useState(false);
+  const [hasJumpedToUser, setHasJumpedToUser] = useState(false);
   const currentUserAddress = user?.wallet?.address;
+  const currentUsername = user?.google?.name || user?.twitter?.name;
 
   // Fetch leaderboard data
   useEffect(() => {
     const loadLeaderboard = async () => {
-      await fetchLeaderboard(50); // Fetch more entries for pagination
+      await fetchLeaderboard(50); // Fetch all entries for scrolling
     };
     loadLeaderboard();
   }, []);
@@ -111,109 +110,38 @@ export default function LeaderboardPage() {
     }
   }, [currentUserAddress, leaderboard]);
 
-  // Calculate pagination
+  // Handle scroll detection for Jump To button
   useEffect(() => {
-    const pages = Math.ceil(leaderboard.length / itemsPerPage);
-    setTotalPages(pages || 1);
-  }, [leaderboard]);
+    const handleScroll = () => {
+      const scrolled = window.scrollY > 200;
+      setShowJumpButton(scrolled);
+    };
 
-  // Get current page data
-  const getCurrentPageData = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return leaderboard.slice(startIndex, endIndex);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Jump to user's rank
+  const jumpToUserRank = () => {
+    if (userStats?.rank) {
+      const userElement = document.querySelector(`[data-rank="${userStats.rank}"]`);
+      if (userElement) {
+        userElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHasJumpedToUser(true);
+      }
+    }
+  };
+
+  // Back to top
+  const backToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setHasJumpedToUser(false);
   };
 
   const formatWalletAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
-
-  const renderPaginationButtons = () => {
-    const buttons: React.ReactNode[] = [];
-
-    // Always show first page
-    if (currentPage > 3) {
-      buttons.push(
-        <button
-          key={1}
-          onClick={() => handlePageChange(1)}
-          className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
-        >
-          1
-        </button>,
-      );
-
-      if (currentPage > 4) {
-        buttons.push(
-          <span key="ellipsis1" className="px-2 text-gray-500 font-inktrap">
-            ...
-          </span>,
-        );
-      }
-    }
-
-    // Show pages around current page
-    const start = Math.max(1, currentPage - 1);
-    const end = Math.min(totalPages, currentPage + 1);
-
-    for (let i = start; i <= end; i++) {
-      buttons.push(
-        <button
-          key={i}
-          onClick={() => handlePageChange(i)}
-          className={`w-10 h-10 rounded-full font-inktrap font-medium text-sm flex items-center justify-center ${
-            i === currentPage
-              ? "bg-black text-white"
-              : "bg-white text-black border border-gray-200 hover:bg-gray-50"
-          }`}
-        >
-          {i}
-        </button>,
-      );
-    }
-
-    // Show last page if needed
-    if (currentPage < totalPages - 2) {
-      if (currentPage < totalPages - 3) {
-        buttons.push(
-          <span key="ellipsis2" className="px-2 text-gray-500 font-inktrap">
-            ...
-          </span>,
-        );
-      }
-
-      buttons.push(
-        <button
-          key={totalPages}
-          onClick={() => handlePageChange(totalPages)}
-          className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
-        >
-          {totalPages}
-        </button>,
-      );
-    }
-
-    // Next button
-    if (currentPage < totalPages) {
-      buttons.push(
-        <button
-          key="next"
-          onClick={() => handlePageChange(currentPage + 1)}
-          className="w-10 h-10 rounded-full bg-white text-black font-inktrap font-medium text-sm flex items-center justify-center border border-gray-200 hover:bg-gray-50"
-        >
-          <ArrowRight className="w-4 h-4" />
-        </button>,
-      );
-    }
-
-    return buttons;
-  };
 
   return (
     <div
@@ -271,12 +199,15 @@ export default function LeaderboardPage() {
           )}
 
           {/* Leaderboard Table Header */}
-          <div className="bg-white rounded-2xl p-4">
-            <div className="grid grid-cols-3 gap-4">
+   
+
+          {/* Leaderboard Header - Sticky */}
+          <div className="sticky top-0 z-10 bg-white rounded-2xl p-4 shadow-sm">
+            <div className="grid grid-cols-[auto_1fr_auto] gap-4">
               <span className="body-small  text-gray-600 uppercase tracking-wide">
                 PLACE
               </span>
-              <span className="body-small  text-gray-600 uppercase tracking-wide">
+              <span className="body-small  text-gray-600 uppercase tracking-wide pl-2">
                 NAME
               </span>
               <span className="body-small  text-gray-600 uppercase tracking-wide text-right">
@@ -291,10 +222,10 @@ export default function LeaderboardPage() {
             {/* Loading State */}
             {isLeaderboardLoading && (
               <>
-                {[...Array(itemsPerPage)].map((_, i) => (
+                {[...Array(10)].map((_, i) => (
                   <div
                     key={i}
-                    className="bg-gray-50 rounded-2xl p-4 grid grid-cols-3 gap-4 items-center animate-pulse"
+                    className="bg-gray-50 rounded-2xl p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center animate-pulse"
                   >
                     <div className="w-6 h-6 bg-gray-200 rounded"></div>
                     <div className="w-20 h-4 bg-gray-200 rounded"></div>
@@ -307,38 +238,48 @@ export default function LeaderboardPage() {
             {/* Leaderboard Entries */}
             {!isLeaderboardLoading && (
               <>
-                {getCurrentPageData().length > 0 ? (
-                  getCurrentPageData().map((entry: LeaderboardUser) => (
+                {leaderboard.length > 0 ? (
+                  leaderboard.map((entry: LeaderboardUser) => (
                     <div
                       key={entry.player_id}
-                      className={`rounded-2xl p-4 grid grid-cols-3 gap-4 items-center bg-white ${
+                      data-rank={entry.rank}
+                      className={`rounded-2xl p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center ${
                         entry.wallet_address === currentUserAddress
-                          ? "border-2 border-blue-200"
-                          : ""
+                          ? "bg-[#4F4F4F]"
+                          : "bg-white"
                       }`}
                     >
                       {/* Rank */}
                       <div className="flex items-center gap-2">
-                        <span className="body-small  font-medium text-black">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ededed] body-small font-medium text-black">
                           {entry.rank}
                         </span>
                       </div>
+                      
 
-                      {/* Name */}
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Link href={`/profiles/${entry.wallet_address}`}>
-                          <span className="font-inktrap text-black text-xs sm:text-sm truncate">
-                            {entry.username ||
-                              formatWalletAddress(entry.wallet_address)}
-                          </span>
-                        </Link>
-                      </div>
+                        {/* Name */}
+                        <div className="flex items-center gap-2 min-w-0 pl-5">
+                          <Link href={`/profiles/${entry.wallet_address}`}>
+                            <span className={`title4 truncate ${
+                              entry.wallet_address === currentUserAddress
+                                ? "text-white"
+                                : "text-black"
+                            }`}>
+                              {entry.username ||
+                                formatWalletAddress(entry.wallet_address)}
+                            </span>
+                          </Link>
+                        </div>
 
                       {/* Points */}
                       <div className="text-right">
-                        <span className="font-inktrap font-medium text-black text-xs sm:text-sm">
+                        <div className={`body-medium ${
+                          entry.wallet_address === currentUserAddress
+                            ? "text-white"
+                            : "text-black"
+                        }`}>
                           {entry.total_points.toLocaleString()}
-                        </span>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -357,10 +298,35 @@ export default function LeaderboardPage() {
             )}
           </div>
 
-          {/* Pagination */}
-          {!isLeaderboardLoading && totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 py-6">
-              {renderPaginationButtons()}
+          {/* Jump To User Button */}
+          {showJumpButton && userStats?.rank && (
+            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
+              <button
+                onClick={hasJumpedToUser ? backToTop : jumpToUserRank}
+                className="bg-[#4f4f4f] hover:bg-[#000000] text-white rounded-full px-4 py-2 shadow-lg transition-colors body-small uppercase tracking-wide flex items-center gap-3"
+              >
+                {/* User Avatar */}
+                <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
+                  {currentUsername || user?.email ? (
+                    <span className="text-gray-600 text-xs font-medium">
+                      {(currentUsername || user?.email?.address || "?").charAt(0).toUpperCase()}
+                    </span>
+                  ) : (
+                    <span className="text-gray-600 text-xs">?</span>
+                  )}
+                </div>
+                
+                <span>{hasJumpedToUser ? "Back To Top" : "Jump To Your Place"}</span>
+                
+                {/* Arrow */}
+                <div className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center">
+                  {hasJumpedToUser ? (
+                    <ChevronDown className="w-3 h-3 text-white rotate-180" />
+                  ) : (
+                    <ChevronDown className="w-3 h-3 text-white" />
+                  )}
+                </div>
+              </button>
             </div>
           )}
         </div>
