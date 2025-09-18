@@ -118,14 +118,19 @@ export default function LeaderboardPage() {
           console.table(player);
 
           if (player) {
-            // Calculate rank from extended leaderboard or make separate API call
-            const userRank =
-              extendedLeaderboard.findIndex(
-                (entry) => entry.wallet_address === currentUserAddress,
-              ) + 1;
+            // Get user's actual rank from database
+            const rankResponse = await fetch(
+              `/api/player/rank?walletAddress=${encodeURIComponent(currentUserAddress)}`
+            );
+            
+            let actualRank = 999;
+            if (rankResponse.ok) {
+              const rankResult = await rankResponse.json();
+              actualRank = rankResult.rank || 999;
+            }
 
             setUserStats({
-              rank: userRank || 999, // Default rank if not found in top leaderboard
+              rank: actualRank,
               total_points: player.total_points || 0,
             });
           } else {
@@ -224,23 +229,28 @@ export default function LeaderboardPage() {
                 </div>
 
                 {/* Your Rank Display */}
-                <div className="flex items-center justify-end">
+                <div className="flex flex-col items-end">
                   {isLoadingUserStats ? (
                     <div className="w-16 h-8 bg-gray-200 animate-pulse rounded"></div>
                   ) : userStats?.rank ? (
-                    <div className="flex items-baseline gap-1">
-                      <div className="flex items-baseline">
-                        <div className="display1 text-white font-inktrap">
-                          {userStats.rank}
+                    <>
+                      <div className="flex items-baseline gap-1">
+                        <div className="flex items-baseline">
+                          <div className="display1 text-white font-inktrap">
+                            {userStats.rank}
+                          </div>
+                          <h3 className="text-white font-inktrap font-normal">
+                            {getOrdinalSuffix(userStats.rank)}
+                          </h3>
                         </div>
-                        <h3 className="text-white font-inktrap font-normal">
-                          {getOrdinalSuffix(userStats.rank)}
-                        </h3>
+                        <div className="w-[39px] h-[18px]">
+                          <Image src="/place.png" alt="Points" width={39} height={18} />
+                        </div>
                       </div>
-                      <div className="w-[39px] h-[18px]">
-                        <Image src="/place.png" alt="Points" width={39} height={18} />
+                      <div className="text-white body-small font-inktrap mt-1">
+                        {userStats.total_points.toLocaleString()} pts
                       </div>
-                    </div>
+                    </>
                   ) : (
                     <span className="display1 text-white">?</span>
                   )}
@@ -252,23 +262,22 @@ export default function LeaderboardPage() {
           {/* Leaderboard Table Header */}
    
 
-          {/* Leaderboard Header - Sticky */}
-          <div className="sticky top-0 z-10 bg-white rounded-2xl p-4 shadow-sm">
-            <div className="grid grid-cols-[auto_1fr_auto] gap-4">
-              <span className="body-small  text-gray-600 uppercase tracking-wide">
-                PLACE
-              </span>
-              <span className="body-small  text-gray-600 uppercase tracking-wide pl-2">
-                NAME
-              </span>
-              <span className="body-small  text-gray-600 uppercase tracking-wide text-right">
-                PTS
-              </span>
-            </div>
-          </div>
-
           {/* Leaderboard Entries */}
           <div className="space-y-1">
+            {/* Leaderboard Header - Sticky */}
+            <div className="sticky top-0 z-10 bg-white rounded-2xl p-4 shadow-sm">
+              <div className="grid grid-cols-[auto_1fr_auto] gap-4">
+                <span className="body-small  text-gray-600 uppercase tracking-wide">
+                  PLACE
+                </span>
+                <span className="body-small  text-gray-600 uppercase tracking-wide pl-2">
+                  NAME
+                </span>
+                <span className="body-small  text-gray-600 uppercase tracking-wide text-right">
+                  PTS
+                </span>
+              </div>
+            </div>
 
             {/* Loading State */}
             {isLeaderboardLoading && (
