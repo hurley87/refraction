@@ -63,7 +63,7 @@ export default function Header() {
       
       <div className="flex items-center gap-2">
         {/* Leaderboard Button - Only show on leaderboard route */}
-        {pathname === '/leaderboard' && (
+        {pathname === '/test' && (
           <div className="flex items-center gap-2 bg-[#4F4F4F] rounded-3xl px-4 h-10 self-stretch">
             <h4 className="text-white text-sm">Leaderboard</h4>
             <div className="flex flex-col gap-0.5">
