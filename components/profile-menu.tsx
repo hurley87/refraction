@@ -9,16 +9,25 @@ import { UserProfile } from "@/lib/supabase";
 import { toast } from "sonner";
 
 // Reusable Pencil Icon Component
-const PencilIcon = ({ onClick, className = "" }: { onClick: () => void; className?: string }) => (
+const PencilIcon = ({ onClick, className = "", isLoading = false }: { onClick: () => void; className?: string; isLoading?: boolean }) => (
   <button
     onClick={onClick}
-    className={`w-6 h-6 bg-[#ededed] hover:bg-gray-300 text-black rounded-full flex items-center justify-center transition-colors shadow-sm ${className}`}
+    disabled={isLoading}
+    className={`w-6 h-6 ${isLoading ? 'bg-blue-500' : 'bg-[#ededed] hover:bg-gray-300'} text-black rounded-full flex items-center justify-center transition-colors shadow-sm ${className}`}
     aria-label="Edit"
   >
-    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 22h18" opacity="0.3" />
-    </svg>
+    {isLoading ? (
+      <div className="flex space-x-0.5">
+        <div className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+        <div className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+        <div className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+      </div>
+    ) : (
+      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 22h18" opacity="0.3" />
+      </svg>
+    )}
   </button>
 );
 
@@ -221,7 +230,8 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
                 className="bg-white border-gray-300 text-black placeholder:text-gray-500 body-large rounded-full px-4 h-10 flex-1"
               />
               <PencilIcon
-                onClick={handleSave}  
+                onClick={handleSave}
+                isLoading={saving}
               />
             </div>
           </div>
@@ -245,6 +255,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
               />
               <PencilIcon
                 onClick={handleSave}
+                isLoading={saving}
               />
             </div>
           </div>
@@ -283,6 +294,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
                   />
                   <PencilIcon
                     onClick={handleSave}
+                    isLoading={saving}
                   />
                 </div>
               </div>
@@ -309,6 +321,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
                 />
                 <PencilIcon
                   onClick={handleSave}
+                  isLoading={saving}
                 />
               </div>
             </div>
@@ -334,6 +347,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
                 />
                 <PencilIcon
                   onClick={handleSave}
+                  isLoading={saving}
                 />
               </div>
             </div>
@@ -359,6 +373,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
                 />
                 <PencilIcon
                   onClick={handleSave}
+                  isLoading={saving}
                 />
               </div>
             </div>
@@ -384,21 +399,13 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
                 />
                 <PencilIcon
                   onClick={handleSave}
+                  isLoading={saving}
                 />
               </div>
             </div>
           </div>
 
-          {/* Save Button */}
-          <div className="w-full mt-4">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-full px-4 h-10 font-inktrap text-xs uppercase transition-colors"
-            >
-              {saving ? "..." : "Save"}
-            </button>
-          </div>
+         
         </div>
 
         {/* Log Out Button */}

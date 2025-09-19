@@ -35,16 +35,17 @@ export async function GET(request: NextRequest) {
       throw userError;
     }
 
-    // Get all players ordered by points (same as leaderboard) to find exact rank
+    // Get all unique scores to calculate dense ranking
     const { data: allPlayers, error: rankError } = await supabase
       .from("players")
-      .select("wallet_address, total_points")
+      .select("total_points")
       .order("total_points", { ascending: false });
 
     if (rankError) throw rankError;
 
-    // Find the user's position in the ordered list
-    const rank = allPlayers.findIndex(player => player.wallet_address === walletAddress) + 1;
+    // Calculate dense rank (tied players get same rank, next rank is sequential)
+    const uniqueScores = Array.from(new Set(allPlayers.map(p => p.total_points)));
+    const rank = uniqueScores.indexOf(userPlayer.total_points) + 1;
 
     return NextResponse.json({
       success: true,
