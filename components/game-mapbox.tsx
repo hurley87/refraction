@@ -176,7 +176,7 @@ export default function GameMapbox() {
                       </svg>
                     </Button>
                   </Link>
-                  <Link className="flex-1" href="/interactive-map">
+                  <Link className="flex-1" href="/game">
                     <Button className="bg-blue-400 hover:bg-blue-500 text-black font-inktrap px-4 py-2 rounded-full text-sm w-full">
                       Interactive Map
                       <svg
@@ -391,36 +391,6 @@ export default function GameMapbox() {
                   />
                 </svg>
               </Button>
-            </div>
-          )}
-
-          {/* Interactive Map Discovery */}
-          {!selected && (
-            <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-2xl p-4 mb-6">
-              <h3 className="text-lg font-inktrap font-bold text-black mb-2">
-                Discover More Locations
-              </h3>
-              <p className="text-sm text-gray-700 mb-4 font-anonymous">
-                Use our interactive map to explore and find locations by clicking anywhere on the map.
-              </p>
-              <Link href="/interactive-map">
-                <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-inktrap py-3 rounded-full flex justify-between">
-                  <span>Explore Interactive Map</span>
-                  <svg
-                    className="w-4 h-4 ml-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </Button>
-              </Link>
             </div>
           )}
         </div>

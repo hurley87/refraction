@@ -108,7 +108,7 @@ export default function MembershipPage() {
       </div>
 
       <div className="flex flex-col items-center space-y-4">
-        <Link href="/interactive-map">
+        <Link href="/game">
           <button className="bg-white text-black px-8 py-4 h-16 flex items-center gap-2 rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase">
             Earn your first points{" "}
             <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />

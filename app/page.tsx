@@ -92,7 +92,7 @@ export default function Home() {
             </h4>
           </div>
           <div className="flex flex-col gap-4 w-full sm:max-w-[280px] md:max-w-[300px] mt-auto">
-            <Link href="/interactive-map" className="w-full sm:w-auto">
+            <Link href="/game" className="w-full sm:w-auto">
               <Button
                 size="lg"
                 className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
