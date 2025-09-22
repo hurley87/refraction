@@ -373,10 +373,14 @@ export default function LeaderboardPage() {
           </div>
 
           {/* Jump To User Button */}
-          {showJumpButton && userStats?.rank && userStats.rank <= 100 && (
+          {showJumpButton && userStats?.rank && (
             <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
               <button
-                onClick={hasJumpedToUser ? backToTop : jumpToUserRank}
+                onClick={
+                  extendedLeaderboard.some(entry => entry.wallet_address === currentUserAddress)
+                    ? (hasJumpedToUser ? backToTop : jumpToUserRank) 
+                    : backToTop
+                }
                 className="bg-[#4f4f4f] hover:bg-[#000000] text-white rounded-full px-4 py-2 shadow-lg transition-colors body-small uppercase tracking-wide flex items-center gap-3"
               >
                 {/* User Avatar */}
@@ -390,14 +394,19 @@ export default function LeaderboardPage() {
                   )}
                 </div>
                 
-                <span>{hasJumpedToUser ? "Back To Top" : "Jump To Your Place"}</span>
+                <span>
+                  {extendedLeaderboard.some(entry => entry.wallet_address === currentUserAddress)
+                    ? (hasJumpedToUser ? "Back To Top" : "Jump To Your Place")
+                    : "Back To Top"
+                  }
+                </span>
                 
                 {/* Arrow */}
                 <div className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center">
-                  {hasJumpedToUser ? (
-                    <ChevronDown className="w-3 h-3 text-white rotate-180" />
-                  ) : (
+                  {extendedLeaderboard.some(entry => entry.wallet_address === currentUserAddress) && !hasJumpedToUser ? (
                     <ChevronDown className="w-3 h-3 text-white" />
+                  ) : (
+                    <ChevronDown className="w-3 h-3 text-white rotate-180" />
                   )}
                 </div>
               </button>

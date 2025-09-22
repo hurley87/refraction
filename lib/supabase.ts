@@ -379,9 +379,9 @@ export const getLeaderboard = async (limit: number = 10, offset: number = 0) => 
 
   if (error) throw error;
 
-  // Get checkin counts for each player
-  const leaderboard: LeaderboardEntry[] = await Promise.all(
-    players.map(async (player, index) => {
+  // Get checkin counts for each player and calculate sequential ranks with ties
+  const playersWithCheckins = await Promise.all(
+    players.map(async (player) => {
       const { count } = await supabase
         .from("player_location_checkins")
         .select("*", { count: "exact", head: true })
@@ -394,10 +394,37 @@ export const getLeaderboard = async (limit: number = 10, offset: number = 0) => 
         email: player.email,
         total_points: player.total_points,
         total_checkins: count || 0,
-        rank: offset + index + 1, // Adjust rank based on offset
       };
     }),
   );
+
+  // Calculate dense ranks with proper tie handling
+  const leaderboard: LeaderboardEntry[] = [];
+  
+  // We need to calculate ranks from the beginning to handle ties properly
+  // Get all players up to this point to calculate correct dense ranks
+  const { data: allPlayersUpToOffset, error: allError } = await supabase
+    .from("players")
+    .select("total_points")
+    .order("total_points", { ascending: false })
+    .range(0, offset + playersWithCheckins.length - 1);
+    
+  if (allError) throw allError;
+  
+  // Calculate dense ranks for the requested range
+  const uniqueScores = Array.from(new Set(allPlayersUpToOffset.map(p => p.total_points)));
+  
+  for (let i = 0; i < playersWithCheckins.length; i++) {
+    const player = playersWithCheckins[i];
+    
+    // Find rank based on unique score position
+    const scoreRank = uniqueScores.indexOf(player.total_points) + 1;
+    
+    leaderboard.push({
+      ...player,
+      rank: scoreRank,
+    });
+  }
 
   return leaderboard;
 };
