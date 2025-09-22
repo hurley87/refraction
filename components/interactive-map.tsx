@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import { MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import LocationSearch from "@/components/location-search";
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import MobileFooterNav from "@/components/mobile-footer-nav";
@@ -31,15 +30,7 @@ interface MarkerData {
   coin_image_url?: string | null;
 }
 
-interface LocationSuggestion {
-  place_id: string;
-  display_name: string;
-  lat: string;
-  lon: string;
-  type?: string;
-  name?: string;
-  context?: string;
-}
+// Removed old LocationSuggestion; handled by LocationSearch component
 
 export default function InteractiveMap() {
   const { user } = usePrivy();
@@ -56,10 +47,7 @@ export default function InteractiveMap() {
   const [tempMarkers] = useState<MarkerData[]>([]);
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const [popupInfo, setPopupInfo] = useState<MarkerData | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchSuggestions, setSuggestions] = useState<LocationSuggestion[]>(
-    [],
-  );
+  // Search state handled by LocationSearch component (Mapbox Search Box)
   // Removed How To section state
   const [showCoinForm, setShowCoinForm] = useState(false);
   const [isCreatingCoin, setIsCreatingCoin] = useState(false);
@@ -207,38 +195,17 @@ export default function InteractiveMap() {
     }
   };
 
-  const handleSearch = async () => {
-    if (searchQuery.length < 2) {
-      setSuggestions([]);
-      return;
-    }
+  const handleSearchSelect = (picked: {
+    longitude: number;
+    latitude: number;
+    id: string;
+    name?: string;
+    placeFormatted?: string;
+  }) => {
+    const { longitude, latitude } = picked;
+    setViewState({ longitude, latitude, zoom: 15 });
 
-    try {
-      const response = await fetch(
-        `/api/geocode-mapbox?q=${encodeURIComponent(searchQuery)}`,
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setSuggestions(data);
-      }
-    } catch (error) {
-      console.error("Search failed:", error);
-      setSuggestions([]);
-    }
-  };
-
-  const handleSelectSearchResult = (location: LocationSuggestion) => {
-    const lat = parseFloat(location.lat);
-    const lon = parseFloat(location.lon);
-
-    // Fly to the location
-    setViewState({
-      longitude: lon,
-      latitude: lat,
-      zoom: 15,
-    });
-
-    // Try to select nearest existing marker rather than creating a new one
+    // Open nearest existing marker if within 100m
     const toRad = (v: number) => (v * Math.PI) / 180;
     const earth = 6371000; // m
     const distanceMeters = (
@@ -262,21 +229,16 @@ export default function InteractiveMap() {
     let nearest: MarkerData | null = null;
     let nearestDist = Number.POSITIVE_INFINITY;
     for (const m of markers) {
-      const d = distanceMeters(lat, lon, m.latitude, m.longitude);
+      const d = distanceMeters(latitude, longitude, m.latitude, m.longitude);
       if (d < nearestDist) {
         nearestDist = d;
         nearest = m;
       }
     }
-
-    // If an existing marker is within 100m, open it; otherwise just pan without creating
     if (nearest && nearestDist <= 100) {
       setSelectedMarker(nearest);
       setPopupInfo(nearest);
     }
-
-    setSearchQuery("");
-    setSuggestions([]);
   };
 
   const handleMarkerClick = (marker: MarkerData) => {
@@ -429,43 +391,17 @@ export default function InteractiveMap() {
 
   return (
     <div className="w-full h-full relative">
-      {/* Search Controls + How To */}
+      {/* Search Controls */}
       <div className="absolute top-4 left-4 right-4 z-10 space-y-2 max-w-xl">
         <div className="bg-[var(--UI-White-65,rgba(255,255,255,0.65))] border border-[var(--UI-White-65,rgba(255,255,255,0.65))] rounded-3xl p-3 md:p-4 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px]">
-          <div className="flex gap-2 items-center">
-            <Input
-              placeholder="Search an address"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 h-11 md:h-12 rounded-full bg-transparent px-4 text-sm text-black placeholder:text-black/60 border border-[#B5B5B5] bg-white"
-            />
-            <Button
-              onClick={handleSearch}
-              size="sm"
-              className="w-11 h-11 md:w-12 md:h-12 rounded-full  p-0"
-            >
-              <img
-                src="/miniapp/search.png"
-                alt="Search"
-                className="w-11 h-11"
-              />
-            </Button>
-          </div>
-
-          {/* Search Results */}
-          {searchSuggestions.length > 0 && (
-            <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-black/5 bg-white/80 dark:bg-zinc-900/70 backdrop-blur p-1 shadow-2xl">
-              {searchSuggestions.map((suggestion, index) => (
-                <div
-                  key={index}
-                  className="px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer rounded-lg text-sm"
-                  onClick={() => handleSelectSearchResult(suggestion)}
-                >
-                  {suggestion.display_name}
-                </div>
-              ))}
-            </div>
-          )}
+          <LocationSearch
+            placeholder="Search places, addresses, or POIs"
+            proximity={{
+              longitude: viewState.longitude,
+              latitude: viewState.latitude,
+            }}
+            onSelect={handleSearchSelect}
+          />
         </div>
       </div>
 

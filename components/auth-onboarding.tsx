@@ -81,12 +81,12 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
         {children}
         {/* Fixed white background to cover entire screen */}
         <div className="fixed inset-0 z-40 bg-white" />
-        <div className="fixed inset-0 z-50 pointer-events-none flex flex-col pb-[120px]">
+        <div className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center pt-6 md:pt-10 pb-[120px]">
           {/* Card filling remaining height */}
-          <div className="pointer-events-none ">
-            <div className="pointer-events-auto h-full bg-white/95 backdrop-blur p-4 pt-0 pb-6 flex flex-col overflow-y-auto">
+          <div className="pointer-events-none w-full px-4">
+            <div className="pointer-events-auto w-full max-w-2xl md:max-w-3xl max-h-[90vh] bg-white/95 backdrop-blur p-4 pt-0 pb-6 flex flex-col overflow-y-auto rounded-2xl shadow-xl mx-auto">
               {/* Faux image area expands to fill */}
-              <div className="rounded-2xl overflow-hidden bg-gray-100 flex-1 flex items-center justify-center">
+              <div className="rounded-2xl overflow-hidden bg-gray-100 h-64 md:h-80 lg:h-96 flex items-center justify-center">
                 {step?.imageSrc ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
