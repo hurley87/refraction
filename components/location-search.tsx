@@ -129,13 +129,15 @@ export default function LocationSearch({
   const handleRetrieve = useCallback(
     async (s: Suggestion) => {
       if (!accessToken) return;
-      const id = s.id || s.mapbox_id;
-      if (!id) return;
+      const mapboxId = s.mapbox_id || s.id;
+      if (!mapboxId) return;
       try {
         const token = ensureSessionToken();
-        const url =
-          `https://api.mapbox.com/search/searchbox/v1/retrieve?` +
-          `id=${encodeURIComponent(id)}&session_token=${token}&access_token=${accessToken}`;
+        const base = `https://api.mapbox.com/search/searchbox/v1`;
+        const isCategory = s.feature_type === "category";
+        const url = isCategory
+          ? `${base}/category/${encodeURIComponent(mapboxId)}?limit=1${proximityParam}&session_token=${token}&access_token=${accessToken}`
+          : `${base}/retrieve/${encodeURIComponent(mapboxId)}?session_token=${token}&access_token=${accessToken}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Retrieve failed");
         const json: RetrievedFeature = await res.json();
@@ -147,7 +149,7 @@ export default function LocationSearch({
         onSelect({
           longitude: coords[0],
           latitude: coords[1],
-          id: id,
+          id: mapboxId,
           name: s.name,
           placeFormatted: s.place_formatted,
         });
@@ -158,7 +160,7 @@ export default function LocationSearch({
         // swallow
       }
     },
-    [accessToken, onSelect],
+    [accessToken, onSelect, proximityParam],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
