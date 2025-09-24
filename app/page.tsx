@@ -153,7 +153,7 @@ export default function Home() {
             </h3>
             <div className="w-full lg:w-auto flex-shrink-0 pt-12">
               <Link
-                href="mailto:partnerships@refractionfestival.com"
+                href="/contact-us"
                 className="block w-full"
               >
                 <Button
@@ -241,7 +241,7 @@ export default function Home() {
             Check in to earn points on the IRL network, with instant access to
             future rewards and experiences.
           </p>
-          <Link className="w-full" href="/interactive-map">
+          <Link className="w-full" href="/game">
             <Button
               size="lg"
               className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
