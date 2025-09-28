@@ -14,6 +14,14 @@ import {
 } from "@/lib/contracts/UserManager";
 import { createWalletClient, custom } from "viem";
 
+// Dev-only logger to avoid noisy logs during SSG/production
+const devLog = (...args: any[]) => {
+  if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+    // eslint-disable-next-line no-console
+    console.log(...args);
+  }
+};
+
 const usernameSchema = z
   .string()
   .min(1, "Username is required")
@@ -45,30 +53,30 @@ export default function Onboarding() {
   const { user, login, logout } = usePrivy();
   const { wallets } = useWallets();
 
-  console.log("user", user);
-  console.log("wallets", wallets);
+  devLog("user", user);
+  devLog("wallets", wallets);
 
   // Get the primary wallet address
   const address = (user?.wallet?.address || wallets[0]?.address) as
     | `0x${string}`
     | undefined;
-  console.log("address:", address);
+  devLog("address:", address);
 
   // Find the wallet object
   const wallet = wallets.find((w) => w.address === address) || wallets[0];
-  console.log("wallet:", wallet);
-  console.log("wallet type:", wallet?.walletClientType);
-  console.log("wallet chainId:", wallet?.chainId);
+  devLog("wallet:", wallet);
+  devLog("wallet type:", wallet?.walletClientType);
+  devLog("wallet chainId:", wallet?.chainId);
 
   // Parse chain ID safely
   const walletChainId = getWalletChainId(wallet);
-  console.log("walletChainId:", walletChainId);
+  devLog("walletChainId:", walletChainId);
 
   const [usernameInput, setUsernameInput] = useState("");
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentChainId, setCurrentChainId] = useState<string | undefined>(
-    walletChainId
+    walletChainId,
   );
 
   // Update currentChainId when wallet changes
@@ -77,7 +85,7 @@ export default function Onboarding() {
       const chainId = getWalletChainId(wallet);
       if (chainId) {
         setCurrentChainId(chainId);
-        console.log("Updated currentChainId:", chainId);
+        devLog("Updated currentChainId:", chainId);
       }
     }
   }, [wallet, wallet?.chainId]);
@@ -94,11 +102,11 @@ export default function Onboarding() {
           args: [address],
         });
 
-        console.log("userId", userId);
+        devLog("userId", userId);
 
         // Check if userId is 0 (no user registered for this address)
         if (!userId || userId === BigInt(0)) {
-          console.log("No user ID found for address");
+          devLog("No user ID found for address");
           return;
         }
 
@@ -110,7 +118,7 @@ export default function Onboarding() {
           args: [userId],
         });
 
-        console.log("name", name);
+        devLog("name", name);
 
         if (name && typeof name === "string" && name.length > 0) {
           setCurrentUsername(name);
@@ -137,9 +145,9 @@ export default function Onboarding() {
     try {
       setIsLoading(true);
 
-      console.log("currentChainId", currentChainId);
-      console.log("irlChain.id", irlChain.id);
-      console.log("wallet", wallet);
+      devLog("currentChainId", currentChainId);
+      devLog("irlChain.id", irlChain.id);
+      devLog("wallet", wallet);
 
       // Ensure we're on the correct chain before proceeding
       if (currentChainId !== irlChain.id.toString()) {
@@ -211,14 +219,14 @@ export default function Onboarding() {
     }
 
     try {
-      console.log("Starting chain switch...");
-      console.log("Wallet object:", wallet);
-      console.log("Current chainId:", wallet.chainId);
+      devLog("Starting chain switch...");
+      devLog("Wallet object:", wallet);
+      devLog("Current chainId:", wallet.chainId);
 
       // Try to switch chain using the wallet's switchChain method
       try {
         await wallet.switchChain(irlChain.id);
-        console.log("Chain switched successfully");
+        devLog("Chain switched successfully");
 
         // Update the current chain ID
         setCurrentChainId(irlChain.id.toString());
@@ -286,7 +294,7 @@ export default function Onboarding() {
     );
   }
 
-  console.log("wallet", wallet);
+  devLog("wallet", wallet);
 
   return (
     <>
@@ -294,40 +302,40 @@ export default function Onboarding() {
       <div className="fixed inset-0 z-40 bg-white" />
       <div className="fixed inset-0 z-50 min-h-screen flex items-center justify-center pb-[120px] p-6 overflow-y-auto">
         <div className="flex flex-col gap-6 bg-[#DBDFF2]/50 p-4 sm:p-8 rounded-lg max-w-[600px] font-sans w-full">
-        <div className="grid w-full items-center gap-1.5">
-          <Label className="text-[#6101FF]">Username</Label>
-          <Input
-            className="bg-[#E9E7FF]"
-            value={usernameInput}
-            onChange={(e) => setUsernameInput(e.target.value)}
-          />
-        </div>
-        {wallet ? (
-          currentChainId === irlChain.id.toString() ? (
-            <Button
-              className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90 sm:w-auto"
-              disabled={isLoading}
-              onClick={handleCreate}
-            >
-              {isLoading ? "Creating..." : "Create Username"}
-            </Button>
+          <div className="grid w-full items-center gap-1.5">
+            <Label className="text-[#6101FF]">Username</Label>
+            <Input
+              className="bg-[#E9E7FF]"
+              value={usernameInput}
+              onChange={(e) => setUsernameInput(e.target.value)}
+            />
+          </div>
+          {wallet ? (
+            currentChainId === irlChain.id.toString() ? (
+              <Button
+                className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90 sm:w-auto"
+                disabled={isLoading}
+                onClick={handleCreate}
+              >
+                {isLoading ? "Creating..." : "Create Username"}
+              </Button>
+            ) : (
+              <Button
+                className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90 sm:w-auto"
+                onClick={handleChainSwitch}
+              >
+                Switch to IRL
+              </Button>
+            )
           ) : (
             <Button
               className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90 sm:w-auto"
-              onClick={handleChainSwitch}
+              onClick={login}
             >
-              Switch to IRL
+              Connect Wallet
             </Button>
-          )
-        ) : (
-          <Button
-            className="bg-gradient-to-r from-cyan-300 via-blue-500 to-purple-900 inline-block text-transparent bg-clip-text uppercase bg-[#FFFFFF]] hover:bg-[#DDDDDD]/90 sm:w-auto"
-            onClick={login}
-          >
-            Connect Wallet
-          </Button>
-        )}
-        <button onClick={logout}>Logout</button>
+          )}
+          <button onClick={logout}>Logout</button>
         </div>
       </div>
     </>

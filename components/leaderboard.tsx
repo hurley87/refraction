@@ -14,7 +14,7 @@ export default function Leaderboard() {
     if (showLeaderboard && leaderboard.length === 0) {
       fetchLeaderboard(20);
     }
-  }, [showLeaderboard]);
+  }, [showLeaderboard, leaderboard.length, fetchLeaderboard]);
 
   const formatWalletAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -88,7 +88,7 @@ export default function Leaderboard() {
                 <div
                   key={player.player_id}
                   className={`p-4 rounded-lg border-2 ${getRankColor(
-                    player.rank
+                    player.rank,
                   )} transition-all hover:shadow-md`}
                 >
                   <div className="flex items-center justify-between">

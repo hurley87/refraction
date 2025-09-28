@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import {  Trophy, ChevronDown } from "lucide-react";
+import { Trophy, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Header from "./header";
 import Link from "next/link";
@@ -51,10 +51,12 @@ export default function LeaderboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
-  const [extendedLeaderboard, setExtendedLeaderboard] = useState<LeaderboardUser[]>([]);
+  const [extendedLeaderboard, setExtendedLeaderboard] = useState<
+    LeaderboardUser[]
+  >([]);
   const currentUserAddress = user?.wallet?.address;
   const currentUsername = user?.google?.name || user?.twitter?.name;
-  
+
   const itemsPerPage = 50;
 
   // Fetch initial leaderboard data
@@ -63,29 +65,31 @@ export default function LeaderboardPage() {
       await fetchLeaderboard(itemsPerPage); // Fetch first batch
     };
     loadLeaderboard();
-  }, []);
+  }, [fetchLeaderboard]);
 
   // Sync hook's leaderboard with extended leaderboard
   useEffect(() => {
     if (leaderboard.length > 0 && extendedLeaderboard.length === 0) {
       setExtendedLeaderboard(leaderboard);
     }
-  }, [leaderboard]);
+  }, [leaderboard, extendedLeaderboard.length]);
 
   // Load more entries
-  const loadMoreEntries = async () => {
+  const loadMoreEntries = useCallback(async () => {
     if (isLoadingMore || !hasMoreData) return;
-    
+
     setIsLoadingMore(true);
     try {
-      const response = await fetch(`/api/leaderboard?limit=${itemsPerPage}&offset=${currentPage * itemsPerPage}`);
+      const response = await fetch(
+        `/api/leaderboard?limit=${itemsPerPage}&offset=${currentPage * itemsPerPage}`,
+      );
       const result = await response.json();
-      
+
       if (response.ok && result.leaderboard?.length > 0) {
         // Append new entries to extended leaderboard
-        setExtendedLeaderboard(prev => [...prev, ...result.leaderboard]);
-        setCurrentPage(prev => prev + 1);
-        
+        setExtendedLeaderboard((prev) => [...prev, ...result.leaderboard]);
+        setCurrentPage((prev) => prev + 1);
+
         // Check if we got fewer items than requested (end of data)
         if (result.leaderboard.length < itemsPerPage) {
           setHasMoreData(false);
@@ -99,7 +103,7 @@ export default function LeaderboardPage() {
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [currentPage, hasMoreData, isLoadingMore]);
 
   // Fetch current user's stats
   useEffect(() => {
@@ -120,9 +124,9 @@ export default function LeaderboardPage() {
           if (player) {
             // Get user's actual rank from database
             const rankResponse = await fetch(
-              `/api/player/rank?walletAddress=${encodeURIComponent(currentUserAddress)}`
+              `/api/player/rank?walletAddress=${encodeURIComponent(currentUserAddress)}`,
             );
-            
+
             let actualRank = 999;
             if (rankResponse.ok) {
               const rankResult = await rankResponse.json();
@@ -162,27 +166,33 @@ export default function LeaderboardPage() {
     const handleScroll = () => {
       const scrolled = window.scrollY > 200;
       setShowJumpButton(scrolled);
-      
+
       // Infinite scroll detection
       const scrollHeight = document.documentElement.scrollHeight;
       const scrollTop = document.documentElement.scrollTop;
       const clientHeight = document.documentElement.clientHeight;
-      
-      if (scrollTop + clientHeight >= scrollHeight - 1000 && hasMoreData && !isLoadingMore) {
+
+      if (
+        scrollTop + clientHeight >= scrollHeight - 1000 &&
+        hasMoreData &&
+        !isLoadingMore
+      ) {
         loadMoreEntries();
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [hasMoreData, isLoadingMore]);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [hasMoreData, isLoadingMore, loadMoreEntries]);
 
   // Jump to user's rank (simple version for top 100 only)
   const jumpToUserRank = () => {
     if (userStats?.rank) {
-      const userElement = document.querySelector(`[data-rank="${userStats.rank}"]`);
+      const userElement = document.querySelector(
+        `[data-rank="${userStats.rank}"]`,
+      );
       if (userElement) {
-        userElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        userElement.scrollIntoView({ behavior: "smooth", block: "center" });
         setHasJumpedToUser(true);
       }
     }
@@ -190,7 +200,7 @@ export default function LeaderboardPage() {
 
   // Back to top
   const backToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
     setHasJumpedToUser(false);
   };
 
@@ -198,12 +208,11 @@ export default function LeaderboardPage() {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-
   return (
     <div
       style={{
         background:
-          "linear-gradient(0deg, #61BFD1 0%, #EE91B7 26.92%, #FFE600 54.33%, #1BA351 100%)",        
+          "linear-gradient(0deg, #61BFD1 0%, #EE91B7 26.92%, #FFE600 54.33%, #1BA351 100%)",
       }}
       className="min-h-screen p-4 pb-0 font-grotesk"
     >
@@ -225,7 +234,6 @@ export default function LeaderboardPage() {
                       Your Rank
                     </p>
                   </div>
-                 
                 </div>
 
                 {/* Your Rank Display */}
@@ -244,7 +252,12 @@ export default function LeaderboardPage() {
                           </h3>
                         </div>
                         <div className="w-[39px] h-[18px]">
-                          <Image src="/place.png" alt="Points" width={39} height={18} />
+                          <Image
+                            src="/place.png"
+                            alt="Points"
+                            width={39}
+                            height={18}
+                          />
                         </div>
                       </div>
                       <div className="text-white body-small font-inktrap mt-1">
@@ -260,7 +273,6 @@ export default function LeaderboardPage() {
           )}
 
           {/* Leaderboard Table Header */}
-   
 
           {/* Leaderboard Entries */}
           <div className="space-y-1">
@@ -315,29 +327,32 @@ export default function LeaderboardPage() {
                           {entry.rank}
                         </span>
                       </div>
-                      
 
-                        {/* Name */}
-                        <div className="flex items-center gap-2 min-w-0 pl-5">
-                          <Link href={`/profiles/${entry.wallet_address}`}>
-                            <span className={`title4 truncate ${
+                      {/* Name */}
+                      <div className="flex items-center gap-2 min-w-0 pl-5">
+                        <Link href={`/profiles/${entry.wallet_address}`}>
+                          <span
+                            className={`title4 truncate ${
                               entry.wallet_address === currentUserAddress
                                 ? "text-white"
                                 : "text-black"
-                            }`}>
-                              {entry.username ||
-                                formatWalletAddress(entry.wallet_address)}
-                            </span>
-                          </Link>
-                        </div>
+                            }`}
+                          >
+                            {entry.username ||
+                              formatWalletAddress(entry.wallet_address)}
+                          </span>
+                        </Link>
+                      </div>
 
                       {/* Points */}
                       <div className="text-right">
-                        <div className={`body-medium ${
-                          entry.wallet_address === currentUserAddress
-                            ? "text-white"
-                            : "text-black"
-                        }`}>
+                        <div
+                          className={`body-medium ${
+                            entry.wallet_address === currentUserAddress
+                              ? "text-white"
+                              : "text-black"
+                          }`}
+                        >
                           {entry.total_points.toLocaleString()}
                         </div>
                       </div>
@@ -356,14 +371,14 @@ export default function LeaderboardPage() {
                 )}
               </>
             )}
-            
+
             {/* Loading More Indicator */}
             {isLoadingMore && (
               <div className="bg-white rounded-2xl p-4 flex justify-center">
                 <div className="w-6 h-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
               </div>
             )}
-            
+
             {/* End of Data Indicator */}
             {!hasMoreData && extendedLeaderboard.length > 0 && (
               <div className="bg-white rounded-2xl p-4 text-center">
@@ -377,8 +392,12 @@ export default function LeaderboardPage() {
             <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
               <button
                 onClick={
-                  extendedLeaderboard.some(entry => entry.wallet_address === currentUserAddress)
-                    ? (hasJumpedToUser ? backToTop : jumpToUserRank) 
+                  extendedLeaderboard.some(
+                    (entry) => entry.wallet_address === currentUserAddress,
+                  )
+                    ? hasJumpedToUser
+                      ? backToTop
+                      : jumpToUserRank
                     : backToTop
                 }
                 className="bg-[#4f4f4f] hover:bg-[#000000] text-white rounded-full px-4 py-2 shadow-lg transition-colors body-small uppercase tracking-wide flex items-center gap-3"
@@ -387,23 +406,30 @@ export default function LeaderboardPage() {
                 <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
                   {currentUsername || user?.email ? (
                     <span className="text-gray-600 text-xs font-medium">
-                      {(currentUsername || user?.email?.address || "?").charAt(0).toUpperCase()}
+                      {(currentUsername || user?.email?.address || "?")
+                        .charAt(0)
+                        .toUpperCase()}
                     </span>
                   ) : (
                     <span className="text-gray-600 text-xs">?</span>
                   )}
                 </div>
-                
+
                 <span>
-                  {extendedLeaderboard.some(entry => entry.wallet_address === currentUserAddress)
-                    ? (hasJumpedToUser ? "Back To Top" : "Jump To Your Place")
-                    : "Back To Top"
-                  }
+                  {extendedLeaderboard.some(
+                    (entry) => entry.wallet_address === currentUserAddress,
+                  )
+                    ? hasJumpedToUser
+                      ? "Back To Top"
+                      : "Jump To Your Place"
+                    : "Back To Top"}
                 </span>
-                
+
                 {/* Arrow */}
                 <div className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center">
-                  {extendedLeaderboard.some(entry => entry.wallet_address === currentUserAddress) && !hasJumpedToUser ? (
+                  {extendedLeaderboard.some(
+                    (entry) => entry.wallet_address === currentUserAddress,
+                  ) && !hasJumpedToUser ? (
                     <ChevronDown className="w-3 h-3 text-white" />
                   ) : (
                     <ChevronDown className="w-3 h-3 text-white rotate-180" />
@@ -413,7 +439,6 @@ export default function LeaderboardPage() {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

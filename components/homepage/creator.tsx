@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 
 type CreatorProps = {
   creator: `0x${string}`;
@@ -13,7 +13,7 @@ export default function Creator({ creator }: CreatorProps) {
     return `${address?.slice(0, 6)}...${address?.slice(-4)}`;
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const response = await fetch(`/api/user?address=${creator}`);
       const data = await response.json();
@@ -21,19 +21,19 @@ export default function Creator({ creator }: CreatorProps) {
 
       const image = `https://ipfs.io/ipfs/${data.avatar.replace(
         "ipfs://",
-        ""
+        "",
       )}`;
       setAvatar(image);
     } catch (error) {
       console.error("Failed to fetch user data:", error);
     }
-  };
+  }, [creator]);
 
   useEffect(() => {
     if (creator) {
       fetchData();
     }
-  }, [creator]);
+  }, [creator, fetchData]);
 
   return (
     <span className="text-black flex items-center gap-2">

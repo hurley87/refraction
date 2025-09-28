@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  type Perk,
-  type PerkDiscountCode,
-} from "@/lib/supabase";
+import { type Perk, type PerkDiscountCode } from "@/lib/supabase";
 import { usePrivy } from "@privy-io/react-auth";
 
 export default function AdminPerksPage() {
@@ -31,22 +28,22 @@ export default function AdminPerksPage() {
   const queryClient = useQueryClient();
 
   // Check admin status with simple POST request
-  const checkAdminStatus = async () => {
+  const checkAdminStatus = useCallback(async () => {
     if (!user?.email?.address) return false;
 
     try {
-      const response = await fetch('/api/admin/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email.address })
+      const response = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email.address }),
       });
       const data = await response.json();
       return data.isAdmin;
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      console.error("Error checking admin status:", error);
       return false;
     }
-  };
+  }, [user?.email?.address]);
   const [editingPerk, setEditingPerk] = useState<Perk | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Perk>>({
@@ -84,7 +81,7 @@ export default function AdminPerksPage() {
     };
 
     verifyAdmin();
-  }, [user]);
+  }, [user, checkAdminStatus]);
 
   // Fetch all perks
   const { data: perks = [], isLoading: perksLoading } = useQuery({

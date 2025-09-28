@@ -7,7 +7,6 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Auth from "./auth";
 import Link from "next/link";
-import { mutek } from "@/lib/mutek";
 
 interface CheckpointProps {
   id: string;
@@ -15,24 +14,15 @@ interface CheckpointProps {
 
 export default function Checkpoint({ id }: CheckpointProps) {
   const { user } = usePrivy();
-  console.log("user", user);
   const address = user?.wallet?.address as `0x${string}`;
   const email = user?.email?.address;
   const { checkinStatus, setCheckinStatus } = useCheckInStatus(address, id);
-  console.log("checkinStatus", checkinStatus);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
-  const [language, setLanguage] = useState<'english' | 'french'>('english');
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
   const [totalPoints, setTotalPoints] = useState<number>(310);
   const hasAttemptedCheckIn = useRef(false);
   const router = useRouter();
-
-  // Find matching sassoon content
-  const mutekContent = mutek.find((item) => item.checkpoint === id);
-
-
-  
 
   // Fetch player stats (rank and points)
   useEffect(() => {
@@ -77,7 +67,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
         }
 
         // Mark that we've attempted a check-in to prevent duplicate attempt
-
+        hasAttemptedCheckIn.current = true;
         // If we get here, user is not checked in, so proceed with check-in
         setIsCheckingIn(true);
 
@@ -115,7 +105,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
     if (user && checkinStatus !== null) {
       autoCheckIn();
     }
-  }, [user, address, id, email, checkinStatus]);
+  }, [user, address, id, email, checkinStatus, isCheckingIn, setCheckinStatus]);
 
   return (
     <Auth>
@@ -137,63 +127,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
               </h2>
             </div>
 
-            {/* Content Section */}
-            {mutekContent && (
-              <div
-                className="rounded-xl p-4 w-full my-6 mx-4 max-w-sm bg-black text-left"
-                style={{
-                  background: `linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.8) 100%), lightgray 90% / cover no-repeat`,
-                }}
-              >
-                <div className="mb-6">
-                  <img
-                    src={mutekContent.image}
-                    alt={mutekContent.title}
-                    style={{
-                      boxShadow: "0px 4px 24px 4px rgba(0, 0, 0, 0.35)",
-                    }}
-                    className="w-full h-auto mb-6 rounded-sm overflow-hidden"
-                  />
-                  <h3 className="text-white text-3xl font-inktrap font-bold mb-1">
-                    {language === 'english' ? mutekContent.title : mutekContent.title_fr}
-                  </h3>
-                  <h4 className="text-white text-2xl font-inktrap">
-                    {mutekContent.subtitle}
-                  </h4>
-                </div>
-                
-                {/* Language Toggle */}
-                <div className="flex justify-end mb-4">
-                  <div className="flex bg-gray-800 rounded-full p-1">
-                    <button
-                      onClick={() => setLanguage('english')}
-                      className={`px-4 py-2 rounded-full text-sm font-inktrap transition-colors ${
-                        language === 'english'
-                          ? 'bg-yellow-400 text-black'
-                          : 'text-white hover:text-gray-300'
-                      }`}
-                    >
-                      EN
-                    </button>
-                    <button
-                      onClick={() => setLanguage('french')}
-                      className={`px-4 py-2 rounded-full text-sm font-inktrap transition-colors ${
-                        language === 'french'
-                          ? 'bg-yellow-400 text-black'
-                          : 'text-white hover:text-gray-300'
-                      }`}
-                    >
-                      FR
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="text-white font-anonymous text-base leading-relaxed whitespace-pre-line">
-                  {language === 'english' ? mutekContent.content : mutekContent.content_fr}
-                </div>
-              </div>
-            )}
-
             {/* Total Points Card */}
             <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
               <div className="text-xs text-gray-500 font-inktrap mb-2">
@@ -209,27 +142,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
                     Leaderboard →
                   </Button>
                 </Link>
-              </div>
-            </div>
-
-            {/* Map Card */}
-            <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
-              <div className="text-xs text-gray-500 font-inktrap mb-2">
-                {language === 'english' ? 'MUTEK MAP' : 'PLAN DU LIEU DE MUTEK'}
-              </div>
-              <div className="mb-4">
-                <img
-                  src="/mutek/mutek-map.jpg"
-                  alt="IRL Venue Map"
-                  className="w-full h-auto rounded-lg shadow-md cursor-pointer hover:opacity-90 transition-opacity"
-                  onClick={() => setIsMapModalOpen(true)}
-                />
-              </div>
-              <div className="text-sm text-gray-600 font-anonymous">
-                {language === 'english' 
-                  ? 'Explore the IRL network venue and discover all checkpoints'
-                  : 'Explorez le lieu du réseau IRL et découvrez tous les points de contrôle'
-                }
               </div>
             </div>
 
@@ -269,7 +181,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
       {/* Map Modal */}
       {isMapModalOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
           onClick={() => setIsMapModalOpen(false)}
         >
