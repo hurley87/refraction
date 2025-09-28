@@ -1,20 +1,30 @@
 import { useEffect, useState, useRef } from "react";
 
+interface CheckInStatusResponse {
+  hasCheckedIn: boolean;
+  checkpointCheckinToday: boolean;
+  dailyRewardClaimed: boolean;
+  pointsEarnedToday: number;
+}
+
 export function useCheckInStatus(address: string, checkpoint: string) {
   const [checkinStatus, setCheckinStatus] = useState<boolean | null>(null);
+  const [checkpointCheckinToday, setCheckpointCheckinToday] = useState(false);
+  const [dailyRewardClaimed, setDailyRewardClaimed] = useState(false);
+  const [pointsEarnedToday, setPointsEarnedToday] = useState(0);
   const isFetching = useRef(false);
 
   useEffect(() => {
-    // Reset status when address or checkpoint changes
     setCheckinStatus(null);
+    setCheckpointCheckinToday(false);
+    setDailyRewardClaimed(false);
+    setPointsEarnedToday(0);
 
     const fetchCheckins = async () => {
-      // Skip if we don't have the required data or if we're already fetching
       if (!address || !checkpoint || isFetching.current) {
         return;
       }
 
-      // Set fetching flag to prevent duplicate calls
       isFetching.current = true;
 
       try {
@@ -23,12 +33,16 @@ export function useCheckInStatus(address: string, checkpoint: string) {
             checkpoint
           )}`
         );
-        console.log("response", response);
+
         if (!response.ok) {
           throw new Error("Failed to fetch check-in status");
         }
-        const data = await response.json();
+
+        const data: CheckInStatusResponse = await response.json();
         setCheckinStatus(data.hasCheckedIn);
+        setCheckpointCheckinToday(data.checkpointCheckinToday);
+        setDailyRewardClaimed(data.dailyRewardClaimed);
+        setPointsEarnedToday(data.pointsEarnedToday);
       } catch (error) {
         console.error("Error fetching checkin status:", error);
         setCheckinStatus(false);
@@ -42,5 +56,14 @@ export function useCheckInStatus(address: string, checkpoint: string) {
     }
   }, [address, checkpoint]);
 
-  return { checkinStatus, setCheckinStatus };
+  return {
+    checkinStatus,
+    setCheckinStatus,
+    checkpointCheckinToday,
+    setCheckpointCheckinToday,
+    dailyRewardClaimed,
+    setDailyRewardClaimed,
+    pointsEarnedToday,
+    setPointsEarnedToday,
+  };
 }

@@ -7,73 +7,145 @@ import {
   type Player,
 } from "@/lib/supabase";
 
-const CHECKIN_POINTS = 100; // Points awarded for each checkin
+const DAILY_CHECKIN_POINTS = 100;
 
-// Award points for checkpoint checkin using Supabase directly
-async function awardCheckpointPoints(
-  walletAddress: string,
-  checkpoint: string,
-  email?: string
-) {
-  // Check if user has already been awarded points for this checkpoint
-  const { data: existingActivity } = await supabase
-    .from("points_activities")
-    .select("id")
-    .eq("user_wallet_address", walletAddress)
-    .eq("activity_type", "checkpoint_checkin")
-    .contains("metadata", { checkpoint })
-    .limit(1);
+const getUtcDayBounds = () => {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 1);
 
-  if (existingActivity && existingActivity.length > 0) {
-    throw new Error(`Already awarded points for checkpoint: ${checkpoint}`);
-  }
-
-  // Award points by creating activity record
-  const { data: activity, error: activityError } = await supabase
-    .from("points_activities")
-    .insert({
-      user_wallet_address: walletAddress,
-      activity_type: "checkpoint_checkin",
-      points_earned: CHECKIN_POINTS,
-      description: `Checked in to ${checkpoint}`,
-      metadata: { checkpoint, email },
-      processed: true,
-    })
-    .select()
-    .single();
-
-  if (activityError) {
-    throw activityError;
-  }
-
-  return activity;
-}
+  return {
+    startIso: start.toISOString(),
+    endIso: end.toISOString(),
+  };
+};
 
 export async function POST(req: NextRequest) {
   const { walletAddress, email, checkpoint } = await req.json();
 
-  console.log("walletAddress", walletAddress);
-  console.log("email", email);
-  console.log("checkpoint", checkpoint);
-
   try {
-    // Create or update player record first
+    if (!walletAddress || !checkpoint) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Wallet address and checkpoint are required",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const playerData: Omit<Player, "id" | "created_at" | "updated_at"> = {
       wallet_address: walletAddress,
       email: email || undefined,
-      username: undefined, // No username provided in regular checkins
-      total_points: 0, // Will be updated by database triggers
+      username: undefined,
+      total_points: 0,
     };
 
     const player = await createOrUpdatePlayer(playerData);
 
-    // Try to upsert the checkpoint (this will handle duplicate checking internally)
-    await upsertCheckpoint(walletAddress, email, checkpoint);
+    try {
+      await upsertCheckpoint(walletAddress, email, checkpoint);
+    } catch (error) {
+      if (
+        !(error instanceof Error && error.message.includes("Already checked in"))
+      ) {
+        throw error;
+      }
+    }
 
-    // Award points for this checkpoint checkin
-    const activity = await awardCheckpointPoints(walletAddress, checkpoint, email);
+    const { startIso, endIso } = getUtcDayBounds();
 
-    // Get updated user profile with current points
+    const { data: existingCheckpointActivity, error: existingCheckpointError } =
+      await supabase
+        .from("points_activities")
+        .select("id")
+        .eq("user_wallet_address", walletAddress)
+        .eq("activity_type", "checkpoint_checkin")
+        .contains("metadata", { checkpoint })
+        .gte("created_at", startIso)
+        .lt("created_at", endIso)
+        .limit(1);
+
+    if (existingCheckpointError) {
+      throw existingCheckpointError;
+    }
+
+    let checkpointActivityId: string | undefined;
+
+    if (!existingCheckpointActivity || existingCheckpointActivity.length === 0) {
+      const {
+        data: checkpointActivity,
+        error: checkpointActivityError,
+      } = await supabase
+        .from("points_activities")
+        .insert({
+          user_wallet_address: walletAddress,
+          activity_type: "checkpoint_checkin",
+          points_earned: 0,
+          description: `Checkpoint visit: ${checkpoint}`,
+          metadata: { checkpoint, email },
+          processed: true,
+        })
+        .select()
+        .single();
+
+      if (checkpointActivityError) {
+        throw checkpointActivityError;
+      }
+
+      checkpointActivityId = checkpointActivity?.id;
+    } else {
+      checkpointActivityId = existingCheckpointActivity[0].id;
+    }
+
+    const { data: existingDailyActivity, error: existingDailyError } =
+      await supabase
+        .from("points_activities")
+        .select("id, points_earned")
+        .eq("user_wallet_address", walletAddress)
+        .eq("activity_type", "daily_checkin")
+        .gte("created_at", startIso)
+        .lt("created_at", endIso)
+        .limit(1);
+
+    if (existingDailyError) {
+      throw existingDailyError;
+    }
+
+    let pointsAwarded = 0;
+    let pointsEarnedToday = existingDailyActivity?.[0]?.points_earned ?? 0;
+    let dailyActivityId: string | undefined;
+
+    if (!existingDailyActivity || existingDailyActivity.length === 0) {
+      const { data: dailyActivity, error: dailyActivityError } = await supabase
+        .from("points_activities")
+        .insert({
+          user_wallet_address: walletAddress,
+          activity_type: "daily_checkin",
+          points_earned: DAILY_CHECKIN_POINTS,
+          description: `Daily check-in via ${checkpoint}`,
+          metadata: { checkpoint, email },
+          processed: true,
+        })
+        .select()
+        .single();
+
+      if (dailyActivityError) {
+        throw dailyActivityError;
+      }
+
+      pointsAwarded = DAILY_CHECKIN_POINTS;
+      pointsEarnedToday = DAILY_CHECKIN_POINTS;
+      dailyActivityId = dailyActivity?.id;
+    } else {
+      dailyActivityId = existingDailyActivity[0].id;
+      pointsEarnedToday = existingDailyActivity[0].points_earned ?? 0;
+    }
+
     const updatedProfile = await getUserProfile(walletAddress);
     const totalPoints = updatedProfile?.total_points || 0;
 
@@ -84,9 +156,15 @@ export async function POST(req: NextRequest) {
           ...player,
           total_points: totalPoints,
         },
-        pointsEarned: CHECKIN_POINTS,
-        activityId: activity.id,
-        message: `Congratulations! You earned ${CHECKIN_POINTS} points for checking in to ${checkpoint}!`,
+        pointsAwarded,
+        pointsEarnedToday,
+        dailyRewardClaimed: pointsEarnedToday >= DAILY_CHECKIN_POINTS,
+        checkpointActivityId,
+        dailyActivityId,
+        message:
+          pointsAwarded >= DAILY_CHECKIN_POINTS
+            ? `Congratulations! You earned ${DAILY_CHECKIN_POINTS} points for today's check-in!`
+            : "Daily check-in already completed. Come back tomorrow!",
       }),
       {
         status: 200,
@@ -96,7 +174,7 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     console.error("Error processing checkin:", e);
     const errorMessage = e instanceof Error ? e.message : "Unknown error";
-    
+
     return new Response(
       JSON.stringify({
         success: false,

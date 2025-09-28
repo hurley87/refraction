@@ -216,8 +216,8 @@ export const POINTS_ACTIVITIES_CONFIG: PointsActivityConfig[] = [
     description: "Check in daily to earn points",
     icon: "📅",
     category: "engagement",
-    base_points: 10,
-    max_daily_points: 10,
+    base_points: 100,
+    max_daily_points: 100,
     multiplier_conditions: [
       {
         condition_type: "streak",
@@ -240,7 +240,7 @@ export const POINTS_ACTIVITIES_CONFIG: PointsActivityConfig[] = [
     description: "Check in to an IRL checkpoint to earn points",
     icon: "📍",
     category: "engagement",
-    base_points: 100,
+    base_points: 0,
     is_active: true,
   },
 

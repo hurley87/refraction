@@ -16,7 +16,16 @@ export default function Checkpoint({ id }: CheckpointProps) {
   const { user } = usePrivy();
   const address = user?.wallet?.address as `0x${string}`;
   const email = user?.email?.address;
-  const { checkinStatus, setCheckinStatus } = useCheckInStatus(address, id);
+  const {
+    checkinStatus,
+    setCheckinStatus,
+    checkpointCheckinToday,
+    setCheckpointCheckinToday,
+    dailyRewardClaimed,
+    setDailyRewardClaimed,
+    pointsEarnedToday,
+    setPointsEarnedToday,
+  } = useCheckInStatus(address, id);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
@@ -49,6 +58,12 @@ export default function Checkpoint({ id }: CheckpointProps) {
   }, [address]);
 
   useEffect(() => {
+    if (!checkpointCheckinToday) {
+      hasAttemptedCheckIn.current = false;
+    }
+  }, [checkpointCheckinToday]);
+
+  useEffect(() => {
     // Skip if we've already attempted a check-in in this session
     if (hasAttemptedCheckIn.current) {
       return;
@@ -62,7 +77,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
       try {
         // If checkinStatus is already true, no need to check again
-        if (checkinStatus) {
+        if (checkpointCheckinToday) {
           return;
         }
 
@@ -83,12 +98,25 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
         if (response.ok) {
           const result = await response.json();
-          setCheckinStatus(true);
-          if (
-            result?.player &&
-            typeof result.player.total_points === "number"
-          ) {
-            setTotalPoints(result.player.total_points);
+          if (result?.success) {
+            setCheckinStatus(true);
+            setCheckpointCheckinToday(true);
+            setDailyRewardClaimed(result.dailyRewardClaimed ?? false);
+            const earnedToday =
+              typeof result.pointsEarnedToday === "number"
+                ? result.pointsEarnedToday
+                : 0;
+            const pointsAwarded =
+              typeof result.pointsAwarded === "number"
+                ? result.pointsAwarded
+                : 0;
+            setPointsEarnedToday(earnedToday || pointsAwarded);
+            if (
+              result?.player &&
+              typeof result.player.total_points === "number"
+            ) {
+              setTotalPoints(result.player.total_points);
+            }
           }
         }
       } catch (error) {
@@ -105,7 +133,28 @@ export default function Checkpoint({ id }: CheckpointProps) {
     if (user && checkinStatus !== null) {
       autoCheckIn();
     }
-  }, [user, address, id, email, checkinStatus, isCheckingIn, setCheckinStatus]);
+  }, [
+    user,
+    address,
+    id,
+    email,
+    checkinStatus,
+    checkpointCheckinToday,
+    isCheckingIn,
+    setCheckinStatus,
+    setCheckpointCheckinToday,
+    setDailyRewardClaimed,
+    setPointsEarnedToday,
+  ]);
+
+  const rewardPoints = dailyRewardClaimed
+    ? pointsEarnedToday || 100
+    : pointsEarnedToday;
+  const hasDailyReward = dailyRewardClaimed || rewardPoints >= 100;
+  const headerTitle = hasDailyReward ? "YOU EARNED" : "YOU'RE CHECKED IN";
+  const headerSubtitle = hasDailyReward
+    ? `${rewardPoints} POINTS`
+    : "COME BACK TOMORROW";
 
   return (
     <Auth>
@@ -120,10 +169,10 @@ export default function Checkpoint({ id }: CheckpointProps) {
             {/* Header Section */}
             <div className="flex flex-col items-center gap-1">
               <h1 className="text-5xl font-inktrap uppercase text-yellow-300 font-bold">
-                YOU EARNED
+                {headerTitle}
               </h1>
               <h2 className="text-5xl font-inktrap uppercase text-yellow-300 font-bold">
-                100 POINTS
+                {headerSubtitle}
               </h2>
             </div>
 
