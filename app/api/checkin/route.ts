@@ -3,6 +3,7 @@ import {
   upsertCheckpoint,
   createOrUpdatePlayer,
   getUserProfile,
+  updatePlayerPoints,
   supabase,
   type Player,
 } from "@/lib/supabase";
@@ -119,6 +120,7 @@ export async function POST(req: NextRequest) {
     let pointsAwarded = 0;
     let pointsEarnedToday = existingDailyActivity?.[0]?.points_earned ?? 0;
     let dailyActivityId: string | undefined;
+    let latestPlayer = player;
 
     if (!existingDailyActivity || existingDailyActivity.length === 0) {
       const { data: dailyActivity, error: dailyActivityError } = await supabase
@@ -146,16 +148,24 @@ export async function POST(req: NextRequest) {
       pointsEarnedToday = existingDailyActivity[0].points_earned ?? 0;
     }
 
-    const updatedProfile = await getUserProfile(walletAddress);
-    const totalPoints = updatedProfile?.total_points || 0;
+    if (pointsAwarded > 0 && latestPlayer?.id) {
+      latestPlayer = await updatePlayerPoints(latestPlayer.id, pointsAwarded);
+    } else {
+      const updatedProfile = await getUserProfile(walletAddress);
+      if (updatedProfile) {
+        latestPlayer = updatedProfile;
+      }
+    }
+
+    const totalPoints = latestPlayer?.total_points || 0;
+    const responsePlayer = latestPlayer
+      ? { ...latestPlayer, total_points: totalPoints }
+      : { ...player, total_points: totalPoints };
 
     return new Response(
       JSON.stringify({
         success: true,
-        player: {
-          ...player,
-          total_points: totalPoints,
-        },
+        player: responsePlayer,
         pointsAwarded,
         pointsEarnedToday,
         dailyRewardClaimed: pointsEarnedToday >= DAILY_CHECKIN_POINTS,
