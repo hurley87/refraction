@@ -2,9 +2,10 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Metadata } from "next";
 import Image from "next/image";
+import NewsletterForm from "@/components/newsletter-form";
 
 const appUrl = "https://irl.energy";
-const show_newsletter = false;
+const show_newsletter = true;
 
 const miniapp = {
   version: "1",
@@ -373,29 +374,7 @@ export default function Home() {
               <h3 className="text-black body-large mb-6 uppercase lg:normal-case">
                 Stay Up to Date With Our Newsletter
               </h3>
-              <form className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-full text-black placeholder-gray-500 focus:outline-none focus:border-black"
-                  value="you@yourname.com"
-                  required
-                />
-
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="bg-[#EDEDED] hover:bg-gray-800 text-black font-inktrap w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center"
-                >
-                  <Image
-                    src="/home/arrow-right.svg"
-                    alt="arrow-right"
-                    width={24}
-                    height={24}
-                    className="w-5 h-5 sm:w-6 sm:h-6"
-                  />
-                </Button>
-              </form>
+              <NewsletterForm />
             </div>
           )}
         </div>
