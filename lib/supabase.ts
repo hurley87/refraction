@@ -370,63 +370,59 @@ export const listLocationsByWallet = async (walletAddress: string) => {
   return (data || []).map((row: any) => row.locations).filter(Boolean);
 };
 
-export const getLeaderboard = async (limit: number = 10, offset: number = 0) => {
-  const { data: players, error } = await supabase
+export const getLeaderboard = async (
+  limit: number = 50,
+  offset: number = 0,
+) => {
+  // Try optimized database function first
+  const { data, error } = await supabase.rpc("get_leaderboard_optimized", {
+    page_limit: limit,
+    page_offset: offset,
+  });
+
+  if (!error && data) {
+    return data as LeaderboardEntry[];
+  }
+
+  // Simple fallback query if RPC doesn't exist
+  console.warn("RPC function not found, using fallback query");
+
+  const { data: players, error: fallbackError } = await supabase
     .from("players")
     .select("id, wallet_address, username, email, total_points")
     .order("total_points", { ascending: false })
+    .order("id", { ascending: true })
     .range(offset, offset + limit - 1);
 
-  if (error) throw error;
+  if (fallbackError) throw fallbackError;
+  if (!players || players.length === 0) return [];
 
-  // Get checkin counts for each player and calculate sequential ranks with ties
-  const playersWithCheckins = await Promise.all(
-    players.map(async (player) => {
-      const { count } = await supabase
-        .from("player_location_checkins")
-        .select("*", { count: "exact", head: true })
-        .eq("player_id", player.id);
+  // Get checkin counts in one batch query
+  const playerIds = players.map((p) => p.id);
+  const { data: checkinCounts } = await supabase
+    .from("player_location_checkins")
+    .select("player_id")
+    .in("player_id", playerIds);
 
-      return {
-        player_id: player.id,
-        wallet_address: player.wallet_address,
-        username: player.username,
-        email: player.email,
-        total_points: player.total_points,
-        total_checkins: count || 0,
-      };
-    }),
-  );
+  // Map checkin counts
+  const checkinMap = new Map<number, number>();
+  checkinCounts?.forEach((checkin: any) => {
+    checkinMap.set(
+      checkin.player_id,
+      (checkinMap.get(checkin.player_id) || 0) + 1,
+    );
+  });
 
-  // Calculate dense ranks with proper tie handling
-  const leaderboard: LeaderboardEntry[] = [];
-  
-  // We need to calculate ranks from the beginning to handle ties properly
-  // Get all players up to this point to calculate correct dense ranks
-  const { data: allPlayersUpToOffset, error: allError } = await supabase
-    .from("players")
-    .select("total_points")
-    .order("total_points", { ascending: false })
-    .range(0, offset + playersWithCheckins.length - 1);
-    
-  if (allError) throw allError;
-  
-  // Calculate dense ranks for the requested range
-  const uniqueScores = Array.from(new Set(allPlayersUpToOffset.map(p => p.total_points)));
-  
-  for (let i = 0; i < playersWithCheckins.length; i++) {
-    const player = playersWithCheckins[i];
-    
-    // Find rank based on unique score position
-    const scoreRank = uniqueScores.indexOf(player.total_points) + 1;
-    
-    leaderboard.push({
-      ...player,
-      rank: scoreRank,
-    });
-  }
-
-  return leaderboard;
+  // Simple sequential ranking
+  return players.map((player, index) => ({
+    player_id: player.id,
+    wallet_address: player.wallet_address,
+    username: player.username,
+    email: player.email,
+    total_points: player.total_points,
+    total_checkins: checkinMap.get(player.id) || 0,
+    rank: offset + index + 1,
+  }));
 };
 
 export const getPlayerStats = async (playerId: number) => {

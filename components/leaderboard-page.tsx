@@ -65,7 +65,8 @@ export default function LeaderboardPage() {
       await fetchLeaderboard(itemsPerPage); // Fetch first batch
     };
     loadLeaderboard();
-  }, [fetchLeaderboard]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   // Sync hook's leaderboard with extended leaderboard
   useEffect(() => {

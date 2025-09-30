@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
 
 interface LocationSuggestion {
@@ -44,50 +44,51 @@ export const useLocationGame = () => {
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
-  const performCheckin = async (
-    data: CheckinData
-  ): Promise<CheckinResponse | null> => {
-    setIsCheckinLoading(true);
+  const performCheckin = useCallback(
+    async (data: CheckinData): Promise<CheckinResponse | null> => {
+      setIsCheckinLoading(true);
 
-    try {
-      const response = await fetch("/api/location-checkin", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      try {
+        const response = await fetch("/api/location-checkin", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
 
-      const result = await response.json();
+        const result = await response.json();
 
-      if (!response.ok) {
-        if (result.alreadyCheckedIn) {
-          toast.error("You've already checked in at this location!");
-        } else {
-          toast.error(result.error || "Failed to check in");
+        if (!response.ok) {
+          if (result.alreadyCheckedIn) {
+            toast.error("You've already checked in at this location!");
+          } else {
+            toast.error(result.error || "Failed to check in");
+          }
+          return result;
         }
+
+        toast.success(
+          result.message || `You earned ${result.pointsEarned} points!`,
+        );
         return result;
+      } catch (error) {
+        console.error("Checkin error:", error);
+        toast.error("Failed to check in. Please try again.");
+        return null;
+      } finally {
+        setIsCheckinLoading(false);
       }
+    },
+    [],
+  );
 
-      toast.success(
-        result.message || `You earned ${result.pointsEarned} points!`
-      );
-      return result;
-    } catch (error) {
-      console.error("Checkin error:", error);
-      toast.error("Failed to check in. Please try again.");
-      return null;
-    } finally {
-      setIsCheckinLoading(false);
-    }
-  };
-
-  const getPlayerData = async (walletAddress: string) => {
+  const getPlayerData = useCallback(async (walletAddress: string) => {
     try {
       const response = await fetch(
         `/api/location-checkin?walletAddress=${encodeURIComponent(
-          walletAddress
-        )}`
+          walletAddress,
+        )}`,
       );
       const result = await response.json();
 
@@ -103,9 +104,9 @@ export const useLocationGame = () => {
       console.error("Get player data error:", error);
       return null;
     }
-  };
+  }, []);
 
-  const fetchLeaderboard = async (limit: number = 10) => {
+  const fetchLeaderboard = useCallback(async (limit: number = 50) => {
     setIsLeaderboardLoading(true);
 
     try {
@@ -125,9 +126,9 @@ export const useLocationGame = () => {
     } finally {
       setIsLeaderboardLoading(false);
     }
-  };
+  }, []);
 
-  const getPlayerStats = async (playerId: number) => {
+  const getPlayerStats = useCallback(async (playerId: number) => {
     try {
       const response = await fetch(`/api/leaderboard?playerId=${playerId}`);
       const result = await response.json();
@@ -141,7 +142,7 @@ export const useLocationGame = () => {
       console.error("Player stats error:", error);
       return null;
     }
-  };
+  }, []);
 
   return {
     // State

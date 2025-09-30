@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30; // Extended timeout
+export const revalidate = 60; // Cache for 60 seconds
 
 // GET /api/player/rank?walletAddress=0x...
 export async function GET(request: NextRequest) {
@@ -12,14 +14,14 @@ export async function GET(request: NextRequest) {
     if (!walletAddress) {
       return NextResponse.json(
         { error: "Wallet address is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Get the user's rank by counting how many players have more points
+    // Get the user's player data including id for proper ranking
     const { data: userPlayer, error: userError } = await supabase
       .from("players")
-      .select("total_points")
+      .select("id, total_points")
       .eq("wallet_address", walletAddress)
       .single();
 
@@ -35,17 +37,32 @@ export async function GET(request: NextRequest) {
       throw userError;
     }
 
-    // Get all unique scores to calculate dense ranking
+    // Calculate rank by counting how many players come before this user
+    // Using the same ordering as leaderboard: ORDER BY total_points DESC, id ASC
+    // This means we count players with:
+    // 1. More points, OR
+    // 2. Equal points but lower id
     const { data: allPlayers, error: rankError } = await supabase
       .from("players")
-      .select("total_points")
-      .order("total_points", { ascending: false });
+      .select("id, total_points")
+      .order("total_points", { ascending: false })
+      .order("id", { ascending: true });
 
     if (rankError) throw rankError;
 
-    // Calculate dense rank (tied players get same rank, next rank is sequential)
-    const uniqueScores = Array.from(new Set(allPlayers.map(p => p.total_points)));
-    const rank = uniqueScores.indexOf(userPlayer.total_points) + 1;
+    // Find the user's position in the ordered list
+    const userIndex = allPlayers.findIndex((p) => p.id === userPlayer.id);
+
+    // If user not found in list, something is wrong
+    if (userIndex === -1) {
+      return NextResponse.json({
+        success: true,
+        rank: null,
+        total_points: userPlayer.total_points,
+      });
+    }
+
+    const rank = userIndex + 1;
 
     return NextResponse.json({
       success: true,
@@ -56,7 +73,7 @@ export async function GET(request: NextRequest) {
     console.error("Player rank API error:", error);
     return NextResponse.json(
       { error: "Failed to get player rank" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
