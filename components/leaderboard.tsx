@@ -12,9 +12,17 @@ interface UserStats {
   total_checkins: number;
 }
 
-export default function Leaderboard() {
+interface LeaderboardProps {
+  onClose?: () => void;
+  autoOpen?: boolean;
+}
+
+export default function Leaderboard({
+  onClose,
+  autoOpen = false,
+}: LeaderboardProps = {}) {
   const { user } = usePrivy();
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(autoOpen);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
   const { fetchLeaderboard, leaderboard, isLeaderboardLoading } =
@@ -36,7 +44,11 @@ export default function Leaderboard() {
   };
 
   const handleClose = () => {
-    setShowLeaderboard(false);
+    if (onClose) {
+      onClose();
+    } else {
+      setShowLeaderboard(false);
+    }
     setUserStats(null); // Clear user stats on close
   };
 

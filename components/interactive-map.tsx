@@ -2,19 +2,17 @@
 
 import { useState, useRef, useEffect } from "react";
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
-import { MapPin } from "lucide-react";
+import { MapPin, Trophy } from "lucide-react";
 import LocationSearch from "@/components/location-search";
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
-import MobileFooterNav from "@/components/mobile-footer-nav";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import CoinLocationForm, { CoinFormData } from "./coin-location-form";
-import {
-  createMetadataBuilder,
-  createZoraUploaderForCreator,
-  setApiKey,
-} from "@zoralabs/coins-sdk";
-// Supabase is server-only; do not import it in client components.
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import ProfileMenu from "@/components/profile-menu";
+import Link from "next/link";
 
 interface MarkerData {
   latitude: number;
@@ -24,18 +22,18 @@ interface MarkerData {
   name: string;
   creator_wallet_address?: string | null;
   creator_username?: string | null;
-  coin_address?: string | null;
-  coin_name?: string | null;
-  coin_symbol?: string | null;
-  coin_image_url?: string | null;
 }
 
-// Removed old LocationSuggestion; handled by LocationSearch component
+interface LocationFormData {
+  name: string;
+  description: string;
+}
 
 export default function InteractiveMap() {
-  const { user } = usePrivy();
+  const { user, login } = usePrivy();
   const walletAddress = user?.wallet?.address;
   const [userUsername, setUserUsername] = useState<string | null>(null);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const [viewState, setViewState] = useState({
     longitude: -73.9442,
@@ -44,30 +42,17 @@ export default function InteractiveMap() {
   });
 
   const [markers, setMarkers] = useState<MarkerData[]>([]);
-  const [tempMarkers] = useState<MarkerData[]>([]);
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const [popupInfo, setPopupInfo] = useState<MarkerData | null>(null);
-  // Search state handled by LocationSearch component (Mapbox Search Box)
-  // Removed How To section state
-  const [showCoinForm, setShowCoinForm] = useState(false);
-  const [isCreatingCoin, setIsCreatingCoin] = useState(false);
-  const [coinCreationSuccess, setCoinCreationSuccess] = useState(false);
-  const [createdCoinData, setCreatedCoinData] = useState<{
-    address: string;
-    transactionHash: string;
-  } | null>(null);
+  const [showLocationForm, setShowLocationForm] = useState(false);
+  const [isCreatingLocation, setIsCreatingLocation] = useState(false);
+  const [formData, setFormData] = useState<LocationFormData>({
+    name: "",
+    description: "",
+  });
 
   const mapRef = useRef<any>(null);
   const hasSetInitialLocationRef = useRef(false);
-
-  useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_ZORA_API_KEY as string | undefined;
-    if (apiKey) {
-      setApiKey(apiKey);
-    } else {
-      console.warn("NEXT_PUBLIC_ZORA_API_KEY is not set");
-    }
-  }, []);
 
   // Center map on user's current location once on mount (with fallback)
   useEffect(() => {
@@ -130,10 +115,6 @@ export default function InteractiveMap() {
             name: loc.name,
             creator_wallet_address: loc.creator_wallet_address ?? null,
             creator_username: loc.creator_username ?? null,
-            coin_address: loc.coin_address ?? null,
-            coin_name: loc.coin_name ?? null,
-            coin_symbol: loc.coin_symbol ?? null,
-            coin_image_url: loc.coin_image_url ?? null,
           }),
         );
         setMarkers(dbMarkers);
@@ -144,7 +125,7 @@ export default function InteractiveMap() {
     loadMarkers();
   }, []);
 
-  // Add markers by clicking the map for coin creation
+  // Add markers by clicking the map
   const onMapClick = async (event: any) => {
     if (!walletAddress) {
       toast.error("Please connect your wallet to create locations");
@@ -173,9 +154,12 @@ export default function InteractiveMap() {
             name: feature.text || "New Location",
           };
 
-          // Do not render a temp marker. Open the create coin form directly.
           setSelectedMarker(newMarker);
-          setShowCoinForm(true);
+          setFormData({
+            name: newMarker.name,
+            description: newMarker.display_name,
+          });
+          setShowLocationForm(true);
         }
       }
     } catch (error) {
@@ -189,9 +173,12 @@ export default function InteractiveMap() {
         name: "New Location",
       };
 
-      // Do not render a temp marker. Open the create coin form directly.
       setSelectedMarker(newMarker);
-      setShowCoinForm(true);
+      setFormData({
+        name: newMarker.name,
+        description: newMarker.display_name,
+      });
+      setShowLocationForm(true);
     }
   };
 
@@ -246,162 +233,157 @@ export default function InteractiveMap() {
     setSelectedMarker(marker);
   };
 
-  // Function to upload coin image via server API (Supabase usage is server-side only)
-  const uploadCoinImage = async (
-    imageFile: File,
-    coinAddress: string,
-    walletAddress: string,
-  ): Promise<string | null> => {
-    try {
-      const formData = new FormData();
-      formData.append("file", imageFile);
-      formData.append("coinAddress", coinAddress);
-      formData.append("walletAddress", walletAddress);
+  const handleCreateLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-      const res = await fetch("/api/coin-images/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Upload failed");
-      const json = await res.json();
-      return (json.publicUrl as string) ?? null;
-    } catch (error) {
-      console.error("Error uploading coin image:", error);
-      return null;
-    }
-  };
-
-  const handleCreateLocationWithCoin = async (coinFormData: CoinFormData) => {
     if (!selectedMarker || !walletAddress) {
       toast.error("Please select a location and connect your wallet");
       return;
     }
 
-    setIsCreatingCoin(true);
+    if (!formData.name.trim()) {
+      toast.error("Location name is required");
+      return;
+    }
+
+    setIsCreatingLocation(true);
 
     try {
-      // Ensure we always pass a File to withImage
-      let imageFile: File;
-      if (coinFormData.image) {
-        imageFile = coinFormData.image;
-      } else {
-        const placeholderUrl =
-          "https://via.placeholder.com/300x300?text=Location+Coin";
-        const resp = await fetch(placeholderUrl);
-        const blob = await resp.blob();
-        imageFile = new File([blob], "placeholder.png", {
-          type: blob.type || "image/png",
-        });
-      }
-
-      // Create metadata on frontend (with proper File handling)
-      const { createMetadataParameters } = await createMetadataBuilder()
-        .withName(coinFormData.name)
-        .withSymbol(coinFormData.symbol)
-        .withDescription(coinFormData.description)
-        .withImage(imageFile)
-        .upload(createZoraUploaderForCreator(walletAddress as `0x${string}`));
-
-      console.log("Metadata created on frontend:", createMetadataParameters);
-
-      // Upload coin image for UI display if provided
-      let coinImageUrl: string | null = null;
-      if (coinFormData.image) {
-        coinImageUrl = await uploadCoinImage(
-          coinFormData.image,
-          "temp-" + Date.now(), // Temporary ID for upload
-          walletAddress,
-        );
-      }
-
-      // Prepare data for server-side coin creation (with metadata)
-      const locationData = {
-        place_id: selectedMarker.place_id,
-        display_name: selectedMarker.display_name,
-        name: selectedMarker.name,
-        lat: selectedMarker.latitude.toString(),
-        lon: selectedMarker.longitude.toString(),
-        type: "location",
-        coinName: coinFormData.name,
-        coinSymbol: coinFormData.symbol,
-        coinDescription: coinFormData.description,
-        coinImageUrl: coinImageUrl,
-        userWalletAddress: walletAddress,
-        username: userUsername,
-        metadata: createMetadataParameters.metadata, // Pass metadata to server
-      };
-
-      console.log("Creating location with coin on server:", locationData);
-
-      // Call server endpoint to create coin and save location
-      const response = await fetch("/api/locations/create-with-coin", {
+      // Create location and award points
+      const response = await fetch("/api/locations", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(locationData),
+        body: JSON.stringify({
+          place_id: selectedMarker.place_id,
+          display_name: formData.description || selectedMarker.display_name,
+          name: formData.name,
+          lat: selectedMarker.latitude.toString(),
+          lon: selectedMarker.longitude.toString(),
+          type: "location",
+          walletAddress: walletAddress,
+          username: userUsername,
+        }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to create location with coin");
+        if (response.status === 429) {
+          toast.error(
+            result.error ||
+              "You can only add one location per day. Come back tomorrow!",
+          );
+          handleCloseLocationForm();
+          return;
+        }
+        throw new Error(result.error || "Failed to create location");
       }
-
-      console.log("Server response:", result);
 
       // Create new marker for the map
       const newPermanentMarker: MarkerData = {
         ...selectedMarker,
+        name: formData.name,
+        display_name: formData.description || selectedMarker.display_name,
         creator_wallet_address: walletAddress,
         creator_username: userUsername,
-        coin_address: result.coin.address,
-        coin_name: coinFormData.name,
-        coin_symbol: coinFormData.symbol,
-        coin_image_url: coinImageUrl,
       };
 
       setMarkers((current) => [...current, newPermanentMarker]);
 
-      // Set success state
-      setCoinCreationSuccess(true);
-      setCreatedCoinData({
-        address: result.coin.address,
-        transactionHash: result.coin.transactionHash,
-      });
-
-      toast.success(`Coin created successfully: ${coinFormData.symbol}`);
-    } catch (error) {
-      console.error("Error creating coin location:", error);
-      toast.error(
-        "Failed to create coin location: " + (error as Error).message,
+      toast.success(
+        `Location created successfully! You earned ${result.pointsAwarded || 100} points!`,
       );
+
+      handleCloseLocationForm();
+    } catch (error) {
+      console.error("Error creating location:", error);
+      toast.error("Failed to create location: " + (error as Error).message);
     } finally {
-      setIsCreatingCoin(false);
+      setIsCreatingLocation(false);
     }
   };
 
-  const handleCloseCoinForm = () => {
-    setShowCoinForm(false);
-    setCoinCreationSuccess(false);
-    setCreatedCoinData(null);
+  const handleCloseLocationForm = () => {
+    setShowLocationForm(false);
     setSelectedMarker(null);
     setPopupInfo(null);
+    setFormData({ name: "", description: "" });
   };
 
   return (
     <div className="w-full h-full relative">
-      {/* Search Controls */}
-      <div className="absolute top-4 left-4 right-4 z-10 space-y-2 max-w-xl">
-        <div className="bg-[var(--UI-White-65,rgba(255,255,255,0.65))] border border-[var(--UI-White-65,rgba(255,255,255,0.65))] rounded-3xl p-3 md:p-4 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px]">
-          <LocationSearch
-            placeholder="Search places, addresses, or POIs"
-            proximity={{
-              longitude: viewState.longitude,
-              latitude: viewState.latitude,
-            }}
-            onSelect={handleSearchSelect}
-          />
+      {/* Header */}
+      <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/20 to-transparent">
+        <div className="max-w-md w-full mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            {/* IRL Logo */}
+            <div className="w-[40px] h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center">
+              <Link href="/">
+                <img
+                  src="/home/IRL.png"
+                  alt="IRL"
+                  className="w-[27px] h-[14px]"
+                />
+              </Link>
+            </div>
+
+            {/* Right Side Buttons */}
+            <div className="flex items-center gap-2">
+              {/* Leaderboard Button */}
+              {user && (
+                <Link href="/leaderboard">
+                  <button
+                    className="bg-purple-600 hover:bg-purple-700 text-white rounded-full p-2 shadow-lg transition-colors"
+                    aria-label="Go to leaderboard"
+                  >
+                    <Trophy className="w-5 h-5" />
+                  </button>
+                </Link>
+              )}
+
+              {/* Profile Menu Button */}
+              {user ? (
+                <div className="flex items-center justify-end bg-[#4f4f4f] rounded-full px-2 py-2">
+                  <button
+                    style={{
+                      background:
+                        "linear-gradient(90deg, #2400FF 14.58%, #FA00FF 52.6%, #FF0000 86.46%)",
+                    }}
+                    onClick={() => setIsProfileMenuOpen(true)}
+                    className="flex items-center justify-center rounded-full w-6 h-6 transition-colors"
+                    aria-label="Open user menu"
+                  />
+                </div>
+              ) : (
+                <Button
+                  className="bg-white text-black text-lg hover:bg-white/80 justify-center font-inktrap rounded-full items-center"
+                  size="sm"
+                  onClick={login}
+                  style={{ width: "123px", height: "40px" }}
+                >
+                  Check In
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search Bar - Centered Below Header */}
+      <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-md px-4">
+        <div className="w-full">
+          <div className="bg-[var(--UI-White-65,rgba(255,255,255,0.65))] border border-[var(--UI-White-65,rgba(255,255,255,0.65))] rounded-3xl p-3 md:p-4 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px]">
+            <LocationSearch
+              placeholder="Search places, addresses, or POIs"
+              proximity={{
+                longitude: viewState.longitude,
+                latitude: viewState.latitude,
+              }}
+              onSelect={handleSearchSelect}
+            />
+          </div>
         </div>
       </div>
 
@@ -443,37 +425,6 @@ export default function InteractiveMap() {
           </Marker>
         ))}
 
-        {/* Temporary Markers (new locations to be created) */}
-        {tempMarkers.map((marker, index) => (
-          <Marker
-            key={`temp-${index}`}
-            latitude={marker.latitude}
-            longitude={marker.longitude}
-            anchor="bottom"
-          >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMarkerClick(marker);
-              }}
-              className="cursor-pointer z-50"
-              aria-label={`New location at ${marker.name}`}
-            >
-              <div
-                className={`w-6 h-6 rounded-full border-2 shadow-lg ${
-                  selectedMarker?.place_id === marker.place_id
-                    ? "bg-yellow-500 border-white animate-pulse"
-                    : "bg-orange-500 border-white"
-                }`}
-              >
-                <div className="w-full h-full flex items-center justify-center text-white text-xs">
-                  +
-                </div>
-              </div>
-            </button>
-          </Marker>
-        ))}
-
         {/* Popup */}
         {popupInfo && (
           <Popup
@@ -484,72 +435,129 @@ export default function InteractiveMap() {
             closeOnClick={false}
             className="z-50"
           >
-            <div className=" bg-white rounded-2xl overflow-hidden shadow-lg">
-              {popupInfo.coin_image_url && (
-                <div className="p-2 pt-6 pb-0">
-                  <img
-                    src={popupInfo.coin_image_url}
-                    alt={popupInfo.coin_name || "Coin image"}
-                    className="w-full h-28 object-cover rounded-xl"
-                  />
+            <div className="bg-white rounded-2xl overflow-hidden shadow-lg p-3">
+              <h3 className="text-base font-semibold text-black whitespace-normal break-words leading-tight mb-2">
+                {popupInfo.name}
+              </h3>
+              <div className="flex items-center gap-1 text-[10px] tracking-wide uppercase text-gray-500">
+                <MapPin className="w-3 h-3 shrink-0" />
+                <span className="whitespace-normal break-words leading-tight">
+                  {popupInfo.display_name}
+                </span>
+              </div>
+              {popupInfo.creator_username && (
+                <div className="mt-2 text-xs text-gray-600">
+                  Created by: {popupInfo.creator_username}
                 </div>
               )}
-              <div className="p-3 flex flex-col gap-2">
-                <h3 className="text-base font-semibold text-black whitespace-normal break-words leading-tight">
-                  {popupInfo.coin_name || popupInfo.name}
-                </h3>
-                <div className="flex items-center gap-1 text-[10px] tracking-wide uppercase text-gray-500">
-                  <MapPin className="w-3 h-3 shrink-0" />
-                  <span className="whitespace-normal break-words leading-tight">
-                    {popupInfo.display_name}
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  {popupInfo.coin_symbol && (
-                    <span className="text-xs uppercase text-gray-700 bg-[#EDEDED] px-3 py-1 rounded-full whitespace-nowrap">
-                      ${popupInfo.coin_symbol}
-                    </span>
-                  )}
-                  {popupInfo.coin_address && (
-                    <a
-                      href={`https://zora.co/coin/base:${popupInfo.coin_address}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-full bg-[#B5B5B5] px-2 py-1 text-center text-sm text-black hover:opacity-90"
-                    >
-                      Trade on Zora
-                    </a>
-                  )}
-                </div>
-              </div>
             </div>
           </Popup>
         )}
       </Map>
 
-      {/* Coin Form Dialog */}
+      {/* Location Form Dialog */}
       <Dialog
-        open={showCoinForm}
+        open={showLocationForm}
         onOpenChange={(open) => {
-          if (!open) handleCloseCoinForm();
+          if (!open) handleCloseLocationForm();
         }}
       >
         <DialogContent className="w-full max-w-md p-0 sm:rounded-2xl">
-          <CoinLocationForm
-            locationName={selectedMarker?.name}
-            locationAddress={selectedMarker?.display_name}
-            onSubmit={handleCreateLocationWithCoin}
-            onCancel={handleCloseCoinForm}
-            isLoading={isCreatingCoin}
-            isSuccess={coinCreationSuccess}
-            coinAddress={createdCoinData?.address}
-            transactionHash={createdCoinData?.transactionHash}
-          />
+          <div className="bg-white rounded-2xl p-4 sm:p-6 pb-6 w-full mx-auto max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-inktrap font-bold text-black">
+                Add New Location
+              </h2>
+            </div>
+
+            <form onSubmit={handleCreateLocation} className="space-y-4">
+              {/* Location Name */}
+              <div>
+                <Label
+                  htmlFor="name"
+                  className="text-sm font-inktrap text-gray-700"
+                >
+                  Location Name *
+                </Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="e.g., Central Park"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  className="mt-1"
+                  disabled={isCreatingLocation}
+                  maxLength={100}
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <Label
+                  htmlFor="description"
+                  className="text-sm font-inktrap text-gray-700"
+                >
+                  Description
+                </Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe this location..."
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                  className="mt-1 min-h-[80px]"
+                  disabled={isCreatingLocation}
+                  maxLength={500}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.description.length}/500 characters
+                </p>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  You&apos;ll earn <strong>100 points</strong> for adding this
+                  location!
+                </p>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex gap-3 pt-4 pb-24 md:pb-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCloseLocationForm}
+                  className="flex-1 h-16 rounded-full text-base"
+                  size="lg"
+                  disabled={isCreatingLocation}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 h-16 rounded-full text-base bg-black text-white hover:bg-black/90"
+                  size="lg"
+                  disabled={isCreatingLocation}
+                >
+                  {isCreatingLocation ? "Creating..." : "Add Location"}
+                </Button>
+              </div>
+            </form>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Mobile nav on all screens for this page */}
-      <MobileFooterNav showOnDesktop />
+      {/* Profile Menu */}
+      <ProfileMenu
+        isOpen={isProfileMenuOpen}
+        onClose={() => setIsProfileMenuOpen(false)}
+      />
     </div>
   );
 }

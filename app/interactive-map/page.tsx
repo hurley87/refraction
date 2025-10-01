@@ -1,7 +1,6 @@
 "use client";
 
 import InteractiveMap from "@/components/interactive-map";
-import MobileFooterNav from "@/components/mobile-footer-nav";
 import AuthOnboarding from "@/components/auth-onboarding";
 
 export default function InteractiveMapPage() {
@@ -16,7 +15,6 @@ export default function InteractiveMapPage() {
       <AuthOnboarding>
         <div className="fixed inset-0 font-grotesk">
           <InteractiveMap />
-          <MobileFooterNav showOnDesktop />
         </div>
       </AuthOnboarding>
     </div>

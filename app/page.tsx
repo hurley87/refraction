@@ -93,7 +93,7 @@ export default function Home() {
             </h4>
           </div>
           <div className="flex flex-col gap-4 w-full sm:max-w-[280px] md:max-w-[300px] mt-auto">
-            <Link href="/game" className="w-full sm:w-auto">
+            <Link href="/interactive-map" className="w-full sm:w-auto">
               <Button
                 size="lg"
                 className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"
@@ -153,10 +153,7 @@ export default function Home() {
               {`Check in at clubs, galleries, festivals, and more to earn and unlock exclusive perks across our global partner network: Resident Advisor, MUTEK, Serpentine, and 200+ others.`}
             </h3>
             <div className="w-full lg:w-auto flex-shrink-0 pt-12">
-              <Link
-                href="/contact-us"
-                className="block w-full"
-              >
+              <Link href="/contact-us" className="block w-full">
                 <Button
                   size="lg"
                   className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full lg:w-auto"
@@ -242,7 +239,7 @@ export default function Home() {
             Check in to earn points on the IRL network, with instant access to
             future rewards and experiences.
           </p>
-          <Link className="w-full" href="/game">
+          <Link className="w-full" href="/interactive-map">
             <Button
               size="lg"
               className="flex items-center gap-2 justify-between bg-white hover:bg-white/90 font-inktrap text-black text-sm sm:text-base px-4 py-3 sm:py-4 rounded-full w-full"

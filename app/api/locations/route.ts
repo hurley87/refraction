@@ -7,7 +7,11 @@ export async function GET(request: NextRequest) {
     const walletAddress = searchParams.get("walletAddress");
 
     // Base query
-    const query = supabase.from("locations").select("id, name, display_name, latitude, longitude, place_id, points_value, type, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username");
+    const query = supabase
+      .from("locations")
+      .select(
+        "id, name, display_name, latitude, longitude, place_id, points_value, type, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username",
+      );
 
     // If filtering by player's check-ins, join through player_location_checkins
     if (walletAddress) {
@@ -57,6 +61,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
+const getUtcDayBounds = () => {
+  const now = new Date();
+  const start = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 1);
+
+  return {
+    startIso: start.toISOString(),
+    endIso: end.toISOString(),
+  };
+};
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -67,21 +85,36 @@ export async function POST(request: NextRequest) {
       lat,
       lon,
       type,
-      coinAddress,
-      coinMetadata,
-      transactionHash,
-      coinSymbol,
-      coinName,
       walletAddress,
       username,
-      coinImageUrl,
     } = body;
 
     // Validate required fields
-    if (!place_id || !display_name || !name || !lat || !lon) {
+    if (!place_id || !display_name || !name || !lat || !lon || !walletAddress) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
+      );
+    }
+
+    // Check if user has already created a location today
+    const { startIso, endIso } = getUtcDayBounds();
+    const { data: existingLocations, error: checkError } = await supabase
+      .from("locations")
+      .select("id")
+      .eq("creator_wallet_address", walletAddress)
+      .gte("created_at", startIso)
+      .lt("created_at", endIso);
+
+    if (checkError) {
+      console.error("Error checking existing locations:", checkError);
+      throw checkError;
+    }
+
+    if (existingLocations && existingLocations.length > 0) {
+      return NextResponse.json(
+        { error: "You can only add one location per day. Come back tomorrow!" },
+        { status: 429 },
       );
     }
 
@@ -95,19 +128,11 @@ export async function POST(request: NextRequest) {
         latitude: parseFloat(lat),
         longitude: parseFloat(lon),
         type: type || "location",
-        points_value: 100, // Default points value
-        coin_address: coinAddress || null,
-        coin_transaction_hash: transactionHash || null,
-        coin_symbol: coinSymbol || null,
-        coin_name: coinName || null,
-        coin_image_url: coinImageUrl || null,
-        creator_wallet_address: walletAddress || null,
+        points_value: 100,
+        creator_wallet_address: walletAddress,
         creator_username: username || null,
         context: JSON.stringify({
-          coinAddress: coinAddress || null,
-          coinMetadata: coinMetadata || null,
-          transactionHash: transactionHash || null,
-          coinImageUrl: coinImageUrl || null,
+          created_at: new Date().toISOString(),
         }),
       })
       .select()
@@ -115,9 +140,33 @@ export async function POST(request: NextRequest) {
 
     if (locationError) throw locationError;
 
+    // Award 100 points to the user for creating a location
+    const pointsAwarded = 100;
+
+    const { error: pointsError } = await supabase
+      .from("points_activities")
+      .insert({
+        user_wallet_address: walletAddress,
+        activity_type: "location_creation",
+        points_earned: pointsAwarded,
+        description: `Created location: ${name}`,
+        metadata: {
+          location_id: locationData.id,
+          location_name: name,
+          place_id,
+        },
+        processed: true,
+      });
+
+    if (pointsError) {
+      console.error("Error awarding points:", pointsError);
+      // Don't fail the location creation if points fail
+    }
+
     return NextResponse.json({
       success: true,
       location: locationData,
+      pointsAwarded,
     });
   } catch (error) {
     console.error("Create location API error:", error);

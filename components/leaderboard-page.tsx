@@ -217,9 +217,13 @@ export default function LeaderboardPage() {
       }}
       className="min-h-screen p-4 pb-0 font-grotesk"
     >
-      <div className="max-w-lg mx-auto">
-        {/* Status Bar */}
-        <Header />
+      <div className="max-w-md mx-auto">
+        {/* Status Bar with Map Button */}
+        <div className="flex justify-between items-center">
+          <div className="flex-1">
+            <Header />
+          </div>
+        </div>
 
         {/* Main Content */}
         <div className="px-0 pt-4 space-y-4">

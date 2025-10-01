@@ -499,11 +499,6 @@
   resolved "https://registry.npmjs.org/@heroicons/react/-/react-2.2.0.tgz"
   integrity sha512-LMcepvRaS9LYHJGsF0zzmgKCUim/X3N/DQKc4jepAXJ7l8QxJ1PmxJzqplF2Z3FE4PqBAIGyJAQ/w4B5dsqbtQ==
 
-"@hey-api/client-fetch@^0.8.3":
-  version "0.8.4"
-  resolved "https://registry.npmjs.org/@hey-api/client-fetch/-/client-fetch-0.8.4.tgz"
-  integrity sha512-SWtUjVEFIUdiJGR2NiuF0njsSrSdTe7WHWkp3BLH3DEl2bRhiflOnBo29NSDdrY90hjtTQiTQkBxUgGOF29Xzg==
-
 "@hpke/chacha20poly1305@^1.6.2":
   version "1.6.2"
   resolved "https://registry.npmjs.org/@hpke/chacha20poly1305/-/chacha20poly1305-1.6.2.tgz"
@@ -873,55 +868,10 @@
   resolved "https://registry.npmjs.org/@msgpack/msgpack/-/msgpack-3.1.2.tgz"
   integrity sha512-JEW4DEtBzfe8HvUYecLU9e6+XJnKDlUAIve8FvPzF3Kzs6Xo/KuZkZJsDH0wJXl/qEZbeeE7edxDNY3kMs39hQ==
 
-"@napi-rs/canvas-android-arm64@0.1.73":
-  version "0.1.73"
-  resolved "https://registry.npmjs.org/@napi-rs/canvas-android-arm64/-/canvas-android-arm64-0.1.73.tgz"
-  integrity sha512-s8dMhfYIHVv7gz8BXg3Nb6cFi950Y0xH5R/sotNZzUVvU9EVqHfkqiGJ4UIqu+15UhqguT6mI3Bv1mhpRkmMQw==
-
 "@napi-rs/canvas-darwin-arm64@0.1.73":
   version "0.1.73"
   resolved "https://registry.npmjs.org/@napi-rs/canvas-darwin-arm64/-/canvas-darwin-arm64-0.1.73.tgz"
   integrity sha512-bLPCq8Yyq1vMdVdIpQAqmgf6VGUknk8e7NdSZXJJFOA9gxkJ1RGcHOwoXo7h0gzhHxSorg71hIxyxtwXpq10Rw==
-
-"@napi-rs/canvas-darwin-x64@0.1.73":
-  version "0.1.73"
-  resolved "https://registry.npmjs.org/@napi-rs/canvas-darwin-x64/-/canvas-darwin-x64-0.1.73.tgz"
-  integrity sha512-GR1CcehDjdNYXN3bj8PIXcXfYLUUOQANjQpM+KNnmpRo7ojsuqPjT7ZVH+6zoG/aqRJWhiSo+ChQMRazZlRU9g==
-
-"@napi-rs/canvas-linux-arm-gnueabihf@0.1.73":
-  version "0.1.73"
-  resolved "https://registry.npmjs.org/@napi-rs/canvas-linux-arm-gnueabihf/-/canvas-linux-arm-gnueabihf-0.1.73.tgz"
-  integrity sha512-cM7F0kBJVFio0+U2iKSW4fWSfYQ8CPg4/DRZodSum/GcIyfB8+UPJSRM1BvvlcWinKLfX1zUYOwonZX9IFRRcw==
-
-"@napi-rs/canvas-linux-arm64-gnu@0.1.73":
-  version "0.1.73"
-  resolved "https://registry.npmjs.org/@napi-rs/canvas-linux-arm64-gnu/-/canvas-linux-arm64-gnu-0.1.73.tgz"
-  integrity sha512-PMWNrMON9uz9klz1B8ZY/RXepQSC5dxxHQTowfw93Tb3fLtWO5oNX2k9utw7OM4ypT9BUZUWJnDQ5bfuXc/EUQ==
-
-"@napi-rs/canvas-linux-arm64-musl@0.1.73":
-  version "0.1.73"
-  resolved "https://registry.npmjs.org/@napi-rs/canvas-linux-arm64-musl/-/canvas-linux-arm64-musl-0.1.73.tgz"
-  integrity sha512-lX0z2bNmnk1PGZ+0a9OZwI2lPPvWjRYzPqvEitXX7lspyLFrOzh2kcQiLL7bhyODN23QvfriqwYqp5GreSzVvA==
-
-"@napi-rs/canvas-linux-riscv64-gnu@0.1.73":
-  version "0.1.73"
-  resolved "https://registry.npmjs.org/@napi-rs/canvas-linux-riscv64-gnu/-/canvas-linux-riscv64-gnu-0.1.73.tgz"
-  integrity sha512-QDQgMElwxAoADsSR3UYvdTTQk5XOyD9J5kq15Z8XpGwpZOZsSE0zZ/X1JaOtS2x+HEZL6z1S6MF/1uhZFZb5ig==
-
-"@napi-rs/canvas-linux-x64-gnu@0.1.73":
-  version "0.1.73"
-  resolved "https://registry.npmjs.org/@napi-rs/canvas-linux-x64-gnu/-/canvas-linux-x64-gnu-0.1.73.tgz"
-  integrity sha512-wbzLJrTalQrpyrU1YRrO6w6pdr5vcebbJa+Aut5QfTaW9eEmMb1WFG6l1V+cCa5LdHmRr8bsvl0nJDU/IYDsmw==
-
-"@napi-rs/canvas-linux-x64-musl@0.1.73":
-  version "0.1.73"
-  resolved "https://registry.npmjs.org/@napi-rs/canvas-linux-x64-musl/-/canvas-linux-x64-musl-0.1.73.tgz"
-  integrity sha512-xbfhYrUufoTAKvsEx2ZUN4jvACabIF0h1F5Ik1Rk4e/kQq6c+Dwa5QF0bGrfLhceLpzHT0pCMGMDeQKQrcUIyA==
-
-"@napi-rs/canvas-win32-x64-msvc@0.1.73":
-  version "0.1.73"
-  resolved "https://registry.npmjs.org/@napi-rs/canvas-win32-x64-msvc/-/canvas-win32-x64-msvc-0.1.73.tgz"
-  integrity sha512-YQmHXBufFBdWqhx+ympeTPkMfs3RNxaOgWm59vyjpsub7Us07BwCcmu1N5kildhO8Fm0syoI2kHnzGkJBLSvsg==
 
 "@napi-rs/canvas@^0.1.67":
   version "0.1.73"
@@ -955,46 +905,6 @@
   version "14.2.29"
   resolved "https://registry.npmjs.org/@next/swc-darwin-arm64/-/swc-darwin-arm64-14.2.29.tgz"
   integrity sha512-wWtrAaxCVMejxPHFb1SK/PVV1WDIrXGs9ki0C/kUM8ubKHQm+3hU9MouUywCw8Wbhj3pewfHT2wjunLEr/TaLA==
-
-"@next/swc-darwin-x64@14.2.29":
-  version "14.2.29"
-  resolved "https://registry.npmjs.org/@next/swc-darwin-x64/-/swc-darwin-x64-14.2.29.tgz"
-  integrity sha512-7Z/jk+6EVBj4pNLw/JQrvZVrAh9Bv8q81zCFSfvTMZ51WySyEHWVpwCEaJY910LyBftv2F37kuDPQm0w9CEXyg==
-
-"@next/swc-linux-arm64-gnu@14.2.29":
-  version "14.2.29"
-  resolved "https://registry.npmjs.org/@next/swc-linux-arm64-gnu/-/swc-linux-arm64-gnu-14.2.29.tgz"
-  integrity sha512-o6hrz5xRBwi+G7JFTHc+RUsXo2lVXEfwh4/qsuWBMQq6aut+0w98WEnoNwAwt7hkEqegzvazf81dNiwo7KjITw==
-
-"@next/swc-linux-arm64-musl@14.2.29":
-  version "14.2.29"
-  resolved "https://registry.npmjs.org/@next/swc-linux-arm64-musl/-/swc-linux-arm64-musl-14.2.29.tgz"
-  integrity sha512-9i+JEHBOVgqxQ92HHRFlSW1EQXqa/89IVjtHgOqsShCcB/ZBjTtkWGi+SGCJaYyWkr/lzu51NTMCfKuBf7ULNw==
-
-"@next/swc-linux-x64-gnu@14.2.29":
-  version "14.2.29"
-  resolved "https://registry.npmjs.org/@next/swc-linux-x64-gnu/-/swc-linux-x64-gnu-14.2.29.tgz"
-  integrity sha512-B7JtMbkUwHijrGBOhgSQu2ncbCYq9E7PZ7MX58kxheiEOwdkM+jGx0cBb+rN5AeqF96JypEppK6i/bEL9T13lA==
-
-"@next/swc-linux-x64-musl@14.2.29":
-  version "14.2.29"
-  resolved "https://registry.npmjs.org/@next/swc-linux-x64-musl/-/swc-linux-x64-musl-14.2.29.tgz"
-  integrity sha512-yCcZo1OrO3aQ38B5zctqKU1Z3klOohIxug6qdiKO3Q3qNye/1n6XIs01YJ+Uf+TdpZQ0fNrOQI2HrTLF3Zprnw==
-
-"@next/swc-win32-arm64-msvc@14.2.29":
-  version "14.2.29"
-  resolved "https://registry.npmjs.org/@next/swc-win32-arm64-msvc/-/swc-win32-arm64-msvc-14.2.29.tgz"
-  integrity sha512-WnrfeOEtTVidI9Z6jDLy+gxrpDcEJtZva54LYC0bSKQqmyuHzl0ego+v0F/v2aXq0am67BRqo/ybmmt45Tzo4A==
-
-"@next/swc-win32-ia32-msvc@14.2.29":
-  version "14.2.29"
-  resolved "https://registry.npmjs.org/@next/swc-win32-ia32-msvc/-/swc-win32-ia32-msvc-14.2.29.tgz"
-  integrity sha512-vkcriFROT4wsTdSeIzbxaZjTNTFKjSYmLd8q/GVH3Dn8JmYjUKOuKXHK8n+lovW/kdcpIvydO5GtN+It2CvKWA==
-
-"@next/swc-win32-x64-msvc@14.2.29":
-  version "14.2.29"
-  resolved "https://registry.npmjs.org/@next/swc-win32-x64-msvc/-/swc-win32-x64-msvc-14.2.29.tgz"
-  integrity sha512-iPPwUEKnVs7pwR0EBLJlwxLD7TTHWS/AoVZx1l9ZQzfQciqaFEr5AlYzA2uB6Fyby1IF18t4PL0nTpB+k4Tzlw==
 
 "@noble/ciphers@^1.0.0", "@noble/ciphers@^1.2.1", "@noble/ciphers@^1.3.0", "@noble/ciphers@1.3.0":
   version "1.3.0"
@@ -3296,32 +3206,7 @@
     "@walletconnect/window-getters" "^1.0.1"
     tslib "1.14.1"
 
-"@zoralabs/coins-sdk@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.npmjs.org/@zoralabs/coins-sdk/-/coins-sdk-0.3.0.tgz"
-  integrity sha512-ep/IaG13vwFmePDNp9UsDaNgLz1uB3C5JmTBtBOkT9saQomx4apheonA4Za/t8oCwe/VyQ51h0TAgHCiVS5i4A==
-  dependencies:
-    "@hey-api/client-fetch" "^0.8.3"
-    "@zoralabs/protocol-deployments" "^0.6.2"
-
-"@zoralabs/protocol-deployments@^0.4.0":
-  version "0.4.2"
-  resolved "https://registry.npmjs.org/@zoralabs/protocol-deployments/-/protocol-deployments-0.4.2.tgz"
-  integrity sha512-f021eaZQuQeP59NI2+8jPOChT1rK1Dtbwo3nS3lduCTi0JX38bqWP465KYmPjgiWr1PS81lFUe7y8aK0wTG4DA==
-
-"@zoralabs/protocol-deployments@^0.6.2":
-  version "0.6.2"
-  resolved "https://registry.npmjs.org/@zoralabs/protocol-deployments/-/protocol-deployments-0.6.2.tgz"
-  integrity sha512-RvyoNtVwcEzCNLWKqIwYlIC60TzBoZhxYrwpLxBfvoBlWSvQ8wyoc1/Z1f5fqNMPOd2wjk/eK8FAhMgaHerJdQ==
-
-"@zoralabs/protocol-sdk@^0.11.12":
-  version "0.11.12"
-  resolved "https://registry.npmjs.org/@zoralabs/protocol-sdk/-/protocol-sdk-0.11.12.tgz"
-  integrity sha512-WPFrmHvLeD3v72RQppSDz0F2dV4JJUQB4xUF+M3ZkvDZiMtUra20Blfka8S0QyytvoAQxpoDhZpJja45ylQI0w==
-  dependencies:
-    "@zoralabs/protocol-deployments" "^0.4.0"
-
-abitype@^1.0.2, abitype@^1.0.6, abitype@^1.0.8, abitype@1.0.8:
+abitype@^1.0.6, abitype@1.0.8:
   version "1.0.8"
   resolved "https://registry.npmjs.org/abitype/-/abitype-1.0.8.tgz"
   integrity sha512-ZeiI6h3GnW06uYDLx0etQtX/p8E24UaHHBj57RSjK7YBFe7iuVn07EDpOeP451D06sF27VOz9JJPlIKJmXgkEg==
@@ -8798,7 +8683,7 @@ varint@^5.0.0:
   resolved "https://registry.npmjs.org/varint/-/varint-5.0.2.tgz"
   integrity sha512-lKxKYG6H03yCZUpAGOPOsMcGxd1RHCu1iKvEHYDPmTyq2HueGhD73ssNBqqQWfvYs04G9iUFRvmAVLW20Jw6ow==
 
-viem@^2, viem@^2.1.1, viem@^2.21.21, viem@^2.21.36, viem@^2.21.37, viem@^2.21.40, viem@^2.21.55, viem@^2.24.1, viem@^2.30.6, viem@^2.31.7, viem@^2.32.0, viem@>=2.29.0, viem@>=2.33.3, viem@2.x:
+viem@^2, viem@^2.1.1, viem@^2.21.36, viem@^2.21.37, viem@^2.21.40, viem@^2.24.1, viem@^2.30.6, viem@^2.31.7, viem@^2.32.0, viem@>=2.29.0, viem@>=2.33.3, viem@2.x:
   version "2.37.2"
   resolved "https://registry.npmjs.org/viem/-/viem-2.37.2.tgz"
   integrity sha512-soXSUhPEnHzXVo1sSFg2KiUUwOTCtqGNnR/NOHr+4vZcbM6sTyS62asg9EfDpaJQFNduRQituxTcflaK6OIaPA==

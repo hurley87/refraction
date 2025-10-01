@@ -6,15 +6,7 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import Providers from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
-import dynamic from "next/dynamic";
 import FarcasterReady from "@/components/farcaster-ready";
-
-const MobileFooterNav = dynamic(
-  () => import("@/components/mobile-footer-nav"),
-  {
-    ssr: false,
-  },
-);
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -44,9 +36,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-     <html lang="en" className={spaceGrotesk.variable}>
+    <html lang="en" className={spaceGrotesk.variable}>
       <head>
-       
         {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}"
@@ -64,7 +55,6 @@ export default function RootLayout({
       <body className="min-h-dvh">
         <FarcasterReady />
         <Providers>{children}</Providers>
-        <MobileFooterNav />
         <Toaster />
       </body>
     </html>
