@@ -56,25 +56,37 @@ export default function Home() {
       <section className="relative min-h-screen flex flex-col justify-center items-start px-4 sm:px-6 md:px-8 lg:px-16 py-8 sm:py-12 md:py-16 rounded-b-4xl overflow-hidden">
         {/* Video Background */}
         <video
+          id="video-background"
           autoPlay
           loop
           muted
           playsInline
-          preload="metadata"
+          preload="auto"
+          webkit-playsinline="true"
+          x5-playsinline="true"
+          x5-video-player-type="h5"
+          x5-video-player-fullscreen="false"
           className="absolute inset-0 w-full h-full object-cover"
+          style={{
+            WebkitTransform: 'translateZ(0)',
+            transform: 'translateZ(0)',
+            WebkitBackfaceVisibility: 'hidden',
+            backfaceVisibility: 'hidden'
+          }}
         >
           <source src="/video-reel.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
-        {/* Fallback Background Image for Mobile */}
+        {/* Fallback Background Image - Only shown if video fails to load */}
         <div
           style={{
             backgroundImage: "url('/home/hero.png')",
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
-          className="absolute inset-0 w-full h-full lg:hidden"
+          className="absolute inset-0 w-full h-full hidden"
+          id="fallback-bg"
         ></div>
         {/* Logo/Header */}
         <div className="absolute top-4 sm:top-6 md:top-8 left-4 sm:left-6 md:left-8 lg:left-16 w-[40px] h-[40px] sm:w-[40px] sm:h-[40px] md:w-[40px] md:h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center">
@@ -395,6 +407,34 @@ export default function Home() {
           </p>
         </div>
       </section>
+      
+      {/* Video Loading Script */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            document.addEventListener('DOMContentLoaded', function() {
+              const video = document.getElementById('video-background');
+              const fallback = document.getElementById('fallback-bg');
+              
+              if (video && fallback) {
+                // Try to play the video
+                video.play().catch(function(error) {
+                  console.log('Video autoplay failed:', error);
+                  // Show fallback image if video fails
+                  video.style.display = 'none';
+                  fallback.classList.remove('hidden');
+                });
+                
+                video.addEventListener('error', function() {
+                  console.log('Video failed to load');
+                  video.style.display = 'none';
+                  fallback.classList.remove('hidden');
+                });
+              }
+            });
+          `
+        }}
+      />
     </div>
   );
 }
