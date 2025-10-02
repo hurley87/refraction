@@ -68,7 +68,7 @@ export default function NewsletterForm() {
 
   return (
     <div className="space-y-3">
-      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
+      <form onSubmit={handleSubmit} className="flex flex-row gap-3">
         <input
           type="email"
           placeholder="Enter your email"
