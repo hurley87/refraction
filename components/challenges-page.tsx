@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { usePrivy } from "@privy-io/react-auth";
+// import { usePrivy } from "@privy-io/react-auth";
 import { Trophy, Calendar, Target, Star, ChevronRight, Clock, Users, Award } from "lucide-react";
-import Image from "next/image";
+
 import Header from "./header";
-import Link from "next/link";
 
 interface Challenge {
   id: string;
@@ -143,7 +142,7 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen, onCl
 };
 
 export default function ChallengesPage() {
-  const { user } = usePrivy();
+ // const { user } = usePrivy();
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -222,7 +221,7 @@ export default function ChallengesPage() {
   };
 
   const renderChallengeCard = (challenge: Challenge, isClickable: boolean = true) => {
-    const progressPercentage = (challenge.progress / challenge.maxProgress) * 100;
+   // const progressPercentage = (challenge.progress / challenge.maxProgress) * 100;
 
     return (
       <div
