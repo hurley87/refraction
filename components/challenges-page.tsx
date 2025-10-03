@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 // import { usePrivy } from "@privy-io/react-auth";
-import { Trophy, Star,  Clock, Award } from "lucide-react";
+import { Trophy, Star,  Clock, Award, ChevronRight, X } from "lucide-react";
 import Image from "next/image";
 
 import Header from "./header";
@@ -43,24 +43,13 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen, onCl
   return (
     <div className="p-6">
           {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                <Trophy className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-inktrap font-bold text-black">{challenge.title}</h2>
-               
-              </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+              <Trophy className="w-6 h-6 text-white" />
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div>
+              <h2 className="text-xl font-inktrap font-bold text-black">{challenge.title}</h2>
+            </div>
           </div>
 
           {/* Description */}
@@ -248,80 +237,122 @@ export default function ChallengesPage() {
           </div>
 
           {/* Points and Learn More Button */}
-          <div className="flex items-center justify-between">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Row 2, Column 1: Points */}
             <div 
               style={{
                 display: 'flex',
-                padding: '4px 8px',
                 alignItems: 'center',
                 gap: '8px',
-                flex: '0 0 0',
-                alignSelf: 'stretch'
+                width: '100%',
+                height: '32px',
+                backgroundColor: 'transparent',
+                borderRadius: '16px',
+                padding: '6px 12px',
+                border: '1px solid #e0e0e0'
               }}
             >
-              <span className="text-xs font-mono text-black">{challenge.points} pts</span>
+              <Image
+                src="/ep_coin.svg"
+                alt="coin"
+                width={16}
+                height={16}
+                className="w-4 h-4"
+              />
+              <div className="body-small text-black">{challenge.points}</div>
             </div>
-            
-            <button
-              onClick={() => handleChallengeClick(challenge)}
-              className="bg-black hover:bg-gray-800 text-white text-xs font-mono px-3 py-1.5 rounded-full transition-colors duration-200"
-            >
-              Learn More
-            </button>
+
+            {/* Row 2, Column 2: Learn More Button */}
+            <div className="w-full">
+              <button
+                onClick={() => handleChallengeClick(challenge)}
+                className="w-full bg-white hover:bg-gray-100 text-black text-xs font-mono px-3 py-1.5 rounded-full transition-colors duration-200 flex items-center justify-center gap-1"
+              >
+                Learn More
+                <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
           </div>
         </div>
       );
     }
 
-    // Daily challenge layout: square image to the right of title/description
+    // Daily challenge layout: 2x2 grid
     if (challengeType === 'daily') {
       return (
         <div
           key={challenge.id}
-          className="rounded-2xl flex gap-4 transition-all duration-200"
+          className="rounded-2xl grid grid-cols-2 gap-4 transition-all duration-200"
         >
-          {/* Title, Description, and Points */}
-          <div className="flex-1 min-w-0">
+          {/* Row 1, Column 1: Title and Description */}
+          <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <div className="title2 text-black ">
+              <div className="title2 text-[#313131] ">
                 {challenge.title}
               </div>
             </div>
-            <p className="text-xs text-gray-600 font-mono line-clamp-1 mb-2">
+            <div className=" text-[#4F4F4F] body-medium ">
               {challenge.description}
-            </p>
-            <div 
-              style={{
-                display: 'flex',
-                padding: '4px 8px',
-                alignItems: 'center',
-                gap: '8px',
-                flex: '0 0 0',
-                alignSelf: 'stretch'
-              }}
-            >
-              <span className="text-xs font-mono text-black">{challenge.points} pts</span>
             </div>
           </div>
 
-          {/* Daily Challenge Image - Square to the Right */}
-          <div className="flex-shrink-0">
-            <Image
-              src={challenge.image!}
-              alt={challenge.title}
-              width={parseInt(challenge["image-width"]!)}
-              height={parseInt(challenge["image-height"]!)}
-              className="w-20 h-20 object-cover rounded-xl"
-            />
+          {/* Row 1, Column 2: Daily Challenge Image */}
+          <div className="flex justify-end">
+            <div 
+              style={{
+                display: 'flex',
+                padding: '24px',
+                alignItems: 'flex-start',
+                gap: '16px',
+                borderRadius: '16px',
+                background: 'radial-gradient(220.55% 55.23% at 10.91% 29.08%, rgba(0, 0, 0, 0.00) 0%, rgba(239, 139, 159, 0.20) 100%), radial-gradient(81.69% 149.02% at 30% -26.79%, rgba(0, 0, 0, 0.00) 28.61%, rgba(3, 133, 255, 0.54) 100%), #313131',
+                width: '80px',
+                height: '80px',
+                justifyContent: 'flex-end'
+              }}
+            >
+              <Image
+                src={challenge.image!}
+                alt={challenge.title}
+                width={parseInt(challenge["image-width"]!)}
+                height={parseInt(challenge["image-height"]!)}
+                className="w-full h-full object-contain rounded-xl"
+              />
+            </div>
           </div>
 
-          {/* Learn More Button */}
-          <div className="flex flex-col justify-end">
+          {/* Row 2, Column 1: Points */}
+          <div 
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              width: '100%',
+              height: '32px',
+              backgroundColor: 'transparent',
+              borderRadius: '16px',
+              padding: '6px 12px',
+              border: '1px solid #e0e0e0'
+            }}
+          >
+            <Image
+              src="/ep_coin.svg"
+              alt="coin"
+              width={16}
+              height={16}
+              className="w-4 h-4"
+            />
+            <div className="body-small text-black">{challenge.points}</div>
+          </div>
+
+          {/* Row 2, Column 2: Learn More Button */}
+          <div className="w-full">
             <button
               onClick={() => handleChallengeClick(challenge)}
-              className="bg-black hover:bg-gray-800 text-white text-xs font-mono px-3 py-1.5 rounded-full transition-colors duration-200"
+              className="w-full bg-white hover:bg-gray-100 text-black text-xs font-mono px-3 py-1.5 rounded-full transition-colors duration-200 flex items-center justify-center gap-1"
             >
               Learn More
+              <ChevronRight className="w-3 h-3" />
             </button>
           </div>
         </div>
@@ -448,6 +479,22 @@ export default function ChallengesPage() {
           }`}
         >
           <div className="max-w-lg mx-auto w-full flex flex-col h-full">
+            {/* Close Button - Full Width Overlay */}
+            <div className="w-full p-4">
+              <div className="bg-white rounded-3xl">
+                <button
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setSelectedChallenge(null);
+                  }}
+                  className="w-full text-black h-10 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center"
+                  aria-label="Close menu"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+            
             <div className="w-full p-4">
               <div className="bg-white rounded-3xl">
                 <ChallengeModal 

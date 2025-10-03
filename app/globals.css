@@ -45,8 +45,10 @@
   .title2 {
     font-size: 1.5625rem; /* 25px */
     line-height: 2rem; /* 32px */
-    font-weight: 600;
+    font-style: normal;
+    font-weight: 400;
     font-family: "Monument-Grotesk", sans-serif;
+    letter-spacing: -0.25px;
   }
 
   .title3 {
@@ -54,6 +56,7 @@
     line-height: 1.5rem; /* 24px */
     font-weight: 600;
     font-family: "Monument-Grotesk", sans-serif;
+    
   }
 
   .title4 {
@@ -96,6 +99,8 @@
     line-height: 1.25rem; /* 20px */
     font-weight: 400;
     font-family: "ABC-Monument-Grotesk", sans-serif;
+    letter-spacing: -0.26px;
+    font-style: normal;
   }
 
   .body-small {
