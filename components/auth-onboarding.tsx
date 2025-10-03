@@ -145,5 +145,5 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
     );
   }
 
-  return <>{children}</>;
+  return <div className="h-screen w-full relative">{children}</div>;
 }
