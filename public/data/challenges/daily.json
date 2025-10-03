@@ -3,7 +3,7 @@
   "description": "Say 'GM' in the IRL Telegram group",
   "points": 100,
   "url": "/challenges/daily/morning-coffee",
-  "image": "/challenges/daily.png",
+  "image": "/challenges/daily.svg",
   "image-width": "512",
   "image-height": "512"
 }
