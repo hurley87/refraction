@@ -34,7 +34,7 @@ interface ChallengeModalProps {
   onClose: () => void;
 }
 
-const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen, onClose }) => {
+const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen }) => {
   if (!isOpen) return null;
 
   
