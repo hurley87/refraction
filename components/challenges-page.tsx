@@ -1,23 +1,31 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 // import { usePrivy } from "@privy-io/react-auth";
-import { Trophy, Calendar, Target, Star, ChevronRight, Clock, Users, Award } from "lucide-react";
+import { Trophy, Star,  Clock, Award } from "lucide-react";
+import Image from "next/image";
 
 import Header from "./header";
 
 interface Challenge {
-  id: string;
   title: string;
   description: string;
   points: number;
-  progress: number;
-  maxProgress: number;
-  isCompleted: boolean;
+  url: string;
+  image?: string;
+  "image-width"?: string;
+  "image-height"?: string;
+  startDate?: string;
+  endDate?: string;
+  // Computed/derived fields
+  id?: string;
+  progress?: number;
+  maxProgress?: number;
+  isCompleted?: boolean;
   expiresAt?: string;
-  participants?: number;
-  difficulty: 'easy' | 'medium' | 'hard';
-  category: string;
+  
+  
+  category?: string;
 }
 
 interface ChallengeModalProps {
@@ -29,21 +37,11 @@ interface ChallengeModalProps {
 const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen, onClose }) => {
   if (!isOpen) return null;
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'text-green-600 bg-green-100';
-      case 'medium': return 'text-yellow-600 bg-yellow-100';
-      case 'hard': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  const progressPercentage = (challenge.progress / challenge.maxProgress) * 100;
+  
+  
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
+    <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -52,9 +50,7 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen, onCl
               </div>
               <div>
                 <h2 className="text-xl font-inktrap font-bold text-black">{challenge.title}</h2>
-                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(challenge.difficulty)}`}>
-                  {challenge.difficulty.toUpperCase()}
-                </span>
+               
               </div>
             </div>
             <button
@@ -71,21 +67,7 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen, onCl
           <p className="text-gray-600 font-mono mb-6">{challenge.description}</p>
 
           {/* Progress */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-inktrap text-gray-700">Progress</span>
-              <span className="text-sm font-mono text-gray-600">
-                {challenge.progress}/{challenge.maxProgress}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div 
-                className="bg-gradient-to-r from-purple-500 to-pink-500 h-3 rounded-full transition-all duration-300"
-                style={{ width: `${progressPercentage}%` }}
-              />
-            </div>
-          </div>
-
+         
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="bg-gray-50 rounded-lg p-3">
@@ -95,15 +77,7 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen, onCl
               </div>
               <span className="text-lg font-bold text-black">{challenge.points} pts</span>
             </div>
-            {challenge.participants && (
-              <div className="bg-gray-50 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <Users className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm font-inktrap text-gray-700">Participants</span>
-                </div>
-                <span className="text-lg font-bold text-black">{challenge.participants}</span>
-              </div>
-            )}
+           
           </div>
 
           {/* Expiration */}
@@ -135,8 +109,6 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen, onCl
               'Start Challenge'
             )}
           </button>
-        </div>
-      </div>
     </div>
   );
 };
@@ -145,143 +117,256 @@ export default function ChallengesPage() {
  // const { user } = usePrivy();
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [weeklyChallenges, setWeeklyChallenges] = useState<Challenge[]>([]);
+  const [dailyChallenges, setDailyChallenges] = useState<Challenge[]>([]);
+  const [challengeQuests, setChallengeQuests] = useState<Challenge[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data - replace with actual API calls
-  const weeklyChallenges: Challenge[] = [
-    {
-      id: 'weekly-1',
-      title: 'Social Butterfly',
-      description: 'Check into 10 different locations this week and share your experiences on social media.',
-      points: 500,
-      progress: 7,
-      maxProgress: 10,
-      isCompleted: false,
-      expiresAt: 'Ends in 3 days',
-      participants: 1247,
-      difficulty: 'medium',
-      category: 'Social'
-    }
-  ];
+  // Helper function to enrich challenge data
+  const enrichChallenge = (challenge: any, type: string): Challenge => {
+    const enriched = {
+      ...challenge,
+      id: `${type}-${challenge.title.toLowerCase().replace(/\s+/g, '-')}`,
+      progress: Math.floor(Math.random() * 5) + 1, // Mock progress
+      maxProgress: type === 'quest' ? 15 : 10,
+      isCompleted: Math.random() > 0.7, // Mock completion status
+      
+      
+      category: type.charAt(0).toUpperCase() + type.slice(1)
+    };
 
-  const dailyChallenges: Challenge[] = [
-    {
-      id: 'daily-1',
-      title: 'Morning Coffee Run',
-      description: 'Check into a coffee shop before 10 AM and share your favorite drink.',
-      points: 100,
-      progress: 1,
-      maxProgress: 1,
-      isCompleted: true,
-      expiresAt: 'Resets in 12 hours',
-      participants: 3421,
-      difficulty: 'easy',
-      category: 'Daily'
+    // Add expiration logic for weekly challenges
+    if (type === 'weekly' && challenge.startDate && challenge.endDate) {
+      
+      const endDate = new Date(challenge.endDate);
+      const now = new Date();
+      const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysLeft > 0) {
+        enriched.expiresAt = `Ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`;
+      } else {
+        enriched.expiresAt = 'Ended';
+        enriched.isCompleted = true;
+      }
+    } else if (type === 'daily') {
+      enriched.expiresAt = 'Resets in 12 hours';
     }
-  ];
 
-  const challengeQuests: Challenge[] = [
-    {
-      id: 'quest-1',
-      title: 'City Explorer Master',
-      description: 'Complete all major landmarks in your city to unlock exclusive rewards.',
-      points: 1000,
-      progress: 8,
-      maxProgress: 15,
-      isCompleted: false,
-      participants: 234,
-      difficulty: 'hard',
-      category: 'Achievement'
-    },
-    {
-      id: 'quest-2',
-      title: 'Foodie Adventure',
-      description: 'Try 20 different restaurants and rate your experience.',
-      points: 750,
-      progress: 12,
-      maxProgress: 20,
-      isCompleted: false,
-      participants: 567,
-      difficulty: 'medium',
-      category: 'Food'
-    }
-  ];
+    return enriched;
+  };
+
+  // Load challenge data from JSON files
+  useEffect(() => {
+    const loadChallenges = async () => {
+      try {
+        setIsLoading(true);
+        console.log('Loading challenges...');
+
+        // Load weekly challenge
+        console.log('Fetching weekly challenges...');
+        const weeklyResponse = await fetch('/data/challenges/weekly.json');
+        console.log('Weekly response status:', weeklyResponse.status);
+        if (weeklyResponse.ok) {
+          const weeklyData = await weeklyResponse.json();
+          console.log('Weekly data:', weeklyData);
+          setWeeklyChallenges([enrichChallenge(weeklyData, 'weekly')]);
+        } else {
+          console.error('Failed to load weekly challenges:', weeklyResponse.status);
+        }
+
+        // Load daily challenge
+        console.log('Fetching daily challenges...');
+        const dailyResponse = await fetch('/data/challenges/daily.json');
+        console.log('Daily response status:', dailyResponse.status);
+        if (dailyResponse.ok) {
+          const dailyData = await dailyResponse.json();
+          console.log('Daily data:', dailyData);
+          setDailyChallenges([enrichChallenge(dailyData, 'daily')]);
+        } else {
+          console.error('Failed to load daily challenges:', dailyResponse.status);
+        }
+
+        // Load quest challenges
+        console.log('Fetching quest challenges...');
+        const questsResponse = await fetch('/data/challenges/quests.json');
+        console.log('Quests response status:', questsResponse.status);
+        if (questsResponse.ok) {
+          const questsData = await questsResponse.json();
+          console.log('Quests data:', questsData);
+          const enrichedQuests = questsData.map((quest: any) => enrichChallenge(quest, 'quest'));
+          setChallengeQuests(enrichedQuests);
+        } else {
+          console.error('Failed to load quest challenges:', questsResponse.status);
+        }
+      } catch (error) {
+        console.error('Error loading challenges:', error);
+      } finally {
+        setIsLoading(false);
+        console.log('Finished loading challenges');
+      }
+    };
+
+    loadChallenges();
+  }, []);
 
   const handleChallengeClick = (challenge: Challenge) => {
     setSelectedChallenge(challenge);
     setIsModalOpen(true);
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'text-green-600 bg-green-100';
-      case 'medium': return 'text-yellow-600 bg-yellow-100';
-      case 'hard': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
+
+
+  const renderChallengeCard = (challenge: Challenge, challengeType: 'weekly' | 'daily' | 'quest' = 'quest') => {
+    // Weekly challenge layout: image above title, spanning full width
+    if (challengeType === 'weekly') {
+      return (
+        <div
+          key={challenge.id}
+          className="rounded-2xl flex flex-col gap-3 transition-all duration-200"
+        >
+          {/* Weekly Challenge Image - Full Width Above Title */}
+          <div className="w-full">
+            <Image
+              src={challenge.image!}
+              alt={challenge.title}
+              width={parseInt(challenge["image-width"]!)}
+              height={parseInt(challenge["image-height"]!)}
+              className="w-full h-auto object-contain rounded-xl"
+            />
+          </div>
+
+          {/* Title and Description */}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="title2 text-black ">
+                {challenge.title}
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 font-mono line-clamp-1">
+              {challenge.description}
+            </p>
+          </div>
+
+          {/* Points and Learn More Button */}
+          <div className="flex items-center justify-between">
+            <div 
+              style={{
+                display: 'flex',
+                padding: '4px 8px',
+                alignItems: 'center',
+                gap: '8px',
+                flex: '0 0 0',
+                alignSelf: 'stretch'
+              }}
+            >
+              <span className="text-xs font-mono text-black">{challenge.points} pts</span>
+            </div>
+            
+            <button
+              onClick={() => handleChallengeClick(challenge)}
+              className="bg-black hover:bg-gray-800 text-white text-xs font-mono px-3 py-1.5 rounded-full transition-colors duration-200"
+            >
+              Learn More
+            </button>
+          </div>
+        </div>
+      );
     }
-  };
 
-  const renderChallengeCard = (challenge: Challenge, isClickable: boolean = true) => {
-   // const progressPercentage = (challenge.progress / challenge.maxProgress) * 100;
+    // Daily challenge layout: square image to the right of title/description
+    if (challengeType === 'daily') {
+      return (
+        <div
+          key={challenge.id}
+          className="rounded-2xl flex gap-4 transition-all duration-200"
+        >
+          {/* Title, Description, and Points */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="title2 text-black ">
+                {challenge.title}
+              </div>
+            </div>
+            <p className="text-xs text-gray-600 font-mono line-clamp-1 mb-2">
+              {challenge.description}
+            </p>
+            <div 
+              style={{
+                display: 'flex',
+                padding: '4px 8px',
+                alignItems: 'center',
+                gap: '8px',
+                flex: '0 0 0',
+                alignSelf: 'stretch'
+              }}
+            >
+              <span className="text-xs font-mono text-black">{challenge.points} pts</span>
+            </div>
+          </div>
 
+          {/* Daily Challenge Image - Square to the Right */}
+          <div className="flex-shrink-0">
+            <Image
+              src={challenge.image!}
+              alt={challenge.title}
+              width={parseInt(challenge["image-width"]!)}
+              height={parseInt(challenge["image-height"]!)}
+              className="w-20 h-20 object-cover rounded-xl"
+            />
+          </div>
+
+          {/* Learn More Button */}
+          <div className="flex flex-col justify-end">
+            <button
+              onClick={() => handleChallengeClick(challenge)}
+              className="bg-black hover:bg-gray-800 text-white text-xs font-mono px-3 py-1.5 rounded-full transition-colors duration-200"
+            >
+              Learn More
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Quest challenge layout: no image, simple layout
     return (
       <div
         key={challenge.id}
-        className={`rounded-2xl p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center transition-all duration-200 ${
-          isClickable 
-            ? 'cursor-pointer hover:bg-gray-50' 
-            : 'cursor-default'
-        } ${challenge.isCompleted ? 'bg-green-50' : 'bg-white'}`}
-        onClick={isClickable ? () => handleChallengeClick(challenge) : undefined}
+        className="rounded-2xl flex flex-col gap-3 transition-all duration-200"
       >
-        {/* Icon */}
-        <div className="flex items-center gap-2">
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-            challenge.isCompleted 
-              ? 'bg-green-500' 
-              : 'bg-gradient-to-br from-purple-500 to-pink-500'
-          }`}>
-            {challenge.isCompleted ? (
-              <Award className="w-3 h-3 text-white" />
-            ) : (
-              <Trophy className="w-3 h-3 text-white" />
-            )}
-          </div>
-        </div>
-
         {/* Title and Description */}
-        <div className="min-w-0 pl-2">
+        <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="title4 text-black font-inktrap truncate">
+            <div className="title2 text-black ">
               {challenge.title}
-            </span>
-            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${getDifficultyColor(challenge.difficulty)}`}>
-              {challenge.difficulty.toUpperCase()}
-            </span>
+            </div>
           </div>
           <p className="text-xs text-gray-600 font-mono line-clamp-1">
             {challenge.description}
           </p>
-          <div className="flex items-center gap-2 mt-1">
-            <Star className="w-3 h-3 text-yellow-500" />
-            <span className="text-xs font-mono text-black">{challenge.points} pts</span>
-            {challenge.participants && (
-              <>
-                <span className="text-xs text-gray-400">•</span>
-                <Users className="w-3 h-3 text-blue-500" />
-                <span className="text-xs font-mono text-gray-600">{challenge.participants}</span>
-              </>
-            )}
-          </div>
         </div>
 
-        {/* Progress and Action */}
-        <div className="text-right">
-          {isClickable && (
-            <ChevronRight className="w-4 h-4 text-gray-400 ml-auto" />
-          )}
-          <div className="text-xs font-mono text-gray-600 mt-1">
-            {challenge.progress}/{challenge.maxProgress}
+        {/* Points and Learn More Button */}
+        <div className="flex items-center justify-between">
+          <div 
+            style={{
+              display: 'flex',
+              padding: '4px 8px',
+              alignItems: 'center',
+              gap: '8px',
+              flex: '0 0 0',
+              alignSelf: 'stretch'
+            }}
+          >
+            <span className="text-xs font-mono text-black">{challenge.points} pts</span>
           </div>
+          
+          <button
+            onClick={() => handleChallengeClick(challenge)}
+            className="bg-black hover:bg-gray-800 text-white text-xs font-mono px-3 py-1.5 rounded-full transition-colors duration-200"
+          >
+            Learn More
+          </button>
         </div>
       </div>
     );
@@ -301,54 +386,82 @@ export default function ChallengesPage() {
 
         {/* Main Content */}
         <div className="px-0 pt-4 space-y-4">
+          {/* Loading State */}
+          {isLoading && (
+            <div className="bg-white rounded-2xl p-8 text-center">
+              <div className="w-8 h-8 border-2 border-gray-300 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600 font-inktrap">Loading challenges...</p>
+            </div>
+          )}
           {/* Weekly Challenges Section */}
-          <div className="bg-white rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Calendar className="w-4 h-4 text-purple-600" />
-              <span className="body-small text-gray-600 uppercase tracking-wide font-inktrap">
-                Weekly Challenges
-              </span>
+          {!isLoading && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+              <div className="flex items-center gap-2 mb-4">
+                
+                <span className="body-small text-gray-600 uppercase tracking-wide">
+                  Weekly Challenges
+                </span>
+              </div>
+              <div className="space-y-3">
+                {weeklyChallenges.map(challenge => renderChallengeCard(challenge, 'weekly'))}
+              </div>
             </div>
-            <div className="space-y-3">
-              {weeklyChallenges.map(challenge => renderChallengeCard(challenge))}
-            </div>
-          </div>
+          )}
 
           {/* Daily Challenges Section */}
-          <div className="bg-white rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Target className="w-4 h-4 text-blue-600" />
-              <span className="body-small text-gray-600 uppercase tracking-wide font-inktrap">
-                Daily Challenges
-              </span>
+          {!isLoading && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+              <div className="flex items-center gap-2 mb-4">
+                
+                <span className="body-small text-gray-600 uppercase tracking-wide">
+                  Daily Challenges
+                </span>
+              </div>
+              <div className="space-y-3">
+                {dailyChallenges.map(challenge => renderChallengeCard(challenge, 'daily'))}
+              </div>
             </div>
-            <div className="space-y-3">
-              {dailyChallenges.map(challenge => renderChallengeCard(challenge))}
-            </div>
-          </div>
+          )}
 
           {/* Challenge Quests Section */}
-          <div className="bg-white rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Award className="w-4 h-4 text-green-600" />
-              <span className="body-small text-gray-600 uppercase tracking-wide font-inktrap">
-                Challenge Quests
-              </span>
+          {!isLoading && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+              <div className="flex items-center gap-2 mb-4">
+                
+                <span className="body-small text-gray-600 uppercase tracking-wide ">
+                  Challenge Quests
+                </span>
+              </div>
+              <div className="space-y-3">
+                {challengeQuests.map(challenge => renderChallengeCard(challenge, 'quest'))}
+              </div>
             </div>
-            <div className="space-y-3">
-              {challengeQuests.map(challenge => renderChallengeCard(challenge, false))}
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Challenge Modal */}
-      {selectedChallenge && (
-        <ChallengeModal
-          challenge={selectedChallenge}
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-        />
+      {isModalOpen && selectedChallenge && (
+        <div
+          className={`fixed font-inktrap inset-0 bg-[#ededed] z-50 flex flex-col transition-all duration-300 ease-in-out ${
+            isModalOpen ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <div className="max-w-lg mx-auto w-full flex flex-col h-full">
+            <div className="w-full p-4">
+              <div className="bg-white rounded-3xl">
+                <ChallengeModal 
+                  challenge={selectedChallenge} 
+                  isOpen={isModalOpen} 
+                  onClose={() => {
+                    setIsModalOpen(false);
+                    setSelectedChallenge(null);
+                  }} 
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

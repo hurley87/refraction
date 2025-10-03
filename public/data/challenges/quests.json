@@ -1,0 +1,14 @@
+[
+  {
+    "title": "City Explorer Master",
+    "description": "Complete all major landmarks in your city to unlock exclusive rewards.",
+    "points": 1000,
+    "url": "/challenges/quests/city-explorer"
+  },
+  {
+    "title": "Foodie Adventure",
+    "description": "Try 20 different restaurants and rate your experience.",
+    "points": 750,
+    "url": "/challenges/quests/foodie-adventure"
+  }
+]
