@@ -47,14 +47,6 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
           "Add places that should be on the map by creating a location token. Provide a title, description, and image so others can discover it, then publish to contribute to the shared IRL graph.",
         imageSrc: "/miniapp/3.png",
         imageAlt: "Create token form",
-      },
-      {
-        id: 4,
-        title: "View Token On Zora",
-        description:
-          "After creating, view and manage your location token on Zora with onchain provenance. Share the link, collect it, and collaborate with others to keep the record alive.",
-        imageSrc: "/miniapp/4.png",
-        imageAlt: "Zora success state",
         cta: "Get Started",
       },
     ],
@@ -77,88 +69,79 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
   if (!user) {
     const step = steps[currentStep - 1];
     return (
-      <>
-        {children}
-        {/* Fixed white background to cover entire screen */}
-        <div className="fixed inset-0 z-40 bg-white" />
-        <div className="fixed inset-0 z-50 pointer-events-none flex flex-col items-center pt-6 md:pt-10 pb-[120px]">
-          {/* Card filling remaining height */}
-          <div className="pointer-events-none w-full px-4">
-            <div className="pointer-events-auto w-full max-w-2xl md:max-w-3xl max-h-[90vh] bg-white/95 backdrop-blur p-4 pt-0 pb-6 flex flex-col overflow-y-auto rounded-2xl shadow-xl mx-auto">
-              {/* Faux image area expands to fill */}
-              <div className="rounded-2xl overflow-hidden bg-gray-100 h-64 md:h-80 lg:h-96 flex items-center justify-center">
-                {step?.imageSrc ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={step.imageSrc}
-                    alt={step.imageAlt || step.title}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="text-gray-400 text-sm">Screenshot</div>
-                )}
-              </div>
-
-              {/* Step content */}
-              <div className="mt-4 rounded-2xl bg-white p-4 flex flex-col">
-                <div className="flex items-center justify-between">
-                  <p className="text-gray-500 text-sm">
-                    {currentStep}/{maxStep}
-                  </p>
-                </div>
-                <h3 className="mt-1 font-inktrap text-xl">{step.title}</h3>
-                {step.description && (
-                  <p className="mt-2 text-sm text-gray-600">
-                    {step.description}
-                  </p>
-                )}
-
-                <div className="mt-4 flex-1" />
-
-                {currentStep < maxStep ? (
-                  <div className="mt-2 grid grid-cols-2 gap-3">
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="w-full h-16 rounded-full text-base"
-                      onClick={goPrev}
-                      disabled={currentStep === 1}
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      size="lg"
-                      className="w-full h-16 rounded-full text-base bg-black text-white hover:bg-black/90"
-                      onClick={goNext}
-                    >
-                      Next
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="mt-2 grid grid-cols-2 gap-3">
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="w-full h-16 rounded-full text-base"
-                      onClick={goPrev}
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      size="lg"
-                      className="w-full h-16 rounded-full text-base bg-black text-white hover:bg-black/90"
-                      onClick={login}
-                    >
-                      {step.cta || "Get Started"}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
+      <div className="h-screen w-full bg-white flex items-center justify-center p-6 overflow-hidden">
+        <div className="w-full max-w-xl mx-auto flex flex-col items-center justify-center h-full py-8">
+          {/* Image */}
+          <div className="rounded-lg overflow-hidden bg-gray-50 w-full max-w-sm aspect-square flex items-center justify-center mb-6">
+            {step?.imageSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={step.imageSrc}
+                alt={step.imageAlt || step.title}
+                className="h-full w-full object-contain"
+                loading="lazy"
+              />
+            ) : (
+              <div className="text-gray-400 text-sm">Screenshot</div>
+            )}
           </div>
+
+          {/* Content */}
+          <div className="text-center mb-8 flex-shrink-0">
+            <p className="text-gray-400 text-sm mb-2">
+              {currentStep}/{maxStep}
+            </p>
+            <h2 className="font-inktrap text-2xl md:text-3xl mb-3">
+              {step.title}
+            </h2>
+            {step.description && (
+              <p className="text-gray-600 text-sm md:text-base leading-relaxed max-w-lg mx-auto">
+                {step.description}
+              </p>
+            )}
+          </div>
+
+          {/* Navigation */}
+          {currentStep < maxStep ? (
+            <div className="grid grid-cols-2 gap-2 w-full max-w-md mx-auto flex-shrink-0">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full rounded-full"
+                onClick={goPrev}
+                disabled={currentStep === 1}
+              >
+                Back
+              </Button>
+              <Button
+                size="lg"
+                className="w-full rounded-full bg-black text-white hover:bg-black/90"
+                onClick={goNext}
+              >
+                Next
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 w-full max-w-md mx-auto flex-shrink-0">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full rounded-full"
+                onClick={goPrev}
+              >
+                Back
+              </Button>
+              <Button
+                size="lg"
+                className="w-full rounded-full bg-black text-white hover:bg-black/90"
+                onClick={login}
+              >
+                {step.cta || "Get Started"}
+              </Button>
+            </div>
+          )}
         </div>
-      </>
+      </div>
     );
   }
 

@@ -52,7 +52,7 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className="min-h-dvh">
+      <body className="min-h-screen min-w-screen">
         <FarcasterReady />
         <Providers>{children}</Providers>
         <Toaster />
