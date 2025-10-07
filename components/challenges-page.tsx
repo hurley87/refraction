@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 // import { usePrivy } from "@privy-io/react-auth";
-import { Trophy, Star,  Clock, Award, ChevronRight, X } from "lucide-react";
+import {  ChevronRight, X, Info, ExternalLink } from "lucide-react";
 import Image from "next/image";
 
 import Header from "./header";
@@ -37,67 +37,296 @@ interface ChallengeModalProps {
 const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen }) => {
   if (!isOpen) return null;
 
-  
-  
+  const getChallengeType = () => {
+    if (challenge.category === 'Weekly') return 'weekly';
+    if (challenge.category === 'Daily') return 'daily';
+    return 'quest';
+  };
+
+  const challengeType = getChallengeType();
 
   return (
-    <div className="p-6">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-              <Trophy className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-inktrap font-bold text-black">{challenge.title}</h2>
-            </div>
+    <div className="flex flex-col gap-4">
+      {/* First Container - Challenge Header */}
+      <div className="p-6">
+        {/* Row 1: Challenge Type */}
+        <div className="mb-4">
+          <span className="body-small text-gray-600 uppercase tracking-wide">
+            {challenge.category} Challenge
+          </span>
+        </div>
+
+        {/* Row 2: Challenge Image */}
+        {challenge.image && (
+          <div 
+            className="mb-4"
+            style={challengeType === 'daily' ? {
+              display: 'flex',
+              width: '100%',
+              height: '80px',
+              padding: '24px',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '16px',
+              borderRadius: '16px',
+              background: 'radial-gradient(220.55% 55.23% at 10.91% 29.08%, rgba(0, 0, 0, 0.00) 0%, rgba(239, 139, 159, 0.20) 100%), radial-gradient(81.69% 149.02% at 30% -26.79%, rgba(0, 0, 0, 0.00) 28.61%, rgba(3, 133, 255, 0.54) 100%), #313131'
+            } : {}}
+          >
+            <Image
+              src={challenge.image}
+              alt={challenge.title}
+              width={parseInt(challenge["image-width"] || "300")}
+              height={parseInt(challenge["image-height"] || "200")}
+              className={challengeType === 'daily' ? "h-full w-auto object-contain" : "w-full h-auto object-contain rounded-xl"}
+            />
           </div>
+        )}
 
-          {/* Description */}
-          <p className="text-gray-600 font-mono mb-6">{challenge.description}</p>
+        {/* Row 3: Challenge Title */}
+        <div>
+          <div className="title2 text-black">{challenge.title}</div>
+        </div>
+      </div>
 
-          {/* Progress */}
-         
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-gray-50 rounded-lg p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <Star className="w-4 h-4 text-yellow-500" />
-                <span className="text-sm font-inktrap text-gray-700">Reward</span>
+      {/* Second Container - Challenge Details */}
+      <div className="p-6">
+        {/* Row 1: Details Header */}
+        <div className="flex items-center gap-2 mb-4">
+          <Info className="w-4 h-4 text-gray-600" />
+          <span className="body-small text-gray-600 uppercase tracking-wide">Details</span>
+        </div>
+
+        {/* Row 2: Description */}
+        <div className="mb-6">
+          <p className="text-gray-600 font-mono">{challenge.description}</p>
+        </div>
+
+        {/* Row 3: Points and Action Button */}
+        <div className="mb-6">
+          {challengeType === 'weekly' ? (
+            // Weekly: 3 columns - Points, Action Button, Date Range
+            <div className="grid grid-cols-3 gap-4">
+              {/* Points */}
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  height: '32px',
+                  backgroundColor: 'transparent',
+                  borderRadius: '16px',
+                  padding: '6px 12px',
+                  border: '1px solid #e0e0e0'
+                }}
+              >
+                <Image
+                  src="/ep_coin.svg"
+                  alt="coin"
+                  width={16}
+                  height={16}
+                  className="w-4 h-4"
+                />
+                <div className="body-small text-black">{challenge.points}</div>
               </div>
-              <span className="text-lg font-bold text-black">{challenge.points} pts</span>
+
+              {/* Action Button */}
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  height: '32px',
+                  backgroundColor: 'transparent',
+                  borderRadius: '16px',
+                  padding: '6px 12px',
+                  border: '1px solid #e0e0e0',
+                  cursor: 'pointer'
+                }}
+              >
+                <Image
+                  src="/guidance_library.svg"
+                  alt="library"
+                  width={16}
+                  height={16}
+                  className="w-4 h-4"
+                />
+                <div className="body-small text-black">Buy</div>
+              </div>
+
+              {/* Date Range */}
+              <div 
+                style={{
+                  display: 'flex',
+                  height: '28px',
+                  padding: '4px 16px 4px 12px',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flex: '1 0 0',
+                  borderRadius: '1000px',
+                  border: '1px solid #EDEDED'
+                }}
+              >
+                <div className="text-xs font-mono text-gray-600 text-center">
+                  {challenge.startDate && challenge.endDate ? (
+                    <div className="flex items-center gap-1">
+                      <span>{new Date(challenge.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      <span>-</span>
+                      <span>{new Date(challenge.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    </div>
+                  ) : (
+                    challenge.expiresAt
+                  )}
+                </div>
+              </div>
             </div>
-           
-          </div>
-
-          {/* Expiration */}
-          {challenge.expiresAt && (
-            <div className="bg-orange-50 rounded-lg p-3 mb-6">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-orange-500" />
-                <span className="text-sm font-inktrap text-orange-700">Expires</span>
+          ) : challengeType === 'daily' ? (
+            // Daily: 2 columns - Points, Action Button
+            <div className="grid grid-cols-2 gap-4">
+              {/* Points */}
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  height: '32px',
+                  backgroundColor: 'transparent',
+                  borderRadius: '16px',
+                  padding: '6px 12px',
+                  border: '1px solid #e0e0e0'
+                }}
+              >
+                <Image
+                  src="/ep_coin.svg"
+                  alt="coin"
+                  width={16}
+                  height={16}
+                  className="w-4 h-4"
+                />
+                <div className="body-small text-black">{challenge.points}</div>
               </div>
-              <span className="text-sm font-mono text-orange-800">{challenge.expiresAt}</span>
+
+              {/* Action Button */}
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'left',
+                  justifyContent: 'left',
+                  gap: '8px',
+                  width: '100%',
+                  height: '32px',
+                  backgroundColor: 'transparent',
+                  borderRadius: '16px',
+                  padding: '6px 12px',
+                  border: '1px solid #e0e0e0',
+                  cursor: 'pointer'
+                }}
+              >
+                <Image
+                  src="/guidance_library.svg"
+                  alt="library"
+                  width={16}
+                  height={16}
+                  className="w-4 h-4"
+                />
+                <div className="body-small text-black">Buy</div>
+              </div>
+            </div>
+          ) : (
+            // Quest: 2 columns - Points, Action Button (same as daily)
+            <div className="grid grid-cols-2 gap-4">
+              {/* Points */}
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  height: '32px',
+                  backgroundColor: 'transparent',
+                  borderRadius: '16px',
+                  padding: '6px 12px',
+                  border: '1px solid #e0e0e0'
+                }}
+              >
+                <Image
+                  src="/ep_coin.svg"
+                  alt="coin"
+                  width={16}
+                  height={16}
+                  className="w-4 h-4"
+                />
+                <div className="body-small text-black">{challenge.points}</div>
+              </div>
+
+              {/* Action Button */}
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  height: '32px',
+                  backgroundColor: 'transparent',
+                  borderRadius: '16px',
+                  padding: '6px 12px',
+                  border: '1px solid #e0e0e0',
+                  cursor: 'pointer'
+                }}
+              >
+                <Image
+                  src="/guidance-library.svg"
+                  alt="library"
+                  width={16}
+                  height={16}
+                  className="w-4 h-4"
+                />
+                <div className="body-small text-black">Buy</div>
+              </div>
             </div>
           )}
+        </div>
 
-          {/* Action Button */}
-          <button
-            className={`w-full py-3 px-4 rounded-full font-inktrap font-medium transition-colors ${
-              challenge.isCompleted
-                ? 'bg-green-100 text-green-800 cursor-not-allowed'
-                : 'bg-black text-white hover:bg-gray-800'
-            }`}
-            disabled={challenge.isCompleted}
-          >
-            {challenge.isCompleted ? (
-              <div className="flex items-center justify-center gap-2">
-                <Award className="w-4 h-4" />
-                Completed
-              </div>
-            ) : (
-              'Start Challenge'
-            )}
-          </button>
+        {/* Row 4: Complete Challenge Button */}
+        <button
+          className="w-full bg-black hover:bg-gray-800 text-white py-3 px-4 rounded-full font-inktrap font-medium transition-colors duration-200 flex items-center justify-center gap-2"
+        >
+          Complete Challenge on Galaxe
+          <ExternalLink className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Daily Challenge Streak Section - Only for Daily Challenges */}
+      {challengeType === 'daily' && (
+        <div className="p-6">
+          {/* Row 1: Streak Header */}
+          <div className="flex items-center gap-2 mb-4">
+            <Info className="w-4 h-4 text-gray-600" />
+            <span className="body-small text-gray-600 uppercase tracking-wide">DAILY CHALLENGE STREAK</span>
+          </div>
+
+          {/* Row 2: Streak Image */}
+          <div className="mb-4">
+            <Image
+              src="/challenges/points-streak-modal.svg"
+              alt="points streak"
+              width={400}
+              height={100}
+              className="w-full h-auto"
+            />
+          </div>
+
+          {/* Row 3: Streak Description */}
+          <div className="body-medium text-gray-600">
+            Every day you complete a Daily Challenge, your earned points double - resets on Monday every week.
+            Miss one day and your streak goes back to 50.
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -321,28 +550,15 @@ export default function ChallengesPage() {
             </div>
           </div>
 
-          {/* Row 2, Column 1: Points */}
-          <div 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              width: '100%',
-              height: '32px',
-              backgroundColor: 'transparent',
-              borderRadius: '16px',
-              padding: '6px 12px',
-              border: '1px solid #e0e0e0'
-            }}
-          >
+          {/* Row 2, Column 1: Points Streak */}
+          <div>
             <Image
-              src="/ep_coin.svg"
-              alt="coin"
-              width={16}
-              height={16}
-              className="w-4 h-4"
+              src="/challenges/points-streak.svg"
+              alt="points streak"
+              width={100}
+              height={32}
+              className="w-auto h-auto"
             />
-            <div className="body-small text-black">{challenge.points}</div>
           </div>
 
           {/* Row 2, Column 2: Learn More Button */}
@@ -480,7 +696,7 @@ export default function ChallengesPage() {
         >
           <div className="max-w-lg mx-auto w-full flex flex-col h-full">
             {/* Close Button - Full Width Overlay */}
-            <div className="w-full p-4">
+            <div className="w-full px-4 pt-4 pb-1">
               <div className="bg-white rounded-3xl">
                 <button
                   onClick={() => {
@@ -495,7 +711,7 @@ export default function ChallengesPage() {
               </div>
             </div>
             
-            <div className="w-full p-4">
+            <div className="w-full px-4 pb-4">
               <div className="bg-white rounded-3xl">
                 <ChallengeModal 
                   challenge={selectedChallenge} 
