@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 // import { usePrivy } from "@privy-io/react-auth";
 import {  ChevronRight, X, Info, ExternalLink } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 import Header from "./header";
 
@@ -333,6 +334,7 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen }) =>
 
 export default function ChallengesPage() {
  // const { user } = usePrivy();
+  const router = useRouter();
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [weeklyChallenges, setWeeklyChallenges] = useState<Challenge[]>([]);
@@ -575,12 +577,29 @@ export default function ChallengesPage() {
       );
     }
 
-    // Quest challenge layout: no image, simple layout
+    // Quest challenge layout: banner image with single large button
     return (
       <div
         key={challenge.id}
         className="rounded-2xl flex flex-col gap-3 transition-all duration-200"
       >
+        {/* Quest Challenge Image - Full Width Above Title */}
+        {challenge.image && (
+          <div className="w-full">
+            <Image
+              src={challenge.image}
+              alt={challenge.title}
+              width={parseInt(challenge["image-width"] || "300")}
+              height={parseInt(challenge["image-height"] || "200")}
+              className="w-full h-auto object-contain rounded-xl"
+            />
+          </div>
+        )}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="body-small text-gray-600 uppercase tracking-wide ">
+            Challenge Quest
+          </span>
+        </div>
         {/* Title and Description */}
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -593,28 +612,14 @@ export default function ChallengesPage() {
           </p>
         </div>
 
-        {/* Points and Learn More Button */}
-        <div className="flex items-center justify-between">
-          <div 
-            style={{
-              display: 'flex',
-              padding: '4px 8px',
-              alignItems: 'center',
-              gap: '8px',
-              flex: '0 0 0',
-              alignSelf: 'stretch'
-            }}
-          >
-            <span className="text-xs font-mono text-black">{challenge.points} pts</span>
-          </div>
-          
-          <button
-            onClick={() => handleChallengeClick(challenge)}
-            className="bg-black hover:bg-gray-800 text-white text-xs font-mono px-3 py-1.5 rounded-full transition-colors duration-200"
-          >
-            Learn More
-          </button>
-        </div>
+        {/* Single Large Button to Quest Sub Page */}
+        <button
+          onClick={() => router.push('/challenges/quests')}
+          className="w-full bg-black hover:bg-gray-800 text-white py-3 px-4 rounded-full transition-colors duration-200 flex items-center justify-center gap-2"
+        >
+          <h4>View Challenges</h4>
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
     );
   };
@@ -672,13 +677,8 @@ export default function ChallengesPage() {
 
           {/* Challenge Quests Section */}
           {!isLoading && (
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-              <div className="flex items-center gap-2 mb-4">
-                
-                <span className="body-small text-gray-600 uppercase tracking-wide ">
-                  Challenge Quests
-                </span>
-              </div>
+            <div className="bg-white backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+              
               <div className="space-y-3">
                 {challengeQuests.map(challenge => renderChallengeCard(challenge, 'quest'))}
               </div>
