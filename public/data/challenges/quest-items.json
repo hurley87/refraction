@@ -1,0 +1,30 @@
+[
+  {
+    "title": "Mint Refraction NFT",
+    "description": "Follow @refractionfestival on Instagram to stay tapped in",
+    "points": 100,
+    "url": "/profile",
+    "image": "/challenges/telegram-32.png",
+    "image-width": "200",
+    "image-height": "200"
+  },
+  {
+    "title": "Mint Refraction NFT",
+    "description": "Follow @refractionfestival on Instagram to stay tapped in",
+    "points": 150,
+    "url": "/community",
+    "image": "/challenges/telegram-32.png",
+    "image-width": "200",
+    "image-height": "200"
+  },
+  {
+    "title": "Mint Refraction NFT",
+    "description": "Follow @refractionfestival on Instagram to stay tapped in",
+    "points": 200,
+    "url": "/checkpoints",
+    "image": "/challenges/telegram-32.png",
+    "image-width": "200",
+    "image-height": "200"
+  }
+]
+

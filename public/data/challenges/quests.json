@@ -1,14 +1,11 @@
 [
   {
-    "title": "City Explorer Master",
-    "description": "Complete all major landmarks in your city to unlock exclusive rewards.",
-    "points": 1000,
-    "url": "/challenges/quests/city-explorer"
-  },
-  {
-    "title": "Foodie Adventure",
-    "description": "Try 20 different restaurants and rate your experience.",
-    "points": 750,
-    "url": "/challenges/quests/foodie-adventure"
+    "title": "Explore The IRL Network",
+    "description": "Description about Quest. Lorem ipsum dolor sit amet consectetur. Mollis tristique risus ac elementum.",
+    "points": 500,
+    "image": "/challenges/challenge-quest.png",
+    "image-width": "1920",
+    "image-height": "361",
+    "url": "/challenges/challenge-quest.png"
   }
 ]
