@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 import Image from "next/image";
 import NewsletterForm from "@/components/newsletter-form";
+import Header from "@/components/header";
 
 const appUrl = "https://irl.energy";
 const show_newsletter = true;
@@ -68,10 +69,10 @@ export default function Home() {
           x5-video-player-fullscreen="false"
           className="absolute inset-0 w-full h-full object-cover"
           style={{
-            WebkitTransform: 'translateZ(0)',
-            transform: 'translateZ(0)',
-            WebkitBackfaceVisibility: 'hidden',
-            backfaceVisibility: 'hidden'
+            WebkitTransform: "translateZ(0)",
+            transform: "translateZ(0)",
+            WebkitBackfaceVisibility: "hidden",
+            backfaceVisibility: "hidden",
           }}
         >
           <source src="/video-reel.mp4" type="video/mp4" />
@@ -88,10 +89,9 @@ export default function Home() {
           className="absolute inset-0 w-full h-full hidden"
           id="fallback-bg"
         ></div>
-        {/* Logo/Header */}
-        <div className="absolute top-4 sm:top-6 md:top-8 left-4 sm:left-6 md:left-8 lg:left-16 w-[40px] h-[40px] sm:w-[40px] sm:h-[40px] md:w-[40px] md:h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center">
-          <Image src="/home/IRL.png" alt="irl" width={27.312} height={14} />
-        </div>
+
+        {/* Header */}
+        <Header />
 
         {/* Main Content */}
         <div className="relative z-10 max-w-6xl w-full mt-16 sm:mt-20 md:mt-24 flex flex-col min-h-[700px]">
@@ -407,7 +407,7 @@ export default function Home() {
           </p>
         </div>
       </section>
-      
+
       {/* Video Loading Script */}
       <script
         dangerouslySetInnerHTML={{
@@ -432,7 +432,7 @@ export default function Home() {
                 });
               }
             });
-          `
+          `,
         }}
       />
     </div>

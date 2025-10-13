@@ -1,94 +1,45 @@
-"use client";
-
-import { useState } from "react";
-import { usePrivy } from "@privy-io/react-auth";
-import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import ProfileMenu from "./profile-menu";
 import Link from "next/link";
-import { Map } from "lucide-react";
+import Image from "next/image";
 
+/**
+ * Header component for the IRL website
+ * Features a logo on the left and "Become A Partner" button on the right
+ */
 export default function Header() {
-  const { user, login } = usePrivy();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const pathname = usePathname();
+  return (
+    <div
+      className="absolute top-0 left-0 right-0 z-50 mx-2 sm:mx-4 mt-2 sm:mt-4 rounded-[26px] backdrop-blur-[32px] bg-gradient-to-b from-white/[0.157] to-white/[0.45] border border-white/25"
+      data-name="Hero"
+    >
+      <nav
+        className="flex items-center justify-between px-2 py-2 overflow-clip rounded-[inherit]"
+        data-name="Nav"
+      >
+        {/* Inner shadow overlay */}
+        <div className="absolute inset-0 pointer-events-none shadow-[0px_4px_8px_0px_inset_rgba(255,255,255,0.15)] rounded-[inherit]" />
 
-  const handleLogin = async () => {
-    try {
-      login();
-    } catch (error) {
-      console.error("Header login failed:", error);
-    }
-  };
-
-  // If user is not defined, return login button
-  if (!user) {
-    return (
-      <div className="flex justify-between items-center w-full">
-        <div className="w-[40px] h-[40px] sm:w-[40px] sm:h-[40px] md:w-[40px] md:h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center">
-          <Link href="/">
-            <img
+        {/* Logo */}
+        <Link href="/" className="shrink-0 relative z-10">
+          <div className="bg-[#313131] rounded-full w-[40px] h-[40px] flex items-center justify-center hover:opacity-90 transition-opacity">
+            <Image
               src="/home/IRL.png"
               alt="IRL"
-              className="w-full h-auto"
-              style={{ width: "40", height: "40" }}
+              width={27.312}
+              height={14}
+              className="block"
             />
-          </Link>
-        </div>
-
-        {/* Profile Menu */}
-        <Button
-          className="bg-white text-black text-lg hover:bg-white/80 justify-center font-inktrap rounded-full items-center"
-          size="sm"
-          onClick={handleLogin}
-          style={{ width: "123px", height: "40px" }}
-        >
-          Check In
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex justify-between items-center">
-      <div className="w-[40px] h-[40px] sm:w-[40px] sm:h-[40px] md:w-[40px] md:h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center">
-        <Link href="/">
-          <img
-            src="/home/IRL.png"
-            alt="IRL"
-            className="w-full h-auto"
-            style={{ width: "40", height: "40" }}
-          />
+          </div>
         </Link>
-      </div>
 
-      <div className="flex items-center gap-2">
-        {/* Map Button - Show on leaderboard page */}
-        {pathname === "/leaderboard" && (
-          <Link href="/interactive-map">
-            <button
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-[40px] h-[40px] flex items-center justify-center transition-colors shadow-lg"
-              aria-label="Go to map"
-            >
-              <Map className="w-5 h-5" />
-            </button>
-          </Link>
-        )}
-        <button
-          style={{
-            background:
-              "linear-gradient(90deg, #2400FF 14.58%, #FA00FF 52.6%, #FF0000 86.46%)",
-          }}
-          onClick={() => setIsMenuOpen(true)}
-          className="flex items-center justify-center rounded-full w-[40px] h-[40px] transition-colors shadow-lg"
-          aria-label="Open user menu"
-        >
-          {/* Gradient circle indicating logged in status */}
-        </button>
-      </div>
-
-      {/* Profile Menu */}
-      <ProfileMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+        {/* Become A Partner Button */}
+        <Link href="/contact-us" className="shrink-0 relative z-10">
+          <button className="bg-white/25 hover:bg-white/30 active:bg-[#b5b5b5]/25 backdrop-blur-sm rounded-full px-3 sm:px-4 py-2 flex items-center gap-2 transition-all cursor-pointer group">
+            <span className="font-['ABC_Monument_Grotesk_Semi-Mono',_sans-serif] text-white text-[11px] leading-[16px] tracking-[0.44px] uppercase whitespace-nowrap">
+              Become A Partner
+            </span>
+          </button>
+        </Link>
+      </nav>
     </div>
   );
 }
