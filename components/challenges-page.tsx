@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 // import { usePrivy } from "@privy-io/react-auth";
-import { X, Info, ExternalLink, Clock } from "lucide-react";
+import { X, Info, Clock } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -47,50 +47,52 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen }) =>
   const challengeType = getChallengeType();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
       {/* First Container - Challenge Header */}
-      <div className="p-6">
-        {/* Row 1: Challenge Type */}
-        <div className="mb-4">
-          <span className="body-small text-gray-600 uppercase tracking-wide">
-            {challenge.category} Challenge
-          </span>
-        </div>
-
-        {/* Row 2: Challenge Image */}
-        {challenge.image && (
-          <div 
-            className="mb-4"
-            style={challengeType === 'daily' ? {
-              display: 'flex',
-              width: '100%',
-              height: '80px',
-              padding: '24px',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '16px',
-              borderRadius: '16px',
-              background: 'radial-gradient(220.55% 55.23% at 10.91% 29.08%, rgba(0, 0, 0, 0.00) 0%, rgba(239, 139, 159, 0.20) 100%), radial-gradient(81.69% 149.02% at 30% -26.79%, rgba(0, 0, 0, 0.00) 28.61%, rgba(3, 133, 255, 0.54) 100%), #313131'
-            } : {}}
-          >
-            <Image
-              src={challenge.image}
-              alt={challenge.title}
-              width={parseInt(challenge["image-width"] || "300")}
-              height={parseInt(challenge["image-height"] || "200")}
-              className={challengeType === 'daily' ? "h-full w-auto object-contain" : "w-full h-auto object-contain rounded-xl"}
-            />
+      <div className="pb-1">
+        <div className="bg-white rounded-3xl p-6">
+          {/* Row 1: Challenge Type */}
+          <div className="mb-4">
+            <span className="body-small text-gray-600 uppercase tracking-wide">
+              {challenge.category} Challenge
+            </span>
           </div>
-        )}
 
-        {/* Row 3: Challenge Title */}
-        <div>
-          <div className="title2 text-black">{challenge.title}</div>
+          {/* Row 2: Challenge Image */}
+          {challenge.image && (
+            <div 
+              className="mb-4"
+              style={challengeType === 'daily' ? {
+                display: 'flex',
+                width: '100%',
+                height: '80px',
+                padding: '24px',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '16px',
+                borderRadius: '16px',
+                background: 'radial-gradient(220.55% 55.23% at 10.91% 29.08%, rgba(0, 0, 0, 0.00) 0%, rgba(239, 139, 159, 0.20) 100%), radial-gradient(81.69% 149.02% at 30% -26.79%, rgba(0, 0, 0, 0.00) 28.61%, rgba(3, 133, 255, 0.54) 100%), #313131'
+              } : {}}
+            >
+              <Image
+                src={challenge.image}
+                alt={challenge.title}
+                width={parseInt(challenge["image-width"] || "300")}
+                height={parseInt(challenge["image-height"] || "200")}
+                className={challengeType === 'daily' ? "h-full w-auto object-contain" : "w-full h-auto object-contain rounded-xl"}
+              />
+            </div>
+          )}
+
+          {/* Row 3: Challenge Title */}
+          <div className="flex items-center justify-center">
+            <div className="title2  text-black">{challenge.title}</div>
+          </div>
         </div>
       </div>
 
       {/* Second Container - Challenge Details */}
-      <div className="p-6">
+      <div className="bg-white rounded-3xl p-6">
         {/* Row 1: Details Header */}
         <div className="flex items-center gap-2 mb-4">
           <Info className="w-4 h-4 text-gray-600" />
@@ -295,40 +297,31 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen }) =>
 
         {/* Row 4: Complete Challenge Button */}
         <button
-          className="w-full bg-black hover:bg-gray-800 text-white py-3 px-4 rounded-full font-inktrap font-medium transition-colors duration-200 flex items-center justify-between"
+          className="w-full bg-[#313131] hover:bg-gray-800 text-white py-3 px-4 rounded-full font-inktrap font-medium transition-colors duration-200 flex items-center justify-between"
         >
           <h4>Complete Challenge on Galaxe</h4>
-          <ExternalLink className="w-4 h-4" />
+          <Image
+            src="/galxe-logo.png"
+            alt="arrow"
+            width={24}
+            height={24}
+            className="w-3 h-3"
+          />
         </button>
+        {/* Row 1: Streak Header */}
+            <div className="flex items-center gap-2 mb-4 pt-4">
+              <Info className="w-4 h-4 text-gray-600" />
+              <span className="body-small text-gray-600 uppercase tracking-wide">DAILY CHALLENGE STREAK</span>
+            </div>
+
+            {/* Row 3: Streak Description */}
+            <div className="body-medium text-gray-600">
+              Every day you complete a Daily Challenge, your earned points double - resets on Monday every week.
+              Miss one day and your streak goes back to 50.
+            </div>
       </div>
 
-      {/* Daily Challenge Streak Section - Only for Daily Challenges */}
-      {challengeType === 'daily' && (
-        <div className="p-6">
-          {/* Row 1: Streak Header */}
-          <div className="flex items-center gap-2 mb-4">
-            <Info className="w-4 h-4 text-gray-600" />
-            <span className="body-small text-gray-600 uppercase tracking-wide">DAILY CHALLENGE STREAK</span>
-          </div>
-
-          {/* Row 2: Streak Image */}
-          <div className="mb-4">
-            <Image
-              src="/challenges/points-streak-modal.svg"
-              alt="points streak"
-              width={400}
-              height={100}
-              className="w-full h-auto"
-            />
-          </div>
-
-          {/* Row 3: Streak Description */}
-          <div className="body-medium text-gray-600">
-            Every day you complete a Daily Challenge, your earned points double - resets on Monday every week.
-            Miss one day and your streak goes back to 50.
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 };
@@ -517,7 +510,7 @@ export default function ChallengesPage() {
                 onClick={() => handleChallengeClick(challenge)}
                 className="w-full bg-white hover:bg-gray-100 text-black text-xs font-mono px-3 py-1.5 rounded-full transition-colors duration-200 flex items-center justify-between"
               >
-                <span>Learn More</span>
+                <span className="uppercase">Learn More</span>
                 <Image
                   src="/arrow-right.svg"
                   alt="arrow"
@@ -576,24 +569,14 @@ export default function ChallengesPage() {
             </div>
           </div>
 
-          {/* Row 2, Column 1: Points Streak */}
-          <div>
-            <Image
-              src="/challenges/points-streak.svg"
-              alt="points streak"
-              width={100}
-              height={32}
-              className="w-auto h-auto"
-            />
-          </div>
-
-          {/* Row 2, Column 2: Learn More Button */}
-          <div className="w-full">
+        
+          {/* Row 2: Learn More Button - Spans full width */}
+          <div className="col-span-2">
             <button
               onClick={() => handleChallengeClick(challenge)}
               className="w-full bg-white hover:bg-gray-100 text-black text-xs font-mono px-3 py-1.5 rounded-full transition-colors duration-200 flex items-center justify-between"
             >
-              <span>Learn More</span>
+              <span className="uppercase">Learn More</span>
               <Image
                 src="/arrow-right.svg"
                 alt="arrow"
@@ -760,7 +743,7 @@ export default function ChallengesPage() {
         <Header />
 
         {/* Main Content */}
-        <div className="px-0 pt-4 space-y-4">
+        <div className="px-0 pt-4 pb-1 space-y-1">
           {/* Loading State */}
           {isLoading && (
             <div className="bg-white rounded-2xl p-8 text-center">
@@ -770,7 +753,7 @@ export default function ChallengesPage() {
           )}
           {/* Weekly Challenges Section */}
           {!isLoading && (
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+            <div className="bg-white/30 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
               <div className="flex items-center gap-2 mb-4">
                 
                 <span className="body-small text-gray-600 uppercase tracking-wide">
@@ -785,10 +768,10 @@ export default function ChallengesPage() {
 
           {/* Daily Challenges Section */}
           {!isLoading && (
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+            <div className="bg-white/30 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
               <div className="flex items-center gap-2 mb-4">
                 
-                <span className="body-small text-gray-600 uppercase tracking-wide">
+                <span className="body-small text-gray-600 uppercase font-bold tracking-wide">
                   Daily Challenges
                 </span>
               </div>
@@ -797,11 +780,22 @@ export default function ChallengesPage() {
               </div>
             </div>
           )}
+          
 
-          {/* Challenge Quests Section */}
+          {/* Challenge Quests Header */}
+          {!isLoading && (
+            <div className="bg-white backdrop-blur-sm rounded-full p-4 border border-white/20">
+              <div className="flex items-center gap-2">
+                <span className="body-small text-gray-600 uppercase font-bold tracking-wide">
+                  Challenge Quests
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Challenge Quests List */}
           {!isLoading && (
             <div className="bg-white backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-              
               <div className="space-y-3">
                 {challengeQuests.map(challenge => renderChallengeCard(challenge, 'quest'))}
               </div>
@@ -834,17 +828,15 @@ export default function ChallengesPage() {
               </div>
             </div>
             
-            <div className="w-full px-4 pb-4">
-              <div className="bg-white rounded-3xl">
-                <ChallengeModal 
-                  challenge={selectedChallenge} 
-                  isOpen={isModalOpen} 
-                  onClose={() => {
-                    setIsModalOpen(false);
-                    setSelectedChallenge(null);
-                  }} 
-                />
-              </div>
+            <div className="w-full px-4 pb-4 flex flex-col gap-0">
+              <ChallengeModal 
+                challenge={selectedChallenge} 
+                isOpen={isModalOpen} 
+                onClose={() => {
+                  setIsModalOpen(false);
+                  setSelectedChallenge(null);
+                }} 
+              />
             </div>
           </div>
         </div>
