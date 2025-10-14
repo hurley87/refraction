@@ -8,7 +8,7 @@ import Image from "next/image";
 export default function Header() {
   return (
     <div
-      className=" max-w-7xl mx-auto absolute top-10 left-10 right-10 z-50 rounded-[26px] backdrop-blur-[32px] bg-gradient-to-b from-white/[0.157] to-white/[0.45] border border-white/25"
+      className=" max-w-7xl mx-auto absolute top-[16px] left-[8px] right-[8px] md:top-10 md:left-10 md:right-10 z-50 rounded-[26px] backdrop-blur-[32px] bg-gradient-to-b from-white/[0.157] to-white/[0.45] border border-white/25"
       data-name="Hero"
     >
       <nav

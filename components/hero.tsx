@@ -9,7 +9,7 @@ export default function Hero() {
   return (
     <section className="relative w-full h-screen overflow-hidden">
       {/* WebGL Background with padding */}
-      <div className="absolute inset-0 p-4">
+      <div className="absolute inset-0 p-0 md:p-4">
         <div className="w-full h-full rounded-[48px] overflow-hidden">
           <WebGLRenderer />
         </div>
