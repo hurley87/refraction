@@ -1,6 +1,7 @@
 import Header from "@/components/header";
 import Hero from "@/components/hero";
 import ArtistCTA from "@/components/artist-cta";
+import Partners from "@/components/partners";
 import FooterHero from "@/components/footer-hero";
 import Footer from "@/components/footer";
 
@@ -19,6 +20,9 @@ export default function Home() {
 
       {/* Artist CTA Section */}
       <ArtistCTA />
+
+      {/* Partners Section */}
+      <Partners />
 
       {/* Footer Hero Section with WebGL Background */}
       <FooterHero />

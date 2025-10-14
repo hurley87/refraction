@@ -65,10 +65,27 @@ const config: Config = {
         inktrap: ["Inktrap", "sans-serif"],
         pleasure: ["Pleasure", "sans-serif"],
         "pleasure-standard-bold": ["Pleasure-Standard-Bold", "sans-serif"],
-        "pleasure-standard-regular": ["Pleasure-Standard-Regular", "sans-serif"],
+        "pleasure-standard-regular": [
+          "Pleasure-Standard-Regular",
+          "sans-serif",
+        ],
         "inktrap-regular": ["Inktrap-Regular", "sans-serif"],
         "abc-monument-bold": ["ABC-Monument-Bold", "sans-serif"],
-        "abc-monument-regular": ["ABC-Monument-Regular", "sans-serif"]
+        "abc-monument-regular": ["ABC-Monument-Regular", "sans-serif"],
+      },
+      keyframes: {
+        marquee: {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-33.333%)" },
+        },
+        "marquee-reverse": {
+          "0%": { transform: "translateX(-33.333%)" },
+          "100%": { transform: "translateX(0%)" },
+        },
+      },
+      animation: {
+        marquee: "marquee 30s linear infinite",
+        "marquee-reverse": "marquee-reverse 30s linear infinite",
       },
     },
   },

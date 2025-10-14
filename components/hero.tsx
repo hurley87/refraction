@@ -125,9 +125,9 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* Learn More button */}
-        <button className="flex flex-col gap-[9px] items-center pt-7 w-[73px]">
-          <p className="font-['ABC_Monument_Grotesk_Semi-Mono_Unlicensed_Trial',_sans-serif] font-medium text-[11px] leading-[16px] text-white tracking-[0.44px] uppercase">
+        {/* Learn More section */}
+        <div className="flex flex-col gap-[9px] items-center pt-7 pb-0">
+          <p className="font-['ABC_Monument_Grotesk_Semi-Mono_Unlicensed_Trial',_sans-serif] font-medium text-[11px] leading-[16px] text-white tracking-[0.44px] uppercase whitespace-nowrap">
             Learn More
           </p>
           <img
@@ -135,7 +135,7 @@ export default function Hero() {
             alt=""
             className="w-[45px] h-[45px]"
           />
-        </button>
+        </div>
       </div>
     </section>
   );
