@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 // import { usePrivy } from "@privy-io/react-auth";
-import { X, Info, ExternalLink, Clock } from "lucide-react";
+import { X, Info, Clock } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
