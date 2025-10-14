@@ -8,7 +8,7 @@ import Image from "next/image";
 export default function Header() {
   return (
     <div
-      className="absolute top-0 left-0 right-0 z-50 mx-2 sm:mx-4 mt-2 sm:mt-4 rounded-[26px] backdrop-blur-[32px] bg-gradient-to-b from-white/[0.157] to-white/[0.45] border border-white/25"
+      className=" max-w-7xl mx-auto absolute top-10 left-10 right-10 z-50 rounded-[26px] backdrop-blur-[32px] bg-gradient-to-b from-white/[0.157] to-white/[0.45] border border-white/25"
       data-name="Hero"
     >
       <nav
@@ -33,8 +33,8 @@ export default function Header() {
 
         {/* Become A Partner Button */}
         <Link href="/contact-us" className="shrink-0 relative z-10">
-          <button className="bg-white/25 hover:bg-white/30 active:bg-[#b5b5b5]/25 backdrop-blur-sm rounded-full px-3 sm:px-4 py-2 flex items-center gap-2 transition-all cursor-pointer group">
-            <span className="font-['ABC_Monument_Grotesk_Semi-Mono',_sans-serif] text-white text-[11px] leading-[16px] tracking-[0.44px] uppercase whitespace-nowrap">
+          <button className="bg-white hover:bg-white/80 active:bg-white/60 backdrop-blur-sm rounded-full px-3 sm:px-4 py-2 flex items-center gap-2 transition-all cursor-pointer group">
+            <span className="font-['ABC_Monument_Grotesk_Semi-Mono',_sans-serif] text-black text-[11px] leading-[16px] tracking-[0.44px] uppercase whitespace-nowrap">
               Become A Partner
             </span>
           </button>
