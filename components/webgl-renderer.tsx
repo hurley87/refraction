@@ -3,11 +3,26 @@
 import { useEffect, useRef } from "react";
 import heroData from "@/public/hero-web-gl.json";
 
+interface WebGLData {
+  history: Array<{
+    visible: boolean;
+    speed?: number;
+    compiledVertexShaders?: string[];
+    compiledFragmentShaders?: string[];
+    [key: string]: any;
+  }>;
+  [key: string]: any;
+}
+
+interface WebGLRendererProps {
+  data?: WebGLData;
+}
+
 /**
  * WebGL renderer component that interprets and renders shader-based animations
- * from the hero-web-gl.json configuration file
+ * from a provided configuration file
  */
-export default function WebGLRenderer() {
+export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const glRef = useRef<WebGL2RenderingContext | null>(null);
   const programsRef = useRef<WebGLProgram[]>([]);
@@ -90,7 +105,7 @@ export default function WebGLRenderer() {
         (mouseRef.current.targetY - mouseRef.current.y) * momentum;
 
       // Render each layer
-      const history = heroData.history || [];
+      const history = data.history || [];
       history.forEach((layer, index) => {
         if (!layer.visible) return;
 
@@ -154,13 +169,13 @@ export default function WebGLRenderer() {
       cleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [data]);
 
   /**
    * Initialize WebGL shaders, programs, and buffers
    */
   function initializeWebGL(gl: WebGL2RenderingContext) {
-    const history = heroData.history || [];
+    const history = data.history || [];
 
     // Create vertex buffer (full-screen quad)
     const vertices = new Float32Array([

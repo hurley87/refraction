@@ -145,7 +145,7 @@ export default function Footer() {
                 aria-label="Join us on Telegram"
               >
                 <Image
-                  src="/telegram.png"
+                  src="/Telegram.png"
                   alt="Telegram"
                   width={48}
                   height={48}

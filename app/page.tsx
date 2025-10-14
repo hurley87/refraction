@@ -1,5 +1,6 @@
 import Header from "@/components/header";
 import Hero from "@/components/hero";
+import FooterHero from "@/components/footer-hero";
 import Footer from "@/components/footer";
 
 export default function Home() {
@@ -14,6 +15,9 @@ export default function Home() {
           <Header />
         </div>
       </div>
+
+      {/* Footer Hero Section with WebGL Background */}
+      <FooterHero />
 
       {/* Footer */}
       <Footer />
