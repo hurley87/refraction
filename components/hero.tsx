@@ -66,8 +66,8 @@ export default function Hero() {
                 fill="white"
               />
               <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
+                fillRule="evenodd"
+                clipRule="evenodd"
                 d="M52.4946 4.48575C53.5281 3.54895 54.9298 3.02266 56.3913 3.02266H61.525V3.70646H56.3913C55.1299 3.70646 53.9201 4.1607 53.028 4.96927C51.1705 6.65303 51.1705 9.38293 53.028 11.0667C53.9201 11.8753 55.1299 12.3295 56.3913 12.3295H61.525V13.0133H56.3913C54.9298 13.0133 53.5281 12.487 52.4946 11.5502C50.3425 9.59941 50.3425 6.43655 52.4946 4.48575Z"
                 fill="white"
               />
@@ -76,32 +76,32 @@ export default function Hero() {
                 fill="white"
               />
               <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
+                fillRule="evenodd"
+                clipRule="evenodd"
                 d="M15.5578 3.02266H20.845V3.70646H15.8701L11.4931 7.67608H20.845V8.35988H11.4931L15.8701 12.3295H20.845V13.0133H15.5578L10.0498 8.01798L15.5578 3.02266Z"
                 fill="white"
               />
               <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
+                fillRule="evenodd"
+                clipRule="evenodd"
                 d="M0.724976 3.02266H12.3119L6.78589 8.01912L12.3077 13.0133H11.2393L1.48142 4.19024V13.0133H0.724976V3.02266ZM2.01631 3.70661H10.4857L6.251 7.5355L2.01631 3.70661Z"
                 fill="white"
               />
               <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
+                fillRule="evenodd"
+                clipRule="evenodd"
                 d="M32.0801 3.02266H43.667L38.141 8.01912L43.6628 13.0133H42.5944L32.8365 4.19024V13.0133H32.0801V3.02266ZM33.3714 3.70661H41.8408L37.6061 7.5355L33.3714 3.70661Z"
                 fill="white"
               />
               <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
+                fillRule="evenodd"
+                clipRule="evenodd"
                 d="M63.6382 8.34162V13.0133H62.8571V8.04835L67.6202 3.73069H63.2476V3.02266H73.8785V3.73069H68.7248L63.6382 8.34162Z"
                 fill="white"
               />
               <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
+                fillRule="evenodd"
+                clipRule="evenodd"
                 d="M82.1414 3.57863C79.4367 3.57863 77.244 5.5662 77.244 8.01798C77.244 10.4698 79.4367 12.4573 82.1414 12.4573C84.8461 12.4573 87.0388 10.4698 87.0388 8.01798C87.0388 5.5662 84.8461 3.57863 82.1414 3.57863ZM76.4673 8.01798C76.4673 5.17735 79.0077 2.87457 82.1414 2.87457C85.2751 2.87457 87.8155 5.17735 87.8155 8.01798C87.8155 10.8586 85.2751 13.1614 82.1414 13.1614C79.0077 13.1614 76.4673 10.8586 76.4673 8.01798Z"
                 fill="white"
               />
