@@ -20,7 +20,7 @@ export default function Hero() {
         {/* Heading section */}
         <div className="flex flex-col gap-4 items-start text-white text-center w-[325px] max-w-full md:w-[1177px]">
           <h1
-            className="font-['Pleasure_Variable_Trial',_sans-serif] font-bold text-[61px] leading-[64px] tracking-[-4.88px] md:text-[100px] md:leading-[100px] md:tracking-[-8px] uppercase w-full"
+            className="font-pleasure font-black text-[61px] leading-[64px] tracking-[-4.88px] md:text-[100px] md:leading-[100px] md:tracking-[-8px] uppercase w-full"
             style={{
               textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
             }}
@@ -28,7 +28,7 @@ export default function Hero() {
             Culture&apos;s Reward Program
           </h1>
           <p
-            className="font-['Pleasure_Variable_Trial',_sans-serif] font-medium text-[25px] leading-[28px] tracking-[-0.5px] w-full"
+            className="font-pleasure font-medium text-[25px] leading-[28px] tracking-[-0.5px] w-full"
             style={{
               textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
             }}
@@ -41,7 +41,7 @@ export default function Hero() {
         <div className="flex flex-col gap-4 items-start w-[260px] max-w-full">
           {/* Primary CTA Button */}
           <button className="bg-white flex h-12 items-center justify-between px-4 py-2 rounded-full w-full cursor-pointer hover:bg-gray-100 transition-colors">
-            <span className="font-['Pleasure_Variable_Trial',_sans-serif] font-medium text-[16px] leading-[16px] text-[#313131] tracking-[-1.28px]">
+            <span className="font-pleasure font-medium text-[16px] leading-[16px] text-[#313131] tracking-[-1.28px]">
               Earn Your First Points
             </span>
             <img src="/arrow-right.svg" alt="" className="w-6 h-6" />

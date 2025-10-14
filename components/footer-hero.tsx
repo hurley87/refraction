@@ -22,15 +22,15 @@ export default function FooterHero() {
         <div className="flex flex-col gap-12 items-center text-white text-center max-w-[600px] w-full">
           {/* Heading section */}
           <div className="flex flex-col gap-4 items-center">
-            <h3 className="font-['Pleasure_Variable_Trial',_sans-serif] font-normal text-[32px] leading-[38px] md:text-[40px] md:leading-[48px]">
+            <h3 className="font-pleasure font-normal text-[32px] leading-[38px] md:text-[40px] md:leading-[48px]">
               Support Culture
             </h3>
-            <h2 className="font-['Pleasure_Variable_Trial',_sans-serif] font-bold text-[64px] leading-[68px] md:text-[80px] md:leading-[84px] tracking-[-2px] uppercase">
+            <h2 className="font-pleasure font-black text-[64px] leading-[68px] md:text-[80px] md:leading-[84px] tracking-[-2px] uppercase">
               EARN
               <br />
               REWARDS
             </h2>
-            <p className="font-mono text-[16px] leading-[24px] md:text-[18px] md:leading-[28px] max-w-[500px] mt-2">
+            <p className="font-mono text-[15px] leading-[24px] md:text-[18px] md:leading-[28px] mt-2">
               Start earning IRL points for check-ins, completing challenges and
               spending at underground venues in your city.
             </p>
@@ -38,7 +38,7 @@ export default function FooterHero() {
 
           {/* CTA Button */}
           <button className="bg-white flex items-center justify-between gap-12 px-8 py-4 rounded-full cursor-pointer hover:bg-gray-100 transition-colors group min-w-[260px]">
-            <span className="font-['Pleasure_Variable_Trial',_sans-serif] font-medium text-[20px] leading-[24px] text-black">
+            <span className="font-pleasure font-medium text-[20px] leading-[24px] text-black">
               Start Now
             </span>
             <svg
