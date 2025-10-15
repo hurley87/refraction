@@ -309,16 +309,21 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({ challenge, isOpen }) =>
           />
         </button>
         {/* Row 1: Streak Header */}
-            <div className="flex items-center gap-2 mb-4 pt-4">
-              <Info className="w-4 h-4 text-gray-600" />
-              <span className="body-small text-gray-600 uppercase tracking-wide">DAILY CHALLENGE STREAK</span>
-            </div>
+        {challengeType === 'daily' && (
+            <>
+              <div className="flex items-center gap-2 mb-4 pt-4">
+                <Info className="w-4 h-4 text-gray-600" />
+                <span className="body-small text-gray-600 uppercase tracking-wide">DAILY CHALLENGE STREAK</span>
+              </div>
 
-            {/* Row 3: Streak Description */}
-            <div className="body-medium text-gray-600">
-              Every day you complete a Daily Challenge, your earned points double - resets on Monday every week.
-              Miss one day and your streak goes back to 50.
-            </div>
+              {/* Row 3: Streak Description */}
+              <div className="body-medium text-gray-600">
+                Every day you complete a Daily Challenge, your earned points double - resets on Monday every week.
+                Miss one day and your streak goes back to 50.
+              </div>
+        </>
+        )}
+          
       </div>
 
       
