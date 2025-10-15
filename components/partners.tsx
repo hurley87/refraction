@@ -98,14 +98,27 @@ export default function Partners() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
           <Link
             href="/contact-us"
-            className="inline-flex items-center justify-between gap-2 bg-white text-[#313131] px-4 py-3 rounded-full font-inktrap text-base tracking-[-1.28px] leading-4 hover:bg-white/90 transition-colors duration-300"
+            className="bg-white flex items-center justify-between h-[48px] px-4 py-2 rounded-[100px] cursor-pointer hover:bg-[#b5b5b5] transition-colors group gap-4"
           >
             Become a Partner
-            <ArrowRight className="w-6 h-6" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="12"
+              viewBox="0 0 18 12"
+              fill="none"
+              className="block"
+            >
+              <path
+                d="M12 0C12 0.636 12.5498 1.58571 13.1063 2.38286C13.8218 3.41143 14.6767 4.30886 15.657 4.99371C16.392 5.50714 17.283 6 18 6M18 6C17.283 6 16.3912 6.49286 15.657 7.00629C14.6767 7.692 13.8218 8.58943 13.1063 9.61629C12.5498 10.4143 12 11.3657 12 12M18 6H0"
+                stroke="#313131"
+                strokeWidth="1"
+              />
+            </svg>
           </Link>
           <Link
             href="/contact-us"
-            className="inline-flex items-center justify-between gap-2 bg-[#313131] text-white px-4 py-3 rounded-full font-inktrap text-base tracking-[-1.28px] leading-4 hover:bg-[#414141] transition-colors duration-300"
+            className="bg-[#313131] flex items-center justify-between h-[48px] px-4 py-2 rounded-[100px] cursor-pointer hover:bg-[#414141] transition-colors group gap-4 text-white"
           >
             Contact Us
             <ArrowRight className="w-6 h-6" />
