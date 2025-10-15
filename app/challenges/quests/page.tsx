@@ -295,12 +295,12 @@ export default function QuestsPage() {
     >
       <div className="max-w-lg mx-auto">
         {/* Back Button */}
-        <div className="pt-4 pb-4">
+        <div className="pt-4">
           <button
             onClick={() => router.push('/challenges')}
             style={{
               display: 'flex',
-              width: '377px',
+              width: '100%',
               height: '56px',
               padding: '16px',
               alignItems: 'center',
@@ -322,7 +322,7 @@ export default function QuestsPage() {
         </div>
 
         {/* Main Content */}
-        <div className="px-0 pt-4 space-y-4">
+        <div className="px-0 pt-1 space-y-1">
           {/* Loading State */}
           {isLoading && (
             <div className="bg-white rounded-2xl p-8 text-center">
