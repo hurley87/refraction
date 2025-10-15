@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { memo } from "react";
 
 /**
  * Partner type definition
@@ -35,8 +36,9 @@ const partners: Partner[] = [
 
 /**
  * Marquee Row Component for infinite scrolling logos
+ * Memoized to prevent unnecessary re-renders
  */
-function MarqueeRow({
+const MarqueeRow = memo(function MarqueeRow({
   partners,
   direction = "left",
 }: {
@@ -46,9 +48,14 @@ function MarqueeRow({
   return (
     <div className="relative overflow-hidden w-full h-16 mb-6">
       <div
-        className={`flex items-center gap-12 absolute whitespace-nowrap ${
+        className={`flex items-center gap-12 absolute whitespace-nowrap [will-change:transform] ${
           direction === "left" ? "animate-marquee" : "animate-marquee-reverse"
         }`}
+        style={{
+          // Force GPU acceleration
+          transform: "translateZ(0)",
+          backfaceVisibility: "hidden",
+        }}
       >
         {/* Duplicate the array 3 times for seamless loop */}
         {[...partners, ...partners, ...partners].map((partner, index) => (
@@ -61,18 +68,16 @@ function MarqueeRow({
               alt={`${partner.name} logo`}
               width={120}
               height={64}
-              className="max-w-[120px] max-h-[64px] object-contain opacity-70 hover:opacity-100 transition-opacity duration-300"
-              onError={(e) => {
-                const target = e.currentTarget;
-                target.style.display = "none";
-              }}
+              loading="lazy"
+              className="max-w-[120px] max-h-[64px] object-contain opacity-70"
+              unoptimized={partner.logo.endsWith(".svg")}
             />
           </div>
         ))}
       </div>
     </div>
   );
-}
+});
 
 /**
  * Partners section component with horizontal scrolling marquee
