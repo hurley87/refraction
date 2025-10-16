@@ -76,9 +76,9 @@ export default function WebGLRenderer({ data }: WebGLRendererProps) {
 
     const loadData = async () => {
       try {
-        const module = await import("@/public/hero-web-gl.json");
+        const webglModule = await import("@/public/hero-web-gl.json");
         if (!isCancelled) {
-          setWebglData(module.default as WebGLData);
+          setWebglData(webglModule.default as WebGLData);
         }
       } catch (error) {
         console.error("Failed to load hero WebGL data:", error);
@@ -165,7 +165,13 @@ export default function WebGLRenderer({ data }: WebGLRendererProps) {
 
     // Animation loop
     function render() {
-      if (cancelRef.current || !glRef.current || !canvasRef.current) return;
+      if (
+        cancelRef.current ||
+        !glRef.current ||
+        !canvasRef.current ||
+        !resolvedData
+      )
+        return;
 
       const gl = glRef.current;
       const canvas = canvasRef.current;
@@ -243,6 +249,7 @@ export default function WebGLRenderer({ data }: WebGLRendererProps) {
       }
       cleanup();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, isInView, webglData]);
 
   /**
@@ -489,10 +496,9 @@ export default function WebGLRenderer({ data }: WebGLRendererProps) {
     if (typeof window === "undefined") return;
 
     await new Promise<void>((resolve) => {
-      const idle =
-        window.requestIdleCallback as
-          | ((callback: IdleRequestCallback) => number)
-          | undefined;
+      const idle = window.requestIdleCallback as
+        | ((callback: IdleRequestCallback) => number)
+        | undefined;
 
       if (idle) {
         idle(() => resolve());
