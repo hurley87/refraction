@@ -2,7 +2,7 @@ import Header from "@/components/header";
 import Hero from "@/components/hero";
 import ArtistCTA from "@/components/artist-cta";
 import Partners from "@/components/partners";
-import FooterHero from "@/components/footer-hero";
+import MapSection from "@/components/map-section";
 import Footer from "@/components/footer";
 
 export default function Home() {
@@ -24,8 +24,11 @@ export default function Home() {
       {/* Partners Section */}
       <Partners />
 
+      {/* Map Section with GSAP Scroll Transitions */}
+      <MapSection />
+
       {/* Footer Hero Section with WebGL Background */}
-      <FooterHero />
+      {/* <FooterHero /> */}
 
       {/* Footer */}
       <Footer />

@@ -56,7 +56,6 @@
     line-height: 1.5rem; /* 24px */
     font-weight: 600;
     font-family: "Monument-Grotesk", sans-serif;
-    
   }
 
   .title4 {
@@ -129,4 +128,15 @@
 /* Ensure popup respects width constraints provided in content */
 .mapboxgl-popup {
   max-width: 20rem; /* 320px, mirrors max-w-80 */
+}
+
+/* Animation delay utilities for GSAP transitions */
+@layer utilities {
+  .animation-delay-200 {
+    animation-delay: 0.2s;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 0.4s;
+  }
 }
