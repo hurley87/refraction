@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import heroData from "@/public/hero-web-gl.json";
 
 interface WebGLData {
   history: Array<{
@@ -22,7 +21,8 @@ interface WebGLRendererProps {
  * WebGL renderer component that interprets and renders shader-based animations
  * from a provided configuration file
  */
-export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
+export default function WebGLRenderer({ data }: WebGLRendererProps) {
+  const [webglData, setWebglData] = useState<WebGLData | null>(data ?? null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInView, setIsInView] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -70,7 +70,33 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
   }, []);
 
   useEffect(() => {
+    if (data || webglData) return;
+
+    let isCancelled = false;
+
+    const loadData = async () => {
+      try {
+        const module = await import("@/public/hero-web-gl.json");
+        if (!isCancelled) {
+          setWebglData(module.default as WebGLData);
+        }
+      } catch (error) {
+        console.error("Failed to load hero WebGL data:", error);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [data, webglData]);
+
+  useEffect(() => {
     if (!isInView) return;
+
+    const resolvedData = webglData ?? data;
+    if (!resolvedData) return;
 
     setIsLoading(true);
     const canvas = canvasRef.current;
@@ -94,7 +120,7 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
 
     // Setup canvas size
     const resizeCanvas = () => {
-      const dpr = Math.min(window.devicePixelRatio, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.3);
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
@@ -118,7 +144,7 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
         await waitForNextFrame();
         if (cancelRef.current) return;
 
-        await initializeWebGL(gl, () => cancelRef.current);
+        await initializeWebGL(gl, () => cancelRef.current, resolvedData);
         if (cancelRef.current) return;
 
         await waitForNextFrame();
@@ -153,7 +179,7 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
         (mouseRef.current.targetY - mouseRef.current.y) * momentum;
 
       // Render each layer
-      const history = data.history || [];
+      const history = resolvedData.history || [];
       history.forEach((layer, index) => {
         if (!layer.visible) return;
 
@@ -217,8 +243,7 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
       }
       cleanup();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, isInView]);
+  }, [data, isInView, webglData]);
 
   /**
    * Initialize WebGL shaders, programs, and buffers
@@ -226,8 +251,9 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
   async function initializeWebGL(
     gl: WebGL2RenderingContext,
     shouldCancel: () => boolean,
+    config: WebGLData,
   ) {
-    const history = data.history || [];
+    const history = config.history || [];
 
     // Create vertex buffer (full-screen quad)
     const vertices = new Float32Array([
@@ -259,14 +285,32 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
         gl.VERTEX_SHADER,
         vertexShaderSource,
       );
+      if (!vertexShader) {
+        console.error(`Failed to compile vertex shader for layer ${index}`);
+        continue;
+      }
+
+      await yieldToBrowser();
+      if (shouldCancel()) {
+        gl.deleteShader(vertexShader);
+        return;
+      }
+
       const fragmentShader = compileShader(
         gl,
         gl.FRAGMENT_SHADER,
         fragmentShaderSource,
       );
-
-      if (!vertexShader || !fragmentShader || shouldCancel()) {
+      if (!fragmentShader) {
         console.error(`Failed to compile shaders for layer ${index}`);
+        gl.deleteShader(vertexShader);
+        continue;
+      }
+
+      await yieldToBrowser();
+      if (shouldCancel()) {
+        gl.deleteShader(vertexShader);
+        gl.deleteShader(fragmentShader);
         return;
       }
 
@@ -278,8 +322,18 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
       gl.attachShader(program, fragmentShader);
       gl.linkProgram(program);
 
+      gl.deleteShader(vertexShader);
+      gl.deleteShader(fragmentShader);
+
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         console.error("Program link error:", gl.getProgramInfoLog(program));
+        gl.deleteProgram(program);
+        continue;
+      }
+
+      await yieldToBrowser();
+      if (shouldCancel()) {
+        gl.deleteProgram(program);
         return;
       }
 
@@ -333,6 +387,10 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
       // Create texture and framebuffer for this layer (except last)
       if (index < history.length - 1) {
         const texture = gl.createTexture();
+        if (!texture) {
+          console.error(`Failed to create texture for layer ${index}`);
+          continue;
+        }
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.texImage2D(
           gl.TEXTURE_2D,
@@ -350,7 +408,7 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-        texturesRef.current[index] = texture!;
+        texturesRef.current[index] = texture;
 
         const framebuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -363,6 +421,7 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
         );
 
         frameBuffersRef.current[index] = framebuffer;
+        await yieldToBrowser();
       }
 
       if (index < history.length - 1) {
