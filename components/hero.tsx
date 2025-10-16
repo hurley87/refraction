@@ -1,17 +1,63 @@
 "use client";
 
-import WebGLRenderer from "@/components/webgl-renderer";
+import dynamic from "next/dynamic";
+import { useEffect, useRef, useState } from "react";
+
+const LazyWebGLRenderer = dynamic(
+  () => import("@/components/webgl-renderer"),
+  {
+    ssr: false,
+    loading: () => <HeroGradientFallback />,
+  },
+);
+
+function HeroGradientFallback() {
+  return (
+    <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-950" />
+  );
+}
 
 /**
  * Hero component that renders an animated WebGL gradient above the fold
  */
 export default function Hero() {
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [shouldMountWebGL, setShouldMountWebGL] = useState(false);
+
+  useEffect(() => {
+    const target = sectionRef.current;
+    if (!target || shouldMountWebGL) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const isIntersecting = entries.some((entry) => entry.isIntersecting);
+        if (isIntersecting) {
+          setShouldMountWebGL(true);
+          observer.disconnect();
+        }
+      },
+      {
+        threshold: 0,
+        rootMargin: "300px 0px",
+      },
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [shouldMountWebGL]);
+
   return (
-    <section className="relative w-full h-screen overflow-hidden">
+    <section
+      ref={sectionRef}
+      className="relative w-full h-screen overflow-hidden"
+    >
       {/* WebGL Background with padding */}
       <div className="absolute inset-0 p-0 md:p-4">
-        <div className="w-full h-full rounded-[48px] overflow-hidden">
-          <WebGLRenderer />
+        <div className="relative w-full h-full rounded-[48px] overflow-hidden">
+          {shouldMountWebGL ? <LazyWebGLRenderer /> : <HeroGradientFallback />}
         </div>
       </div>
 

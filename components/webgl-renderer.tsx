@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import heroData from "@/public/hero-web-gl.json";
 
 interface WebGLData {
@@ -23,6 +23,9 @@ interface WebGLRendererProps {
  * from a provided configuration file
  */
 export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInView, setIsInView] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const glRef = useRef<WebGL2RenderingContext | null>(null);
   const programsRef = useRef<WebGLProgram[]>([]);
@@ -30,6 +33,7 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
   const texturesRef = useRef<WebGLTexture[]>([]);
   const animationFrameRef = useRef<number>();
   const startTimeRef = useRef<number>(Date.now());
+  const cancelRef = useRef(false);
   const mouseRef = useRef<{
     x: number;
     y: number;
@@ -42,9 +46,36 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
     targetY: 0.5,
   });
 
+  // Intersection Observer to detect when component is in viewport
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsInView(true);
+          }
+        });
+      },
+      { threshold: 0.1 },
+    );
+
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    setIsLoading(true);
     const canvas = canvasRef.current;
     if (!canvas) return;
+    cancelRef.current = false;
 
     // Initialize WebGL2 context
     const gl = canvas.getContext("webgl2", {
@@ -55,6 +86,7 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
 
     if (!gl) {
       console.error("WebGL2 not supported");
+      setIsLoading(false);
       return;
     }
 
@@ -81,17 +113,33 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
 
     window.addEventListener("mousemove", handleMouseMove);
 
-    // Initialize shaders and programs
-    try {
-      initializeWebGL(gl);
-      render();
-    } catch (error) {
-      console.error("Failed to initialize WebGL:", error);
-    }
+    const setupWebGL = async () => {
+      try {
+        await waitForNextFrame();
+        if (cancelRef.current) return;
+
+        await initializeWebGL(gl, () => cancelRef.current);
+        if (cancelRef.current) return;
+
+        await waitForNextFrame();
+        if (cancelRef.current) return;
+
+        setIsLoading(false);
+        startTimeRef.current = Date.now();
+        render();
+      } catch (error) {
+        console.error("Failed to initialize WebGL:", error);
+        if (!cancelRef.current) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    setupWebGL();
 
     // Animation loop
     function render() {
-      if (!glRef.current || !canvasRef.current) return;
+      if (cancelRef.current || !glRef.current || !canvasRef.current) return;
 
       const gl = glRef.current;
       const canvas = canvasRef.current;
@@ -161,6 +209,7 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
     }
 
     return () => {
+      cancelRef.current = true;
       window.removeEventListener("resize", resizeCanvas);
       window.removeEventListener("mousemove", handleMouseMove);
       if (animationFrameRef.current) {
@@ -169,12 +218,15 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
       cleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+  }, [data, isInView]);
 
   /**
    * Initialize WebGL shaders, programs, and buffers
    */
-  function initializeWebGL(gl: WebGL2RenderingContext) {
+  async function initializeWebGL(
+    gl: WebGL2RenderingContext,
+    shouldCancel: () => boolean,
+  ) {
     const history = data.history || [];
 
     // Create vertex buffer (full-screen quad)
@@ -187,13 +239,18 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
     // Process each layer
-    history.forEach((layer, index) => {
+    for (let index = 0; index < history.length; index += 1) {
+      if (shouldCancel()) {
+        break;
+      }
+
+      const layer = history[index];
       const vertexShaderSource = layer.compiledVertexShaders?.[0];
       const fragmentShaderSource = layer.compiledFragmentShaders?.[0];
 
       if (!vertexShaderSource || !fragmentShaderSource) {
         console.warn(`Missing shaders for layer ${index}`);
-        return;
+        continue;
       }
 
       // Compile shaders
@@ -208,7 +265,7 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
         fragmentShaderSource,
       );
 
-      if (!vertexShader || !fragmentShader) {
+      if (!vertexShader || !fragmentShader || shouldCancel()) {
         console.error(`Failed to compile shaders for layer ${index}`);
         return;
       }
@@ -307,7 +364,11 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
 
         frameBuffersRef.current[index] = framebuffer;
       }
-    });
+
+      if (index < history.length - 1) {
+        await yieldToBrowser();
+      }
+    }
 
     gl.clearColor(0, 0, 0, 0);
   }
@@ -359,11 +420,44 @@ export default function WebGLRenderer({ data = heroData }: WebGLRendererProps) {
     frameBuffersRef.current = [];
   }
 
+  async function waitForNextFrame() {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+  }
+
+  async function yieldToBrowser() {
+    if (typeof window === "undefined") return;
+
+    await new Promise<void>((resolve) => {
+      const idle =
+        window.requestIdleCallback as
+          | ((callback: IdleRequestCallback) => number)
+          | undefined;
+
+      if (idle) {
+        idle(() => resolve());
+      } else {
+        requestAnimationFrame(() => resolve());
+      }
+    });
+  }
+
   return (
-    <canvas
-      ref={canvasRef}
-      className="w-full h-full"
-      style={{ display: "block" }}
-    />
+    <div ref={containerRef} className="relative w-full h-full">
+      {/* Static gradient background shown while loading */}
+      {(isLoading || !isInView) && (
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-950" />
+      )}
+
+      {/* WebGL Canvas with fade-in */}
+      <canvas
+        ref={canvasRef}
+        className={`w-full h-full transition-opacity duration-700 ${
+          isLoading || !isInView ? "opacity-0" : "opacity-100"
+        }`}
+        style={{ display: "block" }}
+      />
+    </div>
   );
 }
