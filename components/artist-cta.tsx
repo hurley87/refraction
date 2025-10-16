@@ -1,12 +1,203 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 /**
  * Artist CTA component - Call to action for artists to join IRL
  * Matches Figma design: node-id=6192-100628
  */
 export default function ArtistCTA() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!sectionRef.current) return;
+
+      const rect = sectionRef.current.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+
+      // Calculate progress as the section moves through viewport
+      // 0 when section top is at bottom of viewport
+      // 1 when section bottom is at top of viewport
+      const progress = Math.max(
+        0,
+        Math.min(1, (windowHeight - rect.top) / (windowHeight + rect.height)),
+      );
+
+      setScrollProgress(progress);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll(); // Initial calculation
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Calculate transforms based on scroll progress
+  // artists1: starts left-center, moves right
+  const artists1Transform = `translateX(${-50 + scrollProgress * 50}%)`;
+  // artists2: starts right-aligned, moves left as you scroll
+  const artists2Transform = `translateX(${scrollProgress * -50}%)`;
+
   return (
-    <section className="relative w-full bg-black py-24 md:py-32">
+    <section
+      ref={sectionRef}
+      className="relative w-full bg-[#131313] pt-[500px] pb-24 md:pt-[550px] md:pb-32 overflow-hidden"
+    >
+      {/* Animated artist name strips */}
+      <div className="absolute top-8 left-0 w-full z-0 pointer-events-none space-y-4">
+        {/* Row 1 - artists1, left-center to right */}
+        <div
+          className="transition-transform duration-100 ease-out"
+          style={{
+            transform: artists1Transform,
+            position: "relative",
+            left: "50%",
+          }}
+        >
+          <img
+            src="/artists1.svg"
+            alt="Artist names"
+            className="w-auto h-[31px]"
+          />
+        </div>
+
+        {/* Row 2 - artists2, right to left */}
+        <div
+          className="transition-transform duration-100 ease-out flex justify-end"
+          style={{
+            transform: artists2Transform,
+          }}
+        >
+          <img
+            src="/artists2.svg"
+            alt="Artist names"
+            className="w-auto h-[31px]"
+          />
+        </div>
+
+        {/* Row 3 - artists1, left-center to right */}
+        <div
+          className="transition-transform duration-100 ease-out"
+          style={{
+            transform: artists1Transform,
+            position: "relative",
+            left: "50%",
+          }}
+        >
+          <img
+            src="/artists1.svg"
+            alt="Artist names"
+            className="w-auto h-[31px]"
+          />
+        </div>
+
+        {/* Row 4 - artists2, right to left */}
+        <div
+          className="transition-transform duration-100 ease-out flex justify-end"
+          style={{
+            transform: artists2Transform,
+          }}
+        >
+          <img
+            src="/artists2.svg"
+            alt="Artist names"
+            className="w-auto h-[31px]"
+          />
+        </div>
+
+        {/* Row 5 - artists1, left-center to right */}
+        <div
+          className="transition-transform duration-100 ease-out"
+          style={{
+            transform: artists1Transform,
+            position: "relative",
+            left: "50%",
+          }}
+        >
+          <img
+            src="/artists1.svg"
+            alt="Artist names"
+            className="w-auto h-[31px]"
+          />
+        </div>
+
+        {/* Row 6 - artists2, right to left */}
+        <div
+          className="transition-transform duration-100 ease-out flex justify-end"
+          style={{
+            transform: artists2Transform,
+          }}
+        >
+          <img
+            src="/artists2.svg"
+            alt="Artist names"
+            className="w-auto h-[31px]"
+          />
+        </div>
+
+        {/* Row 7 - artists1, left-center to right */}
+        <div
+          className="transition-transform duration-100 ease-out"
+          style={{
+            transform: artists1Transform,
+            position: "relative",
+            left: "50%",
+          }}
+        >
+          <img
+            src="/artists1.svg"
+            alt="Artist names"
+            className="w-auto h-[31px]"
+          />
+        </div>
+
+        {/* Row 8 - artists2, right to left */}
+        <div
+          className="transition-transform duration-100 ease-out flex justify-end"
+          style={{
+            transform: artists2Transform,
+          }}
+        >
+          <img
+            src="/artists2.svg"
+            alt="Artist names"
+            className="w-auto h-[31px]"
+          />
+        </div>
+
+        {/* Row 9 - artists1, left-center to right */}
+        <div
+          className="transition-transform duration-100 ease-out"
+          style={{
+            transform: artists1Transform,
+            position: "relative",
+            left: "50%",
+          }}
+        >
+          <img
+            src="/artists1.svg"
+            alt="Artist names"
+            className="w-auto h-[31px]"
+          />
+        </div>
+
+        {/* Row 10 - artists2, right to left */}
+        <div
+          className="transition-transform duration-100 ease-out flex justify-end"
+          style={{
+            transform: artists2Transform,
+          }}
+        >
+          <img
+            src="/artists2.svg"
+            alt="Artist names"
+            className="w-auto h-[31px]"
+          />
+        </div>
+      </div>
+
       <div className="relative z-10 flex flex-col items-center justify-center px-4">
         {/* Content container */}
         <div className="flex flex-col gap-4 items-center text-center max-w-[900px] w-full">

@@ -19,16 +19,24 @@ export default function Home() {
         </div>
       </div>
       {/* Map Section with GSAP Scroll Transitions */}
-      <MapSection />
-
-      {/* Artist CTA Section */}
-      <ArtistCTA />
+      <div className="py-16 md:py-24">
+        <MapSection />
+      </div>
 
       {/* Partners Section */}
-      <Partners />
+      <div className="py-16 md:py-24">
+        <Partners />
+      </div>
+
+      {/* Artist CTA Section */}
+      <div className="py-16 md:py-24">
+        <ArtistCTA />
+      </div>
 
       {/* Footer Hero Section with WebGL Background */}
-      <FooterHero />
+      <div className="py-16 md:py-24">
+        <FooterHero />
+      </div>
 
       {/* Footer */}
       <Footer />
