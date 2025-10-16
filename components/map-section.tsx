@@ -17,6 +17,9 @@ if (typeof window !== "undefined") {
  */
 export default function MapSection() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const videoSectionRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const stencilRef = useRef<HTMLDivElement>(null);
   const section1Ref = useRef<HTMLDivElement>(null);
   const section1TextRef = useRef<HTMLDivElement>(null);
   const section2Ref = useRef<HTMLDivElement>(null);
@@ -29,6 +32,8 @@ export default function MapSection() {
     const container = containerRef.current;
 
     // Set initial states
+    gsap.set(stencilRef.current, { opacity: 0 });
+    gsap.set(section1Ref.current, { opacity: 0, y: "100%" });
     gsap.set(section1TextRef.current, { opacity: 0, y: 50 });
     gsap.set(section2Ref.current, { opacity: 0, y: "100%" });
     gsap.set(section2TextRef.current, { opacity: 0, y: 50 });
@@ -38,7 +43,7 @@ export default function MapSection() {
       scrollTrigger: {
         trigger: container,
         start: "top top",
-        end: () => `+=${window.innerHeight * 4}`, // 4x longer for more stages
+        end: () => `+=${window.innerHeight * 6}`, // 6x longer for 3 sections
         pin: true,
         scrub: 0.8,
         anticipatePin: 1,
@@ -46,10 +51,49 @@ export default function MapSection() {
       },
     });
 
-    // Stage 1: Show map, hold briefly
-    tl.to({}, { duration: 0.2 });
+    // Video Section: Stage 1 - Show video, hold briefly
+    tl.to({}, { duration: 0.3 });
 
-    // Stage 2: Fade in the bottom text content (Discover and Check In)
+    // Video Section: Stage 2 - Fade in stencil overlay
+    tl.to(
+      stencilRef.current,
+      {
+        opacity: 1,
+        duration: 0.8,
+        ease: "power2.inOut",
+      },
+      "+=0.1",
+    );
+
+    // Video Section: Stage 3 - Hold stencil visible
+    tl.to({}, { duration: 0.4 });
+
+    // Video Section: Stage 4 - Fade out entire video section
+    tl.to(
+      videoSectionRef.current,
+      {
+        opacity: 0,
+        y: "-15%",
+        duration: 1,
+        ease: "power1.inOut",
+      },
+      "+=0.1",
+    );
+
+    // Section 1: Stage 5 - Slide up map section
+    tl.fromTo(
+      section1Ref.current,
+      { opacity: 0, y: "100%" },
+      {
+        opacity: 1,
+        y: "0%",
+        duration: 1.2,
+        ease: "power2.out",
+      },
+      "-=0.8",
+    );
+
+    // Section 1: Stage 6 - Fade in text
     tl.to(
       section1TextRef.current,
       {
@@ -58,13 +102,13 @@ export default function MapSection() {
         duration: 0.5,
         ease: "power2.out",
       },
-      "+=0.05",
+      "-=0.4",
     );
 
-    // Stage 3: Hold both map and text visible together
+    // Section 1: Stage 7 - Hold map and text together
     tl.to({}, { duration: 0.3 });
 
-    // Stage 4: Start fading out section 1 (both map and text together)
+    // Section 1: Stage 8 - Fade out
     tl.to(
       section1Ref.current,
       {
@@ -76,7 +120,7 @@ export default function MapSection() {
       "+=0.1",
     );
 
-    // Stage 5: Section 2 slides up while section 1 fades
+    // Section 2: Stage 9 - Slide up rewards section
     tl.fromTo(
       section2Ref.current,
       { opacity: 0, y: "100%" },
@@ -89,7 +133,7 @@ export default function MapSection() {
       "-=1",
     );
 
-    // Stage 6: Fade in section 2 bottom text
+    // Section 2: Stage 10 - Fade in text
     tl.to(
       section2TextRef.current,
       {
@@ -98,10 +142,10 @@ export default function MapSection() {
         duration: 0.6,
         ease: "power2.out",
       },
-      "-=0.8", // Start fading in text before section 2 fully settles
+      "-=0.8",
     );
 
-    // Stage 7: Hold section 2 fully visible
+    // Section 2: Stage 11 - Hold fully visible
     tl.to({}, { duration: 0.4 });
 
     // Cleanup function
@@ -115,6 +159,51 @@ export default function MapSection() {
       ref={containerRef}
       className="relative h-screen w-full overflow-hidden"
     >
+      {/* Video Section: Earn Rewards Stencil */}
+      <div
+        ref={videoSectionRef}
+        className="absolute inset-0 flex items-center justify-center bg-[#131313]"
+      >
+        {/* Video Background */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden md:rounded-none rounded-[26px]">
+            <video
+              ref={videoRef}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            >
+              <source src="/video-reel.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+
+        {/* Stencil Overlay */}
+        <div
+          ref={stencilRef}
+          className="absolute inset-0 flex items-center justify-center bg-black"
+        >
+          <div className="relative w-full h-full flex flex-col items-center justify-center px-8 text-center">
+            <h2 className="text-[28px] md:text-[48px] leading-[34px] md:leading-[56px] tracking-[-0.5px] md:tracking-[-1px] text-white font-pleasure font-medium mb-8">
+              Earn Rewards For
+              <br />
+              Showing Up To The
+              <br />
+              Things You Love.
+            </h2>
+            <p className="text-[20px] md:text-[32px] leading-[28px] md:leading-[42px] tracking-[-0.4px] md:tracking-[-0.8px] text-white/90 font-pleasure">
+              Built By Artists,
+              <br />
+              Curators, And
+              <br />
+              Event Organizers.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Section 1: Discover and Check In */}
       <div
         ref={section1Ref}
