@@ -51,8 +51,8 @@ export default function MapSection() {
       },
     });
 
-    // Video Section: Stage 1 - Show video, hold briefly
-    tl.to({}, { duration: 0.3 });
+    // Video Section: Stage 1 - Show video, hold for a few seconds
+    tl.to({}, { duration: 1 });
 
     // Video Section: Stage 2 - Fade in stencil overlay
     tl.to(
@@ -62,7 +62,7 @@ export default function MapSection() {
         duration: 0.8,
         ease: "power2.inOut",
       },
-      "+=0.1",
+      "+=0.2",
     );
 
     // Video Section: Stage 3 - Hold stencil visible
