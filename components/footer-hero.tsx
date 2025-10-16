@@ -1,20 +1,67 @@
 "use client";
 
 import Link from "next/link";
-import WebGLRenderer from "@/components/webgl-renderer";
-import footerWebGLData from "@/public/footer-webgl.json";
+import dynamic from "next/dynamic";
+import { useState, useEffect, useRef } from "react";
+
+// Lazy load WebGLRenderer with dynamic import - only loads when component mounts
+const WebGLRenderer = dynamic(() => import("@/components/webgl-renderer"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-950" />
+  ),
+});
 
 /**
  * Footer Hero component that renders an animated WebGL gradient above the footer
  * Matches Figma design: node-id=6192:100639
  */
 export default function FooterHero() {
+  const [shouldLoadWebGL, setShouldLoadWebGL] = useState(false);
+  const [webglData, setWebglData] = useState<any>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    // Use intersection observer to only load when footer is near viewport
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setShouldLoadWebGL(true);
+            // Lazy load the JSON data only when needed
+            import("@/public/footer-webgl.json").then((module) => {
+              setWebglData(module.default);
+            });
+            observer.disconnect();
+          }
+        });
+      },
+      { rootMargin: "200px" }, // Start loading 200px before it enters viewport
+    );
+
+    observer.observe(section);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   return (
-    <section className="relative w-full min-h-screen overflow-hidden">
+    <section
+      ref={sectionRef}
+      className="relative w-full min-h-screen overflow-hidden"
+    >
       {/* WebGL Background with padding */}
       <div className="absolute inset-0 p-0 md:p-4">
         <div className="w-full h-full rounded-[48px] overflow-hidden">
-          <WebGLRenderer data={footerWebGLData} />
+          {shouldLoadWebGL ? (
+            <WebGLRenderer data={webglData} />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-950" />
+          )}
         </div>
       </div>
 
