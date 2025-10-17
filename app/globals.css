@@ -11,7 +11,7 @@
     font-size: 2.4375rem; /* 39px */
     line-height: 2.5rem; /* 40px */
     font-weight: 700;
-    font-family: "Pleasure-Standard-Regular", sans-serif;
+    font-family: "Pleasure", sans-serif;
   }
 
   h2 {
@@ -19,7 +19,7 @@
     line-height: 2rem; /* 32px */
     font-weight: 500;
     letter-spacing: -0.62px;
-    font-family: "Pleasure-Variable-Trialr", sans-serif;
+    font-family: "Pleasure", sans-serif;
   }
 
   h3 {
@@ -27,14 +27,14 @@
     line-height: 1.75rem; /* 28px */
     letter-spacing: -0.5px;
     font-weight: 500;
-    font-family: "Pleasure-Variable-Trial", sans-serif;
+    font-family: "Pleasure", sans-serif;
   }
 
   h4 {
-    font-size: 1rem; /* 16px */
-    line-height: 1rem; /* 16px */
-    font-weight: 600;
-    font-family: "Monument-Grotesk", sans-serif;
+    font-size: 1rem !important; /* 16px */
+    line-height: 1.5rem !important; /* 24px - better line height */
+    font-weight: 600 !important;
+    font-family: "Pleasure", sans-serif !important;
   }
 
   .title1 {
@@ -80,7 +80,7 @@
     font-size: 3.8125rem; /* 61px */
     line-height: 4rem; /* 64px */
     font-weight: 700;
-    font-family: "Pleasure-Variable-Trial", sans-serif;
+    font-family: "Pleasure", sans-serif;
   }
 
   .display2 {
