@@ -34,175 +34,55 @@ export default function ArtistCTA() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Generate all artist images (artists1.svg to artists17.svg)
+  const artistImages = Array.from({ length: 17 }, (_, i) => i + 1);
+
   // Calculate transforms based on scroll progress
-  // artists1: starts left-center, moves right
-  const artists1Transform = `translateX(${-50 + scrollProgress * 50}%)`;
-  // artists2: starts right-aligned, moves left as you scroll
-  const artists2Transform = `translateX(${scrollProgress * -50}%)`;
+  // Even rows: starts left-center, moves right
+  const leftToRightTransform = `translateX(${-50 + scrollProgress * 50}%)`;
+  // Odd rows: starts right-aligned, moves left as you scroll
+  const rightToLeftTransform = `translateX(${scrollProgress * -50}%)`;
 
   return (
     <section
       ref={sectionRef}
-      className="relative w-full bg-[#131313] pt-[500px] pb-24 md:pt-[550px] md:pb-32 overflow-hidden"
+      className="relative w-full bg-[#131313] pt-[800px] pb-32 md:pt-[900px] md:pb-40 overflow-hidden min-h-[1200px] md:min-h-[1400px]"
     >
       {/* Animated artist name strips */}
-      <div className="absolute top-8 left-0 w-full z-0 pointer-events-none space-y-4">
-        {/* Row 1 - artists1, left-center to right */}
-        <div
-          className="transition-transform duration-100 ease-out"
-          style={{
-            transform: artists1Transform,
-            position: "relative",
-            left: "50%",
-          }}
-        >
-          <img
-            src="/artists1.svg"
-            alt="Artist names"
-            className="w-auto h-[31px]"
-          />
-        </div>
+      <div className="absolute top-8 left-0 w-full z-0 pointer-events-none space-y-6">
+        {artistImages.map((imageNumber, index) => {
+          const isEvenRow = index % 2 === 0;
+          const transform = isEvenRow
+            ? leftToRightTransform
+            : rightToLeftTransform;
 
-        {/* Row 2 - artists2, right to left */}
-        <div
-          className="transition-transform duration-100 ease-out flex justify-end"
-          style={{
-            transform: artists2Transform,
-          }}
-        >
-          <img
-            src="/artists2.svg"
-            alt="Artist names"
-            className="w-auto h-[31px]"
-          />
-        </div>
-
-        {/* Row 3 - artists1, left-center to right */}
-        <div
-          className="transition-transform duration-100 ease-out"
-          style={{
-            transform: artists1Transform,
-            position: "relative",
-            left: "50%",
-          }}
-        >
-          <img
-            src="/artists1.svg"
-            alt="Artist names"
-            className="w-auto h-[31px]"
-          />
-        </div>
-
-        {/* Row 4 - artists2, right to left */}
-        <div
-          className="transition-transform duration-100 ease-out flex justify-end"
-          style={{
-            transform: artists2Transform,
-          }}
-        >
-          <img
-            src="/artists2.svg"
-            alt="Artist names"
-            className="w-auto h-[31px]"
-          />
-        </div>
-
-        {/* Row 5 - artists1, left-center to right */}
-        <div
-          className="transition-transform duration-100 ease-out"
-          style={{
-            transform: artists1Transform,
-            position: "relative",
-            left: "50%",
-          }}
-        >
-          <img
-            src="/artists1.svg"
-            alt="Artist names"
-            className="w-auto h-[31px]"
-          />
-        </div>
-
-        {/* Row 6 - artists2, right to left */}
-        <div
-          className="transition-transform duration-100 ease-out flex justify-end"
-          style={{
-            transform: artists2Transform,
-          }}
-        >
-          <img
-            src="/artists2.svg"
-            alt="Artist names"
-            className="w-auto h-[31px]"
-          />
-        </div>
-
-        {/* Row 7 - artists1, left-center to right */}
-        <div
-          className="transition-transform duration-100 ease-out"
-          style={{
-            transform: artists1Transform,
-            position: "relative",
-            left: "50%",
-          }}
-        >
-          <img
-            src="/artists1.svg"
-            alt="Artist names"
-            className="w-auto h-[31px]"
-          />
-        </div>
-
-        {/* Row 8 - artists2, right to left */}
-        <div
-          className="transition-transform duration-100 ease-out flex justify-end"
-          style={{
-            transform: artists2Transform,
-          }}
-        >
-          <img
-            src="/artists2.svg"
-            alt="Artist names"
-            className="w-auto h-[31px]"
-          />
-        </div>
-
-        {/* Row 9 - artists1, left-center to right */}
-        <div
-          className="transition-transform duration-100 ease-out"
-          style={{
-            transform: artists1Transform,
-            position: "relative",
-            left: "50%",
-          }}
-        >
-          <img
-            src="/artists1.svg"
-            alt="Artist names"
-            className="w-auto h-[31px]"
-          />
-        </div>
-
-        {/* Row 10 - artists2, right to left */}
-        <div
-          className="transition-transform duration-100 ease-out flex justify-end"
-          style={{
-            transform: artists2Transform,
-          }}
-        >
-          <img
-            src="/artists2.svg"
-            alt="Artist names"
-            className="w-auto h-[31px]"
-          />
-        </div>
+          return (
+            <div
+              key={`artist-row-${imageNumber}`}
+              className={`transition-transform duration-100 ease-out ${
+                isEvenRow ? "" : "flex justify-end"
+              }`}
+              style={{
+                transform: transform,
+                position: isEvenRow ? "relative" : "static",
+                left: isEvenRow ? "50%" : "auto",
+              }}
+            >
+              <img
+                src={`/artists${imageNumber}.svg`}
+                alt={`Artist names ${imageNumber}`}
+                className="w-auto h-[31px]"
+              />
+            </div>
+          );
+        })}
       </div>
 
-      <div className="relative z-10 flex flex-col items-center justify-center px-4">
+      <div className="relative z-10 flex flex-col items-center justify-center px-4 py-16">
         {/* Content container */}
-        <div className="flex flex-col gap-4 items-center text-center max-w-[900px] w-full">
+        <div className="flex flex-col gap-6 items-center text-center max-w-[900px] w-full">
           {/* Small header */}
-          <p className="font-grotesk text-[13px] leading-[20px] text-white tracking-[-0.26px] uppercase">
+          <p className="font-grotesk text-[13px] leading-[20px] text-white tracking-[-0.26px] uppercase pt-6">
             Become an Artist
           </p>
 
