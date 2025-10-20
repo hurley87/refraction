@@ -227,24 +227,37 @@ export default function MapSection() {
         {/* Stencil Overlay */}
         <div
           ref={stencilRef}
-          className="absolute inset-0 flex items-center justify-center bg-black"
+          className="absolute inset-0 flex items-center justify-center"
         >
-          <div className="relative w-full h-full flex flex-col items-center justify-center px-8 text-center">
-            <h2 className="text-[28px] md:text-[48px] leading-[34px] md:leading-[56px] tracking-[-0.5px] md:tracking-[-1px] text-white font-pleasure font-medium mb-8">
-              Earn Rewards For
-              <br />
-              Showing Up To The
-              <br />
-              Things You Love.
-            </h2>
-            <p className="text-[20px] md:text-[32px] leading-[28px] md:leading-[42px] tracking-[-0.4px] md:tracking-[-0.8px] text-white/90 font-pleasure">
-              Built By Artists,
-              <br />
-              Curators, And
-              <br />
-              Event Organizers.
-            </p>
+          {/* Video layer with inverted stencil mask */}
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{
+              mask: "url(/Stencil.svg) no-repeat center/contain",
+              WebkitMask: "url(/Stencil.svg) no-repeat center/contain",
+            }}
+          >
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            >
+              <source src="/video-reel.mp4" type="video/mp4" />
+            </video>
           </div>
+
+          {/* Black background overlay with inverted mask */}
+          <div
+            className="absolute inset-0 bg-black"
+            style={{
+              mask: "url(/Stencil.svg) no-repeat center/contain",
+              WebkitMask: "url(/Stencil.svg) no-repeat center/contain",
+              maskComposite: "exclude",
+              WebkitMaskComposite: "exclude",
+            }}
+          ></div>
         </div>
       </div>
 
