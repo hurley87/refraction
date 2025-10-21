@@ -1,15 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-const LazyWebGLRenderer = dynamic(
-  () => import("@/components/webgl-renderer"),
-  {
-    ssr: false,
-    loading: () => <HeroGradientFallback />,
-  },
-);
+const LazyWebGLRenderer = dynamic(() => import("@/components/webgl-renderer"), {
+  ssr: false,
+  loading: () => <HeroGradientFallback />,
+});
 
 function HeroGradientFallback() {
   return (
@@ -86,12 +84,14 @@ export default function Hero() {
         {/* CTA Button and Powered By section */}
         <div className="flex flex-col gap-4 items-start w-[260px] max-w-full">
           {/* Primary CTA Button */}
-          <button className="bg-white flex h-12 items-center justify-between px-4 py-2 rounded-full w-full cursor-pointer hover:bg-gray-100 transition-colors">
-            <span className="font-pleasure font-medium text-[16px] leading-[16px] text-[#313131] tracking-[-1.28px]">
-              Earn Your First Points
-            </span>
-            <img src="/arrow-right.svg" alt="" className="w-6 h-6" />
-          </button>
+          <Link href="/interactive-map" className="mx-auto w-full">
+            <button className="bg-white flex h-12 items-center justify-between px-4 py-2 rounded-full w-full cursor-pointer hover:bg-gray-100 transition-colors">
+              <span className="font-pleasure font-medium text-[16px] leading-[16px] text-[#313131] tracking-[-1.28px]">
+                Earn Your First Points
+              </span>
+              <img src="/arrow-right.svg" alt="" className="w-6 h-6" />
+            </button>
+          </Link>
 
           {/* Powered By section */}
           <div className="flex items-center justify-between px-4 w-full">

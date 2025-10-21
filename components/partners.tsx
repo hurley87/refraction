@@ -19,19 +19,19 @@ type Partner = {
 const partners: Partner[] = [
   {
     name: "Resident Advisor",
-    logo: "/images/partners/Resident Advisor white logo.png",
+    logo: "/partner_logos/Resident Advisor white logo.svg",
   },
-  { name: "Aptos", logo: "/images/partners/Aptos_Primary_WHT.png" },
-  { name: "Polygon", logo: "/images/partners/Polygon Primary light.png" },
-  { name: "Reown", logo: "/images/partners/reown-logo.svg" },
-  { name: "Zora", logo: "/images/partners/Zora Logo White.png" },
-  { name: "Ledger", logo: "/images/partners/LEDGER-WORDMARK-WHITE-RGB.png" },
-  { name: "Livepeer", logo: "/images/partners/Livepeer white logo.png" },
-  { name: "Near", logo: "/images/partners/Near white logo.png" },
-  { name: "LUKSO", logo: "/images/partners/LUKSO_logo white.svg" },
-  { name: "OpenSea", logo: "/images/partners/Opensea white logo.png" },
-  { name: "Art Blocks", logo: "/images/partners/Art Blocks light logo.png" },
-  { name: "Galxe", logo: "/images/partners/Galxe_Logo_Wordmark_White.png" },
+  { name: "Aptos", logo: "/partner_logos/Aptos_Primary_WHT.svg" },
+  { name: "Polygon", logo: "/partner_logos/Polygon Primary light.svg" },
+  { name: "Reown", logo: "/partner_logos/reown-logo-negative.svg" },
+  { name: "Zora", logo: "/partner_logos/Zora Logo White.svg" },
+  { name: "Livepeer", logo: "/partner_logos/Livepeer white logo.svg" },
+  { name: "Near", logo: "/partner_logos/Near white logo.svg" },
+  { name: "LUKSO", logo: "/partner_logos/LUKSO_logo white.svg" },
+  { name: "OpenSea", logo: "/partner_logos/Opensea white logo.svg" },
+  { name: "Galxe", logo: "/partner_logos/Galxe_Logo_Wordmark_White.svg" },
+  { name: "Mutek", logo: "/partner_logos/Mutek white logo.svg" },
+  { name: "FWB", logo: "/partner_logos/FWB-Lettermark.svg" },
 ];
 
 /**

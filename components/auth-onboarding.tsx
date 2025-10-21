@@ -1,62 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { Button } from "@/components/ui/button";
 
 interface AuthOnboardingProps {
   children: React.ReactNode;
 }
 
-type Step = {
-  id: number;
-  title: string;
-  subtitle?: string;
-  imageSrc?: string;
-  imageAlt?: string;
-  description?: string;
-  cta?: string;
-};
-
 export default function AuthOnboarding({ children }: AuthOnboardingProps) {
   const { user, ready, login } = usePrivy();
-  const [currentStep, setCurrentStep] = useState<number>(1);
-
-  const steps: Step[] = useMemo(
-    () => [
-      {
-        id: 1,
-        title: "Search For Locations",
-        description:
-          "Explore the live IRL map to discover galleries, venues, and pop-ups near you. Use search and zoom to focus on neighborhoods, see what's active, and line up your next check-in.",
-        imageSrc: "/miniapp/1.png",
-        imageAlt: "Search UI",
-      },
-      {
-        id: 2,
-        title: "Tap Markers to Check In",
-        description:
-          "Tap any map marker to view photos, hours, and community notes. Check in when you visit to earn points, unlock perks, and build a personal trail of your IRL.",
-        imageSrc: "/miniapp/2.png",
-        imageAlt: "Check in marker",
-      },
-      {
-        id: 3,
-        title: "Tokenize New Locations",
-        description:
-          "Add places that should be on the map by creating a location token. Provide a title, description, and image so others can discover it, then publish to contribute to the shared IRL graph.",
-        imageSrc: "/miniapp/3.png",
-        imageAlt: "Create token form",
-        cta: "Get Started",
-      },
-    ],
-    [],
-  );
-
-  const maxStep = steps.length;
-
-  const goNext = () => setCurrentStep((s) => Math.min(s + 1, maxStep));
-  const goPrev = () => setCurrentStep((s) => Math.max(s - 1, 1));
 
   if (!ready) {
     return (
@@ -67,79 +18,94 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
   }
 
   if (!user) {
-    const step = steps[currentStep - 1];
     return (
-      <div className="h-screen w-full bg-white flex items-center justify-center p-6 overflow-hidden">
-        <div className="w-full max-w-xl mx-auto flex flex-col items-center justify-center h-full py-8">
-          {/* Image */}
-          <div className="rounded-lg overflow-hidden bg-gray-50 w-full max-w-sm aspect-square flex items-center justify-center mb-6">
-            {step?.imageSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
+      <div
+        className="h-screen w-full flex items-center justify-center p-6 overflow-hidden"
+        style={{
+          backgroundImage: "url('/bg-green.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
+        <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center h-full py-8">
+          {/* Map Image */}
+          <div className="rounded-[26px] overflow-hidden w-full max-w-sm aspect-square flex items-center justify-center mb-8 relative">
+            <img
+              src="/map-green.png"
+              alt="Map view"
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+            {/* Map Marker */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
               <img
-                src={step.imageSrc}
-                alt={step.imageAlt || step.title}
-                className="h-full w-full object-contain"
-                loading="lazy"
+                src="/marker.svg"
+                alt="Location marker"
+                className="w-20 h-20 drop-shadow-lg"
               />
-            ) : (
-              <div className="text-gray-400 text-sm">Screenshot</div>
-            )}
+            </div>
           </div>
 
-          {/* Content */}
-          <div className="text-center mb-8 flex-shrink-0">
-            <p className="text-gray-400 text-sm mb-2">
-              {currentStep}/{maxStep}
-            </p>
-            <h2 className="font-inktrap text-2xl md:text-3xl mb-3">
-              {step.title}
-            </h2>
-            {step.description && (
-              <p className="text-gray-600 text-sm md:text-base leading-relaxed max-w-lg mx-auto">
-                {step.description}
+          {/* Main Content */}
+          <div className="flex flex-col gap-8 items-center w-full">
+            {/* Title */}
+            <div className="text-center text-white uppercase">
+              <p className="text-shadow-lg font-medium text-xs tracking-wider mb-1">
+                Put Yourself
               </p>
-            )}
-          </div>
+              <h1 className="font-inktrap text-6xl font-bold tracking-tight leading-tight">
+                ON THE MAP
+              </h1>
+            </div>
 
-          {/* Navigation */}
-          {currentStep < maxStep ? (
-            <div className="grid grid-cols-2 gap-2 w-full max-w-md mx-auto flex-shrink-0">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full rounded-full"
-                onClick={goPrev}
-                disabled={currentStep === 1}
-              >
-                Back
-              </Button>
-              <Button
-                size="lg"
-                className="w-full rounded-full bg-black text-white hover:bg-black/90"
-                onClick={goNext}
-              >
-                Next
-              </Button>
+            {/* Reward Card */}
+            <div className="bg-white/65 backdrop-blur-sm rounded-[26px] p-2 w-full">
+              <div className="bg-white rounded-[18px] p-3 flex flex-col gap-2">
+                {/* Header */}
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 flex items-center justify-center">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path
+                        d="M8 1L10.5 5.5L15 6L11.5 9.5L12.5 14L8 11.5L3.5 14L4.5 9.5L1 6L5.5 5.5L8 1Z"
+                        fill="#4F4F4F"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-[#4F4F4F] text-xs font-medium tracking-wider uppercase">
+                    You can Earn
+                  </p>
+                </div>
+
+                {/* Points Display */}
+                <div className="flex items-end gap-2">
+                  <div className="font-inktrap text-6xl font-bold text-[#313131] tracking-tight leading-none">
+                    100
+                  </div>
+                  <div className="bg-[#313131] rounded-full px-2 py-1 mb-2">
+                    <span className="text-white text-xs font-medium">PTS</span>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <p className="text-[#4F4F4F] text-sm leading-relaxed">
+                  towards Rewards, Competitions and Experiences
+                </p>
+              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2 w-full max-w-md mx-auto flex-shrink-0">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full rounded-full"
-                onClick={goPrev}
-              >
-                Back
-              </Button>
-              <Button
-                size="lg"
-                className="w-full rounded-full bg-black text-white hover:bg-black/90"
-                onClick={login}
-              >
-                {step.cta || "Get Started"}
-              </Button>
-            </div>
-          )}
+
+            {/* Get Started Button */}
+
+            <button
+              onClick={login}
+              className="bg-white flex h-12 items-center justify-between px-4 py-2 rounded-full w-full cursor-pointer hover:bg-gray-100 transition-colors"
+            >
+              <span className="font-pleasure font-medium text-[16px] leading-[16px] text-[#313131] tracking-[-1.28px]">
+                Get Started
+              </span>
+              <img src="/arrow-right.svg" alt="" className="w-6 h-6" />
+            </button>
+          </div>
         </div>
       </div>
     );
