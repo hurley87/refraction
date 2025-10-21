@@ -76,11 +76,21 @@
     font-family: "Monument-Grotesk", sans-serif;
   }
 
+  .title6 {
+    font-size: 2.3125rem; /* 37px */
+    font-style: normal;
+    line-height: 1.875rem; /* 30px */
+    font-weight: 700;
+    letter-spacing: -2.96px;
+    font-family: "Pleasure", sans-serif;
+  }
+
   .display1 {
     font-size: 3.8125rem; /* 61px */
     line-height: 4rem; /* 64px */
     font-weight: 700;
     font-family: "Pleasure", sans-serif;
+    letter-spacing: -4.88px;
   }
 
   .display2 {

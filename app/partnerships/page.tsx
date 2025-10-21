@@ -19,27 +19,58 @@ const BenefitsContainer = ({
   leftSize = "display1",
   rightSize = "title3",
   description 
-}) => (
-  <div 
-    className="mb-4 mx-auto"
-    style={{
-      display: 'flex',
-      width: '361px',
-      padding: '40px 24px 24px 24px',
-      flexDirection: 'column',
-      alignItems: 'flex-start',
-      gap: '10.89px',
-      borderRadius: '17.696px',
-      border: '0.681px solid rgba(255, 255, 255, 0.15)',
-      background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
-      boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
-      backdropFilter: 'blur(13.101491928100586px)'
-    }}
-  >
+}) => {
+  const [isVisible, setIsVisible] = React.useState(false);
+  const containerRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div 
+      ref={containerRef}
+      className={`mb-4 mx-auto transition-all duration-1000 ease-out ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+      }`}
+      style={{
+        display: 'flex',
+        width: '361px',
+        padding: '40px 24px 24px 24px',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '10.89px',
+        borderRadius: '17.696px',
+        border: '0.681px solid rgba(255, 255, 255, 0.15)',
+        background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+        boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+        backdropFilter: 'blur(13.101491928100586px)'
+      }}
+    >
     {/* Row 1: Two columns */}
     <div className="flex w-full gap-4 align-text-bottom">
       {/* Column 1 */}
-      <div className="flex-1">
+      <div className="flex-1 flex items-end">
         <div className={`text-white ${leftSize} ${leftFont}`}>{leftText}</div>
       </div>
       {/* Column 2 */}
@@ -55,7 +86,8 @@ const BenefitsContainer = ({
       </p>
     </div>
   </div>
-);
+  );
+};
 
 export default function PartnershipsPage() {
   const imageLogos = [
@@ -68,13 +100,13 @@ export default function PartnershipsPage() {
 // Benefits data array
 const benefitsData = [
   {
-    leftText: "40K",
+    leftText: "40000",
     rightText: "Cultural Innovators",
     leftFont: "font-inktrap",
     rightFont: "font-abc-monument-regular",
     leftSize: "display1",
     rightSize: "title3",
-    description: "Reach a global community of curated culture-makers – 40000+ cultural innovators discover new projects and venues through IRL."
+    description: "Reach a global community of curated culture-makers. 40000+ cultural innovators discover new projects and venues through IRL."
   },
   {
     leftText: "Offer Rewards That",
@@ -91,11 +123,11 @@ const benefitsData = [
     leftFont: "font-abc-monument-regular",
     rightFont: "font-inktrap",
     leftSize: "title3",
-    rightSize: "display2",
+    rightSize: "title6",
     description: "Lower marketing costs by plugging into a culturally-aligned discovery network."
   },
   {
-    leftText: "GAIN",
+    leftText: "Gain",
     rightText: "OWNER SHIP",
     leftFont: "font-abc-monument-regular",
     rightFont: "font-inktrap",
@@ -251,7 +283,7 @@ const benefitsData = [
       <LogoLoop
         {...({
           logos:  imageLogos,
-          speed: 120,
+          speed: 80,
           direction: "left",
           logoHeight: 48,
           gap: 40,
@@ -265,7 +297,7 @@ const benefitsData = [
        <LogoLoop
         {...({
           logos:  imageLogos,
-          speed: 120,
+          speed: 80,
           direction: "right",
           logoHeight: 48,
           gap: 40,
@@ -279,7 +311,7 @@ const benefitsData = [
         <LogoLoop
         {...({
           logos:  imageLogos,
-          speed: 120,
+          speed: 80,
           direction: "left",
           logoHeight: 48,
           gap: 40,
@@ -293,7 +325,7 @@ const benefitsData = [
       <LogoLoop
         {...({
           logos:  imageLogos,
-          speed: 120,
+            speed: 80,
           direction: "right",
           logoHeight: 48,
           gap: 40,
@@ -306,33 +338,52 @@ const benefitsData = [
       />
         </div>
       </div>
-       {/* Section 1: Partnerships */}
-      <div className="bg-black rounded-2xl p-6 mb-4">
-        <div className=" title5 text-white font-monument-grotesk text-center">
-          BENEFITS
+       {/* Benefits Section with Video Background */}
+      <div className="relative rounded-2xl overflow-hidden mb-4">
+        {/* Video Background */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{
+            WebkitTransform: 'translateZ(0)',
+            transform: 'translateZ(0)',
+            WebkitBackfaceVisibility: 'hidden',
+            backfaceVisibility: 'hidden'
+          }}
+        >
+          <source src="/partnerships/partnerships-2.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+
+        {/* Content Overlay */}
+        <div className="relative z-10 p-16">
+          <div className="title5 text-white font-monument-grotesk text-center mb-6">
+            BENEFITS
+          </div>
+          
+          <div className="font-bold text-white text-center mb-8">
+            <h2 className="font-pleasure" style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}>Why Partners<br/> Join IRL</h2>
+          </div>
+
+          {/* Benefits Containers */}
+          {benefitsData.map((benefit, index) => (
+            <BenefitsContainer
+              key={index}
+              leftText={benefit.leftText}
+              rightText={benefit.rightText}
+              leftFont={benefit.leftFont}
+              rightFont={benefit.rightFont}
+              leftSize={benefit.leftSize}
+              rightSize={benefit.rightSize}
+              description={benefit.description}
+            />
+          ))}
         </div>
       </div>
-
-      {/* Section 2: Trusted by Partners */}
-      <div className="bg-black rounded-2xl p-6 mb-4">
-        <div className="font-bold text-white  text-center">
-          <h2 className="font-pleasure" style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}>Why Partners Join IRL</h2>
-        </div>
-      </div>
-
-      {/* Benefits Containers */}
-      {benefitsData.map((benefit, index) => (
-        <BenefitsContainer
-          key={index}
-          leftText={benefit.leftText}
-          rightText={benefit.rightText}
-          leftFont={benefit.leftFont}
-          rightFont={benefit.rightFont}
-          leftSize={benefit.leftSize}
-          rightSize={benefit.rightSize}
-          description={benefit.description}
-        />
-      ))}
 
       {/* Footer Section - Similar to Homepage */}
       <section className="py-8 sm:py-12 md:py-16 lg:py-24 px-4 sm:px-6 bg-black">
