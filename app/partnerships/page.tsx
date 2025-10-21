@@ -1,12 +1,121 @@
 "use client";
 
+import LogoLoop from '@/components/LogoLoop.jsx';
+
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Header from "@/components/header";
 import NewsletterForm from "@/components/newsletter-form";
 
+
+
+// Benefits Container Component
+const BenefitsContainer = ({ 
+  leftText, 
+  rightText, 
+  leftFont = "font-inktrap", 
+  rightFont = "font-abc-monument-regular",
+  leftSize = "display1",
+  rightSize = "title3",
+  description 
+}) => (
+  <div 
+    className="mb-4 mx-auto"
+    style={{
+      display: 'flex',
+      width: '361px',
+      padding: '40px 24px 24px 24px',
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      gap: '10.89px',
+      borderRadius: '17.696px',
+      border: '0.681px solid rgba(255, 255, 255, 0.15)',
+      background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+      boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+      backdropFilter: 'blur(13.101491928100586px)'
+    }}
+  >
+    {/* Row 1: Two columns */}
+    <div className="flex w-full gap-4 align-text-bottom">
+      {/* Column 1 */}
+      <div className="flex-1">
+        <div className={`text-white ${leftSize} ${leftFont}`}>{leftText}</div>
+      </div>
+      {/* Column 2 */}
+      <div className="flex-1 pr-2 text-right">
+        <div className={`text-white ${rightSize} ${rightFont} text-bottom`}>{rightText}</div>
+      </div>
+    </div>
+    
+    {/* Row 2: Description */}
+    <div className="w-full">
+      <p className="text-white title5 font-abc-monument-regular leading-relaxed">
+        {description}
+      </p>
+    </div>
+  </div>
+);
+
 export default function PartnershipsPage() {
+  const imageLogos = [
+  { src: "/images/socials/farcaster.svg", alt: "Company 1", href: "https://company1.com" },
+  { src: "/images/socials/twitter.svg", alt: "Company 2", href: "https://company2.com" },
+  { src: "/images/socials/telegram.svg", alt: "Company 2", href: "https://company2.com" },
+  { src: "/images/socials/instagram.svg", alt: "Company 2", href: "https://company2.com" },
+];
+
+// Benefits data array
+const benefitsData = [
+  {
+    leftText: "40K",
+    rightText: "Cultural Innovators",
+    leftFont: "font-inktrap",
+    rightFont: "font-abc-monument-regular",
+    leftSize: "display1",
+    rightSize: "title3",
+    description: "Reach a global community of curated culture-makers – 40000+ cultural innovators discover new projects and venues through IRL."
+  },
+  {
+    leftText: "Offer Rewards That",
+    rightText: "TRAVEL",
+    leftFont: "font-abc-monument-regular",
+    rightFont: "font-inktrap",
+    leftSize: "title3",
+    rightSize: "display2",
+    description: "Rewards earned at a Refraction art exhibition in NYC can be redeemed at a festival in Tokyo."
+  },
+  {
+    leftText: "Shared",
+    rightText: "CUSTOMER ACQUISITION",
+    leftFont: "font-abc-monument-regular",
+    rightFont: "font-inktrap",
+    leftSize: "title3",
+    rightSize: "display2",
+    description: "Lower marketing costs by plugging into a culturally-aligned discovery network."
+  },
+  {
+    leftText: "GAIN",
+    rightText: "OWNER SHIP",
+    leftFont: "font-abc-monument-regular",
+    rightFont: "font-inktrap",
+    leftSize: "title3",
+    rightSize: "display2",
+    description: "Partners receive equity through tokens as the network grows."
+  },
+    {
+    leftText: "No",
+    rightText: "SETUP COSTS",
+    leftFont: "font-abc-monument-regular",
+    rightFont: "font-inktrap",
+    leftSize: "title3",
+    rightSize: "display2",
+    description: "Partners receive equity through tokens as the network grows."
+  },
+
+  // Add 3 more benefit objects here
+];
+
   return (
     <div className="min-h-screen bg-black p-0 sm:p-4 pb-0 font-grotesk">
       <div className="max-w-lg mx-auto">
@@ -116,7 +225,7 @@ export default function PartnershipsPage() {
 
         {/* Section 1: Partnerships */}
         <div className="bg-black rounded-2xl p-6 mb-4">
-          <div className="font-bold title5 text-white font-monument-grotesk text-center">
+          <div className="title5 text-white font-monument-grotesk text-center">
             PARTNERSHIPS
           </div>
         </div>
@@ -139,10 +248,91 @@ export default function PartnershipsPage() {
         <div className="px-0 pt-4 pb-1 space-y-1">
 
         
-    
-        
+      <LogoLoop
+        {...({
+          logos:  imageLogos,
+          speed: 120,
+          direction: "left",
+          logoHeight: 48,
+          gap: 40,
+          pauseOnHover: true,
+          scaleOnHover: true,
+          fadeOut: true,
+          fadeOutColor: "#000000",
+          ariaLabel: "Technology partners"
+        } as any)}
+      />
+       <LogoLoop
+        {...({
+          logos:  imageLogos,
+          speed: 120,
+          direction: "right",
+          logoHeight: 48,
+          gap: 40,
+          pauseOnHover: true,
+          scaleOnHover: true,
+          fadeOut: true,
+          fadeOutColor: "#000000",
+          ariaLabel: "Technology partners"
+        } as any)}
+      />
+        <LogoLoop
+        {...({
+          logos:  imageLogos,
+          speed: 120,
+          direction: "left",
+          logoHeight: 48,
+          gap: 40,
+          pauseOnHover: true,
+          scaleOnHover: true,
+          fadeOut: true,
+          fadeOutColor: "#000000",
+          ariaLabel: "Technology partners"
+        } as any)}
+      />
+      <LogoLoop
+        {...({
+          logos:  imageLogos,
+          speed: 120,
+          direction: "right",
+          logoHeight: 48,
+          gap: 40,
+          pauseOnHover: true,
+          scaleOnHover: true,
+          fadeOut: true,
+          fadeOutColor: "#000000",
+          ariaLabel: "Technology partners"
+        } as any)}
+      />
         </div>
       </div>
+       {/* Section 1: Partnerships */}
+      <div className="bg-black rounded-2xl p-6 mb-4">
+        <div className=" title5 text-white font-monument-grotesk text-center">
+          BENEFITS
+        </div>
+      </div>
+
+      {/* Section 2: Trusted by Partners */}
+      <div className="bg-black rounded-2xl p-6 mb-4">
+        <div className="font-bold text-white  text-center">
+          <h2 className="font-pleasure" style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}>Why Partners Join IRL</h2>
+        </div>
+      </div>
+
+      {/* Benefits Containers */}
+      {benefitsData.map((benefit, index) => (
+        <BenefitsContainer
+          key={index}
+          leftText={benefit.leftText}
+          rightText={benefit.rightText}
+          leftFont={benefit.leftFont}
+          rightFont={benefit.rightFont}
+          leftSize={benefit.leftSize}
+          rightSize={benefit.rightSize}
+          description={benefit.description}
+        />
+      ))}
 
       {/* Footer Section - Similar to Homepage */}
       <section className="py-8 sm:py-12 md:py-16 lg:py-24 px-4 sm:px-6 bg-black">
