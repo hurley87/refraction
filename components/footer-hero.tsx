@@ -92,7 +92,7 @@ export default function FooterHero() {
           {/* CTA Button */}
           <div className="w-[260px]">
             <Link
-              href="/game"
+              href="/interactive-map"
               className="bg-white flex items-center justify-between h-[48px] px-4 py-2 rounded-[100px] cursor-pointer hover:bg-[#b5b5b5] transition-colors group w-full"
             >
               <span className="font-pleasure font-medium text-[16px] leading-[16px] tracking-[-1.28px] text-[#313131] whitespace-nowrap">

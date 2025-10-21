@@ -46,10 +46,10 @@ export default function ArtistCTA() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full bg-[#131313] pt-[800px] pb-32 md:pt-[900px] md:pb-40 overflow-hidden min-h-[1200px] md:min-h-[1400px]"
+      className="relative w-full bg-[#131313] pt-[1000px] pb-40 md:pt-[900px] md:pb-40 overflow-hidden min-h-[1600px] md:min-h-[1400px]"
     >
       {/* Animated artist name strips */}
-      <div className="absolute top-8 left-0 w-full z-0 pointer-events-none space-y-6">
+      <div className="absolute top-8 left-0 w-full z-0 pointer-events-none space-y-8 md:space-y-6">
         {artistImages.map((imageNumber, index) => {
           const isEvenRow = index % 2 === 0;
           const transform = isEvenRow
@@ -78,7 +78,7 @@ export default function ArtistCTA() {
         })}
       </div>
 
-      <div className="relative z-10 flex flex-col items-center justify-center px-4 py-16">
+      <div className="relative z-10 flex flex-col items-center justify-center px-4 py-20 md:py-16">
         {/* Content container */}
         <div className="flex flex-col gap-6 items-center text-center max-w-[900px] w-full">
           {/* Small header */}
