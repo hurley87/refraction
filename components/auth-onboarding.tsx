@@ -28,15 +28,32 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
           backgroundRepeat: "no-repeat",
         }}
       >
-        <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center h-full py-8">
+        <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center h-full">
           {/* Map Image */}
-          <div className="rounded-[26px] overflow-hidden w-full max-w-sm aspect-square flex items-center justify-center mb-8 relative">
+          <div className="rounded-[26px] overflow-hidden w-full aspect-square flex items-center justify-center mb-8 relative">
             <img
               src="/map-green.png"
               alt="Map view"
               className="h-full w-full object-cover"
               loading="lazy"
             />
+
+            {/* Text Above Marker */}
+            <div className="absolute font-pleasure top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 -translate-y-24 z-20">
+              <p
+                className="text-white text-center whitespace-nowrap"
+                style={{
+                  textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
+                  fontSize: "25px",
+                  fontWeight: 500,
+                  lineHeight: "28px",
+                  letterSpacing: "-0.5px",
+                }}
+              >
+                Sign Up For IRL
+              </p>
+            </div>
+
             {/* Map Marker */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
               <img
@@ -45,50 +62,53 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
                 className="w-20 h-20 drop-shadow-lg"
               />
             </div>
+
+            {/* Text Below Marker - Grouped with 4px gap */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 translate-y-24 z-20 flex flex-col gap-1 items-center">
+              <p className="text-white text-shadow-lg font-medium text-xs tracking-wider uppercase text-center">
+                PUT YOURSELF
+              </p>
+              <h1 className="text-white text-shadow-lg font-inktrap text-4xl font-bold tracking-tight uppercase text-center whitespace-nowrap">
+                ON THE MAP
+              </h1>
+            </div>
           </div>
 
           {/* Main Content */}
           <div className="flex flex-col gap-8 items-center w-full">
-            {/* Title */}
-            <div className="text-center text-white uppercase">
-              <p className="text-shadow-lg font-medium text-xs tracking-wider mb-1">
-                Put Yourself
-              </p>
-              <h1 className="font-inktrap text-6xl font-bold tracking-tight leading-tight">
-                ON THE MAP
-              </h1>
-            </div>
-
             {/* Reward Card */}
             <div className="bg-white/65 backdrop-blur-sm rounded-[26px] p-2 w-full">
-              <div className="bg-white rounded-[18px] p-3 flex flex-col gap-2">
+              <div className="rounded-[18px] p-3 flex flex-col gap-2">
                 {/* Header */}
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 flex items-center justify-center">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <path
-                        d="M8 1L10.5 5.5L15 6L11.5 9.5L12.5 14L8 11.5L3.5 14L4.5 9.5L1 6L5.5 5.5L8 1Z"
-                        fill="#4F4F4F"
-                      />
-                    </svg>
+                    <img
+                      src="/guidance.svg"
+                      alt="Guidance icon"
+                      className="w-4 h-4"
+                    />
                   </div>
-                  <p className="text-[#4F4F4F] text-xs font-medium tracking-wider uppercase">
+                  <p className="text-[#4F4F4F] text-[11px] font-medium tracking-[0.44px] uppercase">
                     You can Earn
                   </p>
                 </div>
 
                 {/* Points Display */}
-                <div className="flex items-end gap-2">
-                  <div className="font-inktrap text-6xl font-bold text-[#313131] tracking-tight leading-none">
-                    100
+                <div className="flex items-end gap-2 h-[67px]">
+                  <div className="flex flex-col h-[44px] justify-center w-[103px]">
+                    <div className="font-inktrap text-[61px] font-bold text-[#313131] tracking-[-4.88px] leading-[64px] uppercase">
+                      100
+                    </div>
                   </div>
-                  <div className="bg-[#313131] rounded-full px-2 py-1 mb-2">
-                    <span className="text-white text-xs font-medium">PTS</span>
-                  </div>
+                  <img
+                    src="/pts.svg"
+                    alt="Points"
+                    className="w-[33px] h-[18px]"
+                  />
                 </div>
 
                 {/* Description */}
-                <p className="text-[#4F4F4F] text-sm leading-relaxed">
+                <p className="text-[#4F4F4F] text-[13px] leading-[16px] tracking-[-0.39px]">
                   towards Rewards, Competitions and Experiences
                 </p>
               </div>
