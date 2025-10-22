@@ -1,14 +1,105 @@
 "use client";
 
-import LogoLoop from '@/components/LogoLoop.jsx';
 
-import React from "react";
+
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Header from "@/components/header";
 import NewsletterForm from "@/components/newsletter-form";
+import LogoLoop from '@/components/LogoLoop.jsx';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
 
+const carouselData = [
+  {
+    poster: "/partnerships/case-studies/nftnyc-aptos.png",
+    title: "IRL X Public Records",
+    date: "JUN 26 2025",
+    location: "NEW YORK, NY",
+    description: "Join us for the ultimate cultural convergence featuring cutting-edge art, music, and technology. Experience immersive installations, live performances, and exclusive networking opportunities with industry leaders."
+  },
+  {
+    poster: "/partnerships/case-studies/mutek.png",
+    title: "IRL X Mutek Village Numérique",
+    date: "AUG 19-25 2025",
+    location: "MONTREAL, QC",
+    description: "Explore the intersection of technology and creativity in this groundbreaking digital art showcase. Featuring works from emerging and established artists pushing the boundaries of digital expression."
+  },
+ 
+];
 
+// Event Modal Component
+const EventModal = ({ event, isOpen, onClose }) => {
+  if (!isOpen || !event) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div 
+        className="bg-black border border-white/20 rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
+        style={{
+          background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.45) 100%)',
+          backdropFilter: 'blur(13.101491928100586px)'
+        }}
+      >
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* Modal Content */}
+        <div className="space-y-4">
+          {/* Event Poster */}
+          <div className="rounded-lg overflow-hidden" style={{ width: '277px', height: '345px' }}>
+            <Image
+              src={event.poster}
+              alt={event.title}
+              width={277}
+              height={345}
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Event Title */}
+          <h3 className="text-white title3 font-inktrap font-bold">
+            {event.title}
+          </h3>
+
+          {/* Date and Location */}
+          <div className="flex justify-between text-white title5 font-abc-monument-regular">
+            <span>{event.date}</span>
+            <span>{event.location}</span>
+          </div>
+
+          {/* Description */}
+          <p className="text-white title5 font-abc-monument-regular leading-relaxed">
+            {event.description}
+          </p>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <button className="flex-1 bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors">
+              <span className="font-pleasure">Get Tickets</span>
+            </button>
+            <button className="flex-1 border border-white text-white font-bold rounded-full py-3 px-4 hover:bg-white/10 transition-colors">
+              <span className="font-pleasure">Share Event</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Benefits Container Component
 const BenefitsContainer = ({ 
@@ -90,6 +181,19 @@ const BenefitsContainer = ({
 };
 
 export default function PartnershipsPage() {
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleEventClick = (event) => {
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedEvent(null);
+  };
+
   const imageLogos = [
   { src: "/images/socials/farcaster.svg", alt: "Company 1", href: "https://company1.com" },
   { src: "/images/socials/twitter.svg", alt: "Company 2", href: "https://company2.com" },
@@ -384,6 +488,94 @@ const benefitsData = [
           ))}
         </div>
       </div>
+
+      {/* Case Studies Section */}
+      <div className="bg-black rounded-2xl p-6 mb-4">
+        <div className="title5 text-white font-monument-grotesk text-center mb-6">
+          CASE STUDIES
+        </div>
+        
+        <div className="w-full flex justify-center">
+          <Carousel 
+            className="w-full max-w-sm"
+            opts={{
+              align: "start",
+              loop: true,
+            }}
+          >
+            <CarouselContent>
+              {carouselData.map((event, index) => (
+                <CarouselItem key={index} className="flex justify-center">
+                  <div 
+                    className="relative overflow-hidden"
+                    style={{
+                      display: 'flex',
+                      width: '325px',
+                      height: '541px',
+                      padding: '24px',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      gap: '16px',
+                      borderRadius: '26px',
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.45) 100%)'
+                    }}
+                  >
+                    {/* Row 1: Event Poster */}
+                    <div className="rounded-lg overflow-hidden" style={{ width: '277px', height: '345px' }}>
+                      <Image
+                        src={event.poster}
+                        alt={event.title}
+                        width={277}
+                        height={345}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* Row 2: Event Title */}
+                    <h3 className="text-white titl2 font-grotesk text-center w-full">
+                      {event.title}
+                    </h3>
+
+                    {/* Row 3: Date and Location */}
+                    <div className="flex justify-between w-full text-white title5 font-abc-monument-regular">
+                      <span>{event.date}</span>
+                      <span>{event.location}</span>
+                    </div>
+
+                    {/* Row 4: Details Button */}
+                    <button
+                      onClick={() => handleEventClick(event)}
+                      className="w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors"
+                    >
+                      <span className="font-pleasure">Learn More</span>
+                    </button>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            
+            {/* Navigation Arrows */}
+            <div className="flex justify-center gap-4 mt-6">
+              <CarouselPrevious 
+                className="relative translate-y-0 left-0 bg-white/20 border-white/30 text-white hover:bg-white/30 hover:text-white" 
+                variant="outline"
+              />
+              <CarouselNext 
+                className="relative translate-y-0 right-0 bg-white/20 border-white/30 text-white hover:bg-white/30 hover:text-white" 
+                variant="outline"
+              />
+            </div>
+          </Carousel>
+        </div>
+      </div>
+
+      {/* Event Modal */}
+      <EventModal 
+        event={selectedEvent} 
+        isOpen={isModalOpen} 
+        onClose={closeModal} 
+      />
 
       {/* Footer Section - Similar to Homepage */}
       <section className="py-8 sm:py-12 md:py-16 lg:py-24 px-4 sm:px-6 bg-black">
