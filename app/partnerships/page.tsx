@@ -22,14 +22,17 @@ const carouselData = [
     title: "IRL X Public Records",
     date: "JUN 26 2025",
     location: "NEW YORK, NY",
-    description: "Join us for the ultimate cultural convergence featuring cutting-edge art, music, and technology. Experience immersive installations, live performances, and exclusive networking opportunities with industry leaders."
+    descriptionTitle: "A Frictionless Night Out",
+    description: "IRL Partnered with REOWN to elevate event access and engagement at Public Records. Guests checked in on the IRL platform for free entry and drinks, then explored the art exhibition through a digital surface that rewarded discovery with IRL points."
+    
   },
   {
     poster: "/partnerships/case-studies/mutek.png",
     title: "IRL X Mutek Village Numérique",
     date: "AUG 19-25 2025",
     location: "MONTREAL, QC",
-    description: "Explore the intersection of technology and creativity in this groundbreaking digital art showcase. Featuring works from emerging and established artists pushing the boundaries of digital expression."
+    descriptionTitle: "From Gallery To Game",
+    description: "IRL transformed Mutek’s Village Numerique digital art circuit in to a citywide scavenger hunt, rewarding the most engaged festival goers for their participation. Attendees who completed the circuit were entered to win 2026 Mutek tickets — boosting exploration , participation, and audience excitement."
   },
  
 ];
@@ -38,62 +41,198 @@ const carouselData = [
 const EventModal = ({ event, isOpen, onClose }) => {
   if (!isOpen || !event) return null;
 
+  // Sample event images for carousel
+  const eventImages = [
+    event.poster,
+    event.poster, // Using same image for demo, replace with actual event images
+    event.poster,
+  ];
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div 
-        className="bg-black border border-white/20 rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
-        style={{
-          background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.45) 100%)',
-          backdropFilter: 'blur(13.101491928100586px)'
-        }}
-      >
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+    <div className="fixed inset-0 bg-black z-50 overflow-y-auto">
+      <div className="min-h-screen p-4 space-y-4">
+        {/* Container 1: Header with Close Button */}
+        <div 
+          style={{
+            display: 'flex',
+            padding: '16px',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            alignSelf: 'stretch',
+            borderRadius: '24px',
+            background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+            boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+            backdropFilter: 'blur(13.101491928100586px)'
+          }}
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+          <span className="text-white title5 font-abc-monument-regular">Case Study</span>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+          >
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
-        {/* Modal Content */}
-        <div className="space-y-4">
-          {/* Event Poster */}
-          <div className="rounded-lg overflow-hidden" style={{ width: '277px', height: '345px' }}>
-            <Image
-              src={event.poster}
-              alt={event.title}
-              width={277}
-              height={345}
-              className="w-full h-full object-cover"
-            />
-          </div>
+        {/* Container 2: Event Images Carousel */}
+        <div>
+          <Carousel 
+            className="w-full"
+            opts={{
+              align: "start",
+              loop: true,
+            }}
+          >
+            <CarouselContent>
+              {eventImages.map((image, index) => (
+                <CarouselItem key={index} className="flex justify-center">
+                  <div 
+                    style={{
+                      width: '221px',
+                      height: '322px',
+                      flexShrink: 0,
+                      aspectRatio: '221/322',
+                      borderRadius: '24px',
+                      backgroundImage: `url(${image})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat'
+                    }}
+                  />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+        </div>
 
-          {/* Event Title */}
-          <h3 className="text-white title3 font-inktrap font-bold">
+        {/* Container 3: Title, Date and Location */}
+        <div 
+          style={{
+            display: 'flex',
+            padding: '16px',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '8px',
+            alignSelf: 'stretch',
+            borderRadius: '26px',
+            background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+            boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+            backdropFilter: 'blur(13.101491928100586px)'
+          }}
+        >
+          {/* Row 1: Title */}
+          <h3 className="text-white title3 font-inktrap font-bold w-full text-center">
             {event.title}
           </h3>
-
-          {/* Date and Location */}
-          <div className="flex justify-between text-white title5 font-abc-monument-regular">
-            <span>{event.date}</span>
-            <span>{event.location}</span>
+          
+          {/* Row 2: Date and Location */}
+          <div className="flex w-full gap-2">
+            <div 
+              style={{
+                display: 'flex',
+                padding: '4px 8px',
+                alignItems: 'center',
+                gap: '8px',
+                alignSelf: 'stretch',
+                borderRadius: '1000px',
+                border: '1px solid #EDEDED'
+              }}
+            >
+              <span className="text-white title5 font-abc-monument-regular">{event.date}</span>
+            </div>
+            <div 
+              style={{
+                display: 'flex',
+                padding: '4px 8px',
+                alignItems: 'center',
+                gap: '8px',
+                alignSelf: 'stretch',
+                borderRadius: '1000px',
+                border: '1px solid #EDEDED'
+              }}
+            >
+              <span className="text-white title5 font-abc-monument-regular">{event.location}</span>
+            </div>
           </div>
+        </div>
 
-          {/* Description */}
-          <p className="text-white title5 font-abc-monument-regular leading-relaxed">
+        {/* Container 4: Description Title and Description */}
+        <div 
+          style={{
+            display: 'flex',
+            padding: '16px',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '8px',
+            alignSelf: 'stretch',
+            borderRadius: '26px',
+            background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+            boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+            backdropFilter: 'blur(13.101491928100586px)'
+          }}
+        >
+          {/* Row 1: Description Title */}
+          {event.descriptionTitle && (
+            <h3 className="text-white title4 font-inktrap font-bold w-full">
+              {event.descriptionTitle}
+            </h3>
+          )}
+          
+          {/* Row 2: Description */}
+          <p className="text-white title5 font-abc-monument-regular leading-relaxed w-full">
             {event.description}
           </p>
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            <button className="flex-1 bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors">
-              <span className="font-pleasure">Get Tickets</span>
-            </button>
-            <button className="flex-1 border border-white text-white font-bold rounded-full py-3 px-4 hover:bg-white/10 transition-colors">
-              <span className="font-pleasure">Share Event</span>
-            </button>
+        {/* Container 5: Stat 1 */}
+        <div 
+          style={{
+            display: 'flex',
+            padding: '16px',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '8px',
+            alignSelf: 'stretch',
+            borderRadius: '26px',
+            background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+            boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+            backdropFilter: 'blur(13.101491928100586px)'
+          }}
+        >
+          <div className="flex w-full gap-4">
+            <div className="flex-1 flex items-end">
+              <div className="text-white display2 font-inktrap">85%</div>
+            </div>
+            <div className="flex-1 text-right">
+              <div className="text-white title5 font-abc-monument-regular">Engagement Rate</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Container 6: Stat 2 */}
+        <div 
+          style={{
+            display: 'flex',
+            padding: '16px',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '8px',
+            alignSelf: 'stretch',
+            borderRadius: '26px',
+            background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+            boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+            backdropFilter: 'blur(13.101491928100586px)'
+          }}
+        >
+          <div className="flex w-full gap-4">
+            <div className="flex-1 flex items-end">
+              <div className="text-white display2 font-inktrap">2.3x</div>
+            </div>
+            <div className="flex-1 text-right">
+              <div className="text-white title5 font-abc-monument-regular">Return Visits</div>
+            </div>
           </div>
         </div>
       </div>
@@ -141,12 +280,11 @@ const BenefitsContainer = ({
   return (
     <div 
       ref={containerRef}
-      className={`mb-4 mx-auto transition-all duration-1000 ease-out ${
+      className={`mb-4 mx-auto transition-all duration-1000 ease-out w-full max-w-sm sm:max-w-md lg:max-w-lg ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
       style={{
         display: 'flex',
-        width: '361px',
         padding: '40px 24px 24px 24px',
         flexDirection: 'column',
         alignItems: 'flex-start',
@@ -464,7 +602,7 @@ const benefitsData = [
         </video>
 
         {/* Content Overlay */}
-        <div className="relative z-10 p-16">
+        <div className="relative z-10 p-4 sm:p-8 lg:p-16">
           <div className="title5 text-white font-monument-grotesk text-center mb-6">
             BENEFITS
           </div>
