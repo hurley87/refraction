@@ -8,6 +8,7 @@ import Image from "next/image";
 import Header from "@/components/header";
 import NewsletterForm from "@/components/newsletter-form";
 import LogoLoop from '@/components/LogoLoop.jsx';
+import CircularGallery from "@/components/CircularGallery"
 import {
   Carousel,
   CarouselContent,
@@ -41,16 +42,16 @@ const carouselData = [
 const EventModal = ({ event, isOpen, onClose }) => {
   if (!isOpen || !event) return null;
 
-  // Sample event images for carousel
+  // Sample event images for circular gallery
   const eventImages = [
-    event.poster,
-    event.poster, // Using same image for demo, replace with actual event images
-    event.poster,
+    { image: event.poster, text: event.title },
+    { image: event.poster, text: event.title}, // Using same image for demo, replace with actual event images
+    { image: event.poster, text: event.title },
   ];
 
   return (
     <div className="fixed inset-0 bg-black z-50 overflow-y-auto">
-      <div className="min-h-screen p-4 space-y-4">
+      <div className="min-h-screen p-4 space-y-1">
         {/* Container 1: Header with Close Button */}
         <div 
           style={{
@@ -76,35 +77,17 @@ const EventModal = ({ event, isOpen, onClose }) => {
           </button>
         </div>
 
-        {/* Container 2: Event Images Carousel */}
-        <div>
-          <Carousel 
-            className="w-full"
-            opts={{
-              align: "start",
-              loop: true,
-            }}
-          >
-            <CarouselContent>
-              {eventImages.map((image, index) => (
-                <CarouselItem key={index} className="flex justify-center">
-                  <div 
-                    style={{
-                      width: '221px',
-                      height: '322px',
-                      flexShrink: 0,
-                      aspectRatio: '221/322',
-                      borderRadius: '24px',
-                      backgroundImage: `url(${image})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      backgroundRepeat: 'no-repeat'
-                    }}
-                  />
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-          </Carousel>
+        {/* Container 2: Event Images Circular Gallery */}
+        <div style={{ height: '400px' }}>
+          <CircularGallery
+            items={eventImages}
+            bend={0}
+            textColor="#000000"
+            borderRadius={0}
+            font="bold 24px inktrap"
+            scrollSpeed={1.5}
+            scrollEase={0.05}
+          />
         </div>
 
         {/* Container 3: Title, Date and Location */}
@@ -123,9 +106,9 @@ const EventModal = ({ event, isOpen, onClose }) => {
           }}
         >
           {/* Row 1: Title */}
-          <h3 className="text-white title3 font-inktrap font-bold w-full text-center">
+          <h1 className="text-white  font-pleasure  w-full text-left">
             {event.title}
-          </h3>
+          </h1>
           
           {/* Row 2: Date and Location */}
           <div className="flex w-full gap-2">
@@ -140,6 +123,19 @@ const EventModal = ({ event, isOpen, onClose }) => {
                 border: '1px solid #EDEDED'
               }}
             >
+              <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-4 h-4 inline-block text-white"
+                  fill="#ffffff"
+                  viewBox="0 0 20 20"
+                  stroke="currentColor"
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="4" width="14" height="13" rx="2" className="fill-transparent" stroke="currentColor"/>
+                  <path d="M3 8h14" stroke="currentColor" strokeLinecap="round"/>
+                  <path d="M7 2v2M13 2v2" stroke="currentColor" strokeLinecap="round" />
+                </svg>
               <span className="text-white title5 font-abc-monument-regular">{event.date}</span>
             </div>
             <div 
@@ -153,7 +149,33 @@ const EventModal = ({ event, isOpen, onClose }) => {
                 border: '1px solid #EDEDED'
               }}
             >
-              <span className="text-white title5 font-abc-monument-regular">{event.location}</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4 text-white inline-block"
+                fill="none"
+                viewBox="0 0 20 20"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M10 18s6-5.686 6-10A6 6 0 1 0 4 8c0 4.314 6 10 6 10Z"
+                  className="stroke-current"
+                />
+                <circle
+                  cx="10"
+                  cy="8"
+                  r="2.25"
+                  className="stroke-current"
+                  strokeWidth={1.5}
+                />
+              </svg>
+              <span className="flex items-center gap-1 text-white title5 font-abc-monument-regular">
+                
+                {event.location}
+              </span>
             </div>
           </div>
         </div>
@@ -175,7 +197,7 @@ const EventModal = ({ event, isOpen, onClose }) => {
         >
           {/* Row 1: Description Title */}
           {event.descriptionTitle && (
-            <h3 className="text-white title4 font-inktrap font-bold w-full">
+            <h3 className="text-white w-full">
               {event.descriptionTitle}
             </h3>
           )}
@@ -233,6 +255,188 @@ const EventModal = ({ event, isOpen, onClose }) => {
             <div className="flex-1 text-right">
               <div className="text-white title5 font-abc-monument-regular">Return Visits</div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// How It Works Section Component
+const HowItWorksSection = () => {
+  const [isVisible, setIsVisible] = React.useState(false);
+  const sectionRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => {
+      if (sectionRef.current) {
+        observer.unobserve(sectionRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div 
+      ref={sectionRef}
+      className={`bg-black rounded-2xl p-6 mb-4 transition-all duration-1000 ease-out ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+      }`}
+    >
+      <div className="title5 text-white font-monument-grotesk text-center mb-6">
+        HOW IRL WORKS
+      </div>
+      
+      <div className="space-y-4">
+        {/* Part 1 */}
+        <div className="relative flex items-center gap-2 sm:gap-4">
+          {/* Column 1: Number */}
+          <div className="flex-shrink-0">
+            <Image
+              src="/partnerships/howitworks-1.svg"
+              alt="Step 1"
+              width={60}
+              height={60}
+              className="w-112 h-112 sm:w-15 sm:h-15"
+            />
+          </div>
+          
+          {/* Column 2: Text Content */}
+          <div className="flex-1 min-w-0">
+            <div className="text-white title1 font-pleasure mb-1 sm:mb-2">
+              DISCOVER
+            </div>
+            <div style={{ height: "15px" }} />
+            <div className="text-white title4 font-grotesk">
+              Users discover events and venues through the IRL platform, exploring curated cultural experiences.
+            </div>
+          </div>
+          
+          {/* Column 3: Geometric Circle - Overlapping Text */}
+          <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+            <Image
+              src="/partnerships/howitworks-ellipse1.svg"
+              alt="Geometric shape"
+              width={160}
+              height={160}
+              className="w-32 h-32 sm:w-40 sm:h-40"
+            />
+          </div>
+        </div>
+
+
+        {/* Part 2 */}
+        <div className="relative flex items-center gap-2 sm:gap-4">
+          {/* Column 1: Number */}
+          <div className="flex-shrink-0">
+            <Image
+              src="/partnerships/howitworks-2.svg"
+              alt="Step 2"
+              width={60}
+              height={60}
+              className="w-112 h-112 sm:w-15 sm:h-15"
+            />
+          </div>
+          
+          {/* Column 2: Text Content */}
+          <div className="flex-1 min-w-0">
+            <div className="text-white title1 font-pleasure mb-1 sm:mb-2">
+              ENGAGE
+            </div>
+            <div style={{ height: "15px" }} />
+            <div className="text-white title4 font-grotesk">
+              Attendees check in at events, participate in activities, and earn IRL points for their engagement.
+            </div>
+          </div>
+          
+          {/* Column 3: Geometric Circles - Overlapping Text */}
+          <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+            <Image
+              src="/partnerships/howitworks-ellipse2.svg"
+              alt="Geometric shape"
+              width={160}
+              height={160}
+              className="w-32 h-32 sm:w-40 sm:h-40"
+            />
+          </div>
+          <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
+            <Image
+              src="/partnerships/howitworks-ellipse2.svg"
+              alt="Geometric shape"
+              width={160}
+              height={160}
+              className="w-32 h-32 sm:w-40 sm:h-40"
+            />
+          </div>
+        </div>
+
+
+        {/* Part 3 */}
+        <div className="relative flex items-center gap-2 sm:gap-4">
+          {/* Column 1: Number */}
+          <div className="flex-shrink-0">
+            <Image
+              src="/partnerships/howitworks-3.svg"
+              alt="Step 3"
+              width={60}
+              height={60}
+              className="w-112 h-112 sm:w-15 sm:h-15"
+            />
+          </div>
+          
+          {/* Column 2: Text Content */}
+          <div className="flex-1 min-w-0">
+            <div className="text-white title1 font-pleasure mb-1 sm:mb-2">
+              REWARD
+            </div>
+            <div style={{ height: "15px" }} />
+            <div className="text-white title4 font-grotesk">
+              Points earned can be redeemed for exclusive rewards, creating a seamless cultural rewards ecosystem.
+            </div>
+          </div>
+          
+          {/* Column 3: Geometric Circles - Overlapping Text */}
+          <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+            <Image
+              src="/partnerships/howitworks-ellipse2.svg"
+              alt="Geometric shape"
+              width={160}
+              height={160}
+              className="w-32 h-32 sm:w-40 sm:h-40"
+            />
+          </div>
+          <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
+            <Image
+              src="/partnerships/howitworks-ellipse2.svg"
+              alt="Geometric shape"
+              width={160}
+              height={160}
+              className="w-32 h-32 sm:w-40 sm:h-40"
+            />
+          </div>
+          <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
+            <Image
+              src="/partnerships/howitworks-ellipse2.svg"
+              alt="Geometric shape"
+              width={160}
+              height={160}
+              className="w-32 h-32 sm:w-40 sm:h-40"
+            />
           </div>
         </div>
       </div>
@@ -627,6 +831,9 @@ const benefitsData = [
         </div>
       </div>
 
+      {/* How IRL Works Section */}
+      <HowItWorksSection />
+
       {/* Case Studies Section */}
       <div className="bg-black rounded-2xl p-6 mb-4">
         <div className="title5 text-white font-monument-grotesk text-center mb-6">
@@ -653,7 +860,7 @@ const benefitsData = [
                       padding: '24px',
                       flexDirection: 'column',
                       alignItems: 'flex-start',
-                      gap: '16px',
+                      gap: '12px',
                       borderRadius: '26px',
                       border: '1px solid rgba(255, 255, 255, 0.25)',
                       background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.45) 100%)'
@@ -714,6 +921,116 @@ const benefitsData = [
         isOpen={isModalOpen} 
         onClose={closeModal} 
       />
+
+      {/* Next Steps Section */}
+      <div 
+        className="relative rounded-2xl overflow-hidden mb-4"
+        style={{ height: '836px' }}
+      >
+        {/* Video Background */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{
+            WebkitTransform: 'translateZ(0)',
+            transform: 'translateZ(0)',
+            WebkitBackfaceVisibility: 'hidden',
+            backfaceVisibility: 'hidden'
+          }}
+        >
+          <source src="/partnerships/next-steps.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+
+        {/* Content Overlay */}
+        <div className="relative z-10 h-full flex items-center justify-center p-6 sm:p-8 lg:p-16">
+          <div className="text-center space-y-6">
+            {/* Row 1: Title */}
+            <div className="display1 text-white font-inktrap" style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}>
+              NEXT<br/> STEPS
+            </div>
+            
+            {/* Row 2: Description */}
+            <div className="text-white title4 font-anonymous-pro max-w-2xl mx-auto">
+              Joining is simple. Share a reward, we list it, push it to 40k+ culture-first members, and send you monthly results. No Staff training, no hidden costs.
+            </div>
+            
+            {/* Row 3: Button */}
+            <div className="flex justify-center">
+              <Link href="/contact-us">
+                <button 
+                  className="bg-white hover:bg-gray-100 text-black font-bold rounded-full transition-colors"
+                  style={{ 
+                    width: '260px',
+                    display: 'flex',
+                    height: '48px',
+                    padding: '8px 16px',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    alignSelf: 'stretch'
+                  }}
+                >
+                  <span className="font-pleasure">Let&apos;s Talk</span>
+                  <Image
+                    src="/home/arrow-right.svg"
+                    alt="arrow-right"
+                    width={20}
+                    height={20}
+                    className="w-5 h-5 ml-2"
+                  />
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Next Members Section */}
+      <div className="bg-black rounded-2xl p-6 mb-4">
+        <div className="text-center space-y-4">
+          {/* Row 1: Title */}
+          <div className="body-small text-white font-grotesk">
+            FOR MEMBERS
+          </div>
+          
+          {/* Row 2: Become A Founding Member */}
+          <div className="flex justify-center">
+            <button className="text-left text-white title4 font-anonymous-pro underline hover:no-underline transition-all">
+              Become A Founding Member →
+            </button>
+          </div>
+          
+          {/* Row 3: Editorial */}
+          <div className="flex justify-center">
+            <button className="text-left text-white title4 font-anonymous-pro underline hover:no-underline transition-all">
+              Editorial →
+            </button>
+          </div>
+          
+          {/* Row 4: Frequently Asked Questions */}
+          <div className="flex justify-center">
+            <button className="text-left text-white title4 font-anonymous-pro underline hover:no-underline transition-all">
+              Frequently Asked Questions →
+            </button>
+          </div>
+          
+          {/* Row 5: FOR VENUES AND BRANDS */}
+          <div className=" text-white body-small font-groteks" >
+            FOR VENUES AND BRANDS
+          </div>
+          
+          {/* Row 6: Become An IRL Partner */}
+          <div className="flex justify-center">
+            <button className="text-left text-white title4 font-anonymous-pro underline hover:no-underline transition-all">
+              Become An IRL Partner →
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Footer Section - Similar to Homepage */}
       <section className="py-8 sm:py-12 md:py-16 lg:py-24 px-4 sm:px-6 bg-black">
