@@ -5,7 +5,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import Header from "@/components/header";
 import NewsletterForm from "@/components/newsletter-form";
 import LogoLoop from '@/components/LogoLoop.jsx';
 import CircularGallery from "@/components/CircularGallery"
@@ -17,6 +16,42 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 
+// Custom Header Component for Partnerships Page
+const PartnershipsHeader = () => {
+  return (
+    <div className="flex justify-between items-center w-full">
+      {/* IRL Logo - Left Side */}
+      <Link href="/">
+        <div className="w-[40px] h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center">
+          <img
+            src="/home/IRL.png"
+            alt="IRL"
+            className="w-full h-auto"
+            style={{ width: "40", height: "40" }}
+          />
+        </div>
+      </Link>
+
+      {/* Sign Up Button - Right Side */}
+      <Link href="/contact-us">
+        <button 
+          className="text-white font-bold transition-colors"
+          style={{
+            display: 'flex',
+            padding: '8px 12px',
+            alignItems: 'center',
+            gap: '8px',
+            borderRadius: '100px',
+            background: 'rgba(255, 255, 255, 0.25)'
+          }}
+        >
+          <span className="body-small font-groteks uppercase">Sign Up</span>
+        </button>
+      </Link>
+    </div>
+  );
+};
+
 const carouselData = [
   {
     poster: "/partnerships/case-studies/nftnyc-aptos.png",
@@ -24,8 +59,21 @@ const carouselData = [
     date: "JUN 26 2025",
     location: "NEW YORK, NY",
     descriptionTitle: "A Frictionless Night Out",
-    description: "IRL Partnered with REOWN to elevate event access and engagement at Public Records. Guests checked in on the IRL platform for free entry and drinks, then explored the art exhibition through a digital surface that rewarded discovery with IRL points."
-    
+    description: "IRL Partnered with REOWN to elevate event access and engagement at Public Records. Guests checked in on the IRL platform for free entry and drinks, then explored the art exhibition through a digital surface that rewarded discovery with IRL points.",
+    stats: [
+      {
+        value: "1K+",
+        label: "RSVPs"
+      },
+      {
+        value: "70%",
+        label: "Attendance"
+      },
+      {
+        value: "250",
+        label: "Complimentary Drinks"
+      }
+    ]
   },
   {
     poster: "/partnerships/case-studies/mutek.png",
@@ -33,7 +81,17 @@ const carouselData = [
     date: "AUG 19-25 2025",
     location: "MONTREAL, QC",
     descriptionTitle: "From Gallery To Game",
-    description: "IRL transformed Mutek’s Village Numerique digital art circuit in to a citywide scavenger hunt, rewarding the most engaged festival goers for their participation. Attendees who completed the circuit were entered to win 2026 Mutek tickets — boosting exploration , participation, and audience excitement."
+    description: "IRL transformed Mutek's Village Numerique digital art circuit in to a citywide scavenger hunt, rewarding the most engaged festival goers for their participation. Attendees who completed the circuit were entered to win 2026 Mutek tickets — boosting exploration , participation, and audience excitement.",
+    stats: [
+      {
+        value: "47K",
+        label: "Reach To Festival Attendees"
+      },
+      {
+        value: "50+",
+        label: "IRL Check-Ins"
+      }
+    ]
   },
  
 ];
@@ -208,55 +266,54 @@ const EventModal = ({ event, isOpen, onClose }) => {
           </p>
         </div>
 
-        {/* Container 5: Stat 1 */}
-        <div 
-          style={{
-            display: 'flex',
-            padding: '16px',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: '8px',
-            alignSelf: 'stretch',
-            borderRadius: '26px',
-            background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
-            boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
-            backdropFilter: 'blur(13.101491928100586px)'
-          }}
-        >
-          <div className="flex w-full gap-4">
-            <div className="flex-1 flex items-end">
-              <div className="text-white display2 font-inktrap">85%</div>
-            </div>
-            <div className="flex-1 text-right">
-              <div className="text-white title5 font-abc-monument-regular">Engagement Rate</div>
+        {/* Dynamic Stats Containers */}
+        {event.stats && event.stats.map((stat, index) => (
+          <div 
+            key={index}
+            style={{
+              display: 'flex',
+              padding: '16px',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '8px',
+              alignSelf: 'stretch',
+              borderRadius: '26px',
+              background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+              boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+              backdropFilter: 'blur(13.101491928100586px)'
+            }}
+          >
+            <div className="flex w-full gap-4">
+              <div className="flex-1 flex items-end">
+                <div className="text-white display2 font-inktrap">{stat.value}</div>
+              </div>
+              <div className="flex-1 text-right">
+                <div className="text-white title4 font-abc-monument-regular">{stat.label}</div>
+              </div>
             </div>
           </div>
-        </div>
+        ))}
 
-        {/* Container 6: Stat 2 */}
-        <div 
-          style={{
-            display: 'flex',
-            padding: '16px',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: '8px',
-            alignSelf: 'stretch',
-            borderRadius: '26px',
-            background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
-            boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
-            backdropFilter: 'blur(13.101491928100586px)'
-          }}
+        {/* Back Button */}
+        <button
+          onClick={onClose}
+          className="w-full bg-white text-black font-bold rounded-full py-4 px-6 hover:bg-gray-100 transition-colors flex items-center justify-between"
         >
-          <div className="flex w-full gap-4">
-            <div className="flex-1 flex items-end">
-              <div className="text-white display2 font-inktrap">2.3x</div>
-            </div>
-            <div className="flex-1 text-right">
-              <div className="text-white title5 font-abc-monument-regular">Return Visits</div>
-            </div>
-          </div>
-        </div>
+          <span className="font-pleasure">Back</span>
+          <svg 
+            className="w-5 h-5" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M13 7l5 5m0 0l-5 5m5-5H6" 
+            />
+          </svg>
+        </button>
       </div>
     </div>
   );
@@ -328,7 +385,7 @@ const HowItWorksSection = () => {
           </div>
           
           {/* Column 3: Geometric Circle - Overlapping Text */}
-          <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+          <div className="absolute -right-8 sm:right-4 top-1/2 transform -translate-y-1/2">
             <Image
               src="/partnerships/howitworks-ellipse1.svg"
               alt="Geometric shape"
@@ -365,7 +422,7 @@ const HowItWorksSection = () => {
           </div>
           
           {/* Column 3: Geometric Circles - Overlapping Text */}
-          <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+          <div className="absolute -right-12 sm:right-4 top-1/2 transform -translate-y-1/2">
             <Image
               src="/partnerships/howitworks-ellipse2.svg"
               alt="Geometric shape"
@@ -374,7 +431,7 @@ const HowItWorksSection = () => {
               className="w-32 h-32 sm:w-40 sm:h-40"
             />
           </div>
-          <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
+          <div className="absolute -right-6 sm:right-12 top-1/2 transform -translate-y-1/2">
             <Image
               src="/partnerships/howitworks-ellipse2.svg"
               alt="Geometric shape"
@@ -411,7 +468,7 @@ const HowItWorksSection = () => {
           </div>
           
           {/* Column 3: Geometric Circles - Overlapping Text */}
-          <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+          <div className="absolute -right-9 sm:right-4 top-1/2 transform -translate-y-1/2">
             <Image
               src="/partnerships/howitworks-ellipse2.svg"
               alt="Geometric shape"
@@ -420,7 +477,7 @@ const HowItWorksSection = () => {
               className="w-32 h-32 sm:w-40 sm:h-40"
             />
           </div>
-          <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
+          <div className="absolute -right-7 sm:right-8 top-1/2 transform -translate-y-1/2">
             <Image
               src="/partnerships/howitworks-ellipse2.svg"
               alt="Geometric shape"
@@ -429,7 +486,7 @@ const HowItWorksSection = () => {
               className="w-32 h-32 sm:w-40 sm:h-40"
             />
           </div>
-          <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
+          <div className="absolute -right-5 sm:right-12 top-1/2 transform -translate-y-1/2">
             <Image
               src="/partnerships/howitworks-ellipse2.svg"
               alt="Geometric shape"
@@ -484,7 +541,7 @@ const BenefitsContainer = ({
   return (
     <div 
       ref={containerRef}
-      className={`mb-4 mx-auto transition-all duration-1000 ease-out w-full max-w-sm sm:max-w-md lg:max-w-lg ${
+      className={`mb-2 mx-auto transition-all duration-1000 ease-out w-full max-w-sm sm:max-w-md lg:max-w-lg ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
       style={{
@@ -600,8 +657,21 @@ const benefitsData = [
         {/* Hero Section with Video Background */}
         <div className="relative min-h-screen flex flex-col justify-center items-center px-4 py-8 rounded-4xl overflow-hidden mb-4">
           {/* Header */}
-          <div className="absolute top-4 left-4 right-4 z-20">
-            <Header />
+          <div 
+            className="absolute top-4 left-4 right-4 z-20"
+            style={{
+              display: 'flex',
+              padding: '8px 16px 8px 8px',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              alignSelf: 'stretch',
+              borderRadius: '24px',
+              background: 'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+              boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+              backdropFilter: 'blur(13.101491928100586px)'
+            }}
+          >
+            <PartnershipsHeader />
           </div>
           {/* Video Background */}
           <video
@@ -701,6 +771,8 @@ const benefitsData = [
           </p>
         </div>
 
+        <div style={{ height: "200px" }} />
+
         {/* Section 1: Partnerships */}
         <div className="bg-black rounded-2xl p-6 mb-4">
           <div className="title5 text-white font-monument-grotesk text-center">
@@ -726,64 +798,77 @@ const benefitsData = [
         <div className="px-0 pt-4 pb-1 space-y-1">
 
         
-      <LogoLoop
-        {...({
-          logos:  imageLogos,
-          speed: 80,
-          direction: "left",
-          logoHeight: 48,
-          gap: 40,
-          pauseOnHover: true,
-          scaleOnHover: true,
-          fadeOut: true,
-          fadeOutColor: "#000000",
-          ariaLabel: "Technology partners"
-        } as any)}
-      />
-       <LogoLoop
-        {...({
-          logos:  imageLogos,
-          speed: 80,
-          direction: "right",
-          logoHeight: 48,
-          gap: 40,
-          pauseOnHover: true,
-          scaleOnHover: true,
-          fadeOut: true,
-          fadeOutColor: "#000000",
-          ariaLabel: "Technology partners"
-        } as any)}
-      />
-        <LogoLoop
-        {...({
-          logos:  imageLogos,
-          speed: 80,
-          direction: "left",
-          logoHeight: 48,
-          gap: 40,
-          pauseOnHover: true,
-          scaleOnHover: true,
-          fadeOut: true,
-          fadeOutColor: "#000000",
-          ariaLabel: "Technology partners"
-        } as any)}
-      />
-      <LogoLoop
-        {...({
-          logos:  imageLogos,
-            speed: 80,
-          direction: "right",
-          logoHeight: 48,
-          gap: 40,
-          pauseOnHover: true,
-          scaleOnHover: true,
-          fadeOut: true,
-          fadeOutColor: "#000000",
-          ariaLabel: "Technology partners"
-        } as any)}
-      />
+          <LogoLoop
+            {...({
+              logos:  imageLogos,
+              speed: 80,
+              direction: "left",
+              logoHeight: 48,
+              gap: 40,
+              pauseOnHover: true,
+              scaleOnHover: true,
+              fadeOut: true,
+              fadeOutColor: "#000000",
+              ariaLabel: "Technology partners"
+            } as any)}
+          />
+          <LogoLoop
+            {...({
+              logos:  imageLogos,
+              speed: 80,
+              direction: "right",
+              logoHeight: 48,
+              gap: 40,
+              pauseOnHover: true,
+              scaleOnHover: true,
+              fadeOut: true,
+              fadeOutColor: "#000000",
+              ariaLabel: "Technology partners"
+            } as any)}
+          />
+            <LogoLoop
+            {...({
+              logos:  imageLogos,
+              speed: 80,
+              direction: "left",
+              logoHeight: 48,
+              gap: 40,
+              pauseOnHover: true,
+              scaleOnHover: true,
+              fadeOut: true,
+              fadeOutColor: "#000000",
+              ariaLabel: "Technology partners"
+            } as any)}
+          />
+          <LogoLoop
+            {...({
+              logos:  imageLogos,
+                speed: 80,
+              direction: "right",
+              logoHeight: 48,
+              gap: 40,
+              pauseOnHover: true,
+              scaleOnHover: true,
+              fadeOut: true,
+              fadeOutColor: "#000000",
+              ariaLabel: "Technology partners"
+            } as any)}
+          />
         </div>
       </div>
+      <div style={{ height: "200px" }} />
+      
+      {/* Benefits Section Title */}
+      <div className="bg-black rounded-2xl p-6 mb-4">
+        <div className="title5 text-white font-monument-grotesk text-center mb-6">
+          BENEFITS
+        </div>
+        
+        <div className="font-bold text-white text-center">
+          <h2 className="font-pleasure" style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}>Why Partners<br/> Join IRL</h2>
+        </div>
+      </div>
+
        {/* Benefits Section with Video Background */}
       <div className="relative rounded-2xl overflow-hidden mb-4">
         {/* Video Background */}
@@ -807,13 +892,6 @@ const benefitsData = [
 
         {/* Content Overlay */}
         <div className="relative z-10 p-4 sm:p-8 lg:p-16">
-          <div className="title5 text-white font-monument-grotesk text-center mb-6">
-            BENEFITS
-          </div>
-          
-          <div className="font-bold text-white text-center mb-8">
-            <h2 className="font-pleasure" style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}>Why Partners<br/> Join IRL</h2>
-          </div>
 
           {/* Benefits Containers */}
           {benefitsData.map((benefit, index) => (
@@ -830,7 +908,7 @@ const benefitsData = [
           ))}
         </div>
       </div>
-
+      <div style={{ height: "200px" }} />
       {/* How IRL Works Section */}
       <HowItWorksSection />
 
@@ -922,6 +1000,8 @@ const benefitsData = [
         onClose={closeModal} 
       />
 
+      <div style={{ height: "200px" }} />
+
       {/* Next Steps Section */}
       <div 
         className="relative rounded-2xl overflow-hidden mb-4"
@@ -989,6 +1069,7 @@ const benefitsData = [
         </div>
       </div>
 
+      <div style={{ height: "100px" }} />
       {/* Next Members Section */}
       <div className="bg-black rounded-2xl p-6 mb-4">
         <div className="text-center space-y-4">
