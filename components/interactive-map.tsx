@@ -321,18 +321,14 @@ export default function InteractiveMap() {
 
       {/* Search Bar - Centered Below Header */}
       <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-md px-4">
-        <div className="w-full">
-          <div className="bg-[var(--UI-White-65,rgba(255,255,255,0.65))] border border-[var(--UI-White-65,rgba(255,255,255,0.65))] rounded-3xl p-3 md:p-4 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px]">
-            <LocationSearch
-              placeholder="Search places, addresses, or POIs"
-              proximity={{
-                longitude: viewState.longitude,
-                latitude: viewState.latitude,
-              }}
-              onSelect={handleSearchSelect}
-            />
-          </div>
-        </div>
+        <LocationSearch
+          placeholder="Search location"
+          proximity={{
+            longitude: viewState.longitude,
+            latitude: viewState.latitude,
+          }}
+          onSelect={handleSearchSelect}
+        />
       </div>
 
       {/* Map */}

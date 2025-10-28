@@ -48,19 +48,19 @@ function useDebounced<T extends (...args: any[]) => void>(fn: T, ms: number) {
 }
 
 export default function LocationSearch({
-  placeholder = "Search places, addresses, or POIs",
+  placeholder = "Search location",
   proximity,
   onSelect,
   className,
 }: LocationSearchProps) {
   const [query, setQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const sessionTokenRef = useRef<string | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
 
   // Create/rotate a session token per search session
   const ensureSessionToken = () => {
@@ -85,7 +85,6 @@ export default function LocationSearch({
         setSuggestions([]);
         return;
       }
-      setIsLoading(true);
       try {
         const token = ensureSessionToken();
         const url = `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(
@@ -104,8 +103,6 @@ export default function LocationSearch({
         // Fallback: keep silent, clear suggestions
         setSuggestions([]);
         setIsOpen(false);
-      } finally {
-        setIsLoading(false);
       }
     },
     [accessToken, proximityParam],
@@ -181,78 +178,127 @@ export default function LocationSearch({
     }
   };
 
-  return (
-    <div className={className}>
-      <div className="flex gap-2 items-center">
-        <Input
-          ref={inputRef}
-          placeholder={placeholder}
-          value={query}
-          onChange={(e) => {
-            const val = e.target.value;
-            setQuery(val);
-            setIsOpen(true);
-            debouncedSuggest(val);
-          }}
-          onFocus={() => {
-            if (query.length >= 2 && suggestions.length === 0) {
-              debouncedSuggest(query);
-            }
-            setIsOpen(true);
-          }}
-          onKeyDown={handleKeyDown}
-          className="flex-1 h-11 md:h-12 rounded-full bg-transparent px-4 text-sm text-black placeholder:text-black/60 border border-[#B5B5B5] bg-white"
-        />
-        <Button
-          onClick={() => debouncedSuggest(query)}
-          size="sm"
-          className="w-11 h-11 md:w-12 md:h-12 rounded-full p-0"
-          disabled={isLoading}
-          aria-label="Search"
-        >
-          <img src="/miniapp/search.png" alt="Search" className="w-11 h-11" />
-        </Button>
-      </div>
+  if (!showSearch) {
+    return (
+      <button
+        onClick={() => setShowSearch(true)}
+        className="flex flex-1 items-center gap-2 self-stretch rounded-[1000px] border border-[#B5B5B5] bg-gradient-to-b from-[rgba(255,255,255,0.16)] to-[rgba(255,255,255,0.45)] px-4 py-2 h-[48px] text-black backdrop-blur-[232px] shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] hover:opacity-90 transition-opacity w-full"
+      >
+        <span className="font-['ABC-Monument-Grotesk',sans-serif] text-center text-[#7d7d7d] text-[16px] font-normal leading-[22px] tracking-[-0.48px]">
+          Search location
+        </span>
+      </button>
+    );
+  }
 
-      {isOpen && suggestions.length > 0 && (
-        <div
-          ref={listRef}
-          className="mt-2 max-h-64 overflow-y-auto rounded-xl border border-black/5 bg-white/90 dark:bg-zinc-900/80 backdrop-blur p-1 shadow-2xl"
-          role="listbox"
-        >
-          {suggestions.map((s, idx) => {
-            const isActive = idx === activeIndex;
-            const id = s.id || s.mapbox_id || String(idx);
-            return (
-              <div
-                key={id}
-                role="option"
-                aria-selected={isActive}
-                className={`px-3 py-2 cursor-pointer rounded-lg text-sm ${
-                  isActive
-                    ? "bg-black/5 dark:bg-white/10"
-                    : "hover:bg-black/5 dark:hover:bg-white/5"
-                }`}
-                onMouseEnter={() => setActiveIndex(idx)}
-                onMouseDown={(e) => {
-                  // Prevent input blur before click
-                  e.preventDefault();
-                }}
-                onClick={() => void handleRetrieve(s)}
-              >
-                <div className="font-medium text-black dark:text-white">
-                  {s.name || s.place_formatted || "Unnamed"}
-                </div>
-                {s.place_formatted && (
-                  <div className="text-xs text-gray-600 dark:text-gray-400">
-                    {s.place_formatted}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+  return (
+    <div
+      className={`backdrop-blur-[232px] bg-[rgba(255,255,255,0.65)] border border-[rgba(255,255,255,0.65)] rounded-[24px] p-2 ${className}`}
+    >
+      <div className="flex flex-col gap-4">
+        {/* Search Input and Close Button */}
+        <div className="flex gap-2 items-center ">
+          <div className="flex-1 bg-white border border-[#b5b5b5] rounded-[1000px] h-[48px]">
+            <Input
+              ref={inputRef}
+              placeholder={placeholder}
+              value={query}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQuery(val);
+                setIsOpen(true);
+                debouncedSuggest(val);
+              }}
+              onFocus={() => {
+                if (query.length >= 2 && suggestions.length === 0) {
+                  debouncedSuggest(query);
+                }
+                setIsOpen(true);
+              }}
+              onKeyDown={handleKeyDown}
+              className="h-full rounded-[1000px] border-0 px-4 py-1 text-[16px] leading-[22px] text-[#313131] placeholder:text-[#7d7d7d] bg-transparent"
+            />
+          </div>
+          <Button
+            onClick={() => setShowSearch(false)}
+            className="w-10 h-10 rounded-[100px] border border-[#ededed] bg-white p-2"
+            aria-label="Close"
+          >
+            <svg
+              className="w-6 h-6 text-[#b5b5b5]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </Button>
         </div>
-      )}
+
+        {/* Recent Searches Section */}
+        {isOpen && suggestions.length > 0 && (
+          <div ref={listRef} className="flex flex-col">
+            <div role="listbox" className="max-h-64 overflow-y-auto">
+              {suggestions.map((s, idx) => {
+                const isActive = idx === activeIndex;
+                const id = s.id || s.mapbox_id || String(idx);
+                return (
+                  <div
+                    key={id}
+                    role="option"
+                    aria-selected={isActive}
+                    className={`flex flex-col gap-1 px-4 py-2 cursor-pointer ${
+                      isActive ? "bg-black/5" : "hover:bg-black/5"
+                    }`}
+                    onMouseEnter={() => setActiveIndex(idx)}
+                    onMouseDown={(e) => {
+                      // Prevent input blur before click
+                      e.preventDefault();
+                    }}
+                    onClick={() => void handleRetrieve(s)}
+                  >
+                    <div className="flex items-center">
+                      <p className="font-medium text-[#4f4f4f] text-[16px] leading-[16px] tracking-[-1.28px]">
+                        {s.name || s.place_formatted || "Unnamed"}
+                      </p>
+                    </div>
+                    {s.place_formatted && (
+                      <div className="flex gap-2 items-center">
+                        <svg
+                          className="w-6 h-6 text-[#b5b5b5]"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                        </svg>
+                        <p className="text-[#7d7d7d] text-[11px] leading-[16px] tracking-[0.44px] uppercase">
+                          {s.place_formatted}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
