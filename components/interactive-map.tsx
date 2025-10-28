@@ -2,16 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
-import { MapPin } from "lucide-react";
 import LocationSearch from "@/components/location-search";
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import MapNav from "@/components/mapnav";
+import MapCard from "@/components/map-card";
 
 interface MarkerData {
   latitude: number;
@@ -25,7 +23,20 @@ interface MarkerData {
 
 interface LocationFormData {
   name: string;
+  address: string;
   description: string;
+  locationImage: File | null;
+  checkInComment: string;
+  checkInImage: File | null;
+}
+
+interface SearchLocationData {
+  latitude: number;
+  longitude: number;
+  place_id: string;
+  display_name: string;
+  name: string;
+  placeFormatted?: string;
 }
 
 export default function InteractiveMap() {
@@ -46,8 +57,15 @@ export default function InteractiveMap() {
   const [isCreatingLocation, setIsCreatingLocation] = useState(false);
   const [formData, setFormData] = useState<LocationFormData>({
     name: "",
+    address: "",
     description: "",
+    locationImage: null,
+    checkInComment: "",
+    checkInImage: null,
   });
+  const [searchedLocation, setSearchedLocation] =
+    useState<SearchLocationData | null>(null);
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
 
   const mapRef = useRef<any>(null);
   const hasSetInitialLocationRef = useRef(false);
@@ -130,6 +148,9 @@ export default function InteractiveMap() {
       return;
     }
 
+    // Clear searched location when clicking on the map
+    setSearchedLocation(null);
+
     const { lngLat } = event;
     const longitude = lngLat.lng;
     const latitude = lngLat.lat;
@@ -155,7 +176,11 @@ export default function InteractiveMap() {
           setSelectedMarker(newMarker);
           setFormData({
             name: newMarker.name,
-            description: newMarker.display_name,
+            address: newMarker.display_name,
+            description: "",
+            locationImage: null,
+            checkInComment: "",
+            checkInImage: null,
           });
           setShowLocationForm(true);
         }
@@ -174,7 +199,11 @@ export default function InteractiveMap() {
       setSelectedMarker(newMarker);
       setFormData({
         name: newMarker.name,
-        description: newMarker.display_name,
+        address: newMarker.display_name,
+        description: "",
+        locationImage: null,
+        checkInComment: "",
+        checkInImage: null,
       });
       setShowLocationForm(true);
     }
@@ -187,7 +216,7 @@ export default function InteractiveMap() {
     name?: string;
     placeFormatted?: string;
   }) => {
-    const { longitude, latitude } = picked;
+    const { longitude, latitude, id, name, placeFormatted } = picked;
     setViewState({ longitude, latitude, zoom: 15 });
 
     // Open nearest existing marker if within 100m
@@ -223,16 +252,125 @@ export default function InteractiveMap() {
     if (nearest && nearestDist <= 100) {
       setSelectedMarker(nearest);
       setPopupInfo(nearest);
+      setSearchedLocation(null); // Clear searched location if marker found
+    } else {
+      // Create a temporary location from search
+      const searchLocation: SearchLocationData = {
+        latitude,
+        longitude,
+        place_id: id,
+        display_name: placeFormatted || name || "Unknown Location",
+        name: name || "Unknown Location",
+        placeFormatted: placeFormatted,
+      };
+      setSearchedLocation(searchLocation);
+      setSelectedMarker(null);
+      setPopupInfo(null);
     }
   };
 
   const handleMarkerClick = (marker: MarkerData) => {
     setPopupInfo(marker);
     setSelectedMarker(marker);
+    setSearchedLocation(null); // Clear searched location when clicking a marker
   };
 
-  const handleCreateLocation = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCheckIn = async () => {
+    if (!walletAddress) {
+      toast.error("Please connect your wallet to check in");
+      return;
+    }
+
+    const locationToCheckIn = popupInfo || searchedLocation;
+    if (!locationToCheckIn) return;
+
+    setIsCheckingIn(true);
+
+    try {
+      // Determine display name based on type
+      let displayName: string;
+      if (popupInfo) {
+        displayName = popupInfo.display_name;
+      } else if (searchedLocation) {
+        displayName = searchedLocation.display_name;
+      } else {
+        displayName = "";
+      }
+
+      const response = await fetch("/api/location-checkin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          walletAddress,
+          email: user?.email?.address,
+          username: userUsername,
+          locationData: {
+            place_id: locationToCheckIn.place_id,
+            display_name: displayName,
+            name: locationToCheckIn.name,
+            lat: locationToCheckIn.latitude.toString(),
+            lon: locationToCheckIn.longitude.toString(),
+            type: "location",
+          },
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          toast.info("You've already checked in at this location!");
+          setPopupInfo(null);
+          setSearchedLocation(null);
+          return;
+        }
+        throw new Error(result.error || "Failed to check in");
+      }
+
+      toast.success(
+        `Check-in successful! You earned ${result.pointsEarned || 100} points!`,
+      );
+
+      // Close the popups
+      setPopupInfo(null);
+      setSearchedLocation(null);
+      setSelectedMarker(null);
+    } catch (error) {
+      console.error("Error checking in:", error);
+      toast.error("Failed to check in: " + (error as Error).message);
+    } finally {
+      setIsCheckingIn(false);
+    }
+  };
+
+  const handleInitiateLocationCreation = async () => {
+    if (!searchedLocation) return;
+
+    // Set up for creating the location
+    const newMarker: MarkerData = {
+      latitude: searchedLocation.latitude,
+      longitude: searchedLocation.longitude,
+      place_id: searchedLocation.place_id,
+      display_name: searchedLocation.display_name,
+      name: searchedLocation.name,
+    };
+
+    setSelectedMarker(newMarker);
+    setFormData({
+      name: searchedLocation.name,
+      address: searchedLocation.display_name,
+      description: "",
+      locationImage: null,
+      checkInComment: "",
+      checkInImage: null,
+    });
+    setShowLocationForm(true);
+  };
+
+  const handleCreateLocation = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     if (!selectedMarker || !walletAddress) {
       toast.error("Please select a location and connect your wallet");
@@ -247,6 +385,36 @@ export default function InteractiveMap() {
     setIsCreatingLocation(true);
 
     try {
+      // Upload images if they exist
+      let locationImageUrl = "";
+      let checkInImageUrl = "";
+
+      if (formData.locationImage) {
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", formData.locationImage);
+        const uploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          body: uploadFormData,
+        });
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          locationImageUrl = uploadResult.url;
+        }
+      }
+
+      if (formData.checkInImage) {
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", formData.checkInImage);
+        const uploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          body: uploadFormData,
+        });
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          checkInImageUrl = uploadResult.url;
+        }
+      }
+
       // Create location and award points
       const response = await fetch("/api/locations", {
         method: "POST",
@@ -255,13 +423,15 @@ export default function InteractiveMap() {
         },
         body: JSON.stringify({
           place_id: selectedMarker.place_id,
-          display_name: formData.description || selectedMarker.display_name,
+          display_name: formData.address || selectedMarker.display_name,
           name: formData.name,
+          description: formData.description,
           lat: selectedMarker.latitude.toString(),
           lon: selectedMarker.longitude.toString(),
           type: "location",
           walletAddress: walletAddress,
           username: userUsername,
+          locationImage: locationImageUrl,
         }),
       });
 
@@ -283,16 +453,61 @@ export default function InteractiveMap() {
       const newPermanentMarker: MarkerData = {
         ...selectedMarker,
         name: formData.name,
-        display_name: formData.description || selectedMarker.display_name,
+        display_name: formData.address || selectedMarker.display_name,
         creator_wallet_address: walletAddress,
         creator_username: userUsername,
       };
 
       setMarkers((current) => [...current, newPermanentMarker]);
 
-      toast.success(
-        `Location created successfully! You earned ${result.pointsAwarded || 100} points!`,
-      );
+      // If user provided a check-in comment, check them in
+      if (formData.checkInComment.trim()) {
+        try {
+          const checkInResponse = await fetch("/api/location-checkin", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              walletAddress,
+              email: user?.email?.address,
+              username: userUsername,
+              locationData: {
+                place_id: selectedMarker.place_id,
+                display_name: formData.address || selectedMarker.display_name,
+                name: formData.name,
+                lat: selectedMarker.latitude.toString(),
+                lon: selectedMarker.longitude.toString(),
+                type: "location",
+              },
+              comment: formData.checkInComment,
+              imageUrl: checkInImageUrl,
+            }),
+          });
+
+          const checkInResult = await checkInResponse.json();
+
+          if (checkInResponse.ok) {
+            toast.success(
+              `Location created and check-in successful! You earned ${(result.pointsAwarded || 100) + (checkInResult.pointsEarned || 0)} points!`,
+            );
+          } else {
+            toast.success(
+              `Location created successfully! You earned ${result.pointsAwarded || 100} points!`,
+            );
+          }
+        } catch (checkInError) {
+          // If check-in fails, just log it but don't fail the whole operation
+          console.error("Check-in failed:", checkInError);
+          toast.success(
+            `Location created successfully! You earned ${result.pointsAwarded || 100} points!`,
+          );
+        }
+      } else {
+        toast.success(
+          `Location created successfully! You earned ${result.pointsAwarded || 100} points!`,
+        );
+      }
 
       handleCloseLocationForm();
     } catch (error) {
@@ -307,7 +522,14 @@ export default function InteractiveMap() {
     setShowLocationForm(false);
     setSelectedMarker(null);
     setPopupInfo(null);
-    setFormData({ name: "", description: "" });
+    setFormData({
+      name: "",
+      address: "",
+      description: "",
+      locationImage: null,
+      checkInComment: "",
+      checkInImage: null,
+    });
   };
 
   return (
@@ -369,33 +591,63 @@ export default function InteractiveMap() {
           </Marker>
         ))}
 
-        {/* Popup */}
+        {/* Popup for existing markers */}
         {popupInfo && (
           <Popup
             latitude={popupInfo.latitude}
             longitude={popupInfo.longitude}
-            onClose={() => setPopupInfo(null)}
-            closeButton={true}
+            onClose={() => {
+              setPopupInfo(null);
+              setSelectedMarker(null);
+            }}
+            closeButton={false}
             closeOnClick={false}
-            className="z-50"
+            className="z-50 [&>button]:hidden"
           >
-            <div className="bg-white rounded-2xl overflow-hidden shadow-lg p-3">
-              <h3 className="text-base font-semibold text-black whitespace-normal break-words leading-tight mb-2">
-                {popupInfo.name}
-              </h3>
-              <div className="flex items-center gap-1 text-[10px] tracking-wide uppercase text-gray-500">
-                <MapPin className="w-3 h-3 shrink-0" />
-                <span className="whitespace-normal break-words leading-tight">
-                  {popupInfo.display_name}
-                </span>
-              </div>
-              {popupInfo.creator_username && (
-                <div className="mt-2 text-xs text-gray-600">
-                  Created by: {popupInfo.creator_username}
-                </div>
-              )}
-            </div>
+            <MapCard
+              name={popupInfo.name}
+              address={popupInfo.display_name}
+              isExisting={true}
+              onAction={handleCheckIn}
+              onClose={() => {
+                setPopupInfo(null);
+                setSelectedMarker(null);
+              }}
+              isLoading={isCheckingIn}
+            />
           </Popup>
+        )}
+
+        {/* Popup for searched locations */}
+        {searchedLocation && !popupInfo && (
+          <Popup
+            latitude={searchedLocation.latitude}
+            longitude={searchedLocation.longitude}
+            onClose={() => setSearchedLocation(null)}
+            closeButton={false}
+            closeOnClick={false}
+            className="z-50 [&>button]:hidden"
+          >
+            <MapCard
+              name={searchedLocation.name}
+              address={searchedLocation.display_name}
+              isExisting={false}
+              onAction={handleInitiateLocationCreation}
+              onClose={() => setSearchedLocation(null)}
+              isLoading={false}
+            />
+          </Popup>
+        )}
+
+        {/* Temporary marker for searched locations */}
+        {searchedLocation && !popupInfo && (
+          <Marker
+            latitude={searchedLocation.latitude}
+            longitude={searchedLocation.longitude}
+            anchor="bottom"
+          >
+            <div className="w-5 h-5 rounded-full border-2 shadow-md bg-gray-400 border-white" />
+          </Marker>
         )}
       </Map>
 
@@ -406,93 +658,186 @@ export default function InteractiveMap() {
           if (!open) handleCloseLocationForm();
         }}
       >
-        <DialogContent className="w-full max-w-md p-0 sm:rounded-2xl">
-          <div className="bg-white rounded-2xl p-4 sm:p-6 pb-6 w-full mx-auto max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-inktrap font-bold text-black">
-                Add New Location
+        <DialogContent className="w-full max-w-md p-2 bg-transparent border-none shadow-none [&>button]:hidden">
+          <div className="bg-white rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
+            {/* Header with Back Button */}
+            <div className="bg-white flex items-center gap-4 px-4 py-3">
+              <button
+                onClick={handleCloseLocationForm}
+                className="bg-[#ededed] cursor-pointer flex items-center justify-center p-1 rounded-full size-8 hover:bg-[#e0e0e0] transition-colors"
+                aria-label="Back"
+              >
+                <svg
+                  className="w-4 h-4 text-[#b5b5b5]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <h2 className="text-base font-inktrap text-[#313131] tracking-[-1.28px]">
+                Create & Check In
               </h2>
             </div>
 
-            <form onSubmit={handleCreateLocation} className="space-y-4">
-              {/* Location Name */}
-              <div>
-                <Label
-                  htmlFor="name"
-                  className="text-sm font-inktrap text-gray-700"
-                >
-                  Location Name *
-                </Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="e.g., Central Park"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  className="mt-1"
-                  disabled={isCreatingLocation}
-                  maxLength={100}
-                />
-              </div>
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto">
+              <form onSubmit={handleCreateLocation} className="flex flex-col">
+                {/* Add Business Details Section */}
+                <div>
+                  <div className="p-5">
+                    <div className="flex flex-col gap-4">
+                      {/* Name Field */}
+                      <div className="flex flex-col gap-2">
+                        <label
+                          htmlFor="name"
+                          className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                        >
+                          Name
+                        </label>
+                        <Input
+                          id="name"
+                          type="text"
+                          placeholder="Enter location name"
+                          value={formData.name}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                          }
+                          className="border-[#7d7d7d] rounded-full px-4 py-4 h-auto"
+                          disabled={isCreatingLocation}
+                          maxLength={100}
+                        />
+                      </div>
 
-              {/* Description */}
-              <div>
-                <Label
-                  htmlFor="description"
-                  className="text-sm font-inktrap text-gray-700"
-                >
-                  Description
-                </Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe this location..."
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  className="mt-1 min-h-[80px]"
-                  disabled={isCreatingLocation}
-                  maxLength={500}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {formData.description.length}/500 characters
-                </p>
-              </div>
+                      {/* Address Field */}
+                      <div className="flex flex-col gap-2">
+                        <label
+                          htmlFor="address"
+                          className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                        >
+                          Address
+                        </label>
+                        <Input
+                          id="address"
+                          type="text"
+                          placeholder="Enter address"
+                          value={formData.address}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              address: e.target.value,
+                            }))
+                          }
+                          className="bg-[#ededed] border-[#ededed] rounded-full px-4 py-4 h-auto"
+                          disabled={isCreatingLocation}
+                          maxLength={200}
+                        />
+                      </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-sm text-blue-800">
-                  You&apos;ll earn <strong>100 points</strong> for adding this
-                  location!
-                </p>
-              </div>
+                      {/* Description Field */}
+                      <div className="flex flex-col gap-2">
+                        <label
+                          htmlFor="description"
+                          className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                        >
+                          Description
+                        </label>
+                        <Textarea
+                          id="description"
+                          placeholder="Add a description"
+                          value={formData.description}
+                          onChange={(e) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              description: e.target.value,
+                            }))
+                          }
+                          className="min-h-[100px] rounded-2xl px-4 py-3 border-[#7d7d7d]"
+                          disabled={isCreatingLocation}
+                          maxLength={500}
+                        />
+                      </div>
 
-              {/* Submit Buttons */}
-              <div className="flex gap-3 pt-4 pb-24 md:pb-0">
-                <Button
-                  type="button"
-                  variant="outline"
+                      {/* Image Upload */}
+                      <div className="flex flex-col gap-2">
+                        <label className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]">
+                          Image
+                        </label>
+                        <label
+                          htmlFor="locationImage"
+                          className="bg-[#ededed] border border-[#b5b5b5] border-dashed rounded-2xl flex flex-col items-center justify-center px-10 py-4 cursor-pointer hover:bg-[#e0e0e0] transition-colors"
+                        >
+                          <svg
+                            className="w-6 h-6 text-[#423333] mb-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                            />
+                          </svg>
+                          <p className="text-[11px] font-medium text-[#423333] uppercase tracking-[0.44px] text-center">
+                            Upload an image
+                          </p>
+                        </label>
+                        <input
+                          id="locationImage"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            setFormData((prev) => ({
+                              ...prev,
+                              locationImage: file || null,
+                            }));
+                          }}
+                          disabled={isCreatingLocation}
+                        />
+                        {formData.locationImage && (
+                          <p className="text-xs text-[#7d7d7d]">
+                            {formData.locationImage.name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            {/* Bottom Gradient with Submit Button */}
+            <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] border-t border-[#ededed] p-4">
+              <div className="flex w-full justify-between gap-4">
+                <button
                   onClick={handleCloseLocationForm}
-                  className="flex-1 h-16 rounded-full text-base"
-                  size="lg"
-                  disabled={isCreatingLocation}
+                  className="bg-[#ededed] hover:bg-[#e0e0e0] text-[#7d7d7d] rounded-full px-4 py-2 h-auto font-inktrap text-base tracking-[-1.28px] w-full"
                 >
                   Cancel
-                </Button>
-                <Button
+                </button>
+                <button
                   type="submit"
-                  className="flex-1 h-16 rounded-full text-base bg-black text-white hover:bg-black/90"
-                  size="lg"
+                  onClick={handleCreateLocation}
                   disabled={isCreatingLocation}
+                  className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors disabled:opacity-50 whitespace-nowrap w-full"
                 >
-                  {isCreatingLocation ? "Creating..." : "Add Location"}
-                </Button>
+                  {isCreatingLocation ? "Creating..." : "Check In"}
+                </button>
               </div>
-            </form>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -6,6 +6,19 @@
 /* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind utilities;
 
+.mapboxgl-popup-content {
+  background-color: transparent !important;
+  width: 299px !important;
+  height: auto !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
 @layer base {
   h1 {
     font-size: 2.4375rem; /* 39px */
@@ -70,7 +83,7 @@
 
   .title5 {
     font-size: 0.8125rem; /* 13px */
-    line-height: 1rem;    /* 16px */
+    line-height: 1rem; /* 16px */
     font-weight: 500;
     font-family: "Monument-Grotesk", sans-serif;
   }
