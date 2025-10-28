@@ -11,28 +11,30 @@
     font-size: 2.4375rem; /* 39px */
     line-height: 2.5rem; /* 40px */
     font-weight: 700;
-    font-family: "Pleasure-Standard-Regular", sans-serif;
+    font-family: "Pleasure", sans-serif;
   }
 
   h2 {
     font-size: 1.9375rem; /* 31px */
     line-height: 2rem; /* 32px */
-    font-weight: 700;
-    font-family: "Pleasure-Standard-Regular", sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.62px;
+    font-family: "Pleasure", sans-serif;
   }
 
   h3 {
     font-size: 1.5625rem; /* 25px */
     line-height: 1.75rem; /* 28px */
-    font-weight: 600;
-    font-family: "Pleasure-Standard-Regular", sans-serif;
+    letter-spacing: -0.5px;
+    font-weight: 500;
+    font-family: "Pleasure", sans-serif;
   }
 
   h4 {
-    font-size: 1rem; /* 16px */
-    line-height: 1rem; /* 16px */
-    font-weight: 600;
-    font-family: "Pleasure-Standard-Regular", sans-serif;
+    font-size: 1rem !important; /* 16px */
+    line-height: 1.5rem !important; /* 24px - better line height */
+    font-weight: 600 !important;
+    font-family: "Pleasure", sans-serif !important;
   }
 
   .title1 {
@@ -54,22 +56,40 @@
   .title3 {
     font-size: 1.25rem; /* 20px */
     line-height: 1.5rem; /* 24px */
-    font-weight: 600;
+    font-weight: 400;
+    letter-spacing: -0.4px;
     font-family: "Monument-Grotesk", sans-serif;
   }
 
   .title4 {
-    font-size: 0.8125rem; /* 13px */
+    font-size: 1rem; /* 13px */
     line-height: 1rem; /* 16px */
     font-weight: 400;
     font-family: "Monument-Grotesk", sans-serif;
+  }
+
+  .title5 {
+    font-size: 0.8125rem; /* 13px */
+    line-height: 1rem;    /* 16px */
+    font-weight: 500;
+    font-family: "Monument-Grotesk", sans-serif;
+  }
+
+  .title6 {
+    font-size: 2.3125rem; /* 37px */
+    font-style: normal;
+    line-height: 1.875rem; /* 30px */
+    font-weight: 700;
+    letter-spacing: -2.96px;
+    font-family: "Pleasure", sans-serif;
   }
 
   .display1 {
     font-size: 3.8125rem; /* 61px */
     line-height: 4rem; /* 64px */
     font-weight: 700;
-    font-family: "Inktrap-Regular", sans-serif;
+    font-family: "Pleasure", sans-serif;
+    letter-spacing: -4.88px;
   }
 
   .display2 {
@@ -107,6 +127,15 @@
     line-height: 1rem; /* 16px */
     font-weight: 400;
     font-family: "ABC-Monument-Grotesk", sans-serif;
+  }
+
+  .body {
+    font-size: 1rem;
+    line-height: 1.5rem; /* 24px */
+    font-weight: 700;
+    font-family: "Anonymous-Pro", sans-serif;
+    letter-spacing: -0.32px;
+    font-style: normal;
   }
 }
 
