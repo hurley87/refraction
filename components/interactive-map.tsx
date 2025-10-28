@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
-import { MapPin, Trophy } from "lucide-react";
+import { MapPin } from "lucide-react";
 import LocationSearch from "@/components/location-search";
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import ProfileMenu from "@/components/profile-menu";
-import Link from "next/link";
+import MapNav from "@/components/mapnav";
 
 interface MarkerData {
   latitude: number;
@@ -30,10 +29,9 @@ interface LocationFormData {
 }
 
 export default function InteractiveMap() {
-  const { user, login } = usePrivy();
+  const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
   const [userUsername, setUserUsername] = useState<string | null>(null);
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const [viewState, setViewState] = useState({
     longitude: -73.9442,
@@ -314,60 +312,10 @@ export default function InteractiveMap() {
 
   return (
     <div className="w-full h-full relative">
-      {/* Header */}
+      {/* MapNav Header */}
       <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/20 to-transparent">
         <div className="max-w-md w-full mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            {/* IRL Logo */}
-            <div className="w-[40px] h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center">
-              <Link href="/">
-                <img
-                  src="/home/IRL.png"
-                  alt="IRL"
-                  className="w-[27px] h-[14px]"
-                />
-              </Link>
-            </div>
-
-            {/* Right Side Buttons */}
-            <div className="flex items-center gap-2">
-              {/* Leaderboard Button */}
-              {user && (
-                <Link href="/leaderboard">
-                  <button
-                    className="bg-purple-600 hover:bg-purple-700 text-white rounded-full p-2 shadow-lg transition-colors"
-                    aria-label="Go to leaderboard"
-                  >
-                    <Trophy className="w-5 h-5" />
-                  </button>
-                </Link>
-              )}
-
-              {/* Profile Menu Button */}
-              {user ? (
-                <div className="flex items-center justify-end bg-[#4f4f4f] rounded-full px-2 py-2">
-                  <button
-                    style={{
-                      background:
-                        "linear-gradient(90deg, #2400FF 14.58%, #FA00FF 52.6%, #FF0000 86.46%)",
-                    }}
-                    onClick={() => setIsProfileMenuOpen(true)}
-                    className="flex items-center justify-center rounded-full w-6 h-6 transition-colors"
-                    aria-label="Open user menu"
-                  />
-                </div>
-              ) : (
-                <Button
-                  className="bg-white text-black text-lg hover:bg-white/80 justify-center font-inktrap rounded-full items-center"
-                  size="sm"
-                  onClick={login}
-                  style={{ width: "123px", height: "40px" }}
-                >
-                  Check In
-                </Button>
-              )}
-            </div>
-          </div>
+          <MapNav />
         </div>
       </div>
 
@@ -552,12 +500,6 @@ export default function InteractiveMap() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Profile Menu */}
-      <ProfileMenu
-        isOpen={isProfileMenuOpen}
-        onClose={() => setIsProfileMenuOpen(false)}
-      />
     </div>
   );
 }
