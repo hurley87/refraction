@@ -72,7 +72,7 @@ export default function MapCard({
           </div>
 
           {/* Action Section */}
-          <div className="content-stretch flex gap-5 items-center shrink-0 w-full pt-1">
+          <div className="flex justify-between gap-5 items-center shrink-0 w-full pt-1">
             {/* Status Label */}
             <p className="font-inktrap leading-4 relative text-[#b5b5b5] text-[11px] uppercase tracking-[0.44px] whitespace-nowrap">
               {isExisting ? "Location" : "No Location"}
