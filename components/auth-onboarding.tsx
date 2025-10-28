@@ -22,7 +22,7 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
   if (!user) {
     return (
       <div
-        className="h-screen w-full flex items-center justify-center p-6 overflow-hidden"
+        className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 overflow-hidden"
         style={{
           backgroundImage: "url('/bg-green.png')",
           backgroundColor: currentStep === 2 ? "#1a4d3a" : "transparent",
@@ -31,11 +31,11 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
           backgroundRepeat: "no-repeat",
         }}
       >
-        <div className="w-full max-w-md mx-auto flex flex-col items-center justify-center h-full">
+        <div className="w-full max-w-md mx-auto flex flex-col items-center justify-between h-fit py-6 sm:py-8">
           {currentStep === 1 && (
             <>
               {/* Map Image */}
-              <div className="rounded-[26px] overflow-hidden w-full aspect-square flex items-center justify-center mb-8 relative">
+              <div className="rounded-[26px] overflow-hidden w-full h-[calc(100vh-320px)] max-h-[400px] min-h-[320px] flex items-center justify-center mb-4 relative">
                 <img
                   src="/map-green.png"
                   alt="Map view"
@@ -80,9 +80,9 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
               </div>
 
               {/* Main Content */}
-              <div className="flex flex-col gap-8 items-center w-full">
+              <div className="flex flex-col gap-4 sm:gap-6 items-center w-full">
                 {/* Reward Card */}
-                <div className="bg-white/65 backdrop-blur-sm rounded-[26px] p-2 w-full">
+                <div className="bg-white/65 backdrop-blur-sm rounded-[26px] p-2 w-full flex-shrink-0">
                   <div className="rounded-[18px] p-3 flex flex-col gap-2">
                     {/* Header */}
                     <div className="flex items-center gap-2">
@@ -136,7 +136,7 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
           {currentStep === 2 && (
             <>
               {/* Map Image */}
-              <div className="rounded-[26px] overflow-hidden w-full aspect-square flex items-center justify-center mb-8 relative">
+              <div className="rounded-[26px] overflow-hidden w-full h-[calc(100vh-450px)] max-h-[350px] min-h-[280px] flex items-center justify-center mb-4 relative">
                 <img
                   src="/map-white.svg"
                   alt="Map view"
@@ -162,11 +162,11 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
               </div>
 
               {/* Main Content */}
-              <div className="flex flex-col gap-8 items-center w-full">
+              <div className="flex flex-col gap-4 sm:gap-6 items-center w-full">
                 {/* Headings */}
                 <div className="text-center">
                   <h1
-                    className="text-white font-pleasure text-[25px] font-medium leading-[28px] tracking-[-0.5px] mb-4"
+                    className="text-white font-pleasure text-[20px] sm:text-[25px] font-medium leading-[24px] sm:leading-[28px] tracking-[-0.5px] mb-3 sm:mb-4"
                     style={{
                       textShadow: "rgba(255,255,255,0.7) 0px 0px 16px",
                     }}
@@ -174,14 +174,14 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
                     Tag Your City
                   </h1>
                   <h2
-                    className="text-white font-pleasure text-[39px] font-medium leading-[40px] tracking-[-2.34px] mb-6"
+                    className="text-white font-pleasure text-[24px] sm:text-[39px] font-medium leading-[28px] sm:leading-[40px] tracking-[-1.2px] sm:tracking-[-2.34px] mb-4 sm:mb-6 whitespace-nowrap"
                     style={{
                       textShadow: "rgba(255,255,255,0.7) 0px 0px 16px",
                     }}
                   >
                     Earn Your First Points
                   </h2>
-                  <p className="text-white text-[16px] leading-[22px] tracking-[-0.48px] px-4">
+                  <p className="text-white text-[14px] sm:text-[16px] leading-[20px] sm:leading-[22px] tracking-[-0.36px] sm:tracking-[-0.48px] px-2 sm:px-4">
                     Share your city to verify your presence and join a global
                     network of creators, artists, and culture enthusiasts
                     building the future of experiences together.
