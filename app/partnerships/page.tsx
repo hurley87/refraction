@@ -594,11 +594,35 @@ export default function PartnershipsPage() {
   };
 
   const imageLogos = [
-  { src: "/images/socials/farcaster.svg", alt: "Company 1", href: "https://company1.com" },
-  { src: "/images/socials/twitter.svg", alt: "Company 2", href: "https://company2.com" },
-  { src: "/images/socials/telegram.svg", alt: "Company 2", href: "https://company2.com" },
-  { src: "/images/socials/instagram.svg", alt: "Company 2", href: "https://company2.com" },
-];
+    { src: "/logos/Allships logo white.png", alt: "Allships", href: "https://allships.com" },
+    { src: "/logos/Aptos_Primary_WHT.svg", alt: "Aptos", href: "https://aptoslabs.com" },
+    { src: "/logos/Base_lockup_white.svg", alt: "Base", href: "https://base.org" },
+    { src: "/logos/FWB-Lettermark.svg", alt: "FWB", href: "https://fwb.help" },
+    { src: "/logos/Galxe_Logo_Wordmark_White.png", alt: "Galxe", href: "https://galxe.com" },
+    { src: "/logos/LEDGER-WORDMARK-WHITE-RGB.png", alt: "Ledger", href: "https://ledger.com" },
+    { src: "/logos/Livepeer white logo.png", alt: "Livepeer", href: "https://livepeer.org" },
+    { src: "/logos/LUKSO_logo white.svg", alt: "Lukso", href: "https://lukso.network" },
+    { src: "/logos/Mutek white logo.png", alt: "Mutek", href: "https://mutek.org" },
+    { src: "/logos/Near white logo.png", alt: "Near", href: "https://near.org" },
+    { src: "/logos/objkt_logo_black.svg", alt: "Objkt", href: "https://objkt.com" },
+    { src: "/logos/Opensea white logo.png", alt: "OpenSea", href: "https://opensea.io" },
+    { src: "/logos/Polygon Primary light.png", alt: "Polygon", href: "https://polygon.technology" },
+    { src: "/logos/Public Records white logo.png", alt: "Public Records", href: "https://publicrecords.nyc" },
+    { src: "/logos/Rainbow Discoclub white logo.png", alt: "Rainbow Discoclub", href: "https://rainbowdiscoclub.com" },
+    { src: "/logos/Rarible-logo.svg", alt: "Rarible", href: "https://rarible.com" },
+    { src: "/logos/reown-logo-negative.svg", alt: "Reown", href: "https://reown.com" },
+    { src: "/logos/Resident Advisor white logo.png", alt: "Resident Advisor", href: "https://residentadvisor.net" },
+    { src: "/logos/Rihzome logo.png", alt: "Rihzome", href: "https://rihzome.com" },
+    { src: "/logos/Rodeo white logo.png", alt: "Rodeo", href: "https://rodeo.com" },
+    { src: "/logos/rug-radio-seeklogo white.svg", alt: "Rug Radio", href: "https://rug.fm" },
+    { src: "/logos/Serpentine white logo..png", alt: "Serpentine", href: "https://serpentinegalleries.org" },
+    { src: "/logos/Standard Time white logo.png", alt: "Standard Time", href: "https://standardtime.io" },
+    { src: "/logos/syndicate logo white.png", alt: "Syndicate", href: "https://syndicate.io" },
+    { src: "/logos/The Lot Radio white logo.png", alt: "The Lot Radio", href: "https://thelotradio.com" },
+    { src: "/logos/towns logo rainbow.svg", alt: "Towns", href: "https://towns.com" },
+    { src: "/logos/walletconnect white.svg", alt: "WalletConnect", href: "https://walletconnect.com" },
+    { src: "/logos/Zora Logo White.png", alt: "Zora", href: "https://zora.co" }
+  ];
 
 // Benefits data array
 const benefitsData = [
@@ -815,7 +839,7 @@ const benefitsData = [
           <LogoLoop
             {...({
               logos:  imageLogos,
-              speed: 80,
+              speed: 70,
               direction: "right",
               logoHeight: 48,
               gap: 40,
@@ -829,7 +853,7 @@ const benefitsData = [
             <LogoLoop
             {...({
               logos:  imageLogos,
-              speed: 80,
+              speed: 70,
               direction: "left",
               logoHeight: 48,
               gap: 40,

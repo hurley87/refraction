@@ -3,49 +3,10 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Header from "@/components/header";
+import eventsData from "@/data/events.json";
 
-// Sample event data
-const nextEvent = {
-  poster: "/events/nftnyc-aptos.png",
-  title: "IRL X Public Records",
-  date: "JUN 26 2025",
-  location: "NEW YORK, NY"
-};
-
-const futureEvents = [
-  {
-    id: 1,
-    poster: "/events/nftnyc-aptos.png",
-    title: "Digital Art Exhibition",
-    date: "JUL 15 2025",
-    location: "LOS ANGELES, CA",
-    type: "IRL"
-  },
-  {
-    id: 2,
-    poster: "/events/nftnyc-aptos.png",
-    title: "Virtual Music Festival",
-    date: "AUG 3 2025",
-    location: "ONLINE",
-    type: "ONLINE"
-  },
-  {
-    id: 3,
-    poster: "/events/nftnyc-aptos.png",
-    title: "Cultural Workshop Series",
-    date: "AUG 20 2025", 
-    location: "CHICAGO, IL",
-    type: "IRL"
-  },
-  {
-    id: 4,
-    poster: "/events/nftnyc-aptos.png",
-    title: "Blockchain Art Talk",
-    date: "SEP 5 2025",
-    location: "ONLINE", 
-    type: "ONLINE"
-  }
-];
+// Extract event data from JSON
+const { nextEvent, futureEvents } = eventsData;
 
 export default function EventsPage() {
   const [eventType, setEventType] = useState("IRL");
@@ -290,20 +251,13 @@ export default function EventsPage() {
               }}
               className="hover:bg-gray-50 transition-colors"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5 text-black"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 6h16M4 10h16M4 14h16M4 18h16"
-                />
-              </svg>
+              <Image
+                src="/events/filter.svg"
+                alt="filter"
+                width={20}
+                height={20}
+                className="w-5 h-5"
+              />
             </button>
           </div>
         </div>
