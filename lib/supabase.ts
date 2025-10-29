@@ -195,6 +195,8 @@ export type PlayerLocationCheckin = {
   points_earned: number;
   checkin_at?: string;
   created_at?: string;
+  comment?: string | null;
+  image_url?: string | null;
 };
 
 export type LeaderboardEntry = {

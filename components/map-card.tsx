@@ -61,13 +61,11 @@ export default function MapCard({
             </div>
 
             {/* Address */}
-            <div className="flex gap-2 items-start shrink-0 w-full">
-              <div className="flex gap-2 items-start shrink-0">
-                <MapPin className="w-4 h-4 text-[#7d7d7d] shrink-0 mt-0.5" />
-                <p className="font-inktrap leading-tight relative text-[#7d7d7d] text-[11px] uppercase tracking-[0.44px] break-words flex-1">
-                  {address}
-                </p>
-              </div>
+            <div className="flex gap-2 items-start w-full min-w-0">
+              <MapPin className="w-4 h-4 text-[#7d7d7d] mt-0.5 flex-shrink-0" />
+              <p className="font-inktrap leading-tight relative text-[#7d7d7d] text-[11px] uppercase tracking-[0.44px] break-words flex-1 min-w-0">
+                {address}
+              </p>
             </div>
           </div>
 

@@ -66,6 +66,9 @@ export default function InteractiveMap() {
   const [searchedLocation, setSearchedLocation] =
     useState<SearchLocationData | null>(null);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [checkInTarget, setCheckInTarget] = useState<MarkerData | null>(null);
+  const [checkInComment, setCheckInComment] = useState("");
 
   const mapRef = useRef<any>(null);
   const hasSetInitialLocationRef = useRef(false);
@@ -275,28 +278,37 @@ export default function InteractiveMap() {
     setSearchedLocation(null); // Clear searched location when clicking a marker
   };
 
+  const handleStartCheckIn = (marker: MarkerData) => {
+    if (!walletAddress) {
+      toast.error("Please connect your wallet to check in");
+      return;
+    }
+
+    setCheckInTarget(marker);
+    setCheckInComment("");
+    setShowCheckInModal(true);
+  };
+
+  const handleCloseCheckInModal = () => {
+    setShowCheckInModal(false);
+    setCheckInComment("");
+    setCheckInTarget(null);
+  };
+
   const handleCheckIn = async () => {
     if (!walletAddress) {
       toast.error("Please connect your wallet to check in");
       return;
     }
 
-    const locationToCheckIn = popupInfo || searchedLocation;
-    if (!locationToCheckIn) return;
+    if (!checkInTarget) {
+      toast.error("Select a location before checking in");
+      return;
+    }
 
     setIsCheckingIn(true);
 
     try {
-      // Determine display name based on type
-      let displayName: string;
-      if (popupInfo) {
-        displayName = popupInfo.display_name;
-      } else if (searchedLocation) {
-        displayName = searchedLocation.display_name;
-      } else {
-        displayName = "";
-      }
-
       const response = await fetch("/api/location-checkin", {
         method: "POST",
         headers: {
@@ -307,13 +319,14 @@ export default function InteractiveMap() {
           email: user?.email?.address,
           username: userUsername,
           locationData: {
-            place_id: locationToCheckIn.place_id,
-            display_name: displayName,
-            name: locationToCheckIn.name,
-            lat: locationToCheckIn.latitude.toString(),
-            lon: locationToCheckIn.longitude.toString(),
+            place_id: checkInTarget.place_id,
+            display_name: checkInTarget.display_name,
+            name: checkInTarget.name,
+            lat: checkInTarget.latitude.toString(),
+            lon: checkInTarget.longitude.toString(),
             type: "location",
           },
+          comment: checkInComment.trim() ? checkInComment.trim() : undefined,
         }),
       });
 
@@ -324,6 +337,7 @@ export default function InteractiveMap() {
           toast.info("You've already checked in at this location!");
           setPopupInfo(null);
           setSearchedLocation(null);
+          handleCloseCheckInModal();
           return;
         }
         throw new Error(result.error || "Failed to check in");
@@ -337,6 +351,7 @@ export default function InteractiveMap() {
       setPopupInfo(null);
       setSearchedLocation(null);
       setSelectedMarker(null);
+      handleCloseCheckInModal();
     } catch (error) {
       console.error("Error checking in:", error);
       toast.error("Failed to check in: " + (error as Error).message);
@@ -460,8 +475,10 @@ export default function InteractiveMap() {
 
       setMarkers((current) => [...current, newPermanentMarker]);
 
+      const trimmedComment = formData.checkInComment.trim();
+
       // If user provided a check-in comment, check them in
-      if (formData.checkInComment.trim()) {
+      if (trimmedComment) {
         try {
           const checkInResponse = await fetch("/api/location-checkin", {
             method: "POST",
@@ -480,7 +497,7 @@ export default function InteractiveMap() {
                 lon: selectedMarker.longitude.toString(),
                 type: "location",
               },
-              comment: formData.checkInComment,
+              comment: trimmedComment,
               imageUrl: checkInImageUrl,
             }),
           });
@@ -608,7 +625,7 @@ export default function InteractiveMap() {
               name={popupInfo.name}
               address={popupInfo.display_name}
               isExisting={true}
-              onAction={handleCheckIn}
+              onAction={() => handleStartCheckIn(popupInfo)}
               onClose={() => {
                 setPopupInfo(null);
                 setSelectedMarker(null);
@@ -650,6 +667,98 @@ export default function InteractiveMap() {
           </Marker>
         )}
       </Map>
+
+      {/* Check-In Dialog */}
+      <Dialog
+        open={showCheckInModal}
+        onOpenChange={(open) => {
+          if (!open) handleCloseCheckInModal();
+        }}
+      >
+        <DialogContent className="w-full max-w-md p-2 bg-transparent border-none shadow-none [&>button]:hidden">
+          <div className="bg-white rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="bg-white flex items-center gap-4 px-4 py-3">
+              <button
+                onClick={handleCloseCheckInModal}
+                className="bg-[#ededed] cursor-pointer flex items-center justify-center p-1 rounded-full size-8 hover:bg-[#e0e0e0] transition-colors disabled:opacity-50"
+                aria-label="Close"
+                disabled={isCheckingIn}
+              >
+                <svg
+                  className="w-4 h-4 text-[#b5b5b5]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <h2 className="text-base font-inktrap text-[#313131] tracking-[-1.28px]">
+                Check In
+              </h2>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5">
+              <div className="mb-5">
+                <h3 className="font-inktrap text-sm text-[#313131]">
+                  {checkInTarget?.name || "Selected Location"}
+                </h3>
+                <p className="font-inktrap text-[11px] uppercase tracking-[0.44px] text-[#7d7d7d] mt-1">
+                  {checkInTarget?.display_name}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="checkInComment"
+                  className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                >
+                  Comment (optional)
+                </label>
+                <Textarea
+                  id="checkInComment"
+                  value={checkInComment}
+                  onChange={(e) => setCheckInComment(e.target.value)}
+                  placeholder="Share a quick note about your visit"
+                  className="min-h-[120px] rounded-2xl px-4 py-3 border-[#7d7d7d]"
+                  maxLength={500}
+                  disabled={isCheckingIn}
+                />
+                <div className="flex justify-between text-[10px] text-[#b5b5b5] font-inktrap">
+                  <span>Keep it respectful and on-topic.</span>
+                  <span>{checkInComment.length}/500</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] border-t border-[#ededed] p-4">
+              <div className="flex w-full justify-between gap-4">
+                <button
+                  onClick={handleCloseCheckInModal}
+                  className="bg-[#ededed] hover:bg-[#e0e0e0] text-[#7d7d7d] rounded-full px-4 py-2 h-auto font-inktrap text-base tracking-[-1.28px] w-full disabled:opacity-50"
+                  disabled={isCheckingIn}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCheckIn}
+                  disabled={isCheckingIn || !checkInTarget}
+                  className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors disabled:opacity-50 whitespace-nowrap w-full"
+                  type="button"
+                >
+                  {isCheckingIn ? "Checking In..." : "Confirm Check In"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Location Form Dialog */}
       <Dialog

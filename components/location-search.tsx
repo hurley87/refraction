@@ -220,7 +220,13 @@ export default function LocationSearch({
             />
           </div>
           <Button
-            onClick={() => setShowSearch(false)}
+            onClick={() => {
+              setShowSearch(false);
+              setQuery("");
+              setSuggestions([]);
+              setIsOpen(false);
+              setActiveIndex(-1);
+            }}
             className="w-10 h-10 rounded-[100px] border border-[#ededed] bg-white p-2"
             aria-label="Close"
           >

@@ -13,7 +13,14 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { walletAddress, email, username, locationData } = body;
+    const {
+      walletAddress,
+      email,
+      username,
+      locationData,
+      comment,
+      imageUrl,
+    } = body;
 
     // Validate required fields
     if (!walletAddress || !locationData) {
@@ -58,6 +65,15 @@ export async function POST(request: NextRequest) {
 
     const location = await createOrGetLocation(locationInfo);
 
+    const sanitizedComment =
+      typeof comment === "string" && comment.trim().length > 0
+        ? comment.trim().slice(0, 500)
+        : undefined;
+    const sanitizedImageUrl =
+      typeof imageUrl === "string" && imageUrl.trim().length > 0
+        ? imageUrl.trim()
+        : undefined;
+
     // Check if user has already checked in at this location
     const existingCheckin = await checkUserLocationCheckin(
       player.id,
@@ -80,6 +96,8 @@ export async function POST(request: NextRequest) {
       location_id: location.id,
       points_earned: location.points_value,
       checkin_at: new Date().toISOString(),
+      comment: sanitizedComment,
+      image_url: sanitizedImageUrl,
     });
 
     // Update player points
