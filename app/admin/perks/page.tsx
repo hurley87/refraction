@@ -235,7 +235,11 @@ export default function AdminPerksPage() {
 
   const handleEdit = (perk: Perk) => {
     setEditingPerk(perk);
-    setFormData(perk);
+    setFormData({
+      ...perk,
+      // Normalize null to empty string for form consistency
+      end_date: perk.end_date ?? "",
+    });
     setIsDialogOpen(true);
   };
 
