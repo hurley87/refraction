@@ -288,8 +288,13 @@ function parseCSV(text: string): CSVRow[] {
     return [];
   }
 
-  // Parse header
-  const header = lines[0].split(",").map((h) => h.trim().toLowerCase());
+  // Detect delimiter and parse header
+  const headerLine = lines[0];
+  const delimiter = detectDelimiter(headerLine);
+  const header = headerLine
+    .split(delimiter)
+    .map((h) => h.trim().toLowerCase());
+  console.log("Parsed CSV header:", header, "using delimiter:", JSON.stringify(delimiter));
   const emailIndex = header.indexOf("email");
   const reasonIndex = header.indexOf("reason");
   const pointsIndex = header.indexOf("points");
@@ -304,7 +309,7 @@ function parseCSV(text: string): CSVRow[] {
     const line = lines[i];
     if (!line.trim()) continue;
 
-    const values = parseCSVLine(line);
+    const values = parseCSVLine(line, delimiter);
 
     rows.push({
       email: values[emailIndex]?.trim() || "",
@@ -316,8 +321,28 @@ function parseCSV(text: string): CSVRow[] {
   return rows;
 }
 
-// Helper to parse a CSV line with proper comma handling
-function parseCSVLine(line: string): string[] {
+// Helper: detect delimiter by choosing the most frequent candidate among ",", ";", and "\t"
+function detectDelimiter(line: string): string {
+  const candidates = [",", ";", "\t"] as const;
+  let best = candidates[0];
+  let bestCount = -1;
+  for (const cand of candidates) {
+    const count = (line.match(new RegExp(escapeForRegex(cand), "g")) || [])
+      .length;
+    if (count > bestCount) {
+      best = cand;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+function escapeForRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Helper to parse a CSV line with proper quote handling for the given delimiter
+function parseCSVLine(line: string, delimiter: string): string[] {
   const result: string[] = [];
   let current = "";
   let inQuotes = false;
@@ -327,7 +352,7 @@ function parseCSVLine(line: string): string[] {
 
     if (char === '"') {
       inQuotes = !inQuotes;
-    } else if (char === "," && !inQuotes) {
+    } else if (char === delimiter && !inQuotes) {
       result.push(current.trim());
       current = "";
     } else {
