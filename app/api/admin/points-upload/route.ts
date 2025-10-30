@@ -323,8 +323,8 @@ function parseCSV(text: string): CSVRow[] {
 
 // Helper: detect delimiter by choosing the most frequent candidate among ",", ";", and "\t"
 function detectDelimiter(line: string): string {
-  const candidates = [",", ";", "\t"] as const;
-  let best = candidates[0];
+  const candidates: string[] = [",", ";", "\t"];
+  let best: string = candidates[0];
   let bestCount = -1;
   for (const cand of candidates) {
     const count = (line.match(new RegExp(escapeForRegex(cand), "g")) || [])
