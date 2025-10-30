@@ -9,7 +9,6 @@ export async function PUT(
   try {
     const body = await request.json();
 
-    // Normalize empty strings to null for optional date fields
     const normalizedBody = {
       ...body,
       ...(body.end_date !== undefined && {
