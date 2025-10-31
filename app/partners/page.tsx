@@ -55,7 +55,7 @@ const PartnershipsHeader = () => {
 const carouselData = [
   {
     poster: "/partnerships/case-studies/nftnyc-aptos.png",
-    title: "IRL X Public Records",
+    title: "IRL x Public Records",
     date: "JUN 26 2025",
     location: "NEW YORK, NY",
     descriptionTitle: "A Frictionless Night Out",
@@ -351,13 +351,13 @@ const HowItWorksSection = () => {
   return (
     <div 
       ref={sectionRef}
-      className={`bg-black rounded-2xl p-6 mb-4 transition-all duration-1000 ease-out ${
+      className={`bg-black rounded-2xl p-6 mb-4 max-w-lg mx-auto transition-all duration-1000 ease-out ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
     >
-      <div className="title5 text-white font-monument-grotesk text-center mb-6">
+      <h2 className=" text-white font-pleasure text-center mb-6">
         HOW IRL WORKS
-      </div>
+      </h2>
       
       <div className="space-y-4">
         {/* Part 1 */}
@@ -561,17 +561,17 @@ const BenefitsContainer = ({
     <div className="flex w-full gap-4 align-text-bottom">
       {/* Column 1 */}
       <div className="flex-1 flex items-end">
-        <div className={`text-white ${leftSize} ${leftFont}`}>{leftText}</div>
+        <div className={`text-black ${leftSize} ${leftFont}`}>{leftText}</div>
       </div>
       {/* Column 2 */}
       <div className="flex-1 pr-2 text-right">
-        <div className={`text-white ${rightSize} ${rightFont} text-bottom`}>{rightText}</div>
+        <div className={`text-black ${rightSize} ${rightFont} text-bottom`}>{rightText}</div>
       </div>
     </div>
     
     {/* Row 2: Description */}
     <div className="w-full">
-      <p className="text-white title5 font-abc-monument-regular leading-relaxed">
+      <p className="text-black title5 font-abc-monument-regular leading-relaxed">
         {description}
       </p>
     </div>
@@ -626,7 +626,7 @@ export default function PartnershipsPage() {
 // Benefits data array
 const benefitsData = [
   {
-    leftText: "40000",
+    leftText: "40,000",
     rightText: "Cultural Innovators",
     leftFont: "font-inktrap",
     rightFont: "font-abc-monument-regular",
@@ -726,7 +726,7 @@ const benefitsData = [
                 </span>
                
               
-                <h3>IN TO</h3>
+                <h3>INTO</h3>
                 
                  <span style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}>
                    CUSTOMERS
@@ -824,7 +824,7 @@ const benefitsData = [
           <LogoLoop
             {...({
               logos:  imageLogos,
-              speed: 80,
+              speed: 50,
               direction: "left",
               logoHeight: 48,
               gap: 40,
@@ -838,7 +838,7 @@ const benefitsData = [
           <LogoLoop
             {...({
               logos:  imageLogos,
-              speed: 70,
+              speed: 50,
               direction: "right",
               logoHeight: 48,
               gap: 40,
@@ -849,43 +849,15 @@ const benefitsData = [
               ariaLabel: "Technology partners"
             } as any)}
           />
-            <LogoLoop
-            {...({
-              logos:  imageLogos,
-              speed: 70,
-              direction: "left",
-              logoHeight: 48,
-              gap: 40,
-              pauseOnHover: true,
-              scaleOnHover: true,
-              fadeOut: true,
-              fadeOutColor: "#000000",
-              ariaLabel: "Technology partners"
-            } as any)}
-          />
-          <LogoLoop
-            {...({
-              logos:  imageLogos,
-                speed: 80,
-              direction: "right",
-              logoHeight: 48,
-              gap: 40,
-              pauseOnHover: true,
-              scaleOnHover: true,
-              fadeOut: true,
-              fadeOutColor: "#000000",
-              ariaLabel: "Technology partners"
-            } as any)}
-          />
+   
+     
         </div>
       </div>
       <div style={{ height: "200px" }} />
       
       {/* Benefits Section Title */}
-      <div className="bg-black rounded-2xl p-6 mb-4">
-        <div className="title5 text-white font-monument-grotesk text-center mb-6">
-          BENEFITS
-        </div>
+      <div className="bg-black rounded-2xl p-6 mb-4 max-w-lg mx-auto">
+        
         
         <div className="font-bold text-white text-center">
           <h2 className="font-pleasure" style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}>Why Partners<br/> Join IRL</h2>
@@ -893,7 +865,7 @@ const benefitsData = [
       </div>
 
        {/* Benefits Section with Video Background */}
-      <div className="relative rounded-2xl overflow-hidden mb-4">
+      <div className="relative rounded-2xl overflow-hidden mb-4 max-w-lg mx-auto">
         {/* Video Background */}
         <video
           autoPlay
@@ -914,7 +886,7 @@ const benefitsData = [
         </video>
 
         {/* Content Overlay */}
-        <div className="relative z-10 p-4 sm:p-8 lg:p-16">
+        <div className="relative z-10 p-4 sm:p-8">
 
           {/* Benefits Containers */}
           {benefitsData.map((benefit, index) => (
@@ -937,9 +909,9 @@ const benefitsData = [
 
       {/* Case Studies Section */}
       <div className="bg-black rounded-2xl p-6 mb-4">
-        <div className="title5 text-white font-monument-grotesk text-center mb-6">
+        <h2 className=" text-white font-pleasure text-center mb-6">
           CASE STUDIES
-        </div>
+        </h2>
         
         <div className="w-full flex justify-center">
           <Carousel 
@@ -974,7 +946,7 @@ const benefitsData = [
                         alt={event.title}
                         width={277}
                         height={345}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     </div>
 
@@ -1027,7 +999,7 @@ const benefitsData = [
 
       {/* Next Steps Section */}
       <div 
-        className="relative rounded-2xl overflow-hidden mb-4"
+        className="relative rounded-2xl overflow-hidden mb-4 max-w-lg mx-auto"
         style={{ height: '836px' }}
       >
         {/* Video Background */}
@@ -1050,7 +1022,7 @@ const benefitsData = [
         </video>
 
         {/* Content Overlay */}
-        <div className="relative z-10 h-full flex items-center justify-center p-6 sm:p-8 lg:p-16">
+        <div className="relative z-10 h-full flex items-center justify-center p-6 sm:p-8">
           <div className="text-center space-y-6">
             {/* Row 1: Title */}
             <div className="display1 text-white font-inktrap" style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}>
