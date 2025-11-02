@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { Trophy, ChevronDown } from "lucide-react";
 import Image from "next/image";
-import Header from "./header";
+import MapNav from "./mapnav";
 import Link from "next/link";
 import { useLocationGame } from "@/hooks/useLocationGame";
 
@@ -215,234 +215,236 @@ export default function LeaderboardPage() {
         background:
           "linear-gradient(0deg, #61BFD1 0%, #EE91B7 26.92%, #FFE600 54.33%, #1BA351 100%)",
       }}
-      className="min-h-screen p-4 pb-0 font-grotesk"
+      className="min-h-screen p-4 pb-0 font-grotesk relative"
     >
       <div className="max-w-md mx-auto">
-        {/* Status Bar with Map Button */}
-        <div className="flex justify-between items-center">
-          <div className="flex-1">
-            <Header />
+        {/* Navigation */}
+        <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/20 to-transparent">
+          <div className="max-w-md w-full mx-auto px-4 py-4">
+            <MapNav />
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="px-0 pt-4 space-y-4">
-          {/* Your Place and Points Card */}
-          {currentUserAddress && (
-            <div className="bg-white/20 backdrop-blur-md rounded-2xl p-4 border border-white/30">
-              <div className="grid grid-cols-2 gap-6">
-                {/* Your Place */}
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Trophy className="w-4 h-4 text-white" />
-                    <p className="body-small text-white uppercase tracking-wide">
-                      Your Rank
-                    </p>
+        <div className="pt-12">
+          {/* Main Content */}
+          <div className="px-0 pt-4 space-y-4">
+            {/* Your Place and Points Card */}
+            {currentUserAddress && (
+              <div className="bg-white/20 backdrop-blur-md rounded-2xl p-4 border border-white/30">
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Your Place */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Trophy className="w-4 h-4 text-white" />
+                      <p className="body-small text-white uppercase tracking-wide">
+                        Your Rank
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {/* Your Rank Display */}
-                <div className="flex flex-col items-end">
-                  {isLoadingUserStats ? (
-                    <div className="w-16 h-8 bg-gray-200 animate-pulse rounded"></div>
-                  ) : userStats?.rank ? (
-                    <>
-                      <div className="flex items-baseline gap-1">
-                        <div className="flex items-baseline">
-                          <div className="display1 text-white font-inktrap">
-                            {userStats.rank}
+                  {/* Your Rank Display */}
+                  <div className="flex flex-col items-end">
+                    {isLoadingUserStats ? (
+                      <div className="w-16 h-8 bg-gray-200 animate-pulse rounded"></div>
+                    ) : userStats?.rank ? (
+                      <>
+                        <div className="flex items-baseline gap-1">
+                          <div className="flex items-baseline">
+                            <div className="display1 text-white font-inktrap">
+                              {userStats.rank}
+                            </div>
+                            <h3 className="text-white font-inktrap font-normal">
+                              {getOrdinalSuffix(userStats.rank)}
+                            </h3>
                           </div>
-                          <h3 className="text-white font-inktrap font-normal">
-                            {getOrdinalSuffix(userStats.rank)}
-                          </h3>
+                          <div className="w-[39px] h-[18px]">
+                            <Image
+                              src="/place.png"
+                              alt="Points"
+                              width={39}
+                              height={18}
+                            />
+                          </div>
                         </div>
-                        <div className="w-[39px] h-[18px]">
-                          <Image
-                            src="/place.png"
-                            alt="Points"
-                            width={39}
-                            height={18}
-                          />
+                        <div className="text-white body-small font-inktrap mt-1">
+                          {userStats.total_points.toLocaleString()} pts
                         </div>
-                      </div>
-                      <div className="text-white body-small font-inktrap mt-1">
-                        {userStats.total_points.toLocaleString()} pts
-                      </div>
-                    </>
-                  ) : (
-                    <span className="display1 text-white">?</span>
-                  )}
+                      </>
+                    ) : (
+                      <span className="display1 text-white">?</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Leaderboard Table Header */}
-
-          {/* Leaderboard Entries */}
-          <div className="space-y-1">
-            {/* Leaderboard Header - Sticky */}
-            <div className="sticky top-0 z-10 bg-white rounded-2xl p-4 shadow-sm">
-              <div className="grid grid-cols-[auto_1fr_auto] gap-4">
-                <span className="body-small  text-gray-600 uppercase tracking-wide">
-                  PLACE
-                </span>
-                <span className="body-small  text-gray-600 uppercase tracking-wide pl-2">
-                  NAME
-                </span>
-                <span className="body-small  text-gray-600 uppercase tracking-wide text-right">
-                  PTS
-                </span>
-              </div>
-            </div>
-
-            {/* Loading State */}
-            {isLeaderboardLoading && (
-              <>
-                {[...Array(10)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-gray-50 rounded-2xl p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center animate-pulse"
-                  >
-                    <div className="w-6 h-6 bg-gray-200 rounded"></div>
-                    <div className="w-20 h-4 bg-gray-200 rounded"></div>
-                    <div className="w-12 h-4 bg-gray-200 rounded ml-auto"></div>
-                  </div>
-                ))}
-              </>
             )}
 
-            {/* Leaderboard Entries */}
-            {!isLeaderboardLoading && (
-              <>
-                {extendedLeaderboard.length > 0 ? (
-                  extendedLeaderboard.map((entry: LeaderboardUser) => (
-                    <div
-                      key={entry.player_id}
-                      data-rank={entry.rank}
-                      className={`rounded-2xl p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center ${
-                        entry.wallet_address === currentUserAddress
-                          ? "bg-[#4F4F4F]"
-                          : "bg-white"
-                      }`}
-                    >
-                      {/* Rank */}
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ededed] body-small font-medium text-black">
-                          {entry.rank}
-                        </span>
-                      </div>
+            {/* Leaderboard Table Header */}
 
-                      {/* Name */}
-                      <div className="flex items-center gap-2 min-w-0 pl-5">
-                        <Link href={`/profiles/${entry.wallet_address}`}>
-                          <span
-                            className={`title4 truncate ${
+            {/* Leaderboard Entries */}
+            <div className="space-y-1">
+              {/* Leaderboard Header - Sticky */}
+              <div className="sticky top-0 z-10 bg-white rounded-2xl p-4 shadow-sm">
+                <div className="grid grid-cols-[auto_1fr_auto] gap-4">
+                  <span className="body-small  text-gray-600 uppercase tracking-wide">
+                    PLACE
+                  </span>
+                  <span className="body-small  text-gray-600 uppercase tracking-wide pl-2">
+                    NAME
+                  </span>
+                  <span className="body-small  text-gray-600 uppercase tracking-wide text-right">
+                    PTS
+                  </span>
+                </div>
+              </div>
+
+              {/* Loading State */}
+              {isLeaderboardLoading && (
+                <>
+                  {[...Array(10)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-gray-50 rounded-2xl p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center animate-pulse"
+                    >
+                      <div className="w-6 h-6 bg-gray-200 rounded"></div>
+                      <div className="w-20 h-4 bg-gray-200 rounded"></div>
+                      <div className="w-12 h-4 bg-gray-200 rounded ml-auto"></div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* Leaderboard Entries */}
+              {!isLeaderboardLoading && (
+                <>
+                  {extendedLeaderboard.length > 0 ? (
+                    extendedLeaderboard.map((entry: LeaderboardUser) => (
+                      <div
+                        key={entry.player_id}
+                        data-rank={entry.rank}
+                        className={`rounded-2xl p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center ${
+                          entry.wallet_address === currentUserAddress
+                            ? "bg-[#4F4F4F]"
+                            : "bg-white"
+                        }`}
+                      >
+                        {/* Rank */}
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ededed] body-small font-medium text-black">
+                            {entry.rank}
+                          </span>
+                        </div>
+
+                        {/* Name */}
+                        <div className="flex items-center gap-2 min-w-0 pl-5">
+                          <Link href={`/profiles/${entry.wallet_address}`}>
+                            <span
+                              className={`title4 truncate ${
+                                entry.wallet_address === currentUserAddress
+                                  ? "text-white"
+                                  : "text-black"
+                              }`}
+                            >
+                              {entry.username ||
+                                formatWalletAddress(entry.wallet_address)}
+                            </span>
+                          </Link>
+                        </div>
+
+                        {/* Points */}
+                        <div className="text-right">
+                          <div
+                            className={`body-medium ${
                               entry.wallet_address === currentUserAddress
                                 ? "text-white"
                                 : "text-black"
                             }`}
                           >
-                            {entry.username ||
-                              formatWalletAddress(entry.wallet_address)}
-                          </span>
-                        </Link>
-                      </div>
-
-                      {/* Points */}
-                      <div className="text-right">
-                        <div
-                          className={`body-medium ${
-                            entry.wallet_address === currentUserAddress
-                              ? "text-white"
-                              : "text-black"
-                          }`}
-                        >
-                          {entry.total_points.toLocaleString()}
+                            {entry.total_points.toLocaleString()}
+                          </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="bg-white rounded-2xl p-8 text-center">
+                      <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-600 font-inktrap">
+                        No players yet!
+                      </p>
+                      <p className="text-sm text-gray-500 font-inktrap">
+                        Be the first to check in and earn points
+                      </p>
                     </div>
-                  ))
-                ) : (
-                  <div className="bg-white rounded-2xl p-8 text-center">
-                    <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-600 font-inktrap">
-                      No players yet!
-                    </p>
-                    <p className="text-sm text-gray-500 font-inktrap">
-                      Be the first to check in and earn points
-                    </p>
+                  )}
+                </>
+              )}
+
+              {/* Loading More Indicator */}
+              {isLoadingMore && (
+                <div className="bg-white rounded-2xl p-4 flex justify-center">
+                  <div className="w-6 h-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                </div>
+              )}
+
+              {/* End of Data Indicator */}
+              {!hasMoreData && extendedLeaderboard.length > 0 && (
+                <div className="bg-white rounded-2xl p-4 text-center">
+                  <p className="text-gray-500 body-small">End of leaderboard</p>
+                </div>
+              )}
+            </div>
+
+            {/* Jump To User Button */}
+            {showJumpButton && userStats?.rank && (
+              <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
+                <button
+                  onClick={
+                    extendedLeaderboard.some(
+                      (entry) => entry.wallet_address === currentUserAddress,
+                    )
+                      ? hasJumpedToUser
+                        ? backToTop
+                        : jumpToUserRank
+                      : backToTop
+                  }
+                  className="bg-[#4f4f4f] hover:bg-[#000000] text-white rounded-full px-4 py-2 shadow-lg transition-colors body-small uppercase tracking-wide flex items-center gap-3"
+                >
+                  {/* User Avatar */}
+                  <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
+                    {currentUsername || user?.email ? (
+                      <span className="text-gray-600 text-xs font-medium">
+                        {(currentUsername || user?.email?.address || "?")
+                          .charAt(0)
+                          .toUpperCase()}
+                      </span>
+                    ) : (
+                      <span className="text-gray-600 text-xs">?</span>
+                    )}
                   </div>
-                )}
-              </>
-            )}
 
-            {/* Loading More Indicator */}
-            {isLoadingMore && (
-              <div className="bg-white rounded-2xl p-4 flex justify-center">
-                <div className="w-6 h-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
-              </div>
-            )}
+                  <span>
+                    {extendedLeaderboard.some(
+                      (entry) => entry.wallet_address === currentUserAddress,
+                    )
+                      ? hasJumpedToUser
+                        ? "Back To Top"
+                        : "Jump To Your Place"
+                      : "Back To Top"}
+                  </span>
 
-            {/* End of Data Indicator */}
-            {!hasMoreData && extendedLeaderboard.length > 0 && (
-              <div className="bg-white rounded-2xl p-4 text-center">
-                <p className="text-gray-500 body-small">End of leaderboard</p>
+                  {/* Arrow */}
+                  <div className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center">
+                    {extendedLeaderboard.some(
+                      (entry) => entry.wallet_address === currentUserAddress,
+                    ) && !hasJumpedToUser ? (
+                      <ChevronDown className="w-3 h-3 text-white" />
+                    ) : (
+                      <ChevronDown className="w-3 h-3 text-white rotate-180" />
+                    )}
+                  </div>
+                </button>
               </div>
             )}
           </div>
-
-          {/* Jump To User Button */}
-          {showJumpButton && userStats?.rank && (
-            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
-              <button
-                onClick={
-                  extendedLeaderboard.some(
-                    (entry) => entry.wallet_address === currentUserAddress,
-                  )
-                    ? hasJumpedToUser
-                      ? backToTop
-                      : jumpToUserRank
-                    : backToTop
-                }
-                className="bg-[#4f4f4f] hover:bg-[#000000] text-white rounded-full px-4 py-2 shadow-lg transition-colors body-small uppercase tracking-wide flex items-center gap-3"
-              >
-                {/* User Avatar */}
-                <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
-                  {currentUsername || user?.email ? (
-                    <span className="text-gray-600 text-xs font-medium">
-                      {(currentUsername || user?.email?.address || "?")
-                        .charAt(0)
-                        .toUpperCase()}
-                    </span>
-                  ) : (
-                    <span className="text-gray-600 text-xs">?</span>
-                  )}
-                </div>
-
-                <span>
-                  {extendedLeaderboard.some(
-                    (entry) => entry.wallet_address === currentUserAddress,
-                  )
-                    ? hasJumpedToUser
-                      ? "Back To Top"
-                      : "Jump To Your Place"
-                    : "Back To Top"}
-                </span>
-
-                {/* Arrow */}
-                <div className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center">
-                  {extendedLeaderboard.some(
-                    (entry) => entry.wallet_address === currentUserAddress,
-                  ) && !hasJumpedToUser ? (
-                    <ChevronDown className="w-3 h-3 text-white" />
-                  ) : (
-                    <ChevronDown className="w-3 h-3 text-white rotate-180" />
-                  )}
-                </div>
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>

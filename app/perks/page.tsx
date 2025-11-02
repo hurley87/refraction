@@ -5,10 +5,10 @@ import { useQuery } from "@tanstack/react-query";
 import { type Perk } from "@/lib/supabase";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
-import Header from "@/components/header";
 import { Tag, Clock, MapPin, ExternalLink, Gift } from "lucide-react";
 
 import { useState, useEffect } from "react";
+import MapNav from "@/components/mapnav";
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {
@@ -146,7 +146,7 @@ export default function PerksPage() {
     >
       <div className="min-h-screen max-w-lg mx-auto">
         {/* Status Bar */}
-        <Header />
+        <MapNav />
 
         {/* Perks Header */}
         <div className="px-0 pt-8 mb-6">
