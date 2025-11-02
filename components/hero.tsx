@@ -77,7 +77,7 @@ export default function Hero() {
               textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
             }}
           >
-            Subtitle about app
+            Music, Art, Events, Access Worldwide
           </p>
         </div>
 
