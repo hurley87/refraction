@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import Image from "next/image";
@@ -26,6 +27,7 @@ export default function NavigationMenu({
   const { logout } = usePrivy();
   const router = useRouter();
   const pathname = usePathname();
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
 
   // Define menu items with their routes
   const menuItems: MenuItem[] = [
@@ -42,14 +44,36 @@ export default function NavigationMenu({
     pathname === "/" || pathname === "/game" ? "/game" : pathname;
 
   const handleNavigate = (path: string) => {
+    if (pendingPath) return;
+
+    if (pathname === path) {
+      onClose();
+      return;
+    }
+
+    setPendingPath(path);
     router.push(path);
-    onClose();
   };
 
   const handleLogout = () => {
     logout();
     onClose();
   };
+
+  useEffect(() => {
+    if (!pendingPath) return;
+
+    if (pathname === pendingPath) {
+      setPendingPath(null);
+      onClose();
+    }
+  }, [pathname, pendingPath, onClose, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen && pendingPath) {
+      setPendingPath(null);
+    }
+  }, [isOpen, pendingPath]);
 
   if (!isOpen) return null;
 
@@ -97,13 +121,18 @@ export default function NavigationMenu({
         {/* Menu Items */}
         {menuItems.map((item, index) => {
           const isActive = activePath === item.path;
+          const isPending = pendingPath === item.path;
           const topPosition = 8 + 44 + index * 60; // 8px top padding + 44px for close button + 4px gap, then 60px spacing per item
 
           return (
             <button
               key={item.path}
+              type="button"
               onClick={() => handleNavigate(item.path)}
-              className={`absolute bg-white box-border flex h-[56px] items-center justify-between pl-[16px] pr-[24px] py-[19px] rounded-[24px] w-full hover:bg-gray-50 transition-colors left-0 ${
+              aria-busy={isPending || undefined}
+              className={`absolute bg-white box-border flex h-[56px] items-center justify-between pl-[16px] pr-[24px] py-[19px] rounded-[24px] w-full hover:bg-gray-50 transition-colors ${
+                pendingPath ? "opacity-70" : ""
+              } left-0 ${
                 isActive ? "border-[3px] border-[#db85a8]" : "border-none"
               }`}
               style={{ top: `${topPosition}px` }}
@@ -111,7 +140,13 @@ export default function NavigationMenu({
               <p className="basis-0 font-inktrap font-medium grow leading-[28px] min-h-px min-w-px not-italic relative shrink-0 text-[#313131] text-[25px] tracking-[-0.5px]">
                 {item.label}
               </p>
-              {!isActive && (
+              {isPending && (
+                <div className="overflow-clip relative shrink-0 size-[24px] flex items-center justify-center">
+                  <span className="sr-only">Navigating to {item.label}</span>
+                  <span className="size-5 animate-spin rounded-full border-[3px] border-[#db85a8]/40 border-t-[#db85a8]" />
+                </div>
+              )}
+              {!isActive && !isPending && (
                 <div className="overflow-clip relative shrink-0 size-[24px] flex items-center justify-center">
                   <Image
                     src="/home/arrow-right.svg"
