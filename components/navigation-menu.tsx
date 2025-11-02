@@ -64,7 +64,7 @@ export default function NavigationMenu({
       }}
     >
       <div
-        className="fixed top-0 left-1/2 transform -translate-x-1/2 w-[377px] pt-[8px]"
+        className="fixed top-0 left-1/2 transform -translate-x-1/2 w-full max-w-lg pt-[8px]"
         style={{
           height: `${8 + 44 + menuItems.length * 60 + 60}px`,
         }}
@@ -72,7 +72,7 @@ export default function NavigationMenu({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute bg-white border border-[#ededed] h-[40px] rounded-[24px] w-[377px] flex items-center justify-center hover:bg-gray-50 transition-colors top-[8px] left-0"
+          className="absolute bg-white border border-[#ededed] h-[40px] rounded-[24px] w-full flex items-center justify-center hover:bg-gray-50 transition-colors top-[8px] left-0"
           aria-label="Close menu"
         >
           <div className="relative shrink-0 size-[24px] flex items-center justify-center">
@@ -103,7 +103,7 @@ export default function NavigationMenu({
             <button
               key={item.path}
               onClick={() => handleNavigate(item.path)}
-              className={`absolute bg-white box-border flex h-[56px] items-center justify-between pl-[16px] pr-[24px] py-[19px] rounded-[24px] w-[377px] hover:bg-gray-50 transition-colors left-0 ${
+              className={`absolute bg-white box-border flex h-[56px] items-center justify-between pl-[16px] pr-[24px] py-[19px] rounded-[24px] w-full hover:bg-gray-50 transition-colors left-0 ${
                 isActive ? "border-[3px] border-[#db85a8]" : "border-none"
               }`}
               style={{ top: `${topPosition}px` }}
@@ -129,7 +129,7 @@ export default function NavigationMenu({
         {/* Log Out Button */}
         <button
           onClick={handleLogout}
-          className="absolute bg-[#b5b5b5] box-border flex h-[56px] items-center justify-between pl-[16px] pr-[24px] py-[8px] rounded-[26px] w-[377px] hover:bg-[#a0a0a0] transition-colors left-0"
+          className="absolute bg-[#b5b5b5] box-border flex h-[56px] items-center justify-between pl-[16px] pr-[24px] py-[8px] rounded-[26px] w-full hover:bg-[#a0a0a0] transition-colors left-0"
           style={{ top: `${8 + 44 + menuItems.length * 60}px` }}
         >
           <p className="font-inktrap font-medium leading-[28px] relative shrink-0 text-[#313131] text-[25px] text-nowrap tracking-[-0.5px] whitespace-pre">
