@@ -59,8 +59,8 @@ const carouselData = [
     title: "IRL x Public Records",
     date: "JUN 26 2025",
     location: "NEW YORK, NY",
-    descriptionTitle: "A Frictionless Night Out",
-    description: "IRL Partnered with REOWN to elevate event access and engagement at Public Records. Guests checked in on the IRL platform for free entry and drinks, then explored the art exhibition through a digital surface that rewarded discovery with IRL points.",
+    descriptionTitle: "Enter, Explore, Earn",
+    description: "RESET at Public Records showed how IRL connects culture to participation. Guests checked in via IRL for entry and a welcome drink, then earned points by scanning artworks placed throughout the venue — all while artists like Ash Lauryn, INVT, and Kristine Barilli soundtracked the night.",
     stats: [
       {
         value: "1K+",
@@ -81,8 +81,8 @@ const carouselData = [
     title: "IRL X Mutek Village Numérique",
     date: "AUG 19-25 2025",
     location: "MONTREAL, QC",
-    descriptionTitle: "From Gallery To Game",
-    description: "IRL transformed Mutek's Village Numerique digital art circuit in to a citywide scavenger hunt, rewarding the most engaged festival goers for their participation. Attendees who completed the circuit were entered to win 2026 Mutek tickets — boosting exploration , participation, and audience excitement.",
+    descriptionTitle: "Mapping Art Into Movement",
+    description: "At MUTEK&apos;s Village Numérique, IRL transformed a city-wide digital art circuit into an interactive scavenger hunt. Audiences checked in at five installation sites using the IRL web app, collecting points toward cultural rewards and a chance to win a MUTEK 2026 passport. Featured works included pieces by Iregular, Ubisoft, Victor Drouin Trempe, Danny Perreault, Fig 55, and more.",
     stats: [
       {
         value: "47K",
