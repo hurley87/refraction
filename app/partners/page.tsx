@@ -832,7 +832,7 @@ const benefitsData = [
               pauseOnHover: true,
               scaleOnHover: true,
               fadeOut: true,
-              fadeOutColor: "#000000",
+              fadeOutColor: "#131313",
               ariaLabel: "Technology partners"
             } as any)}
           />
@@ -846,7 +846,7 @@ const benefitsData = [
               pauseOnHover: true,
               scaleOnHover: true,
               fadeOut: true,
-              fadeOutColor: "#000000",
+              fadeOutColor: "#131313",
               ariaLabel: "Technology partners"
             } as any)}
           />
