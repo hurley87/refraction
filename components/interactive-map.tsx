@@ -19,6 +19,7 @@ interface MarkerData {
   name: string;
   creator_wallet_address?: string | null;
   creator_username?: string | null;
+  imageUrl?: string | null;
 }
 
 interface LocationFormData {
@@ -134,6 +135,7 @@ export default function InteractiveMap() {
             name: loc.name,
             creator_wallet_address: loc.creator_wallet_address ?? null,
             creator_username: loc.creator_username ?? null,
+            imageUrl: loc.coin_image_url ?? null,
           }),
         );
         setMarkers(dbMarkers);
@@ -397,6 +399,11 @@ export default function InteractiveMap() {
       return;
     }
 
+    if (!formData.locationImage) {
+      toast.error("Location image is required");
+      return;
+    }
+
     setIsCreatingLocation(true);
 
     try {
@@ -411,9 +418,17 @@ export default function InteractiveMap() {
           method: "POST",
           body: uploadFormData,
         });
-        if (uploadResponse.ok) {
-          const uploadResult = await uploadResponse.json();
-          locationImageUrl = uploadResult.url;
+        if (!uploadResponse.ok) {
+          const errorResult = await uploadResponse.json().catch(() => ({}));
+          throw new Error(
+            errorResult.error ||
+              "Failed to upload location image. Please try again.",
+          );
+        }
+        const uploadResult = await uploadResponse.json();
+        locationImageUrl = uploadResult.url;
+        if (!locationImageUrl) {
+          throw new Error("Image upload succeeded but no URL was returned");
         }
       }
 
@@ -471,6 +486,7 @@ export default function InteractiveMap() {
         display_name: formData.address || selectedMarker.display_name,
         creator_wallet_address: walletAddress,
         creator_username: userUsername,
+        imageUrl: locationImageUrl || null,
       };
 
       setMarkers((current) => [...current, newPermanentMarker]);
@@ -598,12 +614,86 @@ export default function InteractiveMap() {
               aria-label={`Marker at ${marker.name}`}
             >
               <div
-                className={`w-5 h-5 rounded-full border-2 shadow-md ${
+                className={`relative transition-all ${
                   selectedMarker?.place_id === marker.place_id
-                    ? "bg-green-500 border-white"
-                    : "bg-blue-500 border-white"
+                    ? "scale-110"
+                    : ""
                 }`}
-              />
+                style={{ width: "51px", height: "65px" }}
+              >
+                {/* SVG Pin Background */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="51"
+                  height="65"
+                  viewBox="0 0 51 65"
+                  fill="none"
+                  className="absolute inset-0"
+                >
+                  <g filter="url(#filter0_d_7557_31214)">
+                    <path
+                      d="M41.2 16.6438C41.2 25.836 25.9572 45 25.2 45C24.4429 45 9.20001 25.836 9.20001 16.6438C9.20001 7.4517 16.3635 0 25.2 0C34.0366 0 41.2 7.4517 41.2 16.6438Z"
+                      fill="white"
+                    />
+                    <path
+                      d="M25.2 0.5C33.7419 0.5 40.6999 7.70892 40.7 16.6436C40.7 18.8277 39.7872 21.6669 38.3533 24.7412C36.9263 27.8007 35.0112 31.0358 33.0662 33.9941C31.1221 36.9512 29.1546 39.6224 27.6277 41.5518C26.864 42.5168 26.2136 43.2921 25.7342 43.8232C25.5143 44.0669 25.3343 44.2527 25.2 44.3809C25.0657 44.2527 24.8858 44.0669 24.6658 43.8232C24.1864 43.2921 23.536 42.5168 22.7723 41.5518C21.2454 39.6224 19.2779 36.9512 17.3338 33.9941C15.3888 31.0358 13.4737 27.8007 12.0467 24.7412C10.6128 21.6669 9.70001 18.8277 9.70001 16.6436C9.70016 7.70892 16.6581 0.5 25.2 0.5Z"
+                      stroke="white"
+                    />
+                  </g>
+                  <defs>
+                    <filter
+                      id="filter0_d_7557_31214"
+                      x="0"
+                      y="0"
+                      width="50.4"
+                      height="64.2"
+                      filterUnits="userSpaceOnUse"
+                      colorInterpolationFilters="sRGB"
+                    >
+                      <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                      <feColorMatrix
+                        in="SourceAlpha"
+                        type="matrix"
+                        values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                        result="hardAlpha"
+                      />
+                      <feOffset dy="10" />
+                      <feGaussianBlur stdDeviation="4.6" />
+                      <feComposite in2="hardAlpha" operator="out" />
+                      <feColorMatrix
+                        type="matrix"
+                        values="0 0 0 0 0.4 0 0 0 0 0.835294 0 0 0 0 0.458824 0 0 0 1 0"
+                      />
+                      <feBlend
+                        mode="normal"
+                        in2="BackgroundImageFix"
+                        result="effect1_dropShadow_7557_31214"
+                      />
+                      <feBlend
+                        mode="normal"
+                        in="SourceGraphic"
+                        in2="effect1_dropShadow_7557_31214"
+                        result="shape"
+                      />
+                    </filter>
+                  </defs>
+                </svg>
+                {/* Image inside pin */}
+                {marker.imageUrl && (
+                  <img
+                    src={marker.imageUrl}
+                    alt={marker.name}
+                    className="absolute rounded-full object-cover"
+                    style={{
+                      width: "28px",
+                      height: "28px",
+                      top: "4px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                    }}
+                  />
+                )}
+              </div>
             </button>
           </Marker>
         ))}
@@ -631,6 +721,7 @@ export default function InteractiveMap() {
                 setSelectedMarker(null);
               }}
               isLoading={isCheckingIn}
+              imageUrl={popupInfo.imageUrl}
             />
           </Popup>
         )}
@@ -663,7 +754,7 @@ export default function InteractiveMap() {
             longitude={searchedLocation.longitude}
             anchor="bottom"
           >
-            <div className="w-5 h-5 rounded-full border-2 shadow-md bg-gray-400 border-white" />
+            <div className="w-8 h-8 rounded-full border-2 shadow-md bg-yellow-400 border-white animate-pulse" />
           </Marker>
         )}
       </Map>
@@ -808,7 +899,7 @@ export default function InteractiveMap() {
                           htmlFor="name"
                           className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
                         >
-                          Name
+                          Name <span className="text-red-500">*</span>
                         </label>
                         <Input
                           id="name"
@@ -824,6 +915,7 @@ export default function InteractiveMap() {
                           className="border-[#7d7d7d] rounded-full px-4 py-4 h-auto"
                           disabled={isCreatingLocation}
                           maxLength={100}
+                          required
                         />
                       </div>
 
@@ -879,7 +971,7 @@ export default function InteractiveMap() {
                       {/* Image Upload */}
                       <div className="flex flex-col gap-2">
                         <label className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]">
-                          Image
+                          Image <span className="text-red-500">*</span>
                         </label>
                         <label
                           htmlFor="locationImage"
@@ -899,7 +991,7 @@ export default function InteractiveMap() {
                             />
                           </svg>
                           <p className="text-[11px] font-medium text-[#423333] uppercase tracking-[0.44px] text-center">
-                            Upload an image
+                            Upload an image (Required)
                           </p>
                         </label>
                         <input
@@ -915,6 +1007,7 @@ export default function InteractiveMap() {
                             }));
                           }}
                           disabled={isCreatingLocation}
+                          required
                         />
                         {formData.locationImage && (
                           <p className="text-xs text-[#7d7d7d]">

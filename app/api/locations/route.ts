@@ -6,12 +6,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const walletAddress = searchParams.get("walletAddress");
 
-    // Base query
+    // Base query - only return locations with images
     const query = supabase
       .from("locations")
       .select(
         "id, name, display_name, latitude, longitude, place_id, points_value, type, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username",
-      );
+      )
+      .not("coin_image_url", "is", null);
 
     // If filtering by player's check-ins, join through player_location_checkins
     if (walletAddress) {
@@ -32,12 +33,13 @@ export async function GET(request: NextRequest) {
         .from("player_location_checkins")
         .select(
           `
-          locations (
+          locations!inner (
             id, name, display_name, latitude, longitude, place_id, points_value, type, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username
           )
         `,
         )
-        .eq("player_id", player.id);
+        .eq("player_id", player.id)
+        .not("locations.coin_image_url", "is", null);
 
       if (error) throw error;
 
@@ -87,12 +89,25 @@ export async function POST(request: NextRequest) {
       type,
       walletAddress,
       username,
+      locationImage,
     } = body;
 
     // Validate required fields
     if (!place_id || !display_name || !name || !lat || !lon || !walletAddress) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 },
+      );
+    }
+
+    // Validate that locationImage is provided (required since GET endpoint filters by it)
+    if (
+      !locationImage ||
+      typeof locationImage !== "string" ||
+      locationImage.trim() === ""
+    ) {
+      return NextResponse.json(
+        { error: "Location image is required" },
         { status: 400 },
       );
     }
@@ -131,6 +146,7 @@ export async function POST(request: NextRequest) {
         points_value: 100,
         creator_wallet_address: walletAddress,
         creator_username: username || null,
+        coin_image_url: locationImage || null,
         context: JSON.stringify({
           created_at: new Date().toISOString(),
         }),
