@@ -207,12 +207,12 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
         <div className="flex-1 flex flex-col justify-start px-4 pb-4 gap-2 min-h-0">
           <div className="w-full bg-white overflow-y-auto rounded-3xl border border-gray-200 p-4 flex-1">
             {/* Header */}
-            <div className="w-full sm:max-w-sm">
+            <div className="w-full ">
               <div className="text-black body-small uppercase">PROFILE</div>
             </div>
 
             {/* Avatar Section */}
-            <div className="w-full sm:max-w-sm flex flex-col items-center space-y-4">
+            <div className="w-full  flex flex-col items-center space-y-4">
               <div className="relative">
                 <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                   {profile.profile_picture_url ? (
@@ -242,7 +242,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
             </div>
 
             {/* Form Fields */}
-            <div className="w-full sm:max-w-sm space-y-4">
+            <div className="w-full  space-y-4">
               {/* Email */}
               <div className="space-y-2">
                 <Label
@@ -421,7 +421,7 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
             </div>
 
             {/* Log Out Button */}
-            <div className="w-full sm:max-w-sm mt-8">
+            <div className="w-full  mt-8">
               <button
                 onClick={() => {
                   logout();
