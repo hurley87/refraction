@@ -341,7 +341,7 @@ export default function Auth({ children }: AuthProps) {
             <div className="flex justify-between gap-4 sm:gap-6">
               <Link
                 target="_blank"
-                href="https://x.com/RefractionDAO"
+                href="https://x.com/refraction_irl"
                 className="hover:opacity-80 transition-opacity"
               >
                 <svg
@@ -379,7 +379,7 @@ export default function Auth({ children }: AuthProps) {
               </Link>
               <Link
                 target="_blank"
-                href="https://farcaster.xyz/refraction"
+                href="https://farcaster.xyz/irl-energy"
                 className="hover:opacity-80 transition-opacity"
               >
                 <svg
@@ -398,7 +398,7 @@ export default function Auth({ children }: AuthProps) {
               </Link>
               <Link
                 target="_blank"
-                href="https://www.instagram.com/refractionfestival/"
+                href="https://www.instagram.com/irl_energy/"
                 className="hover:opacity-80 transition-opacity"
               >
                 <svg
@@ -417,7 +417,7 @@ export default function Auth({ children }: AuthProps) {
               </Link>
               <Link
                 target="_blank"
-                href="https://t.me/refractioncommunity"
+                href="https://t.me/irlnetwork"
                 className="hover:opacity-80 transition-opacity"
               >
                 <svg
