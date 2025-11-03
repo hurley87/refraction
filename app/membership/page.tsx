@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
+
 const carouselData = [
   {
     text: "Apply for membership, get your onboarding email, and claim your 'IN REAL LIFE' tee →",
@@ -1009,7 +1010,7 @@ export default function MembershipPage() {
         <div className="flex justify-center gap-3 sm:gap-4 md:gap-6 flex-wrap">
           <Link
             target="_blank"
-            href="https://x.com/RefractionDAO"
+            href="https://x.com/refraction_irl"
             className="hover:opacity-80 transition-opacity"
           >
             <svg
@@ -1047,7 +1048,7 @@ export default function MembershipPage() {
           </Link>
           <Link
             target="_blank"
-            href="https://farcaster.xyz/refraction"
+            href="https://farcaster.xyz/irl-energy"
             className="hover:opacity-80 transition-opacity"
           >
             <svg
@@ -1066,7 +1067,27 @@ export default function MembershipPage() {
           </Link>
           <Link
             target="_blank"
-            href="https://www.instagram.com/refractionfestival/"
+            href="https://t.me/irlnetwork"
+            className="hover:opacity-80 transition-opacity"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 48 48"
+              fill="none"
+              className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12"
+            >
+              <path
+                d="M24 4C12.954 4 4 12.954 4 24C4 35.046 12.954 44 24 44C35.046 44 44 35.046 44 24C44 12.954 35.046 4 24 4ZM35.607 15.607L33.393 35.607C33.179 36.821 32.571 37.071 31.5 36.607L24 31.607L20.5 35C20.179 35.321 19.893 35.607 19.25 35.607L19.607 28.607L31.5 17.607C31.857 17.286 31.429 17.071 30.964 17.393L16.5 26.607L9.607 24.607C8.393 24.179 8.393 23.5 9.857 23.107L34.143 14.393C35.179 14.036 36.071 14.607 35.607 15.607Z"
+                fill="black"
+              />
+            </svg>
+          </Link>
+          
+          <Link
+            target="_blank"
+            href="https://www.instagram.com/irl_energy/"
             className="hover:opacity-80 transition-opacity"
           >
             <svg
