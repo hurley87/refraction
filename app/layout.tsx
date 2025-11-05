@@ -15,8 +15,27 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "$IRL",
-  description: "$IRL is your key to unlocking a new way to experience culture",
+  title: "IRL",
+  description: "IRL - Culture&apos;s rewards program.",
+  openGraph: {
+    title: "$IRL",
+    description: "IRL - Culture&apos;s rewards program.",
+    images: [
+      {
+        url: "/irl-banner.png", // Path to your image in the public folder
+        width: 4500,
+        height: 1500,
+        alt: "$IRL",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "IRL",
+    description: "IRL - Culture&apos;s rewards program.",
+    images: ["/irl-banner.png"], // Path to your image in the public folder
+  },
   appleWebApp: {
     statusBarStyle: "black-translucent", // Options: "default", "black", "black-translucent"
   },
