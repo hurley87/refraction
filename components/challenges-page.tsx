@@ -15,9 +15,9 @@ interface Challenge {
   url: string;
   image?: string;
   "image-width"?: string;
-  "image-height"?: string;
-  startDate?: string;
-  endDate?: string;
+  "image-height"?: string;  
+  dateRange?: string;
+  action?: string;
   // Computed/derived fields
   id?: string;
   progress?: number;
@@ -169,7 +169,7 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({
                   height={16}
                   className="w-4 h-4"
                 />
-                <div className="body-small text-black">Buy</div>
+                <div className="body-small text-black">{challenge.action || "Buy"}</div>
               </div>
 
               {/* Date Range */}
@@ -186,22 +186,10 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({
                 }}
               >
                 <div className="text-xs font-mono text-gray-600 text-center">
-                  {challenge.startDate && challenge.endDate ? (
+                  {challenge.dateRange ? (
                     <div className="flex items-center gap-1 whitespace-nowrap">
                       <Clock className="w-3 h-3 flex-shrink-0" />
-                      <span>
-                        {new Date(challenge.startDate).toLocaleDateString(
-                          "en-US",
-                          { month: "short", day: "numeric" },
-                        )}
-                      </span>
-                      <span>-</span>
-                      <span>
-                        {new Date(challenge.endDate).toLocaleDateString(
-                          "en-US",
-                          { month: "short", day: "numeric" },
-                        )}
-                      </span>
+                      <span>{challenge.dateRange}</span>
                     </div>
                   ) : (
                     challenge.expiresAt
@@ -259,7 +247,7 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({
                   height={16}
                   className="w-4 h-4"
                 />
-                <div className="body-small text-black">Buy</div>
+                <div className="body-small text-black">{challenge.action || "Buy"}</div>
               </div>
             </div>
           ) : (
@@ -312,7 +300,7 @@ const ChallengeModal: React.FC<ChallengeModalProps> = ({
                   height={16}
                   className="w-4 h-4"
                 />
-                <div className="body-small text-black">Buy</div>
+                <div className="body-small text-black">{challenge.action || "Buy"}</div>
               </div>
             </div>
           )}
@@ -359,8 +347,8 @@ export default function ChallengesPage() {
     null,
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [weeklyChallenges, setWeeklyChallenges] = useState<Challenge[]>([]);
-  const [dailyChallenges, setDailyChallenges] = useState<Challenge[]>([]);
+  //const [weeklyChallenges, setWeeklyChallenges] = useState<Challenge[]>([]);
+  //const [dailyChallenges, setDailyChallenges] = useState<Challenge[]>([]);
   const [challengeQuests, setChallengeQuests] = useState<Challenge[]>([]);
   const [questItems, setQuestItems] = useState<Challenge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -377,21 +365,8 @@ export default function ChallengesPage() {
       category: type.charAt(0).toUpperCase() + type.slice(1),
     };
 
-    // Add expiration logic for weekly challenges
-    if (type === "weekly" && challenge.startDate && challenge.endDate) {
-      const endDate = new Date(challenge.endDate);
-      const now = new Date();
-      const daysLeft = Math.ceil(
-        (endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
-      );
-
-      if (daysLeft > 0) {
-        enriched.expiresAt = `Ends in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`;
-      } else {
-        enriched.expiresAt = "Ended";
-        enriched.isCompleted = true;
-      }
-    } else if (type === "daily") {
+    // Add expiration logic for daily challenges
+    if (type === "daily") {
       enriched.expiresAt = "Resets in 12 hours";
     }
 
@@ -412,7 +387,7 @@ export default function ChallengesPage() {
         if (weeklyResponse.ok) {
           const weeklyData = await weeklyResponse.json();
           console.log("Weekly data:", weeklyData);
-          setWeeklyChallenges([enrichChallenge(weeklyData, "weekly")]);
+          //setWeeklyChallenges([enrichChallenge(weeklyData, "weekly")]);
         } else {
           console.error(
             "Failed to load weekly challenges:",
@@ -427,7 +402,7 @@ export default function ChallengesPage() {
         if (dailyResponse.ok) {
           const dailyData = await dailyResponse.json();
           console.log("Daily data:", dailyData);
-          setDailyChallenges([enrichChallenge(dailyData, "daily")]);
+          //setDailyChallenges([enrichChallenge(dailyData, "daily")]);
         } else {
           console.error(
             "Failed to load daily challenges:",
@@ -694,7 +669,7 @@ export default function ChallengesPage() {
                   {quest.description}
                 </div>
 
-                {/* Points and Buy Button */}
+                {/* Points and Date Range Pills */}
                 <div className="flex gap-2 w-full mt-auto">
                   {/* Points */}
                   <div
@@ -707,7 +682,7 @@ export default function ChallengesPage() {
                       borderRadius: "16px",
                       padding: "6px 12px",
                       border: "1px solid #e0e0e0",
-                      flexShrink: 0,
+                      flex: 1,
                     }}
                   >
                     <Image
@@ -720,31 +695,41 @@ export default function ChallengesPage() {
                     <div className="body-small text-black">{quest.points}</div>
                   </div>
 
-                  {/* Buy Button */}
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px",
-                      flex: 1,
-                      height: "32px",
-                      backgroundColor: "transparent",
-                      borderRadius: "16px",
-                      padding: "6px 12px",
-                      border: "1px solid #e0e0e0",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <Image
-                      src="/guidance_library.svg"
-                      alt="library"
-                      width={16}
-                      height={16}
-                      className="w-4 h-4"
-                    />
-                    <div className="body-small text-black">Buy</div>
-                  </div>
+                  {/* Date Range */}
+                  {quest.dateRange ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        height: "32px",
+                        backgroundColor: "transparent",
+                        borderRadius: "16px",
+                        padding: "6px 12px",
+                        border: "1px solid #e0e0e0",
+                        flex: 1,
+                      }}
+                    >
+                      <Clock className="w-3 h-3 text-gray-600 flex-shrink-0" />
+                      <div className="body-small text-black whitespace-nowrap">{quest.dateRange}</div>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        height: "32px",
+                        backgroundColor: "transparent",
+                        borderRadius: "16px",
+                        padding: "6px 12px",
+                        border: "1px solid #e0e0e0",
+                        flex: 1,
+                      }}
+                    >
+                      <div className="body-small text-black"></div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -792,8 +777,8 @@ export default function ChallengesPage() {
               </p>
             </div>
           )}
-          {/* Weekly Challenges Section */}
-          {!isLoading && (
+          {/* Weekly Challenges Section - Hidden */}
+          {/* {!isLoading && (
             <div className="bg-white/30 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
               <div className="flex items-center gap-2 mb-4">
                 <span className="body-small text-gray-600 uppercase tracking-wide">
@@ -806,10 +791,10 @@ export default function ChallengesPage() {
                 )}
               </div>
             </div>
-          )}
+          )} */}
 
-          {/* Daily Challenges Section */}
-          {!isLoading && (
+          {/* Daily Challenges Section - Hidden */}
+          {/* {!isLoading && (
             <div className="bg-white/30 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
               <div className="flex items-center gap-2 mb-4">
                 <span className="body-small text-gray-600 uppercase font-bold tracking-wide">
@@ -822,7 +807,7 @@ export default function ChallengesPage() {
                 )}
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Challenge Quests Header */}
           {!isLoading && (
