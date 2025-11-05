@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {  X, Info, ExternalLink } from "lucide-react";
+import { ExternalLink, Clock } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -11,6 +11,8 @@ interface Quest {
   points: number;
   url: string;
   image?: string;
+  action?: string;
+  dateRange?: string;
   "image-width"?: string;
   "image-height"?: string;
   id?: string;
@@ -19,142 +21,8 @@ interface Quest {
   isCompleted?: boolean;
 }
 
-interface QuestModalProps {
-  quest: Quest;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const QuestModal: React.FC<QuestModalProps> = ({ quest, isOpen }) => {
-  if (!isOpen) return null;
-
-  return (
-    <div className="flex flex-col gap-4">
-      {/* First Container - Quest Header */}
-      <div className="p-6">
-        {/* Row 1: Quest Type */}
-        <div className="mb-4">
-          <span className="body-small text-gray-600 uppercase tracking-wide">
-            Challenge Quest
-          </span>
-        </div>
-
-        {/* Row 2: Quest Image */}
-        {quest.image && (
-          <div 
-            className="mb-4"
-            style={{
-              display: 'flex',
-              width: '100%',
-              height: '80px',
-              padding: '24px',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '16px',
-              borderRadius: '16px',
-              background: 'radial-gradient(220.55% 55.23% at 10.91% 29.08%, rgba(0, 0, 0, 0.00) 0%, rgba(239, 139, 159, 0.20) 100%), radial-gradient(81.69% 149.02% at 30% -26.79%, rgba(0, 0, 0, 0.00) 28.61%, rgba(3, 133, 255, 0.54) 100%), #313131'
-            }}
-          >
-            <Image
-              src={quest.image}
-              alt={quest.title}
-              width={parseInt(quest["image-width"] || "200")}
-              height={parseInt(quest["image-height"] || "200")}
-              className="h-full w-auto object-contain"
-            />
-          </div>
-        )}
-
-        {/* Row 3: Quest Title */}
-        <div>
-          <div className="title2 text-black">{quest.title}</div>
-        </div>
-      </div>
-
-      {/* Second Container - Quest Details */}
-      <div className="p-6">
-        {/* Row 1: Details Header */}
-        <div className="flex items-center gap-2 mb-4">
-          <Info className="w-4 h-4 text-gray-600" />
-          <span className="body-small text-gray-600 uppercase tracking-wide">Details</span>
-        </div>
-
-        {/* Row 2: Description */}
-        <div className="mb-6">
-          <p className="text-gray-600 font-mono">{quest.description}</p>
-        </div>
-
-        {/* Row 3: Points and Action Button */}
-        <div className="mb-6">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Points */}
-            <div 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                width: '100%',
-                height: '32px',
-                backgroundColor: 'transparent',
-                borderRadius: '16px',
-                padding: '6px 12px',
-                border: '1px solid #e0e0e0'
-              }}
-            >
-              <Image
-                src="/ep_coin.svg"
-                alt="coin"
-                width={16}
-                height={16}
-                className="w-4 h-4"
-              />
-              <div className="body-small text-black">{quest.points}</div>
-            </div>
-
-            {/* Action Button */}
-            <div 
-              style={{
-                display: 'flex',
-                alignItems: 'left',
-                justifyContent: 'left',
-                gap: '8px',
-                width: '100%',
-                height: '32px',
-                backgroundColor: 'transparent',
-                borderRadius: '16px',
-                padding: '6px 12px',
-                border: '1px solid #e0e0e0',
-                cursor: 'pointer'
-              }}
-            >
-              <Image
-                src="/guidance_library.svg"
-                alt="library"
-                width={16}
-                height={16}
-                className="w-4 h-4"
-              />
-              <div className="body-small text-black">Buy</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Row 4: Complete Quest Button */}
-        <button
-          className="w-full bg-black hover:bg-gray-800 text-white py-3 px-4 rounded-full font-inktrap font-medium transition-colors duration-200 flex items-center justify-between"
-        >
-          Complete Quest on Galaxe
-          <ExternalLink className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
-};
-
 export default function QuestsPage() {
   const router = useRouter();
-  const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [quests, setQuests] = useState<Quest[]>([]);
   const [questHeader, setQuestHeader] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -197,12 +65,8 @@ export default function QuestsPage() {
     loadQuests();
   }, []);
 
-  const handleQuestClick = (quest: Quest) => {
-    setSelectedQuest(quest);
-    setIsModalOpen(true);
-  };
-
   const renderQuestCard = (quest: Quest) => {
+
     return (
       <div
         key={quest.id}
@@ -220,8 +84,8 @@ export default function QuestsPage() {
           </div>
         </div>
 
-        {/* Row 2: Points, Buy Button, and View Button */}
-        <div className="flex gap-4">
+        {/* Row 2: Points and Date Range Pills */}
+        <div className="flex gap-4 w-full">
           {/* Points */}
           <div 
             style={{
@@ -233,7 +97,7 @@ export default function QuestsPage() {
               borderRadius: '16px',
               padding: '6px 12px',
               border: '1px solid #e0e0e0',
-              flexShrink: 0
+              flex: 1
             }}
           >
             <Image
@@ -246,41 +110,72 @@ export default function QuestsPage() {
             <div className="body-small text-black">{quest.points}</div>
           </div>
 
-          {/* Buy Button */}
-          <div 
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-start',
-              gap: '8px',
-              flex: 1,
-              height: '32px',
-              backgroundColor: 'transparent',
-              borderRadius: '16px',
-              padding: '6px 12px',
-              border: '1px solid #e0e0e0',
-              cursor: 'pointer'
-            }}
-          >
-            <Image
-              src="/guidance_library.svg"
-              alt="library"
-              width={16}
-              height={16}
-              className="w-4 h-4"
-            />
-            <div className="body-small text-black">Buy</div>
-          </div>
-
-          {/* View Button */}
-          <button
-            onClick={() => handleQuestClick(quest)}
-            className="flex-1 bg-[#EDEDED] hover:bg-gray-100 text-black text-xs font-mono px-3 py-1.5 rounded-full transition-colors duration-200 flex items-center justify-between border border-gray-200"
-          >
-            <span>View</span>
-            <ExternalLink className="w-3 h-3" />
-          </button>
+          {/* Date Range */}
+          {quest.dateRange ? (
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                height: '32px',
+                backgroundColor: 'transparent',
+                borderRadius: '16px',
+                padding: '6px 12px',
+                border: '1px solid #e0e0e0',
+                flex: 1
+              }}
+            >
+              <Clock className="w-3 h-3 text-gray-600 flex-shrink-0" />
+              <div className="body-small text-black whitespace-nowrap">{quest.dateRange}</div>
+            </div>
+          ) : (
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                height: '32px',
+                backgroundColor: 'transparent',
+                borderRadius: '16px',
+                padding: '6px 12px',
+                border: '1px solid #e0e0e0',
+                flex: 1
+              }}
+            >
+              <div className="body-small text-black"></div>
+            </div>
+          )}
         </div>
+
+        {/* Row 3: Action Button - Full Width */}
+        <a
+          href={quest.url}
+          target={quest.url?.startsWith('http') ? '_blank' : '_self'}
+          rel={quest.url?.startsWith('http') ? 'noopener noreferrer' : undefined}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            width: '100%',
+            height: '32px',
+            backgroundColor: '#ededed',
+            borderRadius: '16px',
+            padding: '6px 12px',
+            border: '1px solid #e0e0e0',
+            cursor: 'pointer',
+            textDecoration: 'none'
+          }}
+        >
+          <div className="body-small text-black">{quest.action || "Buy"}</div>
+          <Image
+            src="/arrow-right.svg"
+            alt="arrow"
+            width={12}
+            height={12}
+            className="w-3 h-3"
+          />
+        </a>
       </div>
     );
   };
@@ -364,12 +259,15 @@ export default function QuestsPage() {
                   </p>
                 </div>
                 {/* Complete Quest Button */}
-                <button
+                <a
+                  href="https://app.galxe.com/quest/A2w5Zojdy46VKJVvpptTwf/GCzcut8Kwg?refer=quest_parent_collection"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-full bg-black hover:bg-gray-800 text-white py-3 px-4 rounded-full font-inktrap font-medium transition-colors duration-200 flex items-center justify-between"
                 >
-                  <h4>Complete Quest on Galaxe</h4>
+                  <h4>Complete Quest on Galxe</h4>
                   <ExternalLink className="w-4 h-4" />
-                </button>
+                </a>
               </div>
             </div>
           )}
@@ -389,46 +287,6 @@ export default function QuestsPage() {
           )}
         </div>
       </div>
-
-      {/* Quest Modal */}
-      {isModalOpen && selectedQuest && (
-        <div
-          className={`fixed font-inktrap inset-0 bg-[#ededed] z-50 flex flex-col transition-all duration-300 ease-in-out ${
-            isModalOpen ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          <div className="max-w-lg mx-auto w-full flex flex-col h-full">
-            {/* Close Button - Full Width Overlay */}
-            <div className="w-full px-4 pt-4 pb-1">
-              <div className="bg-white rounded-3xl">
-                <button
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setSelectedQuest(null);
-                  }}
-                  className="w-full text-black h-10 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center"
-                  aria-label="Close menu"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-            </div>
-            
-            <div className="w-full px-4 pb-4">
-              <div className="bg-white rounded-3xl">
-                <QuestModal 
-                  quest={selectedQuest} 
-                  isOpen={isModalOpen} 
-                  onClose={() => {
-                    setIsModalOpen(false);
-                    setSelectedQuest(null);
-                  }} 
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
