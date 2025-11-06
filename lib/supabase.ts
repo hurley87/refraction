@@ -613,6 +613,7 @@ export type Perk = {
   created_at?: string;
   updated_at?: string;
   is_active?: boolean;
+  thumbnail_url?: string;
 };
 
 export type PerkDiscountCode = {

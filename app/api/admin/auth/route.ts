@@ -5,6 +5,7 @@ const ADMIN_EMAILS = [
   "dhurls99@gmail.com",
   "kaitlyn@refractionfestival.com",
   "jim@refractionfestival.com",
+  "graham@refractionfestival.com",
 ];
 
 export async function POST(request: NextRequest) {

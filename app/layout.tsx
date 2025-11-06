@@ -14,15 +14,31 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
 });
 
+// Get base URL for absolute image URLs (required for Twitter cards)
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  // Default fallback - update this to your production domain
+  return "https://irl.energy";
+};
+
+const baseUrl = getBaseUrl();
+const imageUrl = `${baseUrl}/irl-banner.png`;
+
 export const metadata: Metadata = {
   title: "IRL",
   description: "IRL - Culture&apos;s rewards program.",
   openGraph: {
     title: "$IRL",
     description: "IRL - Culture&apos;s rewards program.",
+    url: baseUrl,
     images: [
       {
-        url: "/irl-banner.png", // Path to your image in the public folder
+        url: imageUrl,
         width: 4500,
         height: 1500,
         alt: "$IRL",
@@ -32,9 +48,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "IRL",
+    title: "$IRL",
     description: "IRL - Culture&apos;s rewards program.",
-    images: ["/irl-banner.png"], // Path to your image in the public folder
+    images: [imageUrl],
   },
   appleWebApp: {
     statusBarStyle: "black-translucent", // Options: "default", "black", "black-translucent"
