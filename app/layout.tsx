@@ -27,7 +27,9 @@ const getBaseUrl = () => {
 };
 
 const baseUrl = getBaseUrl();
-const imageUrl = `${baseUrl}/irl-share.png`;
+// Add cache-busting parameter to force Twitter to refresh cached images
+// Increment the version number when you update the image
+const imageUrl = `${baseUrl}/irl-share.png?v=2`;
 
 export const metadata: Metadata = {
   title: "IRL",
