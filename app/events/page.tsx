@@ -9,14 +9,9 @@ import MapNav from "@/components/mapnav";
 const { nextEvent, futureEvents } = eventsData;
 
 export default function EventsPage() {
-  const [eventType, setEventType] = useState("IRL");
   const [sortBy, setSortBy] = useState("date");
 
-  const filteredEvents = futureEvents.filter(
-    (event) => eventType === "ALL" || event.type === eventType,
-  );
-
-  const sortedEvents = [...filteredEvents].sort((a, b) => {
+  const sortedEvents = [...futureEvents].sort((a, b) => {
     if (sortBy === "date") {
       return new Date(a.date).getTime() - new Date(b.date).getTime();
     }
@@ -144,10 +139,43 @@ export default function EventsPage() {
                     {nextEvent.location}
                   </span>
                 </div>
+
+                {/* Map Button */}
+                <a
+                  href={nextEvent.mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-200 transition-colors"
+                  style={{
+                    display: "flex",
+                    padding: "4px 12px",
+                    alignItems: "center",
+                    gap: "8px",
+                    borderRadius: "1000px",
+                    background: "transparent",
+                    border: "1px solid #000000",
+                  }}
+                >
+                  <span className="text-black body-small font-abc-monument-regular">
+                    MAP
+                  </span>
+                  <Image
+                    src="/home/arrow-right.svg"
+                    alt="arrow-right"
+                    width={16}
+                    height={16}
+                    className="w-4 h-4"
+                  />
+                </a>
               </div>
 
               {/* Register Button */}
-              <button className="w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between">
+              <a
+                href={nextEvent.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
+              >
                 <span className="font-pleasure text-left">Register</span>
                 <div
                   style={{
@@ -159,103 +187,20 @@ export default function EventsPage() {
                   }}
                 >
                   <Image
-                    src="/events/ra-red.jpeg"
-                    alt="resident advisor"
+                    src="/home/arrow-right.svg"
+                    alt="arrow-right"
                     width={20}
                     height={20}
-                    className="rounded-full"
+                    className="w-5 h-5"
                   />
                 </div>
-              </button>
+              </a>
             </div>
           </div>
 
-          {/* Toggle and Sort Section */}
+          {/* Sort Section */}
           <div className="mb-6">
-            <div className="flex justify-between items-center mb-4 gap-4">
-              {/* Event Type Toggle */}
-              <div
-                style={{
-                  display: "flex",
-                  padding: "4px",
-                  alignItems: "center",
-                  gap: "4px",
-                  flex: "1 0 0",
-                  borderRadius: "100px",
-                  border: "1px solid rgba(255, 255, 255, 0.25)",
-                  background: "rgba(255, 255, 255, 0.25)",
-                }}
-              >
-                <button
-                  onClick={() => setEventType("IRL")}
-                  className={`text-sm font-medium transition-colors ${
-                    eventType === "IRL"
-                      ? "text-black"
-                      : "text-white hover:text-gray-300"
-                  }`}
-                  style={
-                    eventType === "IRL"
-                      ? {
-                          display: "flex",
-                          height: "40px",
-                          padding: "4px 0",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          gap: "8px",
-                          flex: "1 0 0",
-                          borderRadius: "1000px",
-                          background: "#FFF",
-                          boxShadow: "0 1px 8px 0 rgba(0, 0, 0, 0.08)",
-                        }
-                      : {
-                          display: "flex",
-                          height: "40px",
-                          padding: "4px 0",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          gap: "8px",
-                          flex: "1 0 0",
-                        }
-                  }
-                >
-                  IRL
-                </button>
-                <button
-                  onClick={() => setEventType("ONLINE")}
-                  className={`text-sm font-medium transition-colors ${
-                    eventType === "ONLINE"
-                      ? "text-black"
-                      : "text-white hover:text-gray-300"
-                  }`}
-                  style={
-                    eventType === "ONLINE"
-                      ? {
-                          display: "flex",
-                          height: "40px",
-                          padding: "4px 0",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          gap: "8px",
-                          flex: "1 0 0",
-                          borderRadius: "1000px",
-                          background: "#FFF",
-                          boxShadow: "0 1px 8px 0 rgba(0, 0, 0, 0.08)",
-                        }
-                      : {
-                          display: "flex",
-                          height: "40px",
-                          padding: "4px 0",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          gap: "8px",
-                          flex: "1 0 0",
-                        }
-                  }
-                >
-                  Online
-                </button>
-              </div>
-
+            <div className="flex justify-end items-center mb-4 gap-4">
               {/* Filter Button */}
               <button
                 onClick={() => setSortBy(sortBy === "date" ? "title" : "date")}
@@ -411,7 +356,10 @@ export default function EventsPage() {
                     </div>
 
                     {/* Map Button */}
-                    <button
+                    <a
+                      href={event.mapUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-200 transition-colors"
                       style={{
                         display: "flex",
@@ -432,11 +380,16 @@ export default function EventsPage() {
                         height={16}
                         className="w-4 h-4"
                       />
-                    </button>
+                    </a>
                   </div>
 
                   {/* Row 3: Register Button */}
-                  <button className="w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between">
+                  <a
+                    href={event.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
+                  >
                     <span className="font-pleasure text-left">Register</span>
                     <div
                       style={{
@@ -448,14 +401,14 @@ export default function EventsPage() {
                       }}
                     >
                       <Image
-                        src="/events/ra-red.jpeg"
-                        alt="resident advisor"
+                        src="/home/arrow-right.svg"
+                        alt="arrow-right"
                         width={20}
                         height={20}
-                        className="rounded-full"
+                        className="w-5 h-5"
                       />
                     </div>
-                  </button>
+                  </a>
                 </div>
               ))}
             </div>

@@ -1,42 +1,22 @@
 {
   "nextEvent": {
-    "poster": "/events/nftnyc-aptos.png",
-    "title": "IRL X Public Records",
-    "date": "JUN 26 2025",
-    "location": "NEW YORK, NY"
+    "poster": "/events/refraction-devconnect.png",
+    "title": "Refraction Presents - the $IRL Launch Party",
+    "date": "NOV 18 2025",
+    "location": "Buenos Aires, AR",
+    "url": "https://luma.com/jzjxyt37",
+    "mapUrl": "https://maps.app.goo.gl/updzscmSxS1g1ScF8"
   },
   "futureEvents": [
     {
       "id": 1,
-      "poster": "/events/nftnyc-aptos.png",
-      "title": "Digital Art Exhibition",
-      "date": "JUL 15 2025",
-      "location": "LOS ANGELES, CA",
-      "type": "IRL"
-    },
-    {
-      "id": 2,
-      "poster": "/events/nftnyc-aptos.png",
-      "title": "Virtual Music Festival",
-      "date": "AUG 3 2025",
-      "location": "ONLINE",
-      "type": "ONLINE"
-    },
-    {
-      "id": 3,
-      "poster": "/events/nftnyc-aptos.png",
-      "title": "Cultural Workshop Series",
-      "date": "AUG 20 2025",
-      "location": "CHICAGO, IL",
-      "type": "IRL"
-    },
-    {
-      "id": 4,
-      "poster": "/events/nftnyc-aptos.png",
-      "title": "Blockchain Art Talk",
-      "date": "SEP 5 2025",
-      "location": "ONLINE",
-      "type": "ONLINE"
+    "poster": "/events/refraction-devconnect.png",
+    "title": "Refraction Presents - the $IRL Launch Party",
+    "date": "NOV 18 2025",
+    "location": "Buenos Aires, AR",
+    "url": "https://luma.com/jzjxyt37",
+    "mapUrl": "https://maps.app.goo.gl/updzscmSxS1g1ScF8"
     }
+    
   ]
 }
