@@ -27,7 +27,7 @@ const getBaseUrl = () => {
 };
 
 const baseUrl = getBaseUrl();
-const imageUrl = `${baseUrl}/irl-banner.png`;
+const imageUrl = `${baseUrl}/irl-share.png`;
 
 export const metadata: Metadata = {
   title: "IRL",
@@ -39,8 +39,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: imageUrl,
-        width: 4500,
-        height: 1500,
+        width: 1200,
+        height: 630,
         alt: "$IRL",
       },
     ],
