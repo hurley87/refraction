@@ -55,7 +55,7 @@ const PartnershipsHeader = () => {
 
 const carouselData = [
   {
-    poster: "/partnerships/case-studies/nftnyc-aptos.png",
+    poster: "/case-studies/public-records/RESET at Public Records with Refraction and Reown 9.jpg",
     title: "IRL x Public Records",
     date: "JUN 26 2025",
     location: "NEW YORK, NY",
@@ -101,12 +101,45 @@ const carouselData = [
 const EventModal = ({ event, isOpen, onClose }) => {
   if (!isOpen || !event) return null;
 
-  // Sample event images for circular gallery
-  const eventImages = [
-    { image: event.poster, text: event.title },
-    { image: event.poster, text: event.title}, // Using same image for demo, replace with actual event images
-    { image: event.poster, text: event.title },
-  ];
+  // Event images for circular gallery - populated from case study folders
+  const getEventImages = () => {
+    if (event.title.includes("Public Records")) {
+      return [
+        { image: "/case-studies/public-records/RESET at Public Records with Refraction and Reown 2.jpg", text: event.title },
+        { image: "/case-studies/public-records/RESET at Public Records with Refraction and Reown 3.jpg", text: event.title },
+        { image: "/case-studies/public-records/RESET at Public Records with Refraction and Reown 4.jpg", text: event.title },
+        { image: "/case-studies/public-records/RESET at Public Records with Refraction and Reown 5.jpg", text: event.title },
+        { image: "/case-studies/public-records/RESET at Public Records with Refraction and Reown 6.jpg", text: event.title },
+        { image: "/case-studies/public-records/RESET at Public Records with Refraction and Reown 7.jpg", text: event.title },
+        { image: "/case-studies/public-records/RESET at Public Records with Refraction and Reown 8.jpg", text: event.title },
+        { image: "/case-studies/public-records/RESET at Public Records with Refraction and Reown 9.jpg", text: event.title },
+        { image: "/case-studies/public-records/RESET at Public Records with Refraction and Reown 10.jpg", text: event.title },
+        { image: "/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-185.jpg", text: event.title },
+        { image: "/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-232.jpg", text: event.title },
+        { image: "/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-244.jpg", text: event.title },
+        { image: "/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-265.jpg", text: event.title },
+      ];
+    } else if (event.title.includes("Mutek")) {
+      return [
+        { image: "/case-studies/mutek-montreal/1S1A0218.jpg", text: event.title },
+        { image: "/case-studies/mutek-montreal/1S1A8722.jpg", text: event.title },
+        { image: "/case-studies/mutek-montreal/1S1A9751.jpg", text: event.title },
+        { image: "/case-studies/mutek-montreal/Astronomical water par Martin Messier _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi.jpg", text: event.title },
+        { image: "/case-studies/mutek-montreal/Photomode cadrer le jeu présenté par Ubisoft _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi (1).jpg", text: event.title },
+        { image: "/case-studies/mutek-montreal/Photomode cadrer le jeu présenté par Ubisoft _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi.jpg", text: event.title },
+        { image: "/case-studies/mutek-montreal/Programmation spéciale par Iregular _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi.jpg", text: event.title },
+        { image: "/case-studies/mutek-montreal/TETRA par Ottomata _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi.jpg", text: event.title },
+      ];
+    }
+    // Fallback to poster if event doesn't match
+    return [
+      { image: event.poster, text: event.title },
+      { image: event.poster, text: event.title },
+      { image: event.poster, text: event.title },
+    ];
+  };
+
+  const eventImages = getEventImages();
 
   return (
     <div className="fixed inset-0 bg-[#131313] z-50 overflow-y-auto">
@@ -141,7 +174,7 @@ const EventModal = ({ event, isOpen, onClose }) => {
           <CircularGallery
             items={eventImages}
             bend={0}
-            textColor="#000000"
+            textColor="#131313"
             borderRadius={0}
             font="bold 24px inktrap"
             scrollSpeed={1.5}
