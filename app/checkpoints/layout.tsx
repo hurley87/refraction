@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import Auth from "@/components/auth";
-import Header from "@/components/header";
+
+import MapNav from "@/components/mapnav";
+
 
 export const metadata: Metadata = {
   title: "$IRL",
@@ -18,7 +20,7 @@ export default function RootLayout({
       <div
         className={`flex flex-col gap-6 bg-gradient-to-b from-[#64C2D7] via-[#FFE600] to-[#F09BC2] min-h-screen p-4`}
       >
-        <Header />
+        <MapNav />
         <Auth>{children}</Auth>
       </div>
       <Toaster />
