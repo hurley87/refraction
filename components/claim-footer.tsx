@@ -157,7 +157,7 @@ export default function ClaimFooter() {
 
         <div className="flex w-full flex-col items-center gap-4">
           <p className="text-center text-[11px] font-medium uppercase tracking-[0.44px] text-[#7d7d7d]">
-            Stay Up to Date With Our Newsletter
+            Earn Rewards, Stay Up to Date With Our Newsletter
           </p>
           <form onSubmit={handleNewsletterSubmit} className="w-full space-y-2">
             <div className="flex w-full gap-2">

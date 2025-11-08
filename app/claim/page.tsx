@@ -11,12 +11,13 @@ export default function ClaimPage() {
         </header>
 
         <main className="relative flex flex-1 items-center justify-center px-4 pb-16 pt-6">
+            
           <video
             autoPlay
             loop
             muted
             playsInline
-            className="pointer-events-none absolute left-1/2 top-1/2"
+            className="pointer-events-none absolute left-1/2 top-1/2 -z-10"
             style={{
               width: "1909px",
               height: "1192px",
@@ -25,16 +26,38 @@ export default function ClaimPage() {
               background:
                 "linear-gradient(0deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.72) 100%)",
               filter: "blur(6px)",
-              transform: "translate(-50%, -50%) rotate(90deg) scale(1.35)",
+              transform: "translate(-50%, -55%) rotate(90deg) scale(1.45)",
               transformOrigin: "center",
-              zIndex: 0,
               objectFit: "cover",
             }}
           >
             <source src="/wct/background.mp4" type="video/mp4" />
           </video>
-          <div className="relative z-10 mx-auto flex w-full max-w-[393px] flex-col items-center gap-16 text-center">
-            <div className="space-y-6">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="pointer-events-none absolute left-1/2 top-1/2 -z-10 md:hidden"
+            style={{
+              width: "1909px",
+              height: "1192px",
+              aspectRatio: "1909 / 1192",
+              flexShrink: 0,
+              background:
+                "linear-gradient(0deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.72) 100%)",
+              filter: "blur(6px)",
+              transform: "translate(-50%, -45%) rotate(90deg) scale(1.6)",
+              transformOrigin: "center",
+              objectFit: "cover",
+            }}
+          >
+            <source src="/wct/background.mp4" type="video/mp4" />
+          </video>
+          <div className="relative mx-auto flex w-full max-w-[393px] flex-col items-center gap-16 text-center">
+            
+            <div className="space-y-6 pt-[100px]">
+              
               <p
                 className="mx-auto text-center"
                 style={{
@@ -48,6 +71,7 @@ export default function ClaimPage() {
                   letterSpacing: "-0.5px",
                 }}
               >
+                
                 Welcome to
                 <br /> WalletCon Buenos Aires
               </p>
@@ -115,39 +139,33 @@ export default function ClaimPage() {
             </div>
 
             <div className=" bg-transparent p-6 text-[#131313] backdrop-blur-sm">
-              <div className="space-y-4 text-center">
-                <div className="body-small font-grotesk">FOR MEMBERS</div>
-                <div className="flex justify-center">
+              <div className="space-y-4 text-left">
+                <div className="body-small font-grotesk text-center">FOR MEMBERS</div>
+                <div className="flex flex-col items-start gap-4">
                   <button
                     type="button"
-                    className="text-left font-anonymous-pro text-xl underline transition hover:no-underline"
+                    className="w-full text-left font-anonymous-pro text-xl underline transition hover:no-underline"
                   >
                     Become A Founding Member →
                   </button>
-                </div>
-                <div className="flex justify-center">
                   <button
                     type="button"
-                    className="text-left font-anonymous-pro text-xl underline transition hover:no-underline"
+                    className="w-full text-left font-anonymous-pro text-xl underline transition hover:no-underline"
                   >
                     Editorial →
                   </button>
-                </div>
-                <div className="flex justify-center">
                   <button
                     type="button"
-                    className="text-left font-anonymous-pro text-xl underline transition hover:no-underline"
+                    className="w-full text-left font-anonymous-pro text-xl underline transition hover:no-underline"
                   >
                     Frequently Asked Questions →
                   </button>
-                </div>
-                <div className="body-small font-grotesk">
-                  FOR VENUES AND BRANDS
-                </div>
-                <div className="flex justify-center">
+                  <div className="body-small font-grotesk text-center">
+                    FOR VENUES AND BRANDS
+                  </div>
                   <button
                     type="button"
-                    className="text-left font-anonymous-pro text-xl underline transition hover:no-underline"
+                    className="w-full text-left font-anonymous-pro text-xl underline transition hover=no-underline"
                   >
                     Become An IRL Partner →
                   </button>
