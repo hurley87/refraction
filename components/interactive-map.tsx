@@ -72,6 +72,8 @@ export default function InteractiveMap() {
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [checkInTarget, setCheckInTarget] = useState<MarkerData | null>(null);
   const [checkInComment, setCheckInComment] = useState("");
+  const [checkInSuccess, setCheckInSuccess] = useState(false);
+  const [checkInPointsEarned, setCheckInPointsEarned] = useState(0);
 
   const mapRef = useRef<any>(null);
   const hasSetInitialLocationRef = useRef(false);
@@ -297,6 +299,8 @@ export default function InteractiveMap() {
     setShowCheckInModal(false);
     setCheckInComment("");
     setCheckInTarget(null);
+    setCheckInSuccess(false);
+    setCheckInPointsEarned(0);
   };
 
   const handleCheckIn = async () => {
@@ -347,15 +351,14 @@ export default function InteractiveMap() {
         throw new Error(result.error || "Failed to check in");
       }
 
-      toast.success(
-        `Check-in successful! You earned ${result.pointsEarned || 100} points!`,
-      );
+      // Show success screen
+      setCheckInPointsEarned(result.pointsEarned || 100);
+      setCheckInSuccess(true);
 
-      // Close the popups
+      // Close the map popups
       setPopupInfo(null);
       setSearchedLocation(null);
       setSelectedMarker(null);
-      handleCloseCheckInModal();
     } catch (error) {
       console.error("Error checking in:", error);
       toast.error("Failed to check in: " + (error as Error).message);
@@ -774,6 +777,7 @@ export default function InteractiveMap() {
       >
         <DialogContent className="w-full max-w-md p-2 bg-transparent border-none shadow-none [&>button]:hidden">
           <div className="bg-white rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
+            {/* Header */}
             <div className="bg-white flex items-center gap-4 px-4 py-3">
               <button
                 onClick={handleCloseCheckInModal}
@@ -796,63 +800,161 @@ export default function InteractiveMap() {
                 </svg>
               </button>
               <h2 className="text-base font-inktrap text-[#313131] tracking-[-1.28px]">
-                Check In
+                {checkInSuccess ? "Check-In Successful" : "Check In"}
               </h2>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5">
-              <div className="mb-5">
-                <h3 className="font-inktrap text-sm text-[#313131]">
-                  {checkInTarget?.name || "Selected Location"}
-                </h3>
-                <p className="font-inktrap text-[11px] uppercase tracking-[0.44px] text-[#7d7d7d] mt-1">
-                  {checkInTarget?.display_name}
-                </p>
-              </div>
+            <div className="flex-1 overflow-y-auto">
+              {!checkInSuccess ? (
+                <>
+                  {/* Map Preview */}
+                  {checkInTarget && (
+                    <div className="relative h-32 bg-gray-100">
+                      <Map
+                        longitude={checkInTarget.longitude}
+                        latitude={checkInTarget.latitude}
+                        zoom={14}
+                        mapStyle="mapbox://styles/mapbox/streets-v12"
+                        mapboxAccessToken={
+                          process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+                        }
+                        style={{ width: "100%", height: "100%" }}
+                        interactive={false}
+                      >
+                        <Marker
+                          latitude={checkInTarget.latitude}
+                          longitude={checkInTarget.longitude}
+                          anchor="bottom"
+                        >
+                          <div
+                            className="relative"
+                            style={{ width: "51px", height: "65px" }}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="51"
+                              height="65"
+                              viewBox="0 0 51 65"
+                              fill="none"
+                            >
+                              <g filter="url(#filter0_d_7557_31214)">
+                                <path
+                                  d="M41.2 16.6438C41.2 25.836 25.9572 45 25.2 45C24.4429 45 9.20001 25.836 9.20001 16.6438C9.20001 7.4517 16.3635 0 25.2 0C34.0366 0 41.2 7.4517 41.2 16.6438Z"
+                                  fill="white"
+                                />
+                              </g>
+                            </svg>
+                            {checkInTarget.imageUrl && (
+                              <img
+                                src={checkInTarget.imageUrl}
+                                alt={checkInTarget.name}
+                                className="absolute rounded-full object-cover"
+                                style={{
+                                  width: "28px",
+                                  height: "28px",
+                                  top: "4px",
+                                  left: "50%",
+                                  transform: "translateX(-50%)",
+                                }}
+                              />
+                            )}
+                          </div>
+                        </Marker>
+                      </Map>
+                    </div>
+                  )}
 
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="checkInComment"
-                  className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
-                >
-                  Comment (optional)
-                </label>
-                <Textarea
-                  id="checkInComment"
-                  value={checkInComment}
-                  onChange={(e) => setCheckInComment(e.target.value)}
-                  placeholder="Share a quick note about your visit"
-                  className="min-h-[120px] rounded-2xl px-4 py-3 border-[#7d7d7d]"
-                  maxLength={500}
-                  disabled={isCheckingIn}
-                />
-                <div className="flex justify-between text-[10px] text-[#b5b5b5] font-inktrap">
-                  <span>Keep it respectful and on-topic.</span>
-                  <span>{checkInComment.length}/500</span>
+                  {/* Form Content */}
+                  <div className="p-5">
+                    <div className="mb-5">
+                      <h3 className="font-inktrap text-sm text-[#313131]">
+                        {checkInTarget?.name || "Selected Location"}
+                      </h3>
+                      <p className="font-inktrap text-[11px] uppercase tracking-[0.44px] text-[#7d7d7d] mt-1">
+                        {checkInTarget?.display_name}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label
+                        htmlFor="checkInComment"
+                        className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                      >
+                        Your Comment
+                      </label>
+                      <Textarea
+                        id="checkInComment"
+                        value={checkInComment}
+                        onChange={(e) => setCheckInComment(e.target.value)}
+                        placeholder="A little about this location and why they should visit"
+                        className="min-h-[120px] rounded-2xl px-4 py-3 border-[#7d7d7d]"
+                        maxLength={500}
+                        disabled={isCheckingIn}
+                      />
+                      <div className="flex justify-between text-[10px] text-[#b5b5b5] font-inktrap">
+                        <span>Keep it respectful and on-topic.</span>
+                        <span>{checkInComment.length}/500</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Success Screen */
+                <div className="p-5 flex flex-col items-center justify-center min-h-[300px]">
+                  <div className="w-full max-w-sm text-center">
+                    <div className="mb-8">
+                      <div className="text-6xl font-bold text-[#313131] mb-2">
+                        {checkInPointsEarned}
+                      </div>
+                      <p className="text-sm text-[#7d7d7d] uppercase tracking-[0.44px]">
+                        You Earned
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-3 mb-6">
+                      <div className="flex items-center justify-center bg-[#ededed] rounded-full px-4 py-3">
+                        <span className="text-sm font-inktrap text-[#313131]">
+                          Checked In at {checkInTarget?.name}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {!checkInSuccess ? (
+              <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] border-t border-[#ededed] p-4">
+                <div className="flex w-full justify-between gap-4">
+                  <button
+                    onClick={handleCloseCheckInModal}
+                    className="bg-[#ededed] hover:bg-[#e0e0e0] text-[#7d7d7d] rounded-full px-4 py-2 h-auto font-inktrap text-base tracking-[-1.28px] w-full disabled:opacity-50"
+                    disabled={isCheckingIn}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCheckIn}
+                    disabled={isCheckingIn || !checkInTarget}
+                    className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors disabled:opacity-50 whitespace-nowrap w-full"
+                    type="button"
+                  >
+                    {isCheckingIn ? "Checking In..." : "Check In"}
+                  </button>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] border-t border-[#ededed] p-4">
-              <div className="flex w-full justify-between gap-4">
+            ) : (
+              <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] border-t border-[#ededed] p-4">
                 <button
                   onClick={handleCloseCheckInModal}
-                  className="bg-[#ededed] hover:bg-[#e0e0e0] text-[#7d7d7d] rounded-full px-4 py-2 h-auto font-inktrap text-base tracking-[-1.28px] w-full disabled:opacity-50"
-                  disabled={isCheckingIn}
-                  type="button"
+                  className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors w-full"
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCheckIn}
-                  disabled={isCheckingIn || !checkInTarget}
-                  className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors disabled:opacity-50 whitespace-nowrap w-full"
-                  type="button"
-                >
-                  {isCheckingIn ? "Checking In..." : "Confirm Check In"}
+                  Back to Map
                 </button>
               </div>
-            </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
