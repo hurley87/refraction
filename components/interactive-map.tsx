@@ -865,9 +865,9 @@ export default function InteractiveMap() {
                   )}
 
                   {/* Form Content */}
-                  <div className="p-5">
-                    <div className="mb-5">
-                      <h3 className="font-inktrap text-sm text-[#313131]">
+                  <div className="px-[16px] py-[20px]">
+                    <div className="mb-[16px]">
+                      <h3 className="font-inktrap text-[16px] leading-[16px] tracking-[-1.28px] text-[#313131]">
                         {checkInTarget?.name || "Selected Location"}
                       </h3>
                       <p className="font-inktrap text-[11px] uppercase tracking-[0.44px] text-[#7d7d7d] mt-1">
@@ -875,10 +875,10 @@ export default function InteractiveMap() {
                       </p>
                     </div>
 
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-[8px]">
                       <label
                         htmlFor="checkInComment"
-                        className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                        className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
                       >
                         Your Comment
                       </label>
@@ -887,7 +887,7 @@ export default function InteractiveMap() {
                         value={checkInComment}
                         onChange={(e) => setCheckInComment(e.target.value)}
                         placeholder="A little about this location and why they should visit"
-                        className="min-h-[120px] rounded-2xl px-4 py-3 border-[#7d7d7d]"
+                        className="min-h-[129px] rounded-[16px] p-[16px] border border-[#7d7d7d] bg-white text-[16px] leading-[22px] tracking-[-0.48px] text-[#313131] placeholder:text-[#b5b5b5] focus-visible:ring-0 focus-visible:ring-offset-0"
                         maxLength={500}
                         disabled={isCheckingIn}
                       />
@@ -1007,13 +1007,13 @@ export default function InteractiveMap() {
             <div className="flex-1 overflow-y-auto">
               {/* Step 1: Business Details */}
               {formStep === "business-details" && (
-                <div className="p-5">
-                  <div className="flex flex-col gap-4">
+                <div className="px-[16px] py-[20px]">
+                  <div className="flex flex-col gap-[16px]">
                     {/* Name Field */}
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-[8px]">
                       <label
                         htmlFor="name"
-                        className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                        className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
                       >
                         Name <span className="text-red-500">*</span>
                       </label>
@@ -1028,16 +1028,16 @@ export default function InteractiveMap() {
                             name: e.target.value,
                           }))
                         }
-                        className="border-[#7d7d7d] rounded-full px-4 py-4 h-auto"
+                        className="rounded-[100px] p-[16px] border border-[#7d7d7d] bg-white text-[16px] leading-[22px] tracking-[-0.48px] text-[#313131] placeholder:text-[#b5b5b5] focus-visible:ring-0 focus-visible:ring-offset-0 h-auto"
                         maxLength={100}
                       />
                     </div>
 
                     {/* Address Field */}
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-[8px]">
                       <label
                         htmlFor="address"
-                        className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                        className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
                       >
                         Address
                       </label>
@@ -1052,16 +1052,16 @@ export default function InteractiveMap() {
                             address: e.target.value,
                           }))
                         }
-                        className="bg-[#ededed] border-[#ededed] rounded-full px-4 py-4 h-auto"
+                        className="rounded-[100px] p-[16px] border border-[#ededed] bg-[#ededed] text-[16px] leading-[22px] tracking-[-0.48px] text-[#7d7d7d] placeholder:text-[#7d7d7d] focus-visible:ring-0 focus-visible:ring-offset-0 h-auto"
                         maxLength={200}
                       />
                     </div>
 
                     {/* Description Field */}
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-[8px]">
                       <label
                         htmlFor="description"
-                        className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                        className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
                       >
                         Description
                       </label>
@@ -1075,14 +1075,14 @@ export default function InteractiveMap() {
                             description: e.target.value,
                           }))
                         }
-                        className="min-h-[100px] rounded-2xl px-4 py-3 border-[#7d7d7d]"
+                        className="min-h-[129px] rounded-[16px] p-[16px] border border-[#7d7d7d] bg-white text-[16px] leading-[22px] tracking-[-0.48px] text-[#313131] placeholder:text-[#b5b5b5] focus-visible:ring-0 focus-visible:ring-offset-0"
                         maxLength={500}
                       />
                     </div>
 
                     {/* Image Upload */}
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]">
+                    <div className="flex flex-col gap-[8px]">
+                      <label className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]">
                         Image <span className="text-red-500">*</span>
                       </label>
                       {formData.locationImage ? (
@@ -1090,7 +1090,7 @@ export default function InteractiveMap() {
                           <img
                             src={URL.createObjectURL(formData.locationImage)}
                             alt="Preview"
-                            className="w-full h-48 object-cover rounded-2xl"
+                            className="w-full h-48 object-cover rounded-[16px]"
                           />
                           <button
                             type="button"
@@ -1123,7 +1123,7 @@ export default function InteractiveMap() {
                       ) : (
                         <label
                           htmlFor="locationImage"
-                          className="bg-[#ededed] border border-[#b5b5b5] border-dashed rounded-2xl flex flex-col items-center justify-center px-10 py-4 cursor-pointer hover:bg-[#e0e0e0] transition-colors"
+                          className="bg-[#ededed] border border-[#b5b5b5] border-dashed rounded-[16px] flex flex-col items-center justify-center px-[40px] py-[16px] cursor-pointer hover:bg-[#e0e0e0] transition-colors"
                         >
                           <svg
                             className="w-6 h-6 text-[#423333] mb-2"
@@ -1163,9 +1163,9 @@ export default function InteractiveMap() {
 
               {/* Step 2: Check-In Details */}
               {formStep === "checkin-details" && (
-                <div className="p-5">
-                  <div className="mb-5">
-                    <h3 className="font-inktrap text-sm text-[#313131]">
+                <div className="px-[16px] py-[20px]">
+                  <div className="mb-[16px]">
+                    <h3 className="font-inktrap text-[16px] leading-[16px] tracking-[-1.28px] text-[#313131]">
                       {formData.name}
                     </h3>
                     <p className="font-inktrap text-[11px] uppercase tracking-[0.44px] text-[#7d7d7d] mt-1">
@@ -1173,10 +1173,10 @@ export default function InteractiveMap() {
                     </p>
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-[8px]">
                     <label
                       htmlFor="checkInComment"
-                      className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                      className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
                     >
                       Your comment (optional)
                     </label>
@@ -1190,12 +1190,12 @@ export default function InteractiveMap() {
                         }))
                       }
                       placeholder="A little about this location and why they should visit"
-                      className="min-h-[120px] rounded-2xl px-4 py-3 border-[#7d7d7d]"
+                      className="min-h-[129px] rounded-[16px] p-[16px] border border-[#7d7d7d] bg-white text-[16px] leading-[22px] tracking-[-0.48px] text-[#313131] placeholder:text-[#b5b5b5] focus-visible:ring-0 focus-visible:ring-offset-0"
                       maxLength={500}
                       disabled={isCreatingLocation}
                     />
                     <div className="flex justify-between text-[10px] text-[#b5b5b5] font-inktrap">
-                      <span>Keep it respectful and on-topic.</span>
+                      <span>Keep it respectful.</span>
                       <span>{formData.checkInComment.length}/500</span>
                     </div>
                   </div>
