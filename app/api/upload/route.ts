@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
-import pinataSDK from "@pinata/sdk";
+import { supabase } from "@/lib/supabase";
 import { z } from "zod";
-import { Readable } from "stream";
-
-const pinata = new pinataSDK({
-  pinataApiKey: process.env.PINATA_API_KEY!,
-  pinataSecretApiKey: process.env.PINATA_SECRET_API_KEY!,
-});
 
 // Validate the incoming request body
 const uploadSchema = z.object({
   name: z.string().min(1),
-  description: z.string(),
+  description: z.string().optional(),
   base64Image: z.string().min(1),
 });
 
@@ -23,47 +17,48 @@ export async function POST(request: Request) {
     const validatedData = uploadSchema.parse(body);
 
     // Convert base64 to buffer
-    const imageBuffer = Buffer.from(
-      validatedData.base64Image.split(",")[1],
-      "base64"
-    );
+    const base64Data = validatedData.base64Image.split(",")[1];
+    const imageBuffer = Buffer.from(base64Data, "base64");
 
-    // Convert buffer to readable stream
-    const stream = Readable.from(imageBuffer);
+    // Get file extension from base64 mime type
+    const mimeType = validatedData.base64Image.split(";")[0].split(":")[1];
+    const extension = mimeType.split("/")[1] || "png";
 
-    // Upload to Pinata with stream
-    const result = await pinata.pinFileToIPFS(stream, {
-      pinataMetadata: {
-        name: validatedData.name,
-      },
-      pinataOptions: {
-        cidVersion: 0,
-      },
-    });
+    // Generate unique filename
+    const filename = `${Date.now()}-${validatedData.name.replace(/[^a-zA-Z0-9]/g, "-")}.${extension}`;
+    const filepath = `location-images/${filename}`;
 
-    // Create metadata JSON
-    const metadata = {
-      name: validatedData.name,
-      description: validatedData.description,
-      image: `ipfs://${result.IpfsHash}`,
-    };
+    // Upload to Supabase Storage
+    const { error } = await supabase.storage
+      .from("images")
+      .upload(filepath, imageBuffer, {
+        contentType: mimeType,
+        cacheControl: "3600",
+        upsert: false,
+      });
 
-    // Pin metadata
-    const metadataResult = await pinata.pinJSONToIPFS(metadata, {
-      pinataMetadata: {
-        name: `${validatedData.name}-metadata`,
-      },
-    });
+    if (error) {
+      console.error("Supabase upload error:", error);
+      throw error;
+    }
+
+    // Get public URL
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("images").getPublicUrl(filepath);
 
     return NextResponse.json({
       success: true,
-      imageUrl: `ipfs://${result.IpfsHash}`,
-      metadataUrl: `ipfs://${metadataResult.IpfsHash}`,
+      imageUrl: publicUrl,
+      url: publicUrl, // for backward compatibility
     });
   } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to upload to IPFS" },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to upload image"
+      },
       { status: 500 }
     );
   }

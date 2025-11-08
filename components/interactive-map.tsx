@@ -28,8 +28,9 @@ interface LocationFormData {
   description: string;
   locationImage: File | null;
   checkInComment: string;
-  checkInImage: File | null;
 }
+
+type FormStep = "business-details" | "checkin-details" | "success";
 
 interface SearchLocationData {
   latitude: number;
@@ -55,14 +56,15 @@ export default function InteractiveMap() {
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const [popupInfo, setPopupInfo] = useState<MarkerData | null>(null);
   const [showLocationForm, setShowLocationForm] = useState(false);
+  const [formStep, setFormStep] = useState<FormStep>("business-details");
   const [isCreatingLocation, setIsCreatingLocation] = useState(false);
+  const [pointsEarned, setPointsEarned] = useState({ creation: 0, checkIn: 0 });
   const [formData, setFormData] = useState<LocationFormData>({
     name: "",
     address: "",
     description: "",
     locationImage: null,
     checkInComment: "",
-    checkInImage: null,
   });
   const [searchedLocation, setSearchedLocation] =
     useState<SearchLocationData | null>(null);
@@ -185,8 +187,8 @@ export default function InteractiveMap() {
             description: "",
             locationImage: null,
             checkInComment: "",
-            checkInImage: null,
           });
+          setFormStep("business-details");
           setShowLocationForm(true);
         }
       }
@@ -208,8 +210,8 @@ export default function InteractiveMap() {
         description: "",
         locationImage: null,
         checkInComment: "",
-        checkInImage: null,
       });
+      setFormStep("business-details");
       setShowLocationForm(true);
     }
   };
@@ -381,19 +383,12 @@ export default function InteractiveMap() {
       description: "",
       locationImage: null,
       checkInComment: "",
-      checkInImage: null,
     });
+    setFormStep("business-details");
     setShowLocationForm(true);
   };
 
-  const handleCreateLocation = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-
-    if (!selectedMarker || !walletAddress) {
-      toast.error("Please select a location and connect your wallet");
-      return;
-    }
-
+  const handleBusinessDetailsNext = () => {
     if (!formData.name.trim()) {
       toast.error("Location name is required");
       return;
@@ -404,20 +399,42 @@ export default function InteractiveMap() {
       return;
     }
 
+    setFormStep("checkin-details");
+  };
+
+  const handleCreateLocation = async () => {
+    if (!selectedMarker || !walletAddress) {
+      toast.error("Please select a location and connect your wallet");
+      return;
+    }
+
     setIsCreatingLocation(true);
 
     try {
-      // Upload images if they exist
+      // Upload location image
       let locationImageUrl = "";
-      let checkInImageUrl = "";
 
       if (formData.locationImage) {
-        const uploadFormData = new FormData();
-        uploadFormData.append("file", formData.locationImage);
+        // Convert file to base64
+        const base64Image = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(formData.locationImage!);
+        });
+
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",
-          body: uploadFormData,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            description: formData.description || "",
+            base64Image: base64Image,
+          }),
         });
+
         if (!uploadResponse.ok) {
           const errorResult = await uploadResponse.json().catch(() => ({}));
           throw new Error(
@@ -426,22 +443,9 @@ export default function InteractiveMap() {
           );
         }
         const uploadResult = await uploadResponse.json();
-        locationImageUrl = uploadResult.url;
+        locationImageUrl = uploadResult.imageUrl;
         if (!locationImageUrl) {
           throw new Error("Image upload succeeded but no URL was returned");
-        }
-      }
-
-      if (formData.checkInImage) {
-        const uploadFormData = new FormData();
-        uploadFormData.append("file", formData.checkInImage);
-        const uploadResponse = await fetch("/api/upload", {
-          method: "POST",
-          body: uploadFormData,
-        });
-        if (uploadResponse.ok) {
-          const uploadResult = await uploadResponse.json();
-          checkInImageUrl = uploadResult.url;
         }
       }
 
@@ -491,6 +495,9 @@ export default function InteractiveMap() {
 
       setMarkers((current) => [...current, newPermanentMarker]);
 
+      const creationPoints = result.pointsAwarded || 100;
+      let checkInPoints = 0;
+
       const trimmedComment = formData.checkInComment.trim();
 
       // If user provided a check-in comment, check them in
@@ -514,35 +521,33 @@ export default function InteractiveMap() {
                 type: "location",
               },
               comment: trimmedComment,
-              imageUrl: checkInImageUrl,
             }),
           });
 
           const checkInResult = await checkInResponse.json();
 
           if (checkInResponse.ok) {
-            toast.success(
-              `Location created and check-in successful! You earned ${(result.pointsAwarded || 100) + (checkInResult.pointsEarned || 0)} points!`,
-            );
+            checkInPoints = checkInResult.pointsEarned || 100;
           } else {
-            toast.success(
-              `Location created successfully! You earned ${result.pointsAwarded || 100} points!`,
-            );
+            // Check-in failed - inform the user but don't fail the location creation
+            const errorMessage =
+              checkInResult.error ||
+              "Check-in failed. Location was created successfully.";
+            toast.error(errorMessage);
+            console.error("Check-in failed:", checkInResult);
           }
         } catch (checkInError) {
-          // If check-in fails, just log it but don't fail the whole operation
+          // Network or parsing error
           console.error("Check-in failed:", checkInError);
-          toast.success(
-            `Location created successfully! You earned ${result.pointsAwarded || 100} points!`,
+          toast.error(
+            "Check-in failed. Location was created successfully, but we couldn't complete your check-in.",
           );
         }
-      } else {
-        toast.success(
-          `Location created successfully! You earned ${result.pointsAwarded || 100} points!`,
-        );
       }
 
-      handleCloseLocationForm();
+      // Store points and show success screen
+      setPointsEarned({ creation: creationPoints, checkIn: checkInPoints });
+      setFormStep("success");
     } catch (error) {
       console.error("Error creating location:", error);
       toast.error("Failed to create location: " + (error as Error).message);
@@ -553,15 +558,16 @@ export default function InteractiveMap() {
 
   const handleCloseLocationForm = () => {
     setShowLocationForm(false);
+    setFormStep("business-details");
     setSelectedMarker(null);
     setPopupInfo(null);
+    setPointsEarned({ creation: 0, checkIn: 0 });
     setFormData({
       name: "",
       address: "",
       description: "",
       locationImage: null,
       checkInComment: "",
-      checkInImage: null,
     });
   };
 
@@ -863,9 +869,16 @@ export default function InteractiveMap() {
             {/* Header with Back Button */}
             <div className="bg-white flex items-center gap-4 px-4 py-3">
               <button
-                onClick={handleCloseLocationForm}
+                onClick={() => {
+                  if (formStep === "checkin-details") {
+                    setFormStep("business-details");
+                  } else {
+                    handleCloseLocationForm();
+                  }
+                }}
                 className="bg-[#ededed] cursor-pointer flex items-center justify-center p-1 rounded-full size-8 hover:bg-[#e0e0e0] transition-colors"
                 aria-label="Back"
+                disabled={isCreatingLocation}
               >
                 <svg
                   className="w-4 h-4 text-[#b5b5b5]"
@@ -882,97 +895,130 @@ export default function InteractiveMap() {
                 </svg>
               </button>
               <h2 className="text-base font-inktrap text-[#313131] tracking-[-1.28px]">
-                Create & Check In
+                {formStep === "business-details" && "Create & Check In"}
+                {formStep === "checkin-details" && "Check In"}
+                {formStep === "success" && "Check-In Successful"}
               </h2>
             </div>
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto">
-              <form onSubmit={handleCreateLocation} className="flex flex-col">
-                {/* Add Business Details Section */}
-                <div>
-                  <div className="p-5">
-                    <div className="flex flex-col gap-4">
-                      {/* Name Field */}
-                      <div className="flex flex-col gap-2">
-                        <label
-                          htmlFor="name"
-                          className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
-                        >
-                          Name <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                          id="name"
-                          type="text"
-                          placeholder="Enter location name"
-                          value={formData.name}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              name: e.target.value,
-                            }))
-                          }
-                          className="border-[#7d7d7d] rounded-full px-4 py-4 h-auto"
-                          disabled={isCreatingLocation}
-                          maxLength={100}
-                          required
-                        />
-                      </div>
+              {/* Step 1: Business Details */}
+              {formStep === "business-details" && (
+                <div className="p-5">
+                  <div className="flex flex-col gap-4">
+                    {/* Name Field */}
+                    <div className="flex flex-col gap-2">
+                      <label
+                        htmlFor="name"
+                        className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                      >
+                        Name <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder="Enter location name"
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
+                        className="border-[#7d7d7d] rounded-full px-4 py-4 h-auto"
+                        maxLength={100}
+                      />
+                    </div>
 
-                      {/* Address Field */}
-                      <div className="flex flex-col gap-2">
-                        <label
-                          htmlFor="address"
-                          className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
-                        >
-                          Address
-                        </label>
-                        <Input
-                          id="address"
-                          type="text"
-                          placeholder="Enter address"
-                          value={formData.address}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              address: e.target.value,
-                            }))
-                          }
-                          className="bg-[#ededed] border-[#ededed] rounded-full px-4 py-4 h-auto"
-                          disabled={isCreatingLocation}
-                          maxLength={200}
-                        />
-                      </div>
+                    {/* Address Field */}
+                    <div className="flex flex-col gap-2">
+                      <label
+                        htmlFor="address"
+                        className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                      >
+                        Address
+                      </label>
+                      <Input
+                        id="address"
+                        type="text"
+                        placeholder="Enter address"
+                        value={formData.address}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            address: e.target.value,
+                          }))
+                        }
+                        className="bg-[#ededed] border-[#ededed] rounded-full px-4 py-4 h-auto"
+                        maxLength={200}
+                      />
+                    </div>
 
-                      {/* Description Field */}
-                      <div className="flex flex-col gap-2">
-                        <label
-                          htmlFor="description"
-                          className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
-                        >
-                          Description
-                        </label>
-                        <Textarea
-                          id="description"
-                          placeholder="Add a description"
-                          value={formData.description}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              description: e.target.value,
-                            }))
-                          }
-                          className="min-h-[100px] rounded-2xl px-4 py-3 border-[#7d7d7d]"
-                          disabled={isCreatingLocation}
-                          maxLength={500}
-                        />
-                      </div>
+                    {/* Description Field */}
+                    <div className="flex flex-col gap-2">
+                      <label
+                        htmlFor="description"
+                        className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                      >
+                        Description
+                      </label>
+                      <Textarea
+                        id="description"
+                        placeholder="Add a description"
+                        value={formData.description}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                        }
+                        className="min-h-[100px] rounded-2xl px-4 py-3 border-[#7d7d7d]"
+                        maxLength={500}
+                      />
+                    </div>
 
-                      {/* Image Upload */}
-                      <div className="flex flex-col gap-2">
-                        <label className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]">
-                          Image <span className="text-red-500">*</span>
-                        </label>
+                    {/* Image Upload */}
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]">
+                        Image <span className="text-red-500">*</span>
+                      </label>
+                      {formData.locationImage ? (
+                        <div className="relative">
+                          <img
+                            src={URL.createObjectURL(formData.locationImage)}
+                            alt="Preview"
+                            className="w-full h-48 object-cover rounded-2xl"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                locationImage: null,
+                              }));
+                            }}
+                            className="absolute top-2 right-2 bg-white/90 hover:bg-white rounded-full p-2 transition-colors"
+                          >
+                            <svg
+                              className="w-4 h-4 text-[#7d7d7d]"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                          <p className="text-xs text-[#7d7d7d] mt-2">
+                            {formData.locationImage.name}
+                          </p>
+                        </div>
+                      ) : (
                         <label
                           htmlFor="locationImage"
                           className="bg-[#ededed] border border-[#b5b5b5] border-dashed rounded-2xl flex flex-col items-center justify-center px-10 py-4 cursor-pointer hover:bg-[#e0e0e0] transition-colors"
@@ -991,55 +1037,143 @@ export default function InteractiveMap() {
                             />
                           </svg>
                           <p className="text-[11px] font-medium text-[#423333] uppercase tracking-[0.44px] text-center">
-                            Upload an image (Required)
+                            Upload an image
                           </p>
                         </label>
-                        <input
-                          id="locationImage"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            setFormData((prev) => ({
-                              ...prev,
-                              locationImage: file || null,
-                            }));
-                          }}
-                          disabled={isCreatingLocation}
-                          required
-                        />
-                        {formData.locationImage && (
-                          <p className="text-xs text-[#7d7d7d]">
-                            {formData.locationImage.name}
-                          </p>
-                        )}
-                      </div>
+                      )}
+                      <input
+                        id="locationImage"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          setFormData((prev) => ({
+                            ...prev,
+                            locationImage: file || null,
+                          }));
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
-              </form>
+              )}
+
+              {/* Step 2: Check-In Details */}
+              {formStep === "checkin-details" && (
+                <div className="p-5">
+                  <div className="mb-5">
+                    <h3 className="font-inktrap text-sm text-[#313131]">
+                      {formData.name}
+                    </h3>
+                    <p className="font-inktrap text-[11px] uppercase tracking-[0.44px] text-[#7d7d7d] mt-1">
+                      {formData.address}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label
+                      htmlFor="checkInComment"
+                      className="text-[11px] font-medium text-[#7d7d7d] uppercase tracking-[0.44px]"
+                    >
+                      Your comment (optional)
+                    </label>
+                    <Textarea
+                      id="checkInComment"
+                      value={formData.checkInComment}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          checkInComment: e.target.value,
+                        }))
+                      }
+                      placeholder="A little about this location and why they should visit"
+                      className="min-h-[120px] rounded-2xl px-4 py-3 border-[#7d7d7d]"
+                      maxLength={500}
+                      disabled={isCreatingLocation}
+                    />
+                    <div className="flex justify-between text-[10px] text-[#b5b5b5] font-inktrap">
+                      <span>Keep it respectful and on-topic.</span>
+                      <span>{formData.checkInComment.length}/500</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Success Screen */}
+              {formStep === "success" && (
+                <div className="p-5 flex flex-col items-center justify-center min-h-[300px]">
+                  <div className="w-full max-w-sm text-center">
+                    <div className="mb-8">
+                      <div className="text-6xl font-bold text-[#313131] mb-2">
+                        {pointsEarned.creation + pointsEarned.checkIn}
+                      </div>
+                      <p className="text-sm text-[#7d7d7d] uppercase tracking-[0.44px]">
+                        Points Earned
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-3 mb-6">
+                      {pointsEarned.creation > 0 && (
+                        <div className="flex items-center justify-between bg-[#ededed] rounded-full px-4 py-3">
+                          <span className="text-sm font-inktrap text-[#313131]">
+                            Created New Location
+                          </span>
+                          <span className="text-sm font-bold text-[#313131]">
+                            +{pointsEarned.creation}
+                          </span>
+                        </div>
+                      )}
+                      {pointsEarned.checkIn > 0 && (
+                        <div className="flex items-center justify-between bg-[#ededed] rounded-full px-4 py-3">
+                          <span className="text-sm font-inktrap text-[#313131]">
+                            Checked In
+                          </span>
+                          <span className="text-sm font-bold text-[#313131]">
+                            +{pointsEarned.checkIn}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Bottom Gradient with Submit Button */}
-            <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] border-t border-[#ededed] p-4">
-              <div className="flex w-full justify-between gap-4">
+            {/* Bottom Gradient with Button */}
+            {formStep !== "success" && (
+              <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] border-t border-[#ededed] p-4">
                 <button
-                  onClick={handleCloseLocationForm}
-                  className="bg-[#ededed] hover:bg-[#e0e0e0] text-[#7d7d7d] rounded-full px-4 py-2 h-auto font-inktrap text-base tracking-[-1.28px] w-full"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  onClick={handleCreateLocation}
+                  onClick={() => {
+                    if (formStep === "business-details") {
+                      handleBusinessDetailsNext();
+                    } else if (formStep === "checkin-details") {
+                      handleCreateLocation();
+                    }
+                  }}
                   disabled={isCreatingLocation}
-                  className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors disabled:opacity-50 whitespace-nowrap w-full"
+                  className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors disabled:opacity-50 w-full"
                 >
-                  {isCreatingLocation ? "Creating..." : "Check In"}
+                  {isCreatingLocation
+                    ? "Creating..."
+                    : formStep === "business-details"
+                      ? "Next"
+                      : "Check In"}
                 </button>
               </div>
-            </div>
+            )}
+
+            {/* Success Screen Footer */}
+            {formStep === "success" && (
+              <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] border-t border-[#ededed] p-4">
+                <button
+                  onClick={handleCloseLocationForm}
+                  className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors w-full"
+                >
+                  Back to Map
+                </button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
