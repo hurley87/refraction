@@ -14,9 +14,46 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
 });
 
+// Get base URL for absolute image URLs (required for Twitter cards)
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  // Default fallback - update this to your production domain
+  return "https://irl.energy";
+};
+
+const baseUrl = getBaseUrl();
+// Add cache-busting parameter to force Twitter to refresh cached images
+// Increment the version number when you update the image
+const imageUrl = `${baseUrl}/irl-share.png?v=2`;
+
 export const metadata: Metadata = {
-  title: "$IRL",
-  description: "$IRL is your key to unlocking a new way to experience culture",
+  title: "IRL",
+  description: "IRL - Culture&apos;s rewards program.",
+  openGraph: {
+    title: "$IRL",
+    description: "IRL - Culture&apos;s rewards program.",
+    url: baseUrl,
+    images: [
+      {
+        url: imageUrl,
+        width: 1200,
+        height: 630,
+        alt: "$IRL",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "$IRL",
+    description: "IRL - Culture&apos;s rewards program.",
+    images: [imageUrl],
+  },
   appleWebApp: {
     statusBarStyle: "black-translucent", // Options: "default", "black", "black-translucent"
   },
