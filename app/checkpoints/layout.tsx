@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import Auth from "@/components/auth";
-import Header from "@/components/header";
+
 import MapNav from "@/components/mapnav";
 
 
