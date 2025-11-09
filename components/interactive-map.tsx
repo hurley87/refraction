@@ -776,35 +776,41 @@ export default function InteractiveMap() {
         }}
       >
         <DialogContent className="w-full max-w-md p-2 bg-transparent border-none shadow-none [&>button]:hidden">
-          <div className="bg-white rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
+          <div
+            className={`rounded-3xl overflow-hidden max-h-[90vh] flex flex-col bg-white`}
+          >
             {/* Header */}
-            <div className="bg-white flex items-center gap-4 px-4 py-3">
-              <button
-                onClick={handleCloseCheckInModal}
-                className="bg-[#ededed] cursor-pointer flex items-center justify-center p-1 rounded-full size-8 hover:bg-[#e0e0e0] transition-colors disabled:opacity-50"
-                aria-label="Close"
-                disabled={isCheckingIn}
-              >
-                <svg
-                  className="w-4 h-4 text-[#b5b5b5]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            {!checkInSuccess && (
+              <div className="bg-white flex items-center gap-4 px-4 py-3">
+                <button
+                  onClick={handleCloseCheckInModal}
+                  className="bg-[#ededed] cursor-pointer flex items-center justify-center p-1 rounded-full size-8 hover:bg-[#e0e0e0] transition-colors disabled:opacity-50"
+                  aria-label="Close"
+                  disabled={isCheckingIn}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
-              <h2 className="text-base font-inktrap text-[#313131] tracking-[-1.28px]">
-                {checkInSuccess ? "Check-In Successful" : "Check In"}
-              </h2>
-            </div>
+                  <svg
+                    className="w-4 h-4 text-[#b5b5b5]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                </button>
+                <h2 className="text-base font-inktrap text-[#313131] tracking-[-1.28px]">
+                  Check In
+                </h2>
+              </div>
+            )}
 
-            <div className="flex-1 overflow-y-auto">
+            <div
+              className={`flex-1 relative ${checkInSuccess ? "overflow-hidden" : "overflow-y-auto"}`}
+            >
               {!checkInSuccess ? (
                 <>
                   {/* Map Preview */}
@@ -891,31 +897,185 @@ export default function InteractiveMap() {
                         maxLength={500}
                         disabled={isCheckingIn}
                       />
-                      <div className="flex justify-between text-[10px] text-[#b5b5b5] font-inktrap">
-                        <span>Keep it respectful and on-topic.</span>
-                        <span>{checkInComment.length}/500</span>
-                      </div>
                     </div>
                   </div>
                 </>
               ) : (
                 /* Success Screen */
-                <div className="p-5 flex flex-col items-center justify-center min-h-[300px]">
-                  <div className="w-full max-w-sm text-center">
-                    <div className="mb-8">
-                      <div className="text-6xl font-bold text-[#313131] mb-2">
-                        {checkInPointsEarned}
-                      </div>
-                      <p className="text-sm text-[#7d7d7d] uppercase tracking-[0.44px]">
-                        You Earned
-                      </p>
+                <div
+                  className="relative flex flex-col items-center justify-center min-h-[400px] w-full rounded-3xl overflow-hidden"
+                  style={{
+                    backgroundImage: "url('/city-bg.jpg')",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                  }}
+                >
+                  <div className="relative z-10 flex flex-col items-center gap-[28px] px-0 py-[109px] w-full h-full justify-center">
+                    {/* Location Marker Icon */}
+                    <div
+                      className="relative shrink-0"
+                      style={{ width: "46px", height: "66px" }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="46"
+                        height="66"
+                        viewBox="0 0 46 66"
+                        fill="none"
+                        className="absolute inset-0"
+                      >
+                        <g filter="url(#filter_checkin_success)">
+                          <path
+                            d="M41.2 16.6438C41.2 25.836 25.9572 45 25.2 45C24.4429 45 9.20001 25.836 9.20001 16.6438C9.20001 7.4517 16.3635 0 25.2 0C34.0366 0 41.2 7.4517 41.2 16.6438Z"
+                            fill="white"
+                          />
+                        </g>
+                        <defs>
+                          <filter
+                            id="filter_checkin_success"
+                            x="0"
+                            y="0"
+                            width="50.4"
+                            height="64.2"
+                            filterUnits="userSpaceOnUse"
+                            colorInterpolationFilters="sRGB"
+                          >
+                            <feFlood
+                              floodOpacity="0"
+                              result="BackgroundImageFix"
+                            />
+                            <feColorMatrix
+                              in="SourceAlpha"
+                              type="matrix"
+                              values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+                              result="hardAlpha"
+                            />
+                            <feOffset dy="10" />
+                            <feGaussianBlur stdDeviation="4.6" />
+                            <feComposite in2="hardAlpha" operator="out" />
+                            <feColorMatrix
+                              type="matrix"
+                              values="0 0 0 0 0.4 0 0 0 0 0.835294 0 0 0 0 0.458824 0 0 0 1 0"
+                            />
+                            <feBlend
+                              mode="normal"
+                              in2="BackgroundImageFix"
+                              result="effect1_dropShadow_7557_31214"
+                            />
+                            <feBlend
+                              mode="normal"
+                              in="SourceGraphic"
+                              in2="effect1_dropShadow_7557_31214"
+                              result="shape"
+                            />
+                          </filter>
+                        </defs>
+                      </svg>
+                      {checkInTarget?.imageUrl && (
+                        <div
+                          className="absolute bg-[#ededed] rounded-full shadow-[0px_0px_16px_0px_rgba(255,255,255,0.7)]"
+                          style={{
+                            width: "30px",
+                            height: "30px",
+                            top: "8px",
+                            left: "8px",
+                          }}
+                        >
+                          <img
+                            src={checkInTarget.imageUrl}
+                            alt={checkInTarget.name}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex flex-col gap-3 mb-6">
-                      <div className="flex items-center justify-center bg-[#ededed] rounded-full px-4 py-3">
-                        <span className="text-sm font-inktrap text-[#313131]">
-                          Checked In at {checkInTarget?.name}
-                        </span>
+                    {/* Upper Section */}
+                    <div className="flex flex-col gap-[16px] items-center w-full px-[16px] py-[12px]">
+                      {/* Reward Section */}
+                      <div className="flex flex-col gap-[8px] items-center w-full">
+                        <div className="flex gap-[8px] items-center justify-center w-[134px]">
+                          <div className="flex gap-[8px] items-center">
+                            <div className="flex gap-[8px] items-center justify-center h-[14px] pt-[2px]">
+                              <p
+                                className="text-[11px] leading-[16px] text-white uppercase tracking-[0.44px] whitespace-pre"
+                                style={{
+                                  fontFamily:
+                                    '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
+                                  fontWeight: 500,
+                                }}
+                              >
+                                You Earned
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-end justify-center gap-[8px] h-[53px] shadow-[0px_0px_10px_0px_rgba(255,255,255,0.54)]">
+                          <div className="flex gap-[8px] items-center justify-center h-[53px]">
+                            <p
+                              className="text-[76px] leading-[0] text-white tracking-[-4.94px] whitespace-pre"
+                              style={{
+                                fontFamily:
+                                  '"Pleasure Variable Trial", sans-serif',
+                                fontWeight: 700,
+                              }}
+                            >
+                              {checkInPointsEarned}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Checking In At Section */}
+                      <div className="flex flex-col gap-[8px] items-center justify-between w-[183px] h-[47px]">
+                        <p
+                          className="text-[11px] leading-[16px] text-white uppercase tracking-[0.44px] whitespace-pre"
+                          style={{
+                            fontFamily:
+                              '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
+                            fontWeight: 500,
+                          }}
+                        >
+                          Checking In At
+                        </p>
+                        <div className="flex gap-[8px] items-end justify-end w-[121px]">
+                          <div className="flex gap-[4px] items-center justify-center border border-white rounded-[1000px] pl-[8px] pr-[6px] py-[5px] min-h-px min-w-px">
+                            <div className="overflow-clip relative shrink-0 w-4 h-4">
+                              <svg
+                                className="w-4 h-4 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                                />
+                              </svg>
+                            </div>
+                            <div className="flex gap-[8px] items-center h-[14px] pt-[2px]">
+                              <p
+                                className="text-[11px] leading-[16px] text-white uppercase tracking-[0.44px] whitespace-pre"
+                                style={{
+                                  fontFamily:
+                                    '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
+                                  fontWeight: 500,
+                                }}
+                              >
+                                {checkInTarget?.name || "Location"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -925,7 +1085,7 @@ export default function InteractiveMap() {
 
             {/* Footer */}
             {!checkInSuccess ? (
-              <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] border-t border-[#ededed] p-4">
+              <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] p-4 pt-0">
                 <div className="flex w-full justify-between gap-4">
                   <button
                     onClick={handleCloseCheckInModal}
@@ -946,7 +1106,7 @@ export default function InteractiveMap() {
                 </div>
               </div>
             ) : (
-              <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] border-t border-[#ededed] p-4">
+              <div className="bg-transparent border-t border-white/20 p-4">
                 <button
                   onClick={handleCloseCheckInModal}
                   className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors w-full"
