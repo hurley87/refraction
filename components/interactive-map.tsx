@@ -1366,8 +1366,8 @@ export default function InteractiveMap() {
               {formStep === "success" && (
                 <div className="p-5 flex flex-col items-center justify-center min-h-[300px]">
                   <div className="w-full max-w-sm text-center">
-                    <div className="mb-8">
-                      <div className="text-6xl font-bold text-[#313131] mb-2">
+                    <div className="mb-8 bg-red-500">
+                      <div className="text-6xl font-bold text-[#313131] mb-2 text-red-500">
                         {pointsEarned.creation + pointsEarned.checkIn}
                       </div>
                       <p className="text-sm text-[#7d7d7d] uppercase tracking-[0.44px]">
