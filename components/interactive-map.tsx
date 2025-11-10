@@ -22,6 +22,16 @@ interface MarkerData {
   imageUrl?: string | null;
 }
 
+interface LocationCheckinPreview {
+  id: number;
+  comment: string;
+  imageUrl?: string | null;
+  pointsEarned: number;
+  createdAt?: string | null;
+  username?: string | null;
+  walletAddress?: string | null;
+}
+
 interface LocationFormData {
   name: string;
   address: string;
@@ -74,6 +84,14 @@ export default function InteractiveMap() {
   const [checkInComment, setCheckInComment] = useState("");
   const [checkInSuccess, setCheckInSuccess] = useState(false);
   const [checkInPointsEarned, setCheckInPointsEarned] = useState(0);
+  const [locationCheckins, setLocationCheckins] = useState<
+    LocationCheckinPreview[]
+  >([]);
+  const [isLoadingLocationCheckins, setIsLoadingLocationCheckins] =
+    useState(false);
+  const [locationCheckinsError, setLocationCheckinsError] = useState<
+    string | null
+  >(null);
 
   const mapRef = useRef<any>(null);
   const hasSetInitialLocationRef = useRef(false);
@@ -149,6 +167,62 @@ export default function InteractiveMap() {
     };
     loadMarkers();
   }, []);
+
+  const loadLocationCheckins = async (placeId: string) => {
+    if (!placeId) return;
+    setIsLoadingLocationCheckins(true);
+    setLocationCheckinsError(null);
+    try {
+      const response = await fetch(
+        `/api/location-comments?placeId=${encodeURIComponent(placeId)}`,
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch comments");
+      }
+      const data = await response.json();
+      setLocationCheckins(data.checkins || []);
+    } catch (error) {
+      console.error("Failed to load location check-ins:", error);
+      setLocationCheckins([]);
+      setLocationCheckinsError("Unable to load check-ins right now.");
+    } finally {
+      setIsLoadingLocationCheckins(false);
+    }
+  };
+
+  const getCheckinDisplayName = (entry: LocationCheckinPreview) => {
+    if (entry.username && entry.username.trim().length > 0) {
+      return entry.username;
+    }
+    if (entry.walletAddress && entry.walletAddress.length > 8) {
+      return `${entry.walletAddress.slice(0, 6)}...${entry.walletAddress.slice(-4)}`;
+    }
+    return "Explorer";
+  };
+
+  const getCheckinInitial = (entry: LocationCheckinPreview) => {
+    if (entry.username && entry.username.trim().length > 0) {
+      return entry.username.trim().charAt(0).toUpperCase();
+    }
+    if (entry.walletAddress && entry.walletAddress.length > 2) {
+      return entry.walletAddress.slice(2, 3).toUpperCase();
+    }
+    return "+";
+  };
+
+  const formatCheckinTimestamp = (timestamp?: string | null) => {
+    if (!timestamp) return "Moments ago";
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return "Recently";
+    try {
+      return date.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return "Recently";
+    }
+  };
 
   // Add markers by clicking the map
   const onMapClick = async (event: any) => {
@@ -292,7 +366,11 @@ export default function InteractiveMap() {
 
     setCheckInTarget(marker);
     setCheckInComment("");
+    setCheckInSuccess(false);
+    setLocationCheckins([]);
+    setLocationCheckinsError(null);
     setShowCheckInModal(true);
+    void loadLocationCheckins(marker.place_id);
   };
 
   const handleCloseCheckInModal = () => {
@@ -301,6 +379,9 @@ export default function InteractiveMap() {
     setCheckInTarget(null);
     setCheckInSuccess(false);
     setCheckInPointsEarned(0);
+    setLocationCheckins([]);
+    setLocationCheckinsError(null);
+    setIsLoadingLocationCheckins(false);
   };
 
   const handleCheckIn = async () => {
@@ -354,6 +435,21 @@ export default function InteractiveMap() {
       // Show success screen
       setCheckInPointsEarned(result.pointsEarned || 100);
       setCheckInSuccess(true);
+      const trimmedComment = checkInComment.trim();
+      if (trimmedComment.length > 0) {
+        setLocationCheckins((prev) => [
+          {
+            id: result.checkin?.id ?? Date.now(),
+            comment: trimmedComment,
+            imageUrl: result.checkin?.image_url ?? checkInTarget.imageUrl ?? null,
+            pointsEarned: result.checkin?.points_earned || result.pointsEarned || 100,
+            createdAt: result.checkin?.created_at || new Date().toISOString(),
+            username: userUsername,
+            walletAddress: walletAddress || null,
+          },
+          ...prev,
+        ]);
+      }
 
       // Close the map popups
       setPopupInfo(null);
@@ -881,22 +977,140 @@ export default function InteractiveMap() {
                       </p>
                     </div>
 
-                    <div className="flex flex-col gap-[8px]">
-                      <label
-                        htmlFor="checkInComment"
-                        className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
-                      >
-                        Your Comment
-                      </label>
-                      <Textarea
-                        id="checkInComment"
-                        value={checkInComment}
-                        onChange={(e) => setCheckInComment(e.target.value)}
-                        placeholder="A little about this location and why they should visit"
-                        className="min-h-[129px] rounded-[16px] p-[16px] border border-[#7d7d7d] bg-white text-[16px] leading-[22px] tracking-[-0.48px] text-[#313131] placeholder:text-[#b5b5b5] focus-visible:ring-0 focus-visible:ring-offset-0"
-                        maxLength={500}
-                        disabled={isCheckingIn}
-                      />
+                    <div className="flex flex-col gap-6">
+                      <section className="flex flex-col gap-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-[11px] font-inktrap uppercase tracking-[0.44px] text-[#7d7d7d]">
+                            Check-ins
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <div className="flex -space-x-2">
+                              {locationCheckins.length > 0 ? (
+                                locationCheckins.slice(0, 2).map((entry) => (
+                                  <div
+                                    key={`badge-${entry.id}`}
+                                    className="size-8 rounded-full border border-white bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d] text-[13px] font-semibold text-[#2f2f2f] flex items-center justify-center shadow-sm"
+                                  >
+                                    {getCheckinInitial(entry)}
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="size-8 rounded-full border border-white bg-[#ededed] text-[13px] font-semibold text-[#7d7d7d] flex items-center justify-center">
+                                  +
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-[11px] font-inktrap uppercase tracking-[0.44px] text-[#7d7d7d]">
+                              {locationCheckins.length > 0
+                                ? `+${Math.max(locationCheckins.length - 2, 0)} others`
+                                : "Be the first"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 overflow-y-auto pr-1 max-h-[260px]">
+                          {isLoadingLocationCheckins ? (
+                            Array.from({ length: 2 }).map((_, index) => (
+                              <div
+                                key={`skeleton-${index}`}
+                                className="rounded-2xl border border-[#ededed] bg-white p-4 shadow-sm animate-pulse"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="size-10 rounded-full bg-[#f4f4f4]" />
+                                  <div className="flex-1 space-y-2">
+                                    <div className="h-3 w-24 rounded-full bg-[#f1f1f1]" />
+                                    <div className="h-3 w-32 rounded-full bg-[#f5f5f5]" />
+                                  </div>
+                                </div>
+                                <div className="mt-4 space-y-2">
+                                  <div className="h-3 w-full rounded-full bg-[#f5f5f5]" />
+                                  <div className="h-3 w-3/4 rounded-full bg-[#f5f5f5]" />
+                                </div>
+                              </div>
+                            ))
+                          ) : locationCheckinsError ? (
+                            <p className="text-[12px] text-[#b5b5b5]">
+                              {locationCheckinsError}
+                            </p>
+                          ) : locationCheckins.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-[#ededed] bg-[#fafafa] p-4 text-[13px] text-[#7d7d7d]">
+                              No one has shared a check-in yet. Drop the first
+                              note and earn points for spreading the word.
+                            </div>
+                          ) : (
+                            locationCheckins.slice(0, 4).map((entry) => {
+                              return (
+                                <div
+                                  key={entry.id}
+                                  className="rounded-2xl border border-[#ededed] bg-white p-4 shadow-sm space-y-3"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="size-10 rounded-full bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d] text-[13px] font-semibold text-[#2f2f2f] flex items-center justify-center">
+                                      {getCheckinInitial(entry)}
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-[13px] font-semibold text-[#313131] leading-[16px]">
+                                        {getCheckinDisplayName(entry)}
+                                      </span>
+                                      <span className="text-[10px] uppercase tracking-[0.44px] text-[#b5b5b5]">
+                                        {formatCheckinTimestamp(entry.createdAt)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <p className="text-[14px] leading-[20px] text-[#313131]">
+                                    {entry.comment}
+                                  </p>
+                                  <div className="flex items-center">
+                                    <div className="inline-flex items-center gap-1 rounded-full border border-[#ededed] px-3 py-1 text-[11px] font-inktrap uppercase tracking-[0.44px] text-[#313131]">
+                                      <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                      >
+                                        <path
+                                          d="M12 3L3 9L12 15L21 9L12 3Z"
+                                          stroke="#313131"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                        <path
+                                          d="M5 10.5V15L12 21L19 15V10.5"
+                                          stroke="#313131"
+                                          strokeWidth="1.5"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                      </svg>
+                                      <span>+{entry.pointsEarned || 100}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </section>
+
+                      <div className="flex flex-col gap-[8px]">
+                        <label
+                          htmlFor="checkInComment"
+                          className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
+                        >
+                          Your Comment
+                        </label>
+                        <Textarea
+                          id="checkInComment"
+                          value={checkInComment}
+                          onChange={(e) => setCheckInComment(e.target.value)}
+                          placeholder="A little about this location and why they should visit"
+                          className="min-h-[129px] rounded-[16px] p-[16px] border border-[#7d7d7d] bg-white text-[16px] leading-[22px] tracking-[-0.48px] text-[#313131] placeholder:text-[#b5b5b5] focus-visible:ring-0 focus-visible:ring-offset-0"
+                          maxLength={500}
+                          disabled={isCheckingIn}
+                        />
+                      </div>
                     </div>
                   </div>
                 </>
