@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 // Button was unused here; removing import to satisfy lint
 import { type Perk } from "@/lib/supabase";
+import type { Tier } from "@/lib/types";
 import Image from "next/image";
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ import {
   Copy,
   X,
   Award,
+  Clock,
 } from "lucide-react";
 
 import { useState, useEffect } from "react";
@@ -78,7 +80,7 @@ const TimeLeft = ({
 
   return <span className={className}>{timeLeft.text}</span>;
 };
-
+/*
 const PerkCodeCount = ({ perkId }: { perkId: string }) => {
   const { data: availableCount = 0 } = useQuery({
     queryKey: ["available-codes", perkId],
@@ -91,13 +93,13 @@ const PerkCodeCount = ({ perkId }: { perkId: string }) => {
     },
   });
 
+
   return (
     <span className="text-black body-small uppercase font-abc-monument-regular">
       {availableCount} codes available
     </span>
   );
-};
-
+};  */
 export default function PerksPage() {
   const { user, login } = usePrivy();
   const address = user?.wallet?.address;
@@ -149,6 +151,42 @@ export default function PerksPage() {
   const queryClient = useQueryClient();
   const [selectedPerk, setSelectedPerk] = useState<Perk | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const { data: tiers = [] } = useQuery<Tier[]>({
+    queryKey: ["tiers"],
+    queryFn: async () => {
+      const response = await fetch("/api/tiers");
+      if (!response.ok) {
+        throw new Error("Failed to fetch tiers");
+      }
+      const data = await response.json();
+      return data.tiers ?? [];
+    },
+  });
+
+  const findTierForPoints = (points: number) => {
+    if (!tiers.length) return null;
+    return (
+      tiers.find(
+        (tier) =>
+          points >= tier.min_points &&
+          (tier.max_points === null || points < tier.max_points),
+      ) ?? null
+    );
+  };
+
+  const formatTierLabel = (points: number) => {
+     const tier = findTierForPoints(points);
+     if (!tier) {
+      return "All Members";
+     }
+
+    return tier.title;
+  };
+
+  const selectedTierInfo = selectedPerk
+    ? findTierForPoints(selectedPerk.points_threshold)
+    : null;
 
   const selectedPerkId = selectedPerk?.id;
 
@@ -329,9 +367,7 @@ export default function PerksPage() {
     (isDiscountReward && noSelectedCodesAvailable);
 
   const tierLabel = selectedPerk
-    ? selectedPerk.points_threshold > 0
-      ? `≥ ${selectedPerk.points_threshold.toLocaleString()} pts`
-      : "All Members"
+    ? formatTierLabel(selectedPerk.points_threshold)
     : "All Members";
 
   const codesAvailabilityLabel = selectedPerk
@@ -468,38 +504,25 @@ export default function PerksPage() {
                     }}
                   >
                     <span className="text-black body-small uppercase font-abc-monument-regular">
-                      {latestReward.points_threshold.toLocaleString()} pts
+                      {formatTierLabel(latestReward.points_threshold)}
                     </span>
                   </div>
 
-                  {/* Location Pill */}
-                  {latestReward.location && (
-                    <div
-                      style={{
-                        display: "flex",
-                        padding: "4px 8px",
-                        alignItems: "center",
-                        gap: "8px",
-                        alignSelf: "stretch",
-                        borderRadius: "1000px",
-                        border: "1px solid #000000",
-                      }}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-4 h-4 inline-block"
-                        fill="#7D7D7D"
-                        viewBox="0 0 20 20"
-                        stroke="none"
-                        aria-hidden="true"
-                      >
-                        <path d="M10 2C7.24 2 5 4.24 5 7c0 5.25 5 11 5 11s5-5.75 5-11c0-2.76-2.24-5-5-5zm0 7.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                      </svg>
-                      <span className="flex items-center gap-1 text-black body-small uppercase font-abc-monument-regular">
-                        {latestReward.location}
-                      </span>
-                    </div>
-                  )}
+                  <div
+                    style={{
+                      display: "flex",
+                      padding: "4px 8px",
+                      alignItems: "center",
+                      gap: "8px",
+                      alignSelf: "stretch",
+                      borderRadius: "1000px",
+                      border: "1px solid #000000",
+                    }}
+                  >
+                    <span className="text-black body-small uppercase font-abc-monument-regular">
+                      {dateLabel}
+                    </span>
+                  </div>
 
                   {/* Date/Time Left Pill */}
                   {latestReward.end_date && (
@@ -668,20 +691,7 @@ export default function PerksPage() {
                       {/* Header */}
                       <div className="flex justify-between items-start w-full">
                         <div className="flex flex-wrap gap-2 flex-1">
-                          <span
-                            style={{
-                              display: "flex",
-                              padding: "4px 8px",
-                              alignItems: "center",
-                              gap: "8px",
-                              borderRadius: "1000px",
-                              border: "1px solid #EDEDED",
-                              background: "#EDEDED",
-                            }}
-                            className="text-black body-small uppercase font-abc-monument-regular"
-                          >
-                            {perk.type}
-                          </span>
+                          
                           {isExpiringSoon && !isExpired && (
                             <span
                               style={{
@@ -731,14 +741,7 @@ export default function PerksPage() {
                             </span>
                           )}
                         </div>
-                        <div className="text-right">
-                          <span className="text-black title3 font-pleasure">
-                            {perk.points_threshold.toLocaleString()}
-                          </span>
-                          <span className="text-black body-small font-abc-monument-regular ml-1">
-                            pts
-                          </span>
-                        </div>
+                      
                       </div>
 
                       {/* Thumbnail and Content */}
@@ -774,46 +777,22 @@ export default function PerksPage() {
 
                       {/* Details */}
                       <div className="flex w-full gap-2 mb-4 flex-wrap">
-                        {perk.location && (
                           <div
-                            style={{
-                              display: "flex",
-                              padding: "4px 8px",
-                              alignItems: "center",
-                              gap: "8px",
-                              alignSelf: "stretch",
-                              borderRadius: "1000px",
-                              border: "1px solid #EDEDED",
-                            }}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="w-4 h-4 text-black inline-block"
-                              fill="none"
-                              viewBox="0 0 20 20"
-                              stroke="#7D7D7D"
-                              strokeWidth={1.5}
-                              aria-hidden="true"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M10 18s6-5.686 6-10A6 6 0 1 0 4 8c0 4.314 6 10 6 10Z"
-                                className="stroke-current"
-                              />
-                              <circle
-                                cx="10"
-                                cy="8"
-                                r="2.25"
-                                className="stroke-current"
-                                strokeWidth={1.5}
-                              />
-                            </svg>
-                            <span className="text-black body-small uppercase font-abc-monument-regular">
-                              {perk.location}
-                            </span>
-                          </div>
-                        )}
+                          style={{
+                            display: "flex",
+                            padding: "4px 8px",
+                            alignItems: "center",
+                            gap: "8px",
+                            alignSelf: "stretch",
+                            borderRadius: "1000px",
+                            border: "1px solid #EDEDED",
+                            background: "#EDEDED",
+                          }}
+                          className="text-black body-small uppercase font-abc-monument-regular"
+                        >
+                          {formatTierLabel(perk.points_threshold)}
+                        </div>
+                        
 
                         {perk.end_date && (
                           <div
@@ -869,42 +848,53 @@ export default function PerksPage() {
                           </div>
                         )}
 
-                        {perk.website_url && (
-                          <a
-                            href={perk.website_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              display: "flex",
-                              padding: "4px 8px",
-                              alignItems: "center",
-                              gap: "8px",
-                              alignSelf: "stretch",
-                              borderRadius: "1000px",
-                              border: "1px solid #EDEDED",
-                            }}
-                            className="text-black body-small uppercase font-abc-monument-regular hover:bg-gray-50"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            Visit Website
-                          </a>
-                        )}
+                        <div
+                          style={{
+                            display: "flex",
+                            padding: "4px 8px",
+                            alignItems: "center",
+                            gap: "8px",
+                            alignSelf: "stretch",
+                            borderRadius: "1000px",
+                            border: "1px solid #EDEDED",
+                          }}
+                          className="text-black body-small uppercase font-abc-monument-regular bg-white"
+                        >
+                          <Clock className="w-4 h-4" />
+                          {dateLabel}
+                        </div>
 
                         {perk.id && (
-                          <div
-                            style={{
-                              display: "flex",
-                              padding: "4px 8px",
-                              alignItems: "center",
-                              gap: "8px",
-                              alignSelf: "stretch",
-                              borderRadius: "1000px",
-                              border: "1px solid #EDEDED",
-                            }}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPerk(perk)}
+                            className={`
+                              inline-flex items-center gap-2
+                              rounded-full
+                              border border-[#EDEDED] bg-white
+                              px-4 py-2
+                              text-black body-small uppercase font-abc-monument-regular
+                              hover:bg-gray-50
+                              transition ease-in-out
+                              shadow-sm
+                            `}
+                            disabled={!affordable || isExpired}
+                            aria-label="View Details"
                           >
-                            <PerkCodeCount perkId={perk.id} />
-                          </div>
+                            <span className="font-pleasure">
+                              View Details
+                            </span>
+                            <Image
+                              src="/home/arrow-right.svg"
+                              alt="arrow-right"
+                              width={20}
+                              height={20}
+                              className="w-5 h-5"
+                            />
+                          </button>
                         )}
+
+                      
                       </div>
 
                       {/* Status Messages */}
@@ -922,44 +912,7 @@ export default function PerksPage() {
                         )}
 
                       {/* Action Button */}
-                      <button
-                        onClick={() => handleOpenPerk(perk)}
-                        className={`w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between ${
-                          userRedeemed
-                            ? "bg-green-100"
-                            : !affordable || isExpired
-                              ? "opacity-50"
-                              : ""
-                        }`}
-                        disabled={!affordable || isExpired}
-                      >
-                        <span className="font-pleasure text-left">
-                          {userRedeemed
-                            ? "✓ Redeemed"
-                            : isExpired
-                              ? "Expired"
-                              : affordable
-                                ? "View Details"
-                                : "Insufficient Points"}
-                        </span>
-                        <div
-                          style={{
-                            display: "flex",
-                            width: "24px",
-                            height: "24px",
-                            justifyContent: "center",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Image
-                            src="/home/arrow-right.svg"
-                            alt="arrow-right"
-                            width={20}
-                            height={20}
-                            className="w-5 h-5"
-                          />
-                        </div>
-                      </button>
+                     
                     </div>
                   );
                 })
@@ -1053,7 +1006,6 @@ export default function PerksPage() {
                 )}
                 <div className="grid grid-cols-2 gap-2">
                   <span className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313]/5 px-4 py-2 body-small font-grotesk uppercase tracking-wide">
-                    
                     {selectedPerk.type?.length ? selectedPerk.type : "Reward"}
                   </span>
                   <span className="inline-flex w-full items-center justify-center rounded-full border border-[#131313]/20 bg-[#131313]/5 px-4 py-2 body-small font-grotesk uppercase tracking-wide">
@@ -1168,6 +1120,11 @@ export default function PerksPage() {
                     {tierLabel}
                   </span>
                 </div>
+                {selectedTierInfo && (
+                  <p className="text-xs text-gray-500">
+                    {selectedTierInfo.description}
+                  </p>
+                )}
                 <a
                   href="/membership"
                   className="flex items-center gap-2 text-sm font-inktrap text-[#131313] underline-offset-4 hover:underline"

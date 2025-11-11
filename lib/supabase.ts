@@ -1,9 +1,41 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Tier } from "./types";
 
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+export const getTiers = async (): Promise<Tier[]> => {
+  const { data, error } = await supabase
+    .from("tiers")
+    .select("*")
+    .order("min_points", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as Tier[];
+};
+
+export const resolveTierForPoints = (
+  tiers: Tier[],
+  totalPoints: number,
+): Tier | null => {
+  return (
+    tiers.find(
+      (tier) =>
+        totalPoints >= tier.min_points &&
+        (tier.max_points === null || totalPoints < tier.max_points),
+    ) ?? null
+  );
+};
+
+export const getTierForPoints = async (totalPoints: number): Promise<Tier | null> => {
+  const tiers = await getTiers();
+  return resolveTierForPoints(tiers, totalPoints);
+};
 
 // Types for our number assignment system
 export type NumberAssignment = {
