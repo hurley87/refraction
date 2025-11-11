@@ -17,7 +17,7 @@ export default function ClaimPage() {
             loop
             muted
             playsInline
-            className="pointer-events-none absolute left-1/2 top-1/2 -z-10"
+            className="pointer-events-none absolute left-1/2 top-1/2 -z-10 hidden md:block"
             style={{
               width: "1909px",
               height: "1192px",
@@ -38,7 +38,7 @@ export default function ClaimPage() {
             loop
             muted
             playsInline
-            className="pointer-events-none absolute left-1/2 top-1/2 -z-10 md:hidden"
+            className="pointer-events-none absolute left-1/2 top-1/2 -z-10 block md:hidden"
             style={{
               width: "1909px",
               height: "1192px",

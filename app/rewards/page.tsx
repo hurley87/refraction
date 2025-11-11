@@ -1,12 +1,22 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 // Button was unused here; removing import to satisfy lint
 import { type Perk } from "@/lib/supabase";
-import Link from "next/link";
 import Image from "next/image";
 import { usePrivy } from "@privy-io/react-auth";
-import { ExternalLink, Gift } from "lucide-react";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
+import {
+  ExternalLink,
+  Gift,
+  Info,
+  MapPin,
+  Trophy,
+  Copy,
+  X,
+  Award,
+} from "lucide-react";
 
 import { useState, useEffect } from "react";
 import MapNav from "@/components/mapnav";
@@ -89,7 +99,7 @@ const PerkCodeCount = ({ perkId }: { perkId: string }) => {
 };
 
 export default function PerksPage() {
-  const { user } = usePrivy();
+  const { user, login } = usePrivy();
   const address = user?.wallet?.address;
 
   // Fetch all active perks
@@ -136,6 +146,222 @@ export default function PerksPage() {
   const hasRedeemed = (perkId: string) =>
     userRedemptions.some((redemption: any) => redemption.perk_id === perkId);
 
+  const queryClient = useQueryClient();
+  const [selectedPerk, setSelectedPerk] = useState<Perk | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const selectedPerkId = selectedPerk?.id;
+
+  const { data: selectedAvailableCodesCount = 0, isLoading: selectedCodesLoading } = useQuery({
+    queryKey: ["available-codes", selectedPerkId],
+    queryFn: async () => {
+      const response = await fetch(`/api/perks/${selectedPerkId}/available-count`);
+      if (!response.ok) throw new Error("Failed to fetch available codes count");
+      const data = await response.json();
+      return data.count;
+    },
+    enabled: isModalOpen && !!selectedPerkId,
+  });
+
+  const selectedPerkAffordable = selectedPerk ? (!address || canAfford(selectedPerk)) : false;
+  const selectedPerkExpired = selectedPerk?.end_date
+    ? new Date(selectedPerk.end_date) < new Date()
+    : false;
+  /*const selectedPerkExpiringSoon = selectedPerk?.end_date
+    ? new Date(selectedPerk.end_date) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    : false;*/
+  const selectedPerkRedeemed = selectedPerk?.id ? hasRedeemed(selectedPerk.id) : false;
+  const selectedPerkRedemption = selectedPerk
+    ? userRedemptions.find((redemption: any) => redemption.perk_id === selectedPerk.id)
+    : undefined;
+  const selectedUserDiscountCode = selectedPerkRedemption?.perk_discount_codes?.code;
+  const noSelectedCodesAvailable = selectedAvailableCodesCount === 0;
+
+  const redeemPerkMutation = useMutation({
+    mutationFn: async (perkId: string) => {
+      const response = await fetch("/api/perks/redeem", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ perkId, walletAddress: address }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to redeem perk");
+      }
+
+      return response.json();
+    },
+    onSuccess: (_, perkId) => {
+      toast.success(
+        "Perk redeemed successfully! Your discount code is now available below.",
+      );
+      queryClient.invalidateQueries({ queryKey: ["user-redemptions", address] });
+      queryClient.invalidateQueries({ queryKey: ["user-stats", address] });
+      queryClient.invalidateQueries({ queryKey: ["available-codes", perkId] });
+      queryClient.invalidateQueries({ queryKey: ["perks"] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to redeem perk");
+    },
+  });
+
+  const handleOpenPerk = (perk: Perk) => {
+    setSelectedPerk(perk);
+    setIsModalOpen(true);
+  };
+
+  const handleModalOpenChange = (open: boolean) => {
+    if (!open) {
+      setIsModalOpen(false);
+      setSelectedPerk(null);
+    } else {
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleRedeem = () => {
+    if (!selectedPerk || !selectedPerkId) return;
+
+    if (!address) {
+      toast.error("Please connect your wallet to redeem perks");
+      return;
+    }
+
+    if (selectedPerkExpired) {
+      toast.error("This perk has expired");
+      return;
+    }
+
+    if (!selectedPerkAffordable) {
+      toast.error("Insufficient points to redeem this perk");
+      return;
+    }
+
+    if (selectedPerkRedeemed) {
+      toast.error("You have already redeemed this perk");
+      return;
+    }
+
+    if (noSelectedCodesAvailable) {
+      toast.error("No codes available for this perk");
+      return;
+    }
+
+    redeemPerkMutation.mutate(selectedPerkId);
+  };
+
+  const handleCopyCode = async () => {
+    if (!selectedUserDiscountCode) return;
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        await navigator.clipboard.writeText(selectedUserDiscountCode);
+        toast.success("Discount code copied to clipboard!");
+        return;
+      }
+    } catch (error) {
+      {console.error(error)}
+    }
+
+    if (typeof document !== "undefined") {
+      const textArea = document.createElement("textarea");
+      textArea.value = selectedUserDiscountCode;
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand("copy");
+        toast.success("Discount code copied to clipboard!");
+      } catch {
+        toast.error("Failed to copy code. Please copy manually.");
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return undefined;
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return undefined;
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
+  };
+
+  const startDateRaw = selectedPerk
+    ? ((selectedPerk as unknown as { start_date?: string })?.start_date ?? undefined)
+    : undefined;
+  const formattedStartDate = formatDate(startDateRaw);
+  const formattedEndDate = formatDate(selectedPerk?.end_date);
+  const dateLabel = formattedStartDate && formattedEndDate
+    ? `${formattedStartDate} – ${formattedEndDate}`
+    : formattedEndDate
+      ? `Ends ${formattedEndDate}`
+      : "Ongoing";
+
+  const perkType = selectedPerk?.type?.toLowerCase() ?? "";
+  const isDiscountReward = perkType === "discount";
+  const selectedPerkIsOnline = selectedPerk?.location
+    ? selectedPerk.location.toLowerCase().includes("online")
+    : true;
+
+  const claimLabel = (() => {
+    if (!selectedPerk) return "Claim Reward";
+    if (redeemPerkMutation.isPending) return "Redeeming...";
+    if (selectedPerkRedeemed) return "✓ Redeemed";
+    if (selectedPerkExpired) return "Expired";
+    if (isDiscountReward && noSelectedCodesAvailable) return "Sold Out";
+    if (!selectedPerkAffordable) return "Insufficient Points";
+    return "Claim Reward";
+  })();
+
+  const claimDisabled =
+    !selectedPerk ||
+    redeemPerkMutation.isPending ||
+    selectedPerkRedeemed ||
+    selectedPerkExpired ||
+    (!selectedPerkAffordable) ||
+    (isDiscountReward && noSelectedCodesAvailable);
+
+  const tierLabel = selectedPerk
+    ? selectedPerk.points_threshold > 0
+      ? `≥ ${selectedPerk.points_threshold.toLocaleString()} pts`
+      : "All Members"
+    : "All Members";
+
+  const codesAvailabilityLabel = selectedPerk
+    ? selectedCodesLoading
+      ? "Checking availability..."
+      : `${selectedAvailableCodesCount} ${
+          selectedAvailableCodesCount === 1 ? "code" : "codes"
+        } remaining`
+    : "";
+
+    /*
+  const statusChips = [
+    selectedPerk?.type && {
+      label: selectedPerk.type,
+      className: "bg-blue-100 text-blue-800",
+    },
+    selectedPerkExpiringSoon && !selectedPerkExpired
+      ? { label: "Ending Soon", className: "bg-orange-100 text-orange-800" }
+      : null,
+    selectedPerkExpired
+      ? { label: "Expired", className: "bg-red-100 text-red-800" }
+      : null,
+    selectedPerkRedeemed
+      ? { label: "✓ Redeemed", className: "bg-green-100 text-green-800" }
+      : null,
+    isDiscountReward && noSelectedCodesAvailable && !selectedPerkRedeemed && !selectedPerkExpired
+      ? { label: "Sold Out", className: "bg-red-100 text-red-800" }
+      : null,
+  ].filter(Boolean) as { label: string; className: string }[];
+*/
   // Get the latest reward (most recently created or updated)
   const latestReward = perks.length > 0
     ? [...perks].sort((a, b) => {
@@ -332,48 +558,44 @@ export default function PerksPage() {
                 </div>
 
                 {/* View Details Button */}
-                <Link
-                  href={`/perks/${latestReward.id}`}
-                  className="w-full"
+                <button
+                  onClick={() => handleOpenPerk(latestReward)}
+                  className={`w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between ${
+                    latestRewardRedeemed
+                      ? "bg-green-100"
+                      : !latestRewardAffordable || latestRewardExpired
+                        ? "opacity-50"
+                        : ""
+                  }`}
+                  disabled={!latestRewardAffordable || latestRewardExpired}
                 >
-                  <button
-                    className={`w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between ${
-                      latestRewardRedeemed
-                        ? "bg-green-100"
-                        : !latestRewardAffordable || latestRewardExpired
-                          ? "opacity-50"
-                          : ""
-                    }`}
-                    disabled={!latestRewardAffordable || latestRewardExpired}
+                  <span className="font-pleasure text-left">
+                    {latestRewardRedeemed
+                      ? "✓ Redeemed"
+                      : latestRewardExpired
+                        ? "Expired"
+                        : latestRewardAffordable
+                          ? "View Details"
+                          : "Insufficient Points"}
+                  </span>
+                  <div
+                    style={{
+                      display: "flex",
+                      width: "24px",
+                      height: "24px",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
                   >
-                    <span className="font-pleasure text-left">
-                      {latestRewardRedeemed
-                        ? "✓ Redeemed"
-                        : latestRewardExpired
-                          ? "Expired"
-                          : latestRewardAffordable
-                            ? "View Details"
-                            : "Insufficient Points"}
-                    </span>
-                    <div
-                      style={{
-                        display: "flex",
-                        width: "24px",
-                        height: "24px",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Image
-                        src="/home/arrow-right.svg"
-                        alt="arrow-right"
-                        width={20}
-                        height={20}
-                        className="w-5 h-5"
-                      />
-                    </div>
-                  </button>
-                </Link>
+                    <Image
+                      src="/home/arrow-right.svg"
+                      alt="arrow-right"
+                      width={20}
+                      height={20}
+                      className="w-5 h-5"
+                    />
+                  </div>
+                </button>
               </div>
             </div>
           )}
@@ -700,45 +922,44 @@ export default function PerksPage() {
                         )}
 
                       {/* Action Button */}
-                      <Link href={`/perks/${perk.id}`} className="w-full">
-                        <button
-                          className={`w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between ${
-                            userRedeemed
-                              ? "bg-green-100"
-                              : !affordable || isExpired
-                                ? "opacity-50"
-                                : ""
-                          }`}
-                          disabled={!affordable || isExpired}
+                      <button
+                        onClick={() => handleOpenPerk(perk)}
+                        className={`w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between ${
+                          userRedeemed
+                            ? "bg-green-100"
+                            : !affordable || isExpired
+                              ? "opacity-50"
+                              : ""
+                        }`}
+                        disabled={!affordable || isExpired}
+                      >
+                        <span className="font-pleasure text-left">
+                          {userRedeemed
+                            ? "✓ Redeemed"
+                            : isExpired
+                              ? "Expired"
+                              : affordable
+                                ? "View Details"
+                                : "Insufficient Points"}
+                        </span>
+                        <div
+                          style={{
+                            display: "flex",
+                            width: "24px",
+                            height: "24px",
+                            justifyContent: "center",
+                            alignItems: "center",
+                          }}
                         >
-                          <span className="font-pleasure text-left">
-                            {userRedeemed
-                              ? "✓ Redeemed"
-                              : isExpired
-                                ? "Expired"
-                                : affordable
-                                  ? "View Details"
-                                  : "Insufficient Points"}
-                          </span>
-                          <div
-                            style={{
-                              display: "flex",
-                              width: "24px",
-                              height: "24px",
-                              justifyContent: "center",
-                              alignItems: "center",
-                            }}
-                          >
-                            <Image
-                              src="/home/arrow-right.svg"
-                              alt="arrow-right"
-                              width={20}
-                              height={20}
-                              className="w-5 h-5"
-                            />
-                          </div>
-                        </button>
-                      </Link>
+                          <Image
+                            src="/home/arrow-right.svg"
+                            alt="arrow-right"
+                            width={20}
+                            height={20}
+                            className="w-5 h-5"
+                          />
+                        </div>
+                      </button>
                     </div>
                   );
                 })
@@ -773,6 +994,193 @@ export default function PerksPage() {
 
         <div style={{ height: "100px" }} />
       </div>
-    </div>
-  );
+
+    <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
+      <DialogContent className="w-full max-w-lg border-none bg-transparent p-0 shadow-none [&>button]:hidden">
+        {selectedPerk && (
+          <div className="max-h-[90vh] overflow-y-auto space-y-4">
+            {/* Container 1: Close */}
+            <div className="w-full rounded-3xl border border-[#131313]/10 bg-white px-4 py-3">
+              <DialogClose asChild>
+                <button className="mx-auto text-black">
+                  <span className="sr-only">Close</span>
+                  <X className="h-5 w-5" />
+                </button>
+              </DialogClose>
+            </div>
+
+            {/* Container 2: Media + title */}
+            <div className="w-full rounded-3xl border border-[#131313]/10 bg-white p-6 text-center">
+              <div className="space-y-4">
+                {selectedPerk.thumbnail_url && (
+                  <div className="mx-auto flex h-[166px] w-[332px] flex-col items-center justify-center gap-4 rounded-[12px] bg-black">
+                    <Image
+                      src={selectedPerk.thumbnail_url}
+                      alt={selectedPerk.title}
+                      width={240}
+                      height={120}
+                      className="h-auto w-full max-w-[220px] rounded-[10px] object-contain"
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <div className="title1 font-grotesk text-black">
+                    {selectedPerk.title}
+                  </div>
+                  
+                </div>
+              
+              </div>
+            </div>
+
+            {/* Container 3: Details */}
+            <div className="w-full rounded-3xl border border-[#131313]/10 bg-white p-6 space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Info className="h-4 w-4" />
+                  <div className="body-small uppercase font-grotesk tracking-wide">
+                    Details
+                  </div>
+                </div>
+                <div className="body-medium leading-relaxed text-[#4F4F4F]">
+                  {selectedPerk.description?.trim() || "Details coming soon."}
+                </div>
+                {selectedPerk.location && !selectedPerkIsOnline && (
+                  <p className="flex items-center gap-2 text-xs font-inktrap uppercase tracking-wide text-gray-500">
+                    <MapPin className="h-3 w-3" />
+                    <span>Location: {selectedPerk.location}</span>
+                  </p>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <span className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313]/5 px-4 py-2 body-small font-grotesk uppercase tracking-wide">
+                    
+                    {selectedPerk.type?.length ? selectedPerk.type : "Reward"}
+                  </span>
+                  <span className="inline-flex w-full items-center justify-center rounded-full border border-[#131313]/20 bg-[#131313]/5 px-4 py-2 body-small font-grotesk uppercase tracking-wide">
+                    {selectedPerkIsOnline ? "Online" : "IRL"}
+                  </span>
+                  <div className="inline-flex w-full items-center justify-center rounded-full border border-[#131313]/20 bg-[#131313]/5 px-4 py-2 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide">
+                    {dateLabel}
+                  </div>
+                  {selectedPerk.website_url ? (
+                    <a
+                      href={selectedPerk.website_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 px-4 py-2 text-[#4F4F4F] body-small font-grotesk uppercase tracking-widehover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      View Website
+                    </a>
+                  ) : (
+                    <span className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 px-4 py-2 text-xs font-inktrap uppercase tracking-wide text-gray-400">
+                      <ExternalLink className="h-3 w-3" />
+                      View Website
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t border-dashed border-[#131313]/20" />
+                  <div className="flex items-center gap-2 text-gray-600">
+                  <Award className="h-4 w-4" />
+                  <div className="body-small uppercase font-grotesk tracking-wide">
+                    Claim
+                  </div>
+                </div>
+              <div className="space-y-4">
+                {!address ? (
+                  <button
+                    onClick={login}
+                    className="w-full rounded-full border border-[#131313] bg-[#131313] py-3 text-sm font-inktrap font-medium uppercase tracking-wide text-white transition hover:bg-black/90"
+                  >
+                    Connect Wallet to Claim
+                  </button>
+                ) : isDiscountReward ? (
+                  <div className="flex flex-col gap-3">
+                    <div
+                      className={`flex items-center justify-between rounded-full border px-4 py-3 font-inktrap text-sm uppercase tracking-wide ${
+                        selectedPerkRedeemed && selectedUserDiscountCode
+                          ? "border-green-200 bg-green-50 text-green-800"
+                          : "border-[#131313]/20 bg-[#131313]/5 text-gray-500"
+                      }`}
+                    >
+                      <span>
+                        {selectedPerkRedeemed && selectedUserDiscountCode
+                          ? selectedUserDiscountCode
+                          : "Redeem to unlock"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleCopyCode}
+                        disabled={!selectedPerkRedeemed || !selectedUserDiscountCode}
+                        className={`rounded-full p-2 transition ${
+                          selectedPerkRedeemed && selectedUserDiscountCode
+                            ? "hover:bg-white/60"
+                            : "opacity-40 cursor-not-allowed"
+                        }`}
+                      >
+                        <Copy className="h-4 w-4" />
+                        <span className="sr-only">Copy discount code</span>
+                      </button>
+                    </div>
+                    {codesAvailabilityLabel && (
+                      <p className="text-xs font-inktrap text-gray-500">
+                        {codesAvailabilityLabel}
+                      </p>
+                    )}
+                    <button
+                      onClick={handleRedeem}
+                      disabled={claimDisabled}
+                      className={`rounded-full py-3 text-sm font-inktrap font-medium uppercase tracking-wide transition ${
+                        claimDisabled
+                          ? "border border-gray-200 bg-gray-100 text-gray-400"
+                          : "border border-[#131313] bg-[#131313] text-white hover:bg-black/90"
+                      }`}
+                    >
+                      {claimLabel}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleRedeem}
+                    disabled={claimDisabled}
+                    className={`w-full rounded-full py-3 text-sm font-inktrap font-medium uppercase tracking-wide transition ${
+                      claimDisabled
+                        ? "border border-gray-200 bg-gray-100 text-gray-400"
+                        : "border border-[#131313] bg-[#131313] text-white hover:bg-black/90"
+                    }`}
+                  >
+                    {claimLabel}
+                  </button>
+                )}
+              </div>
+
+              <div className="border-t border-dashed border-[#131313]/20" />
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-inktrap uppercase tracking-wide text-gray-600">
+                    <Trophy className="h-4 w-4" />
+                    <span>Tier Required</span>
+                  </div>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313]/5 px-3 py-2 text-xs font-inktrap uppercase tracking-wide">
+                    {tierLabel}
+                  </span>
+                </div>
+                <a
+                  href="/membership"
+                  className="flex items-center gap-2 text-sm font-inktrap text-[#131313] underline-offset-4 hover:underline"
+                >
+                  View all tiers
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  </div>
+);
 }
