@@ -9,6 +9,7 @@ import {
 } from "@/lib/supabase";
 
 const DAILY_CHECKIN_POINTS = 100;
+const DAILY_CHECKPOINT_LIMIT = 10;
 
 const getUtcDayBounds = () => {
   const now = new Date();
@@ -48,6 +49,37 @@ export async function POST(req: NextRequest) {
 
     const player = await createOrUpdatePlayer(playerData);
 
+    const { startIso, endIso } = getUtcDayBounds();
+
+    const { count: checkpointCheckinsToday, error: checkpointCountError } =
+      await supabase
+        .from("points_activities")
+        .select("id", { count: "exact", head: true })
+        .eq("user_wallet_address", walletAddress)
+        .eq("activity_type", "checkpoint_checkin")
+        .gte("created_at", startIso)
+        .lt("created_at", endIso);
+
+    if (checkpointCountError) {
+      throw checkpointCountError;
+    }
+
+    if (
+      checkpointCheckinsToday !== null &&
+      checkpointCheckinsToday >= DAILY_CHECKPOINT_LIMIT
+    ) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Daily checkpoint limit of ${DAILY_CHECKPOINT_LIMIT} reached. Come back tomorrow!`,
+        }),
+        {
+          status: 429,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     try {
       await upsertCheckpoint(walletAddress, email, checkpoint);
     } catch (error) {
@@ -58,97 +90,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { startIso, endIso } = getUtcDayBounds();
-
-    const { data: existingCheckpointActivity, error: existingCheckpointError } =
-      await supabase
-        .from("points_activities")
-        .select("id")
-        .eq("user_wallet_address", walletAddress)
-        .eq("activity_type", "checkpoint_checkin")
-        .contains("metadata", { checkpoint })
-        .gte("created_at", startIso)
-        .lt("created_at", endIso)
-        .limit(1);
-
-    if (existingCheckpointError) {
-      throw existingCheckpointError;
-    }
-
-    let checkpointActivityId: string | undefined;
-
-    if (!existingCheckpointActivity || existingCheckpointActivity.length === 0) {
-      const {
-        data: checkpointActivity,
-        error: checkpointActivityError,
-      } = await supabase
-        .from("points_activities")
-        .insert({
-          user_wallet_address: walletAddress,
-          activity_type: "checkpoint_checkin",
-          points_earned: 0,
-          description: `Checkpoint visit: ${checkpoint}`,
-          metadata: { checkpoint, email },
-          processed: true,
-        })
-        .select()
-        .single();
-
-      if (checkpointActivityError) {
-        throw checkpointActivityError;
-      }
-
-      checkpointActivityId = checkpointActivity?.id;
-    } else {
-      checkpointActivityId = existingCheckpointActivity[0].id;
-    }
-
-    const { data: existingDailyActivity, error: existingDailyError } =
-      await supabase
-        .from("points_activities")
-        .select("id, points_earned")
-        .eq("user_wallet_address", walletAddress)
-        .eq("activity_type", "daily_checkin")
-        .gte("created_at", startIso)
-        .lt("created_at", endIso)
-        .limit(1);
-
-    if (existingDailyError) {
-      throw existingDailyError;
-    }
-
     let pointsAwarded = 0;
-    let pointsEarnedToday = existingDailyActivity?.[0]?.points_earned ?? 0;
-    let dailyActivityId: string | undefined;
     let latestPlayer = player;
 
-    if (!existingDailyActivity || existingDailyActivity.length === 0) {
-      const { data: dailyActivity, error: dailyActivityError } = await supabase
-        .from("points_activities")
-        .insert({
-          user_wallet_address: walletAddress,
-          activity_type: "daily_checkin",
-          points_earned: DAILY_CHECKIN_POINTS,
-          description: `Daily check-in via ${checkpoint}`,
-          metadata: { checkpoint, email },
-          processed: true,
-        })
-        .select()
-        .single();
+    const {
+      data: checkpointActivity,
+      error: checkpointActivityError,
+    } = await supabase
+      .from("points_activities")
+      .insert({
+        user_wallet_address: walletAddress,
+        activity_type: "checkpoint_checkin",
+        points_earned: DAILY_CHECKIN_POINTS,
+        description: `Checkpoint visit: ${checkpoint}`,
+        metadata: { checkpoint, email },
+        processed: true,
+      })
+      .select()
+      .single();
 
-      if (dailyActivityError) {
-        throw dailyActivityError;
-      }
-
-      pointsAwarded = DAILY_CHECKIN_POINTS;
-      pointsEarnedToday = DAILY_CHECKIN_POINTS;
-      dailyActivityId = dailyActivity?.id;
-    } else {
-      dailyActivityId = existingDailyActivity[0].id;
-      pointsEarnedToday = existingDailyActivity[0].points_earned ?? 0;
+    if (checkpointActivityError) {
+      throw checkpointActivityError;
     }
 
-    if (pointsAwarded > 0 && latestPlayer?.id) {
+    const checkpointActivityId = checkpointActivity?.id;
+    pointsAwarded = DAILY_CHECKIN_POINTS;
+
+    if (latestPlayer?.id) {
       latestPlayer = await updatePlayerPoints(latestPlayer.id, pointsAwarded);
     } else {
       const updatedProfile = await getUserProfile(walletAddress);
@@ -156,6 +124,24 @@ export async function POST(req: NextRequest) {
         latestPlayer = updatedProfile;
       }
     }
+
+    const { data: todaysCheckpoints, error: checkpointsSumError } = await supabase
+      .from("points_activities")
+      .select("points_earned")
+      .eq("user_wallet_address", walletAddress)
+      .eq("activity_type", "checkpoint_checkin")
+      .gte("created_at", startIso)
+      .lt("created_at", endIso);
+
+    if (checkpointsSumError) {
+      throw checkpointsSumError;
+    }
+
+    const pointsEarnedToday =
+      todaysCheckpoints?.reduce(
+        (sum, activity) => sum + (activity.points_earned ?? 0),
+        0,
+      ) ?? pointsAwarded;
 
     const totalPoints = latestPlayer?.total_points || 0;
     const responsePlayer = latestPlayer
@@ -168,13 +154,9 @@ export async function POST(req: NextRequest) {
         player: responsePlayer,
         pointsAwarded,
         pointsEarnedToday,
-        dailyRewardClaimed: pointsEarnedToday >= DAILY_CHECKIN_POINTS,
+        dailyRewardClaimed: pointsEarnedToday > 0,
         checkpointActivityId,
-        dailyActivityId,
-        message:
-          pointsAwarded >= DAILY_CHECKIN_POINTS
-            ? `Congratulations! You earned ${DAILY_CHECKIN_POINTS} points for today's check-in!`
-            : "Daily check-in already completed. Come back tomorrow!",
+        message: `Nice! You earned ${pointsAwarded} points for this checkpoint.`,
       }),
       {
         status: 200,

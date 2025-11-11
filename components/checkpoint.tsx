@@ -5,8 +5,8 @@ import { useCheckInStatus } from "@/hooks/useCheckInStatus";
 import { usePrivy } from "@privy-io/react-auth";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Auth from "./auth";
-import Link from "next/link";
 
 interface CheckpointProps {
   id: string;
@@ -21,15 +21,15 @@ export default function Checkpoint({ id }: CheckpointProps) {
     setCheckinStatus,
     checkpointCheckinToday,
     setCheckpointCheckinToday,
-    dailyRewardClaimed,
     setDailyRewardClaimed,
-    pointsEarnedToday,
+    // pointsEarnedToday,
     setPointsEarnedToday,
   } = useCheckInStatus(address, id);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [checkinError, setCheckinError] = useState<string | null>(null);
 
-  const [totalPoints, setTotalPoints] = useState<number>(310);
+  const [, setTotalPoints] = useState<number>(310);
   const hasAttemptedCheckIn = useRef(false);
   const router = useRouter();
 
@@ -96,31 +96,39 @@ export default function Checkpoint({ id }: CheckpointProps) {
           }),
         });
 
-        if (response.ok) {
-          const result = await response.json();
-          if (result?.success) {
-            setCheckinStatus(true);
-            setCheckpointCheckinToday(true);
-            setDailyRewardClaimed(result.dailyRewardClaimed ?? false);
-            const earnedToday =
-              typeof result.pointsEarnedToday === "number"
-                ? result.pointsEarnedToday
-                : 0;
-            const pointsAwarded =
-              typeof result.pointsAwarded === "number"
-                ? result.pointsAwarded
-                : 0;
-            setPointsEarnedToday(earnedToday || pointsAwarded);
-            if (
-              result?.player &&
-              typeof result.player.total_points === "number"
-            ) {
-              setTotalPoints(result.player.total_points);
-            }
-          }
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok || !result?.success) {
+          setCheckinError(
+            result?.error ||
+              "Unable to check in right now. Please try again later.",
+          );
+          setCheckinStatus(false);
+          setCheckpointCheckinToday(false);
+          setDailyRewardClaimed(false);
+          setPointsEarnedToday(0);
+          return;
+        }
+
+        setCheckinError(null);
+        setCheckinStatus(true);
+        setCheckpointCheckinToday(true);
+        setDailyRewardClaimed(result.dailyRewardClaimed ?? false);
+        const earnedToday =
+          typeof result.pointsEarnedToday === "number"
+            ? result.pointsEarnedToday
+            : 0;
+        const pointsAwarded =
+          typeof result.pointsAwarded === "number" ? result.pointsAwarded : 0;
+        setPointsEarnedToday(earnedToday || pointsAwarded);
+        if (result?.player && typeof result.player.total_points === "number") {
+          setTotalPoints(result.player.total_points);
         }
       } catch (error) {
         console.error("Failed to auto check-in:", error);
+        setCheckinError(
+          "Something went wrong while checking you in. Please try again.",
+        );
         // Reset the attempt flag on error so we can try again if needed
         hasAttemptedCheckIn.current = false;
       } finally {
@@ -147,83 +155,121 @@ export default function Checkpoint({ id }: CheckpointProps) {
     setPointsEarnedToday,
   ]);
 
-  const rewardPoints = dailyRewardClaimed
-    ? pointsEarnedToday || 100
-    : pointsEarnedToday;
-  const hasDailyReward = dailyRewardClaimed || rewardPoints >= 100;
-  const headerTitle = hasDailyReward ? "YOU EARNED" : "YOU'RE CHECKED IN";
-  const headerSubtitle = hasDailyReward
-    ? `${rewardPoints} POINTS`
-    : "COME BACK TOMORROW";
-
-  return (
-    <Auth>
-      {!checkinStatus && (
+  if (checkinStatus === null && !checkinError) {
+    return (
+      <Auth>
         <div className="flex items-center justify-center text-center w-full min-h-dvh font-inktrap text-2xl">
           Loading ...
         </div>
+      </Auth>
+    );
+  }
+
+  return (
+    <Auth>
+      {checkinError && (
+        <div className="flex flex-col items-center justify-center text-center w-full min-h-dvh font-grotesk px-6">
+          <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-lg space-y-4">
+            <h1 className="text-3xl font-inktrap text-red-600 uppercase">
+              Daily Limit Reached
+            </h1>
+            <p className="text-black text-base">{checkinError}</p>
+            <p className="text-gray-500 text-sm">
+              You can complete up to 10 checkpoint visits per day. Come back
+              tomorrow for more points.
+            </p>
+            <Button
+              onClick={() => router.push("/")}
+              className="text-black bg-yellow-300 rounded-full w-full font-inktrap py-3 text-lg hover:bg-yellow-400"
+            >
+              Visit IRL.ENERGY →
+            </Button>
+          </div>
+        </div>
       )}
-      {checkinStatus && (
-        <div className="font-grotesk">
-          <div className="flex flex-col items-center text-center py-8 gap-6">
-            {/* Header Section */}
-            <div className="flex flex-col items-center gap-1">
-              <h1 className="text-5xl font-inktrap uppercase text-yellow-300 font-bold">
-                {headerTitle}
-              </h1>
-              <h2 className="text-5xl font-inktrap uppercase text-yellow-300 font-bold">
-                {headerSubtitle}
-              </h2>
-            </div>
-
-            {/* Total Points Card */}
-            <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-lg">
-              <div className="text-xs text-gray-500 font-inktrap mb-2">
-                YOUR POINTS
-              </div>
-              <div className="text-4xl font-bold text-black font-inktrap mb-4">
-                {totalPoints} <span className="text-lg font-normal">pts</span>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <Link href="/leaderboard" className="w-full">
-                  <Button className="bg-yellow-400 hover:bg-yellow-500 text-black rounded-full font-inktrap text-sm px-4 py-2 w-full">
-                    Leaderboard →
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            {/* Footer Section */}
-            <div className="mt-12 px-4 max-w-sm ">
-              <p className="text-black font-anonymous text-2xl font-semibold mb-6">
-                Learn more and be the first to know about the latest IRL network
-                news.
-              </p>
-              <Button
-                onClick={() => router.push("/")}
-                className="text-black bg-white rounded-full w-full font-inktrap py-3 text-lg hover:bg-gray-100"
-              >
-                Visit IRL.ENERGY →
-              </Button>
-            </div>
-            {/* Bottom IRL Section */}
-            <div className="py-20">
+      {checkinStatus && !checkinError && (
+        <div className="font-grotesk flex flex-col">
+          <div className="flex flex-col items-start py-8 gap-8 flex-1">
+            {/* Main Title with Graphic */}
+            <div className="relative w-full max-w-md flex items-center justify-center my-4 mx-auto">
+              {/* Yellow Wireframe Box Graphic */}
               <img
-                src="/irl-bottom-logo.svg"
-                alt="IRL"
-                className="w-full h-auto"
+                src="/yellow-points.png"
+                alt="Points earned graphic"
+                className="w-full h-auto object-contain"
               />
+              {/* Overlapping Title */}
+              <h1 className="absolute inset-0 flex items-center justify-center text-5xl md:text-6xl font-bold text-white uppercase tracking-tight text-center font-inktrap z-10">
+                YOU EARNED POINTS
+              </h1>
             </div>
-            {/* Powered by Refraction */}
-            <div className="mt-8 mb-8">
-              <p className="text-white text-xs font-inktrap opacity-60">
-                POWERED BY
+
+            {/* Points Display */}
+            <div className="flex gap-3 w-full mt-2 justify-between">
+              <p className="text-white text-xs uppercase tracking-wider font-grotesk pt-1">
+                YOU EARNED
               </p>
-              <p className="text-white text-lg font-inktrap font-bold">
-                REFRACTION
+              <div className="flex items-start gap-2">
+                <span
+                  style={{ lineHeight: "0.6" }}
+                  className="text-7xl md:text-8xl font-bold text-white font-inktrap "
+                >
+                  {100}
+                </span>
+                <div className="text-xs text-white font-grotesk uppercase flex flex-col items-end justify-end h-full">
+                  <span className="text-xs text-white font-grotesk uppercase bg-gray-500/40 rounded-full px-2.5 py-1 flex flex-col items-end justify-end h-fit">
+                    PTS
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Descriptive Text */}
+            <div className="">
+              <p className="text-white text-sm leading-relaxed font-grotesk">
+                You&apos;ve just gained access to events, rewards and bespoke
+                experiences. Sign Up to save these points and join a global
+                network lorem ipsum.
               </p>
             </div>
+
+            <div className="flex flex-col gap-1 w-full">
+              {/* Call to Action Button */}
+              <div className="w-full">
+                <Button
+                  onClick={() => router.push("/")}
+                  className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
+                >
+                  <span>Create Your Profile and Save</span>
+                  <Image
+                    src="/home/arrow-right.svg"
+                    alt="arrow-right"
+                    width={20}
+                    height={20}
+                  />
+                </Button>
+              </div>
+
+              {/* Spacer to push footer down */}
+              <div className="w-full" />
+
+              {/* Footer - Powered by Refraction */}
+              <div className="flex items-center justify-between w-full">
+                <p className="text-white text-xs uppercase tracking-wider font-inktrap opacity-80">
+                  POWERED BY
+                </p>
+                <p className="text-white text-lg font-bold font-inktrap">
+                  REFRACTION
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {!checkinStatus && !checkinError && (
+        <div className="flex items-center justify-center text-center w-full min-h-dvh font-inktrap text-2xl">
+          <div className="text-white">
+            {isCheckingIn ? "Checking in..." : "Loading..."}
           </div>
         </div>
       )}

@@ -43,15 +43,14 @@ export async function GET(request: Request) {
 
     const { startIso, endIso } = getUtcDayBounds();
 
-    const [dailyActivityResult, checkpointActivityResult] = await Promise.all([
+    const [todaysCheckpointActivities, checkpointActivityResult] = await Promise.all([
       supabase
         .from("points_activities")
-        .select("id, points_earned")
+        .select("points_earned")
         .eq("user_wallet_address", address)
-        .eq("activity_type", "daily_checkin")
+        .eq("activity_type", "checkpoint_checkin")
         .gte("created_at", startIso)
-        .lt("created_at", endIso)
-        .limit(1),
+        .lt("created_at", endIso),
       supabase
         .from("points_activities")
         .select("id")
@@ -63,25 +62,26 @@ export async function GET(request: Request) {
         .limit(1),
     ]);
 
-    if (dailyActivityResult.error) {
-      throw dailyActivityResult.error;
+    if (todaysCheckpointActivities.error) {
+      throw todaysCheckpointActivities.error;
     }
 
     if (checkpointActivityResult.error) {
       throw checkpointActivityResult.error;
     }
 
-    const dailyActivity = dailyActivityResult.data || [];
+    const todaysActivities = todaysCheckpointActivities.data || [];
     const checkpointActivity = checkpointActivityResult.data || [];
 
-    const dailyRewardClaimed = dailyActivity.length > 0;
+    const pointsEarnedToday = todaysActivities.reduce(
+      (sum, activity) => sum + (activity.points_earned ?? 0),
+      0,
+    );
+
+    const dailyRewardClaimed = pointsEarnedToday > 0;
     const checkpointCheckinToday = Boolean(
       checkpointActivity && checkpointActivity.length > 0
     );
-
-    const pointsEarnedToday = dailyRewardClaimed
-      ? dailyActivity?.[0]?.points_earned ?? 0
-      : 0;
 
     return NextResponse.json({
       hasCheckedIn,
