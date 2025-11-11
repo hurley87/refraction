@@ -1,12 +1,12 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 // Button was unused here; removing import to satisfy lint
 import { type Perk } from "@/lib/supabase";
 import type { Tier } from "@/lib/types";
 import Image from "next/image";
 import { usePrivy } from "@privy-io/react-auth";
-import { toast } from "sonner";
+
 import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
 import {
   ExternalLink,
@@ -14,9 +14,8 @@ import {
   Info,
   MapPin,
   Trophy,
-  Copy,
   X,
-  Award,
+  ArrowUpDown,
   Clock,
 } from "lucide-react";
 
@@ -101,7 +100,7 @@ const PerkCodeCount = ({ perkId }: { perkId: string }) => {
   );
 };  */
 export default function PerksPage() {
-  const { user, login } = usePrivy();
+  const { user } = usePrivy();
   const address = user?.wallet?.address;
 
   // Fetch all active perks
@@ -148,7 +147,7 @@ export default function PerksPage() {
   const hasRedeemed = (perkId: string) =>
     userRedemptions.some((redemption: any) => redemption.perk_id === perkId);
 
-  const queryClient = useQueryClient();
+  //const queryClient = useQueryClient();
   const [selectedPerk, setSelectedPerk] = useState<Perk | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -188,9 +187,18 @@ export default function PerksPage() {
     ? findTierForPoints(selectedPerk.points_threshold)
     : null;
 
-  const selectedPerkId = selectedPerk?.id;
+  const [viewMode, setViewMode] = useState<"rewards" | "tiers">("rewards");
+  const [sortOption, setSortOption] = useState<"points-desc" | "points-asc">(
+    "points-desc",
+  );
 
-  const { data: selectedAvailableCodesCount = 0, isLoading: selectedCodesLoading } = useQuery({
+  const toggleSort = () => {
+    setSortOption((prev) => (prev === "points-desc" ? "points-asc" : "points-desc"));
+  };
+
+  //const selectedPerkId = selectedPerk?.id;
+
+  /* const { data: selectedAvailableCodesCount = 0 } = useQuery({
     queryKey: ["available-codes", selectedPerkId],
     queryFn: async () => {
       const response = await fetch(`/api/perks/${selectedPerkId}/available-count`);
@@ -200,22 +208,22 @@ export default function PerksPage() {
     },
     enabled: isModalOpen && !!selectedPerkId,
   });
-
+ */
   const selectedPerkAffordable = selectedPerk ? (!address || canAfford(selectedPerk)) : false;
-  const selectedPerkExpired = selectedPerk?.end_date
+  /* const selectedPerkExpired = selectedPerk?.end_date
     ? new Date(selectedPerk.end_date) < new Date()
-    : false;
+    : false; */
   /*const selectedPerkExpiringSoon = selectedPerk?.end_date
     ? new Date(selectedPerk.end_date) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     : false;*/
-  const selectedPerkRedeemed = selectedPerk?.id ? hasRedeemed(selectedPerk.id) : false;
-  const selectedPerkRedemption = selectedPerk
+ // const selectedPerkRedeemed = selectedPerk?.id ? hasRedeemed(selectedPerk.id) : false;
+ /*  const selectedPerkRedemption = selectedPerk
     ? userRedemptions.find((redemption: any) => redemption.perk_id === selectedPerk.id)
-    : undefined;
-  const selectedUserDiscountCode = selectedPerkRedemption?.perk_discount_codes?.code;
-  const noSelectedCodesAvailable = selectedAvailableCodesCount === 0;
+    : undefined; */
+  /* const selectedUserDiscountCode = selectedPerkRedemption?.perk_discount_codes?.code; */
+  //const noSelectedCodesAvailable = selectedAvailableCodesCount === 0;
 
-  const redeemPerkMutation = useMutation({
+  /* const redeemPerkMutation = useMutation({
     mutationFn: async (perkId: string) => {
       const response = await fetch("/api/perks/redeem", {
         method: "POST",
@@ -244,7 +252,7 @@ export default function PerksPage() {
     onError: (error: any) => {
       toast.error(error.message || "Failed to redeem perk");
     },
-  });
+  }); */
 
   const handleOpenPerk = (perk: Perk) => {
     setSelectedPerk(perk);
@@ -260,6 +268,18 @@ export default function PerksPage() {
     }
   };
 
+  const handleViewAllTiersClick = () => {
+    handleModalOpenChange(false);
+    setViewMode("tiers");
+
+    setTimeout(() => {
+      const toggleElement = document.getElementById("tiers-toggle");
+      if (toggleElement) {
+        toggleElement.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 150);
+  };
+/* 
   const handleRedeem = () => {
     if (!selectedPerk || !selectedPerkId) return;
 
@@ -289,9 +309,9 @@ export default function PerksPage() {
     }
 
     redeemPerkMutation.mutate(selectedPerkId);
-  };
+  }; */
 
-  const handleCopyCode = async () => {
+  /* const handleCopyCode = async () => {
     if (!selectedUserDiscountCode) return;
 
     try {
@@ -318,7 +338,7 @@ export default function PerksPage() {
       }
       document.body.removeChild(textArea);
     }
-  };
+  }; */
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return undefined;
@@ -329,6 +349,23 @@ export default function PerksPage() {
       day: "numeric",
       year: "numeric",
     }).format(date);
+  };
+
+  const getPerkDateRange = (perk: Perk) => {
+    const startDate = formatDate(
+      (perk as unknown as { start_date?: string })?.start_date,
+    );
+    const endDate = formatDate(perk.end_date);
+
+    if (startDate && endDate) {
+      return `${startDate} – ${endDate}`;
+    }
+
+    if (endDate) {
+      return `Ends ${endDate}`;
+    }
+
+    return "Ongoing";
   };
 
   const startDateRaw = selectedPerk
@@ -342,13 +379,13 @@ export default function PerksPage() {
       ? `Ends ${formattedEndDate}`
       : "Ongoing";
 
-  const perkType = selectedPerk?.type?.toLowerCase() ?? "";
-  const isDiscountReward = perkType === "discount";
+  //const perkType = selectedPerk?.type?.toLowerCase() ?? "";
+  //const isDiscountReward = perkType === "discount";
   const selectedPerkIsOnline = selectedPerk?.location
     ? selectedPerk.location.toLowerCase().includes("online")
     : true;
 
-  const claimLabel = (() => {
+  /* const claimLabel = (() => {
     if (!selectedPerk) return "Claim Reward";
     if (redeemPerkMutation.isPending) return "Redeeming...";
     if (selectedPerkRedeemed) return "✓ Redeemed";
@@ -356,27 +393,27 @@ export default function PerksPage() {
     if (isDiscountReward && noSelectedCodesAvailable) return "Sold Out";
     if (!selectedPerkAffordable) return "Insufficient Points";
     return "Claim Reward";
-  })();
+  })(); */
 
-  const claimDisabled =
+ /*  const claimDisabled =
     !selectedPerk ||
     redeemPerkMutation.isPending ||
     selectedPerkRedeemed ||
     selectedPerkExpired ||
     (!selectedPerkAffordable) ||
     (isDiscountReward && noSelectedCodesAvailable);
-
+ */
   const tierLabel = selectedPerk
     ? formatTierLabel(selectedPerk.points_threshold)
     : "All Members";
 
-  const codesAvailabilityLabel = selectedPerk
+/*   const codesAvailabilityLabel = selectedPerk
     ? selectedCodesLoading
       ? "Checking availability..."
       : `${selectedAvailableCodesCount} ${
           selectedAvailableCodesCount === 1 ? "code" : "codes"
         } remaining`
-    : "";
+    : ""; */
 
     /*
   const statusChips = [
@@ -406,6 +443,14 @@ export default function PerksPage() {
         return new Date(bDate).getTime() - new Date(aDate).getTime();
       })[0]
     : null;
+
+  const sortedRewards = perks
+    .filter((perk) => perk.id !== latestReward?.id)
+    .sort((a, b) => {
+      return sortOption === "points-asc"
+        ? a.points_threshold - b.points_threshold
+        : b.points_threshold - a.points_threshold;
+    });
 
   const latestRewardAffordable = latestReward
     ? !address || canAfford(latestReward)
@@ -655,13 +700,119 @@ export default function PerksPage() {
             </div>
           )}
 
-          {/* Perks List */}
+          {/* View toggle & sort */}
           {!perksLoading && (
+            <div
+              className="mb-6 flex w-full items-center gap-4"
+              style={{
+                display: "flex",
+                padding: "4px",
+                alignItems: "center",
+                gap: "4px",
+                borderRadius: "100px",
+                border: "1px solid rgba(255, 255, 255, 0.25)",
+                background: "rgba(255, 255, 255, 0.25)",
+              }}
+              id="tiers-toggle"
+            >
+              <div className="flex flex-1 items-center gap-2 rounded-full bg-white/20 p-1 backdrop-blur-sm">
+                {[
+                  { label: "Rewards", value: "rewards" as const },
+                  { label: "Tiers", value: "tiers" as const },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setViewMode(option.value)}
+                    className={`body-small uppercase font-abc-monument-regular transition-all duration-200 ${
+                      viewMode === option.value
+                        ? "text-black"
+                        : "text-gray-600 hover:text-black"
+                    }`}
+                    style={
+                      viewMode === option.value
+                        ? {
+                            display: "flex",
+                            height: "40px",
+                            padding: "4px 0",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            gap: "8px",
+                            flex: "1 0 0",
+                            borderRadius: "1000px",
+                            background: "#FFF",
+                            boxShadow: "0 1px 8px 0 rgba(0, 0, 0, 0.08)",
+                          }
+                        : {
+                            display: "flex",
+                            height: "40px",
+                            padding: "4px 0",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            gap: "8px",
+                            flex: "1 0 0",
+                            borderRadius: "1000px",
+                          }
+                    }
+                    type="button"
+                  >
+                    <h4>{option.label}</h4>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={toggleSort}
+                className="text-black transition-all duration-200 hover:bg-white"
+                aria-label="Toggle sort order"
+                style={{
+                  display: "flex",
+                  width: "48px",
+                  height: "40px",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  borderRadius: "1000px",
+                  background: "#FFF",
+                  boxShadow: "0 1px 8px 0 rgba(0, 0, 0, 0.08)",
+                }}
+              >
+                <ArrowUpDown className="h-5 w-5" />
+              </button>
+
+              <button
+                type="button"
+                className="transition-colors duration-200 hover:bg-white"
+                style={{
+                  display: "flex",
+                  width: "55px",
+                  height: "48px",
+                  padding: "16px",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "flex-start",
+                  gap: "16px",
+                  borderRadius: "24px",
+                  background: "#FFF",
+                  boxShadow: "0 1px 8px 0 rgba(0, 0, 0, 0.08)",
+                }}
+                aria-label="Filter rewards"
+              >
+                <Image
+                  src="/events/filter.svg"
+                  alt="filter"
+                  width={20}
+                  height={20}
+                  className="h-5 w-5"
+                />
+              </button>
+            </div>
+          )}
+
+          {/* Perks List */}
+          {!perksLoading && viewMode === "rewards" && (
             <div className="space-y-1">
               {perks.length > 0 ? (
-                perks
-                  .filter((perk) => perk.id !== latestReward?.id)
-                  .map((perk) => {
+                sortedRewards.map((perk) => {
                   const affordable = !address || canAfford(perk);
                   const isExpired =
                     perk.end_date && new Date(perk.end_date) < new Date();
@@ -769,27 +920,36 @@ export default function PerksPage() {
                           <h3 className="text-black title3 font-pleasure text-left w-full">
                             {perk.title}
                           </h3>
-                          <p className="text-black body-small font-abc-monument-regular mb-4 line-clamp-2">
+                          <p className="text-[#7D7D7D] body-small font-abc-monument-regular mb-4 line-clamp-2">
                             {perk.description}
                           </p>
                         </div>
                       </div>
 
                       {/* Details */}
-                      <div className="flex w-full gap-2 mb-4 flex-wrap">
-                          <div
+                      <div className="flex w-full gap-2 mb-4">
+                        <div
                           style={{
                             display: "flex",
-                            padding: "4px 8px",
+                            padding: "6px 16px 6px 8px",
                             alignItems: "center",
                             gap: "8px",
                             alignSelf: "stretch",
+                            flex: "1 1 0%",
                             borderRadius: "1000px",
                             border: "1px solid #EDEDED",
-                            background: "#EDEDED",
                           }}
                           className="text-black body-small uppercase font-abc-monument-regular"
                         >
+                          {canAfford(perk) && (
+                            <Image
+                              src="/tier-eligible.svg"
+                              alt="Eligible for Tier"
+                              width={12}
+                              height={12}
+                              className="inline-block mr-1"
+                            />
+                          )}
                           {formatTierLabel(perk.points_threshold)}
                         </div>
                         
@@ -798,10 +958,11 @@ export default function PerksPage() {
                           <div
                             style={{
                               display: "flex",
-                              padding: "4px 8px",
+                              padding: "6px 16px 6px 8px",
                               alignItems: "center",
                               gap: "8px",
                               alignSelf: "stretch",
+                              flex: "1 1 0%",
                               borderRadius: "1000px",
                               border: "1px solid #EDEDED",
                             }}
@@ -835,26 +996,20 @@ export default function PerksPage() {
                                 strokeLinecap="round"
                               />
                             </svg>
-                            <TimeLeft
-                              endDate={perk.end_date}
-                              className={`text-black body-small uppercase font-abc-monument-regular ${
-                                isExpired
-                                  ? "text-red-600"
-                                  : isExpiringSoon
-                                    ? "text-orange-600"
-                                    : ""
-                              }`}
-                            />
+                            <span className="text-black body-small uppercase font-abc-monument-regular">
+                              {getPerkDateRange(perk)}
+                            </span>
                           </div>
                         )}
 
                         <div
                           style={{
                             display: "flex",
-                            padding: "4px 8px",
+                            padding: "6px 16px 6px 8px",
                             alignItems: "center",
                             gap: "8px",
                             alignSelf: "stretch",
+                            flex: "1 1 0%",
                             borderRadius: "1000px",
                             border: "1px solid #EDEDED",
                           }}
@@ -871,8 +1026,9 @@ export default function PerksPage() {
                             className={`
                               inline-flex items-center gap-2
                               rounded-full
-                              border border-[#EDEDED] bg-white
+                              border border-[#EDEDED]
                               px-4 py-2
+                              bg-[#EDEDED]
                               text-black body-small uppercase font-abc-monument-regular
                               hover:bg-gray-50
                               transition ease-in-out
@@ -943,6 +1099,147 @@ export default function PerksPage() {
               )}
             </div>
           )}
+
+          {!perksLoading && viewMode === "tiers" && (
+             <div className="space-y-1">
+              {tiers.map((tier) => {
+                const tierRange = tier.max_points
+                  ? `${tier.min_points.toLocaleString()} - ${tier.max_points.toLocaleString()}`
+                  : `${tier.min_points.toLocaleString()}+`;
+
+                const tierPerks = [...perks]
+                  .filter(
+                    (perk) => formatTierLabel(perk.points_threshold) === tier.title,
+                  )
+                  .sort((a, b) =>
+                    sortOption === "points-asc"
+                      ? a.points_threshold - b.points_threshold
+                      : b.points_threshold - a.points_threshold,
+                  );
+
+                return (
+                  <div
+                    key={tier.id}
+                    className="shadow-sm"
+                    style={{
+                      display: "flex",
+                      width: "100%",
+                      padding: "16px",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      gap: "16px",
+                      borderRadius: "20px",
+                      background: "#FFF",
+                    }}
+                  >
+                    <div className="flex w-full items-center justify-between">
+                      <h3 className="title3 text-[#313131] font-pleasure text-left">
+                        {tier.title}
+                      </h3>
+                      <div className="flex items-center gap-2 rounded-full border border-[#EDEDED] bg-[#EDEDED]/60 px-3 py-1">
+                        <Image
+                          src="/ep_coin.svg"
+                          alt="coin"
+                          width={16}
+                          height={16}
+                          className="h-4 w-4"
+                        />
+                        <span className="body-small text-[#313131]">{tierRange}</span>
+                      </div>
+                    </div>
+                    <div className="body-medium text-[#7D7D7D] body-medium text-left">
+                      {tier.description}
+                    </div>
+                    <div className="w-full border-t border-dashed border-[#E2E2E2]" />
+                    <div className="flex items-center gap-2 mb-2">
+                      <Image
+                        src="/guidance_reward.svg"
+                        alt="Guidance Reward"
+                        width={16}
+                        height={16}
+                        style={{ width: "16", height: "16" }}
+                      />
+                      <span className="body-small font-abc-monument-regular text-[#7D7D7D] uppercase tracking-wide">
+                        TIER REWARDS
+                      </span>
+                    </div>
+                    {tierPerks.length > 0 ? (
+                      <div className="w-full overflow-x-auto">
+                        <div className="flex gap-4 py-2 pr-4">
+                          {tierPerks.map((tierPerk) => {
+                            const tierPerkAffordable = canAfford(tierPerk);
+                            /* const tierPerkExpired =
+                              tierPerk.end_date &&
+                              new Date(tierPerk.end_date) < new Date(); */
+ 
+                             return (
+                               <div
+                                 key={tierPerk.id}
+                                 style={{
+                                   display: "flex",
+                                   width: "280px",
+                                   padding: "16px",
+                                   flexDirection: "column",
+                                   alignItems: "flex-start",
+                                   gap: "12px",
+                                   borderRadius: "16px",
+                                   border: "1px solid #EDEDED",
+                                   background: "#FFF",
+                                   flexShrink: 0,
+                                 }}
+                               >
+                                <div className="flex w-full items-center gap-3">
+                                  {tierPerk.thumbnail_url ? (
+                                    <Image
+                                      src={tierPerk.thumbnail_url}
+                                      alt={tierPerk.title}
+                                      width={45}
+                                      height={46}
+                                      style={{ width: "45px", height: "46px", borderRadius: "12px", objectFit: "cover" }}
+                                    />
+                                  ) : (
+                                    <div className="flex h-[46px] w-[45px] items-center justify-center rounded-[12px] bg-[#F4F4F4] text-[10px] uppercase tracking-wide text-[#7D7D7D]">
+                                      No image
+                                    </div>
+                                  )}
+                                  <div className="title4 text-[#313131] font-pleasure line-clamp-2">
+                                    {tierPerk.title}
+                                  </div>
+                                </div>
+                                <div className="flex w-full items-center gap-2" style={{ flexWrap: "nowrap", justifyContent: "space-between" }}>
+                                   <span className="inline-flex items-center gap-2 rounded-full border border-[#EDEDED] px-3 py-1 text-xs uppercase tracking-wide text-[#313131]">
+                                     {tierPerkAffordable && (
+                                       <Image
+                                         src="/tier-eligible.svg"
+                                         alt="Eligible"
+                                         width={12}
+                                         height={12}
+                                         className="h-3 w-3"
+                                       />
+                                     )}
+                                     {formatTierLabel(tierPerk.points_threshold)}
+                                   </span>
+                                   <span className="inline-flex items-center gap-2 rounded-full border border-[#EDEDED] px-3 py-1 text-xs uppercase tracking-wide text-[#4F4F4F]">
+                                    <Clock className="h-3 w-3" />
+                                    {getPerkDateRange(tierPerk)}
+                                  </span>
+                                 </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full py-4 text-center text-xs font-abc-monument-regular uppercase tracking-wide text-[#7D7D7D]">
+                        No rewards yet for this tier. Check back soon.
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+          )}
         </div>
 
         <div style={{ height: "100px" }} />
@@ -954,25 +1251,25 @@ export default function PerksPage() {
           <div className="max-h-[90vh] overflow-y-auto space-y-4">
             {/* Container 1: Close */}
             <div className="w-full rounded-3xl border border-[#131313]/10 bg-white px-4 py-3">
-              <DialogClose asChild>
-                <button className="mx-auto text-black">
+               <DialogClose asChild>
+                <button className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-black">
                   <span className="sr-only">Close</span>
                   <X className="h-5 w-5" />
                 </button>
-              </DialogClose>
-            </div>
+               </DialogClose>
+             </div>
 
             {/* Container 2: Media + title */}
             <div className="w-full rounded-3xl border border-[#131313]/10 bg-white p-6 text-center">
-              <div className="space-y-4">
+              <div className="space-y-1">
                 {selectedPerk.thumbnail_url && (
-                  <div className="mx-auto flex h-[166px] w-[332px] flex-col items-center justify-center gap-4 rounded-[12px] bg-black">
+                  <div className="mx-auto flex h-[166px] w-[332px] items-center justify-center rounded-[12px] bg-black overflow-hidden">
                     <Image
                       src={selectedPerk.thumbnail_url}
                       alt={selectedPerk.title}
-                      width={240}
-                      height={120}
-                      className="h-auto w-full max-w-[220px] rounded-[10px] object-contain"
+                      width={332}
+                      height={166}
+                      className="h-full w-full object-cover"
                     />
                   </div>
                 )}
@@ -1005,13 +1302,25 @@ export default function PerksPage() {
                   </p>
                 )}
                 <div className="grid grid-cols-2 gap-2">
-                  <span className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313]/5 px-4 py-2 body-small font-grotesk uppercase tracking-wide">
+                  <span className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 px-4 py-2 body-small font-grotesk uppercase tracking-wide">
+                    <Info className="h-3 w-3" />
                     {selectedPerk.type?.length ? selectedPerk.type : "Reward"}
                   </span>
-                  <span className="inline-flex w-full items-center justify-center rounded-full border border-[#131313]/20 bg-[#131313]/5 px-4 py-2 body-small font-grotesk uppercase tracking-wide">
-                    {selectedPerkIsOnline ? "Online" : "IRL"}
-                  </span>
-                  <div className="inline-flex w-full items-center justify-center rounded-full border border-[#131313]/20 bg-[#131313]/5 px-4 py-2 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide">
+                  <div className="inline-flex w-full items-center justify-start rounded-full border border-[#131313]/20 bg-[#ffffff]/5 px-4 py-2 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide">
+                  {selectedPerk.location ? (
+                    <>
+                      <MapPin className="h-3 w-3 mr-2" />
+                      {selectedPerk.location}
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="h-3 w-3 mr-2" />
+                      Not specified
+                    </>
+                  )}
+                  </div>
+                  <div className="inline-flex w-full items-center justify-start rounded-full border border-[#131313]/20 bg-[#ffffff]/5 px-4 py-2 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide">
+                    <Clock className="h-3 w-3 mr-3" />
                     {dateLabel}
                   </div>
                   {selectedPerk.website_url ? (
@@ -1019,10 +1328,16 @@ export default function PerksPage() {
                       href={selectedPerk.website_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 px-4 py-2 text-[#4F4F4F] body-small font-grotesk uppercase tracking-widehover:underline"
+                      className="inline-flex w-full items-center justify-between gap-2 rounded-full border bg-[#EDEDED] border-[#131313]/20 px-4 py-2 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide hover:underline"
                     >
-                      <ExternalLink className="h-3 w-3" />
-                      View Website
+                      <span>View Website</span>
+                      <Image
+                        src="/home/arrow-right.svg"
+                        alt="arrow-right"
+                        width={16}
+                        height={16}
+                        className="w-4 h-4"
+                      />
                     </a>
                   ) : (
                     <span className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 px-4 py-2 text-xs font-inktrap uppercase tracking-wide text-gray-400">
@@ -1034,105 +1349,43 @@ export default function PerksPage() {
               </div>
 
               <div className="border-t border-dashed border-[#131313]/20" />
-                  <div className="flex items-center gap-2 text-gray-600">
-                  <Award className="h-4 w-4" />
-                  <div className="body-small uppercase font-grotesk tracking-wide">
-                    Claim
-                  </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 body-small font-grotesk uppercase tracking-wide text-[#7D7D7D]">
+                  <Trophy className="h-4 w-4" />
+                  <span>Tier Required</span>
                 </div>
-              <div className="space-y-4">
-                {!address ? (
-                  <button
-                    onClick={login}
-                    className="w-full rounded-full border border-[#131313] bg-[#131313] py-3 text-sm font-inktrap font-medium uppercase tracking-wide text-white transition hover:bg-black/90"
-                  >
-                    Connect Wallet to Claim
-                  </button>
-                ) : isDiscountReward ? (
-                  <div className="flex flex-col gap-3">
-                    <div
-                      className={`flex items-center justify-between rounded-full border px-4 py-3 font-inktrap text-sm uppercase tracking-wide ${
-                        selectedPerkRedeemed && selectedUserDiscountCode
-                          ? "border-green-200 bg-green-50 text-green-800"
-                          : "border-[#131313]/20 bg-[#131313]/5 text-gray-500"
-                      }`}
-                    >
-                      <span>
-                        {selectedPerkRedeemed && selectedUserDiscountCode
-                          ? selectedUserDiscountCode
-                          : "Redeem to unlock"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleCopyCode}
-                        disabled={!selectedPerkRedeemed || !selectedUserDiscountCode}
-                        className={`rounded-full p-2 transition ${
-                          selectedPerkRedeemed && selectedUserDiscountCode
-                            ? "hover:bg-white/60"
-                            : "opacity-40 cursor-not-allowed"
-                        }`}
-                      >
-                        <Copy className="h-4 w-4" />
-                        <span className="sr-only">Copy discount code</span>
-                      </button>
-                    </div>
-                    {codesAvailabilityLabel && (
-                      <p className="text-xs font-inktrap text-gray-500">
-                        {codesAvailabilityLabel}
-                      </p>
-                    )}
-                    <button
-                      onClick={handleRedeem}
-                      disabled={claimDisabled}
-                      className={`rounded-full py-3 text-sm font-inktrap font-medium uppercase tracking-wide transition ${
-                        claimDisabled
-                          ? "border border-gray-200 bg-gray-100 text-gray-400"
-                          : "border border-[#131313] bg-[#131313] text-white hover:bg-black/90"
-                      }`}
-                    >
-                      {claimLabel}
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleRedeem}
-                    disabled={claimDisabled}
-                    className={`w-full rounded-full py-3 text-sm font-inktrap font-medium uppercase tracking-wide transition ${
-                      claimDisabled
-                        ? "border border-gray-200 bg-gray-100 text-gray-400"
-                        : "border border-[#131313] bg-[#131313] text-white hover:bg-black/90"
-                    }`}
-                  >
-                    {claimLabel}
-                  </button>
-                )}
-              </div>
-
-              <div className="border-t border-dashed border-[#131313]/20" />
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-inktrap uppercase tracking-wide text-gray-600">
-                    <Trophy className="h-4 w-4" />
-                    <span>Tier Required</span>
-                  </div>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313]/5 px-3 py-2 text-xs font-inktrap uppercase tracking-wide">
-                    {tierLabel}
-                  </span>
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313]/5 px-4 py-2 body-small font-grotesk uppercase tracking-wide">
+                  {selectedPerkAffordable && (
+                    <Image
+                      src="/tier-eligible.svg"
+                      alt="Eligible"
+                      width={12}
+                      height={12}
+                      className="h-3 w-3"
+                    />
+                  )}
+                  {tierLabel}
                 </div>
-                {selectedTierInfo && (
-                  <p className="text-xs text-gray-500">
-                    {selectedTierInfo.description}
-                  </p>
-                )}
-                <a
-                  href="/membership"
-                  className="flex items-center gap-2 text-sm font-inktrap text-[#131313] underline-offset-4 hover:underline"
-                >
-                  View all tiers
-                  <ExternalLink className="h-4 w-4" />
-                </a>
               </div>
+              {selectedTierInfo && (
+                <p className="text-xs text-gray-500">
+                  {selectedTierInfo.description}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleViewAllTiersClick}
+                className="flex items-center gap-4 text-sm font-inktrap text-[#131313] underline-offset-4 hover:underline"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "16px",
+                  borderBottom: "1px solid #313131",
+                }}
+              >
+                View all tiers
+                <ExternalLink className="h-4 w-4" />
+              </button>
             </div>
           </div>
         )}
