@@ -227,9 +227,8 @@ export default function Checkpoint({ id }: CheckpointProps) {
             {/* Descriptive Text */}
             <div className="">
               <p className="text-white text-sm leading-relaxed font-grotesk">
-                You&apos;ve just gained access to events, rewards and bespoke
-                experiences. Sign Up to save these points and join a global
-                network lorem ipsum.
+                You’ve just gained access to events, rewards and bespoke
+                experiences.
               </p>
             </div>
 
@@ -240,7 +239,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
                   onClick={() => router.push("/")}
                   className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
                 >
-                  <span>Create Your Profile and Save</span>
+                  <span>View Dashboard</span>
                   <Image
                     src="/home/arrow-right.svg"
                     alt="arrow-right"

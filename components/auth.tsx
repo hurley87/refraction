@@ -15,9 +15,6 @@ export default function Auth({ children }: AuthProps) {
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
   const [needsUsername, setNeedsUsername] = useState(false);
 
-  //console.log("user", user);
-
-  // Check for existing player data when user is ready and has wallet
   useEffect(() => {
     const checkPlayerData = async () => {
       if (user?.wallet?.address) {
@@ -119,9 +116,6 @@ export default function Auth({ children }: AuthProps) {
     return (
       <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto min-h-dvh px-4 py-8">
         <div className="flex flex-col gap-6">
-          <h1 className="text-white text-2xl font-inktrap uppercase text-center">
-            WELCOME TO THE IRL NETWORK
-          </h1>
           <p className="text-white text-lg font-inktrap text-center">
             Choose your username to start earning points
           </p>
@@ -163,15 +157,6 @@ export default function Auth({ children }: AuthProps) {
               </svg>
             )}
           </Button>
-
-          <div className="flex items-center justify-between w-full mt-8">
-            <p className="text-white text-xs uppercase tracking-wider font-inktrap opacity-80">
-              POWERED BY
-            </p>
-            <p className="text-white text-lg font-bold font-inktrap">
-              REFRACTION
-            </p>
-          </div>
         </div>
       </div>
     );
