@@ -220,7 +220,7 @@ export default function LeaderboardPage() {
       <div className="max-w-md mx-auto">
         {/* Navigation */}
         <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/20 to-transparent">
-          <div className="max-w-md w-full mx-auto py-4">
+          <div className="max-w-md w-full mx-auto py-4 px-4">
             <MapNav />
           </div>
         </div>
