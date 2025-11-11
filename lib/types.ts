@@ -15,6 +15,16 @@ export type Perk = {
   thumbnail_url?: string;
 };
 
+export type Tier = {
+  id: string;
+  title: string;
+  min_points: number;
+  max_points: number | null;
+  description: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type PerkDiscountCode = {
   id?: string;
   perk_id: string;

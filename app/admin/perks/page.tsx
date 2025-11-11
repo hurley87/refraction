@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -22,11 +22,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { type Perk, type PerkDiscountCode } from "@/lib/supabase";
+import type { Tier } from "@/lib/types";
 import { usePrivy } from "@privy-io/react-auth";
 
 export default function AdminPerksPage() {
   const { user, login } = usePrivy();
   const queryClient = useQueryClient();
+  const [selectedTierId, setSelectedTierId] = useState<string>("");
 
     // Check admin status with simple POST request
     const checkAdminStatus = useCallback(async () => {
@@ -98,6 +100,19 @@ export default function AdminPerksPage() {
         return data.perks;
       },
       enabled: !!isAdmin,
+    });
+
+    const { data: tiers = [], isLoading: tiersLoading } = useQuery<Tier[]>({
+      queryKey: ["tiers"],
+      queryFn: async () => {
+        const response = await fetch("/api/tiers");
+        if (!response.ok) {
+          throw new Error("Failed to fetch tiers");
+        }
+        const data = await response.json();
+        return data.tiers ?? [];
+      },
+      enabled: !adminLoading,
     });
 
     // Create perk mutation
@@ -275,6 +290,7 @@ export default function AdminPerksPage() {
       setThumbnailPreview(perk.thumbnail_url || null);
       setThumbnailFile(null);
       setIsDialogOpen(true);
+      setSelectedTierId("");
     };
 
     const handleDelete = async (id: string) => {
@@ -390,6 +406,7 @@ export default function AdminPerksPage() {
       setEditingPerk(null);
       resetForm();
       setIsDialogOpen(true);
+      setSelectedTierId("");
     };
 
     const handleCloseDialog = () => {
@@ -398,7 +415,64 @@ export default function AdminPerksPage() {
       resetForm();
       setThumbnailFile(null);
       setThumbnailPreview(null);
+      setSelectedTierId("");
     };
+
+    useEffect(() => {
+      if (!tiers.length) return;
+
+      const currentThreshold = formData.points_threshold ?? 0;
+      const matchingTier = tiers.find(
+        (tier) =>
+          currentThreshold >= tier.min_points &&
+          (tier.max_points === null || currentThreshold <= tier.max_points),
+      );
+
+      if (matchingTier) {
+        setSelectedTierId((prev) => {
+          if (!prev || prev === matchingTier.id) {
+            return matchingTier.id;
+          }
+          return prev;
+        });
+      }
+    }, [tiers, formData.points_threshold]);
+
+    const selectedTier = useMemo(() => {
+      return tiers.find((tier) => tier.id === selectedTierId) ?? null;
+    }, [tiers, selectedTierId]);
+
+    const formatTierRange = (tier: Tier) => {
+      if (tier.max_points === null) {
+        return `${tier.min_points.toLocaleString()}+ points`;
+      }
+      return `${tier.min_points.toLocaleString()} – ${tier.max_points.toLocaleString()} points`;
+    };
+
+    const resolveTierTitle = useCallback(
+      (points: number) => {
+        if (!tiers || tiers.length === 0) {
+          return `${points.toLocaleString()} pts`;
+        }
+
+        const tier = tiers.find(
+          (t) =>
+            points >= t.min_points &&
+            (t.max_points === null || points < t.max_points),
+        );
+
+        if (!tier) {
+          return `${points.toLocaleString()} pts`;
+        }
+
+        const rangeLabel = tier.max_points === null
+          ? `${tier.min_points.toLocaleString()}+ pts`
+          : `${tier.min_points.toLocaleString()} – ${tier.max_points.toLocaleString()} pts`;
+
+        return `${tier.title} (${rangeLabel})`;
+      },
+      [tiers],
+    );
 
     if (adminLoading) {
       return (
@@ -513,20 +587,43 @@ export default function AdminPerksPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="points_threshold">Points Threshold</Label>
-                  <Input
-                    id="points_threshold"
-                    type="number"
-                    value={formData.points_threshold}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        points_threshold: parseInt(e.target.value),
-                      })
-                    }
-                    required
-                    min="0"
-                  />
+                  <Label htmlFor="tier">Tier</Label>
+                  <Select
+                    value={selectedTierId}
+                    onValueChange={(value) => {
+                      setSelectedTierId(value);
+                      const tier = tiers.find((t) => t.id === value);
+                      setFormData((prev) => ({
+                        ...prev,
+                        points_threshold: tier ? tier.min_points : 0,
+                      }));
+                    }}
+                    disabled={tiersLoading || tiers.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          tiersLoading
+                            ? "Loading tiers..."
+                            : tiers.length === 0
+                              ? "No tiers available"
+                              : "Select tier"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tiers.map((tier: Tier) => (
+                        <SelectItem key={tier.id} value={tier.id}>
+                          {tier.title} · {formatTierRange(tier)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedTier && (
+                    <p className="mt-2 text-xs text-gray-600">
+                      {selectedTier.description}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -673,7 +770,9 @@ export default function AdminPerksPage() {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
-                      <div>Points: {perk.points_threshold}</div>
+                      <div>
+                        Tier: {resolveTierTitle(perk.points_threshold)}
+                      </div>
                       {perk.location && <div>Location: {perk.location}</div>}
                       {perk.end_date && (
                         <div
