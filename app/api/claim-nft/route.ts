@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient, createWalletClient, http, parseAbi } from "viem";
-import { sepolia } from "viem/chains";
+import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 
 // In-memory lock to prevent concurrent mints for the same user
 const mintLocks = new Map<string, Promise<any>>();
 
-// Reward1155 contract address on Sepolia
-const REWARD1155_ADDRESS = "0x148e3fD3FD4e143dcA4feAaf200701caEe2E6CE1";
+// Reward1155 contract address on Base Mainnet
+const REWARD1155_ADDRESS = "0x0dF791E915F3A281067521e6267fDC56151f1716";
 
 // ABI for the Reward1155 contract
 const REWARD1155_ABI = parseAbi([
@@ -94,15 +94,15 @@ async function performMint(userAddress: string) {
 
   // Create viem clients
   const publicClient = createPublicClient({
-    chain: sepolia,
-    transport: http("https://ethereum-sepolia-rpc.publicnode.com"),
+    chain: base,
+    transport: http("https://mainnet.base.org"),
   });
 
   const account = privateKeyToAccount(privateKey as `0x${string}`);
   const walletClient = createWalletClient({
     account,
-    chain: sepolia,
-    transport: http("https://ethereum-sepolia-rpc.publicnode.com"),
+    chain: base,
+    transport: http("https://mainnet.base.org"),
   });
 
   // Check if user can mint
@@ -217,8 +217,8 @@ export async function GET(req: NextRequest) {
     }
 
     const publicClient = createPublicClient({
-      chain: sepolia,
-      transport: http("https://ethereum-sepolia-rpc.publicnode.com"),
+      chain: base,
+      transport: http("https://mainnet.base.org"),
     });
 
     const hasMinted = await publicClient.readContract({
