@@ -236,10 +236,10 @@ export default function Checkpoint({ id }: CheckpointProps) {
               {/* Call to Action Button */}
               <div className="w-full">
                 <Button
-                  onClick={() => router.push("/leaderboard")}
+                  onClick={() => router.push("/claim")}
                   className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
                 >
-                  <span>View Leaderboard</span>
+                  <span>Claim Your Reward</span>
                   <Image
                     src="/home/arrow-right.svg"
                     alt="arrow-right"
