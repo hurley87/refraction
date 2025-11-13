@@ -242,7 +242,10 @@ export async function GET(req: NextRequest) {
     });
 
     let tokenBalance = "0";
-    if (rewardTokenAddress) {
+    if (
+      rewardTokenAddress &&
+      rewardTokenAddress !== "0x0000000000000000000000000000000000000000"
+    ) {
       tokenBalance = (
         await publicClient.readContract({
           address: rewardTokenAddress as `0x${string}`,
