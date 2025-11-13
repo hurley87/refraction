@@ -95,6 +95,8 @@ export default function InteractiveMap() {
 
   const mapRef = useRef<any>(null);
   const hasSetInitialLocationRef = useRef(false);
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  const welcomeBannerStorageKey = "irl-map-welcome-dismissed";
 
   // Center map on user's current location once on mount (with fallback)
   useEffect(() => {
@@ -140,6 +142,23 @@ export default function InteractiveMap() {
     };
     fetchUserData();
   }, [walletAddress]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hasDismissed = window.localStorage.getItem(
+      welcomeBannerStorageKey,
+    );
+    if (!hasDismissed) {
+      setShowWelcomeBanner(true);
+    }
+  }, []);
+
+  const dismissWelcomeBanner = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(welcomeBannerStorageKey, "1");
+    }
+    setShowWelcomeBanner(false);
+  };
 
   // Load markers from DB on mount
   useEffect(() => {
@@ -793,14 +812,56 @@ export default function InteractiveMap() {
 
       {/* Search Bar - Centered Below Header */}
       <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-md px-4">
-        <LocationSearch
-          placeholder="Search location"
-          proximity={{
-            longitude: viewState.longitude,
-            latitude: viewState.latitude,
-          }}
-          onSelect={handleSearchSelect}
-        />
+        <div className="space-y-3">
+          <LocationSearch
+            placeholder="Search location"
+            proximity={{
+              longitude: viewState.longitude,
+              latitude: viewState.latitude,
+            }}
+            onSelect={handleSearchSelect}
+          />
+          {showWelcomeBanner && (
+            <div className="rounded-3xl bg-white/90 px-4 py-3 shadow-lg backdrop-blur text-[#131313] dark:bg-black/70 dark:text-white border border-white/40 dark:border-white/10">
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <p className="font-inktrap text-sm leading-5">
+                    Write in the name of the location you want to create, or
+                    check in at a location on the map to earn IRL.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={dismissWelcomeBanner}
+                  className="text-[#7d7d7d] hover:text-[#131313] dark:text-white/60 dark:hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black rounded-full p-1"
+                  aria-label="Dismiss message"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={dismissWelcomeBanner}
+                className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-[#131313] px-3 py-2 text-sm font-inktrap text-white transition hover:bg-[#1f1f1f] dark:bg-white dark:text-black dark:hover:bg-white/90"
+              >
+                Start exploring
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Map */}
