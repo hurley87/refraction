@@ -15,7 +15,6 @@ import {
   MapPin,
   Trophy,
   X,
-  ArrowUpDown,
   Clock,
 } from "lucide-react";
 
@@ -188,12 +187,12 @@ export default function PerksPage() {
     : null;
 
   const [viewMode, setViewMode] = useState<"rewards" | "tiers">("rewards");
-  const [sortOption, setSortOption] = useState<"points-desc" | "points-asc">(
-    "points-desc",
+  const [sortOption, setSortOption] = useState<"date-desc" | "date-asc">(
+    "date-desc",
   );
 
   const toggleSort = () => {
-    setSortOption((prev) => (prev === "points-desc" ? "points-asc" : "points-desc"));
+    setSortOption((prev) => (prev === "date-desc" ? "date-asc" : "date-desc"));
   };
 
   //const selectedPerkId = selectedPerk?.id;
@@ -368,6 +367,12 @@ export default function PerksPage() {
     return "Ongoing";
   };
 
+  const getPerkEndTimestamp = (perk: Perk) => {
+    if (!perk.end_date) return Number.POSITIVE_INFINITY;
+    const time = new Date(perk.end_date).getTime();
+    return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
+  };
+
   const startDateRaw = selectedPerk
     ? ((selectedPerk as unknown as { start_date?: string })?.start_date ?? undefined)
     : undefined;
@@ -445,12 +450,13 @@ export default function PerksPage() {
     : null;
 
   const sortedRewards = perks
-    .filter((perk) => perk.id !== latestReward?.id)
-    .sort((a, b) => {
-      return sortOption === "points-asc"
-        ? a.points_threshold - b.points_threshold
-        : b.points_threshold - a.points_threshold;
-    });
+     .filter((perk) => perk.id !== latestReward?.id)
+     .sort((a, b) => {
+      const aTime = getPerkEndTimestamp(a);
+      const bTime = getPerkEndTimestamp(b);
+
+      return sortOption === "date-asc" ? aTime - bTime : bTime - aTime;
+     });
 
   const latestRewardAffordable = latestReward
     ? !address || canAfford(latestReward)
@@ -486,7 +492,7 @@ export default function PerksPage() {
         <div className="px-0 pt-4 space-y-1">
           {/* LATEST REWARD Section */}
           {latestReward && !perksLoading && (
-            <div className="mb-6">
+            <div className="mb-1">
               <div
                 style={{
                   display: "flex",
@@ -523,7 +529,7 @@ export default function PerksPage() {
                 )}
 
                 {/* Reward Title */}
-                <h2 className="text-black title2 font-pleasure w-full text-left">
+                <h2 className="text-black title2 font-grotesk w-full text-left">
                   {latestReward.title}
                 </h2>
 
@@ -549,6 +555,15 @@ export default function PerksPage() {
                     }}
                   >
                     <span className="text-black body-small uppercase font-abc-monument-regular">
+                      {latestRewardAffordable && (
+                        <Image
+                          src="/tier-eligible.svg"
+                          alt="Eligible for Tier"
+                          width={12}
+                          height={12}
+                          className="inline-block mr-1"
+                        />
+                      )}
                       {formatTierLabel(latestReward.points_threshold)}
                     </span>
                   </div>
@@ -763,24 +778,6 @@ export default function PerksPage() {
               <button
                 type="button"
                 onClick={toggleSort}
-                className="text-black transition-all duration-200 hover:bg-white"
-                aria-label="Toggle sort order"
-                style={{
-                  display: "flex",
-                  width: "48px",
-                  height: "40px",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  borderRadius: "1000px",
-                  background: "#FFF",
-                  boxShadow: "0 1px 8px 0 rgba(0, 0, 0, 0.08)",
-                }}
-              >
-                <ArrowUpDown className="h-5 w-5" />
-              </button>
-
-              <button
-                type="button"
                 className="transition-colors duration-200 hover:bg-white"
                 style={{
                   display: "flex",
@@ -1112,9 +1109,9 @@ export default function PerksPage() {
                     (perk) => formatTierLabel(perk.points_threshold) === tier.title,
                   )
                   .sort((a, b) =>
-                    sortOption === "points-asc"
-                      ? a.points_threshold - b.points_threshold
-                      : b.points_threshold - a.points_threshold,
+                    sortOption === "date-asc"
+                      ? new Date(a.end_date).getTime() - new Date(b.end_date).getTime()
+                      : new Date(b.end_date).getTime() - new Date(a.end_date).getTime(),
                   );
 
                 return (
@@ -1248,7 +1245,7 @@ export default function PerksPage() {
     <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
       <DialogContent className="w-full max-w-lg border-none bg-transparent p-0 shadow-none [&>button]:hidden">
         {selectedPerk && (
-          <div className="max-h-[90vh] overflow-y-auto space-y-4">
+          <div className="max-h-[90vh] overflow-y-auto space-y-1">
             {/* Container 1: Close */}
             <div className="w-full rounded-3xl border border-[#131313]/10 bg-white px-4 py-3">
                <DialogClose asChild>
@@ -1375,16 +1372,26 @@ export default function PerksPage() {
               <button
                 type="button"
                 onClick={handleViewAllTiersClick}
-                className="flex items-center gap-4 text-sm font-inktrap text-[#131313] underline-offset-4 hover:underline"
+                className="flex items-center justify-center title4 gap-4 font-grotesk text-black underline-offset-4 hover:underline"
                 style={{
                   display: "flex",
                   alignItems: "center",
                   gap: "16px",
                   borderBottom: "1px solid #313131",
-                }}
+                  marginInline: "auto",
+                  }}
               >
                 View all tiers
-                <ExternalLink className="h-4 w-4" />
+              <span>
+                <Image
+                  src="/arrow-right.svg"
+                  alt="Arrow Right"
+                  width={16}
+                  height={16}
+                  className="h-4 w-4 text-black dark:text-white"
+                  aria-hidden="true"
+                />
+              </span>
               </button>
             </div>
           </div>
