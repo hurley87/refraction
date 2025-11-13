@@ -224,6 +224,11 @@ export default function InteractiveMap() {
     }
   };
 
+  const findExistingMarker = (placeId?: string | null) => {
+    if (!placeId) return null;
+    return markers.find((marker) => marker.place_id === placeId) ?? null;
+  };
+
   // Add markers by clicking the map
   const onMapClick = async (event: any) => {
     if (!walletAddress) {
@@ -255,6 +260,15 @@ export default function InteractiveMap() {
             display_name: feature.place_name || "Unknown Location",
             name: feature.text || "New Location",
           };
+          const duplicateMarker = findExistingMarker(newMarker.place_id);
+          if (duplicateMarker) {
+            toast.info("That location already exists—check it out instead!");
+            setSelectedMarker(duplicateMarker);
+            setPopupInfo(duplicateMarker);
+            setShowLocationForm(false);
+            setSearchedLocation(null);
+            return;
+          }
 
           setSelectedMarker(newMarker);
           setFormData({
@@ -441,8 +455,10 @@ export default function InteractiveMap() {
           {
             id: result.checkin?.id ?? Date.now(),
             comment: trimmedComment,
-            imageUrl: result.checkin?.image_url ?? checkInTarget.imageUrl ?? null,
-            pointsEarned: result.checkin?.points_earned || result.pointsEarned || 100,
+            imageUrl:
+              result.checkin?.image_url ?? checkInTarget.imageUrl ?? null,
+            pointsEarned:
+              result.checkin?.points_earned || result.pointsEarned || 100,
             createdAt: result.checkin?.created_at || new Date().toISOString(),
             username: userUsername,
             walletAddress: walletAddress || null,
@@ -465,6 +481,16 @@ export default function InteractiveMap() {
 
   const handleInitiateLocationCreation = async () => {
     if (!searchedLocation) return;
+
+    const existingMarker = findExistingMarker(searchedLocation.place_id);
+    if (existingMarker) {
+      toast.info("That location already exists—check it out instead!");
+      setSelectedMarker(existingMarker);
+      setPopupInfo(existingMarker);
+      setShowLocationForm(false);
+      setSearchedLocation(null);
+      return;
+    }
 
     // Set up for creating the location
     const newMarker: MarkerData = {
@@ -504,6 +530,18 @@ export default function InteractiveMap() {
   const handleCreateLocation = async () => {
     if (!selectedMarker || !walletAddress) {
       toast.error("Please select a location and connect your wallet");
+      return;
+    }
+
+    // Best-effort duplicate check using local state (may be stale if another user created the location)
+    // The backend is the source of truth and will return 409 if duplicate exists
+    const existingMarker = findExistingMarker(selectedMarker.place_id);
+    if (existingMarker) {
+      toast.info("This location already exists—try checking in instead!");
+      setSelectedMarker(existingMarker);
+      setPopupInfo(existingMarker);
+      setShowLocationForm(false);
+      setSearchedLocation(null);
       return;
     }
 
@@ -577,6 +615,80 @@ export default function InteractiveMap() {
               "You can only add one location per day. Come back tomorrow!",
           );
           handleCloseLocationForm();
+          return;
+        }
+        if (response.status === 409) {
+          // Location already exists - fetch full location details and show it
+          toast.info("This location already exists—try checking in instead!");
+
+          // Helper function to handle showing existing location
+          const showExistingLocation = (marker: MarkerData) => {
+            // Add to markers if not already present
+            setMarkers((current) => {
+              const exists = current.some(
+                (m) => m.place_id === marker.place_id,
+              );
+              if (exists) return current;
+              return [...current, marker];
+            });
+
+            setSelectedMarker(marker);
+            setPopupInfo(marker);
+            setShowLocationForm(false);
+            setSearchedLocation(null);
+          };
+
+          // Try to fetch full location details from API
+          try {
+            const locationsResponse = await fetch("/api/locations");
+            if (locationsResponse.ok) {
+              const locationsData = await locationsResponse.json();
+              const existingLocation = (locationsData.locations || []).find(
+                (loc: any) => loc.place_id === selectedMarker.place_id,
+              );
+
+              if (existingLocation) {
+                const existingMarker: MarkerData = {
+                  latitude:
+                    existingLocation.latitude ?? selectedMarker.latitude,
+                  longitude:
+                    existingLocation.longitude ?? selectedMarker.longitude,
+                  place_id: existingLocation.place_id,
+                  display_name: existingLocation.display_name,
+                  name: existingLocation.name,
+                  creator_wallet_address:
+                    existingLocation.creator_wallet_address ?? null,
+                  creator_username: existingLocation.creator_username ?? null,
+                  imageUrl: existingLocation.coin_image_url ?? null,
+                };
+                showExistingLocation(existingMarker);
+                setIsCreatingLocation(false);
+                return;
+              }
+            }
+          } catch (fetchError) {
+            console.error("Failed to fetch existing location:", fetchError);
+          }
+
+          // Fallback: use the location from the error response if available
+          if (result.location) {
+            const existingMarker: MarkerData = {
+              latitude: result.location.latitude ?? selectedMarker.latitude,
+              longitude: result.location.longitude ?? selectedMarker.longitude,
+              place_id: selectedMarker.place_id,
+              name: result.location.name,
+              display_name: result.location.display_name,
+              creator_wallet_address:
+                result.location.creator_wallet_address ?? null,
+              creator_username: result.location.creator_username ?? null,
+              imageUrl: result.location.coin_image_url ?? null,
+            };
+            showExistingLocation(existingMarker);
+          } else {
+            toast.error("Location already exists, but could not load details");
+          }
+
+          setIsCreatingLocation(false);
           return;
         }
         throw new Error(result.error || "Failed to create location");
@@ -1053,7 +1165,9 @@ export default function InteractiveMap() {
                                         {getCheckinDisplayName(entry)}
                                       </span>
                                       <span className="text-[10px] uppercase tracking-[0.44px] text-[#b5b5b5]">
-                                        {formatCheckinTimestamp(entry.createdAt)}
+                                        {formatCheckinTimestamp(
+                                          entry.createdAt,
+                                        )}
                                       </span>
                                     </div>
                                   </div>

@@ -77,6 +77,12 @@ const getUtcDayBounds = () => {
   };
 };
 
+const isDuplicateKeyError = (error: unknown) =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  (error as { code?: string }).code === "23505";
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -109,6 +115,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Location image is required" },
         { status: 400 },
+      );
+    }
+
+    // Ensure location doesn't already exist before proceeding
+    const { data: existingLocation, error: locationLookupError } = await supabase
+      .from("locations")
+      .select(
+        "id, name, display_name, creator_wallet_address, creator_username, coin_image_url, latitude, longitude",
+      )
+      .eq("place_id", place_id)
+      .maybeSingle();
+
+    if (locationLookupError && locationLookupError.code !== "PGRST116") {
+      console.error("Error checking duplicate location:", locationLookupError);
+      throw locationLookupError;
+    }
+
+    if (existingLocation) {
+      return NextResponse.json(
+        {
+          error: "Location already exists for this place_id",
+          location: existingLocation,
+        },
+        { status: 409 },
       );
     }
 
@@ -154,7 +184,15 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (locationError) throw locationError;
+    if (locationError) {
+      if (isDuplicateKeyError(locationError)) {
+        return NextResponse.json(
+          { error: "Location already exists for this place_id" },
+          { status: 409 },
+        );
+      }
+      throw locationError;
+    }
 
     // Award 100 points to the user for creating a location
     const pointsAwarded = 100;
@@ -186,6 +224,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Create location API error:", error);
+    if (isDuplicateKeyError(error)) {
+      return NextResponse.json(
+        { error: "Location already exists for this place_id" },
+        { status: 409 },
+      );
+    }
     return NextResponse.json(
       { error: "Failed to create location" },
       { status: 500 },
