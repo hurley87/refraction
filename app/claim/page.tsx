@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import ClaimHeader from "@/components/claim-header";
 import ClaimFooter from "@/components/claim-footer";
+import TransferTokens from "@/components/transfer-tokens";
 import { usePrivy } from "@privy-io/react-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -249,6 +250,14 @@ export default function ClaimPage() {
                           </span>
                         </div>
                       </div>
+                      <TransferTokens
+                        tokenBalance={tokenBalance}
+                        onTransferComplete={() => {
+                          queryClient.invalidateQueries({
+                            queryKey: ["claim-status", userAddress],
+                          });
+                        }}
+                      />
                       <a
                         href={`https://sepolia.etherscan.io/address/${userAddress}`}
                         target="_blank"
