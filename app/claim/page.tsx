@@ -206,7 +206,7 @@ export default function ClaimPage() {
                     </div>
                   ) : (
                     <div
-                      className="mx-auto max-w-[311px] space-y-4 rounded-3xl border border-[#EDEDED] bg-white p-6"
+                      className="w-full space-y-4 rounded-3xl border border-[#EDEDED] bg-white p-6"
                       style={{
                         boxShadow: "0 4px 8px 0 rgba(0, 0, 0, 0.08)",
                       }}
@@ -258,29 +258,31 @@ export default function ClaimPage() {
                           });
                         }}
                       />
-                      <a
-                        href={`https://sepolia.etherscan.io/address/${userAddress}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 rounded-full border border-[#313131] bg-white px-4 py-2 text-sm font-grotesk text-[#313131] transition hover:bg-[#F9F9F9]"
-                      >
-                        View on Etherscan
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
+                      {userAddress && (
+                        <a
+                          href={`https://basescan.org/address/${userAddress}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 rounded-full border border-[#313131] bg-white px-4 py-2 text-sm font-grotesk text-[#313131] transition hover:bg-[#F9F9F9]"
                         >
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                          <polyline points="15 3 21 3 21 9"></polyline>
-                          <line x1="10" y1="14" x2="21" y2="3"></line>
-                        </svg>
-                      </a>
+                          View on Basescan
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                          </svg>
+                        </a>
+                      )}
                     </div>
                   )}
 
