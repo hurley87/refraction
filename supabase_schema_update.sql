@@ -85,3 +85,12 @@ SET
   min_points = EXCLUDED.min_points,
   max_points = EXCLUDED.max_points,
   description = EXCLUDED.description;
+
+-- ---------------------------------------------------------------------------
+-- Add is_universal column to perk_discount_codes table
+-- ---------------------------------------------------------------------------
+
+ALTER TABLE perk_discount_codes
+ADD COLUMN IF NOT EXISTS is_universal BOOLEAN DEFAULT FALSE;
+
+COMMENT ON COLUMN perk_discount_codes.is_universal IS 'If true, this code is shared by all eligible users and not redeemed/burned. If false, this is an individual code that can only be redeemed once.';

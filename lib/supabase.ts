@@ -656,6 +656,7 @@ export type PerkDiscountCode = {
   claimed_by_wallet_address?: string;
   claimed_at?: string;
   created_at?: string;
+  is_universal?: boolean;
 };
 
 export type UserPerkRedemption = {
@@ -856,10 +857,11 @@ export const getUserPerkRedemptions = async (walletAddress: string) => {
 };
 
 // Discount code functions
-export const createDiscountCodes = async (perkId: string, codes: string[]) => {
+export const createDiscountCodes = async (perkId: string, codes: string[], isUniversal: boolean = false) => {
   const discountCodes = codes.map((code) => ({
     perk_id: perkId,
     code: code.trim(),
+    is_universal: isUniversal,
   }));
 
   const { data, error } = await supabase
