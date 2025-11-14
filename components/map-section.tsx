@@ -18,7 +18,6 @@ if (typeof window !== "undefined") {
 export default function MapSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoSectionRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const stencilRef = useRef<HTMLDivElement>(null);
   const section1Ref = useRef<HTMLDivElement>(null);
   const section1TextRef = useRef<HTMLDivElement>(null);
@@ -208,20 +207,15 @@ export default function MapSection() {
         ref={videoSectionRef}
         className="absolute inset-0 flex items-center justify-center bg-[#131313]"
       >
-        {/* Video Background */}
+        {/* Gradient Background */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="relative w-full h-full flex items-center justify-center overflow-hidden md:rounded-none rounded-[26px]">
-            <video
-              ref={videoRef}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-            >
-              <source src="/video-reel.mp4" type="video/mp4" />
-            </video>
-          </div>
+          <div
+            className="relative w-full h-full flex items-center justify-center overflow-hidden md:rounded-none rounded-[26px]"
+            style={{
+              background:
+                "var(--Gradients-Rewards-Pink, linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.10) 100%), linear-gradient(0deg, #FFE600 0%, #1BA351 36.06%, #61BFD1 65.39%, #EE91B7 100%))",
+            }}
+          />
         </div>
 
         {/* Stencil Overlay */}

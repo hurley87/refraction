@@ -116,7 +116,7 @@ export default function Footer() {
 
               {/* Farcaster */}
               <a
-                href="https://farcaster.xyz/irl-energy"
+                href="https://farcaster.xyz/refraction"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-white/10"
@@ -138,7 +138,7 @@ export default function Footer() {
 
               <a
                 target="_blank"
-                href="https://www.instagram.com/irl_energy/"
+                href="https://www.instagram.com/refraction_irl/"
                 className="hover:opacity-80 transition-opacity"
               >
                 <svg
