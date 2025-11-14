@@ -1479,67 +1479,73 @@ export default function PerksPage() {
               </div>
               <div className="border-t border-dashed border-[#131313]/20" />
               
-              {/* Claim Section */}
-              <div className="space-y-4">
-                {/* Row 1: Header */}
-                <div className="flex items-center gap-2">
-                  <Image
-                    src="/guidance_reward.svg"
-                    alt="Guidance Reward"
-                    width={16}
-                    height={16}
-                    className="h-4 w-4"
-                  />
-                  <span className="body-small font-abc-monument-regular uppercase tracking-wide text-[#313131]">
-                    CLAIM
-                  </span>
-                </div>
-
-                {/* Row 2: Instructions */}
-                <p className="body-medium text-[#4F4F4F]">
-                  Click the link and use code <span className="font-mono font-bold text-[#db85a8] px-2">{selectedDiscountCode}</span> to claim your reward.
-                </p>
-
-                {/* Row 3: Two Pills */}
-                <div className="flex gap-2">
-                  {/* Pill 1: Code with Copy */}
-                  <button
-                    type="button"
-                    onClick={handleCopyCode}
-                    className="inline-flex items-center justify-between gap-2 rounded-full border font-pleasure border-[#131313]/20 bg-white px-4 py-2 body-small uppercase tracking-wide text-[#313131] hover:bg-gray-50 transition-colors flex-1"
-                  >
-                    <span>{selectedDiscountCode}</span>
-                    <Copy className="h-4 w-4" />
-                  </button>
-
-                  {/* Pill 2: Claim Reward */}
-                  {claimUrl ? (
-                    <a
-                      href={claimUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-pleasure uppercase tracking-wide text-white hover:bg-[#313131] transition-colors flex-1"
-                    >
-                      <span className="text-left">Claim Reward</span>
+              {/* Claim Section - Only visible if user is logged in and eligible */}
+              {address && selectedPerk && canAfford(selectedPerk) && (
+                <>
+                  <div className="space-y-4">
+                    {/* Row 1: Header */}
+                    <div className="flex items-center gap-2">
                       <Image
-                        src="/guidance-up-right.svg"
-                        alt="Up Right"
+                        src="/guidance_reward.svg"
+                        alt="Guidance Reward"
                         width={16}
                         height={16}
                         className="h-4 w-4"
                       />
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled
-                      className="inline-flex items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-pleasure uppercase tracking-wide text-gray-500 cursor-not-allowed flex-1"
-                    >
-                      Claim Reward
-                    </button>
-                  )}
-                </div>
-              </div>
+                      <span className="body-small font-abc-monument-regular uppercase tracking-wide text-[#313131]">
+                        CLAIM
+                      </span>
+                    </div>
+
+                    {/* Row 2: Instructions */}
+                    <p className="body-medium text-[#4F4F4F]">
+                      Click the link and use code <span className="font-mono font-bold text-[#db85a8] px-2">{selectedDiscountCode}</span> to claim your reward.
+                    </p>
+
+                    {/* Row 3: Two Pills */}
+                    <div className="flex gap-2">
+                      {/* Pill 1: Code with Copy */}
+                      <button
+                        type="button"
+                        onClick={handleCopyCode}
+                        className="inline-flex items-center justify-between gap-2 rounded-full border font-pleasure border-[#131313]/20 bg-white px-4 py-2 body-small uppercase tracking-wide text-[#313131] hover:bg-gray-50 transition-colors flex-1"
+                      >
+                        <span>{selectedDiscountCode}</span>
+                        <Copy className="h-4 w-4" />
+                      </button>
+
+                      {/* Pill 2: Claim Reward */}
+                      {claimUrl ? (
+                        <a
+                          href={claimUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-pleasure uppercase tracking-wide text-white hover:bg-[#313131] transition-colors flex-1"
+                        >
+                          <span className="text-left">Claim Reward</span>
+                          <Image
+                            src="/guidance-up-right.svg"
+                            alt="Up Right"
+                            width={16}
+                            height={16}
+                            className="h-4 w-4"
+                          />
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          className="inline-flex items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-pleasure uppercase tracking-wide text-gray-500 cursor-not-allowed flex-1"
+                        >
+                          Claim Reward
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-dashed border-[#131313]/20" />
+                </>
+              )}
 
               <div className="border-t border-dashed border-[#131313]/20" />
               <div className="flex items-center justify-between">
