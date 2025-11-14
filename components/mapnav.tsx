@@ -73,7 +73,7 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
             onClick={handleNavigationMenuClick}
             className="bg-[#4f4f4f] box-border content-stretch flex gap-[8px] h-[40px] items-center overflow-clip px-[16px] py-[10px] relative rounded-[24px] shrink-0 hover:bg-[#5a5a5a] transition-colors cursor-pointer"
           >
-            <p className="font-inktrap font-medium leading-[16px] relative shrink-0 text-[16px] text-nowrap text-white whitespace-pre">
+            <p className="font-pleasure font-medium leading-[16px] relative shrink-0 text-[16px] text-nowrap text-white whitespace-pre">
               {currentPageName}
             </p>
             <div className="flex items-center justify-center relative shrink-0">
@@ -105,7 +105,7 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
             </div>
           ) : (
             <Button
-              className="bg-white text-black text-lg hover:bg-white/80 justify-center font-inktrap rounded-full items-center"
+              className="bg-white text-black text-lg hover:bg-white/80 justify-center font-pleasure rounded-full items-center"
               size="sm"
               onClick={login}
               style={{ width: "123px", height: "40px" }}

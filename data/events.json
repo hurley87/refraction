@@ -8,15 +8,24 @@
     "mapUrl": "https://maps.app.goo.gl/updzscmSxS1g1ScF8"
   },
   "futureEvents": [
+    
     {
-      "id": 1,
-    "poster": "/events/refraction-devconnect.png",
-    "title": "Refraction Presents - the $IRL Launch Party",
+      "id": 2,
+    "poster": "/events/codexculture.png",
+    "title": "Code x Culture — Presented by LambdaClass, Ergodic Group & Refraction",
     "date": "NOV 18 2025",
     "location": "Buenos Aires, AR",
-    "url": "https://luma.com/jzjxyt37",
+    "url": "https://luma.com/zq7dzam9",
+    "mapUrl": "https://maps.app.goo.gl/TTMNQD7Tqz5J3R4q8"
+    },
+    {
+      "id": 3,
+    "poster": "/events/livepeer-ba.png",
+    "title": "AI x Open Media Forum presented by Livepeer, co-curated with Refraction",
+    "date": "NOV 18 2025",
+    "location": "Buenos Aires, AR",
+    "url": "https://luma.com/9q0swwro",
     "mapUrl": "https://maps.app.goo.gl/updzscmSxS1g1ScF8"
     }
-    
   ]
 }
