@@ -555,10 +555,18 @@ export default function PerksPage() {
                     }}
                   >
                     <span className="text-black body-small uppercase font-abc-monument-regular">
-                      {latestRewardAffordable && (
+                      {latestRewardAffordable ? (
                         <Image
                           src="/tier-eligible.svg"
                           alt="Eligible for Tier"
+                          width={12}
+                          height={12}
+                          className="inline-block mr-1"
+                        />
+                      ) : (
+                        <Image
+                          src="/tier-ineligible.svg"
+                          alt="Not Eligible for Tier"
                           width={12}
                           height={12}
                           className="inline-block mr-1"
@@ -597,35 +605,7 @@ export default function PerksPage() {
                         border: "1px solid #000000",
                       }}
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-4 h-4 inline-block"
-                        fill="#7D7D7D"
-                        viewBox="0 0 20 20"
-                        stroke="#7D7D7D"
-                        strokeWidth={1.5}
-                        aria-hidden="true"
-                      >
-                        <rect
-                          x="3"
-                          y="4"
-                          width="14"
-                          height="13"
-                          rx="2"
-                          className="fill-transparent"
-                          stroke="#7D7D7D"
-                        />
-                        <path
-                          d="M3 8h14"
-                          stroke="#7D7D7D"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M7 2v2M13 2v2"
-                          stroke="#7D7D7D"
-                          strokeLinecap="round"
-                        />
-                      </svg>
+                      <Clock className="w-4 h-4 stroke-[#000000]" />
                       <TimeLeft
                         endDate={latestReward.end_date}
                         className={`text-black body-small uppercase font-abc-monument-regular ${
@@ -638,47 +618,88 @@ export default function PerksPage() {
                       />
                     </div>
                   )}
+
+                  {/* View Details Button Pill */}
+                  { latestRewardAffordable && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenPerk(latestReward)}
+                      disabled={latestRewardExpired}
+                      style={{
+                        display: "flex",
+                        padding: "4px 8px",
+                        alignItems: "center",
+                        gap: "8px",
+                        alignSelf: "stretch",
+                        borderRadius: "1000px",
+                        border: "1px solid #000000",
+                        background: "transparent",
+                        cursor: latestRewardExpired ? "not-allowed" : "pointer",
+                        opacity: latestRewardExpired ? 0.5 : 1,
+                      }}
+                      className="text-black body-small uppercase font-abc-monument-regular hover:bg-gray-50 transition-colors"
+                    >
+                      View Details
+                      <Image
+                        src="/home/arrow-right.svg"
+                        alt="arrow-right"
+                        width={16}
+                        height={16}
+                        className="w-4 h-4"
+                      />
+                    </button>
+                  )}
                 </div>
 
-                {/* View Details Button */}
-                <button
-                  onClick={() => handleOpenPerk(latestReward)}
-                  className={`w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between ${
-                    latestRewardRedeemed
-                      ? "bg-green-100"
-                      : !latestRewardAffordable || latestRewardExpired
-                        ? "opacity-50"
-                        : ""
-                  }`}
-                  disabled={!latestRewardAffordable || latestRewardExpired}
-                >
-                  <span className="font-pleasure text-left">
-                    {latestRewardRedeemed
-                      ? "✓ Redeemed"
-                      : latestRewardExpired
-                        ? "Expired"
-                        : latestRewardAffordable
-                          ? "View Details"
-                          : "Insufficient Points"}
-                  </span>
-                  <div
-                    style={{
-                      display: "flex",
-                      width: "24px",
-                      height: "24px",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
+                {/* View Details Button or Eligibility Message */}
+                {latestRewardAffordable ? (
+                  <button
+                    onClick={() => handleOpenPerk(latestReward)}
+                    className={`w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between ${
+                      latestRewardRedeemed
+                        ? "bg-green-100"
+                        : latestRewardExpired
+                          ? "opacity-50"
+                          : ""
+                    }`}
+                    disabled={latestRewardExpired}
                   >
-                    <Image
-                      src="/home/arrow-right.svg"
-                      alt="arrow-right"
-                      width={20}
-                      height={20}
-                      className="w-5 h-5"
-                    />
+                    <span className="font-pleasure text-left">
+                      {latestRewardRedeemed
+                        ? "✓ Redeemed"
+                        : latestRewardExpired
+                          ? "Expired"
+                          : "View Details"}
+                    </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        width: "24px",
+                        height: "24px",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Image
+                        src="/home/arrow-right.svg"
+                        alt="arrow-right"
+                        width={20}
+                        height={20}
+                        className="w-5 h-5"
+                      />
+                    </div>
+                  </button>
+                ) : (
+                  <div className="w-full rounded-full bg-white/80 py-3 px-4 text-center">
+                    <p className="text-black body-small font-abc-monument-regular">
+                      You don&apos;t have the required points to claim this. Come back when you reach the{" "}
+                      <span className="font-bold">
+                        {formatTierLabel(latestReward.points_threshold)}
+                      </span>{" "}
+                      level.
+                    </p>
                   </div>
-                </button>
+                )}
               </div>
             </div>
           )}
@@ -936,12 +957,20 @@ export default function PerksPage() {
                             borderRadius: "1000px",
                             border: "1px solid #EDEDED",
                           }}
-                          className="text-black body-small uppercase font-abc-monument-regular"
+                          className="text-black body-small uppercase whitespace-nowrap font-abc-monument-regular"
                         >
-                          {canAfford(perk) && (
+                          {canAfford(perk) ? (
                             <Image
                               src="/tier-eligible.svg"
                               alt="Eligible for Tier"
+                              width={12}
+                              height={12}
+                              className="inline-block mr-1"
+                            />
+                          ) : (
+                            <Image
+                              src="/tier-ineligible.svg"
+                              alt="Not Eligible for Tier"
                               width={12}
                               height={12}
                               className="inline-block mr-1"

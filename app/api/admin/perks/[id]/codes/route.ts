@@ -24,8 +24,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { codes } = await request.json();
-    const createdCodes = await createDiscountCodes(params.id, codes);
+    const { codes, is_universal } = await request.json();
+    const createdCodes = await createDiscountCodes(params.id, codes, is_universal ?? false);
     return NextResponse.json({ codes: createdCodes });
   } catch (error) {
     console.error('Error creating discount codes:', error);

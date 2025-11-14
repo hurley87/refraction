@@ -25,6 +25,44 @@ import { type Perk, type PerkDiscountCode } from "@/lib/supabase";
 import type { Tier } from "@/lib/types";
 import { usePrivy } from "@privy-io/react-auth";
 
+// Component to display discount code type for a perk
+function PerkCodeTypeInfo({ perkId }: { perkId: string }) {
+  const { data: codes = [] } = useQuery<PerkDiscountCode[]>({
+    queryKey: ["perk-codes-preview", perkId],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/perks/${perkId}/codes`);
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.codes ?? [];
+    },
+  });
+
+  if (codes.length === 0) return null;
+
+  const hasUniversal = codes.some((c) => c.is_universal);
+  const hasIndividual = codes.some((c) => !c.is_universal);
+
+  if (hasUniversal && hasIndividual) {
+    return (
+      <div className="text-sm text-gray-500">
+        Discount Codes: <span className="font-semibold text-blue-600">Universal</span> & <span className="font-semibold text-purple-600">Individual</span>
+      </div>
+    );
+  } else if (hasUniversal) {
+    return (
+      <div className="text-sm text-gray-500">
+        Discount Codes: <span className="font-semibold text-blue-600">Universal</span>
+      </div>
+    );
+  } else {
+    return (
+      <div className="text-sm text-gray-500">
+        Discount Codes: <span className="font-semibold text-purple-600">Individual</span>
+      </div>
+    );
+  }
+}
+
 export default function AdminPerksPage() {
   const { user, login } = usePrivy();
   const queryClient = useQueryClient();
@@ -69,6 +107,7 @@ export default function AdminPerksPage() {
     const [isCodesDialogOpen, setIsCodesDialogOpen] = useState(false);
     const [newCodes, setNewCodes] = useState("");
     const [perkCodes, setPerkCodes] = useState<PerkDiscountCode[]>([]);
+    const [codeType, setCodeType] = useState<"universal" | "individual">("individual");
 
     // Admin check will be done server-side
     const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -192,22 +231,25 @@ export default function AdminPerksPage() {
       mutationFn: async ({
         perkId,
         codes,
+        isUniversal,
       }: {
         perkId: string;
         codes: string[];
+        isUniversal: boolean;
       }) => {
         const response = await fetch(`/api/admin/perks/${perkId}/codes`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ codes }),
+          body: JSON.stringify({ codes, is_universal: isUniversal }),
         });
         if (!response.ok) throw new Error("Failed to create discount codes");
         const data = await response.json();
         return data.codes;
       },
-      onSuccess: () => {
+      onSuccess: (_, variables) => {
         toast.success("Discount codes added successfully");
         setNewCodes("");
+        queryClient.invalidateQueries({ queryKey: ["perk-codes-preview", variables.perkId] });
         if (selectedPerkForCodes?.id) {
           loadPerkCodes(selectedPerkForCodes.id);
         }
@@ -229,6 +271,7 @@ export default function AdminPerksPage() {
       onSuccess: () => {
         toast.success("Discount code deleted successfully");
         if (selectedPerkForCodes?.id) {
+          queryClient.invalidateQueries({ queryKey: ["perk-codes-preview", selectedPerkForCodes.id] });
           loadPerkCodes(selectedPerkForCodes.id);
         }
       },
@@ -372,28 +415,50 @@ export default function AdminPerksPage() {
     const handleManageCodes = async (perk: Perk) => {
       setSelectedPerkForCodes(perk);
       setIsCodesDialogOpen(true);
+      setCodeType("individual"); // Reset to default
+      setNewCodes(""); // Clear codes
       if (perk.id) {
         await loadPerkCodes(perk.id);
       }
     };
 
     const handleAddCodes = () => {
-      if (!selectedPerkForCodes?.id || !newCodes.trim()) return;
+      if (!selectedPerkForCodes?.id) return;
 
-      const codes = newCodes
-        .split("\n")
-        .map((code) => code.trim())
-        .filter((code) => code.length > 0);
+      if (codeType === "universal") {
+        // Universal codes: single code shared by all
+        if (!newCodes.trim()) {
+          toast.error("Please enter a universal discount code");
+          return;
+        }
+        const code = newCodes.trim();
+        createCodesMutation.mutate({
+          perkId: selectedPerkForCodes.id,
+          codes: [code],
+          isUniversal: true,
+        });
+      } else {
+        // Individual codes: one per line
+        if (!newCodes.trim()) {
+          toast.error("Please enter at least one discount code");
+          return;
+        }
+        const codes = newCodes
+          .split("\n")
+          .map((code) => code.trim())
+          .filter((code) => code.length > 0);
 
-      if (codes.length === 0) {
-        toast.error("Please enter at least one discount code");
-        return;
+        if (codes.length === 0) {
+          toast.error("Please enter at least one discount code");
+          return;
+        }
+
+        createCodesMutation.mutate({
+          perkId: selectedPerkForCodes.id,
+          codes,
+          isUniversal: false,
+        });
       }
-
-      createCodesMutation.mutate({
-        perkId: selectedPerkForCodes.id,
-        codes,
-      });
     };
 
     const handleDeleteCode = (codeId: string) => {
@@ -794,6 +859,7 @@ export default function AdminPerksPage() {
                           </a>
                         </div>
                       )}
+                      {perk.id && <PerkCodeTypeInfo perkId={perk.id} />}
                     </div>
                   </div>
                   <div className="flex flex-col space-y-2">
@@ -847,13 +913,42 @@ export default function AdminPerksPage() {
             <div className="space-y-6">
               {/* Add new codes section */}
               <div>
+                <div className="mb-4">
+                  <Label htmlFor="codeType">Code Type</Label>
+                  <Select
+                    value={codeType}
+                    onValueChange={(value: "universal" | "individual") => {
+                      setCodeType(value);
+                      setNewCodes(""); // Clear codes when switching type
+                    }}
+                  >
+                    <SelectTrigger id="codeType">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="universal">Universal Code (Shared by all eligible users)</SelectItem>
+                      <SelectItem value="individual">Individual Codes (One per user, redeemed/burned)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="mt-2 text-xs text-gray-600">
+                    {codeType === "universal"
+                      ? "Universal codes are shared by all users eligible for this perk based on their tier. These codes are not redeemed/burned."
+                      : "Individual codes are unique per user. Each code can only be redeemed once and is then burned."}
+                  </p>
+                </div>
                 <Label htmlFor="newCodes">
-                  Add New Discount Codes (one per line)
+                  {codeType === "universal"
+                    ? "Universal Discount Code"
+                    : "Add New Discount Codes (one per line)"}
                 </Label>
                 <textarea
                   id="newCodes"
                   className="w-full min-h-[120px] p-3 border rounded-md mt-2"
-                  placeholder={`Enter discount codes, one per line:\nCODE001\nCODE002\nCODE003`}
+                  placeholder={
+                    codeType === "universal"
+                      ? "Enter a single universal code (e.g., SAVE20)"
+                      : `Enter discount codes, one per line:\nCODE001\nCODE002\nCODE003`
+                  }
                   value={newCodes}
                   onChange={(e) => setNewCodes(e.target.value)}
                 />
@@ -862,7 +957,11 @@ export default function AdminPerksPage() {
                   className="mt-2"
                   disabled={createCodesMutation.isPending || !newCodes.trim()}
                 >
-                  {createCodesMutation.isPending ? "Adding..." : "Add Codes"}
+                  {createCodesMutation.isPending
+                    ? "Adding..."
+                    : codeType === "universal"
+                      ? "Add Universal Code"
+                      : "Add Codes"}
                 </Button>
               </div>
 
@@ -876,54 +975,87 @@ export default function AdminPerksPage() {
                   <p className="text-gray-500">No discount codes created yet.</p>
                 ) : (
                   <div className="grid gap-2 max-h-[300px] overflow-y-auto">
-                    <div className="grid grid-cols-4 gap-2 p-2 bg-gray-100 rounded font-semibold text-sm">
+                    <div className="grid grid-cols-5 gap-2 p-2 bg-gray-100 rounded font-semibold text-sm">
                       <div>Code</div>
+                      <div>Type</div>
                       <div>Status</div>
                       <div>Claimed By</div>
                       <div>Actions</div>
                     </div>
 
-                    {perkCodes.map((code) => (
-                      <div
-                        key={code.id}
-                        className="grid grid-cols-4 gap-2 p-2 border rounded"
-                      >
-                        <div className="font-mono text-sm">{code.code}</div>
-                        <div>
-                          <span
-                            className={`px-2 py-1 text-xs rounded-full ${
-                              code.is_claimed
-                                ? "bg-red-100 text-red-800"
-                                : "bg-green-100 text-green-800"
-                            }`}
-                          >
-                            {code.is_claimed ? "Claimed" : "Available"}
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {code.claimed_by_wallet_address ? (
-                            <span title={code.claimed_by_wallet_address}>
-                              {code.claimed_by_wallet_address.slice(0, 6)}...
-                              {code.claimed_by_wallet_address.slice(-4)}
-                            </span>
-                          ) : (
-                            <span>-</span>
-                          )}
-                        </div>
-                        <div>
-                          {!code.is_claimed && (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteCode(code.id!)}
-                              disabled={deleteCodeMutation.isPending}
+                    {perkCodes.map((code) => {
+                      const isUniversal = code.is_universal ?? false;
+                      return (
+                        <div
+                          key={code.id}
+                          className="grid grid-cols-5 gap-2 p-2 border rounded"
+                        >
+                          <div className="font-mono text-sm">{code.code}</div>
+                          <div>
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                isUniversal
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-purple-100 text-purple-800"
+                              }`}
                             >
-                              Delete
-                            </Button>
-                          )}
+                              {isUniversal ? "Universal" : "Individual"}
+                            </span>
+                          </div>
+                          <div>
+                            {isUniversal ? (
+                              <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
+                                Shared
+                              </span>
+                            ) : (
+                              <span
+                                className={`px-2 py-1 text-xs rounded-full ${
+                                  code.is_claimed
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-green-100 text-green-800"
+                                }`}
+                              >
+                                {code.is_claimed ? "Claimed" : "Available"}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {isUniversal ? (
+                              <span className="text-gray-400">N/A</span>
+                            ) : code.claimed_by_wallet_address ? (
+                              <span title={code.claimed_by_wallet_address}>
+                                {code.claimed_by_wallet_address.slice(0, 6)}...
+                                {code.claimed_by_wallet_address.slice(-4)}
+                              </span>
+                            ) : (
+                              <span>-</span>
+                            )}
+                          </div>
+                          <div>
+                            {!isUniversal && !code.is_claimed && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteCode(code.id!)}
+                                disabled={deleteCodeMutation.isPending}
+                              >
+                                Delete
+                              </Button>
+                            )}
+                            {isUniversal && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteCode(code.id!)}
+                                disabled={deleteCodeMutation.isPending}
+                              >
+                                Delete
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -937,15 +1069,27 @@ export default function AdminPerksPage() {
                     <span className="font-semibold">{perkCodes.length}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Available:</span>{" "}
-                    <span className="font-semibold text-green-600">
-                      {perkCodes.filter((c) => !c.is_claimed).length}
+                    <span className="text-gray-600">Universal Codes:</span>{" "}
+                    <span className="font-semibold text-blue-600">
+                      {perkCodes.filter((c) => c.is_universal).length}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Claimed:</span>{" "}
+                    <span className="text-gray-600">Individual Codes:</span>{" "}
+                    <span className="font-semibold text-purple-600">
+                      {perkCodes.filter((c) => !c.is_universal).length}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Available (Individual):</span>{" "}
+                    <span className="font-semibold text-green-600">
+                      {perkCodes.filter((c) => !c.is_universal && !c.is_claimed).length}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Claimed (Individual):</span>{" "}
                     <span className="font-semibold text-red-600">
-                      {perkCodes.filter((c) => c.is_claimed).length}
+                      {perkCodes.filter((c) => !c.is_universal && c.is_claimed).length}
                     </span>
                   </div>
                 </div>
