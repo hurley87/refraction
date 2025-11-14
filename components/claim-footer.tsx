@@ -104,7 +104,7 @@ export default function ClaimFooter() {
             </a>
 
             <a
-              href="https://farcaster.xyz/irl-energy"
+              href="https://farcaster.xyz/refraction"
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-[#131313]/10"
@@ -126,7 +126,7 @@ export default function ClaimFooter() {
 
             <a
               target="_blank"
-              href="https://www.instagram.com/irl_energy/"
+              href="https://www.instagram.com/refraction_irl/"
               className="flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-[#131313]/10"
             >
               <svg

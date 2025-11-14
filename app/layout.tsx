@@ -33,10 +33,10 @@ const imageUrl = `${baseUrl}/irl-share.png?v=2`;
 
 export const metadata: Metadata = {
   title: "IRL",
-  description: "IRL - Culture&apos;s rewards program.",
+  description: "IRL - Culture's rewards program.",
   openGraph: {
     title: "$IRL",
-    description: "IRL - Culture&apos;s rewards program.",
+    description: "IRL - Culture's rewards program.",
     url: baseUrl,
     images: [
       {
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "$IRL",
-    description: "IRL - Culture&apos;s rewards program.",
+    description: "IRL - Culture's rewards program.",
     images: [imageUrl],
   },
   appleWebApp: {

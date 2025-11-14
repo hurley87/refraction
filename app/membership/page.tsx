@@ -1048,7 +1048,7 @@ export default function MembershipPage() {
           </Link>
           <Link
             target="_blank"
-            href="https://farcaster.xyz/irl-energy"
+            href="https://farcaster.xyz/refraction"
             className="hover:opacity-80 transition-opacity"
           >
             <svg
@@ -1087,7 +1087,7 @@ export default function MembershipPage() {
           
           <Link
             target="_blank"
-            href="https://www.instagram.com/irl_energy/"
+            href="https://www.instagram.com/refraction_irl/"
             className="hover:opacity-80 transition-opacity"
           >
             <svg
