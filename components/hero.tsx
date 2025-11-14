@@ -69,7 +69,7 @@ export default function Hero() {
               textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
             }}
           >
-            Culture&apos;s Reward Program
+            Get On The List.
           </h1>
           <p
             className="font-pleasure font-medium text-[25px] leading-[28px] tracking-[-0.5px] w-full"
@@ -77,7 +77,7 @@ export default function Hero() {
               textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
             }}
           >
-            Music, Art, Events, Access Worldwide
+            IRL gives you access to global cultural intel. Discover new places, earn real rewards.
           </p>
         </div>
 

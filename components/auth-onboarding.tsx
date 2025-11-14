@@ -50,7 +50,7 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
                   letterSpacing: "-0.5px",
                 }}
               >
-                Sign Up For IRL
+                
               </p>
             </div>
 
@@ -66,7 +66,7 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
             {/* Text Below Marker - Grouped with 4px gap */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 translate-y-[calc(50%+6rem)] z-20 flex flex-col gap-1 items-center">
               <p className="text-white text-shadow-lg font-medium text-xs tracking-wider uppercase text-center">
-                PUT YOURSELF
+                PUT IT
               </p>
               <h1 className="text-white text-shadow-lg font-inktrap text-4xl font-bold tracking-tight uppercase text-center whitespace-nowrap">
                 ON THE MAP
@@ -114,9 +114,7 @@ export default function AuthOnboarding({ children }: AuthOnboardingProps) {
 
           {/* Descriptive Text Block */}
           <p className="text-white text-[14px] sm:text-[16px] leading-[20px] sm:leading-[22px] tracking-[-0.36px] sm:tracking-[-0.48px] text-left w-full px-2">
-            Share your location to verify your presence and join a global
-            network of creators, artists, and culture enthusiasts building the
-            future of experiences together.
+            You&apos;ve got great taste. Share your favorite spots around the world and get rewarded when people check them out.
           </p>
 
           {/* Get Started Button */}

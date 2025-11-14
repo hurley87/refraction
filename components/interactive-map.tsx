@@ -826,8 +826,8 @@ export default function InteractiveMap() {
               <div className="flex items-start gap-3">
                 <div className="flex-1">
                   <p className="font-inktrap text-sm leading-5">
-                    Write in the name of the location you want to create, or
-                    check in at a location on the map to earn IRL.
+                    You&apos;re in! Complete your first check-in to earn points.<br/><br/>  
+                    Use the search bar or the map to find a place nearby.
                   </p>
                 </div>
                 <button
