@@ -37,6 +37,7 @@ export default function NavigationMenu({
     { label: "Leaderboard", path: "/leaderboard" },
     { label: "Events", path: "/events" },
     { label: "Rewards", path: "/rewards" },
+    { label: "Become a Partner", path: "/partners" },
   ];
 
   // Determine active item based on current pathname
@@ -142,7 +143,7 @@ export default function NavigationMenu({
               }`}
               style={{ top: `${topPosition}px` }}
             >
-              <p className="basis-0 font-inktrap font-medium grow leading-[28px] min-h-px min-w-px not-italic relative shrink-0 text-[#313131] text-[25px] tracking-[-0.5px]">
+              <p className="basis-0 font-pleasure font-medium grow leading-[28px] min-h-px min-w-px not-italic relative shrink-0 text-[#313131] text-[25px] tracking-[-0.5px]">
                 {item.label}
               </p>
               {isPending && (
@@ -174,7 +175,7 @@ export default function NavigationMenu({
             style={{ top: `${8 + 44 + menuItems.length * 60}px` }}
           >
             <div className="w-[24px]" /> {/* Spacer to center text */}
-            <p className="font-inktrap font-medium leading-[28px] relative shrink-0 text-[#313131] text-[25px] text-nowrap tracking-[-0.5px] whitespace-pre">
+            <p className="font-pleasure font-medium leading-[28px] relative shrink-0 text-[#313131] text-[25px] text-nowrap tracking-[-0.5px] whitespace-pre">
               Log Out
             </p>
             <div className="overflow-clip relative shrink-0 size-[24px] flex items-center justify-center">
@@ -194,7 +195,7 @@ export default function NavigationMenu({
             style={{ top: `${8 + 44 + menuItems.length * 60}px` }}
           >
             <div className="w-[24px]" /> {/* Spacer to center text */}
-            <p className="font-inktrap font-medium leading-[28px] relative shrink-0 text-[#313131] text-[25px] text-nowrap tracking-[-0.5px] whitespace-pre">
+            <p className="font-pleasure font-medium leading-[28px] relative shrink-0 text-[#313131] text-[25px] text-nowrap tracking-[-0.5px] whitespace-pre">
               Log In
             </p>
             <div className="overflow-clip relative shrink-0 size-[24px] flex items-center justify-center">

@@ -102,7 +102,7 @@ export default function Partners() {
         {/* Call to Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
           <Link
-            href="/contact-us"
+            href="/partners"
             className="bg-white flex items-center justify-between h-[48px] px-4 py-2 rounded-[100px] cursor-pointer hover:bg-[#b5b5b5] transition-colors group gap-4"
           >
             Become a Partner
