@@ -24,7 +24,7 @@ export default function NavigationMenu({
   isOpen,
   onClose,
 }: NavigationMenuProps) {
-  const { logout } = usePrivy();
+  const { user, login, logout } = usePrivy();
   const router = useRouter();
   const pathname = usePathname();
   const [pendingPath, setPendingPath] = useState<string | null>(null);
@@ -57,6 +57,11 @@ export default function NavigationMenu({
 
   const handleLogout = () => {
     logout();
+    onClose();
+  };
+
+  const handleLogin = () => {
+    login();
     onClose();
   };
 
@@ -161,33 +166,48 @@ export default function NavigationMenu({
           );
         })}
 
-        {/* Log Out Button */}
-        <button
-          onClick={handleLogout}
-          className="absolute bg-[#b5b5b5] box-border flex h-[56px] items-center justify-between pl-[16px] pr-[24px] py-[8px] rounded-[26px] w-full hover:bg-[#a0a0a0] transition-colors left-0"
-          style={{ top: `${8 + 44 + menuItems.length * 60}px` }}
-        >
-          <p className="font-inktrap font-medium leading-[28px] relative shrink-0 text-[#313131] text-[25px] text-nowrap tracking-[-0.5px] whitespace-pre">
-            Log Out
-          </p>
-          <div className="overflow-clip relative shrink-0 size-[24px] flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path
-                d="M16 17L21 12M21 12L16 7M21 12H3"
-                stroke="#4f4f4f"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+        {/* Log Out / Log In Button */}
+        {user ? (
+          <button
+            onClick={handleLogout}
+            className="absolute bg-[#b5b5b5] box-border flex h-[56px] items-center justify-between px-[24px] py-[8px] rounded-[26px] w-full hover:bg-[#a0a0a0] transition-colors left-0"
+            style={{ top: `${8 + 44 + menuItems.length * 60}px` }}
+          >
+            <div className="w-[24px]" /> {/* Spacer to center text */}
+            <p className="font-inktrap font-medium leading-[28px] relative shrink-0 text-[#313131] text-[25px] text-nowrap tracking-[-0.5px] whitespace-pre">
+              Log Out
+            </p>
+            <div className="overflow-clip relative shrink-0 size-[24px] flex items-center justify-center">
+              <Image
+                src="/home/arrow-right.svg"
+                alt="arrow-right"
+                width={24}
+                height={24}
+                className="block max-w-none size-full"
               />
-            </svg>
-          </div>
-        </button>
+            </div>
+          </button>
+        ) : (
+          <button
+            onClick={handleLogin}
+            className="absolute bg-[#b5b5b5] box-border flex h-[56px] items-center justify-between px-[24px] py-[8px] rounded-[26px] w-full hover:bg-[#a0a0a0] transition-colors left-0"
+            style={{ top: `${8 + 44 + menuItems.length * 60}px` }}
+          >
+            <div className="w-[24px]" /> {/* Spacer to center text */}
+            <p className="font-inktrap font-medium leading-[28px] relative shrink-0 text-[#313131] text-[25px] text-nowrap tracking-[-0.5px] whitespace-pre">
+              Log In
+            </p>
+            <div className="overflow-clip relative shrink-0 size-[24px] flex items-center justify-center">
+              <Image
+                src="/home/arrow-right.svg"
+                alt="arrow-right"
+                width={24}
+                height={24}
+                className="block max-w-none size-full"
+              />
+            </div>
+          </button>
+        )}
       </div>
     </div>
   );
