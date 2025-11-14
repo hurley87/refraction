@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { X } from "lucide-react";
+import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
 import eventsData from "@/data/events.json";
 import MapNav from "@/components/mapnav";
 
@@ -10,6 +12,8 @@ const { nextEvent, futureEvents } = eventsData;
 
 export default function EventsPage() {
   const [sortBy, setSortBy] = useState("date");
+  const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const sortedEvents = [...futureEvents].sort((a, b) => {
     if (sortBy === "date") {
@@ -17,6 +21,16 @@ export default function EventsPage() {
     }
     return a.title.localeCompare(b.title);
   });
+
+  const handlePosterClick = (posterUrl: string) => {
+    setSelectedPoster(posterUrl);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedPoster(null);
+  };
 
   return (
     <div
@@ -59,13 +73,19 @@ export default function EventsPage() {
               </h1>
 
               {/* Event Poster */}
-              <Image
-                src={nextEvent.poster}
-                alt={nextEvent.title}
-                width={400}
-                height={409}
-                className="w-full h-auto object-cover rounded-xl"
-              />
+              <button
+                type="button"
+                onClick={() => handlePosterClick(nextEvent.poster)}
+                className="w-full cursor-pointer"
+              >
+                <Image
+                  src={nextEvent.poster}
+                  alt={nextEvent.title}
+                  width={400}
+                  height={409}
+                  className="w-full h-auto object-cover rounded-xl hover:opacity-90 transition-opacity"
+                />
+              </button>
 
               {/* Event Title */}
               <h2 className="text-black title2 font-pleasure w-full text-left">
@@ -258,16 +278,20 @@ export default function EventsPage() {
                     </div>
 
                     {/* Column 2: Small Poster */}
-                    <div className="flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handlePosterClick(event.poster)}
+                      className="flex-shrink-0 cursor-pointer overflow-hidden rounded-xl"
+                    >
                       <Image
                         src={event.poster}
                         alt={event.title}
                         width={80}
                         height={100}
-                        className="rounded-xl object-cover"
+                        className="rounded-xl object-contain hover:opacity-90 transition-opacity"
                         style={{ width: "80px", height: "100px" }}
                       />
-                    </div>
+                    </button>
                   </div>
 
                   {/* Row 2: Date, Location, and Map Button */}
@@ -417,6 +441,38 @@ export default function EventsPage() {
           <div style={{ height: "100px" }} />
         </div>
       </div>
+
+      {/* Poster Modal */}
+      <Dialog open={isModalOpen} onOpenChange={handleModalClose}>
+        <DialogContent className="w-[95vw] max-w-[95vw] h-[95vh] max-h-[95vh] border-none bg-transparent p-0 shadow-none [&>button]:hidden overflow-hidden flex flex-col">
+          {selectedPoster && (
+            <div className="relative flex flex-col h-full">
+              {/* Close Button */}
+              <div className="w-full rounded-3xl border border-[#131313]/10 bg-white px-4 py-3 flex justify-center mb-1 flex-shrink-0">
+                <DialogClose asChild>
+                  <button className="flex h-10 w-10 items-center justify-center rounded-full text-black hover:bg-gray-100 transition-colors">
+                    <span className="sr-only">Close</span>
+                    <X className="h-5 w-5" />
+                  </button>
+                </DialogClose>
+              </div>
+
+              {/* Full Size Poster */}
+              <div className="w-full rounded-3xl border border-[#131313]/10 bg-white p-6 flex-1 overflow-auto flex items-center justify-center">
+                <div className="w-full h-full flex justify-center items-center">
+                  <Image
+                    src={selectedPoster}
+                    alt="Event poster"
+                    width={800}
+                    height={1000}
+                    className="max-w-full max-h-full w-auto h-auto object-contain rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
