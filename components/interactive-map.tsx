@@ -81,6 +81,7 @@ export default function InteractiveMap() {
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [checkInTarget, setCheckInTarget] = useState<MarkerData | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const [checkInComment, setCheckInComment] = useState("");
   const [checkInSuccess, setCheckInSuccess] = useState(false);
   const [checkInPointsEarned, setCheckInPointsEarned] = useState(0);
@@ -389,6 +390,42 @@ export default function InteractiveMap() {
     setPopupInfo(marker);
     setSelectedMarker(marker);
     setSearchedLocation(null); // Clear searched location when clicking a marker
+  };
+
+  const handleLocateUser = () => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      toast.error("Location services are unavailable on this device.");
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const { latitude, longitude } = coords;
+        setViewState((prev) => ({
+          ...prev,
+          latitude,
+          longitude,
+          zoom: Math.max(prev.zoom ?? 12, 15),
+        }));
+
+        if (mapRef.current?.flyTo) {
+          mapRef.current.flyTo({
+            center: [longitude, latitude],
+            zoom: 15,
+            speed: 1.5,
+            curve: 1.2,
+          });
+        }
+        setIsLocating(false);
+      },
+      (error) => {
+        console.warn("Geolocation error:", error);
+        toast.error("Unable to retrieve your location.");
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+    );
   };
 
   const handleStartCheckIn = (marker: MarkerData) => {
@@ -862,6 +899,32 @@ export default function InteractiveMap() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Location Controls */}
+      <div className="absolute bottom-6 right-4 z-20">
+        <button
+          type="button"
+          onClick={handleLocateUser}
+          disabled={isLocating}
+          className="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-[#131313] shadow-lg transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70 dark:bg-black/70 dark:text-white dark:hover:bg-black"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="2" />
+            <path d="M12 5V3M12 21v-2M5 12H3M21 12h-2M19.07 4.93l-1.41 1.41M6.34 17.66l-1.41 1.41M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41" />
+          </svg>
+          {isLocating ? "Locating..." : "My Location"}
+        </button>
       </div>
 
       {/* Map */}
