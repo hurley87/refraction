@@ -51,6 +51,11 @@ interface SearchLocationData {
   placeFormatted?: string;
 }
 
+const WELCOME_BANNER_STORAGE_KEY = "irl-map-welcome-dismissed";
+const LOCATION_INSTRUCTION_STORAGE_KEY =
+  "irl-location-create-instruction-count";
+const LOCATION_INSTRUCTION_LIMIT = 3;
+
 export default function InteractiveMap() {
   const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
@@ -97,7 +102,7 @@ export default function InteractiveMap() {
   const mapRef = useRef<any>(null);
   const hasSetInitialLocationRef = useRef(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
-  const welcomeBannerStorageKey = "irl-map-welcome-dismissed";
+  const [, setLocationInstructionShows] = useState(0);
 
   // Center map on user's current location once on mount (with fallback)
   useEffect(() => {
@@ -147,18 +152,51 @@ export default function InteractiveMap() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hasDismissed = window.localStorage.getItem(
-      welcomeBannerStorageKey,
+      WELCOME_BANNER_STORAGE_KEY,
     );
     if (!hasDismissed) {
       setShowWelcomeBanner(true);
+    }
+
+    const storedInstructionCount = window.localStorage.getItem(
+      LOCATION_INSTRUCTION_STORAGE_KEY,
+    );
+    if (storedInstructionCount) {
+      const parsed = parseInt(storedInstructionCount, 10);
+      if (!Number.isNaN(parsed)) {
+        setLocationInstructionShows(parsed);
+      }
     }
   }, []);
 
   const dismissWelcomeBanner = () => {
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(welcomeBannerStorageKey, "1");
+      window.localStorage.setItem(WELCOME_BANNER_STORAGE_KEY, "1");
     }
     setShowWelcomeBanner(false);
+  };
+
+  const remindLocationCreationFlow = () => {
+    setLocationInstructionShows((prev) => {
+      if (prev >= LOCATION_INSTRUCTION_LIMIT) {
+        return prev;
+      }
+      const next = prev + 1;
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          LOCATION_INSTRUCTION_STORAGE_KEY,
+          String(next),
+        );
+        // Only show welcome banner if user hasn't dismissed it
+        const hasDismissed = window.localStorage.getItem(
+          WELCOME_BANNER_STORAGE_KEY,
+        );
+        if (!hasDismissed) {
+          setShowWelcomeBanner(true);
+        }
+      }
+      return next;
+    });
   };
 
   // Load markers from DB on mount
@@ -815,6 +853,7 @@ export default function InteractiveMap() {
       // Store points and show success screen
       setPointsEarned({ creation: creationPoints, checkIn: checkInPoints });
       setFormStep("success");
+      remindLocationCreationFlow();
     } catch (error) {
       console.error("Error creating location:", error);
       toast.error("Failed to create location: " + (error as Error).message);
@@ -863,7 +902,9 @@ export default function InteractiveMap() {
               <div className="flex items-start gap-3">
                 <div className="flex-1">
                   <p className="font-inktrap text-sm leading-5">
-                    You&apos;re in! Complete your first check-in to earn points.<br/><br/>  
+                    You&apos;re in! Complete your first check-in to earn points.
+                    <br />
+                    <br />
                     Use the search bar or the map to find a place nearby.
                   </p>
                 </div>
