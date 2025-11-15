@@ -55,17 +55,17 @@ export default function MapSection() {
     });
 
     // Video Section: Stage 1 - Show video, hold for a few seconds
-    tl.to({}, { duration: 1 });
+    tl.to({}, { duration: 0 });
 
     // Video Section: Stage 2 - Fade in stencil overlay
     tl.to(
       stencilRef.current,
       {
         opacity: 1,
-        duration: 0.8,
+        duration: 0.4,
         ease: "power2.inOut",
       },
-      "+=0.2",
+      "+=0.1",
     );
 
     // Video Section: Stage 3 - Hold stencil visible
