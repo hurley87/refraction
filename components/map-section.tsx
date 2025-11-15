@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
+import dynamic from "next/dynamic";
+
+// Lazy load WebGLRenderer with dynamic import
+const WebGLRenderer = dynamic(() => import("@/components/webgl-renderer"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-950" />
+  ),
+});
 
 // Register GSAP plugins
 if (typeof window !== "undefined") {
@@ -19,12 +28,22 @@ export default function MapSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoSectionRef = useRef<HTMLDivElement>(null);
   const stencilRef = useRef<HTMLDivElement>(null);
+  const [webglData, setWebglData] = useState<any>(null);
   const section1Ref = useRef<HTMLDivElement>(null);
   const section1TextRef = useRef<HTMLDivElement>(null);
   const section2Ref = useRef<HTMLDivElement>(null);
   const section2TextRef = useRef<HTMLDivElement>(null);
   const section3Ref = useRef<HTMLDivElement>(null);
   const section3TextRef = useRef<HTMLDivElement>(null);
+
+  // Load WebGL data on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      import("@/public/hero-web-gl.json").then((module) => {
+        setWebglData(module.default);
+      });
+    }
+  }, []);
 
   useEffect(() => {
     // Early return if refs aren't ready or on server
@@ -55,17 +74,17 @@ export default function MapSection() {
     });
 
     // Video Section: Stage 1 - Show video, hold for a few seconds
-    tl.to({}, { duration: 0 });
+    tl.to({}, { duration: 1 });
 
     // Video Section: Stage 2 - Fade in stencil overlay
     tl.to(
       stencilRef.current,
       {
         opacity: 1,
-        duration: 0.1,
+        duration: 0.8,
         ease: "power2.inOut",
       },
-      "+=0.1",
+      "+=0.2",
     );
 
     // Video Section: Stage 3 - Hold stencil visible
@@ -207,15 +226,15 @@ export default function MapSection() {
         ref={videoSectionRef}
         className="absolute inset-0 flex items-center justify-center bg-[#131313]"
       >
-        {/* Gradient Background */}
+        {/* WebGL Background */}
         <div className="absolute inset-0 overflow-hidden">
-          <div
-            className="relative w-full h-full flex items-center justify-center overflow-hidden md:rounded-none rounded-[26px]"
-            style={{
-              background:
-                "var(--Gradients-Rewards-Pink, linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.10) 100%), linear-gradient(0deg, #FFE600 0%, #1BA351 36.06%, #61BFD1 65.39%, #EE91B7 100%))",
-            }}
-          />
+          <div className="relative w-full h-full flex items-center justify-center overflow-hidden md:rounded-none rounded-[26px]">
+            {webglData ? (
+              <WebGLRenderer data={webglData} />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-950" />
+            )}
+          </div>
         </div>
 
         {/* Stencil Overlay */}
@@ -223,7 +242,7 @@ export default function MapSection() {
           ref={stencilRef}
           className="absolute inset-0 flex items-center justify-center"
         >
-          {/* Video layer with inverted stencil mask */}
+          {/* WebGL layer with inverted stencil mask */}
           <div
             className="absolute inset-0 flex items-center justify-center"
             style={{
@@ -231,15 +250,11 @@ export default function MapSection() {
               WebkitMask: "url(/Stencil.svg) no-repeat center/contain",
             }}
           >
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-            >
-              <source src="/video-reel.mp4" type="video/mp4" />
-            </video>
+            {webglData ? (
+              <WebGLRenderer data={webglData} />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-950" />
+            )}
           </div>
 
           {/* Black background overlay with inverted mask */}
