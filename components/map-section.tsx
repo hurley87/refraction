@@ -224,12 +224,13 @@ export default function MapSection() {
           className="absolute inset-0 flex items-center justify-center"
         >
           <h1
-            className="font-pleasure font-black text-[61px] leading-[64px] tracking-[-4.88px] md:text-[100px] md:leading-[100px] md:tracking-[-8px] uppercase text-white text-center"
+            className="font-pleasure  text-[61px] leading-[64px] tracking-[-4.88px] md:text-[100px] md:leading-[100px] md:tracking-[-8px] uppercase text-white text-center"
             style={{
               textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
             }}
           >
-            Go.<br/> Share.<br/> Get.<br/> IRL.
+            Earn Rewards For Showing Up To The Things You Love<br/><br/>
+            Built By Artists, Curators, And Event Organizers<br/>
           </h1>
         </div>
       </div>
