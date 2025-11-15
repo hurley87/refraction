@@ -385,7 +385,7 @@ const HowItWorksSection = () => {
   return (
     <div 
       ref={sectionRef}
-      className={`bg-[#131313] rounded-2xl p-6 mb-4 max-w-lg mx-auto transition-all duration-1000 ease-out ${
+      className={`bg-[#131313] rounded-2xl p-6 mb-4 max-w-lg mx-auto transition-all duration-1000 ease-out overflow-hidden ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
     >
@@ -709,8 +709,8 @@ const benefitsData = [
 ];
 
   return (
-    <div className="min-h-screen bg-[#131313] p-0 sm:p-4 pb-0 font-grotesk">
-      <div className="max-w-lg mx-auto">
+    <div className="min-h-screen bg-[#131313] p-0 sm:p-4 pb-0 font-grotesk overflow-x-hidden">
+      <div className="max-w-lg mx-auto w-full">
         {/* Hero Section with Video Background */}
         <div className="relative min-h-screen flex flex-col justify-center items-center px-4 py-8 rounded-4xl overflow-hidden mb-4">
           {/* Header */}
@@ -852,7 +852,7 @@ const benefitsData = [
         </div>
 
         {/* Main Content */}
-        <div className="px-0 pt-4 pb-1 space-y-1">
+        <div className="px-0 pt-4 pb-1 space-y-1 overflow-x-hidden w-full">
 
         
           <LogoLoop
