@@ -153,6 +153,7 @@ export default function LocationSearch({
         setIsOpen(false);
         setSuggestions([]);
         setQuery(s.place_formatted || s.name || "");
+        inputRef.current?.blur();
       } catch {
         // swallow
       }

@@ -633,6 +633,35 @@ export const listLocationOptions = async (
   return (data || []) as LocationOption[];
 };
 
+export const updateLocationById = async (
+  locationId: number,
+  updates: Partial<
+    Pick<
+      Location,
+      | "name"
+      | "display_name"
+      | "place_id"
+      | "latitude"
+      | "longitude"
+      | "creator_wallet_address"
+      | "creator_username"
+      | "coin_image_url"
+    >
+  >,
+) => {
+  const { data, error } = await supabase
+    .from("locations")
+    .update({
+      ...updates,
+    })
+    .eq("id", locationId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Location;
+};
+
 export const getLeaderboard = async (
   limit: number = 50,
   offset: number = 0,

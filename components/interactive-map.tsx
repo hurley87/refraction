@@ -10,6 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import MapNav from "@/components/mapnav";
 import MapCard from "@/components/map-card";
+import LocationListsDrawer, {
+  DrawerLocationSummary,
+} from "@/components/location-lists-drawer";
 
 interface MarkerData {
   latitude: number;
@@ -877,8 +880,55 @@ export default function InteractiveMap() {
     });
   };
 
+  const handleFocusLocationFromList = (location: DrawerLocationSummary) => {
+    if (
+      typeof location.latitude !== "number" ||
+      typeof location.longitude !== "number"
+    ) {
+      return;
+    }
+
+    const lat = location.latitude;
+    const lon = location.longitude;
+
+    mapRef.current?.flyTo?.({
+      center: [lon, lat],
+      zoom: Math.max(viewState.zoom ?? 12, 15),
+      duration: 1200,
+    });
+
+    setViewState((prev) => ({
+      ...prev,
+      latitude: lat,
+      longitude: lon,
+      zoom: Math.max(prev.zoom ?? 12, 15),
+    }));
+
+    const matchedMarker = location.place_id
+      ? markers.find((marker) => marker.place_id === location.place_id)
+      : null;
+
+    if (matchedMarker) {
+      setPopupInfo(matchedMarker);
+      setSelectedMarker(matchedMarker);
+    } else {
+      setPopupInfo({
+        latitude: lat,
+        longitude: lon,
+        place_id:
+          location.place_id ||
+          (location.id !== undefined ? `list-${location.id}` : `list-${Date.now()}`),
+        display_name: location.display_name || location.context || "",
+        name: location.name,
+        imageUrl: location.coin_image_url ?? null,
+        creator_wallet_address: null,
+        creator_username: null,
+      });
+    }
+  };
+
   return (
-    <div className="w-full h-full relative">
+    <div className="fixed inset-0 w-full h-full">
       {/* MapNav Header */}
       <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/20 to-transparent">
         <div className="max-w-md w-full mx-auto px-4 py-4">
@@ -967,6 +1017,11 @@ export default function InteractiveMap() {
           {isLocating ? "Locating..." : "My Location"}
         </button>
       </div>
+
+      <LocationListsDrawer
+        walletAddress={walletAddress}
+        onLocationFocus={handleFocusLocationFromList}
+      />
 
       {/* Map */}
       <Map

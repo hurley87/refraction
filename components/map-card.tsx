@@ -32,8 +32,8 @@ export default function MapCard({
         <div className="box-border flex flex-col gap-2 items-start overflow-hidden rounded-inherit">
           {/* Location Image with Close Button Overlay */}
           {imageUrl && (
-            <div className="w-full relative p-2">
-              <div className="w-full h-32 overflow-hidden rounded-2xl relative">
+            <div className="w-full relative">
+              <div className="w-full h-32 overflow-hidden relative rounded-t-2xl">
                 <img
                   src={imageUrl}
                   alt={name}
@@ -66,9 +66,7 @@ export default function MapCard({
           )}
 
           {/* Card Content */}
-          <div
-            className={`flex flex-col gap-4 w-full ${imageUrl ? "px-2 pb-2" : "p-5"}`}
-          >
+          <div className={`flex flex-col gap-4 w-full ${imageUrl ? "px-4 pb-3" : "p-5"}`}>
             {/* Location Info */}
             <div className="flex flex-col gap-2 items-start justify-center w-full">
               {/* Location Name */}

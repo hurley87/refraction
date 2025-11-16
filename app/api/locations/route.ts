@@ -120,7 +120,8 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (
-      !place_id ||
+      typeof place_id !== "string" ||
+      !place_id.trim() ||
       typeof display_name !== "string" ||
       !display_name.trim() ||
       typeof name !== "string" ||
@@ -148,6 +149,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const sanitizedPlaceId = sanitizeVarchar(place_id);
     const sanitizedDisplayName = sanitizeVarchar(display_name);
     const sanitizedName = sanitizeVarchar(name);
     const sanitizedType =
@@ -165,7 +167,7 @@ export async function POST(request: NextRequest) {
         .select(
           "id, name, display_name, creator_wallet_address, creator_username, coin_image_url, latitude, longitude",
         )
-        .eq("place_id", place_id)
+        .eq("place_id", sanitizedPlaceId)
         .maybeSingle();
 
     if (locationLookupError && locationLookupError.code !== "PGRST116") {
@@ -211,7 +213,7 @@ export async function POST(request: NextRequest) {
 
     // Insert the new location
     const locationInsertPayload = {
-      place_id,
+      place_id: sanitizedPlaceId,
       display_name: sanitizedDisplayName,
       name: sanitizedName,
       latitude: parseFloat(lat),
@@ -257,7 +259,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           location_id: locationData.id,
           location_name: sanitizedName,
-          place_id,
+          place_id: sanitizedPlaceId,
         },
         processed: true,
       });

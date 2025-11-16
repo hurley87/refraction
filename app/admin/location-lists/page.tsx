@@ -5,13 +5,14 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
   type FormEvent,
 } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Loader2, Map, PlusCircle, XCircle } from "lucide-react";
+import { Loader2, Map, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import LocationSearch from "@/components/location-search";
 import type {
   LocationListWithCount,
   LocationListLocation,
@@ -34,6 +36,8 @@ const LIST_LOCATIONS_KEY = (listId: string) => ["admin-location-list", listId];
 const LOCATION_OPTIONS_KEY = ["admin-location-options"] as const;
 
 const hexColorRegex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+const blackButtonClasses =
+  "bg-black text-white hover:bg-black/80 focus-visible:ring-black/80";
 
 const createListSchema = z.object({
   title: z.string().min(3),
@@ -51,6 +55,95 @@ const updateListSchema = z.object({
 
 const assignmentSchema = z.object({
   locationId: z.coerce.number().int().positive(),
+});
+
+const editLocationSchema = z.object({
+  placeId: z.string().min(3, "Place ID is required"),
+  displayName: z.string().min(3, "Display name is required"),
+  name: z.string().min(3, "Name is required"),
+  latitude: z
+    .string()
+    .min(1, "Latitude is required")
+    .pipe(
+      z.coerce.number().refine((value) => value >= -90 && value <= 90, {
+        message: "Latitude must be between -90 and 90",
+      }),
+    ),
+  longitude: z
+    .string()
+    .min(1, "Longitude is required")
+    .pipe(
+      z.coerce.number().refine((value) => value >= -180 && value <= 180, {
+        message: "Longitude must be between -180 and 180",
+      }),
+    ),
+  walletAddress: z.string().optional(),
+  username: z.string().optional(),
+});
+
+type NewLocationFormState = {
+  placeId: string;
+  displayName: string;
+  name: string;
+  latitude: string;
+  longitude: string;
+  walletAddress: string;
+  username: string;
+  locationImageFile: File | null;
+};
+
+type EditLocationFormState = {
+  placeId: string;
+  displayName: string;
+  name: string;
+  latitude: string;
+  longitude: string;
+  walletAddress: string;
+  username: string;
+  currentImageUrl: string;
+  locationImageFile: File | null;
+};
+
+type CreateLocationVariables = {
+  placeId: string;
+  displayName: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  walletAddress: string;
+  username?: string;
+  imageFile: File;
+};
+
+type EditLocationVariables = {
+  locationId: number;
+  payload: z.infer<typeof editLocationSchema>;
+  currentImageUrl: string;
+  imageFile?: File | null;
+};
+
+const createLocationSchema = z.object({
+  placeId: z.string().min(3, "Place ID is required"),
+  displayName: z.string().min(3, "Display name is required"),
+  name: z.string().min(3, "Name is required"),
+  latitude: z
+    .string()
+    .min(1, "Latitude is required")
+    .pipe(
+      z.coerce.number().refine((value) => value >= -90 && value <= 90, {
+        message: "Latitude must be between -90 and 90",
+      }),
+    ),
+  longitude: z
+    .string()
+    .min(1, "Longitude is required")
+    .pipe(
+      z.coerce.number().refine((value) => value >= -180 && value <= 180, {
+        message: "Longitude must be between -180 and 180",
+      }),
+    ),
+  walletAddress: z.string().min(4, "Wallet address is required"),
+  username: z.string().optional(),
 });
 
 export default function AdminLocationListsPage() {
@@ -76,6 +169,39 @@ export default function AdminLocationListsPage() {
     null,
   );
   const [removalTarget, setRemovalTarget] = useState<number | null>(null);
+  const [newLocationForm, setNewLocationForm] = useState<NewLocationFormState>({
+    placeId: "",
+    displayName: "",
+    name: "",
+    latitude: "",
+    longitude: "",
+    walletAddress: "",
+    username: "",
+    locationImageFile: null,
+  });
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const [editingLocation, setEditingLocation] =
+    useState<LocationListLocation | null>(null);
+  const [editingLocationId, setEditingLocationId] = useState<number | null>(
+    null,
+  );
+  const [editLocationForm, setEditLocationForm] =
+    useState<EditLocationFormState>({
+      placeId: "",
+      displayName: "",
+      name: "",
+      latitude: "",
+      longitude: "",
+      walletAddress: "",
+      username: "",
+      currentImageUrl: "",
+      locationImageFile: null,
+    });
+  const [editFileInputKey, setEditFileInputKey] = useState(0);
+  const lastUserValuesRef = useRef<{
+    walletAddress: string;
+    email: string;
+  }>({ walletAddress: "", email: "" });
 
   const checkAdminStatus = useCallback(async () => {
     if (!user?.email?.address) return false;
@@ -109,12 +235,76 @@ export default function AdminLocationListsPage() {
     verify();
   }, [user, checkAdminStatus]);
 
+  useEffect(() => {
+    const userWalletAddress = user?.wallet?.address || "";
+    const userEmail = user?.email?.address || "";
+
+    const prevUserWallet = lastUserValuesRef.current.walletAddress;
+    const prevUserEmail = lastUserValuesRef.current.email;
+
+    // Check if user values actually changed
+    const userValuesChanged =
+      userWalletAddress !== prevUserWallet || userEmail !== prevUserEmail;
+
+    // Detect if a different user logged in (user context changed)
+    // This happens when:
+    // 1. Previous user had a different non-empty wallet/email (user switch)
+    // 2. Going from empty to non-empty (login after logout) - either wallet OR email
+    // 3. Going from non-empty to empty (logout) - either wallet OR email
+    const userContextChanged =
+      (prevUserWallet !== "" &&
+        userWalletAddress !== "" &&
+        userWalletAddress !== prevUserWallet) ||
+      (prevUserEmail !== "" &&
+        userEmail !== "" &&
+        userEmail !== prevUserEmail) ||
+      (prevUserWallet === "" && userWalletAddress !== "") ||
+      (prevUserEmail === "" && userEmail !== "") ||
+      (prevUserWallet !== "" && userWalletAddress === "") ||
+      (prevUserEmail !== "" && userEmail === "");
+
+    // Update ref with current user values
+    lastUserValuesRef.current = {
+      walletAddress: userWalletAddress,
+      email: userEmail,
+    };
+
+    // Only update form if user values changed
+    if (!userValuesChanged) {
+      return;
+    }
+
+    setNewLocationForm((prev) => {
+      // If user context changed (different user logged in), update form to new user's data
+      // Otherwise, only auto-populate if form fields are empty (preserve manually entered values)
+      const newWalletAddress = userContextChanged
+        ? userWalletAddress
+        : prev.walletAddress || userWalletAddress;
+      const newUsername = userContextChanged
+        ? userEmail
+        : prev.username || userEmail;
+
+      // Only update if values actually changed
+      if (
+        newWalletAddress === prev.walletAddress &&
+        newUsername === prev.username
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        walletAddress: newWalletAddress,
+        username: newUsername,
+      };
+    });
+  }, [user?.wallet?.address, user?.email?.address]);
+
   const adminEmail = user?.email?.address || "";
 
-  const {
-    data: lists = [],
-    isLoading: listsLoading,
-  } = useQuery<LocationListWithCount[]>({
+  const { data: lists = [], isLoading: listsLoading } = useQuery<
+    LocationListWithCount[]
+  >({
     queryKey: LISTS_KEY,
     queryFn: async () => {
       const response = await fetch("/api/admin/location-lists", {
@@ -174,26 +364,24 @@ export default function AdminLocationListsPage() {
     ? LIST_LOCATIONS_KEY(selectedListId)
     : (["admin-location-list", "idle"] as const);
 
-  const {
-    data: listLocations = [],
-    isLoading: listLocationsLoading,
-  } = useQuery<LocationListLocation[]>({
-    queryKey: listLocationsKey,
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/admin/location-lists/${selectedListId}/locations`,
-        {
-          headers: { "x-user-email": adminEmail },
-        },
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch list locations");
-      }
-      const data = await response.json();
-      return data.locations ?? [];
-    },
-    enabled: !!selectedListId && !!isAdmin,
-  });
+  const { data: listLocations = [], isLoading: listLocationsLoading } =
+    useQuery<LocationListLocation[]>({
+      queryKey: listLocationsKey,
+      queryFn: async () => {
+        const response = await fetch(
+          `/api/admin/location-lists/${selectedListId}/locations`,
+          {
+            headers: { "x-user-email": adminEmail },
+          },
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch list locations");
+        }
+        const data = await response.json();
+        return data.locations ?? [];
+      },
+      enabled: !!selectedListId && !!isAdmin,
+    });
 
   const createListMutation = useMutation({
     mutationFn: async (payload: z.infer<typeof createListSchema>) => {
@@ -356,6 +544,152 @@ export default function AdminLocationListsPage() {
     },
   });
 
+  const createLocationMutation = useMutation<
+    { location?: { id?: number } },
+    Error,
+    CreateLocationVariables
+  >({
+    mutationFn: async ({
+      placeId,
+      displayName,
+      name,
+      latitude,
+      longitude,
+      walletAddress,
+      username,
+      imageFile,
+    }: CreateLocationVariables) => {
+      const uploadForm = new FormData();
+      uploadForm.append("file", imageFile);
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: uploadForm,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorBody = await uploadResponse.json().catch(() => ({}));
+        throw new Error(errorBody.error || "Failed to upload image");
+      }
+
+      const uploadData = await uploadResponse.json();
+      const imageUrl = uploadData.imageUrl || uploadData.url;
+
+      if (!imageUrl) {
+        throw new Error("Upload succeeded but no image URL was returned");
+      }
+
+      const response = await fetch("/api/locations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          place_id: placeId,
+          display_name: displayName,
+          name,
+          lat: latitude.toString(),
+          lon: longitude.toString(),
+          type: "location",
+          walletAddress,
+          username,
+          locationImage: imageUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody.error || "Failed to create location");
+      }
+
+      return response.json();
+    },
+    onSuccess: (data: { location?: { id?: number } }, variables) => {
+      queryClient.invalidateQueries({ queryKey: LOCATION_OPTIONS_KEY });
+      toast.success("Location created");
+      setNewLocationForm((prev) => ({
+        placeId: "",
+        displayName: "",
+        name: "",
+        latitude: "",
+        longitude: "",
+        walletAddress: prev.walletAddress,
+        username: prev.username,
+        locationImageFile: null,
+      }));
+      setFileInputKey((prev) => prev + 1);
+      setLocationSearch(variables.displayName);
+
+      if (data?.location?.id) {
+        setSelectedLocationId(data.location.id);
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Unable to create location");
+    },
+  });
+
+  const editLocationMutation = useMutation<
+    { location?: { id?: number } },
+    Error,
+    EditLocationVariables
+  >({
+    mutationFn: async ({ locationId, payload, currentImageUrl, imageFile }) => {
+      let imageUrl = currentImageUrl;
+      if (imageFile) {
+        const uploadForm = new FormData();
+        uploadForm.append("file", imageFile);
+
+        const uploadResponse = await fetch("/api/upload", {
+          method: "POST",
+          body: uploadForm,
+        });
+
+        if (!uploadResponse.ok) {
+          const errorBody = await uploadResponse.json().catch(() => ({}));
+          throw new Error(errorBody.error || "Failed to upload image");
+        }
+
+        const uploadData = await uploadResponse.json();
+        imageUrl = uploadData.imageUrl || uploadData.url || "";
+      }
+
+      const response = await fetch(`/api/admin/locations/${locationId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-email": adminEmail,
+        },
+        body: JSON.stringify({
+          placeId: payload.placeId,
+          displayName: payload.displayName,
+          name: payload.name,
+          latitude: payload.latitude,
+          longitude: payload.longitude,
+          walletAddress: payload.walletAddress?.trim() || null,
+          username: payload.username?.trim() || null,
+          imageUrl: imageUrl || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody.error || "Failed to update location");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success("Location updated");
+      queryClient.invalidateQueries({ queryKey: listLocationsKey });
+      queryClient.invalidateQueries({ queryKey: LOCATION_OPTIONS_KEY });
+      resetEditLocationForm();
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Unable to update location");
+    },
+  });
+
   const visibleLocationOptions = useMemo(() => {
     const normalized = locationSearch.trim().toLowerCase();
     if (!normalized) return locationOptions;
@@ -387,7 +721,9 @@ export default function AdminLocationListsPage() {
 
   const handleAddLocation = () => {
     if (!selectedListId) return;
-    const parsed = assignmentSchema.safeParse({ locationId: selectedLocationId });
+    const parsed = assignmentSchema.safeParse({
+      locationId: selectedLocationId,
+    });
     if (!parsed.success) {
       toast.error("Select a location first");
       return;
@@ -398,6 +734,139 @@ export default function AdminLocationListsPage() {
       locationId: parsed.data.locationId,
     });
   };
+
+  const handleSearchAutofill = useCallback(
+    (picked: {
+      longitude: number;
+      latitude: number;
+      id: string;
+      name?: string;
+      placeFormatted?: string;
+    }) => {
+      setNewLocationForm((prev) => ({
+        ...prev,
+        placeId: picked.id || prev.placeId,
+        displayName: picked.placeFormatted || picked.name || prev.displayName,
+        name: picked.name || picked.placeFormatted || prev.name,
+        latitude: picked.latitude?.toString() ?? prev.latitude,
+        longitude: picked.longitude?.toString() ?? prev.longitude,
+      }));
+      toast.info("Loaded details from search—review and tweak if needed.");
+    },
+    [],
+  );
+
+  const handleCreateLocation = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const parsed = createLocationSchema.safeParse({
+      placeId: newLocationForm.placeId,
+      displayName: newLocationForm.displayName,
+      name: newLocationForm.name,
+      latitude: newLocationForm.latitude,
+      longitude: newLocationForm.longitude,
+      walletAddress: newLocationForm.walletAddress,
+      username: newLocationForm.username,
+    });
+
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message;
+      toast.error(firstError || "Please complete the location form");
+      return;
+    }
+
+    if (!newLocationForm.locationImageFile) {
+      toast.error("Please upload an image for this location");
+      return;
+    }
+
+    createLocationMutation.mutate({
+      ...parsed.data,
+      imageFile: newLocationForm.locationImageFile,
+    });
+  };
+
+  const startEditingLocation = (entry: LocationListLocation) => {
+    setEditingLocation(entry);
+    setEditingLocationId(entry.location.id ?? entry.location_id);
+    setEditLocationForm({
+      placeId: entry.location.place_id,
+      displayName: entry.location.display_name,
+      name: entry.location.name,
+      latitude: entry.location.latitude?.toString() ?? "",
+      longitude: entry.location.longitude?.toString() ?? "",
+      walletAddress: entry.location.creator_wallet_address ?? "",
+      username: entry.location.creator_username ?? "",
+      currentImageUrl: entry.location.coin_image_url ?? "",
+      locationImageFile: null,
+    });
+    setEditFileInputKey((prev) => prev + 1);
+  };
+
+  const resetEditLocationForm = () => {
+    setEditingLocation(null);
+    setEditingLocationId(null);
+    setEditLocationForm({
+      placeId: "",
+      displayName: "",
+      name: "",
+      latitude: "",
+      longitude: "",
+      walletAddress: "",
+      username: "",
+      currentImageUrl: "",
+      locationImageFile: null,
+    });
+    setEditFileInputKey((prev) => prev + 1);
+  };
+
+  const handleUpdateLocation = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingLocation || !editingLocationId) return;
+
+    const parsed = editLocationSchema.safeParse({
+      placeId: editLocationForm.placeId,
+      displayName: editLocationForm.displayName,
+      name: editLocationForm.name,
+      latitude: editLocationForm.latitude,
+      longitude: editLocationForm.longitude,
+      walletAddress: editLocationForm.walletAddress,
+      username: editLocationForm.username,
+    });
+
+    if (!parsed.success) {
+      const firstError = parsed.error.errors[0]?.message;
+      toast.error(firstError || "Please check the fields and try again.");
+      return;
+    }
+
+    editLocationMutation.mutate({
+      locationId: editingLocationId,
+      payload: parsed.data,
+      currentImageUrl: editLocationForm.currentImageUrl,
+      imageFile: editLocationForm.locationImageFile,
+    });
+  };
+
+  const handleEditSearchAutofill = useCallback(
+    (picked: {
+      longitude: number;
+      latitude: number;
+      id: string;
+      name?: string;
+      placeFormatted?: string;
+    }) => {
+      setEditLocationForm((prev) => ({
+        ...prev,
+        placeId: picked.id || prev.placeId,
+        displayName: picked.placeFormatted || picked.name || prev.displayName,
+        name: picked.name || picked.placeFormatted || prev.name,
+        latitude: picked.latitude?.toString() ?? prev.latitude,
+        longitude: picked.longitude?.toString() ?? prev.longitude,
+      }));
+      toast.info("Loaded details from search. Review and save to apply.");
+    },
+    [],
+  );
 
   if (adminLoading) {
     return (
@@ -411,7 +880,9 @@ export default function AdminLocationListsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
         <p className="text-lg font-medium">Admin access required.</p>
-        <Button onClick={login}>Login with Privy</Button>
+        <Button onClick={login} className={blackButtonClasses}>
+          Login with Privy
+        </Button>
       </div>
     );
   }
@@ -432,20 +903,15 @@ export default function AdminLocationListsPage() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="space-y-6 lg:col-span-2">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="space-y-6">
             <section className="rounded-3xl bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-black/5 p-3">
-                  <PlusCircle className="h-6 w-6 text-black" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold">Create a new list</h2>
-                  <p className="text-sm text-gray-500">
-                    Titles are public facing. Accent colors help visually group
-                    cards.
-                  </p>
-                </div>
+              <div>
+                <h2 className="text-xl font-semibold">Create a new list</h2>
+                <p className="text-sm text-gray-500">
+                  Titles are public facing. Accent colors help visually group
+                  cards.
+                </p>
               </div>
 
               <form onSubmit={handleCreateList} className="mt-6 space-y-4">
@@ -531,7 +997,7 @@ export default function AdminLocationListsPage() {
                 <Button
                   type="submit"
                   disabled={createListMutation.isPending}
-                  className="w-full"
+                  className={`w-full ${blackButtonClasses}`}
                 >
                   {createListMutation.isPending && (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -551,7 +1017,8 @@ export default function AdminLocationListsPage() {
 
               {listsLoading ? (
                 <div className="mt-10 flex items-center justify-center text-gray-500">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading lists
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading
+                  lists
                 </div>
               ) : lists.length === 0 ? (
                 <p className="mt-6 text-sm text-gray-500">
@@ -571,7 +1038,9 @@ export default function AdminLocationListsPage() {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <h3 className="text-lg font-semibold">{list.title}</h3>
+                          <h3 className="text-lg font-semibold">
+                            {list.title}
+                          </h3>
                           <p
                             className={`text-xs ${
                               selectedListId === list.id
@@ -611,9 +1080,12 @@ export default function AdminLocationListsPage() {
                   <p className="text-sm uppercase tracking-wide text-gray-400">
                     Managing
                   </p>
-                  <h2 className="text-2xl font-semibold">{selectedList.title}</h2>
+                  <h2 className="text-2xl font-semibold">
+                    {selectedList.title}
+                  </h2>
                   <p className="text-sm text-gray-500">
-                    {selectedList.location_count} locations · slug {selectedList.slug}
+                    {selectedList.location_count} locations · slug{" "}
+                    {selectedList.slug}
                   </p>
                 </header>
 
@@ -693,7 +1165,7 @@ export default function AdminLocationListsPage() {
                   <Button
                     type="submit"
                     disabled={updateListMutation.isPending}
-                    className="w-full"
+                    className={`w-full ${blackButtonClasses}`}
                   >
                     {updateListMutation.isPending && (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -701,6 +1173,187 @@ export default function AdminLocationListsPage() {
                     Save changes
                   </Button>
                 </form>
+
+                <div className="space-y-4 rounded-2xl border border-dashed border-amber-200 bg-amber-50/60 p-4">
+                  <div>
+                    <p className="font-semibold">Create a new location</p>
+                    <p className="text-sm text-gray-600">
+                      Can&rsquo;t find it above? Define it here and it will show
+                      up in the search list.
+                    </p>
+                  </div>
+                  <form onSubmit={handleCreateLocation} className="space-y-3">
+                    <div className="space-y-2 rounded-2xl border border-amber-200/70 bg-white/80 p-3">
+                      <div className="text-xs text-gray-600">
+                        Use Mapbox search to auto-fill the Place ID +
+                        coordinates, then tweak any fields manually.
+                      </div>
+                      <LocationSearch
+                        placeholder="Search for a spot"
+                        proximity={null}
+                        onSelect={handleSearchAutofill}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="new-place-id">Place ID</Label>
+                      <Input
+                        id="new-place-id"
+                        value={newLocationForm.placeId}
+                        onChange={(event) =>
+                          setNewLocationForm((prev) => ({
+                            ...prev,
+                            placeId: event.target.value,
+                          }))
+                        }
+                        placeholder="mapbox.places.123"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="new-display-name">Display name</Label>
+                      <Input
+                        id="new-display-name"
+                        value={newLocationForm.displayName}
+                        onChange={(event) =>
+                          setNewLocationForm((prev) => ({
+                            ...prev,
+                            displayName: event.target.value,
+                          }))
+                        }
+                        placeholder="Refraction HQ"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="new-name">Address</Label>
+                      <Input
+                        id="new-name"
+                        value={newLocationForm.name}
+                        onChange={(event) =>
+                          setNewLocationForm((prev) => ({
+                            ...prev,
+                            name: event.target.value,
+                          }))
+                        }
+                        placeholder="Refraction HQ"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="new-latitude">Latitude</Label>
+                        <Input
+                          id="new-latitude"
+                          value={newLocationForm.latitude}
+                          onChange={(event) =>
+                            setNewLocationForm((prev) => ({
+                              ...prev,
+                              latitude: event.target.value,
+                            }))
+                          }
+                          placeholder="45.5017"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="new-longitude">Longitude</Label>
+                        <Input
+                          id="new-longitude"
+                          value={newLocationForm.longitude}
+                          onChange={(event) =>
+                            setNewLocationForm((prev) => ({
+                              ...prev,
+                              longitude: event.target.value,
+                            }))
+                          }
+                          placeholder="-73.5673"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="new-wallet-address">
+                          Creator wallet
+                        </Label>
+                        <Input
+                          id="new-wallet-address"
+                          value={newLocationForm.walletAddress}
+                          onChange={(event) =>
+                            setNewLocationForm((prev) => ({
+                              ...prev,
+                              walletAddress: event.target.value,
+                            }))
+                          }
+                          placeholder="0x..."
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="new-username">Creator username</Label>
+                        <Input
+                          id="new-username"
+                          value={newLocationForm.username}
+                          onChange={(event) =>
+                            setNewLocationForm((prev) => ({
+                              ...prev,
+                              username: event.target.value,
+                            }))
+                          }
+                          placeholder="admin"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor="new-location-image">Location image</Label>
+                      <Input
+                        key={fileInputKey}
+                        id="new-location-image"
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) =>
+                          setNewLocationForm((prev) => ({
+                            ...prev,
+                            locationImageFile: event.target.files?.[0] ?? null,
+                          }))
+                        }
+                        required
+                      />
+                      {newLocationForm.locationImageFile ? (
+                        <p className="text-xs text-gray-600">
+                          {newLocationForm.locationImageFile.name} (
+                          {Math.round(
+                            newLocationForm.locationImageFile.size / 1024,
+                          )}
+                          kB)
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-500">
+                          Upload a square asset&mdash;pins only show up with an
+                          image.
+                        </p>
+                      )}
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={createLocationMutation.isPending}
+                      className={`w-full ${blackButtonClasses}`}
+                    >
+                      {createLocationMutation.isPending && (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      )}
+                      Create location
+                    </Button>
+                  </form>
+                </div>
 
                 <div className="space-y-3 rounded-2xl border border-dashed border-gray-200 p-4">
                   <div>
@@ -717,8 +1370,14 @@ export default function AdminLocationListsPage() {
                   />
 
                   <Select
-                    value={selectedLocationId ? String(selectedLocationId) : undefined}
-                    onValueChange={(value) => setSelectedLocationId(Number(value))}
+                    value={
+                      selectedLocationId
+                        ? String(selectedLocationId)
+                        : undefined
+                    }
+                    onValueChange={(value) =>
+                      setSelectedLocationId(Number(value))
+                    }
                     disabled={locationOptionsLoading}
                   >
                     <SelectTrigger>
@@ -762,7 +1421,7 @@ export default function AdminLocationListsPage() {
                     disabled={
                       addLocationMutation.isPending || !selectedLocationId
                     }
-                    className="w-full"
+                    className={`w-full ${blackButtonClasses}`}
                   >
                     {addLocationMutation.isPending && (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -792,36 +1451,234 @@ export default function AdminLocationListsPage() {
                       {listLocations.map((item) => (
                         <div
                           key={item.location_id}
-                          className="flex items-start justify-between rounded-2xl border border-gray-200 p-3"
+                          className="space-y-3 rounded-2xl border border-gray-200 p-3"
                         >
-                          <div>
-                            <p className="font-semibold">
-                              {item.location.display_name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {item.location.name}
-                            </p>
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-semibold">
+                                {item.location.display_name}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {item.location.name}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => startEditingLocation(item)}
+                                disabled={
+                                  editLocationMutation.isPending &&
+                                  editingLocation?.location_id ===
+                                    item.location_id
+                                }
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                className={blackButtonClasses}
+                                onClick={() =>
+                                  removeLocationMutation.mutate({
+                                    listId: selectedList.id,
+                                    locationId: item.location_id,
+                                  })
+                                }
+                                disabled={removalTarget === item.location_id}
+                              >
+                                {removalTarget === item.location_id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <XCircle className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              removeLocationMutation.mutate({
-                                listId: selectedList.id,
-                                locationId: item.location_id,
-                              })
-                            }
-                            disabled={removalTarget === item.location_id}
-                          >
-                            {removalTarget === item.location_id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <XCircle className="h-4 w-4" />
-                            )}
-                          </Button>
                         </div>
                       ))}
                     </div>
+                  )}
+                </div>
+
+                <div className="space-y-4 rounded-2xl border border-dashed border-gray-200 bg-white/70 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold">
+                        {editingLocation
+                          ? `Editing ${editingLocation.location.display_name}`
+                          : "Edit location"}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {editingLocation
+                          ? "Adjust the fields and save to update the location."
+                          : "Select a location above to edit its details."}
+                      </p>
+                    </div>
+                    {editingLocation && (
+                      <button
+                        type="button"
+                        onClick={resetEditLocationForm}
+                        className="text-sm text-gray-500 hover:text-gray-900 underline"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+
+                  {editingLocation ? (
+                    <form onSubmit={handleUpdateLocation} className="space-y-3">
+                      <div className="space-y-1">
+                        <Label>Place ID</Label>
+                        <Input
+                          value={editLocationForm.placeId}
+                          onChange={(event) =>
+                            setEditLocationForm((prev) => ({
+                              ...prev,
+                              placeId: event.target.value,
+                            }))
+                          }
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label>Display name</Label>
+                        <Input
+                          value={editLocationForm.displayName}
+                          onChange={(event) =>
+                            setEditLocationForm((prev) => ({
+                              ...prev,
+                              displayName: event.target.value,
+                            }))
+                          }
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label>Address</Label>
+                        <Input
+                          value={editLocationForm.name}
+                          onChange={(event) =>
+                            setEditLocationForm((prev) => ({
+                              ...prev,
+                              name: event.target.value,
+                            }))
+                          }
+                          required
+                        />
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label>Latitude</Label>
+                          <Input
+                            value={editLocationForm.latitude}
+                            onChange={(event) =>
+                              setEditLocationForm((prev) => ({
+                                ...prev,
+                                latitude: event.target.value,
+                              }))
+                            }
+                            required
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Longitude</Label>
+                          <Input
+                            value={editLocationForm.longitude}
+                            onChange={(event) =>
+                              setEditLocationForm((prev) => ({
+                                ...prev,
+                                longitude: event.target.value,
+                              }))
+                            }
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label>Creator wallet</Label>
+                          <Input
+                            value={editLocationForm.walletAddress}
+                            onChange={(event) =>
+                              setEditLocationForm((prev) => ({
+                                ...prev,
+                                walletAddress: event.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Creator username</Label>
+                          <Input
+                            value={editLocationForm.username}
+                            onChange={(event) =>
+                              setEditLocationForm((prev) => ({
+                                ...prev,
+                                username: event.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 rounded-2xl border border-gray-200/70 bg-white/60 p-3">
+                        <div className="text-xs text-gray-600">
+                          Use Mapbox search to refresh coordinates and names.
+                        </div>
+                        <LocationSearch
+                          placeholder="Search to autofill"
+                          proximity={null}
+                          onSelect={handleEditSearchAutofill}
+                          className="w-full"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label>Location image</Label>
+                        {editLocationForm.currentImageUrl && (
+                          <img
+                            src={editLocationForm.currentImageUrl}
+                            alt={editLocationForm.displayName}
+                            className="h-32 w-full rounded-2xl object-cover"
+                          />
+                        )}
+                        <Input
+                          key={editFileInputKey}
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) =>
+                            setEditLocationForm((prev) => ({
+                              ...prev,
+                              locationImageFile:
+                                event.target.files?.[0] ?? null,
+                            }))
+                          }
+                        />
+                        <p className="text-xs text-gray-500">
+                          Uploading a new image replaces the current one.
+                        </p>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        disabled={editLocationMutation.isPending}
+                        className={`w-full ${blackButtonClasses}`}
+                      >
+                        {editLocationMutation.isPending && (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        )}
+                        Save location
+                      </Button>
+                    </form>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      Start by selecting a location card above.
+                    </p>
                   )}
                 </div>
               </div>
