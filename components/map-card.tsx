@@ -66,21 +66,23 @@ export default function MapCard({
           )}
 
           {/* Card Content */}
-          <div className={`flex flex-col gap-4 w-full ${imageUrl ? "px-4 pb-3" : "p-5"}`}>
+          <div
+            className={`flex flex-col gap-4 w-full ${imageUrl ? "px-4 pb-3" : "p-5"}`}
+          >
             {/* Location Info */}
             <div className="flex flex-col gap-2 items-start justify-center w-full">
               {/* Location Name */}
               <div className="flex gap-6 items-start w-full">
                 <h3 className="font-inktrap tracking-[-0.48px] text-sm">
-                  {name}
+                  {address}
                 </h3>
               </div>
 
               {/* Address */}
               <div className="flex gap-2 items-start w-full min-w-0">
                 <MapPin className="w-4 h-4 text-[#7d7d7d] mt-0.5 flex-shrink-0" />
-                <p className="font-inktrap leading-tight relative text-[#7d7d7d] text-[11px] uppercase tracking-[0.44px] break-words flex-1 min-w-0">
-                  {address}
+                <p className="font-inktrap leading-tight relative text-[#7d7d7d] text-[11px] uppercase tracking-[0.44px] break-words flex-1 min-w-0 w-[240px]">
+                  {name}
                 </p>
               </div>
             </div>
