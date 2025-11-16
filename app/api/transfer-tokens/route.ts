@@ -117,10 +117,20 @@ async function performTransfer(
     );
   }
 
+  // Get the RPC URL from env
+  const rpcUrl = process.env.NEXT_PUBLIC_BASE_RPC;
+  if (!rpcUrl) {
+    console.error("NEXT_PUBLIC_BASE_RPC not found in environment");
+    return NextResponse.json(
+      { success: false, error: "Server configuration error" },
+      { status: 500 },
+    );
+  }
+
   // Create viem clients
   const publicClient = createPublicClient({
     chain: base,
-    transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
+    transport: http(rpcUrl),
   });
 
   // Get the reward token address
@@ -191,9 +201,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Get the RPC URL from env
+    const rpcUrl = process.env.NEXT_PUBLIC_BASE_RPC;
+    if (!rpcUrl) {
+      console.error("NEXT_PUBLIC_BASE_RPC not found in environment");
+      return NextResponse.json(
+        { success: false, error: "Server configuration error" },
+        { status: 500 },
+      );
+    }
+
     const publicClient = createPublicClient({
       chain: base,
-      transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
+      transport: http(rpcUrl),
     });
 
     const rewardTokenAddress = await publicClient.readContract({
