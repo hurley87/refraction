@@ -223,35 +223,37 @@ export default function MapSection() {
           ref={stencilRef}
           className="absolute inset-0 flex flex-col items-center justify-center gap-4"
         >
-          <div
-            className="font-pleasure title2 text-[40px] leading-[64px] tracking-[-1px] md:text-[40px] md:leading-[100px] md:tracking-[-1px] uppercase text-white text-center w-full max-w-2xl"
-            style={{
-              textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
-            }}
-          >
-            Earn Rewards For Showing Up To The Things You Love
-          </div>
-          
-          {/* Video */}
-          <div className="relative w-full max-w-2xl aspect-video rounded-xl overflow-hidden">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover"
+          <div className="flex flex-col items-center gap-4 w-full max-w-2xl">
+            <div
+              className="font-pleasure title2 text-[30px] tracking-[-1px] md:text-[30px] md:leading-[100px] md:tracking-[-1px] uppercase text-white text-center w-3/4"
+              style={{
+                textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
+              }}
             >
-              <source src="/video-reel.mp4" type="video/mp4" />
-            </video>
-          </div>
-          
-          <div
-            className="font-pleasure title2 text-[40px] leading-[64px] tracking-[-1px] md:text-[40px] md:leading-[100px] md:tracking-[-1px] uppercase text-white text-center w-full max-w-2xl"
-            style={{
-              textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
-            }}
-          >
-            Built By Artists, Curators, And Event Organizers
+              Earn Rewards For Showing Up To The Things You Love
+            </div>
+            
+            {/* Video */}
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              >
+                <source src="/video-reel.mp4" type="video/mp4" />
+              </video>
+            </div>
+            
+            <div
+              className="font-pleasure title2 text-[30px] tracking-[-1px] md:text-[40px] md:leading-[100px] md:tracking-[-1px] uppercase text-white text-center w-3/4"
+              style={{
+                textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
+              }}
+            >
+              Built By Artists, Curators, And Event Organizers
+            </div>
           </div>
         </div>
       </div>
