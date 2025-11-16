@@ -947,6 +947,28 @@ export default function InteractiveMap() {
             }}
             onSelect={handleSearchSelect}
           />
+          <button
+            type="button"
+            onClick={handleLocateUser}
+            disabled={isLocating}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-[#131313] shadow-lg transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70 dark:bg-black/70 dark:text-white dark:hover:bg-black"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="2" />
+              <path d="M12 5V3M12 21v-2M5 12H3M21 12h-2M19.07 4.93l-1.41 1.41M6.34 17.66l-1.41 1.41M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41" />
+            </svg>
+            {isLocating ? "Locating..." : "My Location"}
+          </button>
           {showWelcomeBanner && (
             <div className="rounded-3xl bg-white/90 px-4 py-3 shadow-lg backdrop-blur text-[#131313] dark:bg-black/70 dark:text-white border border-white/40 dark:border-white/10">
               <div className="flex items-start gap-3">
@@ -990,32 +1012,6 @@ export default function InteractiveMap() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Location Controls */}
-      <div className="absolute bottom-6 right-4 z-20">
-        <button
-          type="button"
-          onClick={handleLocateUser}
-          disabled={isLocating}
-          className="inline-flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-[#131313] shadow-lg transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70 dark:bg-black/70 dark:text-white dark:hover:bg-black"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="2" />
-            <path d="M12 5V3M12 21v-2M5 12H3M21 12h-2M19.07 4.93l-1.41 1.41M6.34 17.66l-1.41 1.41M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41" />
-          </svg>
-          {isLocating ? "Locating..." : "My Location"}
-        </button>
       </div>
 
       <LocationListsDrawer

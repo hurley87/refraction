@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MapPin, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  // MapPin, CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import type { LocationListWithCount, Location } from "@/lib/supabase";
 
 export type DrawerLocationSummary = Pick<
@@ -32,16 +36,16 @@ interface LocationListsDrawerProps {
 }
 
 export default function LocationListsDrawer({
-  walletAddress,
+  walletAddress: _walletAddress, // eslint-disable-line @typescript-eslint/no-unused-vars
   onLocationFocus,
 }: LocationListsDrawerProps) {
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
-  const [visitedLocationIds, setVisitedLocationIds] = useState<Set<number>>(
-    new Set(),
-  );
+  // const [visitedLocationIds, setVisitedLocationIds] = useState<Set<number>>(
+  //   new Set(),
+  // );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -69,61 +73,61 @@ export default function LocationListsDrawer({
     return () => controller.abort();
   }, []);
 
-  useEffect(() => {
-    if (!walletAddress) {
-      setVisitedLocationIds(new Set());
-      return;
-    }
+  // useEffect(() => {
+  //   if (!walletAddress) {
+  //     setVisitedLocationIds(new Set());
+  //     return;
+  //   }
 
-    const controller = new AbortController();
-    const loadVisitedLocations = async () => {
-      try {
-        const response = await fetch(
-          `/api/locations?walletAddress=${encodeURIComponent(walletAddress)}`,
-          { signal: controller.signal },
-        );
-        if (!response.ok) throw new Error("Failed to load visited locations");
-        const data = await response.json();
-        const ids = new Set<number>(
-          (data.locations || [])
-            .map((location: Location) => location.id)
-            .filter(
-              (id: number | undefined): id is number => typeof id === "number",
-            ),
-        );
-        setVisitedLocationIds(ids);
-      } catch (error) {
-        if ((error as Error).name !== "AbortError") {
-          console.error("Failed to load visited locations", error);
-        }
-      }
-    };
+  //   const controller = new AbortController();
+  //   const loadVisitedLocations = async () => {
+  //     try {
+  //       const response = await fetch(
+  //         `/api/locations?walletAddress=${encodeURIComponent(walletAddress)}`,
+  //         { signal: controller.signal },
+  //       );
+  //       if (!response.ok) throw new Error("Failed to load visited locations");
+  //       const data = await response.json();
+  //       const ids = new Set<number>(
+  //         (data.locations || [])
+  //           .map((location: Location) => location.id)
+  //           .filter(
+  //             (id: number | undefined): id is number => typeof id === "number",
+  //           ),
+  //       );
+  //       setVisitedLocationIds(ids);
+  //     } catch (error) {
+  //       if ((error as Error).name !== "AbortError") {
+  //         console.error("Failed to load visited locations", error);
+  //       }
+  //     }
+  //   };
 
-    loadVisitedLocations();
-    return () => controller.abort();
-  }, [walletAddress]);
+  //   loadVisitedLocations();
+  //   return () => controller.abort();
+  // }, [walletAddress]);
 
   const activeList = useMemo(
     () => lists.find((list) => list.id === activeListId),
     [lists, activeListId],
   );
 
-  const visitedCount = useMemo(() => {
-    if (!activeList?.locations?.length) return 0;
-    return activeList.locations.reduce((count, location) => {
-      if (location.id && visitedLocationIds.has(location.id)) {
-        return count + 1;
-      }
-      return count;
-    }, 0);
-  }, [activeList, visitedLocationIds]);
+  // const visitedCount = useMemo(() => {
+  //   if (!activeList?.locations?.length) return 0;
+  //   return activeList.locations.reduce((count, location) => {
+  //     if (location.id && visitedLocationIds.has(location.id)) {
+  //       return count + 1;
+  //     }
+  //     return count;
+  //   }, 0);
+  // }, [activeList, visitedLocationIds]);
 
   if (!lists.length && !isLoadingLists) {
     return null;
   }
 
   return (
-    <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex justify-center px-3 pb-2 sm:px-4 sm:pb-0">
+    <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex justify-center px-0 pb-0">
       <div className="pointer-events-auto w-full max-w-md rounded-t-[30px] border border-white/30 bg-white/95 p-4 shadow-[0_-20px_60px_rgba(0,0,0,0.25)] backdrop-blur-2xl sm:rounded-t-[36px] sm:p-6">
         <button
           type="button"
@@ -136,10 +140,10 @@ export default function LocationListsDrawer({
 
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="w-full">
-            <p className="text-xl font-inktrap tracking-[-0.5px] text-[#131313] sm:text-2xl">
+            <p className="text-lg font-inktrap tracking-[-0.5px] text-[#131313]">
               {activeList?.title || "Curated Lists"}
             </p>
-            <p className="text-sm font-anonymous text-[#7d7d7d] sm:text-base">
+            <p className="text-sm font-anonymous text-[#7d7d7d]">
               Discover curator-picked spots near you.
             </p>
           </div>
@@ -157,7 +161,7 @@ export default function LocationListsDrawer({
           </button>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2 overflow-x-auto pb-2 sm:flex-nowrap">
+        {/* <div className="mt-4 flex flex-wrap gap-2 overflow-x-auto pb-2 sm:flex-nowrap">
           {isLoadingLists
             ? Array.from({ length: 3 }).map((_, index) => (
                 <div
@@ -200,7 +204,7 @@ export default function LocationListsDrawer({
             <span className="tracking-[1px]">{visitedCount} Visited</span>
             <CheckCircle2 className="h-3.5 w-3.5 text-[#7d7d7d]" />
           </div>
-        </div>
+        </div> */}
 
         {isExpanded && (
           <div className="mt-6">
@@ -214,14 +218,14 @@ export default function LocationListsDrawer({
                 ))}
               </div>
             ) : activeList?.locations && activeList.locations.length > 0 ? (
-              <div className="flex gap-4 overflow-x-auto pb-2">
+              <div className="flex gap-4 overflow-x-auto pb-2 bg-white">
                 {activeList.locations.map((location) => (
                   <article
                     key={location.membershipId}
                     onClick={() => onLocationFocus?.(location)}
-                    className="relative flex w-56 flex-shrink-0 flex-col rounded-[28px] border border-[#ededed] bg-white/90 p-3 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_35px_rgba(0,0,0,0.12)] cursor-pointer sm:w-64"
+                    className="relative flex w-56 flex-shrink-0 flex-col rounded-[28px] border border-[#ededed] p-3 shadow-md transition hover:-translate-y-0.5 hover:shadow-[0_14px_35px_rgba(0,0,0,0.12)] cursor-pointer sm:w-64"
                   >
-                    <div className="relative h-32 w-full overflow-hidden rounded-[22px] bg-[#f4f4f4]">
+                    <div className="relative h-32 w-full overflow-hidden rounded-[22px] ">
                       {location.coin_image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
