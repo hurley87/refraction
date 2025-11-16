@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
 const MAX_VARCHAR_LENGTH = 255;
-const MAX_LOCATIONS_PER_DAY = 5;
+const MAX_LOCATIONS_PER_DAY = 30;
 
 const sanitizeVarchar = (value: string) => {
   const trimmed = value.trim();
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         {
-          error: "You can only add five locations per day. Come back tomorrow!",
+          error: "You can only add 30 locations per day. Come back tomorrow!",
         },
         { status: 429 },
       );
