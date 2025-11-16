@@ -34,6 +34,10 @@ const imageUrl = `${baseUrl}/irl-share.png?v=2`;
 export const metadata: Metadata = {
   title: "IRL",
   description: "IRL - Culture's rewards program.",
+  icons: {
+    icon: "/icon.ico",
+    shortcut: "/favicon.ico",
+  },
   openGraph: {
     title: "$IRL",
     description: "IRL - Culture's rewards program.",
