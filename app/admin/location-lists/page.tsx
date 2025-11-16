@@ -1223,7 +1223,6 @@ export default function AdminLocationListsPage() {
                             displayName: event.target.value,
                           }))
                         }
-                        placeholder="Refraction HQ"
                         required
                       />
                     </div>
