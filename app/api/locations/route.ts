@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+const MAX_VARCHAR_LENGTH = 255;
+
+const sanitizeVarchar = (value: string) => {
+  const trimmed = value.trim();
+  return trimmed.length > MAX_VARCHAR_LENGTH
+    ? trimmed.slice(0, MAX_VARCHAR_LENGTH)
+    : trimmed;
+};
+
+const sanitizeOptionalVarchar = (value?: string | null) => {
+  if (!value) return null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.length > MAX_VARCHAR_LENGTH
+    ? trimmed.slice(0, MAX_VARCHAR_LENGTH)
+    : trimmed;
+};
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -99,7 +118,17 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!place_id || !display_name || !name || !lat || !lon || !walletAddress) {
+    if (
+      !place_id ||
+      typeof display_name !== "string" ||
+      !display_name.trim() ||
+      typeof name !== "string" ||
+      !name.trim() ||
+      !lat ||
+      !lon ||
+      typeof walletAddress !== "string" ||
+      !walletAddress.trim()
+    ) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
@@ -118,14 +147,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const sanitizedDisplayName = sanitizeVarchar(display_name);
+    const sanitizedName = sanitizeVarchar(name);
+    const sanitizedType =
+      typeof type === "string" && type.trim()
+        ? sanitizeVarchar(type)
+        : "location";
+    const sanitizedWalletAddress = walletAddress.trim();
+    const sanitizedUsername = sanitizeOptionalVarchar(username);
+    const normalizedLocationImage = locationImage.trim();
+
     // Ensure location doesn't already exist before proceeding
-    const { data: existingLocation, error: locationLookupError } = await supabase
-      .from("locations")
-      .select(
-        "id, name, display_name, creator_wallet_address, creator_username, coin_image_url, latitude, longitude",
-      )
-      .eq("place_id", place_id)
-      .maybeSingle();
+    const { data: existingLocation, error: locationLookupError } =
+      await supabase
+        .from("locations")
+        .select(
+          "id, name, display_name, creator_wallet_address, creator_username, coin_image_url, latitude, longitude",
+        )
+        .eq("place_id", place_id)
+        .maybeSingle();
 
     if (locationLookupError && locationLookupError.code !== "PGRST116") {
       console.error("Error checking duplicate location:", locationLookupError);
@@ -147,7 +187,7 @@ export async function POST(request: NextRequest) {
     const { data: existingLocations, error: checkError } = await supabase
       .from("locations")
       .select("id")
-      .eq("creator_wallet_address", walletAddress)
+      .eq("creator_wallet_address", sanitizedWalletAddress)
       .gte("created_at", startIso)
       .lt("created_at", endIso);
 
@@ -164,23 +204,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert the new location
+    const locationInsertPayload = {
+      place_id,
+      display_name: sanitizedDisplayName,
+      name: sanitizedName,
+      latitude: parseFloat(lat),
+      longitude: parseFloat(lon),
+      type: sanitizedType,
+      points_value: 100,
+      creator_wallet_address: sanitizedWalletAddress,
+      creator_username: sanitizedUsername,
+      coin_image_url: normalizedLocationImage,
+      context: JSON.stringify({
+        created_at: new Date().toISOString(),
+      }),
+    };
+
+    console.log("Creating location with payload:", locationInsertPayload);
+
     const { data: locationData, error: locationError } = await supabase
       .from("locations")
-      .insert({
-        place_id,
-        display_name,
-        name,
-        latitude: parseFloat(lat),
-        longitude: parseFloat(lon),
-        type: type || "location",
-        points_value: 100,
-        creator_wallet_address: walletAddress,
-        creator_username: username || null,
-        coin_image_url: locationImage || null,
-        context: JSON.stringify({
-          created_at: new Date().toISOString(),
-        }),
-      })
+      .insert(locationInsertPayload)
       .select()
       .single();
 
@@ -200,13 +244,13 @@ export async function POST(request: NextRequest) {
     const { error: pointsError } = await supabase
       .from("points_activities")
       .insert({
-        user_wallet_address: walletAddress,
+        user_wallet_address: sanitizedWalletAddress,
         activity_type: "location_creation",
         points_earned: pointsAwarded,
-        description: `Created location: ${name}`,
+        description: `Created location: ${sanitizedName}`,
         metadata: {
           location_id: locationData.id,
-          location_name: name,
+          location_name: sanitizedName,
           place_id,
         },
         processed: true,
