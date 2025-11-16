@@ -1701,9 +1701,9 @@ export default function InteractiveMap() {
                 </svg>
               </button>
               <h2 className="text-base font-inktrap text-[#313131] tracking-[-1.28px]">
-                {formStep === "business-details" && "Create & Check In"}
-                {formStep === "checkin-details" && "Check In"}
-                {formStep === "success" && "Check-In Successful"}
+                {formStep === "business-details" && "Location Details"}
+                {formStep === "checkin-details" && "Optional Check-In"}
+                {formStep === "success" && "Location Created"}
               </h2>
             </div>
 
@@ -1875,6 +1875,10 @@ export default function InteractiveMap() {
                     <p className="font-inktrap text-[11px] uppercase tracking-[0.44px] text-[#7d7d7d] mt-1">
                       {formData.address}
                     </p>
+                    <p className="text-[12px] leading-[16px] text-[#7d7d7d] mt-2">
+                      We will create this location either way. Leave a note below to
+                      check in immediately and earn bonus points.
+                    </p>
                   </div>
 
                   <div className="flex flex-col gap-[8px]">
@@ -1882,8 +1886,12 @@ export default function InteractiveMap() {
                       htmlFor="checkInComment"
                       className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
                     >
-                      Your comment (optional)
+                      Check-in comment (optional)
                     </label>
+                    <p className="text-[12px] text-[#b5b5b5]">
+                      Share why the spot matters. Submitting a comment will also
+                      create your check-in.
+                    </p>
                     <Textarea
                       id="checkInComment"
                       value={formData.checkInComment}
@@ -2068,6 +2076,23 @@ export default function InteractiveMap() {
                           </div>
                         </div>
                       </div>
+                      <div className="text-center px-6 mt-4 space-y-1">
+                        <p
+                          className="text-sm text-white/90 font-inktrap tracking-wide"
+                          style={{
+                            fontFamily:
+                              '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
+                            fontWeight: 500,
+                          }}
+                        >
+                          Location created successfully.
+                        </p>
+                        <p className="text-xs text-white/80 font-inktrap">
+                          {pointsEarned.checkIn > 0
+                            ? `Check-in complete — earned ${pointsEarned.checkIn} bonus points.`
+                            : "No check-in was submitted. You can check in anytime from the map."}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2091,8 +2116,8 @@ export default function InteractiveMap() {
                   {isCreatingLocation
                     ? "Creating..."
                     : formStep === "business-details"
-                      ? "Next"
-                      : "Check In"}
+                      ? "Next: Optional Check-In"
+                      : "Create Location"}
                 </button>
               </div>
             )}
