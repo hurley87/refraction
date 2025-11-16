@@ -138,13 +138,13 @@ export default function LocationListsDrawer({
           }
         />
 
-        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3  sm:items-center sm:justify-between">
           <div className="w-full">
             <p className="text-lg font-inktrap tracking-[-0.5px] text-[#131313]">
               {activeList?.title || "Curated Lists"}
             </p>
             <p className="text-sm font-anonymous text-[#7d7d7d]">
-              Discover curator-picked spots near you.
+              Discover spots near you.
             </p>
           </div>
           <button
