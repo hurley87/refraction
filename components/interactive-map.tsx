@@ -462,10 +462,24 @@ export default function InteractiveMap() {
       },
       (error) => {
         console.warn("Geolocation error:", error);
-        toast.error("Unable to retrieve your location.");
+        let errorMessage = "Unable to retrieve your location.";
+
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = "Location access denied. Please enable location permissions in your browser settings.";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = "Location information unavailable. Please check your device's location services.";
+            break;
+          case error.TIMEOUT:
+            errorMessage = "Location request timed out. Please try again.";
+            break;
+        }
+
+        toast.error(errorMessage);
         setIsLocating(false);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+      { enableHighAccuracy: false, timeout: 20000, maximumAge: 60000 },
     );
   };
 
