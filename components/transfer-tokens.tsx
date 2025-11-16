@@ -16,11 +16,13 @@ const ERC20_ABI = parseAbi([
 interface TransferTokensProps {
   tokenBalance: string;
   onTransferComplete?: () => void;
+  buttonClassName?: string;
 }
 
 export default function TransferTokens({
   tokenBalance,
   onTransferComplete,
+  buttonClassName,
 }: TransferTokensProps) {
   const { user } = usePrivy();
   const { wallets } = useWallets();
@@ -263,7 +265,7 @@ export default function TransferTokens({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-full border border-[#313131] bg-white px-4 py-2 text-sm font-grotesk text-[#313131] transition hover:bg-[#F9F9F9]"
+          className={buttonClassName || "flex w-full items-center justify-center gap-2 rounded-full border border-[#313131] bg-white px-4 py-2 text-sm font-grotesk text-[#313131] transition hover:bg-[#F9F9F9]"}
         >
           Transfer Tokens
           <svg

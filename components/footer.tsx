@@ -57,7 +57,7 @@ export default function Footer() {
     <footer className="relative w-full max-w-md mx-auto bg-[#131313] text-white">
       <div className="relative min-h-[600px] w-full overflow-hidden pb-8 pt-16">
         <img
-          src="/footer-image.png"
+          src="/irl-footer-black-bg.svg"
           alt="irl"
           className="w-full h-auto mt-6 max-w-full object-contain absolute bottom-0 left-0"
         />
