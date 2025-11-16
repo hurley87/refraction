@@ -205,7 +205,7 @@ export default function MapSection() {
       {/* Video Section: Earn Rewards Stencil */}
       <div
         ref={videoSectionRef}
-        className="absolute inset-0 flex items-center justify-center bg-[#131313]"
+        className="absolute inset-0 flex items-center justify-center bg-[#131313] overflow-visible"
       >
         {/* Gradient Background */}
         <div className="absolute inset-0 overflow-hidden">
@@ -221,37 +221,43 @@ export default function MapSection() {
         {/* Text and Video Overlay */}
         <div
           ref={stencilRef}
-          className="absolute inset-0 flex flex-col items-center justify-center gap-4"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-4 overflow-visible px-4 py-8 md:py-8"
         >
-          <div
-            className="font-pleasure title2 text-[40px] leading-[64px] tracking-[-1px] md:text-[40px] md:leading-[100px] md:tracking-[-1px] uppercase text-white text-center w-full max-w-2xl"
-            style={{
-              textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
-            }}
-          >
-            Earn Rewards For Showing Up To The Things You Love
-          </div>
-          
-          {/* Video */}
-          <div className="relative w-full max-w-2xl aspect-video rounded-xl overflow-hidden">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-            >
-              <source src="/video-reel.mp4" type="video/mp4" />
-            </video>
-          </div>
-          
-          <div
-            className="font-pleasure title2 text-[40px] leading-[64px] tracking-[-1px] md:text-[40px] md:leading-[100px] md:tracking-[-1px] uppercase text-white text-center w-full max-w-2xl"
-            style={{
-              textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
-            }}
-          >
-            Built By Artists, Curators, And Event Organizers
+          <div className="flex flex-col items-center gap-4 md:gap-2 w-full my-auto">
+            <div className="flex flex-col items-center gap-4 md:gap-2 w-full max-w-2xl">
+              <div
+                className="font-pleasure title2 text-[30px] tracking-[-1px] md:text-[30px] md:leading-[40px] md:tracking-[-1px] uppercase text-white text-center w-3/4 py-4 md:py-0"
+                style={{
+                  textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
+                }}
+              >
+                Earn Rewards For Showing Up To The Things You Love
+              </div>
+            </div>
+            
+            {/* Video */}
+            <div className="relative w-full md:w-[50vw] aspect-video rounded-xl overflow-hidden">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              >
+                <source src="/video-reel.mp4" type="video/mp4" />
+              </video>
+            </div>
+            
+            <div className="flex flex-col items-center gap-4 md:gap-2 w-full max-w-2xl">
+              <div
+                className="font-pleasure title2 text-[30px] tracking-[-1px] md:text-[40px] md:leading-[50px] md:tracking-[-1px] uppercase text-white text-center w-3/4 py-4 md:py-0"
+                style={{
+                  textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
+                }}
+              >
+                Built By Artists, Curators, And Event Organizers
+              </div>
+            </div>
           </div>
         </div>
       </div>
