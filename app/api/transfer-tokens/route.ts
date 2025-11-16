@@ -120,7 +120,7 @@ async function performTransfer(
   // Create viem clients
   const publicClient = createPublicClient({
     chain: base,
-    transport: http("https://mainnet.base.org"),
+    transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
   });
 
   // Get the reward token address
@@ -193,7 +193,7 @@ export async function GET(req: NextRequest) {
 
     const publicClient = createPublicClient({
       chain: base,
-      transport: http("https://mainnet.base.org"),
+      transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
     });
 
     const rewardTokenAddress = await publicClient.readContract({
