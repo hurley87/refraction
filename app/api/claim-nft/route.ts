@@ -95,14 +95,14 @@ async function performMint(userAddress: string) {
   // Create viem clients
   const publicClient = createPublicClient({
     chain: base,
-    transport: http("https://mainnet.base.org"),
+    transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
   });
 
   const account = privateKeyToAccount(privateKey as `0x${string}`);
   const walletClient = createWalletClient({
     account,
     chain: base,
-    transport: http("https://mainnet.base.org"),
+    transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
   });
 
   // Check if user can mint
@@ -218,7 +218,7 @@ export async function GET(req: NextRequest) {
 
     const publicClient = createPublicClient({
       chain: base,
-      transport: http("https://mainnet.base.org"),
+      transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
     });
 
     const hasMinted = await publicClient.readContract({
