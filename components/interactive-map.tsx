@@ -665,24 +665,12 @@ export default function InteractiveMap() {
       let locationImageUrl = "";
 
       if (formData.locationImage) {
-        // Convert file to base64
-        const base64Image = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(formData.locationImage!);
-        });
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", formData.locationImage);
 
         const uploadResponse = await fetch("/api/upload", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            description: formData.description || "",
-            base64Image: base64Image,
-          }),
+          body: uploadFormData,
         });
 
         if (!uploadResponse.ok) {
@@ -693,7 +681,7 @@ export default function InteractiveMap() {
           );
         }
         const uploadResult = await uploadResponse.json();
-        locationImageUrl = uploadResult.imageUrl;
+        locationImageUrl = uploadResult.imageUrl || uploadResult.url;
         if (!locationImageUrl) {
           throw new Error("Image upload succeeded but no URL was returned");
         }
