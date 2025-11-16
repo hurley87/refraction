@@ -466,10 +466,12 @@ export default function InteractiveMap() {
 
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = "Location access denied. Please enable location permissions in your browser settings.";
+            errorMessage =
+              "Location access denied. Please enable location permissions in your browser settings.";
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = "Location information unavailable. Please check your device's location services.";
+            errorMessage =
+              "Location information unavailable. Please check your device's location services.";
             break;
           case error.TIMEOUT:
             errorMessage = "Location request timed out. Please try again.";
@@ -931,7 +933,9 @@ export default function InteractiveMap() {
         longitude: lon,
         place_id:
           location.place_id ||
-          (location.id !== undefined ? `list-${location.id}` : `list-${Date.now()}`),
+          (location.id !== undefined
+            ? `list-${location.id}`
+            : `list-${Date.now()}`),
         display_name: location.display_name || location.context || "",
         name: location.name,
         imageUrl: location.coin_image_url ?? null,
@@ -1536,8 +1540,8 @@ export default function InteractiveMap() {
                           style={{
                             width: "30px",
                             height: "30px",
-                            top: "8px",
-                            left: "8px",
+                            top: "0px",
+                            left: "10px",
                           }}
                         >
                           <img
@@ -1586,7 +1590,7 @@ export default function InteractiveMap() {
                       </div>
 
                       {/* Checking In At Section */}
-                      <div className="flex flex-col gap-[8px] items-center justify-between w-[183px] h-[47px]">
+                      <div className="flex flex-col gap-[8px] items-center justify-between h-[47px] w-full">
                         <p
                           className="text-[11px] leading-[16px] text-white uppercase tracking-[0.44px] whitespace-pre"
                           style={{
@@ -1597,8 +1601,8 @@ export default function InteractiveMap() {
                         >
                           Checking In At
                         </p>
-                        <div className="flex gap-[8px] items-end justify-end w-[121px]">
-                          <div className="flex gap-[4px] items-center justify-center border border-white rounded-[1000px] pl-[8px] pr-[6px] py-[5px] min-h-px min-w-px">
+                        <div className="flex gap-[8px] items-end">
+                          <div className="flex gap-[4px] items-center justify-center border border-white rounded-[1000px] pl-[8px] pr-[6px] py-[5px]">
                             <div className="overflow-clip relative shrink-0 w-4 h-4">
                               <svg
                                 className="w-4 h-4 text-white"
@@ -1622,7 +1626,7 @@ export default function InteractiveMap() {
                             </div>
                             <div className="flex gap-[8px] items-center h-[14px] pt-[2px]">
                               <p
-                                className="text-[11px] leading-[16px] text-white uppercase tracking-[0.44px] whitespace-pre"
+                                className="text-[11px] leading-[16px] text-white uppercase tracking-[0.44px]"
                                 style={{
                                   fontFamily:
                                     '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
@@ -1890,8 +1894,8 @@ export default function InteractiveMap() {
                       {formData.address}
                     </p>
                     <p className="text-[12px] leading-[16px] text-[#7d7d7d] mt-2">
-                      We will create this location either way. Leave a note below to
-                      check in immediately and earn bonus points.
+                      We will create this location either way. Leave a note
+                      below to check in immediately and earn bonus points.
                     </p>
                   </div>
 
