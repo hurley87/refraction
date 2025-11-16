@@ -94,3 +94,46 @@ ALTER TABLE perk_discount_codes
 ADD COLUMN IF NOT EXISTS is_universal BOOLEAN DEFAULT FALSE;
 
 COMMENT ON COLUMN perk_discount_codes.is_universal IS 'If true, this code is shared by all eligible users and not redeemed/burned. If false, this is an individual code that can only be redeemed once.';
+
+-- ---------------------------------------------------------------------------
+-- Location lists - curated sets of locations for admin tooling
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS location_lists (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  description TEXT,
+  accent_color TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS location_list_members (
+  id BIGSERIAL PRIMARY KEY,
+  list_id UUID NOT NULL REFERENCES location_lists(id) ON DELETE CASCADE,
+  location_id BIGINT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (list_id, location_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_location_list_members_location
+  ON location_list_members(location_id);
+
+CREATE INDEX IF NOT EXISTS idx_location_list_members_list
+  ON location_list_members(list_id);
+
+CREATE OR REPLACE FUNCTION set_location_lists_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at := NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_set_location_lists_updated_at ON location_lists;
+CREATE TRIGGER trigger_set_location_lists_updated_at
+  BEFORE UPDATE ON location_lists
+  FOR EACH ROW
+  EXECUTE FUNCTION set_location_lists_updated_at();

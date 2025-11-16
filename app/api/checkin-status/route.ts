@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     }
 
     const checkins = await getCheckinByAddressAndCheckpoint(address, checkpoint);
-    const hasCheckedIn = checkins && checkins.length > 0;
+    const hasCheckedIn = checkins.length > 0;
 
     const { startIso, endIso } = getUtcDayBounds();
 
