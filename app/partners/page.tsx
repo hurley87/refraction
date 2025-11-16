@@ -9,6 +9,7 @@ import Image from "next/image";
 import LogoLoop from '@/components/LogoLoop.jsx';
 import CircularGallery from "@/components/CircularGallery"
 import Footer from "@/components/footer";
+import MembersSection from "@/components/members-section";
 import {
   Carousel,
   CarouselContent,
@@ -1099,48 +1100,8 @@ const benefitsData = [
       </div>
 
       <div style={{ height: "100px" }} />
-      {/* Next Members Section */}
-      <div className="bg-[#131313] rounded-2xl p-6 mb-4">
-        <div className="text-center space-y-4">
-          {/* Row 1: Title */}
-          <div className="body-small text-white font-grotesk">
-            FOR MEMBERS
-          </div>
-          
-          {/* Row 2: Become A Founding Member */}
-          <div className="flex justify-center">
-            <button className="text-left text-white title4 font-anonymous-pro underline hover:no-underline transition-all">
-              Become A Founding Member →
-            </button>
-          </div>
-          
-          {/* Row 3: Editorial */}
-          <div className="flex justify-center">
-            <button className="text-left text-white title4 font-anonymous-pro underline hover:no-underline transition-all">
-              Editorial →
-            </button>
-          </div>
-          
-          {/* Row 4: Frequently Asked Questions */}
-          <div className="flex justify-center">
-            <button className="text-left text-white title4 font-anonymous-pro underline hover:no-underline transition-all">
-              Frequently Asked Questions →
-            </button>
-          </div>
-          
-          {/* Row 5: FOR VENUES AND BRANDS */}
-          <div className=" text-white body-small font-groteks" >
-            FOR VENUES AND BRANDS
-          </div>
-          
-          {/* Row 6: Become An IRL Partner */}
-          <div className="flex justify-center">
-            <button className="text-left text-white title4 font-anonymous-pro underline hover:no-underline transition-all">
-              Become An IRL Partner →
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Members Section */}
+      <MembersSection variant="centered" />
 
       {/* Footer */}
       <Footer />

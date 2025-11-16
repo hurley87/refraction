@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import ClaimHeader from "@/components/claim-header";
 import ClaimFooter from "@/components/claim-footer";
-import TransferTokens from "@/components/transfer-tokens";
 import { usePrivy } from "@privy-io/react-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 export default function ClaimPage() {
   const { login, authenticated, user } = usePrivy();
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [claiming, setClaiming] = useState(false);
 
   const userAddress = user?.wallet?.address;
@@ -50,6 +51,7 @@ export default function ClaimPage() {
     onSuccess: (data, address) => {
       toast.success(data.message || "NFT claimed successfully! 🎉");
       queryClient.invalidateQueries({ queryKey: ["claim-status", address] });
+      router.push("/claim/success");
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to claim NFT");
@@ -74,8 +76,13 @@ export default function ClaimPage() {
   };
 
   const hasClaimed = claimStatus?.hasClaimed;
-  const nftBalance = claimStatus?.nftBalance || "0";
-  const tokenBalance = claimStatus?.tokenBalance || "0";
+
+  // Redirect to success page if user has already claimed
+  useEffect(() => {
+    if (authenticated && hasClaimed) {
+      router.push("/claim/success");
+    }
+  }, [authenticated, hasClaimed, router]);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-white">
@@ -204,87 +211,7 @@ export default function ClaimPage() {
                         />
                       </button>
                     </div>
-                  ) : (
-                    <div
-                      className="w-full space-y-4 rounded-3xl border border-[#EDEDED] bg-white p-6"
-                      style={{
-                        boxShadow: "0 4px 8px 0 rgba(0, 0, 0, 0.08)",
-                      }}
-                    >
-                      <div className="flex items-center justify-center">
-                        <div className="rounded-full bg-green-100 p-4">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="48"
-                            height="48"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="text-green-600"
-                          >
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                        </div>
-                      </div>
-                      <h3 className="text-center font-pleasure text-xl font-bold text-[#313131]">
-                        Reward Claimed! 🎉
-                      </h3>
-                      <div className="space-y-2 text-left">
-                        <div className="flex items-center justify-between rounded-lg border border-[#EDEDED] bg-[#F9F9F9] p-3">
-                          <span className="text-sm font-grotesk text-[#7D7D7D]">
-                            NFT Balance:
-                          </span>
-                          <span className="font-grotesk font-semibold text-[#313131]">
-                            {nftBalance}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between rounded-lg border border-[#EDEDED] bg-[#F9F9F9] p-3">
-                          <span className="text-sm font-grotesk text-[#7D7D7D]">
-                            Token Balance:
-                          </span>
-                          <span className="font-grotesk font-semibold text-[#313131]">
-                            {(Number(tokenBalance) / 1e18).toFixed(2)} RWDTKN
-                          </span>
-                        </div>
-                      </div>
-                      <TransferTokens
-                        tokenBalance={tokenBalance}
-                        onTransferComplete={() => {
-                          queryClient.invalidateQueries({
-                            queryKey: ["claim-status", userAddress],
-                          });
-                        }}
-                      />
-                      {userAddress && (
-                        <a
-                          href={`https://basescan.org/address/${userAddress}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-2 rounded-full border border-[#313131] bg-white px-4 py-2 text-sm font-grotesk text-[#313131] transition hover:bg-[#F9F9F9]"
-                        >
-                          View on Basescan
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                            <polyline points="15 3 21 3 21 9"></polyline>
-                            <line x1="10" y1="14" x2="21" y2="3"></line>
-                          </svg>
-                        </a>
-                      )}
-                    </div>
-                  )}
+                  ) : null}
 
                   {isLoading && (
                     <p className="text-center text-sm font-grotesk text-[#7D7D7D]">
