@@ -236,7 +236,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
               {/* Call to Action Button */}
               <div className="w-full">
                 <Button
-                  onClick={() => router.push("/claim")}
+                  onClick={() => router.push("/leaderboard")}
                   className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
                 >
                   <span>Claim Your Reward</span>
