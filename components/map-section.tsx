@@ -62,7 +62,7 @@ export default function MapSection() {
       stencilRef.current,
       {
         opacity: 1,
-        duration: 0.3,
+        duration: 0.1,
         ease: "power2.inOut",
       },
       "+=0.1",

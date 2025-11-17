@@ -33,6 +33,7 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
       "/leaderboard": "Leaderboard",
       "/events": "Events",
       "/rewards": "Rewards",
+      "/faq": "FAQ",
     };
     return routeMap[path] || "Check-In Map";
   };
