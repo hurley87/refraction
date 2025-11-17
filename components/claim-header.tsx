@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { usePrivy } from "@privy-io/react-auth";
 
 export default function ClaimHeader() {
+  const { login, authenticated, ready } = usePrivy();
   return (
     <div className="flex justify-center px-4 pt-4">
       <div
@@ -29,15 +33,18 @@ export default function ClaimHeader() {
               />
             </Link>
           </div>
-          <Button
-            className="flex h-[40px] items-center gap-2 rounded-full bg-[#B5B5B5] px-3 py-2 transition hover:bg-[#B5B5B5]/80"
-            size="sm"
-            type="button"
-          >
-            <span className="body-small font-grotesk text-[#131313] uppercase">
-              Sign Up
-            </span>
-          </Button>
+          {ready && !authenticated && (
+            <Button
+              className="flex h-[40px] items-center gap-2 rounded-full bg-[#B5B5B5] px-3 py-2 transition hover:bg-[#B5B5B5]/80"
+              size="sm"
+              type="button"
+              onClick={login}
+            >
+              <span className="body-small font-grotesk text-[#131313] uppercase">
+                Sign Up
+              </span>
+            </Button>
+          )}
         </div>
       </div>
     </div>
