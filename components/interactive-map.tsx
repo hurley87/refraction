@@ -55,9 +55,15 @@ interface SearchLocationData {
 }
 
 const WELCOME_BANNER_STORAGE_KEY = "irl-map-welcome-dismissed";
+const WELCOME_BANNER_MAX_SHOWS = 3;
 const LOCATION_INSTRUCTION_STORAGE_KEY =
   "irl-location-create-instruction-count";
 const LOCATION_INSTRUCTION_LIMIT = 3;
+
+const getWelcomeBannerStorageKey = (wallet?: string | null) =>
+  wallet
+    ? `${WELCOME_BANNER_STORAGE_KEY}:${wallet}`
+    : WELCOME_BANNER_STORAGE_KEY;
 
 export default function InteractiveMap() {
   const { user } = usePrivy();
@@ -101,10 +107,16 @@ export default function InteractiveMap() {
   const [locationCheckinsError, setLocationCheckinsError] = useState<
     string | null
   >(null);
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   const mapRef = useRef<any>(null);
   const hasSetInitialLocationRef = useRef(false);
+  const walletAddressRef = useRef<string | null | undefined>(walletAddress);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  const [welcomeBannerViews, setWelcomeBannerViews] = useState(0);
   const [, setLocationInstructionShows] = useState(0);
 
   // Center map on user's current location once on mount (with fallback)
@@ -116,6 +128,7 @@ export default function InteractiveMap() {
       (position) => {
         hasSetInitialLocationRef.current = true;
         const { latitude, longitude } = position.coords;
+        setUserLocation({ latitude, longitude });
         setViewState((prev) => ({
           ...prev,
           latitude,
@@ -129,6 +142,11 @@ export default function InteractiveMap() {
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
     );
   }, []);
+
+  // Keep wallet address ref in sync
+  useEffect(() => {
+    walletAddressRef.current = walletAddress;
+  }, [walletAddress]);
 
   // Fetch user's username from database
   useEffect(() => {
@@ -154,10 +172,35 @@ export default function InteractiveMap() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const hasDismissed = window.localStorage.getItem(
-      WELCOME_BANNER_STORAGE_KEY,
-    );
-    if (!hasDismissed) {
+
+    // Check wallet-specific key first (if wallet is connected)
+    const welcomeKey = getWelcomeBannerStorageKey(walletAddress);
+    let storedViews = window.localStorage.getItem(welcomeKey);
+    let parsedViews = storedViews ? parseInt(storedViews, 10) : 0;
+
+    // If wallet is connected but no wallet-specific key exists, check the non-wallet key
+    // and migrate it to preserve the view count
+    if (walletAddress && (!storedViews || Number.isNaN(parsedViews))) {
+      const nonWalletKey = getWelcomeBannerStorageKey(null);
+      const nonWalletViews = window.localStorage.getItem(nonWalletKey);
+      const parsedNonWalletViews = nonWalletViews
+        ? parseInt(nonWalletViews, 10)
+        : 0;
+
+      if (!Number.isNaN(parsedNonWalletViews) && parsedNonWalletViews > 0) {
+        // Migrate the view count to the wallet-specific key
+        parsedViews = parsedNonWalletViews;
+        window.localStorage.setItem(welcomeKey, String(parsedViews));
+        // Optionally remove the old key to avoid confusion
+        window.localStorage.removeItem(nonWalletKey);
+      }
+    }
+
+    if (!Number.isNaN(parsedViews)) {
+      setWelcomeBannerViews(parsedViews);
+      setShowWelcomeBanner(parsedViews < WELCOME_BANNER_MAX_SHOWS);
+    } else {
+      setWelcomeBannerViews(0);
       setShowWelcomeBanner(true);
     }
 
@@ -170,11 +213,20 @@ export default function InteractiveMap() {
         setLocationInstructionShows(parsed);
       }
     }
-  }, []);
+  }, [walletAddress]);
 
   const dismissWelcomeBanner = () => {
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(WELCOME_BANNER_STORAGE_KEY, "1");
+      setWelcomeBannerViews((prev) => {
+        const next = Math.min(prev + 1, WELCOME_BANNER_MAX_SHOWS);
+        // Use ref to get current wallet address to avoid stale closure
+        const currentWalletAddress = walletAddressRef.current;
+        window.localStorage.setItem(
+          getWelcomeBannerStorageKey(currentWalletAddress),
+          String(next),
+        );
+        return next;
+      });
     }
     setShowWelcomeBanner(false);
   };
@@ -190,11 +242,12 @@ export default function InteractiveMap() {
           LOCATION_INSTRUCTION_STORAGE_KEY,
           String(next),
         );
-        // Only show welcome banner if user hasn't dismissed it
-        const hasDismissed = window.localStorage.getItem(
-          WELCOME_BANNER_STORAGE_KEY,
-        );
-        if (!hasDismissed) {
+        // Use ref to get current wallet address to avoid stale closure
+        const currentWalletAddress = walletAddressRef.current;
+        const welcomeKey = getWelcomeBannerStorageKey(currentWalletAddress);
+        const storedViews = window.localStorage.getItem(welcomeKey);
+        const parsed = storedViews ? parseInt(storedViews, 10) : 0;
+        if (Number.isNaN(parsed) || parsed < WELCOME_BANNER_MAX_SHOWS) {
           setShowWelcomeBanner(true);
         }
       }
@@ -443,6 +496,7 @@ export default function InteractiveMap() {
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const { latitude, longitude } = coords;
+        setUserLocation({ latitude, longitude });
         setViewState((prev) => ({
           ...prev,
           latitude,
@@ -1194,6 +1248,19 @@ export default function InteractiveMap() {
             anchor="bottom"
           >
             <div className="w-8 h-8 rounded-full border-2 shadow-md bg-yellow-400 border-white animate-pulse" />
+          </Marker>
+        )}
+
+        {userLocation && (
+          <Marker
+            latitude={userLocation.latitude}
+            longitude={userLocation.longitude}
+            anchor="center"
+          >
+            <div className="relative flex h-5 w-5 items-center justify-center">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400/70" />
+              <span className="relative inline-flex h-3 w-3 rounded-full border border-white bg-sky-500 dark:border-black" />
+            </div>
           </Marker>
         )}
       </Map>
