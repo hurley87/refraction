@@ -239,7 +239,7 @@ export default function ClaimNFTPage() {
                       <span
                         style={{
                           color: "var(--UI-White, #FFF)",
-                          fontFamily: '"Pleasure Variable Trial"',
+                          fontFamily: '"Pleasure"',
                           fontSize: "16px",
                           fontStyle: "normal",
                           fontWeight: 500,
@@ -362,7 +362,7 @@ export default function ClaimNFTPage() {
                    <span
                      style={{
                        color: "var(--UI-OffBlack, #131313)",
-                       fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
+                       fontFamily: '"ABC-Monument-Grotesk"',
                        fontSize: "11px",
                        fontStyle: "normal",
                        fontWeight: 500,
@@ -409,7 +409,7 @@ export default function ClaimNFTPage() {
                     className="text-left uppercase self-stretch"
                     style={{
                       color: "var(--Dark-Tint-60, #7D7D7D)",
-                      fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
+                      fontFamily: '"ABC-Monument-Grotesk"',
                       fontSize: "11px",
                       fontStyle: "normal",
                       fontWeight: 500,
@@ -424,7 +424,7 @@ export default function ClaimNFTPage() {
                     className="text-left self-stretch"
                     style={{
                       color: "var(--Dark-Tint-100, #313131)",
-                      fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
+                      fontFamily: '"ABC-Monument-Grotesk"',
                       fontSize: "16px",
                       fontStyle: "normal",
                       fontWeight: 400,
@@ -445,7 +445,7 @@ export default function ClaimNFTPage() {
                    <span
                      style={{
                        color: "var(--UI-OffBlack, #131313)",
-                       fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
+                       fontFamily: '"ABC-Monument-Grotesk"',
                        fontSize: "11px",
                        fontStyle: "normal",
                        fontWeight: 500,
@@ -501,7 +501,7 @@ export default function ClaimNFTPage() {
                     className="text-left uppercase self-stretch"
                     style={{
                       color: "var(--Dark-Tint-60, #7D7D7D)",
-                      fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
+                      fontFamily: '"ABC-Monument-Grotesk"',
                       fontSize: "11px",
                       fontStyle: "normal",
                       fontWeight: 500,
@@ -516,7 +516,7 @@ export default function ClaimNFTPage() {
                     className="text-left self-stretch"
                     style={{
                       color: "var(--Dark-Tint-100, #313131)",
-                      fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
+                      fontFamily: '"ABC-Monument-Grotesk"',
                       fontSize: "16px",
                       fontStyle: "normal",
                       fontWeight: 400,
@@ -540,7 +540,7 @@ export default function ClaimNFTPage() {
                    <span
                      style={{
                        color: "var(--UI-OffBlack, #131313)",
-                       fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
+                       fontFamily: '"ABC-Monument-Grotesk"',
                        fontSize: "11px",
                        fontStyle: "normal",
                        fontWeight: 500,

@@ -76,7 +76,7 @@ export default function ClaimLoginPage() {
                 style={{
                   color: "var(--UI-OffBlack, #131313)",
                   textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
-                  fontFamily: '"Pleasure Variable Trial"',
+                  fontFamily: '"Pleasure"',
                   fontSize: "25px",
                   fontStyle: "normal",
                   fontWeight: 500,
@@ -94,7 +94,7 @@ export default function ClaimLoginPage() {
                   color: "var(--UI-OffBlack, #131313)",
                   textTransform: "uppercase",
                   textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
-                  fontFamily: '"Pleasure Variable Trial"',
+                  fontFamily: '"Pleasure"',
                   fontSize: "48px",
                   fontStyle: "normal",
                   fontWeight: 700,
@@ -114,7 +114,7 @@ export default function ClaimLoginPage() {
                   <span
                     style={{
                       color: "var(--UI-White, #FFF)",
-                      fontFamily: '"Pleasure Variable Trial"',
+                      fontFamily: '"Pleasure"',
                       fontSize: "16px",
                       fontStyle: "normal",
                       fontWeight: 500,
