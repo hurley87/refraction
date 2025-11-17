@@ -88,7 +88,7 @@ export default function ClaimLoginPage() {
                 <br /> WalletCon Buenos Aires
               </p>
               <h1
-                className="mx-auto text-center"
+                className="mx-auto text-center font-pleasure"
                 style={{
                   width: "375px",
                   color: "var(--UI-OffBlack, #131313)",
