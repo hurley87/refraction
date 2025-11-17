@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Auth from "./auth";
+import Editorial from "./editorial";
 
 interface CheckpointProps {
   id: string;
@@ -180,7 +181,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
             </p>
             <Button
               onClick={() => router.push("/")}
-              className="text-black bg-yellow-300 rounded-full w-full font-inktrap py-3 text-lg hover:bg-yellow-400"
+              className="text-white bg-black rounded-full w-full font-inktrap py-3 text-lg hover:bg-yellow-400"
             >
               Visit IRL.ENERGY →
             </Button>
@@ -189,35 +190,31 @@ export default function Checkpoint({ id }: CheckpointProps) {
       )}
       {checkinStatus && !checkinError && (
         <div className="font-grotesk flex flex-col">
-          <div className="flex flex-col items-start py-8 gap-8 flex-1">
+          <div className="flex flex-col items-start py-8 gap-8 flex-1 max-w-xl mx-auto">
             {/* Main Title with Graphic */}
             <div className="relative w-full max-w-md flex items-center justify-center my-4 mx-auto">
               {/* Yellow Wireframe Box Graphic */}
-              <img
-                src="/yellow-points.png"
-                alt="Points earned graphic"
-                className="w-full h-auto object-contain"
-              />
+              <div className="w-full h-[200px] bg-transparent rounded-full"></div>
               {/* Overlapping Title */}
-              <h1 className="absolute inset-0 flex items-center justify-center text-5xl md:text-6xl font-bold text-white uppercase tracking-tight text-center font-inktrap z-10">
+              <h1 className="absolute inset-0 flex items-center justify-center text-5xl md:text-6xl font-bold  uppercase tracking-tight text-center font-inktrap z-10">
                 YOU EARNED POINTS
               </h1>
             </div>
 
             {/* Points Display */}
             <div className="flex gap-3 w-full mt-2 justify-between">
-              <p className="text-white text-xs uppercase tracking-wider font-grotesk pt-1">
+              <p className=" text-xs uppercase tracking-wider font-grotesk pt-1">
                 YOU EARNED
               </p>
               <div className="flex items-start gap-2">
                 <span
                   style={{ lineHeight: "0.6" }}
-                  className="text-7xl md:text-8xl font-bold text-white font-inktrap "
+                  className="text-7xl md:text-8xl font-bold  font-inktrap "
                 >
                   {100}
                 </span>
-                <div className="text-xs text-white font-grotesk uppercase flex flex-col items-end justify-end h-full">
-                  <span className="text-xs text-white font-grotesk uppercase bg-gray-500/40 rounded-full px-2.5 py-1 flex flex-col items-end justify-end h-fit">
+                <div className="text-xs  font-grotesk uppercase flex flex-col items-end justify-end h-full">
+                  <span className="text-xs  font-grotesk uppercase bg-gray-500/40 rounded-full px-2.5 py-1 flex flex-col items-end justify-end h-fit">
                     PTS
                   </span>
                 </div>
@@ -226,7 +223,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
             {/* Descriptive Text */}
             <div className="">
-              <p className="text-white text-sm leading-relaxed font-grotesk">
+              <p className=" text-sm leading-relaxed font-grotesk">
                 You’ve just gained access to events, rewards and bespoke
                 experiences.
               </p>
@@ -237,9 +234,9 @@ export default function Checkpoint({ id }: CheckpointProps) {
               <div className="w-full">
                 <Button
                   onClick={() => router.push("/leaderboard")}
-                  className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
+                  className="bg-black text-white rounded-full hover:bg-black/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
                 >
-                  <span>Claim Your Reward</span>
+                  <span>View leaderboard</span>
                   <Image
                     src="/home/arrow-right.svg"
                     alt="arrow-right"
@@ -254,20 +251,63 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
               {/* Footer - Powered by Refraction */}
               <div className="flex items-center justify-between w-full">
-                <p className="text-white text-xs uppercase tracking-wider font-inktrap opacity-80">
+                <p className=" text-xs uppercase tracking-wider font-inktrap opacity-80">
                   POWERED BY
                 </p>
-                <p className="text-white text-lg font-bold font-inktrap">
-                  REFRACTION
-                </p>
+                <p className=" text-lg font-bold font-inktrap">REFRACTION</p>
               </div>
+
+              {/* Add Your Location Card */}
+              <div className="bg-white rounded-2xl p-6 w-full mt-6 space-y-4">
+                <h2 className="text-lg font-light font-inktrap text-gray-900">
+                  Add Your Location and Check In
+                </h2>
+                <p
+                  style={{ marginTop: 0 }}
+                  className="text-sm text-gray-600 font-grotesk mt-0"
+                >
+                  Map a local spot to earn more points.
+                </p>
+                <Button
+                  onClick={() => router.push("/interactive-map")}
+                  className="bg-gray-100 text-gray-900 rounded-xl hover:bg-gray-200 w-full font-inktrap py-3 text-base flex items-center justify-between px-4"
+                >
+                  <span>Create New Location</span>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-gray-900"
+                  >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </Button>
+              </div>
+
+              {/* map image */}
+              <img src="/map.png" alt="Map Image" className="w-full h-auto" />
+
+              {/* Editorial Section */}
+              <Editorial />
+
+              {/* stencil image */}
+              <img
+                src="/Stencil.svg"
+                alt="Stencil Image"
+                className="w-full h-auto rounded-2xl"
+              />
             </div>
           </div>
         </div>
       )}
       {!checkinStatus && !checkinError && (
         <div className="flex items-center justify-center text-center w-full min-h-dvh font-inktrap text-2xl">
-          <div className="text-white">
+          <div className="">
             {isCheckingIn ? "Checking in..." : "Loading..."}
           </div>
         </div>

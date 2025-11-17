@@ -96,7 +96,7 @@ export default function Auth({ children }: AuthProps) {
     return (
       <div className="flex items-center justify-center w-full min-h-dvh px-4">
         <div className="w-full max-w-md text-center">
-          <p className="text-white text-xl font-inktrap mb-6">
+          <p className="text-xl font-inktrap mb-6">
             Link your email for updates
           </p>
           <Button
@@ -116,12 +116,12 @@ export default function Auth({ children }: AuthProps) {
     return (
       <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto min-h-dvh px-4 py-8">
         <div className="flex flex-col gap-6">
-          <p className="text-white text-lg font-inktrap text-center">
+          <p className="text-lg font-inktrap text-center">
             Choose your username to start earning points
           </p>
 
           <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/30">
-            <p className="text-sm text-white mb-3 font-inktrap uppercase">
+            <p className="text-sm mb-3 font-inktrap uppercase">
               ENTER YOUR USERNAME
             </p>
             <input
@@ -164,36 +164,32 @@ export default function Auth({ children }: AuthProps) {
 
   if (ready && !user) {
     return (
-      <div className="font-grotesk flex flex-col">
-        <div className="flex flex-col items-start py-8 gap-8 flex-1">
+      <div className="font-grotesk flex flex-col max-w-xl mx-auto">
+        <div className="flex flex-col items-start py-8 gap-8 flex-1 max-w-md mx-auto">
           {/* Main Title with Graphic */}
           <div className="relative w-full max-w-md flex items-center justify-center my-4 mx-auto">
             {/* Yellow Wireframe Box Graphic */}
-            <img
-              src="/yellow-points.png"
-              alt="Points earned graphic"
-              className="w-full h-auto object-contain"
-            />
+            <div className="w-full h-[200px] bg-transparent rounded-full"></div>
             {/* Overlapping Title */}
-            <h1 className="absolute inset-0 flex items-center justify-center text-5xl md:text-6xl font-bold text-white uppercase tracking-tight text-center font-inktrap z-10">
+            <h1 className="absolute inset-0 flex items-center justify-center text-5xl md:text-6xl font-bold uppercase tracking-tight text-center font-inktrap z-10">
               YOU EARNED POINTS
             </h1>
           </div>
 
           {/* Points Display */}
           <div className="flex gap-3 w-full mt-2 justify-between">
-            <p className="text-white text-xs uppercase tracking-wider font-grotesk pt-1">
+            <p className="text-xs uppercase tracking-wider font-grotesk pt-1">
               YOU EARNED
             </p>
             <div className="flex items-start gap-2">
               <span
                 style={{ lineHeight: "0.6" }}
-                className="text-7xl md:text-8xl font-bold text-white font-inktrap "
+                className="text-7xl md:text-8xl font-bold font-inktrap "
               >
                 {100}
               </span>
-              <div className="text-xs text-white font-grotesk uppercase flex flex-col items-end justify-end h-full">
-                <span className="text-xs text-white font-grotesk uppercase bg-gray-500/40 rounded-full px-2.5 py-1 flex flex-col items-end justify-end h-fit">
+              <div className="text-xs font-grotesk uppercase flex flex-col items-end justify-end h-full">
+                <span className="text-xs font-grotesk uppercase bg-gray-500/40 rounded-full px-2.5 py-1 flex flex-col items-end justify-end h-fit">
                   PTS
                 </span>
               </div>
@@ -202,7 +198,7 @@ export default function Auth({ children }: AuthProps) {
 
           {/* Descriptive Text */}
           <div className="">
-            <p className="text-white text-sm leading-relaxed font-grotesk">
+            <p className="text-sm leading-relaxed font-grotesk">
               You&apos;ve just gained access to events, rewards and bespoke
               experiences. Sign Up to save these points and join a global
               network lorem ipsum.
@@ -214,7 +210,7 @@ export default function Auth({ children }: AuthProps) {
             <div className="w-full">
               <Button
                 onClick={login}
-                className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
+                className="bg-black text-white rounded-full hover:bg-black/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
               >
                 <span>Create Your Profile and Save</span>
                 <Image
@@ -231,12 +227,10 @@ export default function Auth({ children }: AuthProps) {
 
             {/* Footer - Powered by Refraction */}
             <div className="flex items-center justify-between w-full">
-              <p className="text-white text-xs uppercase tracking-wider font-inktrap opacity-80">
+              <p className="text-xs uppercase tracking-wider font-inktrap opacity-80">
                 POWERED BY
               </p>
-              <p className="text-white text-lg font-bold font-inktrap">
-                REFRACTION
-              </p>
+              <p className="text-lg font-bold font-inktrap">REFRACTION</p>
             </div>
           </div>
         </div>

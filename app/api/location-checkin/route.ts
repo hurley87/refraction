@@ -10,23 +10,33 @@ import {
   type Location,
 } from "@/lib/supabase";
 
+const MAX_VARCHAR_LENGTH = 255;
+
+const sanitizeString = (
+  value: unknown,
+  maxLength: number = MAX_VARCHAR_LENGTH,
+): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return trimmed.slice(0, maxLength);
+};
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      walletAddress,
-      email,
-      username,
-      locationData,
-      comment,
-      imageUrl,
-    } = body;
+    const { walletAddress, email, username, locationData, comment, imageUrl } =
+      body;
 
     // Validate required fields
     if (!walletAddress || !locationData) {
       return NextResponse.json(
         { error: "Wallet address and location data are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -34,10 +44,54 @@ export async function POST(request: NextRequest) {
     const { place_id, display_name, name, lat, lon, type, context } =
       locationData;
 
-    if (!place_id || !display_name || !lat || !lon) {
+    const sanitizedPlaceId = sanitizeString(place_id);
+    const sanitizedDisplayName = sanitizeString(display_name);
+    const sanitizedName =
+      sanitizeString(name) ?? sanitizedDisplayName ?? sanitizeString(place_id);
+    const sanitizedType = sanitizeString(type);
+    const sanitizedContext =
+      sanitizeString(context) ??
+      (context && typeof context === "object"
+        ? sanitizeString(JSON.stringify(context))
+        : undefined);
+
+    // Validate and parse latitude and longitude
+    // Check that lat and lon are provided (not null/undefined) but allow 0 as valid
+    if (
+      lat === null ||
+      lat === undefined ||
+      lon === null ||
+      lon === undefined
+    ) {
       return NextResponse.json(
         { error: "Invalid location data" },
-        { status: 400 }
+        { status: 400 },
+      );
+    }
+
+    const parsedLat =
+      typeof lat === "string" || typeof lat === "number"
+        ? parseFloat(String(lat))
+        : NaN;
+    const parsedLon =
+      typeof lon === "string" || typeof lon === "number"
+        ? parseFloat(String(lon))
+        : NaN;
+
+    if (
+      !sanitizedPlaceId ||
+      !sanitizedDisplayName ||
+      !sanitizedName ||
+      Number.isNaN(parsedLat) ||
+      Number.isNaN(parsedLon) ||
+      parsedLat < -90 ||
+      parsedLat > 90 ||
+      parsedLon < -180 ||
+      parsedLon > 180
+    ) {
+      return NextResponse.json(
+        { error: "Invalid location data" },
+        { status: 400 },
       );
     }
 
@@ -53,14 +107,14 @@ export async function POST(request: NextRequest) {
 
     // Create or get location
     const locationInfo: Omit<Location, "id" | "created_at"> = {
-      place_id,
-      display_name,
-      name: name || display_name,
-      latitude: parseFloat(lat),
-      longitude: parseFloat(lon),
+      place_id: sanitizedPlaceId,
+      display_name: sanitizedDisplayName,
+      name: sanitizedName,
+      latitude: parsedLat,
+      longitude: parsedLon,
       points_value: 100, // Each location is worth 100 points
-      type: type || "location",
-      context: context || undefined,
+      type: sanitizedType || "location",
+      context: sanitizedContext,
     };
 
     const location = await createOrGetLocation(locationInfo);
@@ -77,7 +131,7 @@ export async function POST(request: NextRequest) {
     // Check if user has already checked in at this location
     const existingCheckin = await checkUserLocationCheckin(
       player.id,
-      location.id
+      location.id,
     );
 
     if (existingCheckin) {
@@ -86,7 +140,7 @@ export async function POST(request: NextRequest) {
           error: "You have already checked in at this location",
           alreadyCheckedIn: true,
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -103,7 +157,7 @@ export async function POST(request: NextRequest) {
     // Update player points
     const updatedPlayer = await updatePlayerPoints(
       player.id,
-      location.points_value
+      location.points_value,
     );
 
     return NextResponse.json({
@@ -118,7 +172,7 @@ export async function POST(request: NextRequest) {
     console.error("Location checkin API error:", error);
     return NextResponse.json(
       { error: "Failed to process location checkin" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -131,7 +185,7 @@ export async function GET(request: NextRequest) {
     if (!walletAddress) {
       return NextResponse.json(
         { error: "Wallet address is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -149,7 +203,7 @@ export async function GET(request: NextRequest) {
     console.error("Get player API error:", error);
     return NextResponse.json(
       { error: "Failed to get player data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

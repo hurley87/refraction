@@ -17,7 +17,10 @@ export default function RootLayout({
       <div
         className="flex flex-col gap-6 min-h-screen p-4"
         style={{
-          background: "linear-gradient(0deg, #61BFD1 0%, #EE91B7 100%)",
+          background: "url('/bg-funky.png') no-repeat center center fixed",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
         }}
       >
         <Auth>{children}</Auth>
