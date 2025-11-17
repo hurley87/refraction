@@ -150,7 +150,7 @@ export default function ClaimFooter() {
               className="flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-[#131313]/10"
               aria-label="Join us on Telegram"
             >
-              <Image src="/Telegram.png" alt="Telegram" width={48} height={48} />
+              <Image src="/telegram-black.svg" alt="Telegram" width={48} height={48} />
             </a>
           </div>
         </div>

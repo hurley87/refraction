@@ -40,9 +40,22 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'ABC Monument Grotesk Semi-Mono Unlicensed Trial';
+  src: url('/fonts/ABCMonumentGroteskSemi-Mono-Regular-Trial.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 
 @font-face {
   font-family: 'Pleasure';
+  src: url('/fonts/Pleasure-Variable-Trial.ttf') format('truetype');
+  font-weight: normal;
+}
+
+@font-face {
+  font-family: 'Pleasure Variable Trial';
   src: url('/fonts/Pleasure-Variable-Trial.ttf') format('truetype');
   font-weight: normal;
 }
