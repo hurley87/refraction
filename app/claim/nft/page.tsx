@@ -184,7 +184,7 @@ export default function ClaimNFTPage() {
                   color: "var(--UI-OffBlack, #131313)",
                   textTransform: "uppercase",
                   textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
-                  fontFamily: '"Pleasure Variable Trial"',
+                  fontFamily: '"Inktrap"',
                   fontSize: "48px",
                   fontStyle: "normal",
                   fontWeight: 700,
@@ -195,7 +195,7 @@ export default function ClaimNFTPage() {
                 JUAN PEDRO VALLEJO
               </h1>
               <p
-                className="mx-auto text-center"
+                className="mx-auto text-center font-inktrap"
                 style={{
                   color: "var(--UI-OffBlack, #131313)",
                   textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
@@ -216,7 +216,7 @@ export default function ClaimNFTPage() {
                   color: "var(--UI-OffBlack, #131313)",
                   textTransform: "uppercase",
                   textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
-                  fontFamily: '"Pleasure Variable Trial"',
+                  fontFamily: '"Inktrap"',
                   fontSize: "48px",
                   fontStyle: "normal",
                   fontWeight: 700,

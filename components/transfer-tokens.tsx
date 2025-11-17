@@ -17,12 +17,16 @@ interface TransferTokensProps {
   tokenBalance: string;
   onTransferComplete?: () => void;
   buttonClassName?: string;
+  buttonFontFamily?: string;
+  buttonText?: string;
 }
 
 export default function TransferTokens({
   tokenBalance,
   onTransferComplete,
   buttonClassName,
+  buttonFontFamily,
+  buttonText = "Transfer Tokens",
 }: TransferTokensProps) {
   const { user } = usePrivy();
   const { wallets } = useWallets();
@@ -267,7 +271,15 @@ export default function TransferTokens({
           onClick={() => setIsOpen(true)}
           className={buttonClassName || "flex w-full items-center justify-center gap-2 rounded-full border border-[#313131] bg-white px-4 py-2 text-sm font-grotesk text-[#313131] transition hover:bg-[#F9F9F9]"}
         >
-          Transfer Tokens
+          <span
+            style={
+              buttonFontFamily
+                ? { fontFamily: buttonFontFamily }
+                : undefined
+            }
+          >
+            {buttonText}
+          </span>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
