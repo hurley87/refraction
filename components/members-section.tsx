@@ -21,14 +21,12 @@ interface MembersSectionProps {
    * Optional click handlers for each button (will be called in addition to navigation)
    */
   onBecomeMemberClick?: () => void;
-  onEditorialClick?: () => void;
   onFAQClick?: () => void;
   onBecomePartnerClick?: () => void;
   /**
    * Optional custom URLs for each link
    */
   becomeMemberUrl?: string;
-  editorialUrl?: string;
   faqUrl?: string;
   becomePartnerUrl?: string;
 }
@@ -41,11 +39,9 @@ export default function MembersSection({
   colorScheme = "dark",
   className = "",
   onBecomeMemberClick,
-  onEditorialClick,
   onFAQClick,
   onBecomePartnerClick,
   becomeMemberUrl = "https://airtable.com/appygGt0rRgfh6qxA/shrkshw6J2OMYuae7",
-  editorialUrl,
   faqUrl = "/faq",
   becomePartnerUrl = "/partners",
 }: MembersSectionProps) {
@@ -56,7 +52,6 @@ export default function MembersSection({
   const longestText = "Frequently Asked Questions →";
   const linkTexts = {
     becomeMember: "Become A Founding Member →".padEnd(longestText.length, " "),
-    editorial: "Editorial →".padEnd(longestText.length, " "),
     faq: longestText,
     becomePartner: "Become An IRL Partner →".padEnd(longestText.length, " "),
   };
@@ -123,29 +118,6 @@ export default function MembersSection({
                   className={buttonClasses}
                 >
                   {linkTexts.becomeMember}
-                </button>
-              )}
-            </div>
-
-            {/* Editorial */}
-            <div className="flex justify-center">
-              {editorialUrl ? (
-                <Link
-                  href={editorialUrl}
-                  target={editorialUrl.startsWith("http") ? "_blank" : undefined}
-                  rel={editorialUrl.startsWith("http") ? "noopener noreferrer" : undefined}
-                  onClick={onEditorialClick}
-                  className={buttonClasses}
-                >
-                  {linkTexts.editorial}
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onEditorialClick}
-                  className={buttonClasses}
-                >
-                  {linkTexts.editorial}
                 </button>
               )}
             </div>
@@ -219,27 +191,6 @@ export default function MembersSection({
                 className={buttonClasses}
               >
                 {linkTexts.becomeMember}
-              </button>
-            )}
-
-            {/* Editorial */}
-            {editorialUrl ? (
-              <Link
-                href={editorialUrl}
-                target={editorialUrl.startsWith("http") ? "_blank" : undefined}
-                rel={editorialUrl.startsWith("http") ? "noopener noreferrer" : undefined}
-                onClick={onEditorialClick}
-                className={buttonClasses}
-              >
-                {linkTexts.editorial}
-              </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={onEditorialClick}
-                className={buttonClasses}
-              >
-                {linkTexts.editorial}
               </button>
             )}
 
