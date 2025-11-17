@@ -116,6 +116,7 @@ export default function InteractiveMap() {
   const hasSetInitialLocationRef = useRef(false);
   const walletAddressRef = useRef<string | null | undefined>(walletAddress);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [welcomeBannerViews, setWelcomeBannerViews] = useState(0);
   const [, setLocationInstructionShows] = useState(0);
 
@@ -175,7 +176,7 @@ export default function InteractiveMap() {
 
     // Check wallet-specific key first (if wallet is connected)
     const welcomeKey = getWelcomeBannerStorageKey(walletAddress);
-    let storedViews = window.localStorage.getItem(welcomeKey);
+    const storedViews = window.localStorage.getItem(welcomeKey);
     let parsedViews = storedViews ? parseInt(storedViews, 10) : 0;
 
     // If wallet is connected but no wallet-specific key exists, check the non-wallet key
