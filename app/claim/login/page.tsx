@@ -109,7 +109,7 @@ export default function ClaimLoginPage() {
                 <button
                   type="button"
                   onClick={login}
-                  className="flex w-[260px] h-12 py-2 pl-4 pr-1 justify-between items-center shrink-0 rounded-full bg-[#307FE2] font-pleasure text-white transition hover:bg-[#307FE2]/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+                  className="flex w-[260px] h-12 py-2 pl-4 pr-1 justify-between items-center shrink-0 rounded-full bg-[#307FE2]  text-white transition hover:bg-[#307FE2]/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black font-pleasure"
                 >
                   <span
                     style={{
