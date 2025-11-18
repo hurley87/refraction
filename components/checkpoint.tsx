@@ -224,8 +224,8 @@ export default function Checkpoint({ id }: CheckpointProps) {
             {/* Descriptive Text */}
             <div className="">
               <p className=" text-sm leading-relaxed font-grotesk">
-                You’ve just gained access to events, rewards and bespoke
-                experiences.
+                IRL gives you access to global cultural intel. Discover curated
+                places and events around the world, and earn real rewards.
               </p>
             </div>
 
