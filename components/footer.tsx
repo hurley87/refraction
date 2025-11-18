@@ -55,7 +55,7 @@ export default function Footer() {
 
   return (
     <footer className="relative w-full max-w-md mx-auto bg-[#131313] text-white">
-      <div className="relative min-h-[600px] w-full overflow-hidden pb-8 pt-16">
+      <div className="relative min-h-[600px] w-full overflow-hidden pb-8 pt-20">
         <img
           src="/irl-footer-black-bg.svg"
           alt="irl"

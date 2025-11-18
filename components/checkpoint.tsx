@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Auth from "./auth";
 import Editorial from "./editorial";
+import Footer from "./footer";
 
 interface CheckpointProps {
   id: string;
@@ -190,7 +191,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
       )}
       {checkinStatus && !checkinError && (
         <div className="font-grotesk flex flex-col">
-          <div className="flex flex-col items-start py-8 gap-8 flex-1 max-w-xl mx-auto">
+          <div className="flex flex-col items-start pt-8  gap-8 flex-1 max-w-xl mx-auto">
             {/* Main Title with Graphic */}
             <div className="relative w-full max-w-md flex items-center justify-center my-4 mx-auto">
               {/* Yellow Wireframe Box Graphic */}
@@ -301,6 +302,11 @@ export default function Checkpoint({ id }: CheckpointProps) {
                 alt="Stencil Image"
                 className="w-full h-auto rounded-2xl"
               />
+              <div className="w-full max-w-xl mx-auto p-0">
+                <div className="rounded-2xl overflow-hidden w-full [&>footer]:max-w-none [&>footer]:mx-0 [&>footer]:rounded-2xl">
+                  <Footer />
+                </div>
+              </div>
             </div>
           </div>
         </div>

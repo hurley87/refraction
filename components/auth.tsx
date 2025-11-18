@@ -201,7 +201,7 @@ export default function Auth({ children }: AuthProps) {
             <p className="text-sm leading-relaxed font-grotesk">
               You&apos;ve just gained access to events, rewards and bespoke
               experiences. Sign Up to save these points and join a global
-              network lorem ipsum.
+              network.
             </p>
           </div>
 
