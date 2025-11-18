@@ -7,7 +7,6 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Auth from "./auth";
-import Editorial from "./editorial";
 import Footer from "./footer";
 
 interface CheckpointProps {
@@ -292,9 +291,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
 
               {/* map image */}
               <img src="/map.png" alt="Map Image" className="w-full h-auto" />
-
-              {/* Editorial Section */}
-              <Editorial />
 
               {/* stencil image */}
               <img
