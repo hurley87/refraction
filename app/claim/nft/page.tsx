@@ -149,9 +149,9 @@ export default function ClaimNFTPage() {
                   </div>
                   {/* WCT logo on bottom left edge, on top of video */}
                   <div className="absolute bottom-0 left-0 z-20 -translate-x-1/2 translate-y-1/2">
-                    <div className="w-75 h-75">
+                    <div className="w-32 h-32">
                       <img
-                        src="/wct/wct.svg"
+                        src="/wct/walletconnect-logo.png"
                         alt="WCT"
                         className="w-full h-full object-contain drop-shadow-lg"
                         draggable={false}
@@ -210,7 +210,7 @@ export default function ClaimNFTPage() {
                 As Well As
               </p>
               <h1
-                className="mx-auto text-center whitespace-nowrap"
+                className="mx-auto text-center "
                 style={{
                   width: "375px",
                   color: "var(--UI-OffBlack, #131313)",
