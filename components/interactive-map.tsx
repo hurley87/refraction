@@ -2161,11 +2161,6 @@ export default function InteractiveMap() {
                         >
                           Location created successfully.
                         </p>
-                        <p className="text-xs text-white/80 font-inktrap">
-                          {pointsEarned.checkIn > 0
-                            ? `Check-in complete — earned ${pointsEarned.checkIn} bonus points.`
-                            : "No check-in was submitted. You can check in anytime from the map."}
-                        </p>
                       </div>
                     </div>
                   </div>
