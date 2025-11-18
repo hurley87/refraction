@@ -172,28 +172,8 @@ export default function Auth({ children }: AuthProps) {
             <div className="w-full h-[200px] bg-transparent rounded-full"></div>
             {/* Overlapping Title */}
             <h1 className="absolute inset-0 flex items-center justify-center text-5xl md:text-6xl font-bold uppercase tracking-tight text-center font-inktrap z-10">
-              YOU EARNED POINTS
+              {`Welcome to Valerie’s Factory`}
             </h1>
-          </div>
-
-          {/* Points Display */}
-          <div className="flex gap-3 w-full mt-2 justify-between">
-            <p className="text-xs uppercase tracking-wider font-grotesk pt-1">
-              YOU EARNED
-            </p>
-            <div className="flex items-start gap-2">
-              <span
-                style={{ lineHeight: "0.6" }}
-                className="text-7xl md:text-8xl font-bold font-inktrap "
-              >
-                {100}
-              </span>
-              <div className="text-xs font-grotesk uppercase flex flex-col items-end justify-end h-full">
-                <span className="text-xs font-grotesk uppercase bg-gray-500/40 rounded-full px-2.5 py-1 flex flex-col items-end justify-end h-fit">
-                  PTS
-                </span>
-              </div>
-            </div>
           </div>
 
           {/* Descriptive Text */}
@@ -210,9 +190,9 @@ export default function Auth({ children }: AuthProps) {
             <div className="w-full">
               <Button
                 onClick={login}
-                className="bg-black text-white rounded-full hover:bg-black/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
+                className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
               >
-                <span>Create Your Profile and Save</span>
+                <span>Login to Claim Your Wristband</span>
                 <Image
                   src="/home/arrow-right.svg"
                   alt="arrow-right"

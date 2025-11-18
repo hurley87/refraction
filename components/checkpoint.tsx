@@ -197,7 +197,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
               <div className="w-full h-[200px] bg-transparent rounded-full"></div>
               {/* Overlapping Title */}
               <h1 className="absolute inset-0 flex items-center justify-center text-5xl md:text-6xl font-bold  uppercase tracking-tight text-center font-inktrap z-10">
-                YOU EARNED POINTS
+                YOU’RE IN
               </h1>
             </div>
 
@@ -224,8 +224,9 @@ export default function Checkpoint({ id }: CheckpointProps) {
             {/* Descriptive Text */}
             <div className="">
               <p className=" text-sm leading-relaxed font-grotesk">
-                IRL gives you access to global cultural intel. Discover curated
-                places and events around the world, and earn real rewards.
+                IRL gives you access to global cultural intel — discover curated
+                places and events worldwide and earn points toward real rewards
+                and the $IRL airdrop.
               </p>
             </div>
 
@@ -233,10 +234,10 @@ export default function Checkpoint({ id }: CheckpointProps) {
               {/* Call to Action Button */}
               <div className="w-full">
                 <Button
-                  onClick={() => router.push("/leaderboard")}
-                  className="bg-black text-white rounded-full hover:bg-black/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
+                  onClick={() => router.push("/")}
+                  className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
                 >
-                  <span>View leaderboard</span>
+                  <span>The Internet is Dead. Go IRL</span>
                   <Image
                     src="/home/arrow-right.svg"
                     alt="arrow-right"
@@ -257,40 +258,54 @@ export default function Checkpoint({ id }: CheckpointProps) {
                 <p className=" text-lg font-bold font-inktrap">REFRACTION</p>
               </div>
 
-              {/* Add Your Location Card */}
-              <div className="bg-white rounded-2xl p-6 w-full mt-6 space-y-4">
-                <h2 className="text-lg font-light font-inktrap text-gray-900">
-                  Add Your Location and Check In
+              {/* With support from section */}
+              <div className="w-full py-8">
+                <h2 className="text-xs uppercase tracking-wider font-inktrap opacity-80 mb-6 text-center">
+                  With support from
                 </h2>
-                <p
-                  style={{ marginTop: 0 }}
-                  className="text-sm text-gray-600 font-grotesk mt-0"
-                >
-                  Map a local spot to earn more points.
-                </p>
-                <Button
-                  onClick={() => router.push("/interactive-map")}
-                  className="bg-gray-100 text-gray-900 rounded-xl hover:bg-gray-200 w-full font-inktrap py-3 text-base flex items-center justify-between px-4"
-                >
-                  <span>Create New Location</span>
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-gray-900"
-                  >
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </Button>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 items-center justify-items-center">
+                  <img
+                    src="/partners/artdao logo.svg"
+                    alt="ArtDAO"
+                    className="object-contain h-12 opacity-80 hover:opacity-100 transition-opacity"
+                  />
+                  <Image
+                    src="/partners/FWB.png"
+                    alt="FWB"
+                    width={120}
+                    height={60}
+                    className="object-contain h-12 opacity-80 hover:opacity-100 transition-opacity"
+                  />
+                  <Image
+                    src="/partners/image-.png"
+                    alt="Partner"
+                    width={120}
+                    height={60}
+                    className="object-contain h-12 opacity-80 hover:opacity-100 transition-opacity"
+                  />
+                  <Image
+                    src="/partners/valeries logo.png"
+                    alt="Valeries"
+                    width={120}
+                    height={60}
+                    className="object-contain h-12 opacity-80 hover:opacity-100 transition-opacity"
+                  />
+                  <Image
+                    src="/partners/zerion-lockup.png"
+                    alt="Zerion"
+                    width={120}
+                    height={60}
+                    className="object-contain h-12 opacity-80 hover:opacity-100 transition-opacity"
+                  />
+                  <Image
+                    src="/partners/Zora Wordmark Black.png"
+                    alt="Zora"
+                    width={120}
+                    height={60}
+                    className="object-contain h-12 opacity-80 hover:opacity-100 transition-opacity"
+                  />
+                </div>
               </div>
-
-              {/* map image */}
-              <img src="/map.png" alt="Map Image" className="w-full h-auto" />
 
               {/* stencil image */}
               <img

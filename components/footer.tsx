@@ -55,15 +55,15 @@ export default function Footer() {
 
   return (
     <footer className="relative w-full max-w-md mx-auto bg-[#131313] text-white">
-      <div className="relative min-h-[600px] w-full overflow-hidden pb-8 pt-20">
+      <div className="relative min-h-[600px] w-full overflow-hidden pb-8 pt-20 md:min-h-[700px] md:pb-24">
         <img
           src="/irl-footer-black-bg.svg"
           alt="irl"
-          className="w-full h-auto mt-6 max-w-full object-contain absolute bottom-0 left-0"
+          className="w-full h-auto mt-6 max-w-full object-contain absolute bottom-0 left-0 md:scale-75 md:translate-y-8 md:opacity-50"
         />
 
         {/* Footer content section */}
-        <div className="relative z-20 mx-auto flex max-w-md flex-col gap-8 px-6">
+        <div className="relative z-20 mx-auto flex max-w-md flex-col gap-8 px-6 md:gap-6">
           {/* Social media links */}
           <div className="flex flex-col gap-3">
             <p className="text-center text-[11px] font-medium uppercase tracking-[0.44px] text-[#ededed]">
@@ -175,7 +175,7 @@ export default function Footer() {
           </div>
 
           {/* Newsletter section */}
-          <div className="flex w-full flex-col items-center gap-4">
+          <div className="flex w-full flex-col items-center gap-4 md:mt-4 md:mb-12">
             <p className="text-center text-[11px] font-medium uppercase tracking-[0.44px] text-[#b5b5b5]">
               Stay Up to Date With Our Newsletter
             </p>
