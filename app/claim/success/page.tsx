@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ClaimHeader from "@/components/claim-header";
 import Footer from "@/components/footer";
