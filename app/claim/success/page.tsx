@@ -139,7 +139,7 @@ export default function ClaimSuccessPage() {
             </div>
 
             {/* Members Section */}
-            <MembersSection variant="left-aligned" />
+            <MembersSection variant="centered" />
 
           </div>
         </main>

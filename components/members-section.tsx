@@ -84,8 +84,8 @@ export default function MembersSection({
 
   const venuesTitleClasses = isCentered
     ? isDark
-      ? "text-white body-small font-grotesk"
-      : "text-[#313131] body-small font-grotesk"
+      ? "text-white body-small font-grotesk text-center"
+      : "text-[#313131] body-small font-grotesk text-center"
     : isDark
       ? "body-small font-grotesk text-center text-white"
       : "body-small font-grotesk text-center text-[#313131]";
