@@ -351,12 +351,15 @@ export default function ClaimNFTPage() {
                    <br />
                    Vallejo considers the screen a material in his practice, sculpting systems through unique possibilities and permutations.
                  </p>
-                 <button
-                   type="button"
+                 <a
+                   href="https://www.instagram.com/vallejo.juanpedro/"
+                   target="_blank"
+                   rel="noopener noreferrer"
                    className="flex h-7 items-center gap-2 rounded-full self-start"
                    style={{
                      padding: "4px 16px 4px 8px",
                      background: "var(--Dark-Tint-20, #EDEDED)",
+                     textDecoration: "none",
                    }}
                  >
                    <span
@@ -371,7 +374,7 @@ export default function ClaimNFTPage() {
                        textTransform: "uppercase",
                      }}
                    >
-                     BIO
+                     INSTAGRAM
                     </span>
                     <Image
                       src="/arrow-diag-right.svg"
@@ -380,7 +383,7 @@ export default function ClaimNFTPage() {
                       height={16}
                       className="w-4 h-4"
                     />
-                   </button>
+                   </a>
                  <div
                    className="w-full"
                    style={{
@@ -434,12 +437,15 @@ export default function ClaimNFTPage() {
                   >
                     WCT is the native token of the WalletConnect Network and secures the network via staking, rewards, fees, and governance.
                   </p>
-                  <button
-                   type="button"
+                  <a
+                   href="https://docs.walletconnect.network/token-dynamics/intro"
+                   target="_blank"
+                   rel="noopener noreferrer"
                    className="flex h-7 items-center gap-2 rounded-full self-start"
                    style={{
                      padding: "4px 16px 4px 8px",
                      background: "var(--Dark-Tint-20, #EDEDED)",
+                     textDecoration: "none",
                    }}
                  >
                    <span
@@ -463,7 +469,7 @@ export default function ClaimNFTPage() {
                       height={16}
                       className="w-4 h-4"
                     />
-                   </button>
+                   </a>
                   <div
                    className="w-full"
                    style={{
@@ -568,7 +574,7 @@ export default function ClaimNFTPage() {
               </div>
             </div>
 
-            <MembersSection variant="left-aligned" colorScheme="light" />
+            <MembersSection variant="centered" colorScheme="light" />
           </div>
         </main>
 

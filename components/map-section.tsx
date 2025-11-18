@@ -346,8 +346,7 @@ export default function MapSection() {
               className="text-[13px] md:text-[16px] leading-[20px] md:leading-[24px] tracking-[-0.26px] md:tracking-[-0.32px] text-[#b5b5b5] text-center font-mono"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}
             >
-              Each visit, ticket, or drink you buy earns IRL Points, with extra
-              rewards and lower prices when you pay using $IRL.
+              Pay using $IRL to get lower prices on each ticket or drink you buy, and earn IRL Points for every dollar spent.
             </p>
             <div className="mt-2"></div>
           </div>

@@ -6,7 +6,7 @@ import ClaimHeader from "@/components/claim-header";
 import Footer from "@/components/footer";
 import TransferTokens from "@/components/transfer-tokens";
 import MembersSection from "@/components/members-section";
-import SuccessAnimation from "@/components/success-animation";
+import Image from "next/image";
 import { usePrivy } from "@privy-io/react-auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -73,7 +73,14 @@ export default function ClaimSuccessPage() {
           <div className="relative mx-auto flex w-full max-w-[393px] flex-col items-center gap-16 text-center">
             <div className="space-y-6 pt-[100px]">
               <div className="flex w-full max-w-[375px] flex-col items-center gap-4 self-stretch px-4 pt-[34px]">
-                <SuccessAnimation variant="Default" className="mx-auto" />
+                <Image
+                  src="/wct/final-art.jpg"
+                  alt="Claimed artwork"
+                  width={375}
+                  height={375}
+                  className="mx-auto w-full max-w-[375px] object-contain"
+                  unoptimized
+                />
                 <div className="h-[50px]" aria-hidden="true"></div>
                 <h2
                   className="text-center text-white font-pleasure font-bold"
