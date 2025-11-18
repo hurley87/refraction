@@ -169,20 +169,10 @@ export default function Auth({ children }: AuthProps) {
           {/* Main Title with Graphic */}
           <div className="relative w-full max-w-md flex items-center justify-center my-4 mx-auto">
             {/* Yellow Wireframe Box Graphic */}
-            <div className="w-full h-[200px] bg-transparent rounded-full"></div>
             {/* Overlapping Title */}
-            <h1 className="absolute inset-0 flex items-center justify-center text-5xl md:text-6xl font-bold uppercase tracking-tight text-center font-inktrap z-10">
+            <h1 className=" flex items-center justify-center text-4xl md:text-5xl font-bold uppercase tracking-tight text-center font-inktrap z-10 my-6">
               {`Welcome to Valerie’s Factory`}
             </h1>
-          </div>
-
-          {/* Descriptive Text */}
-          <div className="">
-            <p className="text-sm leading-relaxed font-grotesk">
-              You&apos;ve just gained access to events, rewards and bespoke
-              experiences. Sign Up to save these points and join a global
-              network.
-            </p>
           </div>
 
           <div className="flex flex-col gap-1 w-full">
@@ -192,7 +182,7 @@ export default function Auth({ children }: AuthProps) {
                 onClick={login}
                 className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
               >
-                <span>Login to Claim Your Wristband</span>
+                <span>Log in to Claim Your Wristband</span>
                 <Image
                   src="/home/arrow-right.svg"
                   alt="arrow-right"

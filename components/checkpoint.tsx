@@ -192,13 +192,15 @@ export default function Checkpoint({ id }: CheckpointProps) {
         <div className="font-grotesk flex flex-col">
           <div className="flex flex-col items-start pt-8  gap-8 flex-1 max-w-xl mx-auto">
             {/* Main Title with Graphic */}
-            <div className="relative w-full max-w-md flex items-center justify-center my-4 mx-auto">
+            <div className="relative w-full max-w-md my-10 mx-auto">
               {/* Yellow Wireframe Box Graphic */}
-              <div className="w-full h-[200px] bg-transparent rounded-full"></div>
               {/* Overlapping Title */}
-              <h1 className="absolute inset-0 flex items-center justify-center text-5xl md:text-6xl font-bold  uppercase tracking-tight text-center font-inktrap z-10">
+              <h1 className="text-5xl md:text-6xl font-bold  uppercase tracking-tight text-center font-inktrap z-10">
                 YOU’RE IN
               </h1>
+              <p className="text-lg tracking-wider font-grotesk pt-1 text-center font-black">
+                Show this screen at the door to claim your wristband.
+              </p>
             </div>
 
             {/* Points Display */}
@@ -220,7 +222,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
                 </div>
               </div>
             </div>
-
             {/* Descriptive Text */}
             <div className="">
               <p className=" text-sm leading-relaxed font-grotesk">
@@ -229,7 +230,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
                 and the $IRL airdrop.
               </p>
             </div>
-
             <div className="flex flex-col gap-1 w-full">
               {/* Call to Action Button */}
               <div className="w-full">
