@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ClaimHeader from "@/components/claim-header";
 import ClaimFooter from "@/components/claim-footer";
-import MembersSection from "@/components/members-section";
 import { usePrivy } from "@privy-io/react-auth";
 
 export default function ClaimLoginPage() {
@@ -87,23 +86,23 @@ export default function ClaimLoginPage() {
                 Welcome to
                 <br /> WalletCon Buenos Aires
               </p>
-              <h1
-                className="mx-auto text-center font-pleasure"
+              <div
+                className="mx-auto text-center font-inktrap"
                 style={{
-                  width: "375px",
                   color: "var(--UI-OffBlack, #131313)",
-                  textTransform: "uppercase",
+                  textAlign: "center",
                   textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
-                  fontFamily: '"Pleasure"',
+                  
                   fontSize: "48px",
                   fontStyle: "normal",
                   fontWeight: 700,
                   lineHeight: "48px",
                   letterSpacing: "-3.84px",
+                  textTransform: "uppercase",
                 }}
               >
                 Claim Your Rewards
-              </h1>
+              </div>
 
               <div className="flex justify-center">
                 <button
@@ -150,16 +149,9 @@ export default function ClaimLoginPage() {
                     aspectRatio: "221 / 24",
                   }}
                 />
+              
                 <Image
-                  src="/logos/reown-logo-negative 1.svg"
-                  alt="Reown"
-                  width={200}
-                  height={40}
-                  className="h-auto w-[160px]"
-                  style={{ fill: "var(--UI-OffBlack, #131313)" }}
-                />
-                <Image
-                  src="/refraction.png"
+                  src="/refraction-black.svg"
                   alt="Refraction"
                   width={200}
                   height={40}
@@ -168,7 +160,7 @@ export default function ClaimLoginPage() {
               </div>
             </div>
 
-            <MembersSection variant="left-aligned" colorScheme="light" />
+            
           </div>
         </main>
 

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ClaimHeader from "@/components/claim-header";
 import Footer from "@/components/footer";
 import TransferTokens from "@/components/transfer-tokens";
 import MembersSection from "@/components/members-section";
+import SuccessAnimation from "@/components/success-animation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -73,13 +73,7 @@ export default function ClaimSuccessPage() {
           <div className="relative mx-auto flex w-full max-w-[393px] flex-col items-center gap-16 text-center">
             <div className="space-y-6 pt-[100px]">
               <div className="flex w-full max-w-[375px] flex-col items-center gap-4 self-stretch px-4 pt-[34px]">
-                <Image
-                  src="/wct/success.svg"
-                  alt="Success"
-                  width={200}
-                  height={200}
-                  className="mx-auto"
-                />
+                <SuccessAnimation variant="Default" className="mx-auto" />
                 <div className="h-[50px]" aria-hidden="true"></div>
                 <h2
                   className="text-center text-white font-pleasure font-bold"
@@ -90,7 +84,7 @@ export default function ClaimSuccessPage() {
                     letterSpacing: "-2.34px",
                   }}
                 >
-                  COLLECTION SUCCESS
+                  CLAIM SUCCESSFUL
                 </h2>
                 <div className="h-[50px]" aria-hidden="true"></div>
                 <p
@@ -102,31 +96,14 @@ export default function ClaimSuccessPage() {
                     letterSpacing: "-0.48px",
                   }}
                 >
-                  You&apos;ve claimed your $WCT and IRL points, and the special
-                  edition artwork from Juan Pedro Vallejo. Make sure to grab your
+                  You&apos;ve claimed your $WCT, IRL points, and a special edition artwork by Juan Pedro Vallejo. Make sure to grab your
                   limited edition artwork print at the checkpoint, and enjoy the
                   rest of the your WalletCon!
                   <br />
                   <br />
                   See you IRL again soon.
                 </p>
-                {userAddress && (
-                  <a
-                    href={`https://basescan.org/address/${userAddress}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex w-full h-10 items-center justify-center gap-4 rounded-full bg-[#EDEDED] px-4 py-2"
-                  >
-                    View on Basescan
-                    <Image
-                      src="/arrow-right.svg"
-                      alt="arrow-right"
-                      width={16}
-                      height={16}
-                    />
-                  </a>
-                )}
-                <TransferTokens
+                 <TransferTokens
                   tokenBalance={tokenBalance}
                   onTransferComplete={() => {
                     queryClient.invalidateQueries({
@@ -134,26 +111,35 @@ export default function ClaimSuccessPage() {
                     });
                   }}
                   buttonClassName="flex w-full h-10 items-center justify-center gap-4 rounded-full bg-[#EDEDED] px-4 py-2 border-none text-black font-grotesk text-sm hover:bg-gray-100 transition"
+                  buttonFontFamily='"Pleasure"'
+                  buttonText="Send your $WCT to your wallet"
                 />
+                {userAddress && (
+                  <a
+                    href={`https://basescan.org/address/${userAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full h-10 items-center justify-center gap-4 rounded-full bg-[#EDEDED] px-4 py-2 font-pleasure"
+                  >
+                    View on Basescan
+                    
+                  </a>
+                )}
+               
                 <a
                   href="https://irl.energy"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex w-full h-10 items-center justify-center gap-4 rounded-full bg-[#EDEDED] px-4 py-2"
+                  className="flex w-full h-10 items-center justify-center gap-4 rounded-full bg-[#EDEDED] px-4 py-2 font-pleasure"
                 >
                   Visit IRL.Energy
-                  <Image
-                    src="/arrow-right.svg"
-                    alt="arrow-right"
-                    width={16}
-                    height={16}
-                  />
+                 
                 </a>
               </div>
             </div>
 
             {/* Members Section */}
-            <MembersSection variant="left-aligned" />
+            <MembersSection variant="centered" />
 
           </div>
         </main>

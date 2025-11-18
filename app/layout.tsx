@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   title: "IRL",
   description: "IRL - Culture's rewards program.",
   icons: {
-    icon: "/icon.ico",
+    icon: "/favicon.ico",
     shortcut: "/favicon.ico",
   },
   openGraph: {

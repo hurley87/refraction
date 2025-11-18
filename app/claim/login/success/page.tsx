@@ -64,7 +64,7 @@ export default function LoginSuccessPage() {
                   letterSpacing: "-0.5px",
                 }}
               >
-                Success!
+                Check-in complete!
               </p>
 
               {/* Row 2: You Showed Up */}
@@ -82,10 +82,29 @@ export default function LoginSuccessPage() {
                   letterSpacing: "-2.34px",
                 }}
               >
-                You Showed Up
+                <b>Welcome to WalletCon</b>
               </h1>
 
-              {/* Row 3: Map image for the next checkpoint */}
+           
+
+              {/* Row 4: Instruction text */}
+              <p
+                className="mx-auto text-center"
+                style={{
+                  color: "var(--Dark-Tint-100, #313131)",
+                  textAlign: "center",
+                  fontFamily: '"ABC-Monument-Grotesk"',
+                  fontSize: "16px",
+                  fontStyle: "normal",
+                  fontWeight: 400,
+                  lineHeight: "22px",
+                  letterSpacing: "-0.48px",
+                }}
+              >
+                To claim your $WCT, digital artwork by Juan Pedro Vallejo, and IRL points, head to one of the IRL Checkpoints below.
+              </p>
+
+                 {/* Row 3: Map image for the next checkpoint */}
               <div className="flex justify-center">
                 <button
                   type="button"
@@ -102,7 +121,7 @@ export default function LoginSuccessPage() {
                 </button>
               </div>
 
-              {/* Row 4: Instruction text */}
+                 {/* Row 4: Instruction text */}
               <p
                 className="mx-auto text-center"
                 style={{
@@ -116,7 +135,7 @@ export default function LoginSuccessPage() {
                   letterSpacing: "-0.48px",
                 }}
               >
-                Now head inside towards the conference area to complete your quest, and claim your $WCT, digital artwork from Juan Pedro Vallejo, and IRL points.
+                You can also pick up your physical print at the same Checkpoint.
               </p>
 
             
