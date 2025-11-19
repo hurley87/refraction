@@ -269,13 +269,14 @@ export default function TransferTokens({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className={buttonClassName || "flex w-full items-center justify-center gap-2 rounded-full border border-[#313131] bg-white px-4 py-2 text-sm font-grotesk text-[#313131] transition hover:bg-[#F9F9F9]"}
+          className={
+            buttonClassName ||
+            "flex w-full items-center justify-center gap-2 rounded-full border border-[#313131] bg-white px-4 py-2 text-sm font-grotesk text-[#313131] transition hover:bg-[#F9F9F9]"
+          }
         >
           <span
             style={
-              buttonFontFamily
-                ? { fontFamily: buttonFontFamily }
-                : undefined
+              buttonFontFamily ? { fontFamily: buttonFontFamily } : undefined
             }
           >
             {buttonText}
@@ -433,7 +434,7 @@ export default function TransferTokens({
 
               <div>
                 <label className="mb-1 block text-xs font-grotesk text-[#7D7D7D]">
-                  Amount (Balance: {balanceInTokens} RWDTKN)
+                  Amount (Balance: {balanceInTokens} WCT)
                 </label>
                 <div className="flex gap-2">
                   <input
