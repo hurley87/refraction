@@ -1,24 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient, http, parseAbi } from "viem";
 import { base } from "viem/chains";
+import { REWARD1155_ADDRESS, REWARD1155_ABI, ERC20_ABI } from "@/lib/reward1155-abi";
 
 // In-memory lock to prevent concurrent transfers for the same user
 const transferLocks = new Map<string, Promise<any>>();
 
-// Reward1155 contract address on Base Mainnet
-const REWARD1155_ADDRESS = "0x0dF791E915F3A281067521e6267fDC56151f1716";
-
-// ABI for the Reward1155 contract
-const REWARD1155_ABI = parseAbi([
-  "function rewardToken() external view returns (address)",
-  "function rewardAmount() external view returns (uint256)",
-]);
-
-const ERC20_ABI = parseAbi([
-  "function balanceOf(address account) external view returns (uint256)",
-  "function transfer(address to, uint256 amount) external returns (bool)",
-  "function decimals() external view returns (uint8)",
-]);
+// Parse ABIs for viem
+const REWARD1155_ABI_PARSED = parseAbi(REWARD1155_ABI);
+const ERC20_ABI_PARSED = parseAbi(ERC20_ABI);
 
 export async function POST(req: NextRequest) {
   try {
@@ -136,7 +126,7 @@ async function performTransfer(
   // Get the reward token address
   const rewardTokenAddress = await publicClient.readContract({
     address: REWARD1155_ADDRESS as `0x${string}`,
-    abi: REWARD1155_ABI,
+    abi: REWARD1155_ABI_PARSED,
     functionName: "rewardToken",
   });
 
@@ -153,7 +143,7 @@ async function performTransfer(
   // Check the user's token balance
   const balance = await publicClient.readContract({
     address: rewardTokenAddress as `0x${string}`,
-    abi: ERC20_ABI,
+    abi: ERC20_ABI_PARSED,
     functionName: "balanceOf",
     args: [fromAddress as `0x${string}`],
   });
@@ -218,7 +208,7 @@ export async function GET(req: NextRequest) {
 
     const rewardTokenAddress = await publicClient.readContract({
       address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI,
+      abi: REWARD1155_ABI_PARSED,
       functionName: "rewardToken",
     });
 
@@ -236,14 +226,14 @@ export async function GET(req: NextRequest) {
 
     const balance = await publicClient.readContract({
       address: rewardTokenAddress as `0x${string}`,
-      abi: ERC20_ABI,
+      abi: ERC20_ABI_PARSED,
       functionName: "balanceOf",
       args: [userAddress as `0x${string}`],
     });
 
     const decimals = await publicClient.readContract({
       address: rewardTokenAddress as `0x${string}`,
-      abi: ERC20_ABI,
+      abi: ERC20_ABI_PARSED,
       functionName: "decimals",
     });
 

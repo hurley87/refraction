@@ -2,29 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient, createWalletClient, http, parseAbi } from "viem";
 import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
+import { REWARD1155_ADDRESS, REWARD1155_ABI, ERC20_ABI } from "@/lib/reward1155-abi";
 
 // In-memory lock to prevent concurrent mints for the same user
 const mintLocks = new Map<string, Promise<any>>();
 
-// Reward1155 contract address on Base Mainnet
-const REWARD1155_ADDRESS = "0x0dF791E915F3A281067521e6267fDC56151f1716";
-
-// ABI for the Reward1155 contract
-const REWARD1155_ABI = parseAbi([
-  "function mint() external",
-  "function mintTo(address recipient) external",
-  "function canMint(address account) external view returns (bool)",
-  "function hasMinted(address account) external view returns (bool)",
-  "function balanceOf(address account, uint256 id) external view returns (uint256)",
-  "function totalMinted() external view returns (uint256)",
-  "function rewardToken() external view returns (address)",
-  "function rewardAmount() external view returns (uint256)",
-]);
-
-const ERC20_ABI = parseAbi([
-  "function balanceOf(address account) external view returns (uint256)",
-  "function decimals() external view returns (uint8)",
-]);
+// Parse ABIs for viem
+const REWARD1155_ABI_PARSED = parseAbi(REWARD1155_ABI);
+const ERC20_ABI_PARSED = parseAbi(ERC20_ABI);
 
 export async function POST(req: NextRequest) {
   try {
@@ -108,7 +93,7 @@ async function performMint(userAddress: string) {
   // Check if user can mint
   const canMint = await publicClient.readContract({
     address: REWARD1155_ADDRESS as `0x${string}`,
-    abi: REWARD1155_ABI,
+    abi: REWARD1155_ABI_PARSED,
     functionName: "canMint",
     args: [userAddress as `0x${string}`],
   });
@@ -117,7 +102,7 @@ async function performMint(userAddress: string) {
     // Check if already minted
     const hasMinted = await publicClient.readContract({
       address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI,
+      abi: REWARD1155_ABI_PARSED,
       functionName: "hasMinted",
       args: [userAddress as `0x${string}`],
     });
@@ -142,7 +127,7 @@ async function performMint(userAddress: string) {
   // Mint the NFT for the user using mintTo function
   const hash = await walletClient.writeContract({
     address: REWARD1155_ADDRESS as `0x${string}`,
-    abi: REWARD1155_ABI,
+    abi: REWARD1155_ABI_PARSED,
     functionName: "mintTo",
     args: [userAddress as `0x${string}`],
     account,
@@ -161,20 +146,20 @@ async function performMint(userAddress: string) {
   // Get updated balances for the user
   const nftBalance = await publicClient.readContract({
     address: REWARD1155_ADDRESS as `0x${string}`,
-    abi: REWARD1155_ABI,
+    abi: REWARD1155_ABI_PARSED,
     functionName: "balanceOf",
     args: [userAddress as `0x${string}`, BigInt(1)], // TOKEN_ID is 1
   });
 
   const rewardTokenAddress = await publicClient.readContract({
     address: REWARD1155_ADDRESS as `0x${string}`,
-    abi: REWARD1155_ABI,
+    abi: REWARD1155_ABI_PARSED,
     functionName: "rewardToken",
   });
 
   const rewardAmount = await publicClient.readContract({
     address: REWARD1155_ADDRESS as `0x${string}`,
-    abi: REWARD1155_ABI,
+    abi: REWARD1155_ABI_PARSED,
     functionName: "rewardAmount",
   });
 
@@ -186,7 +171,7 @@ async function performMint(userAddress: string) {
     tokenBalance = (
       await publicClient.readContract({
         address: rewardTokenAddress as `0x${string}`,
-        abi: ERC20_ABI,
+        abi: ERC20_ABI_PARSED,
         functionName: "balanceOf",
         args: [userAddress as `0x${string}`],
       })
@@ -223,21 +208,21 @@ export async function GET(req: NextRequest) {
 
     const hasMinted = await publicClient.readContract({
       address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI,
+      abi: REWARD1155_ABI_PARSED,
       functionName: "hasMinted",
       args: [userAddress as `0x${string}`],
     });
 
     const nftBalance = await publicClient.readContract({
       address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI,
+      abi: REWARD1155_ABI_PARSED,
       functionName: "balanceOf",
       args: [userAddress as `0x${string}`, BigInt(1)],
     });
 
     const rewardTokenAddress = await publicClient.readContract({
       address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI,
+      abi: REWARD1155_ABI_PARSED,
       functionName: "rewardToken",
     });
 
@@ -249,7 +234,7 @@ export async function GET(req: NextRequest) {
       tokenBalance = (
         await publicClient.readContract({
           address: rewardTokenAddress as `0x${string}`,
-          abi: ERC20_ABI,
+          abi: ERC20_ABI_PARSED,
           functionName: "balanceOf",
           args: [userAddress as `0x${string}`],
         })
