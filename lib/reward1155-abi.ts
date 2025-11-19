@@ -60,9 +60,9 @@ export const REWARD1155_CONFIG = {
   chainId: 8453, // Base Mainnet
   tokenId: 1,
   maxSupply: 100,
-  rewardPerMint: 100, // SVS tokens
+  rewardPerMint: 10, // WCT tokens per mint
   name: "SYMMETRY VISUAL SYSTEM",
   symbol: "SVS",
-  svsTokenAddress: "0xeF4461891DfB3AC8572cCf7C794664A8DD927945",
+  wctTokenAddress: "0xeF4461891DfB3AC8572cCf7C794664A8DD927945", // WCT Token (previously called SVS)
   metadataUri: "https://cyan-genuine-pheasant-886.mypinata.cloud/ipfs/bafkreifn3alhdejcnaly3uglcf2yc7pwtxbpft4xd7ucb2tua6niu4kquu",
 } as const;
