@@ -171,7 +171,7 @@ export default function Auth({ children }: AuthProps) {
             {/* Yellow Wireframe Box Graphic */}
             {/* Overlapping Title */}
             <h1 className=" flex items-center justify-center text-4xl md:text-5xl font-bold uppercase tracking-tight text-center font-inktrap z-10 my-6">
-              {`Welcome to Valerie’s Factory`}
+              {`Welcome to IRL in Buenos Aires”`}
             </h1>
           </div>
 
