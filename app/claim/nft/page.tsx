@@ -36,12 +36,26 @@ export default function ClaimNFTPage() {
       return response.json();
     },
     enabled: !!userAddress && authenticated,
+    refetchInterval: (query) => {
+      const data = query.state.data as
+        | { hasClaimed?: boolean; canMint?: boolean }
+        | null
+        | undefined;
+      // Only stop polling when hasClaimed is true
+      // Keep polling even if canMint is false, to detect when pending transactions confirm
+      return data?.hasClaimed ? false : 4000;
+    },
   });
+
+  const hasClaimed = claimStatus?.hasClaimed;
+  const tokenBalance = claimStatus?.tokenBalance || "0";
+  const mintOver = claimStatus?.canMint === false && !hasClaimed;
 
   // Claim mutation
   const claimMutation = useMutation({
     mutationFn: async (address: string) => {
       if (!address) throw new Error("No wallet connected");
+      if (mintOver) throw new Error("Mint is over");
 
       const response = await fetch("/api/claim-nft", {
         method: "POST",
@@ -58,11 +72,19 @@ export default function ClaimNFTPage() {
       return data;
     },
     onSuccess: (data, address) => {
+      if (data.pending) {
+        toast("Transaction submitted. Waiting for confirmation...");
+        queryClient.invalidateQueries({ queryKey: ["claim-status", address] });
+        // Keep claiming state as true - will be reset when hasClaimed becomes true
+        return;
+      }
+      setClaiming(false);
       toast.success(data.message || "NFT claimed successfully! 🎉");
       queryClient.invalidateQueries({ queryKey: ["claim-status", address] });
       router.push("/claim/success");
     },
     onError: (error: any) => {
+      setClaiming(false);
       toast.error(error.message || "Failed to claim NFT");
     },
   });
@@ -72,16 +94,26 @@ export default function ClaimNFTPage() {
       toast.error("No wallet connected");
       return;
     }
+    if (mintOver) {
+      toast.error("Mint is over");
+      return;
+    }
     setClaiming(true);
     try {
       await claimMutation.mutateAsync(userAddress);
-    } finally {
-      setClaiming(false);
+      // Note: claiming state is managed in onSuccess/onError callbacks
+      // to handle pending transactions correctly
+    } catch {
+      // Error is handled in onError callback
     }
   };
 
-  const hasClaimed = claimStatus?.hasClaimed;
-  const tokenBalance = claimStatus?.tokenBalance || "0";
+  // Reset claiming state when transaction confirms (hasClaimed becomes true)
+  useEffect(() => {
+    if (hasClaimed && claiming) {
+      setClaiming(false);
+    }
+  }, [hasClaimed, claiming]);
 
   // Redirect to success page if user has already claimed
   useEffect(() => {
@@ -114,50 +146,52 @@ export default function ClaimNFTPage() {
         </header>
 
         <main className="relative flex flex-1 items-center justify-center px-4 pb-16 pt-6">
-
           <div className="relative mx-auto flex w-full max-w-[393px] flex-col items-center gap-16 text-center">
             <div className="space-y-6 pt-[100px]">
-                <div className="relative w-[311px] h-[311px] mx-auto rounded-2xl overflow-visible shadow-md bg-white" style={{ transform: "rotate(-2.5deg)" }}>
-                  {/* IRL token on the right side, underneath the video */}
-                  <div className="absolute top-35 right-0 z-0 translate-x-1/2 -translate-y-1/2">
-                    <div className="w-[97px] h-[89px]">
-                      <img
-                        src="/wct/irl-token.svg"
-                        alt="IRL Token"
-                        width={97}
-                        height={89}
-                        className="w-[97px] h-[89px] object-contain drop-shadow-lg"
-                        draggable={false}
-                      />
-                    </div>
+              <div
+                className="relative w-[311px] h-[311px] mx-auto rounded-2xl overflow-visible shadow-md bg-white"
+                style={{ transform: "rotate(-2.5deg)" }}
+              >
+                {/* IRL token on the right side, underneath the video */}
+                <div className="absolute top-35 right-0 z-0 translate-x-1/2 -translate-y-1/2">
+                  <div className="w-[97px] h-[89px]">
+                    <img
+                      src="/wct/irl-token.svg"
+                      alt="IRL Token"
+                      width={97}
+                      height={89}
+                      className="w-[97px] h-[89px] object-contain drop-shadow-lg"
+                      draggable={false}
+                    />
                   </div>
-                  {/* Background Video matching nft.svg dimensions - positioned on top */}
-                  <div className="absolute inset-0 rounded-2xl overflow-hidden z-10">
-                    <video
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-cover"
-                      style={{
-                        width: "311px",
-                        height: "280px",
-                      }}
-                    >
-                      <source src="/wct/background.mp4" type="video/mp4" />
-                    </video>
+                </div>
+                {/* Background Video matching nft.svg dimensions - positioned on top */}
+                <div className="absolute inset-0 rounded-2xl overflow-hidden z-10">
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{
+                      width: "311px",
+                      height: "280px",
+                    }}
+                  >
+                    <source src="/wct/background.mp4" type="video/mp4" />
+                  </video>
+                </div>
+                {/* WCT logo on bottom left edge, on top of video */}
+                <div className="absolute bottom-0 left-0 z-20 -translate-x-1/2 translate-y-1/2">
+                  <div className="w-32 h-32">
+                    <img
+                      src="/wct/walletconnect-logo.png"
+                      alt="WCT"
+                      className="w-full h-full object-contain drop-shadow-lg"
+                      draggable={false}
+                    />
                   </div>
-                  {/* WCT logo on bottom left edge, on top of video */}
-                  <div className="absolute bottom-0 left-0 z-20 -translate-x-1/2 translate-y-1/2">
-                    <div className="w-32 h-32">
-                      <img
-                        src="/wct/walletconnect-logo.png"
-                        alt="WCT"
-                        className="w-full h-full object-contain drop-shadow-lg"
-                        draggable={false}
-                      />
-                    </div>
-                  </div>
+                </div>
                 {/* Optional: transparent overlay for visual polish */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-black/5 pointer-events-none" />
               </div>
@@ -230,36 +264,41 @@ export default function ClaimNFTPage() {
               <div className="space-y-4">
                 {!hasClaimed ? (
                   <div className="flex justify-center">
-                    <button
-                      type="button"
-                      onClick={handleClaim}
-                      disabled={claiming || claimMutation.isPending}
-                      className="flex w-[260px] h-12 py-2 pl-4 pr-1 justify-between items-center shrink-0 rounded-full bg-[#307FE2] font-pleasure text-white transition hover:bg-[#307FE2]/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:opacity-50 z-10"
-                    >
-                      <span
-                        style={{
-                          color: "var(--UI-White, #FFF)",
-                          fontFamily: '"Pleasure"',
-                          fontSize: "16px",
-                          fontStyle: "normal",
-                          fontWeight: 500,
-                          lineHeight: "16px",
-                          letterSpacing: "-1.28px",
-                        }}
+                    {mintOver ? (
+                      <div className="flex h-12 w-[260px] items-center justify-center rounded-full bg-[#E5E5E5] px-4 font-pleasure text-sm text-[#7D7D7D]">
+                        Mint is over
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleClaim}
+                        disabled={claiming || claimMutation.isPending}
+                        className="flex w-[260px] h-12 py-2 pl-4 pr-1 justify-between items-center shrink-0 rounded-full bg-[#307FE2] font-pleasure text-white transition hover:bg-[#307FE2]/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:opacity-50 z-10"
                       >
-                        {claiming || claimMutation.isPending
-                          ? "Claiming..."
-                          : "Collect Your Rewards"}
-                      </span>
-                      <Image
-                        src="/wct/walletconnect-button.svg"
-                        alt="WalletConnect Button"
-                        width={38}
-                        height={38}
-                        className="h-[38px] w-[38px] z-20"
-                      />
-                    </button>
-                 
+                        <span
+                          style={{
+                            color: "var(--UI-White, #FFF)",
+                            fontFamily: '"Pleasure"',
+                            fontSize: "16px",
+                            fontStyle: "normal",
+                            fontWeight: 500,
+                            lineHeight: "16px",
+                            letterSpacing: "-1.28px",
+                          }}
+                        >
+                          {claiming || claimMutation.isPending
+                            ? "Claiming..."
+                            : "Collect Your Rewards"}
+                        </span>
+                        <Image
+                          src="/wct/walletconnect-button.svg"
+                          alt="WalletConnect Button"
+                          width={38}
+                          height={38}
+                          className="h-[38px] w-[38px] z-20"
+                        />
+                      </button>
+                    )}
                   </div>
                 ) : null}
 
@@ -284,13 +323,13 @@ export default function ClaimNFTPage() {
               </div>
 
               <div className="flex w-full max-w-[375px] flex-col items-center gap-4 self-stretch px-4 pt-[34px]">
-               
                 <p
                   className="mx-auto text-center"
                   style={{
                     color: "var(--Dark-Tint-80, #4F4F4F)",
                     textAlign: "center",
-                    fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
+                    fontFamily:
+                      '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
                     fontSize: "13px",
                     fontStyle: "normal",
                     fontWeight: 400,
@@ -320,98 +359,56 @@ export default function ClaimNFTPage() {
                   </video>
                 </div>
                 <p
-                   className="text-left uppercase self-stretch"
-                   style={{
-                     color: "var(--Dark-Tint-60, #7D7D7D)",
-                     fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
-                     fontSize: "11px",
-                     fontStyle: "normal",
-                     fontWeight: 500,
-                     lineHeight: "16px",
-                     letterSpacing: "0.44px",
-                     textTransform: "uppercase",
-                   }}
+                  className="text-left uppercase self-stretch"
+                  style={{
+                    color: "var(--Dark-Tint-60, #7D7D7D)",
+                    fontFamily:
+                      '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
+                    fontSize: "11px",
+                    fontStyle: "normal",
+                    fontWeight: 500,
+                    lineHeight: "16px",
+                    letterSpacing: "0.44px",
+                    textTransform: "uppercase",
+                  }}
                 >
-                   ABOUT THE ARTIST
-                 </p>
-                 <p
-                   className="text-left self-stretch"
-                   style={{
-                     color: "var(--Dark-Tint-100, #313131)",
-                     fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
-                     fontSize: "16px",
-                     fontStyle: "normal",
-                     fontWeight: 400,
-                     lineHeight: "22px",
-                     letterSpacing: "-0.48px",
-                   }}
-                  >
-                   Juan Pedro Vallejo is an Argentinean artist working with generative systems and code.
-                   <br />
-                   <br />
-                   Vallejo considers the screen a material in his practice, sculpting systems through unique possibilities and permutations.
-                 </p>
-                 <a
-                   href="https://www.instagram.com/vallejo.juanpedro/"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   className="flex h-7 items-center gap-2 rounded-full self-start"
-                   style={{
-                     padding: "4px 16px 4px 8px",
-                     background: "var(--Dark-Tint-20, #EDEDED)",
-                     textDecoration: "none",
-                   }}
-                 >
-                   <span
-                     style={{
-                       color: "var(--UI-OffBlack, #131313)",
-                       fontFamily: '"ABC-Monument-Grotesk"',
-                       fontSize: "11px",
-                       fontStyle: "normal",
-                       fontWeight: 500,
-                       lineHeight: "16px",
-                       letterSpacing: "0.44px",
-                       textTransform: "uppercase",
-                     }}
-                   >
-                     INSTAGRAM
-                    </span>
-                    <Image
-                      src="/arrow-diag-right.svg"
-                      alt="arrow"
-                      width={16}
-                      height={16}
-                      className="w-4 h-4"
-                    />
-                   </a>
-                 <div
-                   className="w-full"
-                   style={{
-                     height: "66px",
-                   }}
-                 />
-                 <div
-                   className="rounded-2xl overflow-hidden"
-                   style={{
-                     width: "361px",
-                     height: "190px",
-                     aspectRatio: "19/10",
-                     borderRadius: "16px",
-                     background: "url('/wct/walletconnect-banner.svg') lightgray 50% / cover no-repeat",
-                   }}
-                 >
-                   <Image
-                     src="/wct/walletconnect-banner.svg"
-                     alt="WalletConnect Banner"
-                     width={361}
-                     height={190}
-                     className="w-full h-full object-cover"
-                   />
-                 </div>
-                  <p
-                    className="text-left uppercase self-stretch"
+                  ABOUT THE ARTIST
+                </p>
+                <p
+                  className="text-left self-stretch"
+                  style={{
+                    color: "var(--Dark-Tint-100, #313131)",
+                    fontFamily:
+                      '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
+                    fontSize: "16px",
+                    fontStyle: "normal",
+                    fontWeight: 400,
+                    lineHeight: "22px",
+                    letterSpacing: "-0.48px",
+                  }}
+                >
+                  Juan Pedro Vallejo is an Argentinean artist working with
+                  generative systems and code.
+                  <br />
+                  <br />
+                  Vallejo considers the screen a material in his practice,
+                  sculpting systems through unique possibilities and
+                  permutations.
+                </p>
+                <a
+                  href="https://www.instagram.com/vallejo.juanpedro/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-7 items-center gap-2 rounded-full self-start"
+                  style={{
+                    padding: "4px 16px 4px 8px",
+                    background: "var(--Dark-Tint-20, #EDEDED)",
+                    textDecoration: "none",
+                  }}
+                >
+                  <span
                     style={{
-                      color: "var(--Dark-Tint-60, #7D7D7D)",
+                      color: "var(--UI-OffBlack, #131313)",
                       fontFamily: '"ABC-Monument-Grotesk"',
                       fontSize: "11px",
                       fontStyle: "normal",
@@ -420,93 +417,186 @@ export default function ClaimNFTPage() {
                       letterSpacing: "0.44px",
                       textTransform: "uppercase",
                     }}
-                 >
-                    ABOUT WALLETCONNECT
-                  </p>
-                  <p
-                    className="text-left self-stretch"
+                  >
+                    INSTAGRAM
+                  </span>
+                  <Image
+                    src="/arrow-diag-right.svg"
+                    alt="arrow"
+                    width={16}
+                    height={16}
+                    className="w-4 h-4"
+                  />
+                </a>
+                <div
+                  className="w-full"
+                  style={{
+                    height: "66px",
+                  }}
+                />
+                <div
+                  className="rounded-2xl overflow-hidden"
+                  style={{
+                    width: "361px",
+                    height: "190px",
+                    aspectRatio: "19/10",
+                    borderRadius: "16px",
+                    background:
+                      "url('/wct/walletconnect-banner.svg') lightgray 50% / cover no-repeat",
+                  }}
+                >
+                  <Image
+                    src="/wct/walletconnect-banner.svg"
+                    alt="WalletConnect Banner"
+                    width={361}
+                    height={190}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <p
+                  className="text-left uppercase self-stretch"
+                  style={{
+                    color: "var(--Dark-Tint-60, #7D7D7D)",
+                    fontFamily: '"ABC-Monument-Grotesk"',
+                    fontSize: "11px",
+                    fontStyle: "normal",
+                    fontWeight: 500,
+                    lineHeight: "16px",
+                    letterSpacing: "0.44px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  ABOUT WALLETCONNECT
+                </p>
+                <p
+                  className="text-left self-stretch"
+                  style={{
+                    color: "var(--Dark-Tint-100, #313131)",
+                    fontFamily: '"ABC-Monument-Grotesk"',
+                    fontSize: "16px",
+                    fontStyle: "normal",
+                    fontWeight: 400,
+                    lineHeight: "22px",
+                    letterSpacing: "-0.48px",
+                  }}
+                >
+                  WCT is the native token of the WalletConnect Network and
+                  secures the network via staking, rewards, fees, and
+                  governance.
+                </p>
+                <a
+                  href="https://docs.walletconnect.network/token-dynamics/intro"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-7 items-center gap-2 rounded-full self-start"
+                  style={{
+                    padding: "4px 16px 4px 8px",
+                    background: "var(--Dark-Tint-20, #EDEDED)",
+                    textDecoration: "none",
+                  }}
+                >
+                  <span
                     style={{
-                      color: "var(--Dark-Tint-100, #313131)",
+                      color: "var(--UI-OffBlack, #131313)",
                       fontFamily: '"ABC-Monument-Grotesk"',
-                      fontSize: "16px",
+                      fontSize: "11px",
                       fontStyle: "normal",
-                      fontWeight: 400,
-                      lineHeight: "22px",
-                      letterSpacing: "-0.48px",
+                      fontWeight: 500,
+                      lineHeight: "16px",
+                      letterSpacing: "0.44px",
+                      textTransform: "uppercase",
                     }}
                   >
-                    WCT is the native token of the WalletConnect Network and secures the network via staking, rewards, fees, and governance.
-                  </p>
-                  <a
-                   href="https://docs.walletconnect.network/token-dynamics/intro"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   className="flex h-7 items-center gap-2 rounded-full self-start"
-                   style={{
-                     padding: "4px 16px 4px 8px",
-                     background: "var(--Dark-Tint-20, #EDEDED)",
-                     textDecoration: "none",
-                   }}
-                 >
-                   <span
-                     style={{
-                       color: "var(--UI-OffBlack, #131313)",
-                       fontFamily: '"ABC-Monument-Grotesk"',
-                       fontSize: "11px",
-                       fontStyle: "normal",
-                       fontWeight: 500,
-                       lineHeight: "16px",
-                       letterSpacing: "0.44px",
-                       textTransform: "uppercase",
-                     }}
-                   >
-                     LEARN MORE
-                    </span>
+                    LEARN MORE
+                  </span>
+                  <Image
+                    src="/arrow-diag-right.svg"
+                    alt="arrow"
+                    width={16}
+                    height={16}
+                    className="w-4 h-4"
+                  />
+                </a>
+                <div
+                  className="w-full"
+                  style={{
+                    height: "66px",
+                  }}
+                />
+                <div
+                  className="rounded-2xl overflow-hidden relative"
+                  style={{
+                    width: "361px",
+                    height: "190px",
+                    aspectRatio: "19/10",
+                    borderRadius: "16px",
+                    background:
+                      "url('/wct/irl-card.svg') lightgray 50% / cover no-repeat",
+                  }}
+                >
+                  <Image
+                    src="/wct/irl-card.svg"
+                    alt="IRL Banner"
+                    width={361}
+                    height={190}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
                     <Image
-                      src="/arrow-diag-right.svg"
-                      alt="arrow"
-                      width={16}
-                      height={16}
-                      className="w-4 h-4"
+                      src="/wct/irl-logo-2.svg"
+                      alt="IRL Logo"
+                      width={124}
+                      height={114}
+                      className="object-contain"
                     />
-                   </a>
-                  <div
-                   className="w-full"
-                   style={{
-                     height: "66px",
-                   }}
-                 />
-                    <div
-                    className="rounded-2xl overflow-hidden relative"
-                    style={{
-                      width: "361px",
-                      height: "190px",
-                      aspectRatio: "19/10",
-                      borderRadius: "16px",
-                      background: "url('/wct/irl-card.svg') lightgray 50% / cover no-repeat",
-                    }}
-                  >
-                    <Image
-                      src="/wct/irl-card.svg"
-                      alt="IRL Banner"
-                      width={361}
-                      height={190}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Image
-                        src="/wct/irl-logo-2.svg"
-                        alt="IRL Logo"
-                        width={124}
-                        height={114}
-                        className="object-contain"
-                      />
-                    </div>
                   </div>
-                  <p
-                    className="text-left uppercase self-stretch"
+                </div>
+                <p
+                  className="text-left uppercase self-stretch"
+                  style={{
+                    color: "var(--Dark-Tint-60, #7D7D7D)",
+                    fontFamily: '"ABC-Monument-Grotesk"',
+                    fontSize: "11px",
+                    fontStyle: "normal",
+                    fontWeight: 500,
+                    lineHeight: "16px",
+                    letterSpacing: "0.44px",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  ABOUT IRL
+                </p>
+                <p
+                  className="text-left self-stretch"
+                  style={{
+                    color: "var(--Dark-Tint-100, #313131)",
+                    fontFamily: '"ABC-Monument-Grotesk"',
+                    fontSize: "16px",
+                    fontStyle: "normal",
+                    fontWeight: 400,
+                    lineHeight: "22px",
+                    letterSpacing: "-0.48px",
+                  }}
+                >
+                  The IRL ecosystem reimagines the experience economy through
+                  its blockchain, token, and protocol, establishing a
+                  decentralized foundation for a new era of cultural
+                  participation.
+                </p>
+                <a
+                  href="https://irl.energy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-7 items-center gap-2 rounded-full self-start"
+                  style={{
+                    padding: "4px 16px 4px 8px",
+                    background: "var(--Dark-Tint-20, #EDEDED)",
+                    textDecoration: "none",
+                  }}
+                >
+                  <span
                     style={{
-                      color: "var(--Dark-Tint-60, #7D7D7D)",
+                      color: "var(--UI-OffBlack, #131313)",
                       fontFamily: '"ABC-Monument-Grotesk"',
                       fontSize: "11px",
                       fontStyle: "normal",
@@ -515,62 +605,23 @@ export default function ClaimNFTPage() {
                       letterSpacing: "0.44px",
                       textTransform: "uppercase",
                     }}
-                 >
-                    ABOUT IRL
-                  </p>
-                   <p
-                    className="text-left self-stretch"
-                    style={{
-                      color: "var(--Dark-Tint-100, #313131)",
-                      fontFamily: '"ABC-Monument-Grotesk"',
-                      fontSize: "16px",
-                      fontStyle: "normal",
-                      fontWeight: 400,
-                      lineHeight: "22px",
-                      letterSpacing: "-0.48px",
-                    }}
                   >
-                    The IRL ecosystem reimagines the experience economy through its blockchain, token, and protocol, establishing a decentralized foundation for a new era of cultural participation. 
-                  </p>
-                   <a
-                   href="https://irl.energy"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   className="flex h-7 items-center gap-2 rounded-full self-start"
-                   style={{
-                     padding: "4px 16px 4px 8px",
-                     background: "var(--Dark-Tint-20, #EDEDED)",
-                     textDecoration: "none",
-                   }}
-                 >
-                   <span
-                     style={{
-                       color: "var(--UI-OffBlack, #131313)",
-                       fontFamily: '"ABC-Monument-Grotesk"',
-                       fontSize: "11px",
-                       fontStyle: "normal",
-                       fontWeight: 500,
-                       lineHeight: "16px",
-                       letterSpacing: "0.44px",
-                       textTransform: "uppercase",
-                     }}
-                   >
-                     GO TO IRL.ENERGY
-                    </span>
-                    <Image
-                      src="/arrow-diag-right.svg"
-                      alt="arrow"
-                      width={16}
-                      height={16}
-                      className="w-4 h-4"
-                    />
-                   </a>
-                   <div
-                   className="w-full"
-                   style={{
-                     height: "66px",
-                   }}
-                 />
+                    GO TO IRL.ENERGY
+                  </span>
+                  <Image
+                    src="/arrow-diag-right.svg"
+                    alt="arrow"
+                    width={16}
+                    height={16}
+                    className="w-4 h-4"
+                  />
+                </a>
+                <div
+                  className="w-full"
+                  style={{
+                    height: "66px",
+                  }}
+                />
               </div>
             </div>
 
@@ -583,4 +634,3 @@ export default function ClaimNFTPage() {
     </div>
   );
 }
-

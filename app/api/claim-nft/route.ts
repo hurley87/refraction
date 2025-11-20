@@ -10,6 +10,8 @@ const mintLocks = new Map<string, Promise<any>>();
 // Parse ABIs for viem
 const REWARD1155_ABI_PARSED = parseAbi(REWARD1155_ABI);
 const ERC20_ABI_PARSED = parseAbi(ERC20_ABI);
+const WAIT_FOR_RECEIPT_TIMEOUT_MS = 10_000;
+const RECEIPT_POLL_INTERVAL_MS = 1_000;
 
 export async function POST(req: NextRequest) {
   try {
@@ -133,8 +135,21 @@ async function performMint(userAddress: string) {
     account,
   });
 
-  // Wait for transaction confirmation
-  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  // Wait for transaction confirmation, but cap at Vercel timeout window
+  const receipt = await waitForReceiptWithTimeout(publicClient, hash);
+
+  if (!receipt) {
+    return NextResponse.json(
+      {
+        success: true,
+        pending: true,
+        transactionHash: hash,
+        message:
+          "Transaction submitted. Waiting for confirmation on Base before finalizing your claim.",
+      },
+      { status: 202 },
+    );
+  }
 
   if (receipt.status !== "success") {
     return NextResponse.json(
@@ -144,24 +159,24 @@ async function performMint(userAddress: string) {
   }
 
   // Get updated balances for the user
-  const nftBalance = await publicClient.readContract({
-    address: REWARD1155_ADDRESS as `0x${string}`,
-    abi: REWARD1155_ABI_PARSED,
-    functionName: "balanceOf",
-    args: [userAddress as `0x${string}`, BigInt(1)], // TOKEN_ID is 1
-  });
-
-  const rewardTokenAddress = await publicClient.readContract({
-    address: REWARD1155_ADDRESS as `0x${string}`,
-    abi: REWARD1155_ABI_PARSED,
-    functionName: "rewardToken",
-  });
-
-  const rewardAmount = await publicClient.readContract({
-    address: REWARD1155_ADDRESS as `0x${string}`,
-    abi: REWARD1155_ABI_PARSED,
-    functionName: "rewardAmount",
-  });
+  const [nftBalance, rewardTokenAddress, rewardAmount] = await Promise.all([
+    publicClient.readContract({
+      address: REWARD1155_ADDRESS as `0x${string}`,
+      abi: REWARD1155_ABI_PARSED,
+      functionName: "balanceOf",
+      args: [userAddress as `0x${string}`, BigInt(1)], // TOKEN_ID is 1
+    }),
+    publicClient.readContract({
+      address: REWARD1155_ADDRESS as `0x${string}`,
+      abi: REWARD1155_ABI_PARSED,
+      functionName: "rewardToken",
+    }),
+    publicClient.readContract({
+      address: REWARD1155_ADDRESS as `0x${string}`,
+      abi: REWARD1155_ABI_PARSED,
+      functionName: "rewardAmount",
+    }),
+  ]);
 
   let tokenBalance = "0";
   if (
@@ -206,25 +221,32 @@ export async function GET(req: NextRequest) {
       transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
     });
 
-    const hasMinted = await publicClient.readContract({
-      address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI_PARSED,
-      functionName: "hasMinted",
-      args: [userAddress as `0x${string}`],
-    });
-
-    const nftBalance = await publicClient.readContract({
-      address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI_PARSED,
-      functionName: "balanceOf",
-      args: [userAddress as `0x${string}`, BigInt(1)],
-    });
-
-    const rewardTokenAddress = await publicClient.readContract({
-      address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI_PARSED,
-      functionName: "rewardToken",
-    });
+    const [hasMinted, canMint, nftBalance, rewardTokenAddress] =
+      await Promise.all([
+        publicClient.readContract({
+          address: REWARD1155_ADDRESS as `0x${string}`,
+          abi: REWARD1155_ABI_PARSED,
+          functionName: "hasMinted",
+          args: [userAddress as `0x${string}`],
+        }),
+        publicClient.readContract({
+          address: REWARD1155_ADDRESS as `0x${string}`,
+          abi: REWARD1155_ABI_PARSED,
+          functionName: "canMint",
+          args: [userAddress as `0x${string}`],
+        }),
+        publicClient.readContract({
+          address: REWARD1155_ADDRESS as `0x${string}`,
+          abi: REWARD1155_ABI_PARSED,
+          functionName: "balanceOf",
+          args: [userAddress as `0x${string}`, BigInt(1)],
+        }),
+        publicClient.readContract({
+          address: REWARD1155_ADDRESS as `0x${string}`,
+          abi: REWARD1155_ABI_PARSED,
+          functionName: "rewardToken",
+        }),
+      ]);
 
     let tokenBalance = "0";
     if (
@@ -246,7 +268,7 @@ export async function GET(req: NextRequest) {
       hasClaimed: hasMinted,
       nftBalance: nftBalance.toString(),
       tokenBalance,
-      canMint: !hasMinted,
+      canMint: canMint,
     });
   } catch (error: any) {
     console.error("Error checking mint status:", error);
@@ -257,5 +279,33 @@ export async function GET(req: NextRequest) {
       },
       { status: 500 },
     );
+  }
+}
+
+async function waitForReceiptWithTimeout(
+  publicClient: {
+    waitForTransactionReceipt: (args: {
+      hash: `0x${string}`;
+      timeout?: number;
+      pollingInterval?: number;
+    }) => Promise<any>;
+  },
+  hash: `0x${string}`,
+) {
+  try {
+    return await publicClient.waitForTransactionReceipt({
+      hash,
+      timeout: WAIT_FOR_RECEIPT_TIMEOUT_MS,
+      pollingInterval: RECEIPT_POLL_INTERVAL_MS,
+    });
+  } catch (error: any) {
+    if (error?.name === "WaitForTransactionReceiptTimeoutError") {
+      console.warn(
+        "Transaction confirmation timed out; returning pending state",
+        { hash },
+      );
+      return null;
+    }
+    throw error;
   }
 }
