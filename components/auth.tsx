@@ -171,7 +171,7 @@ export default function Auth({ children }: AuthProps) {
             {/* Yellow Wireframe Box Graphic */}
             {/* Overlapping Title */}
             <h1 className=" flex items-center justify-center text-4xl md:text-5xl font-bold uppercase tracking-tight text-center font-inktrap z-10 my-6">
-              {`Welcome to IRL in Buenos Aires”`}
+              {`Welcome to IRL in Buenos Aires`}
             </h1>
           </div>
 
@@ -182,7 +182,7 @@ export default function Auth({ children }: AuthProps) {
                 onClick={login}
                 className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
               >
-                <span>Log in to Claim Your Wristband</span>
+                <span>Check-in</span>
                 <Image
                   src="/home/arrow-right.svg"
                   alt="arrow-right"
