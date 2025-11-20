@@ -60,7 +60,7 @@ export const REWARD1155_CONFIG = {
   chainId: 8453, // Base Mainnet
   tokenId: 1,
   maxSupply: 100,
-  rewardPerMint: 10, // WCT tokens per mint
+  rewardPerMint: 100, // WCT tokens per mint
   name: "SYMMETRY VISUAL SYSTEM",
   symbol: "SVS",
   wctTokenAddress: "0xeF4461891DfB3AC8572cCf7C794664A8DD927945", // WCT Token (previously called SVS)
