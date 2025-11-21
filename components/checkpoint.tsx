@@ -199,7 +199,7 @@ export default function Checkpoint({ id }: CheckpointProps) {
                 YOU’RE IN
               </h1>
               <p className="text-lg tracking-wider font-grotesk pt-1 text-center font-black">
-                Show this screen at the door to claim your wristband.
+                Check-in
               </p>
             </div>
 
@@ -255,11 +255,17 @@ export default function Checkpoint({ id }: CheckpointProps) {
                 <p className=" text-xs uppercase tracking-wider font-inktrap opacity-80">
                   POWERED BY
                 </p>
-                <p className=" text-lg font-bold font-inktrap">REFRACTION</p>
+                <Image
+                  src="/refraction-black.svg"
+                  alt="Refraction"
+                  width={120}
+                  height={40}
+                  className="object-contain h-10"
+                />
               </div>
 
               {/* With support from section */}
-              <div className="w-full py-8">
+              {/* <div className="w-full py-8">
                 <h2 className="text-xs uppercase tracking-wider font-inktrap opacity-80 mb-6 text-center">
                   With support from
                 </h2>
@@ -304,11 +310,14 @@ export default function Checkpoint({ id }: CheckpointProps) {
                     height={60}
                     className="object-contain h-12 opacity-80 hover:opacity-100 transition-opacity"
                   />
-                </div>
-              </div>
-
-              {/* stencil image */}
-              <img
+                  </div>
+               </div> */}
+               
+                {/* Spacing */}
+                <div className="h-[30px]" aria-hidden="true"></div>
+               
+                {/* stencil image */}
+                <img
                 src="/Stencil.svg"
                 alt="Stencil Image"
                 className="w-full h-auto rounded-2xl"
