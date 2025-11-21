@@ -560,7 +560,7 @@ export default function PerksPage() {
               <div
                 style={{
                   display: "flex",
-                  padding: "16px",
+                  padding: "24px",
                   flexDirection: "column",
                   alignItems: "flex-start",
                   gap: "8px",
@@ -583,10 +583,15 @@ export default function PerksPage() {
                       src={latestReward.thumbnail_url}
                       alt={latestReward.title}
                       width={400}
-                      height={300}
-                      className="w-full h-auto rounded-2xl object-contain"
+                      height={203}
+                      className="w-full"
                       style={{
-                        borderRadius: "20px",
+                        height: "203px",
+                        alignSelf: "stretch",
+                        aspectRatio: "47/29",
+                        borderRadius: "8px",
+                        background: `url(${latestReward.thumbnail_url}) lightgray 50% / cover no-repeat`,
+                        objectFit: "cover",
                       }}
                     />
                   </div>
@@ -599,63 +604,69 @@ export default function PerksPage() {
 
                 {/* Description */}
                 {latestReward.description && (
-                  <p className="text-black body-small font-abc-monument-regular w-full text-left mb-4">
-                    {latestReward.description}
+                  <p className="text-[#4F4F4F] body-medium font-grotesk w-full text-left mb-4">
+                    {latestReward.description.split(/[.!?]+/)[0].trim()}
+                    {latestReward.description.match(/[.!?]/) ? '.' : ''}
                   </p>
                 )}
 
                 {/* Points, Location, and Date */}
-                <div className="flex w-full gap-2 flex-wrap">
+                <div className="flex w-full gap-2 mb-2">
                   {/* Points Pill */}
                   <div
                     style={{
                       display: "flex",
-                      padding: "4px 8px",
+                      padding: "6px 8px",
+                      height: "28px",
                       alignItems: "center",
                       gap: "8px",
                       alignSelf: "stretch",
+                      flex: "1 1 0%",
                       borderRadius: "1000px",
-                      border: "1px solid #000000",
+                      border: "1px solid #EDEDED",
                     }}
+                    className="text-black body-small uppercase whitespace-nowrap font-abc-monument-regular"
                   >
-                    <span className="text-black body-small uppercase font-abc-monument-regular">
-                      {address && (
-                        latestRewardAffordable ? (
-                          <Image
-                            src="/tier-eligible.svg"
-                            alt="Eligible for Tier"
-                            width={12}
-                            height={12}
-                            className="inline-block mr-1"
-                          />
-                        ) : (
-                          <Image
-                            src="/tier-ineligible.svg"
-                            alt="Not Eligible for Tier"
-                            width={12}
-                            height={12}
-                            className="inline-block mr-1"
-                          />
-                        )
-                      )}
-                      {formatTierLabel(latestReward.points_threshold)}
-                    </span>
+                    {address && (
+                      latestRewardAffordable ? (
+                        <Image
+                          src="/tier-eligible.svg"
+                          alt="Eligible for Tier"
+                          width={12}
+                          height={12}
+                          className="inline-block mr-1"
+                        />
+                      ) : (
+                        <Image
+                          src="/tier-ineligible.svg"
+                          alt="Not Eligible for Tier"
+                          width={12}
+                          height={12}
+                          className="inline-block mr-1"
+                        />
+                      )
+                    )}
+                    {formatTierLabel(latestReward.points_threshold).split(' ')[0]}
                   </div>
 
                   <div
                     style={{
                       display: "flex",
-                      padding: "4px 8px",
+                      flexDirection: "row",
+                      padding: "6px 8px",
+                      height: "28px",
                       alignItems: "center",
                       gap: "8px",
                       alignSelf: "stretch",
+                      flex: "1 1 0%",
                       borderRadius: "1000px",
-                      border: "1px solid #000000",
+                      border: "1px solid #EDEDED",
+                      flexWrap: "nowrap",
                     }}
+                    className="text-black body-small uppercase font-abc-monument-regular"
                   >
-                    <span className="text-black body-small uppercase font-abc-monument-regular">
-                      {dateLabel}
-                    </span>
+                    <Clock className="w-4 h-4 flex-shrink-0" />
+                    <span className="whitespace-nowrap">{dateLabel}</span>
                   </div>
 
                   {/* Date/Time Left Pill */}
@@ -663,12 +674,14 @@ export default function PerksPage() {
                     <div
                       style={{
                         display: "flex",
-                        padding: "4px 8px",
+                        padding: "6px 8px",
+                        height: "28px",
                         alignItems: "center",
                         gap: "8px",
                         alignSelf: "stretch",
+                        flex: "1 1 0%",
                         borderRadius: "1000px",
-                        border: "1px solid #000000",
+                        border: "1px solid #EDEDED",
                       }}
                     >
                       <Clock className="w-4 h-4 stroke-[#000000]" />
@@ -693,25 +706,28 @@ export default function PerksPage() {
                       disabled={latestRewardExpired}
                       style={{
                         display: "flex",
-                        padding: "4px 8px",
+                        padding: "6px 8px",
+                        height: "28px",
                         alignItems: "center",
+                        justifyContent: "space-between",
                         gap: "8px",
                         alignSelf: "stretch",
+                        flex: "1 1 0%",
                         borderRadius: "1000px",
-                        border: "1px solid #000000",
+                        border: "1px solid #EDEDED",
                         background: "transparent",
                         cursor: latestRewardExpired ? "not-allowed" : "pointer",
                         opacity: latestRewardExpired ? 0.5 : 1,
                       }}
                       className="text-black body-small uppercase font-abc-monument-regular hover:bg-gray-50 transition-colors"
                     >
-                      View Details
+                     <span>Details</span>
                       <Image
                         src="/home/arrow-right.svg"
                         alt="arrow-right"
                         width={16}
                         height={16}
-                        className="w-4 h-4"
+                        className="w-4 h-4 flex-shrink-0"
                       />
                     </button>
                   )}
@@ -722,33 +738,35 @@ export default function PerksPage() {
                   latestRewardAffordable ? (
                     <button
                       onClick={() => handleOpenPerk(latestReward)}
-                      className={`w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between ${
+                      className={`w-full text-black font-bold hover:bg-gray-100 transition-colors ${
                         latestRewardRedeemed
                           ? "bg-green-100"
                           : latestRewardExpired
                             ? "opacity-50"
                             : ""
                       }`}
+                      style={{
+                        display: "flex",
+                        height: "40px",
+                        padding: "8px 8px 8px 16px",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        flex: "1 0 0",
+                        borderRadius: "100px",
+                        background: "#EDEDED",
+                      }}
                       disabled={latestRewardExpired}
                     >
-                      <span className="font-pleasure text-left">
+                      <h4 className="font-pleasure text-left">
                         {latestRewardRedeemed
                           ? "✓ Redeemed"
                           : latestRewardExpired
                             ? "Expired"
                             : "Claim Reward"}
-                      </span>
-                      <div
-                        style={{
-                          display: "flex",
-                          width: "24px",
-                          height: "24px",
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                      >
+                      </h4>
+                      <div>
                         <Image
-                          src="/home/arrow-right.svg"
+                          src="/arrow-diag-right.svg"
                           alt="arrow-right"
                           width={20}
                           height={20}
@@ -829,20 +847,12 @@ export default function PerksPage() {
           )}
 
           {/* View toggle & sort */}
-          {!perksLoading && (
-            <div
-              className="mb-6 flex w-full items-center gap-4"
-              style={{
-                display: "flex",
-                padding: "4px",
-                alignItems: "center",
-                gap: "4px",
-                borderRadius: "100px",
-                border: "1px solid rgba(255, 255, 255, 0.25)",
-                background: "rgba(255, 255, 255, 0.25)",
-              }}
-              id="tiers-toggle"
-            >
+            {!perksLoading && (
+              <div
+                className="mb-6 flex w-full items-center"
+                style={{ gap: "8px", height: "48px" }}
+                id="tiers-toggle"
+              >
               <div className="flex flex-1 items-center gap-2 rounded-full bg-white/20 p-1 backdrop-blur-sm">
                 {[
                   { label: "Rewards", value: "rewards" as const },
@@ -851,7 +861,7 @@ export default function PerksPage() {
                   <button
                     key={option.value}
                     onClick={() => setViewMode(option.value)}
-                    className={`body-small uppercase font-abc-monument-regular transition-all duration-200 ${
+                    className={` transition-all duration-200 ${
                       viewMode === option.value
                         ? "text-black"
                         : "text-gray-600 hover:text-black"
@@ -890,8 +900,12 @@ export default function PerksPage() {
 
               <button
                 type="button"
-                onClick={toggleSort}
-                className="transition-colors duration-200 hover:bg-white"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleSort();
+                }}
+                className="transition-colors duration-200 hover:bg-white cursor-pointer"
                 style={{
                   display: "flex",
                   width: "55px",
@@ -940,7 +954,7 @@ export default function PerksPage() {
                         padding: "16px",
                         flexDirection: "column",
                         alignItems: "flex-start",
-                        gap: "8px",
+                        
                         alignSelf: "stretch",
                         borderRadius: "26px",
                         border: "1px solid #EDEDED",
@@ -957,7 +971,8 @@ export default function PerksPage() {
                             <span
                               style={{
                                 display: "flex",
-                                padding: "4px 8px",
+                                padding: "6px 8px",
+                                height: "28px",
                                 alignItems: "center",
                                 gap: "8px",
                                 borderRadius: "1000px",
@@ -973,7 +988,8 @@ export default function PerksPage() {
                             <span
                               style={{
                                 display: "flex",
-                                padding: "4px 8px",
+                                padding: "6px 8px",
+                                height: "28px",
                                 alignItems: "center",
                                 gap: "8px",
                                 borderRadius: "1000px",
@@ -989,7 +1005,8 @@ export default function PerksPage() {
                             <span
                               style={{
                                 display: "flex",
-                                padding: "4px 8px",
+                                padding: "6px 8px",
+                                height: "28px",
                                 alignItems: "center",
                                 gap: "8px",
                                 borderRadius: "1000px",
@@ -1013,13 +1030,13 @@ export default function PerksPage() {
                             <Image
                               src={perk.thumbnail_url}
                               alt={perk.title}
-                              width={120}
-                              height={120}
-                              className="rounded-xl object-cover"
+                              width={69}
+                              height={69}
+                              className="object-cover"
                               style={{
-                                width: "120px",
-                                height: "120px",
-                                borderRadius: "16px",
+                                width: "69px",
+                                height: "69px",
+                                borderRadius: "8px",
                               }}
                             />
                           </div>
@@ -1027,23 +1044,25 @@ export default function PerksPage() {
 
                         {/* Title and Description */}
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-black title3 font-pleasure text-left w-full">
+                          <h3 className="text-[#020303] title3 font-monument-grotesk text-left w-full">
                             {perk.title}
                           </h3>
-                          <p className="text-[#7D7D7D] body-small font-abc-monument-regular mb-4 line-clamp-2">
-                            {perk.description}
+                          <p className="text-[#7D7D7D] body-medium font-abc-monument-regular mb-4">
+                            {perk.description?.split(/[.!?]+/)[0].trim()}
+                            {perk.description?.match(/[.!?]/) ? '.' : ''}
                           </p>
                         </div>
                       </div>
 
                       {/* Details */}
-                      <div className="flex w-full gap-2 mb-4">
+                      <div className="flex w-full mb-2" style={{ gap: "4px" }}>
                         <div
                           style={{
                             display: "flex",
-                            padding: "6px 16px 6px 8px",
+                            padding: "6px 8px",
+                            height: "28px",
                             alignItems: "center",
-                            gap: "8px",
+                            gap: "4px",
                             alignSelf: "stretch",
                             flex: "1 1 0%",
                             borderRadius: "1000px",
@@ -1058,7 +1077,7 @@ export default function PerksPage() {
                                 alt="Eligible for Tier"
                                 width={12}
                                 height={12}
-                                className="inline-block mr-1"
+                                className="inline-block"
                               />
                             ) : (
                               <Image
@@ -1066,11 +1085,11 @@ export default function PerksPage() {
                                 alt="Not Eligible for Tier"
                                 width={12}
                                 height={12}
-                                className="inline-block mr-1"
+                                className="inline-block"
                               />
                             )
                           )}
-                          {formatTierLabel(perk.points_threshold)}
+                          {formatTierLabel(perk.points_threshold).split(' ')[0]}
                         </div>
                         
 
@@ -1078,7 +1097,8 @@ export default function PerksPage() {
                           <div
                             style={{
                               display: "flex",
-                              padding: "6px 16px 6px 8px",
+                              padding: "6px 8px",
+                              height: "28px",
                               alignItems: "center",
                               gap: "8px",
                               alignSelf: "stretch",
@@ -1125,52 +1145,58 @@ export default function PerksPage() {
                         <div
                           style={{
                             display: "flex",
-                            padding: "6px 16px 6px 8px",
+                            flexDirection: "row",
+                            padding: "6px 8px",
+                            height: "28px",
                             alignItems: "center",
+                            justifyContent: "flex-start",
                             gap: "8px",
                             alignSelf: "stretch",
                             flex: "1 1 0%",
                             borderRadius: "1000px",
                             border: "1px solid #EDEDED",
+                            flexWrap: "nowrap",
                           }}
                           className="text-black body-small uppercase font-abc-monument-regular bg-white"
                         >
-                          <Clock className="w-4 h-4" />
-                          {dateLabel}
+                          <Clock className="w-4 h-4 flex-shrink-0"/>
+                          <span className="whitespace-nowrap">{dateLabel}</span>
                         </div>
 
+                        {/* View Details Button */}
                         {perk.id && (
                           <button
                             type="button"
                             onClick={() => handleOpenPerk(perk)}
-                            className={`
-                              inline-flex items-center gap-2
-                              rounded-full
-                              border border-[#EDEDED]
-                              px-4 py-2
-                              bg-[#EDEDED]
-                              text-black body-small uppercase font-abc-monument-regular
-                              hover:bg-gray-50
-                              transition ease-in-out
-                              shadow-sm
-                            `}
                             disabled={!affordable || isExpired}
+                            style={{
+                              display: "flex",
+                              padding: "6px 8px",
+                              height: "28px",
+                              alignItems: "center",
+                              gap: "8px",
+                              flexShrink: 0,
+                              borderRadius: "1000px",
+                              border: "1px solid #EDEDED",
+                              background: "#EDEDED",
+                              cursor: (!affordable || isExpired) ? "not-allowed" : "pointer",
+                              opacity: (!affordable || isExpired) ? 0.5 : 1,
+                            }}
+                            className="text-black body-small uppercase font-abc-monument-regular hover:bg-gray-50 transition-colors"
                             aria-label="View Details"
                           >
-                            <span className="font-pleasure">
-                              View Details
+                            <span className="font-abc-monument-regular">
+                              Details
                             </span>
                             <Image
                               src="/home/arrow-right.svg"
                               alt="arrow-right"
-                              width={20}
-                              height={20}
-                              className="w-5 h-5"
+                              width={16}
+                              height={16}
+                              className="w-4 h-4"
                             />
                           </button>
                         )}
-
-                      
                       </div>
 
                       {/* Status Messages */}
@@ -1407,9 +1433,7 @@ export default function PerksPage() {
                   <div className="title1 font-grotesk text-black">
                     {selectedPerk.title}
                   </div>
-                  
                 </div>
-              
               </div>
             </div>
 
@@ -1432,11 +1456,23 @@ export default function PerksPage() {
                   </p>
                 )}
                 <div className="grid grid-cols-2 gap-2">
-                  <span className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 px-4 py-2 body-small font-grotesk uppercase tracking-wide">
+                  <span 
+                    className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 body-small font-grotesk uppercase tracking-wide"
+                    style={{
+                      padding: "6px 8px",
+                      height: "28px",
+                    }}
+                  >
                     <Info className="h-3 w-3" />
                     {selectedPerk.type?.length ? selectedPerk.type : "Reward"}
                   </span>
-                  <div className="inline-flex w-full items-center justify-start rounded-full border border-[#131313]/20 bg-[#ffffff]/5 px-4 py-2 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide">
+                  <div 
+                    className="inline-flex w-full items-center justify-start rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
+                    style={{
+                      padding: "6px 8px",
+                      height: "28px",
+                    }}
+                  >
                   {selectedPerk.location ? (
                     <>
                       <MapPin className="h-3 w-3 mr-2" />
@@ -1449,7 +1485,13 @@ export default function PerksPage() {
                     </>
                   )}
                   </div>
-                  <div className="inline-flex w-full items-center justify-start rounded-full border border-[#131313]/20 bg-[#ffffff]/5 px-4 py-2 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide">
+                  <div 
+                    className="inline-flex w-full items-center justify-start rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
+                    style={{
+                      padding: "6px 8px",
+                      height: "28px",
+                    }}
+                  >
                     <Clock className="h-3 w-3 mr-3" />
                     {dateLabel}
                   </div>
@@ -1499,7 +1541,7 @@ export default function PerksPage() {
 
                     {/* Row 2: Instructions */}
                     <p className="body-medium text-[#4F4F4F]">
-                      Click the link and use code <span className="font-mono font-bold text-[#db85a8] px-2">{selectedDiscountCode}</span> to claim your reward.
+                      Click the link and use code {selectedDiscountCode} to claim your reward.
                     </p>
 
                     {/* Row 3: Two Pills */}
@@ -1510,7 +1552,7 @@ export default function PerksPage() {
                         onClick={handleCopyCode}
                         className="inline-flex items-center justify-between gap-2 rounded-full border font-pleasure border-[#131313]/20 bg-white px-4 py-2 body-small uppercase tracking-wide text-[#313131] hover:bg-gray-50 transition-colors flex-1"
                       >
-                        <span>{selectedDiscountCode}</span>
+                        <span>{selectedDiscountCode?.slice(0, 20) || ""}...</span>
                         <Copy className="h-4 w-4" />
                       </button>
 

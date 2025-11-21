@@ -803,7 +803,7 @@ export default function AdminPerksPage() {
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">{perk.title}</h3>
+                      <div className="title3 text-[#020303]">{perk.title}</div>
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${
                           perk.is_active
@@ -830,8 +830,8 @@ export default function AdminPerksPage() {
                           />
                         </div>
                       )}
-                      <div className="flex-1">
-                        <p className="text-gray-600 mb-2">{perk.description}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-gray-600 mb-2 break-words">wut</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
