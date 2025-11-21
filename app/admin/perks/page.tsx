@@ -97,10 +97,14 @@ export default function AdminPerksPage() {
       end_date: "",
       is_active: true,
       thumbnail_url: "",
+      hero_image: "",
     });
     const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
     const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
     const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+    const [heroFile, setHeroFile] = useState<File | null>(null);
+    const [heroPreview, setHeroPreview] = useState<string | null>(null);
+    const [, setIsUploadingHero] = useState(false);
     const [selectedPerkForCodes, setSelectedPerkForCodes] = useState<Perk | null>(
       null,
     );
@@ -285,8 +289,10 @@ export default function AdminPerksPage() {
       e.preventDefault();
 
       setIsUploadingThumbnail(true);
+      setIsUploadingHero(true);
       try {
         let thumbnailUrl = formData.thumbnail_url;
+        let heroImageUrl = formData.hero_image;
 
         // Upload thumbnail if a new file was selected
         if (thumbnailFile) {
@@ -298,6 +304,22 @@ export default function AdminPerksPage() {
             const errorMessage = error instanceof Error ? error.message : "Failed to upload thumbnail";
             toast.error(`Failed to upload thumbnail: ${errorMessage}`);
             setIsUploadingThumbnail(false);
+            setIsUploadingHero(false);
+            return;
+          }
+        }
+
+        // Upload hero image if a new file was selected
+        if (heroFile) {
+          try {
+            heroImageUrl = await uploadThumbnail(heroFile);
+            setFormData({ ...formData, hero_image: heroImageUrl });
+          } catch (error) {
+            console.error("Error uploading hero image:", error);
+            const errorMessage = error instanceof Error ? error.message : "Failed to upload hero image";
+            toast.error(`Failed to upload hero image: ${errorMessage}`);
+            setIsUploadingThumbnail(false);
+            setIsUploadingHero(false);
             return;
           }
         }
@@ -305,6 +327,7 @@ export default function AdminPerksPage() {
         const submitData = {
           ...formData,
           thumbnail_url: thumbnailUrl,
+          hero_image: heroImageUrl,
         };
 
         if (editingPerk) {
@@ -319,6 +342,7 @@ export default function AdminPerksPage() {
         }
       } finally {
         setIsUploadingThumbnail(false);
+        setIsUploadingHero(false);
       }
     };
 
@@ -329,9 +353,12 @@ export default function AdminPerksPage() {
         // Normalize null to empty string for form consistency
         end_date: perk.end_date ?? "",
         thumbnail_url: perk.thumbnail_url ?? "",
+        hero_image: perk.hero_image ?? "",
       });
       setThumbnailPreview(perk.thumbnail_url || null);
       setThumbnailFile(null);
+      setHeroPreview(perk.hero_image || null);
+      setHeroFile(null);
       setIsDialogOpen(true);
       setSelectedTierId("");
     };
@@ -352,9 +379,12 @@ export default function AdminPerksPage() {
         end_date: "",
         is_active: true,
         thumbnail_url: "",
+        hero_image: "",
       });
       setThumbnailFile(null);
       setThumbnailPreview(null);
+      setHeroFile(null);
+      setHeroPreview(null);
     };
 
     const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -365,6 +395,19 @@ export default function AdminPerksPage() {
         const reader = new FileReader();
         reader.onloadend = () => {
           setThumbnailPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+
+    const handleHeroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        setHeroFile(file);
+        // Create preview
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setHeroPreview(reader.result as string);
         };
         reader.readAsDataURL(file);
       }
@@ -641,6 +684,36 @@ export default function AdminPerksPage() {
                 </div>
 
                 <div>
+                  <Label htmlFor="hero_image">Hero/Modal Image</Label>
+                  <Input
+                    id="hero_image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleHeroChange}
+                    className="mt-1"
+                  />
+                  {heroPreview && (
+                    <div className="mt-2">
+                      <img
+                        src={heroPreview}
+                        alt="Hero image preview"
+                        className="max-w-xs max-h-48 object-cover rounded-md border"
+                      />
+                    </div>
+                  )}
+                  {formData.hero_image && !heroFile && (
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-600 mb-1">Current hero image:</p>
+                      <img
+                        src={formData.hero_image}
+                        alt="Current hero image"
+                        className="max-w-xs max-h-48 object-cover rounded-md border"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div>
                   <Label htmlFor="location">Location</Label>
                   <Input
                     id="location"
@@ -720,7 +793,7 @@ export default function AdminPerksPage() {
                       <SelectItem value="entertainment">Entertainment</SelectItem>
                       <SelectItem value="services">Services</SelectItem>
                       <SelectItem value="points program">Points Program</SelectItem>
-                      <SelectItem value="software license">Software License</SelectItem>
+                      <SelectItem value="license">Software License</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
@@ -831,7 +904,7 @@ export default function AdminPerksPage() {
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-gray-600 mb-2 break-words">wut</p>
+                        <p className="text-gray-600 mb-2 break-words">{perk.title}</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">

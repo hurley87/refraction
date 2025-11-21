@@ -5,5 +5,5 @@ ALTER TABLE perks
 ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
 
 -- Add comment for documentation
-COMMENT ON COLUMN perks.thumbnail_url IS 'URL of the thumbnail image for the perk (stored on IPFS)';
+COMMENT ON COLUMN perks.thumbnail_url IS 'URL of the thumbnail image for the perk (stored on Supabase Storage)';
 
