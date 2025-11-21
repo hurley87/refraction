@@ -14,7 +14,6 @@ import {
   Info,
   MapPin,
   Trophy,
-  X,
   Clock,
   Copy,
 } from "lucide-react";
@@ -541,8 +540,10 @@ export default function PerksPage() {
       style={{
         background:
           "var(--Gradients-Rewards-Pink, linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.10) 100%), linear-gradient(0deg, #FFE600 0%, #1BA351 36.06%, #61BFD1 65.39%, #EE91B7 100%))",
+        padding: "8px",
+        paddingBottom: "0",
       }}
-      className="min-h-screen p-4 pb-0 font-grotesk"
+      className="min-h-screen font-grotesk"
     >
       <div className="max-w-md mx-auto">
         {/* Status Bar with Header */}
@@ -580,7 +581,7 @@ export default function PerksPage() {
                 {latestReward.thumbnail_url && (
                   <div className="w-full mb-4">
                     <Image
-                      src={latestReward.thumbnail_url}
+                      src={latestReward.hero_image || latestReward.thumbnail_url!}
                       alt={latestReward.title}
                       width={400}
                       height={203}
@@ -1266,7 +1267,7 @@ export default function PerksPage() {
                 return (
                   <div
                     key={tier.id}
-                    className="shadow-sm"
+                    className="shadow-sm relative"
                     style={{
                       display: "flex",
                       width: "100%",
@@ -1296,8 +1297,14 @@ export default function PerksPage() {
                     <div className="body-medium text-[#7D7D7D] body-medium text-left">
                       {tier.description}
                     </div>
-                    <div className="w-full border-t border-dashed border-[#E2E2E2]" />
-                    <div className="flex items-center gap-2 mb-2">
+                    <div 
+                      className="absolute border-t border-solid border-[#E2E2E2]" 
+                      style={{ 
+                        left: "-16px",
+                        right: "-16px"
+                      }} 
+                    />
+                    <div className="flex items-center gap-2 mb-2" style={{ marginTop: "1px" }}>
                       <Image
                         src="/guidance_reward.svg"
                         alt="Guidance Reward"
@@ -1402,43 +1409,75 @@ export default function PerksPage() {
       </div>
 
     <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
-      <DialogContent className="w-full max-w-lg border-none bg-transparent p-0 shadow-none [&>button]:hidden">
+      <DialogContent className="w-full max-w-lg border-none bg-[#313131] p-1 shadow-none [&>button]:hidden">
         {selectedPerk && (
           <div className="max-h-[90vh] overflow-y-auto space-y-1">
             {/* Container 1: Close */}
-            <div className="w-full rounded-3xl border border-[#131313]/10 bg-white px-4 py-3">
-               <DialogClose asChild>
-                <button className="mx-auto flex h-10 w-10 items-center justify-center rounded-full text-black">
+            <div className="w-full rounded-full border border-[#131313]/10 shadow-none bg-white p-2 flex items-center justify-center">
+              <DialogClose asChild>
+                <button
+                  className="text-black w-full rounded-full"
+                  style={{
+                    display: "flex",
+                    height: "48px",
+                    width: "48px",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    borderRadius: "9999px",
+                    background: "#FFF",
+                 
+                  }}
+                  aria-label="Close"
+                  type="button"
+                >
                   <span className="sr-only">Close</span>
-                  <X className="h-5 w-5" />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 18" fill="none" style={{ display: "block" }}>
+                    <line x1="3.87186" y1="0.355431" x2="20.8424" y2="17.326" stroke="black" strokeWidth="2" strokeLinecap="round"/>
+                    <line x1="3.15768" y1="17.3242" x2="20.1282" y2="0.353619" stroke="black" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
                 </button>
-               </DialogClose>
-             </div>
+              </DialogClose>
+            </div>
 
             {/* Container 2: Media + title */}
             <div className="w-full rounded-3xl border border-[#131313]/10 bg-white p-6 text-center">
-              <div className="space-y-1">
-                {selectedPerk.thumbnail_url && (
-                  <div className="mx-auto flex h-[166px] w-[332px] items-center justify-center rounded-[12px] bg-black overflow-hidden">
+              <div style={{ gap: "8px" }} className="flex flex-col">
+                 {( selectedPerk.thumbnail_url) && (
+                  <div className="mx-auto flex items-center justify-center rounded-[12px] bg-black overflow-hidden">
                     <Image
                       src={selectedPerk.thumbnail_url}
                       alt={selectedPerk.title}
-                      width={332}
-                      height={166}
-                      className="h-full w-full object-cover"
+                      width={127}
+                      height={129}
+                      className="object-cover"
+                      style={{
+                        width: "127px",
+                        height: "129px",
+                        aspectRatio: "127/129",
+                      }}
                     />
                   </div>
                 )}
-                <div className="space-y-2">
-                  <div className="title1 font-grotesk text-black">
-                    {selectedPerk.title}
-                  </div>
+                <div 
+                  className="title1 font-grotesk text-[#313131]"
+                  style={{
+                    display: "flex",
+                    padding: "8px 17px",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: "8px",
+                    alignSelf: "stretch",
+                    borderRadius: "24px",
+                  }}
+                >
+                  {selectedPerk.title}
                 </div>
               </div>
             </div>
 
             {/* Container 3: Details */}
-            <div className="w-full rounded-3xl border border-[#131313]/10 bg-white p-6 space-y-6">
+            <div className="w-full rounded-3xl border border-[#131313]/10 bg-white p-6 space-y-6 relative">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Info className="h-4 w-4" />
@@ -1467,7 +1506,7 @@ export default function PerksPage() {
                     {selectedPerk.type?.length ? selectedPerk.type : "Reward"}
                   </span>
                   <div 
-                    className="inline-flex w-full items-center justify-start rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
+                    className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
                     style={{
                       padding: "6px 8px",
                       height: "28px",
@@ -1475,32 +1514,37 @@ export default function PerksPage() {
                   >
                   {selectedPerk.location ? (
                     <>
-                      <MapPin className="h-3 w-3 mr-2" />
+                      <MapPin className="h-3 w-3" />
                       {selectedPerk.location}
                     </>
                   ) : (
                     <>
-                      <MapPin className="h-3 w-3 mr-2" />
+                      <MapPin className="h-3 w-3" />
                       Not specified
                     </>
                   )}
                   </div>
                   <div 
-                    className="inline-flex w-full items-center justify-start rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
+                    className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
                     style={{
                       padding: "6px 8px",
                       height: "28px",
                     }}
                   >
-                    <Clock className="h-3 w-3 mr-3" />
+                    <Clock className="h-3 w-3" />
                     {dateLabel}
                   </div>
+                  
                   {selectedPerk.website_url ? (
                     <a
                       href={selectedPerk.website_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex w-full items-center justify-between gap-2 rounded-full border bg-[#EDEDED] border-[#131313]/20 px-4 py-2 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide hover:underline"
+                      className="inline-flex w-full items-center justify-between gap-2 rounded-full border bg-[#EDEDED] border-[#131313]/20 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide hover:underline"
+                      style={{
+                        padding: "6px 8px",
+                        height: "28px",
+                      }}
                     >
                       <span>View Website</span>
                       <Image
@@ -1512,14 +1556,27 @@ export default function PerksPage() {
                       />
                     </a>
                   ) : (
-                    <span className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 px-4 py-2 text-xs font-inktrap uppercase tracking-wide text-gray-400">
+                    <span 
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-gray-400 body-small font-grotesk uppercase tracking-wide"
+                      style={{
+                        padding: "6px 8px",
+                        height: "28px",
+                      }}
+                    >
                       <ExternalLink className="h-3 w-3" />
                       View Website
                     </span>
                   )}
                 </div>
               </div>
-              <div className="border-t border-dashed border-[#131313]/20" />
+              <div 
+                className="absolute border-t border-solid border-[#131313]/20" 
+                style={{ 
+                  left: "-24px",
+                  right: "-24px"
+                }} 
+              />
+              <div style={{ height: "1px" }} />
               
               {/* Claim Section - Only visible if user is logged in and eligible */}
               {address && selectedPerk && canAfford(selectedPerk) && (
@@ -1541,55 +1598,103 @@ export default function PerksPage() {
 
                     {/* Row 2: Instructions */}
                     <p className="body-medium text-[#4F4F4F]">
-                      Click the link and use code {selectedDiscountCode} to claim your reward.
+                      {isCodeUrl(selectedDiscountCode)
+                        ? "Click the link to claim your reward."
+                        : `Click the link and use code ${selectedDiscountCode} to claim your reward.`}
                     </p>
 
-                    {/* Row 3: Two Pills */}
-                    <div className="flex gap-2">
-                      {/* Pill 1: Code with Copy */}
-                      <button
-                        type="button"
-                        onClick={handleCopyCode}
-                        className="inline-flex items-center justify-between gap-2 rounded-full border font-pleasure border-[#131313]/20 bg-white px-4 py-2 body-small uppercase tracking-wide text-[#313131] hover:bg-gray-50 transition-colors flex-1"
-                      >
-                        <span>{selectedDiscountCode?.slice(0, 20) || ""}...</span>
-                        <Copy className="h-4 w-4" />
-                      </button>
-
-                      {/* Pill 2: Claim Reward */}
-                      {claimUrl ? (
-                        <a
-                          href={claimUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-pleasure uppercase tracking-wide text-white hover:bg-[#313131] transition-colors flex-1"
-                        >
-                          <span className="text-left">Claim Reward</span>
-                          <Image
-                            src="/guidance-up-right.svg"
-                            alt="Up Right"
-                            width={16}
-                            height={16}
-                            className="h-4 w-4"
-                          />
-                        </a>
-                      ) : (
+                    {/* Row 3: Pills */}
+                    {isCodeUrl(selectedDiscountCode) ? (
+                      /* Full width claim button when code is a URL */
+                      <div className="w-full">
+                        {claimUrl ? (
+                          <a
+                            href={claimUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex w-full items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-pleasure uppercase tracking-wide text-white hover:bg-[#313131] transition-colors"
+                          >
+                            <h4 className="text-left">Claim Reward</h4>
+                            <Image
+                              src="/guidance-up-right.svg"
+                              alt="Up Right"
+                              width={16}
+                              height={16}
+                              className="h-4 w-4"
+                            />
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-pleasure uppercase tracking-wide text-gray-500 cursor-not-allowed"
+                          >
+                            <h4>Claim Reward</h4>
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      /* Two pills when code is not a URL */
+                      <div className="flex gap-2">
+                        {/* Pill 1: Code with Copy */}
                         <button
                           type="button"
-                          disabled
-                          className="inline-flex items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-pleasure uppercase tracking-wide text-gray-500 cursor-not-allowed flex-1"
+                          onClick={handleCopyCode}
+                          className="inline-flex items-center justify-between gap-2 rounded-full border font-pleasure border-[#131313]/20 bg-white px-4 py-2 body-small uppercase tracking-wide text-[#313131] hover:bg-gray-50 transition-colors flex-1"
                         >
-                          Claim Reward
+                          <span>{selectedDiscountCode?.slice(0, 20) || ""}</span>
+                          <Copy className="h-4 w-4" />
                         </button>
-                      )}
-                    </div>
+
+                        {/* Pill 2: Claim Reward */}
+                        {claimUrl ? (
+                          <a
+                            href={claimUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-pleasure uppercase tracking-wide text-white hover:bg-[#313131] transition-colors flex-1"
+                          >
+                            <span className="text-left">Claim Reward</span>
+                            <Image
+                              src="/guidance-up-right.svg"
+                              alt="Up Right"
+                              width={16}
+                              height={16}
+                              className="h-4 w-4"
+                            />
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-pleasure uppercase tracking-wide text-gray-500 cursor-not-allowed flex-1"
+                          >
+                            Claim Reward
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="border-t border-dashed border-[#131313]/20" />
+                  <div 
+                    className="absolute border-t border-solid border-[#131313]/20" 
+                    style={{ 
+                      left: "-24px",
+                      right: "-24px"
+                    }} 
+                  />
+                  <div style={{ height: "1px" }} />
                 </>
               )}
 
-              <div className="border-t border-dashed border-[#131313]/20" />
+              <div 
+                className="absolute border-t border-solid border-[#131313]/20" 
+                style={{ 
+                  left: "-24px",
+                  right: "-24px"
+                }} 
+              />
+              <div style={{ height: "1px" }} />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 body-small font-grotesk uppercase tracking-wide text-[#7D7D7D]">
                   <Trophy className="h-4 w-4" />

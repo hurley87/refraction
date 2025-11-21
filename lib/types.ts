@@ -13,6 +13,7 @@ export type Perk = {
   updated_at?: string;
   is_active?: boolean;
   thumbnail_url?: string;
+  hero_image?: string;
 };
 
 export type Tier = {
