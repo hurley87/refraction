@@ -46,8 +46,9 @@
   h4 {
     font-size: 1rem !important; /* 16px */
     line-height: 1.5rem !important; /* 24px - better line height */
-    font-weight: 600 !important;
-    font-family: "Pleasure", sans-serif !important;
+    letter-spacing: -1.28px !important;
+    font-weight: 500 !important;
+    font-family: "Pleasure Variable Trial", sans-serif !important;
   }
 
   .title1 {
