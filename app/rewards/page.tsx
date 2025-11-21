@@ -1687,13 +1687,7 @@ export default function PerksPage() {
                 </>
               )}
 
-              <div 
-                className="absolute border-t border-solid border-[#131313]/20" 
-                style={{ 
-                  left: "-24px",
-                  right: "-24px"
-                }} 
-              />
+            
               <div style={{ height: "1px" }} />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 body-small font-grotesk uppercase tracking-wide text-[#7D7D7D]">
