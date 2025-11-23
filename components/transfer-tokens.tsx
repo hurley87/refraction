@@ -353,7 +353,7 @@ export default function TransferTokens({
                     </p>
                     <p className="mt-1 text-xs font-grotesk text-[#92400E]">
                       You need ETH on Base to pay for transaction fees. Send ETH
-                      to your wallet address below.
+                      to your wallet address below. Eth Balance: {ethBalance}
                     </p>
                   </div>
                 </div>
