@@ -114,6 +114,7 @@ export default function TransferTokens({
       if (!onBase) {
         // Return null if not on Base - this will show as insufficient funds
         // User will need to switch network when they try to transfer
+        console.log("Not on Base network");
         return null;
       }
 
@@ -128,6 +129,8 @@ export default function TransferTokens({
       const balance = await publicClient.getBalance({
         address: userAddress as `0x${string}`,
       });
+
+      console.log("ETH Balance:", balance);
 
       return balance;
     },
@@ -255,9 +258,17 @@ export default function TransferTokens({
   const decimals = tokenInfo?.decimals || 18;
   const balanceInTokens = (Number(tokenBalance) / 10 ** decimals).toFixed(2);
 
+  // Helper function to convert wei to ETH
+  const weiToEth = (wei: bigint | null | undefined): string => {
+    if (!wei) return "0.0000";
+    const eth = Number(wei) / Math.pow(10, 18);
+    return eth.toFixed(4);
+  };
+
   // Minimum ETH balance needed for gas (rough estimate: 0.0001 ETH)
   const minEthForGas = BigInt(100000000000000); // 0.0001 ETH in wei
   const hasEnoughEth = ethBalance ? ethBalance >= minEthForGas : false;
+  const formattedEthBalance = weiToEth(ethBalance);
 
   if (Number(tokenBalance) === 0) {
     return null;
@@ -353,7 +364,7 @@ export default function TransferTokens({
                     </p>
                     <p className="mt-1 text-xs font-grotesk text-[#92400E]">
                       You need ETH on Base to pay for transaction fees. Send ETH
-                      to your wallet address below. Eth Balance: {ethBalance}
+                      to your wallet address below. ETH Balance: {formattedEthBalance} ETH
                     </p>
                   </div>
                 </div>
