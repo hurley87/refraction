@@ -44,7 +44,10 @@ export default function TransferTokens({
 
     try {
       const provider = await (window as any).ethereum;
-      if (!provider) return false;
+      if (!provider) {
+        console.log("No provider");
+        return false;
+      }
 
       const currentChainId = await provider.request({ method: "eth_chainId" });
       const currentChainIdNumber = parseInt(currentChainId, 16);
