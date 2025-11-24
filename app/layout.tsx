@@ -63,6 +63,7 @@ export const metadata: Metadata = {
   },
   other: {
     "apple-mobile-web-app-status-bar-style": "black-translucent",
+    "mobile-web-app-capable": "yes",
     "msapplication-navbutton-color": "#000000",
   },
 };
@@ -79,19 +80,78 @@ export default function RootLayout({
   return (
     <html lang="en" className={spaceGrotesk.variable}>
       <head>
-        {/* Google Analytics */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
+        {/* Suppress harmless browser extension errors */}
+        <Script id="suppress-extension-errors" strategy="beforeInteractive">
           {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');
+            // Suppress harmless browser extension errors
+            (function() {
+              const originalError = console.error;
+              console.error = function(...args) {
+                const message = args[0]?.toString() || '';
+                if (
+                  message.includes('runtime.lastError') ||
+                  message.includes('Receiving end does not exist') ||
+                  message.includes('Could not establish connection') ||
+                  message.includes('Extension context invalidated') ||
+                  message.includes('Cannot redefine property: ethereum') ||
+                  message.includes('Cannot redefine property')
+                ) {
+                  return; // Suppress these errors
+                }
+                originalError.apply(console, args);
+              };
+
+              // Also suppress unhandled errors from extensions
+              window.addEventListener('error', function(event) {
+                const message = event.message || '';
+                if (
+                  message.includes('runtime.lastError') ||
+                  message.includes('Receiving end does not exist') ||
+                  message.includes('Could not establish connection') ||
+                  message.includes('Extension context invalidated') ||
+                  message.includes('Cannot redefine property: ethereum') ||
+                  message.includes('Cannot redefine property')
+                ) {
+                  event.preventDefault();
+                  return false;
+                }
+              }, true);
+
+              // Suppress unhandled promise rejections from extensions
+              window.addEventListener('unhandledrejection', function(event) {
+                const message = event.reason?.message || event.reason?.toString() || '';
+                if (
+                  message.includes('runtime.lastError') ||
+                  message.includes('Receiving end does not exist') ||
+                  message.includes('Could not establish connection') ||
+                  message.includes('Extension context invalidated') ||
+                  message.includes('Cannot redefine property: ethereum') ||
+                  message.includes('Cannot redefine property')
+                ) {
+                  event.preventDefault();
+                  return false;
+                }
+              });
+            })();
           `}
         </Script>
+        {/* Google Analytics */}
+        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}');
+              `}
+            </Script>
+          </>
+        )}
       </head>
       <body className="min-h-screen min-w-screen">
         <FarcasterReady />
