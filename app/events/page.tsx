@@ -452,7 +452,12 @@ export default function EventsPage() {
                 <DialogClose asChild>
                   <button className="flex h-10 w-10 items-center justify-center rounded-full text-black hover:bg-gray-100 transition-colors">
                     <span className="sr-only">Close</span>
-                    <X className="h-5 w-5" />
+                    <Image
+                      src="/x-close.svg"
+                      alt="Close"
+                      width={24}
+                      height={24}
+                    />
                   </button>
                 </DialogClose>
               </div>

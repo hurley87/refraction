@@ -108,21 +108,13 @@ export default function NavigationMenu({
           aria-label="Close menu"
         >
           <div className="relative shrink-0 size-[24px] flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path
-                d="M18 6L6 18M6 6l12 12"
-                stroke="#313131"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <Image
+              src="/x-close.svg"
+              alt="Close"
+              width={24}
+              height={24}
+              className="object-center"
+            />
           </div>
         </button>
 
