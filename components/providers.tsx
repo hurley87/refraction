@@ -5,6 +5,9 @@ import { PrivyProvider } from "@privy-io/react-auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, createConfig, http } from "wagmi";
 
+const baseRpcUrl =
+  process.env.NEXT_PUBLIC_BASE_RPC || base.rpcUrls.default.http[0];
+
 const queryClient = new QueryClient();
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -13,7 +16,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   const wagmiConfig = createConfig({
     chains: [base],
     transports: {
-      [base.id]: http(),
+      [base.id]: http(baseRpcUrl),
     },
     ssr: true,
   });

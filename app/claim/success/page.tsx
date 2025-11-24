@@ -6,6 +6,7 @@ import ClaimHeader from "@/components/claim-header";
 import Footer from "@/components/footer";
 import TransferTokens from "@/components/transfer-tokens";
 import MembersSection from "@/components/members-section";
+import ExportWalletButton from "@/components/export-wallet-button";
 import Image from "next/image";
 import { usePrivy } from "@privy-io/react-auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -110,7 +111,7 @@ export default function ClaimSuccessPage() {
                   <br />
                   See you IRL again soon.
                 </p>
-                 <TransferTokens
+                <TransferTokens
                   tokenBalance={tokenBalance}
                   onTransferComplete={() => {
                     queryClient.invalidateQueries({
@@ -121,6 +122,7 @@ export default function ClaimSuccessPage() {
                   buttonFontFamily='"Pleasure"'
                   buttonText="Send your $WCT to your wallet"
                 />
+                <ExportWalletButton className="flex h-10 w-full items-center justify-center gap-4 rounded-full bg-[#EDEDED] px-4 py-2 font-pleasure text-black transition hover:bg-gray-100" />
                 {userAddress && (
                   <a
                     href={`https://basescan.org/address/${userAddress}`}
