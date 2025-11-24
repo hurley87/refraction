@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { X } from "lucide-react";
 import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
 import eventsData from "@/data/events.json";
 import MapNav from "@/components/mapnav";
@@ -15,9 +14,53 @@ export default function EventsPage() {
   const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Helper function to parse date format "NOV 18 2025"
+  const parseDate = (dateString: string): number => {
+    const months: { [key: string]: number } = {
+      JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5,
+      JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11
+    };
+    
+    const parts = dateString.trim().split(/\s+/);
+    if (parts.length === 3) {
+      const month = months[parts[0].toUpperCase()];
+      const day = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      
+      if (month !== undefined && !isNaN(day) && !isNaN(year)) {
+        return new Date(year, month, day).getTime();
+      }
+    }
+    
+    // Fallback to standard date parsing
+    return new Date(dateString).getTime();
+  };
+
+  // Helper function to format date from "NOV 18 2025" to "NOV 18/25"
+  const formatDate = (dateString: string): string => {
+    const parts = dateString.trim().split(/\s+/);
+    if (parts.length === 3) {
+      const month = parts[0].toUpperCase();
+      const day = parts[1];
+      const year = parts[2];
+      const lastTwoDigits = year.slice(-2);
+      return `${month} ${day}/${lastTwoDigits}`;
+    }
+    return dateString;
+  };
+
+  // Helper function to extract city from location (remove country after comma)
+  const getCity = (location: string): string => {
+    const commaIndex = location.indexOf(',');
+    if (commaIndex !== -1) {
+      return location.substring(0, commaIndex).trim();
+    }
+    return location.trim();
+  };
+
   const sortedEvents = [...futureEvents].sort((a, b) => {
     if (sortBy === "date") {
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
+      return parseDate(a.date) - parseDate(b.date);
     }
     return a.title.localeCompare(b.title);
   });
@@ -49,9 +92,9 @@ export default function EventsPage() {
         </div>
 
         {/* Main Content */}
-        <div className="px-0 pt-4 space-y-4">
+        <div className="px-0 pt-4 space-y-1">
           {/* NEXT EVENT Section */}
-          <div className="mb-6">
+          <div className="mb-1">
             {/* Next Event Container */}
             <div
               style={{
@@ -88,12 +131,12 @@ export default function EventsPage() {
               </button>
 
               {/* Event Title */}
-              <h2 className="text-black title2 font-pleasure w-full text-left">
+              <h2 className="text-[#313131] title2 font-grotesk w-full text-left mt-4 mb-4">
                 {nextEvent.title}
               </h2>
 
               {/* Date and Location */}
-              <div className="flex w-full gap-2">
+              <div className="flex w-full gap-2 mb-4">
                 <div
                   style={{
                     display: "flex",
@@ -131,7 +174,7 @@ export default function EventsPage() {
                     />
                   </svg>
                   <span className="text-black body-small uppercase font-abc-monument-regular">
-                    {nextEvent.date}
+                    {formatDate(nextEvent.date)}
                   </span>
                 </div>
                 <div
@@ -155,8 +198,8 @@ export default function EventsPage() {
                   >
                     <path d="M10 2C7.24 2 5 4.24 5 7c0 5.25 5 11 5 11s5-5.75 5-11c0-2.76-2.24-5-5-5zm0 7.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                   </svg>
-                  <span className="flex items-center gap-1 text-black body-small uppercase font-abc-monument-regular">
-                    {nextEvent.location}
+                  <span className="flex items-center gap-1 text-black body-small uppercase font-abc-monument-regular truncate">
+                    {getCity(nextEvent.location)}
                   </span>
                 </div>
 
@@ -172,15 +215,15 @@ export default function EventsPage() {
                     alignItems: "center",
                     gap: "8px",
                     borderRadius: "1000px",
-                    background: "transparent",
-                    border: "1px solid #000000",
+                    background: "#EDEDED",
+                    
                   }}
                 >
                   <span className="text-black body-small font-abc-monument-regular">
                     MAP
                   </span>
                   <Image
-                    src="/home/arrow-right.svg"
+                    src="/arrow-diag-right.svg"
                     alt="arrow-right"
                     width={16}
                     height={16}
@@ -196,7 +239,7 @@ export default function EventsPage() {
                 rel="noopener noreferrer"
                 className="w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
               >
-                <span className="font-pleasure text-left">Register</span>
+                <h4 className="font-pleasure text-left">Register</h4>
                 <div
                   style={{
                     display: "flex",
@@ -219,25 +262,25 @@ export default function EventsPage() {
           </div>
 
           {/* Sort Section */}
-          <div className="mb-6">
-            <div className="flex justify-end items-center mb-4 gap-4">
+          <div className="mb-1">
+            <div className="flex items-center mb-1 gap-4">
               {/* Filter Button */}
               <button
                 onClick={() => setSortBy(sortBy === "date" ? "title" : "date")}
                 style={{
                   display: "flex",
-                  width: "55px",
+                  width: "100%",
                   height: "48px",
                   padding: "16px",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "flex-start",
-                  gap: "16px",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                   borderRadius: "24px",
                   background: "#FFF",
                 }}
                 className="hover:bg-gray-50 transition-colors"
               >
+                <span className="text-[#7D7D7D] body-small font-grotesk uppercase tracking-wide">FILTER</span>
                 <Image
                   src="/events/filter.svg"
                   alt="filter"
@@ -251,7 +294,7 @@ export default function EventsPage() {
 
           {/* Future Events Section */}
           <div>
-            <div className="space-y-4">
+            <div className="space-y-1">
               {sortedEvents.map((event) => (
                 <div
                   key={event.id}
@@ -272,7 +315,7 @@ export default function EventsPage() {
                   <div className="flex w-full gap-4 items-start">
                     {/* Column 1: Title */}
                     <div className="flex-1">
-                      <div className="text-black title3 font-pleasure text-left">
+                      <div className="text-[#313131] title3 font-grotesk text-left">
                         {event.title}
                       </div>
                     </div>
@@ -281,21 +324,21 @@ export default function EventsPage() {
                     <button
                       type="button"
                       onClick={() => handlePosterClick(event.poster)}
-                      className="flex-shrink-0 cursor-pointer overflow-hidden rounded-xl"
+                      className="flex-shrink-0 cursor-pointer overflow-hidden rounded-lg"
                     >
                       <Image
                         src={event.poster}
                         alt={event.title}
                         width={80}
                         height={100}
-                        className="rounded-xl object-contain hover:opacity-90 transition-opacity"
+                        className="rounded-xl object-cover hover:opacity-90 transition-opacity"
                         style={{ width: "80px", height: "100px" }}
                       />
                     </button>
                   </div>
 
                   {/* Row 2: Date, Location, and Map Button */}
-                  <div className="flex w-full gap-2">
+                  <div className="flex w-full gap-1">
                     <div
                       style={{
                         display: "flex",
@@ -336,8 +379,8 @@ export default function EventsPage() {
                           strokeLinecap="round"
                         />
                       </svg>
-                      <span className="text-black body-small uppercase font-abc-monument-regular">
-                        {event.date}
+                      <span className="text-[#4f4f4f] body-small uppercase font-grotesk">
+                        {formatDate(event.date)}
                       </span>
                     </div>
                     <div
@@ -374,8 +417,8 @@ export default function EventsPage() {
                           strokeWidth={1.5}
                         />
                       </svg>
-                      <span className="flex items-center gap-1 text-black body-small uppercase font-abc-monument-regular">
-                        {event.location}
+                      <span className="flex items-center gap-1 text-[#4f4f4f] body-small uppercase font-grotesk truncate whitespace-nowrap">
+                        {getCity(event.location)}
                       </span>
                     </div>
 
@@ -394,11 +437,11 @@ export default function EventsPage() {
                         background: "#EDEDED",
                       }}
                     >
-                      <span className="text-black body-small font-abc-monument-regular">
+                      <span className="text-[#4f4f4f] body-small font-grotesk">
                         MAP
                       </span>
                       <Image
-                        src="/home/arrow-right.svg"
+                        src="/arrow-diag-right.svg"
                         alt="arrow-right"
                         width={16}
                         height={16}
@@ -414,7 +457,7 @@ export default function EventsPage() {
                     rel="noopener noreferrer"
                     className="w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
                   >
-                    <span className="font-pleasure text-left">Register</span>
+                    <h4 className="font-pleasure text-left">Register</h4>
                     <div
                       style={{
                         display: "flex",
