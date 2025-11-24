@@ -1280,10 +1280,10 @@ export default function PerksPage() {
                     }}
                   >
                     <div className="flex w-full items-center justify-between">
-                      <h3 className="title3 text-[#313131] font-pleasure text-left">
+                      <h3 className="text-[#313131] font-pleasure text-left">
                         {tier.title}
                       </h3>
-                      <div className="flex items-center gap-2 rounded-full border border-[#EDEDED] bg-[#EDEDED]/60 px-3 py-1">
+                      <div className="flex items-center gap-2 rounded-full border border-[#EDEDED] bg-[#ffffff] px-3 py-1">
                         <Image
                           src="/ep_coin.svg"
                           alt="coin"
@@ -1298,13 +1298,10 @@ export default function PerksPage() {
                       {tier.description}
                     </div>
                     <div 
-                      className="absolute border-t border-solid border-[#E2E2E2]" 
-                      style={{ 
-                        left: "-16px",
-                        right: "-16px"
-                      }} 
+                      className="w-full border-t border-solid border-[#E2E2E2]" 
+                      style={{ marginLeft: '-16px', marginRight: '-16px' }}
                     />
-                    <div className="flex items-center gap-2 mb-2" style={{ marginTop: "1px" }}>
+                    <div className="flex items-center gap-2" style={{ marginTop: "1px" }}>
                       <Image
                         src="/guidance_reward.svg"
                         alt="Guidance Reward"
@@ -1312,13 +1309,13 @@ export default function PerksPage() {
                         height={16}
                         style={{ width: "16", height: "16" }}
                       />
-                      <span className="body-small font-abc-monument-regular text-[#7D7D7D] uppercase tracking-wide">
+                      <div className="body-small font-grotesk text-[#7D7D7D] uppercase tracking-wide">
                         TIER REWARDS
-                      </span>
+                      </div>
                     </div>
                     {tierPerks.length > 0 ? (
-                      <div className="w-full overflow-x-auto">
-                        <div className="flex gap-4 py-2 pr-4">
+                      <div className="w-full overflow-x-auto" style={{ marginTop: "-8px" }}>
+                        <div className="flex gap-2 py-2 pr-4">
                           {tierPerks.map((tierPerk) => {
                             const tierPerkAffordable = canAfford(tierPerk);
                             /* const tierPerkExpired =
@@ -1339,6 +1336,7 @@ export default function PerksPage() {
                                    border: "1px solid #EDEDED",
                                    background: "#FFF",
                                    flexShrink: 0,
+                                   boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
                                  }}
                                >
                                 <div className="flex w-full items-center gap-3">
@@ -1355,12 +1353,12 @@ export default function PerksPage() {
                                       No image
                                     </div>
                                   )}
-                                  <div className="title4 text-[#313131] font-pleasure line-clamp-2">
+                                  <h4 className="text-[#020303] font-pleasure line-clamp-2">
                                     {tierPerk.title}
-                                  </div>
+                                  </h4>
                                 </div>
-                                <div className="flex w-full items-center gap-2" style={{ flexWrap: "nowrap", justifyContent: "space-between" }}>
-                                   <span className="inline-flex items-center gap-2 rounded-full border border-[#EDEDED] px-3 py-1 text-xs uppercase tracking-wide text-[#313131]">
+                                <div className="flex w-full items-center gap-2" style={{ flexWrap: "nowrap" }}>
+                                   <span className="flex-1 inline-flex items-center justify-center gap-2 rounded-full border border-[#EDEDED] bg-[#ffffff] px-3 py-1 uppercase tracking-wide text-[#313131] body-small">
                                      {address && (
                                        tierPerkAffordable ? (
                                          <Image
@@ -1380,9 +1378,9 @@ export default function PerksPage() {
                                          />
                                        )
                                      )}
-                                     {formatTierLabel(tierPerk.points_threshold)}
+                                     <div className="body-small">{formatTierLabel(tierPerk.points_threshold)}</div>
                                    </span>
-                                   <span className="inline-flex items-center gap-2 rounded-full border border-[#EDEDED] px-3 py-1 text-xs uppercase tracking-wide text-[#4F4F4F]">
+                                   <span className="flex-1 inline-flex items-center justify-center gap-2 body-small rounded-full border border-[#EDEDED] bg-[#ffffff] px-3 py-1 uppercase tracking-wide text-[#313131]">
                                     <Clock className="h-3 w-3" />
                                     {getPerkDateRange(tierPerk)}
                                   </span>
