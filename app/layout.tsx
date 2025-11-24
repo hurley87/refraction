@@ -94,7 +94,10 @@ export default function RootLayout({
                   message.includes('Could not establish connection') ||
                   message.includes('Extension context invalidated') ||
                   message.includes('Cannot redefine property: ethereum') ||
-                  message.includes('Cannot redefine property')
+                  message.includes('Cannot redefine property') ||
+                  message.includes('ERR_NAME_NOT_RESOLVED') ||
+                  message.includes('googletagmanager.com') ||
+                  message.includes('net::ERR_NAME_NOT_RESOLVED')
                 ) {
                   return; // Suppress these errors
                 }
@@ -104,13 +107,17 @@ export default function RootLayout({
               // Also suppress unhandled errors from extensions
               window.addEventListener('error', function(event) {
                 const message = event.message || '';
+                const source = event.filename || '';
                 if (
                   message.includes('runtime.lastError') ||
                   message.includes('Receiving end does not exist') ||
                   message.includes('Could not establish connection') ||
                   message.includes('Extension context invalidated') ||
                   message.includes('Cannot redefine property: ethereum') ||
-                  message.includes('Cannot redefine property')
+                  message.includes('Cannot redefine property') ||
+                  message.includes('ERR_NAME_NOT_RESOLVED') ||
+                  source.includes('googletagmanager.com') ||
+                  message.includes('net::ERR_NAME_NOT_RESOLVED')
                 ) {
                   event.preventDefault();
                   return false;
