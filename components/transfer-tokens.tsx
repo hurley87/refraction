@@ -100,8 +100,25 @@ export default function TransferTokens({
         await wallet.switchChain(base.id);
         toast.info("Switched to Base network");
         // Wait a bit for the chain switch to complete
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        return true;
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        
+        // Verify the chain switch was successful
+        const provider = await wallet.getEthereumProvider().catch(() => (window as any).ethereum);
+        if (provider) {
+          try {
+            const currentChainId = await provider.request({ method: "eth_chainId" });
+            const currentChainIdNumber = parseInt(currentChainId, 16);
+            if (currentChainIdNumber === base.id) {
+              return true;
+            }
+          } catch (verifyError) {
+            console.warn("Failed to verify chain after switch:", verifyError);
+          }
+        }
+        
+        // If verification failed, check again using isOnBaseNetwork
+        const verified = await isOnBaseNetwork();
+        return verified;
       } catch (switchError: any) {
         console.error("Failed to switch to Base network:", switchError);
         toast.error("Please switch to Base network in your wallet");
@@ -212,15 +229,48 @@ export default function TransferTokens({
       if (!tokenInfo?.tokenAddress)
         throw new Error("No token address available");
 
+      // Get the wallet from Privy first
+      const wallet = wallets.find((w) => w.address === userAddress) || wallets[0];
+      if (!wallet) throw new Error("No wallet found");
+
       // Ensure wallet is on Base network before performing transfer
       const isOnBase = await ensureBaseNetwork();
       if (!isOnBase) {
         throw new Error("Please switch to Base network in your wallet");
       }
 
-      // Get the wallet provider from Privy
-      const provider = await (window as any).ethereum;
+      // Get the wallet provider from Privy (not window.ethereum)
+      let provider: any = null;
+      try {
+        provider = await wallet.getEthereumProvider();
+      } catch (walletError) {
+        console.warn("Failed to get provider from Privy wallet:", walletError);
+        // Fallback to window.ethereum if Privy provider not available
+        provider = (window as any).ethereum;
+      }
+
       if (!provider) throw new Error("No wallet provider found");
+
+      // Double-check the chain after getting provider
+      try {
+        const currentChainId = await provider.request({ method: "eth_chainId" });
+        const currentChainIdNumber = parseInt(currentChainId, 16);
+        if (currentChainIdNumber !== base.id) {
+          // Try switching one more time
+          await wallet.switchChain(base.id);
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          
+          // Verify again
+          const newChainId = await provider.request({ method: "eth_chainId" });
+          const newChainIdNumber = parseInt(newChainId, 16);
+          if (newChainIdNumber !== base.id) {
+            throw new Error("Please switch to Base network in your wallet");
+          }
+        }
+      } catch (chainError: any) {
+        console.error("Chain verification failed:", chainError);
+        throw new Error("Please switch to Base network in your wallet");
+      }
 
       // Create wallet client with user's wallet
       const walletClient = createWalletClient({
@@ -271,6 +321,18 @@ export default function TransferTokens({
     },
     onError: (error: any) => {
       const errorMessage = error.message || "Failed to transfer tokens";
+      
+      // Check for chain mismatch errors
+      if (
+        errorMessage.includes("chain") ||
+        errorMessage.includes("Chain ID") ||
+        errorMessage.includes("does not match") ||
+        errorMessage.includes("target chain")
+      ) {
+        toast.error("Please switch to Base network in your wallet");
+        return;
+      }
+
       toast.error(errorMessage);
 
       // If error is about insufficient funds, show funding info
