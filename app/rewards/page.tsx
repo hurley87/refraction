@@ -1428,11 +1428,12 @@ export default function PerksPage() {
                   aria-label="Close"
                   type="button"
                 >
-                  <span className="sr-only">Close</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 18" fill="none" style={{ display: "block" }}>
-                    <line x1="3.87186" y1="0.355431" x2="20.8424" y2="17.326" stroke="black" strokeWidth="2" strokeLinecap="round"/>
-                    <line x1="3.15768" y1="17.3242" x2="20.1282" y2="0.353619" stroke="black" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
+                <Image
+                  src="/x-close.svg"
+                  alt="Close"
+                  width={24}
+                  height={24}
+                />
                 </button>
               </DialogClose>
             </div>
