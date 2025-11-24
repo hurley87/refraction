@@ -43,16 +43,38 @@ export default function TransferTokens({
     if (!userAddress) return false;
 
     try {
-      const provider = await (window as any).ethereum;
-      if (!provider) {
-        console.log("No provider");
-        return false;
+      // First, try to use Privy wallet's chainId (most reliable)
+      const wallet = wallets.find((w) => w.address === userAddress) || wallets[0];
+      if (wallet?.chainId) {
+        // Privy chainId format is "eip155:8453" or just the number
+        const chainIdStr = wallet.chainId.toString();
+        const chainIdNumber = chainIdStr.includes(":")
+          ? parseInt(chainIdStr.split(":")[1], 10)
+          : parseInt(chainIdStr, 10);
+        
+        if (chainIdNumber === base.id) {
+          return true;
+        }
       }
 
-      const currentChainId = await provider.request({ method: "eth_chainId" });
-      const currentChainIdNumber = parseInt(currentChainId, 16);
+      // Fallback to window.ethereum if Privy wallet chainId is not available
+      const provider = (window as any).ethereum;
+      if (provider) {
+        try {
+          const currentChainId = await provider.request({ method: "eth_chainId" });
+          const currentChainIdNumber = parseInt(currentChainId, 16);
+          return currentChainIdNumber === base.id;
+        } catch (providerError) {
+          // Provider request failed, but we already checked Privy wallet
+          // If we got here, Privy wallet wasn't on Base, so return false
+          console.warn("Provider request failed:", providerError);
+          return false;
+        }
+      }
 
-      return currentChainIdNumber === base.id;
+      // If no provider and no Privy wallet chainId, we can't determine the network
+      // Default to false to be safe
+      return false;
     } catch (error) {
       console.error("Error checking network:", error);
       return false;
@@ -111,35 +133,76 @@ export default function TransferTokens({
     queryFn: async () => {
       if (!userAddress) return null;
 
-      // Verify wallet is on Base network before querying balance
-      // Don't auto-switch here to avoid annoying users during balance checks
-      //const onBase = await isOnBaseNetwork();
-      /*
-      if (!onBase) {
-        // Return null if not on Base - this will show as insufficient funds
-        // User will need to switch network when they try to transfer
-        console.log("Not on Base network");
+      try {
+        // First, try to verify wallet is on Base network
+        // But don't fail completely if check fails - still try to get balance
+        const onBase = await isOnBaseNetwork();
+        
+        if (!onBase) {
+          // Log but don't return null immediately - try to get balance anyway
+          // The actual balance query might work even if network check failed
+          console.log("Network check suggests not on Base, but attempting balance query anyway");
+        }
+
+        // Try to get provider from Privy wallet first (more reliable)
+        const wallet = wallets.find((w) => w.address === userAddress) || wallets[0];
+        let provider: any = null;
+
+        if (wallet) {
+          try {
+            provider = await wallet.getEthereumProvider();
+          } catch (walletError) {
+            console.warn("Failed to get provider from Privy wallet:", walletError);
+          }
+        }
+
+        // Fallback to window.ethereum if Privy provider not available
+        if (!provider) {
+          provider = (window as any).ethereum;
+        }
+
+        if (!provider) {
+          console.warn("No provider available for balance check");
+          return null;
+        }
+
+        // Create public client and try to get balance
+        const publicClient = createPublicClient({
+          chain: base,
+          transport: custom(provider),
+        });
+
+        try {
+          const balance = await publicClient.getBalance({
+            address: userAddress as `0x${string}`,
+          });
+
+          console.log("ETH Balance:", balance);
+          return balance;
+        } catch (balanceError: any) {
+          // If balance query fails, it might be because we're not on the right network
+          // or there's a network issue
+          console.warn("Failed to get ETH balance:", balanceError);
+          
+          // If network check said we're not on Base, return null
+          // Otherwise, it might be a temporary network issue
+          if (!onBase) {
+            return null;
+          }
+          
+          // If we thought we were on Base but balance query failed,
+          // return null to be safe (will show as insufficient funds)
+          return null;
+        }
+      } catch (error) {
+        console.error("Error in ETH balance query:", error);
         return null;
       }
-*/
-      const provider = await (window as any).ethereum;
-      if (!provider) return null;
-
-      const publicClient = createPublicClient({
-        chain: base,
-        transport: custom(provider),
-      });
-
-      const balance = await publicClient.getBalance({
-        address: userAddress as `0x${string}`,
-      });
-
-      console.log("ETH Balance:", balance);
-
-      return balance;
     },
     enabled: !!userAddress,
     refetchInterval: 5000, // Refetch every 5 seconds to detect when user funds wallet
+    retry: 2, // Retry up to 2 times on failure
+    retryDelay: 1000, // Wait 1 second between retries
   });
 
   // Transfer mutation
