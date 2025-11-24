@@ -113,14 +113,15 @@ export default function TransferTokens({
 
       // Verify wallet is on Base network before querying balance
       // Don't auto-switch here to avoid annoying users during balance checks
-      const onBase = await isOnBaseNetwork();
+      //const onBase = await isOnBaseNetwork();
+      /*
       if (!onBase) {
         // Return null if not on Base - this will show as insufficient funds
         // User will need to switch network when they try to transfer
         console.log("Not on Base network");
         return null;
       }
-
+*/
       const provider = await (window as any).ethereum;
       if (!provider) return null;
 

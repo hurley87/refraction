@@ -24,7 +24,7 @@ export default function ClaimSuccessPage() {
       return;
     }
   }, [authenticated, router]);
-
+ 
   // Check claim status
   const { data: claimStatus, isLoading } = useQuery({
     queryKey: ["claim-status", userAddress],
