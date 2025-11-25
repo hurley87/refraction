@@ -29,6 +29,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             loginMethods: ["email"],
             supportedChains: [base],
             defaultChain: base,
+            embeddedWallets: {
+              createOnLogin: "all-users",
+              solana: {
+                createOnLogin: "all-users",
+              },
+            },
           }}
         >
           {children}

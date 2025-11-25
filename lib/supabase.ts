@@ -191,6 +191,7 @@ export const getCheckinByAddressAndCheckpoint = async (
 export type Player = {
   id?: number;
   wallet_address: string;
+  solana_wallet_address?: string;
   email?: string;
   username?: string;
   total_points: number;
@@ -311,6 +312,91 @@ export const getPlayerByWallet = async (walletAddress: string) => {
     .single();
 
   if (error && error.code !== "PGRST116") throw error; // PGRST116 = not found
+  return data;
+};
+
+export const getPlayerBySolanaWallet = async (solanaWalletAddress: string) => {
+  const { data, error } = await supabase
+    .from("players")
+    .select("*")
+    .eq("solana_wallet_address", solanaWalletAddress)
+    .single();
+
+  if (error && error.code !== "PGRST116") throw error; // PGRST116 = not found
+  return data;
+};
+
+export const getPlayerByEmail = async (email: string) => {
+  const { data, error } = await supabase
+    .from("players")
+    .select("*")
+    .eq("email", email)
+    .single();
+
+  if (error && error.code !== "PGRST116") throw error; // PGRST116 = not found
+  return data;
+};
+
+/**
+ * Create or update a player for Solana checkins.
+ * Links by email if the player already exists (from EVM checkins).
+ */
+export const createOrUpdatePlayerForSolana = async (
+  solanaWalletAddress: string,
+  email?: string,
+) => {
+  // First, try to find an existing player by Solana wallet
+  const existingBySolana = await getPlayerBySolanaWallet(solanaWalletAddress);
+  if (existingBySolana) {
+    // Update email if provided and not already set
+    if (email && !existingBySolana.email) {
+      const { data, error } = await supabase
+        .from("players")
+        .update({
+          email,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingBySolana.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+    return existingBySolana;
+  }
+
+  // If email provided, try to find existing player by email (link accounts)
+  if (email) {
+    const existingByEmail = await getPlayerByEmail(email);
+    if (existingByEmail) {
+      // Link Solana wallet to existing player
+      const { data, error } = await supabase
+        .from("players")
+        .update({
+          solana_wallet_address: solanaWalletAddress,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingByEmail.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+  }
+
+  // Create new player with Solana wallet only
+  // Note: wallet_address may have EVM format constraint, so leave it null for Solana-only players
+  const { data, error } = await supabase
+    .from("players")
+    .insert({
+      solana_wallet_address: solanaWalletAddress,
+      email: email || undefined,
+      total_points: 0,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
   return data;
 };
 
