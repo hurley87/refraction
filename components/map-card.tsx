@@ -28,7 +28,7 @@ export default function MapCard({
   return (
     <div className="flex flex-col gap-[4px] items-end bg-white">
       {/* Main Card */}
-      <div className="bg-white border border-[#ededed] rounded-2xl  shadow-lg">
+      <div className="bg-white border border-[#ededed] rounded-[26px]  shadow-lg">
         <div className="box-border flex flex-col gap-2 items-start overflow-hidden rounded-inherit">
           {/* Location Image with Close Button Overlay */}
           {imageUrl && (

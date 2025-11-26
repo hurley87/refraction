@@ -120,6 +120,7 @@ export default function NavigationMenu({
               width={24}
               height={24}
               className="object-center"
+              style={{ width: "auto", height: "auto" }}
             />
           </div>
         </button>

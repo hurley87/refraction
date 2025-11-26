@@ -215,7 +215,7 @@ export default function LeaderboardPage() {
         background:
           "linear-gradient(0deg, #61BFD1 0%, #EE91B7 26.92%, #FFE600 54.33%, #1BA351 100%)",
       }}
-      className="min-h-screen p-4 pb-0 font-grotesk relative"
+      className="min-h-screen px-2 pt-4 pb-0 font-grotesk relative"
     >
       <div className="max-w-md mx-auto">
         {/* Navigation */}
@@ -225,20 +225,20 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
-        <div className="pt-12">
+        <div className="pt-10">
           {/* Main Content */}
           <div className="px-0 pt-4 space-y-4">
             {/* Your Place and Points Card */}
             {currentUserAddress && (
-              <div className="bg-white/20 backdrop-blur-md rounded-2xl p-4 border border-white/30">
+              <div className="bg-white/20 backdrop-blur-md rounded-[26px] p-4 border border-white/30">
                 <div className="grid grid-cols-2 gap-6">
                   {/* Your Place */}
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <Trophy className="w-4 h-4 text-white" />
-                      <p className="body-small text-white uppercase tracking-wide">
+                      <div className="body-small font-grotesk text-white uppercase tracking-wide">
                         Your Rank
-                      </p>
+                      </div>
                     </div>
                   </div>
 
@@ -257,12 +257,13 @@ export default function LeaderboardPage() {
                               {getOrdinalSuffix(userStats.rank)}
                             </h3>
                           </div>
-                          <div className="w-[39px] h-[18px]">
+                          <div className="w-auto h-auto">
                             <Image
-                              src="/place.png"
+                              src="/place.svg"
                               alt="Points"
                               width={39}
                               height={18}
+                              style={{ width: "auto", height: "auto" }}
                             />
                           </div>
                         </div>
@@ -283,7 +284,7 @@ export default function LeaderboardPage() {
             {/* Leaderboard Entries */}
             <div className="space-y-1">
               {/* Leaderboard Header - Sticky */}
-              <div className="sticky top-0 z-10 bg-white rounded-2xl p-4 shadow-sm">
+              <div className="sticky top-0 z-10 bg-white rounded-[26px] p-4 shadow-sm">
                 <div className="grid grid-cols-[auto_1fr_auto] gap-4">
                   <span className="body-small  text-gray-600 uppercase tracking-wide">
                     PLACE
@@ -303,7 +304,7 @@ export default function LeaderboardPage() {
                   {[...Array(10)].map((_, i) => (
                     <div
                       key={i}
-                      className="bg-gray-50 rounded-2xl p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center animate-pulse"
+                      className="bg-gray-50 rounded-[26px] p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center animate-pulse"
                     >
                       <div className="w-6 h-6 bg-gray-200 rounded"></div>
                       <div className="w-20 h-4 bg-gray-200 rounded"></div>
@@ -321,7 +322,7 @@ export default function LeaderboardPage() {
                       <div
                         key={entry.player_id}
                         data-rank={entry.rank}
-                        className={`rounded-2xl p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center ${
+                        className={`rounded-[26px] p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center ${
                           entry.wallet_address === currentUserAddress
                             ? "bg-[#4F4F4F]"
                             : "bg-white"
@@ -380,14 +381,14 @@ export default function LeaderboardPage() {
 
               {/* Loading More Indicator */}
               {isLoadingMore && (
-                <div className="bg-white rounded-2xl p-4 flex justify-center">
+                <div className="bg-white rounded-[26px] p-4 flex justify-center">
                   <div className="w-6 h-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
                 </div>
               )}
 
               {/* End of Data Indicator */}
               {!hasMoreData && extendedLeaderboard.length > 0 && (
-                <div className="bg-white rounded-2xl p-4 text-center">
+                <div className="bg-white rounded-[26px] p-4 text-center">
                   <p className="text-gray-500 body-small">End of leaderboard</p>
                 </div>
               )}

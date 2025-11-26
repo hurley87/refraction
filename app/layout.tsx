@@ -7,6 +7,7 @@ import Providers from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
 import FarcasterReady from "@/components/farcaster-ready";
+import Image from "next/image";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -161,6 +162,27 @@ export default function RootLayout({
         )}
       </head>
       <body className="min-h-screen min-w-screen">
+        {/* Top Corner Decorations */}
+        <div className="fixed top-0 left-0 z-[100] pointer-events-none">
+          <Image
+            src="/app-corner-left.svg"
+            alt=""
+            width={26}
+            height={24}
+            className="block"
+            unoptimized
+          />
+        </div>
+        <div className="fixed top-0 right-0 z-[100] pointer-events-none">
+          <Image
+            src="/app-corner-right.svg"
+            alt=""
+            width={26}
+            height={24}
+            className="block"
+            unoptimized
+          />
+        </div>
         <FarcasterReady />
         <Providers>{children}</Providers>
         <Toaster />
