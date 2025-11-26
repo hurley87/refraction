@@ -213,8 +213,8 @@ export default function LocationListsDrawer({
                             <p className="text-sm font-inktrap text-[#131313] truncate">
                               {location.display_name}
                             </p>
-                            <p className="text-[10px] font-anonymous text-[#7d7d7d] truncate">
-                              {location.name}
+                            <p className="text-[10px] font-anonymous text-[#7d7d7d] line-clamp-2">
+                              {location.description || location.name}
                             </p>
                           </div>
                         </article>

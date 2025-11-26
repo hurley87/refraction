@@ -1,6 +1,7 @@
 "use client";
 
 import { MapPin, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 
 interface MapCardProps {
   name: string;
@@ -11,6 +12,7 @@ interface MapCardProps {
   onClose?: () => void;
   isLoading?: boolean;
   imageUrl?: string | null;
+  placeId?: string | null;
 }
 
 /**
@@ -26,7 +28,17 @@ export default function MapCard({
   onClose,
   isLoading = false,
   imageUrl,
+  placeId,
 }: MapCardProps) {
+  const handleShare = () => {
+    if (!placeId) return;
+    const shareUrl = `${window.location.origin}/interactive-map?placeId=${encodeURIComponent(placeId)}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      toast.success("Link copied to clipboard");
+    }).catch(() => {
+      toast.error("Failed to copy link");
+    });
+  };
   return (
     <div className="flex flex-col gap-[4px] items-end bg-white">
       {/* Main Card */}
@@ -114,6 +126,22 @@ export default function MapCard({
                 <ChevronRight className="w-4 h-4 text-white shrink-0" />
               </button>
             </div>
+
+            {/* Share Location Button */}
+            {placeId && (
+              <button
+                onClick={handleShare}
+                className="w-full flex items-center justify-center gap-2 text-[#b5b5b5] hover:text-[#7d7d7d] text-[11px] font-inktrap uppercase tracking-[0.44px] h-7 px-3 transition-colors border border-[#ededed] rounded-full"
+                type="button"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                  <polyline points="16 6 12 2 8 6" />
+                  <line x1="12" y1="2" x2="12" y2="15" />
+                </svg>
+                Share
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -66,7 +66,11 @@ const getWelcomeBannerStorageKey = (wallet?: string | null) =>
     ? `${WELCOME_BANNER_STORAGE_KEY}:${wallet}`
     : WELCOME_BANNER_STORAGE_KEY;
 
-export default function InteractiveMap() {
+interface InteractiveMapProps {
+  initialPlaceId?: string | null;
+}
+
+export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) {
   const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
   const [userUsername, setUserUsername] = useState<string | null>(null);
@@ -284,6 +288,32 @@ export default function InteractiveMap() {
     };
     loadMarkers();
   }, []);
+
+  // Handle deep link to specific location via placeId URL param
+  const deepLinkHandledRef = useRef(false);
+  useEffect(() => {
+    if (!initialPlaceId || markers.length === 0 || deepLinkHandledRef.current) return;
+    
+    const targetMarker = markers.find((m) => m.place_id === initialPlaceId);
+    if (targetMarker) {
+      deepLinkHandledRef.current = true;
+      // Center map on location
+      setViewState((prev) => ({
+        ...prev,
+        latitude: targetMarker.latitude,
+        longitude: targetMarker.longitude,
+        zoom: Math.max(prev.zoom ?? 12, 15),
+      }));
+      // Open check-in modal
+      setCheckInTarget(targetMarker);
+      setCheckInComment("");
+      setCheckInSuccess(false);
+      setLocationCheckins([]);
+      setLocationCheckinsError(null);
+      setShowCheckInModal(true);
+      void loadLocationCheckins(targetMarker.place_id);
+    }
+  }, [initialPlaceId, markers]);
 
   const loadLocationCheckins = async (placeId: string) => {
     if (!placeId) return;
@@ -1222,6 +1252,7 @@ export default function InteractiveMap() {
               }}
               isLoading={isCheckingIn}
               imageUrl={popupInfo.imageUrl}
+              placeId={popupInfo.place_id}
             />
           </Popup>
         )}
@@ -1728,6 +1759,27 @@ export default function InteractiveMap() {
                     {isCheckingIn ? "Checking In..." : "Check In"}
                   </button>
                 </div>
+                {/* Share Location Button */}
+                <button
+                  onClick={() => {
+                    if (!checkInTarget?.place_id) return;
+                    const shareUrl = `${window.location.origin}/interactive-map?placeId=${encodeURIComponent(checkInTarget.place_id)}`;
+                    navigator.clipboard.writeText(shareUrl).then(() => {
+                      toast.success("Link copied to clipboard");
+                    }).catch(() => {
+                      toast.error("Failed to copy link");
+                    });
+                  }}
+                  className="mt-2 w-full flex items-center justify-center gap-2 text-[#7d7d7d] hover:text-[#313131] text-xs font-inktrap uppercase tracking-[0.44px] py-2 transition-colors"
+                  type="button"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <polyline points="16 6 12 2 8 6" />
+                    <line x1="12" y1="2" x2="12" y2="15" />
+                  </svg>
+                  Share Location
+                </button>
               </div>
             ) : (
               <div className="bg-transparent border-t border-white/20 p-4">
