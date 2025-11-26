@@ -4,9 +4,10 @@
  */
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.privy.io https://api.mapbox.com https://*.mapbox.com https://www.googletagmanager.com https://*.googletagmanager.com;
-  connect-src 'self' https://*.privy.io https://*.privy.systems https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com https://*.mapbox.com https://api.developer.coinbase.com https://www.google-analytics.com https://*.google-analytics.com https://*.walletconnect.com https://*.walletconnect.org https://mainnet.base.org https://*.base.org https://*.alchemy.com https://*.publicnode.com https://*.llamarpc.com https://*.tenderly.co https://*.infura.io https://*.onfinality.io https://*.syndicate.io;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://*.privy.io https://api.mapbox.com https://*.mapbox.com https://www.googletagmanager.com https://*.googletagmanager.com;
+  connect-src 'self' https://*.privy.io https://*.privy.systems https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com https://*.mapbox.com https://api.developer.coinbase.com https://www.google-analytics.com https://*.google-analytics.com https://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.com wss://*.walletconnect.org https://mainnet.base.org https://*.base.org https://*.alchemy.com https://*.publicnode.com https://*.llamarpc.com https://*.tenderly.co https://*.infura.io https://*.onfinality.io https://*.syndicate.io;
   img-src 'self' data: blob: https:;
+  object-src 'self' data: blob:;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.mapbox.com https://*.mapbox.com;
   font-src 'self' https://fonts.gstatic.com;
   frame-src https://*.privy.io;

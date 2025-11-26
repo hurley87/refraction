@@ -58,6 +58,15 @@ export default function EventsPage() {
     return location.trim();
   };
 
+  // Helper function to check if date is today or in the future
+  const isDateTodayOrFuture = (dateString: string): boolean => {
+    const eventTimestamp = parseDate(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of today
+    const todayTimestamp = today.getTime();
+    return eventTimestamp >= todayTimestamp;
+  };
+
   const sortedEvents = [...futureEvents].sort((a, b) => {
     if (sortBy === "date") {
       return parseDate(a.date) - parseDate(b.date);
@@ -81,7 +90,7 @@ export default function EventsPage() {
         background:
           "linear-gradient(0deg, #61BFD1 0%, #EE91B7 26.92%, #FFE600 54.33%, #1BA351 100%)",
       }}
-      className="min-h-screen p-4 pb-0 font-grotesk"
+      className="min-h-screen px-2 pt-4 pb-0 font-grotesk"
     >
       <div className="max-w-md mx-auto">
         {/* Status Bar with Header */}
@@ -92,7 +101,7 @@ export default function EventsPage() {
         </div>
 
         {/* Main Content */}
-        <div className="px-0 pt-4 space-y-1">
+        <div className="px-0 pt-2 space-y-1">
           {/* NEXT EVENT Section */}
           <div className="mb-1">
             {/* Next Event Container */}
@@ -232,32 +241,34 @@ export default function EventsPage() {
                 </a>
               </div>
 
-              {/* Register Button */}
-              <a
-                href={nextEvent.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
-              >
-                <h4 className="font-pleasure text-left">Register</h4>
-                <div
-                  style={{
-                    display: "flex",
-                    width: "24px",
-                    height: "24px",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
+              {/* Register Button - Only show if date is today or in the future */}
+              {isDateTodayOrFuture(nextEvent.date) && (
+                <a
+                  href={nextEvent.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
                 >
-                  <Image
-                    src="/home/arrow-right.svg"
-                    alt="arrow-right"
-                    width={20}
-                    height={20}
-                    className="w-5 h-5"
-                  />
-                </div>
-              </a>
+                  <h4 className="font-pleasure text-left">Register</h4>
+                  <div
+                    style={{
+                      display: "flex",
+                      width: "24px",
+                      height: "24px",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Image
+                      src="/home/arrow-right.svg"
+                      alt="arrow-right"
+                      width={20}
+                      height={20}
+                      className="w-5 h-5"
+                    />
+                  </div>
+                </a>
+              )}
             </div>
           </div>
 
@@ -450,32 +461,34 @@ export default function EventsPage() {
                     </a>
                   </div>
 
-                  {/* Row 3: Register Button */}
-                  <a
-                    href={event.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
-                  >
-                    <h4 className="font-pleasure text-left">Register</h4>
-                    <div
-                      style={{
-                        display: "flex",
-                        width: "24px",
-                        height: "24px",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
+                  {/* Row 3: Register Button - Only show if date is today or in the future */}
+                  {isDateTodayOrFuture(event.date) && (
+                    <a
+                      href={event.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
                     >
-                      <Image
-                        src="/home/arrow-right.svg"
-                        alt="arrow-right"
-                        width={20}
-                        height={20}
-                        className="w-5 h-5"
-                      />
-                    </div>
-                  </a>
+                      <h4 className="font-pleasure text-left">Register</h4>
+                      <div
+                        style={{
+                          display: "flex",
+                          width: "24px",
+                          height: "24px",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Image
+                          src="/home/arrow-right.svg"
+                          alt="arrow-right"
+                          width={20}
+                          height={20}
+                          className="w-5 h-5"
+                        />
+                      </div>
+                    </a>
+                  )}
                 </div>
               ))}
             </div>
@@ -500,6 +513,7 @@ export default function EventsPage() {
                       alt="Close"
                       width={24}
                       height={24}
+                      style={{ width: "auto", height: "auto" }}
                     />
                   </button>
                 </DialogClose>

@@ -760,7 +760,7 @@ export default function ChallengesPage() {
         background:
           "linear-gradient(0deg, #61BFD1 0%, #EE91B7 26.92%, #FFE600 54.33%, #1BA351 100%)",
       }}
-      className="min-h-screen p-4 pb-0 font-grotesk"
+      className="min-h-screen px-2 pt-4 pb-0 font-grotesk"
     >
       <div className="max-w-lg mx-auto">
         {/* Status Bar */}

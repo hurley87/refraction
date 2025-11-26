@@ -223,7 +223,7 @@ export default function LocationListsDrawer({
                   <article
                     key={location.membershipId}
                     onClick={() => onLocationFocus?.(location)}
-                    className="relative flex w-56 flex-shrink-0 flex-col rounded-[28px] border border-[#ededed] p-3 shadow-md transition hover:-translate-y-0.5 hover:shadow-[0_14px_35px_rgba(0,0,0,0.12)] cursor-pointer sm:w-64"
+                    className="relative flex w-56 flex-shrink-0 flex-col rounded-[26px] border border-[#ededed] p-3 shadow-md transition hover:-translate-y-0.5 hover:shadow-[0_14px_35px_rgba(0,0,0,0.12)] cursor-pointer sm:w-64"
                   >
                     <div className="relative h-32 w-full overflow-hidden rounded-[22px] ">
                       {location.coin_image_url ? (
