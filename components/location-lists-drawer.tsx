@@ -160,7 +160,6 @@ export default function LocationListsDrawer({
             {isLoadingLists ? (
               <div className="space-y-4">
                 {Array.from({ length: 2 }).map((_, index) => (
-<<<<<<< HEAD
                   <div key={`list-skeleton-${index}`} className="space-y-2">
                     <div className="h-5 w-32 rounded bg-[#f4f4f4] animate-pulse" />
                     <div className="flex gap-3 overflow-x-hidden">
@@ -168,29 +167,6 @@ export default function LocationListsDrawer({
                         <div
                           key={`card-skeleton-${index}-${i}`}
                           className="h-44 w-52 flex-shrink-0 rounded-[28px] bg-[#f5f5f5] animate-pulse"
-=======
-                  <div
-                    key={`card-skeleton-${index}`}
-                    className="h-48 w-56 rounded-[28px] bg-[#f5f5f5] animate-pulse"
-                  />
-                ))}
-              </div>
-            ) : activeList?.locations && activeList.locations.length > 0 ? (
-              <div className="flex gap-4 overflow-x-auto pb-2 bg-white">
-                {activeList.locations.map((location) => (
-                  <article
-                    key={location.membershipId}
-                    onClick={() => onLocationFocus?.(location)}
-                    className="relative flex w-56 flex-shrink-0 flex-col rounded-[26px] border border-[#ededed] p-3 shadow-md transition hover:-translate-y-0.5 hover:shadow-[0_14px_35px_rgba(0,0,0,0.12)] cursor-pointer sm:w-64"
-                  >
-                    <div className="relative h-32 w-full overflow-hidden rounded-[22px] ">
-                      {location.coin_image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={location.coin_image_url}
-                          alt={location.name}
-                          className="h-full w-full object-cover"
->>>>>>> dbfb4a7096d54171f39a8f394b1cd9ab85340096
                         />
                       ))}
                     </div>
