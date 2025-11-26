@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     const query = supabase
       .from("locations")
       .select(
-        "id, name, display_name, latitude, longitude, place_id, points_value, type, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username",
+        "id, name, display_name, description, latitude, longitude, place_id, points_value, type, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username",
       )
       .not("coin_image_url", "is", null);
 
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         .select(
           `
           locations!inner (
-            id, name, display_name, latitude, longitude, place_id, points_value, type, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username
+            id, name, display_name, description, latitude, longitude, place_id, points_value, type, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username
           )
         `,
         )
@@ -110,6 +110,7 @@ export async function POST(request: NextRequest) {
       place_id,
       display_name,
       name,
+      description,
       lat,
       lon,
       type,
@@ -152,6 +153,7 @@ export async function POST(request: NextRequest) {
     const sanitizedPlaceId = sanitizeVarchar(place_id);
     const sanitizedDisplayName = sanitizeVarchar(display_name);
     const sanitizedName = sanitizeVarchar(name);
+    const sanitizedDescription = sanitizeOptionalVarchar(description);
     const sanitizedType =
       typeof type === "string" && type.trim()
         ? sanitizeVarchar(type)
@@ -216,6 +218,7 @@ export async function POST(request: NextRequest) {
       place_id: sanitizedPlaceId,
       display_name: sanitizedDisplayName,
       name: sanitizedName,
+      description: sanitizedDescription,
       latitude: parseFloat(lat),
       longitude: parseFloat(lon),
       type: sanitizedType,

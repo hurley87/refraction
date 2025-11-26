@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  checkAdminPermission,
-  updateLocationById,
-} from "@/lib/supabase";
+import { checkAdminPermission, updateLocationById } from "@/lib/supabase";
 
 const updateLocationSchema = z.object({
   name: z.string().min(1).optional(),
   displayName: z.string().min(1).optional(),
+  description: z.string().max(500).nullable().optional(),
   placeId: z.string().min(1).optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
@@ -50,6 +48,8 @@ export async function PATCH(
     if (payload.name !== undefined) updates.name = payload.name.trim();
     if (payload.displayName !== undefined)
       updates.display_name = payload.displayName.trim();
+    if (payload.description !== undefined)
+      updates.description = payload.description?.trim() || null;
     if (payload.placeId !== undefined)
       updates.place_id = payload.placeId.trim();
     if (payload.latitude !== undefined) updates.latitude = payload.latitude;

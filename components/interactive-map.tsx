@@ -20,6 +20,7 @@ interface MarkerData {
   place_id: string;
   display_name: string;
   name: string;
+  description?: string | null;
   creator_wallet_address?: string | null;
   creator_username?: string | null;
   imageUrl?: string | null;
@@ -270,6 +271,7 @@ export default function InteractiveMap() {
             place_id: loc.place_id,
             display_name: loc.display_name,
             name: loc.name,
+            description: loc.description ?? null,
             creator_wallet_address: loc.creator_wallet_address ?? null,
             creator_username: loc.creator_username ?? null,
             imageUrl: loc.coin_image_url ?? null,
@@ -812,6 +814,7 @@ export default function InteractiveMap() {
                   place_id: existingLocation.place_id,
                   display_name: existingLocation.display_name,
                   name: existingLocation.name,
+                  description: existingLocation.description ?? null,
                   creator_wallet_address:
                     existingLocation.creator_wallet_address ?? null,
                   creator_username: existingLocation.creator_username ?? null,
@@ -834,6 +837,7 @@ export default function InteractiveMap() {
               place_id: selectedMarker.place_id,
               name: result.location.name,
               display_name: result.location.display_name,
+              description: result.location.description ?? null,
               creator_wallet_address:
                 result.location.creator_wallet_address ?? null,
               creator_username: result.location.creator_username ?? null,
@@ -855,6 +859,7 @@ export default function InteractiveMap() {
         ...selectedMarker,
         name: formData.name,
         display_name: formData.address || selectedMarker.display_name,
+        description: formData.description?.trim() || null,
         creator_wallet_address: walletAddress,
         creator_username: userUsername,
         imageUrl: locationImageUrl || null,
@@ -1208,6 +1213,7 @@ export default function InteractiveMap() {
             <MapCard
               name={popupInfo.name}
               address={popupInfo.display_name}
+              description={popupInfo.description}
               isExisting={true}
               onAction={() => handleStartCheckIn(popupInfo)}
               onClose={() => {

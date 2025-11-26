@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   // MapPin, CheckCircle2,
   ChevronDown,
@@ -13,6 +13,7 @@ export type DrawerLocationSummary = Pick<
   | "id"
   | "name"
   | "display_name"
+  | "description"
   | "place_id"
   | "latitude"
   | "longitude"
@@ -41,7 +42,6 @@ export default function LocationListsDrawer({
 }: LocationListsDrawerProps) {
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
-  const [activeListId, setActiveListId] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
   // const [visitedLocationIds, setVisitedLocationIds] = useState<Set<number>>(
   //   new Set(),
@@ -60,7 +60,6 @@ export default function LocationListsDrawer({
         const data = await response.json();
         const fetchedLists: DrawerList[] = data.lists || [];
         setLists(fetchedLists);
-        setActiveListId((prev) => prev ?? fetchedLists[0]?.id ?? null);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           console.error("Failed to load location lists", error);
@@ -107,11 +106,6 @@ export default function LocationListsDrawer({
   //   return () => controller.abort();
   // }, [walletAddress]);
 
-  const activeList = useMemo(
-    () => lists.find((list) => list.id === activeListId),
-    [lists, activeListId],
-  );
-
   // const visitedCount = useMemo(() => {
   //   if (!activeList?.locations?.length) return 0;
   //   return activeList.locations.reduce((count, location) => {
@@ -141,7 +135,7 @@ export default function LocationListsDrawer({
         <div className="flex items-start gap-3  sm:items-center sm:justify-between">
           <div className="w-full">
             <p className="text-lg font-inktrap tracking-[-0.5px] text-[#131313]">
-              {activeList?.title || "Explore"}
+              Explore
             </p>
             <p className="text-sm font-anonymous text-[#7d7d7d]">
               Discover spots near you.
@@ -152,7 +146,7 @@ export default function LocationListsDrawer({
             onClick={() => setIsExpanded((prev) => !prev)}
             className="flex min-w-[136px] items-center justify-center gap-2 rounded-full border border-[#cfcfcf] px-4 py-2 text-[11px] font-inktrap uppercase tracking-[1.4px] text-[#131313] transition hover:bg-[#131313] hover:text-white"
           >
-            {isExpanded ? "Hide List" : "View List"}
+            {isExpanded ? "Hide" : "View"}
             {isExpanded ? (
               <ChevronDown className="h-3 w-3" />
             ) : (
@@ -161,102 +155,78 @@ export default function LocationListsDrawer({
           </button>
         </div>
 
-        {/* <div className="mt-4 flex flex-wrap gap-2 overflow-x-auto pb-2 sm:flex-nowrap">
-          {isLoadingLists
-            ? Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={`skeleton-${index}`}
-                  className="h-10 w-28 rounded-full bg-[#f4f4f4] animate-pulse sm:h-11 sm:w-32"
-                />
-              ))
-            : lists.map((list) => {
-                if (!list) return null;
-
-                const isActive = list.id === activeListId;
-                return (
-                  <button
-                    key={list.id}
-                    type="button"
-                    onClick={() => setActiveListId(list.id)}
-                    className={`flex-shrink-0 rounded-full border px-4 py-2 text-xs font-inktrap transition sm:text-sm ${
-                      isActive
-                        ? "border-transparent bg-[#131313] text-white"
-                        : "border-[#d5d5d5] text-[#131313] bg-white/80 hover:border-[#131313]"
-                    }`}
-                  >
-                    <span>{list.title}</span>
-                    <span className="ml-2 text-xs text-[#7d7d7d]">
-                      {list.location_count}
-                    </span>
-                  </button>
-                );
-              })}
-        </div>
-
-        <div className="mt-4 grid grid-cols-1 gap-2 text-[11px] font-inktrap uppercase tracking-[0.8px] text-[#7d7d7d] sm:grid-cols-2 sm:gap-3 sm:text-xs">
-          <div className="flex items-center justify-between rounded-full border border-[#dcdcdc] px-4 py-2 text-[#131313] sm:px-6">
-            <span className="tracking-[1px]">
-              {activeList?.location_count || 0} Locations
-            </span>
-            <MapPin className="h-3.5 w-3.5 text-[#7d7d7d]" />
-          </div>
-          <div className="flex items-center justify-between rounded-full border border-[#dcdcdc] px-4 py-2 text-[#131313] sm:px-6">
-            <span className="tracking-[1px]">{visitedCount} Visited</span>
-            <CheckCircle2 className="h-3.5 w-3.5 text-[#7d7d7d]" />
-          </div>
-        </div> */}
-
         {isExpanded && (
-          <div className="mt-6">
+          <div className="mt-4 max-h-80 overflow-y-auto space-y-6">
             {isLoadingLists ? (
-              <div className="flex gap-4 overflow-x-hidden">
+              <div className="space-y-4">
                 {Array.from({ length: 2 }).map((_, index) => (
-                  <div
-                    key={`card-skeleton-${index}`}
-                    className="h-48 w-56 rounded-[28px] bg-[#f5f5f5] animate-pulse"
-                  />
-                ))}
-              </div>
-            ) : activeList?.locations && activeList.locations.length > 0 ? (
-              <div className="flex gap-4 overflow-x-auto pb-2 bg-white">
-                {activeList.locations.map((location) => (
-                  <article
-                    key={location.membershipId}
-                    onClick={() => onLocationFocus?.(location)}
-                    className="relative flex w-56 flex-shrink-0 flex-col rounded-[28px] border border-[#ededed] p-3 shadow-md transition hover:-translate-y-0.5 hover:shadow-[0_14px_35px_rgba(0,0,0,0.12)] cursor-pointer sm:w-64"
-                  >
-                    <div className="relative h-32 w-full overflow-hidden rounded-[22px] ">
-                      {location.coin_image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={location.coin_image_url}
-                          alt={location.name}
-                          className="h-full w-full object-cover"
+                  <div key={`list-skeleton-${index}`} className="space-y-2">
+                    <div className="h-5 w-32 rounded bg-[#f4f4f4] animate-pulse" />
+                    <div className="flex gap-3 overflow-x-hidden">
+                      {Array.from({ length: 2 }).map((_, i) => (
+                        <div
+                          key={`card-skeleton-${index}-${i}`}
+                          className="h-44 w-52 flex-shrink-0 rounded-[28px] bg-[#f5f5f5] animate-pulse"
                         />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs font-inktrap text-[#7d7d7d]">
-                          No image
-                        </div>
-                      )}
-                      <span className="absolute right-3 top-3 rounded-full bg-white/80 px-3 py-1 text-[10px] font-inktrap uppercase tracking-[0.8px] text-[#131313]">
-                        {location.type || "Spot"}
-                      </span>
+                      ))}
                     </div>
-                    <div className="mt-3 space-y-1">
-                      <p className="text-sm font-inktrap text-[#131313]">
-                        {location.display_name}
-                      </p>
-                      <p className="text-[11px] font-anonymous text-[#7d7d7d]">
-                        {location.name}
-                      </p>
-                    </div>
-                  </article>
+                  </div>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-sm font-anonymous text-[#7d7d7d]">
-                This list is still being curated. Check back soon!
-              </p>
+              lists.map((list) => (
+                <div key={list.id} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-inktrap font-medium text-[#131313]">
+                      {list.title}
+                    </p>
+                    <span className="text-xs font-anonymous text-[#7d7d7d]">
+                      {list.location_count} spots
+                    </span>
+                  </div>
+                  {list.locations && list.locations.length > 0 ? (
+                    <div className="flex gap-3 overflow-x-auto pb-2">
+                      {list.locations.map((location) => (
+                        <article
+                          key={location.membershipId}
+                          onClick={() => onLocationFocus?.(location)}
+                          className="relative flex w-52 flex-shrink-0 flex-col rounded-[24px] border border-[#ededed] p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+                        >
+                          <div className="relative h-28 w-full overflow-hidden rounded-[18px]">
+                            {location.coin_image_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={location.coin_image_url}
+                                alt={location.name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-[#f5f5f5] text-xs font-inktrap text-[#7d7d7d]">
+                                No image
+                              </div>
+                            )}
+                            <span className="absolute right-2 top-2 rounded-full bg-white/80 px-2 py-0.5 text-[9px] font-inktrap uppercase tracking-[0.6px] text-[#131313]">
+                              {location.type || "Spot"}
+                            </span>
+                          </div>
+                          <div className="mt-2 space-y-0.5 px-0.5">
+                            <p className="text-sm font-inktrap text-[#131313] truncate">
+                              {location.display_name}
+                            </p>
+                            <p className="text-[10px] font-anonymous text-[#7d7d7d] truncate">
+                              {location.name}
+                            </p>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs font-anonymous text-[#7d7d7d]">
+                      No locations yet.
+                    </p>
+                  )}
+                </div>
+              ))
             )}
           </div>
         )}

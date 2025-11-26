@@ -203,6 +203,7 @@ export type Location = {
   id?: number;
   name: string;
   display_name: string;
+  description?: string | null;
   latitude: number;
   longitude: number;
   place_id: string;

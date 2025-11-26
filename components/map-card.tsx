@@ -5,6 +5,7 @@ import { MapPin, ChevronRight } from "lucide-react";
 interface MapCardProps {
   name: string;
   address: string;
+  description?: string | null;
   isExisting?: boolean;
   onAction: () => void;
   onClose?: () => void;
@@ -19,6 +20,7 @@ interface MapCardProps {
 export default function MapCard({
   name,
   address,
+  description,
   isExisting = false,
   onAction,
   onClose,
@@ -85,6 +87,13 @@ export default function MapCard({
                   {name}
                 </p>
               </div>
+
+              {/* Description */}
+              {description && (
+                <p className="font-inktrap text-[13px] text-[#7d7d7d] leading-tight line-clamp-2">
+                  {description}
+                </p>
+              )}
             </div>
 
             {/* Action Section */}

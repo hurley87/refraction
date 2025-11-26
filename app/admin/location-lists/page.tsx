@@ -12,11 +12,17 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Loader2, Map, XCircle } from "lucide-react";
+import { Loader2, Map, Trash2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -61,6 +67,7 @@ const editLocationSchema = z.object({
   placeId: z.string().min(3, "Place ID is required"),
   displayName: z.string().min(3, "Display name is required"),
   name: z.string().min(3, "Name is required"),
+  description: z.string().max(500).optional(),
   latitude: z
     .string()
     .min(1, "Latitude is required")
@@ -85,6 +92,7 @@ type NewLocationFormState = {
   placeId: string;
   displayName: string;
   name: string;
+  description: string;
   latitude: string;
   longitude: string;
   walletAddress: string;
@@ -96,6 +104,7 @@ type EditLocationFormState = {
   placeId: string;
   displayName: string;
   name: string;
+  description: string;
   latitude: string;
   longitude: string;
   walletAddress: string;
@@ -108,6 +117,7 @@ type CreateLocationVariables = {
   placeId: string;
   displayName: string;
   name: string;
+  description?: string;
   latitude: number;
   longitude: number;
   walletAddress: string;
@@ -126,6 +136,7 @@ const createLocationSchema = z.object({
   placeId: z.string().min(3, "Place ID is required"),
   displayName: z.string().min(3, "Display name is required"),
   name: z.string().min(3, "Name is required"),
+  description: z.string().max(500).optional(),
   latitude: z
     .string()
     .min(1, "Latitude is required")
@@ -173,6 +184,7 @@ export default function AdminLocationListsPage() {
     placeId: "",
     displayName: "",
     name: "",
+    description: "",
     latitude: "",
     longitude: "",
     walletAddress: "",
@@ -190,6 +202,7 @@ export default function AdminLocationListsPage() {
       placeId: "",
       displayName: "",
       name: "",
+      description: "",
       latitude: "",
       longitude: "",
       walletAddress: "",
@@ -198,6 +211,8 @@ export default function AdminLocationListsPage() {
       locationImageFile: null,
     });
   const [editFileInputKey, setEditFileInputKey] = useState(0);
+  const [showCreateLocationDialog, setShowCreateLocationDialog] =
+    useState(false);
   const lastUserValuesRef = useRef<{
     walletAddress: string;
     email: string;
@@ -544,6 +559,27 @@ export default function AdminLocationListsPage() {
     },
   });
 
+  const deleteListMutation = useMutation({
+    mutationFn: async (listId: string) => {
+      const response = await fetch(`/api/admin/location-lists/${listId}`, {
+        method: "DELETE",
+        headers: { "x-user-email": adminEmail },
+      });
+      if (!response.ok) throw new Error("Failed to delete list");
+      return response.json();
+    },
+    onSuccess: (_data, deletedListId) => {
+      queryClient.invalidateQueries({ queryKey: LISTS_KEY });
+      if (selectedListId === deletedListId) {
+        setSelectedListId(null);
+      }
+      toast.success("List deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Unable to delete list");
+    },
+  });
+
   const createLocationMutation = useMutation<
     { location?: { id?: number } },
     Error,
@@ -553,6 +589,7 @@ export default function AdminLocationListsPage() {
       placeId,
       displayName,
       name,
+      description,
       latitude,
       longitude,
       walletAddress,
@@ -588,6 +625,7 @@ export default function AdminLocationListsPage() {
           place_id: placeId,
           display_name: displayName,
           name,
+          description: description?.trim() || null,
           lat: latitude.toString(),
           lon: longitude.toString(),
           type: "location",
@@ -611,6 +649,7 @@ export default function AdminLocationListsPage() {
         placeId: "",
         displayName: "",
         name: "",
+        description: "",
         latitude: "",
         longitude: "",
         walletAddress: prev.walletAddress,
@@ -619,6 +658,7 @@ export default function AdminLocationListsPage() {
       }));
       setFileInputKey((prev) => prev + 1);
       setLocationSearch(variables.displayName);
+      setShowCreateLocationDialog(false);
 
       if (data?.location?.id) {
         setSelectedLocationId(data.location.id);
@@ -664,6 +704,7 @@ export default function AdminLocationListsPage() {
           placeId: payload.placeId,
           displayName: payload.displayName,
           name: payload.name,
+          description: payload.description?.trim() || null,
           latitude: payload.latitude,
           longitude: payload.longitude,
           walletAddress: payload.walletAddress?.trim() || null,
@@ -762,6 +803,7 @@ export default function AdminLocationListsPage() {
       placeId: newLocationForm.placeId,
       displayName: newLocationForm.displayName,
       name: newLocationForm.name,
+      description: newLocationForm.description,
       latitude: newLocationForm.latitude,
       longitude: newLocationForm.longitude,
       walletAddress: newLocationForm.walletAddress,
@@ -792,6 +834,7 @@ export default function AdminLocationListsPage() {
       placeId: entry.location.place_id,
       displayName: entry.location.display_name,
       name: entry.location.name,
+      description: entry.location.description ?? "",
       latitude: entry.location.latitude?.toString() ?? "",
       longitude: entry.location.longitude?.toString() ?? "",
       walletAddress: entry.location.creator_wallet_address ?? "",
@@ -809,6 +852,7 @@ export default function AdminLocationListsPage() {
       placeId: "",
       displayName: "",
       name: "",
+      description: "",
       latitude: "",
       longitude: "",
       walletAddress: "",
@@ -827,6 +871,7 @@ export default function AdminLocationListsPage() {
       placeId: editLocationForm.placeId,
       displayName: editLocationForm.displayName,
       name: editLocationForm.name,
+      description: editLocationForm.description,
       latitude: editLocationForm.latitude,
       longitude: editLocationForm.longitude,
       walletAddress: editLocationForm.walletAddress,
@@ -1027,10 +1072,10 @@ export default function AdminLocationListsPage() {
               ) : (
                 <div className="mt-6 grid gap-4 md:grid-cols-2">
                   {lists.map((list) => (
-                    <button
+                    <div
                       key={list.id}
                       onClick={() => setSelectedListId(list.id)}
-                      className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${
+                      className={`cursor-pointer rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${
                         selectedListId === list.id
                           ? "border-black bg-black text-white"
                           : "border-gray-200 bg-gray-50"
@@ -1051,18 +1096,41 @@ export default function AdminLocationListsPage() {
                             {list.slug}
                           </p>
                         </div>
-                        <div
-                          className="h-3 w-3 rounded-full"
-                          style={{
-                            backgroundColor: list.accent_color || "#111827",
-                          }}
-                        />
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-3 w-3 rounded-full"
+                            style={{
+                              backgroundColor: list.accent_color || "#111827",
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (
+                                confirm(
+                                  `Delete "${list.title}"? This cannot be undone.`,
+                                )
+                              ) {
+                                deleteListMutation.mutate(list.id);
+                              }
+                            }}
+                            className={`rounded p-1 transition hover:bg-red-500 hover:text-white ${
+                              selectedListId === list.id
+                                ? "text-white/70"
+                                : "text-gray-400"
+                            }`}
+                            disabled={deleteListMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                       <div className="mt-4 flex items-center gap-2 text-sm">
                         <Map className="h-4 w-4" />
                         {list.location_count} locations
                       </div>
-                    </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -1174,184 +1242,22 @@ export default function AdminLocationListsPage() {
                   </Button>
                 </form>
 
-                <div className="space-y-4 rounded-2xl border border-dashed border-amber-200 bg-amber-50/60 p-4">
-                  <div>
-                    <p className="font-semibold">Create a new location</p>
-                    <p className="text-sm text-gray-600">
-                      Can&rsquo;t find it above? Define it here and it will show
-                      up in the search list.
-                    </p>
-                  </div>
-                  <form onSubmit={handleCreateLocation} className="space-y-3">
-                    <div className="space-y-2 rounded-2xl border border-amber-200/70 bg-white/80 p-3">
-                      <div className="text-xs text-gray-600">
-                        Use Mapbox search to auto-fill the Place ID +
-                        coordinates, then tweak any fields manually.
-                      </div>
-                      <LocationSearch
-                        placeholder="Search for a spot"
-                        proximity={null}
-                        onSelect={handleSearchAutofill}
-                        className="w-full"
-                      />
+                <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50/60 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold">Create a new location</p>
+                      <p className="text-sm text-gray-600">
+                        Can&rsquo;t find it in the list? Create one.
+                      </p>
                     </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="new-place-id">Place ID</Label>
-                      <Input
-                        id="new-place-id"
-                        value={newLocationForm.placeId}
-                        onChange={(event) =>
-                          setNewLocationForm((prev) => ({
-                            ...prev,
-                            placeId: event.target.value,
-                          }))
-                        }
-                        placeholder="mapbox.places.123"
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="new-display-name">Display name</Label>
-                      <Input
-                        id="new-display-name"
-                        value={newLocationForm.displayName}
-                        onChange={(event) =>
-                          setNewLocationForm((prev) => ({
-                            ...prev,
-                            displayName: event.target.value,
-                          }))
-                        }
-                        required
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="new-name">Address</Label>
-                      <Input
-                        id="new-name"
-                        value={newLocationForm.name}
-                        onChange={(event) =>
-                          setNewLocationForm((prev) => ({
-                            ...prev,
-                            name: event.target.value,
-                          }))
-                        }
-                        placeholder="Refraction HQ"
-                        required
-                      />
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="space-y-1">
-                        <Label htmlFor="new-latitude">Latitude</Label>
-                        <Input
-                          id="new-latitude"
-                          value={newLocationForm.latitude}
-                          onChange={(event) =>
-                            setNewLocationForm((prev) => ({
-                              ...prev,
-                              latitude: event.target.value,
-                            }))
-                          }
-                          placeholder="45.5017"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="new-longitude">Longitude</Label>
-                        <Input
-                          id="new-longitude"
-                          value={newLocationForm.longitude}
-                          onChange={(event) =>
-                            setNewLocationForm((prev) => ({
-                              ...prev,
-                              longitude: event.target.value,
-                            }))
-                          }
-                          placeholder="-73.5673"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="space-y-1">
-                        <Label htmlFor="new-wallet-address">
-                          Creator wallet
-                        </Label>
-                        <Input
-                          id="new-wallet-address"
-                          value={newLocationForm.walletAddress}
-                          onChange={(event) =>
-                            setNewLocationForm((prev) => ({
-                              ...prev,
-                              walletAddress: event.target.value,
-                            }))
-                          }
-                          placeholder="0x..."
-                          required
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="new-username">Creator username</Label>
-                        <Input
-                          id="new-username"
-                          value={newLocationForm.username}
-                          onChange={(event) =>
-                            setNewLocationForm((prev) => ({
-                              ...prev,
-                              username: event.target.value,
-                            }))
-                          }
-                          placeholder="admin"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="new-location-image">Location image</Label>
-                      <Input
-                        key={fileInputKey}
-                        id="new-location-image"
-                        type="file"
-                        accept="image/*"
-                        onChange={(event) =>
-                          setNewLocationForm((prev) => ({
-                            ...prev,
-                            locationImageFile: event.target.files?.[0] ?? null,
-                          }))
-                        }
-                        required
-                      />
-                      {newLocationForm.locationImageFile ? (
-                        <p className="text-xs text-gray-600">
-                          {newLocationForm.locationImageFile.name} (
-                          {Math.round(
-                            newLocationForm.locationImageFile.size / 1024,
-                          )}
-                          kB)
-                        </p>
-                      ) : (
-                        <p className="text-xs text-gray-500">
-                          Upload a square asset&mdash;pins only show up with an
-                          image.
-                        </p>
-                      )}
-                    </div>
-
                     <Button
-                      type="submit"
-                      disabled={createLocationMutation.isPending}
-                      className={`w-full ${blackButtonClasses}`}
+                      type="button"
+                      onClick={() => setShowCreateLocationDialog(true)}
+                      className={blackButtonClasses}
                     >
-                      {createLocationMutation.isPending && (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      )}
-                      Create location
+                      Create
                     </Button>
-                  </form>
+                  </div>
                 </div>
 
                 <div className="space-y-3 rounded-2xl border border-dashed border-gray-200 p-4">
@@ -1450,7 +1356,12 @@ export default function AdminLocationListsPage() {
                       {listLocations.map((item) => (
                         <div
                           key={item.location_id}
-                          className="space-y-3 rounded-2xl border border-gray-200 p-3"
+                          className={`space-y-3 rounded-2xl border p-3 transition-colors ${
+                            editingLocationId ===
+                            (item.location.id ?? item.location_id)
+                              ? "border-black bg-gray-50 ring-1 ring-black"
+                              : "border-gray-200"
+                          }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
@@ -1531,13 +1442,8 @@ export default function AdminLocationListsPage() {
                         <Label>Place ID</Label>
                         <Input
                           value={editLocationForm.placeId}
-                          onChange={(event) =>
-                            setEditLocationForm((prev) => ({
-                              ...prev,
-                              placeId: event.target.value,
-                            }))
-                          }
-                          required
+                          disabled
+                          className="bg-gray-100 text-gray-500"
                         />
                       </div>
 
@@ -1566,6 +1472,21 @@ export default function AdminLocationListsPage() {
                             }))
                           }
                           required
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label>Description</Label>
+                        <Textarea
+                          value={editLocationForm.description}
+                          onChange={(event) =>
+                            setEditLocationForm((prev) => ({
+                              ...prev,
+                              description: event.target.value,
+                            }))
+                          }
+                          rows={2}
+                          maxLength={500}
                         />
                       </div>
 
@@ -1685,6 +1606,197 @@ export default function AdminLocationListsPage() {
           </section>
         </div>
       </div>
+
+      {/* Create Location Dialog */}
+      <Dialog
+        open={showCreateLocationDialog}
+        onOpenChange={setShowCreateLocationDialog}
+      >
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-white">
+          <DialogHeader>
+            <DialogTitle>Create a new location</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateLocation} className="space-y-4">
+            <div className="space-y-2 rounded-2xl border border-gray-200 bg-gray-50 p-3">
+              <div className="text-xs text-gray-600">
+                Use Mapbox search to auto-fill the Place ID + coordinates, then
+                tweak any fields manually.
+              </div>
+              <LocationSearch
+                placeholder="Search for a spot"
+                proximity={null}
+                onSelect={handleSearchAutofill}
+                className="w-full"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="new-place-id">Place ID</Label>
+              <Input
+                id="new-place-id"
+                value={newLocationForm.placeId}
+                onChange={(event) =>
+                  setNewLocationForm((prev) => ({
+                    ...prev,
+                    placeId: event.target.value,
+                  }))
+                }
+                placeholder="mapbox.places.123"
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="new-display-name">Display name</Label>
+              <Input
+                id="new-display-name"
+                value={newLocationForm.displayName}
+                onChange={(event) =>
+                  setNewLocationForm((prev) => ({
+                    ...prev,
+                    displayName: event.target.value,
+                  }))
+                }
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="new-name">Address</Label>
+              <Input
+                id="new-name"
+                value={newLocationForm.name}
+                onChange={(event) =>
+                  setNewLocationForm((prev) => ({
+                    ...prev,
+                    name: event.target.value,
+                  }))
+                }
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="new-description">Description</Label>
+              <Textarea
+                id="new-description"
+                value={newLocationForm.description}
+                onChange={(event) =>
+                  setNewLocationForm((prev) => ({
+                    ...prev,
+                    description: event.target.value,
+                  }))
+                }
+                rows={2}
+                maxLength={500}
+              />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="new-latitude">Latitude</Label>
+                <Input
+                  id="new-latitude"
+                  value={newLocationForm.latitude}
+                  onChange={(event) =>
+                    setNewLocationForm((prev) => ({
+                      ...prev,
+                      latitude: event.target.value,
+                    }))
+                  }
+                  placeholder="45.5017"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="new-longitude">Longitude</Label>
+                <Input
+                  id="new-longitude"
+                  value={newLocationForm.longitude}
+                  onChange={(event) =>
+                    setNewLocationForm((prev) => ({
+                      ...prev,
+                      longitude: event.target.value,
+                    }))
+                  }
+                  placeholder="-73.5673"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="new-wallet-address">Creator wallet</Label>
+                <Input
+                  id="new-wallet-address"
+                  value={newLocationForm.walletAddress}
+                  onChange={(event) =>
+                    setNewLocationForm((prev) => ({
+                      ...prev,
+                      walletAddress: event.target.value,
+                    }))
+                  }
+                  placeholder="0x..."
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="new-username">Creator username</Label>
+                <Input
+                  id="new-username"
+                  value={newLocationForm.username}
+                  onChange={(event) =>
+                    setNewLocationForm((prev) => ({
+                      ...prev,
+                      username: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="new-location-image">Location image</Label>
+              <Input
+                key={fileInputKey}
+                id="new-location-image"
+                type="file"
+                accept="image/*"
+                onChange={(event) =>
+                  setNewLocationForm((prev) => ({
+                    ...prev,
+                    locationImageFile: event.target.files?.[0] ?? null,
+                  }))
+                }
+                required
+              />
+              {newLocationForm.locationImageFile ? (
+                <p className="text-xs text-gray-600">
+                  {newLocationForm.locationImageFile.name} (
+                  {Math.round(newLocationForm.locationImageFile.size / 1024)}
+                  kB)
+                </p>
+              ) : (
+                <p className="text-xs text-gray-500">
+                  Upload a square asset&mdash;pins only show up with an image.
+                </p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={createLocationMutation.isPending}
+              className={`w-full ${blackButtonClasses}`}
+            >
+              {createLocationMutation.isPending && (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
+              Create location
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
