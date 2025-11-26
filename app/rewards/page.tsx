@@ -587,6 +587,7 @@ export default function PerksPage() {
                       height={203}
                       className="w-full"
                       style={{
+                        width: "auto",
                         height: "203px",
                         alignSelf: "stretch",
                         aspectRatio: "47/29",
