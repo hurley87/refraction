@@ -554,7 +554,7 @@ export default function PerksPage() {
         </div>
 
         {/* Main Content */}
-        <div className="px-0 pt-4 space-y-1">
+        <div className="px-0 pt-2 space-y-1">
           {/* LATEST REWARD Section */}
           {latestReward && !perksLoading && (
             <div className="mb-1">
@@ -587,7 +587,6 @@ export default function PerksPage() {
                       height={203}
                       className="w-full"
                       style={{
-                        width: "auto",
                         height: "203px",
                         alignSelf: "stretch",
                         aspectRatio: "47/29",
@@ -917,7 +916,7 @@ export default function PerksPage() {
                   justifyContent: "center",
                   alignItems: "flex-start",
                   gap: "16px",
-                  borderRadius: "24px",
+                  borderRadius: "26px",
                   background: "#FFF",
                   boxShadow: "0 1px 8px 0 rgba(0, 0, 0, 0.08)",
                 }}
@@ -1440,7 +1439,7 @@ export default function PerksPage() {
             </div>
 
             {/* Container 2: Media + title */}
-            <div className="w-full rounded-3xl border border-[#131313]/10 bg-white p-6 text-center">
+            <div className="w-full rounded-[26px] border border-[#131313]/10 bg-white p-6 text-center">
               <div style={{ gap: "8px" }} className="flex flex-col">
                  {( selectedPerk.thumbnail_url) && (
                   <div className="mx-auto flex items-center justify-center rounded-[12px] bg-black overflow-hidden">
@@ -1477,7 +1476,7 @@ export default function PerksPage() {
             </div>
 
             {/* Container 3: Details */}
-            <div className="w-full rounded-3xl border border-[#131313]/10 bg-white p-6 space-y-6 relative">
+            <div className="w-full rounded-[26px] border border-[#131313]/10 bg-white p-6 space-y-6 relative">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Info className="h-4 w-4" />
