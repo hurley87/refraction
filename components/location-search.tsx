@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 
 type Suggestion = {
   id?: string;
@@ -183,44 +182,67 @@ export default function LocationSearch({
     return (
       <button
         onClick={() => setShowSearch(true)}
-        className="flex flex-1 items-center gap-2 self-stretch rounded-[1000px] border border-[#B5B5B5] bg-gradient-to-b from-[rgba(255,255,255,0.16)] to-[rgba(255,255,255,0.45)] px-4 py-2 h-[48px] text-black backdrop-blur-[232px] shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] hover:opacity-90 transition-opacity w-full"
+        className={`flex flex-1 items-center gap-2 rounded-full bg-white/80 px-4 h-10 text-[#7d7d7d] shadow-sm transition-colors hover:bg-white hover:text-[#313131] w-full ${className}`}
       >
-        <span className="font-['ABC-Monument-Grotesk',sans-serif] text-center text-[#7d7d7d] text-[16px] font-normal leading-[22px] tracking-[-0.48px]">
-          Search location
-        </span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-4 w-4 shrink-0"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.3-4.3" />
+        </svg>
+        <span className="text-sm truncate">{placeholder}</span>
       </button>
     );
   }
 
   return (
-    <div
-      className={`backdrop-blur-[232px] bg-[rgba(255,255,255,0.65)] border border-[rgba(255,255,255,0.65)] rounded-[24px] p-2 ${className}`}
-    >
-      <div className="flex flex-col gap-4">
-        {/* Search Input and Close Button */}
-        <div className="flex gap-2 items-center ">
-          <div className="flex-1 bg-white border border-[#b5b5b5] rounded-[1000px] h-[48px]">
-            <Input
-              ref={inputRef}
-              placeholder={placeholder}
-              value={query}
-              onChange={(e) => {
-                const val = e.target.value;
-                setQuery(val);
-                setIsOpen(true);
-                debouncedSuggest(val);
-              }}
-              onFocus={() => {
-                if (query.length >= 2 && suggestions.length === 0) {
-                  debouncedSuggest(query);
-                }
-                setIsOpen(true);
-              }}
-              onKeyDown={handleKeyDown}
-              className="h-full rounded-[1000px] border-0 px-4 py-1 text-[16px] leading-[22px] text-[#313131] placeholder:text-[#7d7d7d] bg-transparent"
-            />
-          </div>
-          <Button
+    <div className={`relative flex flex-1 items-center gap-2 ${className}`}>
+      {/* Search Input */}
+      <div className="flex-1 relative">
+        <div className="flex items-center gap-2 rounded-full bg-white/80 shadow-sm h-10 px-4">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4 text-[#7d7d7d] shrink-0"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <Input
+            ref={inputRef}
+            placeholder={placeholder}
+            value={query}
+            autoFocus
+            onChange={(e) => {
+              const val = e.target.value;
+              setQuery(val);
+              setIsOpen(true);
+              debouncedSuggest(val);
+            }}
+            onFocus={() => {
+              if (query.length >= 2 && suggestions.length === 0) {
+                debouncedSuggest(query);
+              }
+              setIsOpen(true);
+            }}
+            onKeyDown={handleKeyDown}
+            className="flex-1 h-full border-0 p-0 text-sm text-[#313131] placeholder:text-[#7d7d7d] bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+          <button
             onClick={() => {
               setShowSearch(false);
               setQuery("");
@@ -228,11 +250,12 @@ export default function LocationSearch({
               setIsOpen(false);
               setActiveIndex(-1);
             }}
-            className="w-10 h-10 rounded-[100px] border border-[#ededed] bg-white p-2"
+            className="flex items-center justify-center size-5 rounded-full bg-[#ededed] hover:bg-[#e0e0e0] transition-colors shrink-0"
             aria-label="Close"
+            type="button"
           >
             <svg
-              className="w-6 h-6 text-[#b5b5b5]"
+              className="w-3 h-3 text-[#7d7d7d]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -243,12 +266,15 @@ export default function LocationSearch({
                 d="M6 18L18 6M6 6l12 12"
               />
             </svg>
-          </Button>
+          </button>
         </div>
 
-        {/* Recent Searches Section */}
+        {/* Suggestions Dropdown */}
         {isOpen && suggestions.length > 0 && (
-          <div ref={listRef} className="flex flex-col">
+          <div
+            ref={listRef}
+            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-[#ededed] overflow-hidden z-50"
+          >
             <div role="listbox" className="max-h-64 overflow-y-auto">
               {suggestions.map((s, idx) => {
                 const isActive = idx === activeIndex;
@@ -258,8 +284,8 @@ export default function LocationSearch({
                     key={id}
                     role="option"
                     aria-selected={isActive}
-                    className={`flex flex-col gap-1 px-4 py-2 cursor-pointer ${
-                      isActive ? "bg-black/5" : "hover:bg-black/5"
+                    className={`flex flex-col gap-1 px-4 py-3 cursor-pointer ${
+                      isActive ? "bg-[#f5f5f5]" : "hover:bg-[#f5f5f5]"
                     }`}
                     onMouseEnter={() => setActiveIndex(idx)}
                     onMouseDown={(e) => {
@@ -268,36 +294,13 @@ export default function LocationSearch({
                     }}
                     onClick={() => void handleRetrieve(s)}
                   >
-                    <div className="flex items-center">
-                      <p className="font-medium text-[#4f4f4f] text-[16px] leading-[16px] tracking-[-1.28px]">
-                        {s.name || s.place_formatted || "Unnamed"}
-                      </p>
-                    </div>
+                    <p className="font-medium text-[#313131] text-sm">
+                      {s.name || s.place_formatted || "Unnamed"}
+                    </p>
                     {s.place_formatted && (
-                      <div className="flex gap-2 items-center">
-                        <svg
-                          className="w-6 h-6 text-[#b5b5b5]"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-                        <p className="text-[#7d7d7d] text-[11px] leading-[16px] tracking-[0.44px] uppercase">
-                          {s.place_formatted}
-                        </p>
-                      </div>
+                      <p className="text-[#7d7d7d] text-xs truncate">
+                        {s.place_formatted}
+                      </p>
                     )}
                   </div>
                 );

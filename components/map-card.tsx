@@ -33,116 +33,106 @@ export default function MapCard({
   const handleShare = () => {
     if (!placeId) return;
     const shareUrl = `${window.location.origin}/interactive-map?placeId=${encodeURIComponent(placeId)}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      toast.success("Link copied to clipboard");
-    }).catch(() => {
-      toast.error("Failed to copy link");
-    });
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        toast.success("Link copied to clipboard");
+      })
+      .catch(() => {
+        toast.error("Failed to copy link");
+      });
   };
   return (
-    <div className="flex flex-col gap-[4px] items-end bg-white">
-      {/* Main Card */}
-      <div className="bg-white border border-[#ededed] rounded-[26px]  shadow-lg">
-        <div className="box-border flex flex-col gap-2 items-start overflow-hidden rounded-inherit">
-          {/* Location Image with Close Button Overlay */}
-          {imageUrl && (
-            <div className="w-full relative">
-              <div className="w-full h-32 overflow-hidden relative rounded-t-2xl">
-                <img
-                  src={imageUrl}
-                  alt={name}
-                  className="w-full h-full object-cover"
+    <div className="bg-white border border-[#e8e8e8] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.08)] overflow-hidden w-[280px]">
+      {/* Location Image with Close Button Overlay */}
+      {imageUrl && (
+        <div className="w-full h-24 relative">
+          <img
+            src={imageUrl}
+            alt={name}
+            className="w-full h-full object-cover"
+          />
+          {/* Close Button Overlay */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm cursor-pointer flex items-center justify-center w-6 h-6 rounded-full border border-[#e8e8e8] shadow-sm hover:bg-white transition-colors"
+              aria-label="Close"
+            >
+              <svg
+                className="w-3 h-3 text-[#666]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M6 18L18 6M6 6l12 12"
                 />
-                {/* Close Button Overlay */}
-                {onClose && (
-                  <button
-                    onClick={onClose}
-                    className="absolute top-2 right-2 bg-white cursor-pointer flex gap-2 items-center justify-center p-1 rounded-[100px] border border-[#ededed] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] hover:bg-gray-50 transition-colors z-10"
-                    aria-label="Close"
-                  >
-                    <svg
-                      className="w-4 h-4 text-[#b5b5b5]"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            </div>
+              </svg>
+            </button>
           )}
+        </div>
+      )}
 
-          {/* Card Content */}
-          <div
-            className={`flex flex-col gap-4 w-full ${imageUrl ? "px-4 pb-3" : "p-5"}`}
-          >
-            {/* Location Info */}
-            <div className="flex flex-col gap-2 items-start justify-center w-full">
-              {/* Location Name */}
-              <div className="flex gap-6 items-start w-full">
-                <h3 className="font-inktrap tracking-[-0.48px] text-sm">
-                  {address}
-                </h3>
-              </div>
+      {/* Card Content */}
+      <div className={`flex flex-col gap-2.5 ${imageUrl ? "p-3" : "p-3.5"}`}>
+        {/* Location Info */}
+        <div className="flex flex-col gap-1">
+          {/* Description */}
+          <p className="font-inktrap text-[13px] leading-snug text-[#1a1a1a] line-clamp-2">
+            {description || address}
+          </p>
 
-              {/* Address */}
-              <div className="flex gap-2 items-start w-full min-w-0">
-                <MapPin className="w-4 h-4 text-[#7d7d7d] mt-0.5 flex-shrink-0" />
-                <p className="font-inktrap leading-tight relative text-[#7d7d7d] text-[11px] uppercase tracking-[0.44px] break-words flex-1 min-w-0 w-[240px]">
-                  {name}
-                </p>
-              </div>
-
-              {/* Description */}
-              {description && (
-                <p className="font-inktrap text-[13px] text-[#7d7d7d] leading-tight line-clamp-2">
-                  {description}
-                </p>
-              )}
-            </div>
-
-            {/* Action Section */}
-            <div className="flex justify-between gap-5 items-center shrink-0 w-full pt-1">
-              {/* Action Button */}
-              <button
-                onClick={onAction}
-                disabled={isLoading}
-                className="bg-[#313131] cursor-pointer flex justify-between gap-2 h-7 items-center px-3 py-1 relative rounded-[100px] shrink-0 hover:bg-[#131313] transition-colors disabled:opacity-50 w-full"
-              >
-                <span className="font-inktrap text-[11px] text-white tracking-[0.44px] uppercase whitespace-nowrap">
-                  {isLoading
-                    ? "Loading..."
-                    : isExisting
-                      ? "Check In"
-                      : "Create Location"}
-                </span>
-                <ChevronRight className="w-4 h-4 text-white shrink-0" />
-              </button>
-            </div>
-
-            {/* Share Location Button */}
-            {placeId && (
-              <button
-                onClick={handleShare}
-                className="w-full flex items-center justify-center gap-2 text-[#b5b5b5] hover:text-[#7d7d7d] text-[11px] font-inktrap uppercase tracking-[0.44px] h-7 px-3 transition-colors border border-[#ededed] rounded-full"
-                type="button"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                  <polyline points="16 6 12 2 8 6" />
-                  <line x1="12" y1="2" x2="12" y2="15" />
-                </svg>
-                Share
-              </button>
-            )}
+          {/* Address */}
+          <div className="flex gap-1.5 items-center">
+            <MapPin className="w-3 h-3 text-[#999] flex-shrink-0" />
+            <span className="font-inktrap text-[10px] text-[#999] uppercase tracking-[0.3px] truncate">
+              {name}
+            </span>
           </div>
+        </div>
+
+        {/* Action Buttons - Horizontal Layout */}
+        <div className="flex gap-2">
+          {/* Check In / Create Location Button */}
+          <button
+            onClick={onAction}
+            disabled={isLoading}
+            className="flex-1 bg-[#1a1a1a] cursor-pointer flex items-center justify-center gap-1.5 h-8 px-3 rounded-full hover:bg-black transition-colors disabled:opacity-50"
+          >
+            <span className="font-inktrap text-[10px] text-white tracking-[0.3px] uppercase">
+              {isLoading ? "..." : isExisting ? "Check In" : "Create"}
+            </span>
+            <ChevronRight className="w-3.5 h-3.5 text-white" />
+          </button>
+
+          {/* Share Button */}
+          {placeId && (
+            <button
+              onClick={handleShare}
+              className="flex items-center justify-center w-8 h-8 text-[#666] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-colors border border-[#e0e0e0] rounded-full"
+              type="button"
+              aria-label="Share"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                <polyline points="16 6 12 2 8 6" />
+                <line x1="12" y1="2" x2="12" y2="15" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
     </div>

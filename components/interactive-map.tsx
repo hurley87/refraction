@@ -70,7 +70,9 @@ interface InteractiveMapProps {
   initialPlaceId?: string | null;
 }
 
-export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) {
+export default function InteractiveMap({
+  initialPlaceId,
+}: InteractiveMapProps) {
   const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
   const [userUsername, setUserUsername] = useState<string | null>(null);
@@ -292,8 +294,9 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
   // Handle deep link to specific location via placeId URL param
   const deepLinkHandledRef = useRef(false);
   useEffect(() => {
-    if (!initialPlaceId || markers.length === 0 || deepLinkHandledRef.current) return;
-    
+    if (!initialPlaceId || markers.length === 0 || deepLinkHandledRef.current)
+      return;
+
     const targetMarker = markers.find((m) => m.place_id === initialPlaceId);
     if (targetMarker) {
       deepLinkHandledRef.current = true;
@@ -1035,56 +1038,79 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
       {/* Search Bar - Centered Below Header */}
       <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-md px-4">
         <div className="space-y-3">
-          <LocationSearch
-            placeholder="Search location"
-            proximity={{
-              longitude: viewState.longitude,
-              latitude: viewState.latitude,
-            }}
-            onSelect={handleSearchSelect}
-          />
-          <button
-            type="button"
-            onClick={handleLocateUser}
-            disabled={isLocating}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-[#131313] shadow-lg transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-70 dark:bg-black/70 dark:text-white dark:hover:bg-black"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-              aria-hidden="true"
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <LocationSearch
+                placeholder="Search location"
+                proximity={{
+                  longitude: viewState.longitude,
+                  latitude: viewState.latitude,
+                }}
+                onSelect={handleSearchSelect}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleLocateUser}
+              disabled={isLocating}
+              className="flex items-center justify-center size-10 rounded-full bg-white/80 text-[#7d7d7d] shadow-sm transition-colors hover:bg-white hover:text-[#313131] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-black/50 dark:text-white/70 dark:hover:bg-black/70 dark:hover:text-white shrink-0"
+              aria-label={isLocating ? "Locating..." : "My Location"}
             >
-              <circle cx="12" cy="12" r="2" />
-              <path d="M12 5V3M12 21v-2M5 12H3M21 12h-2M19.07 4.93l-1.41 1.41M6.34 17.66l-1.41 1.41M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41" />
-            </svg>
-            {isLocating ? "Locating..." : "My Location"}
-          </button>
+              {isLocating ? (
+                <svg
+                  className="h-4 w-4 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                </svg>
+              )}
+            </button>
+          </div>
           {showWelcomeBanner && (
-            <div className="rounded-3xl bg-white/90 px-4 py-3 shadow-lg backdrop-blur text-[#131313] dark:bg-black/70 dark:text-white border border-white/40 dark:border-white/10">
-              <div className="flex items-start gap-3">
-                <div className="flex-1">
-                  <p className="font-inktrap text-sm leading-5">
-                    You&apos;re in! Complete your first check-in to earn points.
-                    <br />
-                    <br />
-                    Use the search bar or the map to find a place nearby.
-                  </p>
-                </div>
+            <div className="rounded-3xl bg-white shadow-lg border border-[#ededed] overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[#ededed]">
+                <h3 className="text-base font-inktrap text-[#313131] tracking-[-1.28px]">
+                  Welcome
+                </h3>
                 <button
                   type="button"
                   onClick={dismissWelcomeBanner}
-                  className="text-[#7d7d7d] hover:text-[#131313] dark:text-white/60 dark:hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black rounded-full p-1"
+                  className="bg-[#ededed] rounded-full size-8 flex items-center justify-center hover:bg-[#e0e0e0] transition-colors"
                   aria-label="Dismiss message"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4"
+                    className="h-4 w-4 text-[#b5b5b5]"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -1098,13 +1124,25 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                   </svg>
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={dismissWelcomeBanner}
-                className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-[#131313] px-3 py-2 text-sm font-inktrap text-white transition hover:bg-[#1f1f1f] dark:bg-white dark:text-black dark:hover:bg-white/90"
-              >
-                Start exploring
-              </button>
+              {/* Content */}
+              <div className="px-4 py-4">
+                <p className="text-sm text-[#313131] leading-relaxed">
+                  You&apos;re in! Complete your first check-in to earn points.
+                </p>
+                <p className="text-sm text-[#7d7d7d] mt-2 leading-relaxed">
+                  Use the search bar or tap the map to find a place nearby.
+                </p>
+              </div>
+              {/* Footer */}
+              <div className="px-4 pb-4">
+                <button
+                  type="button"
+                  onClick={dismissWelcomeBanner}
+                  className="w-full flex items-center justify-center rounded-full bg-[#313131] h-10 text-sm font-inktrap text-white transition-colors hover:bg-[#424242]"
+                >
+                  Start exploring
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -1310,36 +1348,109 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
           if (!open) handleCloseCheckInModal();
         }}
       >
-        <DialogContent className="w-full max-w-md p-2 bg-transparent border-none shadow-none [&>button]:hidden">
+        <DialogContent className="w-full max-w-[340px] p-0 bg-transparent border-none shadow-none [&>button]:hidden">
           <div
-            className={`rounded-3xl overflow-hidden max-h-[90vh] flex flex-col bg-white`}
+            className={`rounded-2xl overflow-hidden max-h-[85vh] flex flex-col bg-white shadow-[0_8px_32px_rgba(0,0,0,0.12)]`}
           >
             {/* Header */}
             {!checkInSuccess && (
-              <div className="bg-white flex items-center gap-4 px-4 py-3">
-                <button
-                  onClick={handleCloseCheckInModal}
-                  className="bg-[#ededed] cursor-pointer flex items-center justify-center p-1 rounded-full size-8 hover:bg-[#e0e0e0] transition-colors disabled:opacity-50"
-                  aria-label="Close"
-                  disabled={isCheckingIn}
-                >
-                  <svg
-                    className="w-4 h-4 text-[#b5b5b5]"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+              <div className="bg-white flex items-center justify-between px-3 py-2.5 border-b border-[#f0f0f0]">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCloseCheckInModal}
+                    className="text-[#999] hover:text-[#666] transition-colors disabled:opacity-50"
+                    aria-label="Close"
+                    disabled={isCheckingIn}
                   >
-                    <path
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                  <h2 className="text-sm font-inktrap text-[#1a1a1a] tracking-[-0.5px]">
+                    Check In
+                  </h2>
+                </div>
+                <div className="flex items-center gap-1">
+                  {/* View on Map Button */}
+                  <button
+                    onClick={() => {
+                      if (!checkInTarget) return;
+                      const target = checkInTarget;
+                      handleCloseCheckInModal();
+                      setPopupInfo(target);
+                      setSelectedMarker(target);
+                      setViewState((prev) => ({
+                        ...prev,
+                        latitude: target.latitude,
+                        longitude: target.longitude,
+                        zoom: Math.max(prev.zoom ?? 12, 15),
+                      }));
+                      mapRef.current?.flyTo?.({
+                        center: [target.longitude, target.latitude],
+                        zoom: 15,
+                        duration: 1200,
+                      });
+                    }}
+                    className="cursor-pointer flex items-center justify-center rounded-full w-7 h-7 text-[#666] hover:bg-[#f5f5f5] transition-colors"
+                    aria-label="View on Map"
+                    type="button"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                </button>
-                <h2 className="text-base font-inktrap text-[#313131] tracking-[-1.28px]">
-                  Check In
-                </h2>
+                    >
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  </button>
+                  {/* Share Button */}
+                  <button
+                    onClick={() => {
+                      if (!checkInTarget?.place_id) return;
+                      const shareUrl = `${window.location.origin}/interactive-map?placeId=${encodeURIComponent(checkInTarget.place_id)}`;
+                      navigator.clipboard
+                        .writeText(shareUrl)
+                        .then(() => {
+                          toast.success("Link copied to clipboard");
+                        })
+                        .catch(() => {
+                          toast.error("Failed to copy link");
+                        });
+                    }}
+                    className="cursor-pointer flex items-center justify-center rounded-full w-7 h-7 text-[#666] hover:bg-[#f5f5f5] transition-colors"
+                    aria-label="Share Location"
+                    type="button"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                      <polyline points="16 6 12 2 8 6" />
+                      <line x1="12" y1="2" x2="12" y2="15" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -1348,197 +1459,143 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
             >
               {!checkInSuccess ? (
                 <>
-                  {/* Map Preview */}
+                  {/* Location Header with Image */}
                   {checkInTarget && (
-                    <div className="relative h-32 bg-gray-100">
-                      <Map
-                        longitude={checkInTarget.longitude}
-                        latitude={checkInTarget.latitude}
-                        zoom={14}
-                        mapStyle="mapbox://styles/mapbox/streets-v12"
-                        mapboxAccessToken={
-                          process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-                        }
-                        style={{ width: "100%", height: "100%" }}
-                        interactive={false}
-                      >
-                        <Marker
-                          latitude={checkInTarget.latitude}
-                          longitude={checkInTarget.longitude}
-                          anchor="bottom"
-                        >
-                          <div
-                            className="relative"
-                            style={{ width: "51px", height: "65px" }}
+                    <div className="flex items-center gap-3 p-3 bg-[#fafafa] border-b border-[#f0f0f0]">
+                      {checkInTarget.imageUrl ? (
+                        <img
+                          src={checkInTarget.imageUrl}
+                          alt={checkInTarget.name}
+                          className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#e8e8e8] to-[#d0d0d0] flex items-center justify-center flex-shrink-0">
+                          <svg
+                            className="w-5 h-5 text-[#999]"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="51"
-                              height="65"
-                              viewBox="0 0 51 65"
-                              fill="none"
-                            >
-                              <g filter="url(#filter0_d_7557_31214)">
-                                <path
-                                  d="M41.2 16.6438C41.2 25.836 25.9572 45 25.2 45C24.4429 45 9.20001 25.836 9.20001 16.6438C9.20001 7.4517 16.3635 0 25.2 0C34.0366 0 41.2 7.4517 41.2 16.6438Z"
-                                  fill="white"
-                                />
-                              </g>
-                            </svg>
-                            {checkInTarget.imageUrl && (
-                              <img
-                                src={checkInTarget.imageUrl}
-                                alt={checkInTarget.name}
-                                className="absolute rounded-full object-cover"
-                                style={{
-                                  width: "28px",
-                                  height: "28px",
-                                  top: "4px",
-                                  left: "50%",
-                                  transform: "translateX(-50%)",
-                                }}
-                              />
-                            )}
-                          </div>
-                        </Marker>
-                      </Map>
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={1.5}
+                              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-inktrap text-[13px] leading-tight tracking-[-0.3px] text-[#1a1a1a] line-clamp-1">
+                          {checkInTarget?.name || "Selected Location"}
+                        </h3>
+                        <p className="font-inktrap text-[10px] uppercase tracking-[0.3px] text-[#999] mt-0.5 line-clamp-1">
+                          {checkInTarget?.display_name}
+                        </p>
+                      </div>
                     </div>
                   )}
 
                   {/* Form Content */}
-                  <div className="px-[16px] py-[20px]">
-                    <div className="mb-[16px]">
-                      <h3 className="font-inktrap text-[16px] leading-[16px] tracking-[-1.28px] text-[#313131]">
-                        {checkInTarget?.name || "Selected Location"}
-                      </h3>
-                      <p className="font-inktrap text-[11px] uppercase tracking-[0.44px] text-[#7d7d7d] mt-1">
-                        {checkInTarget?.display_name}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col gap-6">
-                      <section className="flex flex-col gap-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <span className="text-[11px] font-inktrap uppercase tracking-[0.44px] text-[#7d7d7d]">
+                  <div className="p-3">
+                    <div className="flex flex-col gap-4">
+                      {/* Check-ins Section */}
+                      <section className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-inktrap uppercase tracking-[0.3px] text-[#999]">
                             Check-ins
                           </span>
-                          <div className="flex items-center gap-2">
-                            <div className="flex -space-x-2">
+                          <div className="flex items-center gap-1.5">
+                            <div className="flex -space-x-1.5">
                               {locationCheckins.length > 0 ? (
                                 locationCheckins.slice(0, 2).map((entry) => (
                                   <div
                                     key={`badge-${entry.id}`}
-                                    className="size-8 rounded-full border border-white bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d] text-[13px] font-semibold text-[#2f2f2f] flex items-center justify-center shadow-sm"
+                                    className="size-6 rounded-full border-2 border-white bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d] text-[10px] font-semibold text-[#313131] flex items-center justify-center shadow-sm"
                                   >
                                     {getCheckinInitial(entry)}
                                   </div>
                                 ))
                               ) : (
-                                <div className="size-8 rounded-full border border-white bg-[#ededed] text-[13px] font-semibold text-[#7d7d7d] flex items-center justify-center">
+                                <div className="size-6 rounded-full border-2 border-white bg-[#e8e8e8] text-[10px] font-semibold text-[#999] flex items-center justify-center">
                                   +
                                 </div>
                               )}
                             </div>
-                            <span className="text-[11px] font-inktrap uppercase tracking-[0.44px] text-[#7d7d7d]">
+                            <span className="text-[10px] font-inktrap text-[#999]">
                               {locationCheckins.length > 0
-                                ? `+${Math.max(locationCheckins.length - 2, 0)} others`
-                                : "Be the first"}
+                                ? `+${Math.max(locationCheckins.length - 2, 0)}`
+                                : "Be first"}
                             </span>
                           </div>
                         </div>
 
-                        <div className="space-y-3 overflow-y-auto pr-1 max-h-[260px]">
+                        <div className="space-y-2 overflow-y-auto max-h-[180px]">
                           {isLoadingLocationCheckins ? (
-                            Array.from({ length: 2 }).map((_, index) => (
-                              <div
-                                key={`skeleton-${index}`}
-                                className="rounded-2xl border border-[#ededed] bg-white p-4 shadow-sm animate-pulse"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className="size-10 rounded-full bg-[#f4f4f4]" />
-                                  <div className="flex-1 space-y-2">
-                                    <div className="h-3 w-24 rounded-full bg-[#f1f1f1]" />
-                                    <div className="h-3 w-32 rounded-full bg-[#f5f5f5]" />
-                                  </div>
-                                </div>
-                                <div className="mt-4 space-y-2">
-                                  <div className="h-3 w-full rounded-full bg-[#f5f5f5]" />
-                                  <div className="h-3 w-3/4 rounded-full bg-[#f5f5f5]" />
+                            <div className="rounded-xl bg-[#f8f8f8] p-3 animate-pulse">
+                              <div className="flex items-center gap-2">
+                                <div className="size-8 rounded-full bg-[#e8e8e8]" />
+                                <div className="flex-1 space-y-1.5">
+                                  <div className="h-2.5 w-16 rounded bg-[#e8e8e8]" />
+                                  <div className="h-2 w-12 rounded bg-[#e8e8e8]" />
                                 </div>
                               </div>
-                            ))
+                            </div>
                           ) : locationCheckinsError ? (
-                            <p className="text-[12px] text-[#b5b5b5]">
-                              {locationCheckinsError}
-                            </p>
+                            <div className="rounded-xl bg-[#f8f8f8] p-3">
+                              <p className="text-xs text-[#999] text-center">
+                                {locationCheckinsError}
+                              </p>
+                            </div>
                           ) : locationCheckins.length === 0 ? (
-                            <div className="rounded-2xl border border-dashed border-[#ededed] bg-[#fafafa] p-4 text-[13px] text-[#7d7d7d]">
-                              No one has shared a check-in yet. Drop the first
-                              note and earn points for spreading the word.
+                            <div className="rounded-xl bg-[#f8f8f8] p-3 text-center">
+                              <p className="text-[11px] text-[#999] leading-relaxed">
+                                No check-ins yet. Be the first to share!
+                              </p>
                             </div>
                           ) : (
-                            locationCheckins.slice(0, 4).map((entry) => {
-                              return (
-                                <div
-                                  key={entry.id}
-                                  className="rounded-2xl border border-[#ededed] bg-white p-4 shadow-sm space-y-3"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div className="size-10 rounded-full bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d] text-[13px] font-semibold text-[#2f2f2f] flex items-center justify-center">
-                                      {getCheckinInitial(entry)}
-                                    </div>
-                                    <div className="flex flex-col">
-                                      <span className="text-[13px] font-semibold text-[#313131] leading-[16px]">
+                            locationCheckins.slice(0, 3).map((entry) => (
+                              <div
+                                key={entry.id}
+                                className="rounded-xl bg-[#f8f8f8] p-2.5"
+                              >
+                                <div className="flex items-start gap-2">
+                                  <div className="size-7 rounded-full bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d] text-[10px] font-semibold text-[#313131] flex items-center justify-center shrink-0">
+                                    {getCheckinInitial(entry)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-xs font-medium text-[#1a1a1a] truncate">
                                         {getCheckinDisplayName(entry)}
                                       </span>
-                                      <span className="text-[10px] uppercase tracking-[0.44px] text-[#b5b5b5]">
+                                      <span className="text-[9px] text-[#b5b5b5] shrink-0">
                                         {formatCheckinTimestamp(
                                           entry.createdAt,
                                         )}
                                       </span>
                                     </div>
-                                  </div>
-                                  <p className="text-[14px] leading-[20px] text-[#313131]">
-                                    {entry.comment}
-                                  </p>
-                                  <div className="flex items-center">
-                                    <div className="inline-flex items-center gap-1 rounded-full border border-[#ededed] px-3 py-1 text-[11px] font-inktrap uppercase tracking-[0.44px] text-[#313131]">
-                                      <svg
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                      >
-                                        <path
-                                          d="M12 3L3 9L12 15L21 9L12 3Z"
-                                          stroke="#313131"
-                                          strokeWidth="1.5"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        />
-                                        <path
-                                          d="M5 10.5V15L12 21L19 15V10.5"
-                                          stroke="#313131"
-                                          strokeWidth="1.5"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        />
-                                      </svg>
-                                      <span>+{entry.pointsEarned || 100}</span>
-                                    </div>
+                                    <p className="text-[11px] leading-snug text-[#666] mt-0.5 line-clamp-2">
+                                      {entry.comment}
+                                    </p>
                                   </div>
                                 </div>
-                              );
-                            })
+                              </div>
+                            ))
                           )}
                         </div>
                       </section>
 
-                      <div className="flex flex-col gap-[8px]">
+                      {/* Comment Input */}
+                      <div className="flex flex-col gap-1.5">
                         <label
                           htmlFor="checkInComment"
-                          className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
+                          className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]"
                         >
                           Your Comment
                         </label>
@@ -1546,8 +1603,8 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                           id="checkInComment"
                           value={checkInComment}
                           onChange={(e) => setCheckInComment(e.target.value)}
-                          placeholder="A little about this location and why they should visit"
-                          className="min-h-[129px] rounded-[16px] p-[16px] border border-[#7d7d7d] bg-white text-[16px] leading-[22px] tracking-[-0.48px] text-[#313131] placeholder:text-[#b5b5b5] focus-visible:ring-0 focus-visible:ring-offset-0"
+                          placeholder="Share why this place is worth visiting..."
+                          className="min-h-[80px] rounded-xl p-3 border border-[#e8e8e8] bg-white text-sm tracking-[-0.2px] text-[#1a1a1a] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#999] resize-none"
                           maxLength={500}
                           disabled={isCheckingIn}
                         />
@@ -1558,7 +1615,7 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
               ) : (
                 /* Success Screen */
                 <div
-                  className="relative flex flex-col items-center justify-center min-h-[400px] w-full rounded-3xl overflow-hidden"
+                  className="relative flex flex-col items-center justify-center min-h-[400px] w-full overflow-hidden"
                   style={{
                     backgroundImage: "url('/city-bg.jpg')",
                     backgroundSize: "cover",
@@ -1566,7 +1623,7 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                     backgroundRepeat: "no-repeat",
                   }}
                 >
-                  <div className="relative z-10 flex flex-col items-center gap-[28px] px-0 py-[109px] w-full h-full justify-center">
+                  <div className="relative z-10 flex flex-col items-center gap-7 px-4 py-16 w-full h-full justify-center">
                     {/* Location Marker Icon */}
                     <div
                       className="relative shrink-0"
@@ -1647,45 +1704,26 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                     </div>
 
                     {/* Upper Section */}
-                    <div className="flex flex-col gap-[16px] items-center w-full px-[16px] py-[12px]">
+                    <div className="flex flex-col gap-4 items-center w-full">
                       {/* Reward Section */}
-                      <div className="flex flex-col gap-[8px] items-center w-full">
-                        <div className="flex gap-[8px] items-center justify-center w-[134px]">
-                          <div className="flex gap-[8px] items-center">
-                            <div className="flex gap-[8px] items-center justify-center h-[14px] pt-[2px]">
-                              <p
-                                className="text-[11px] leading-[16px] text-white uppercase tracking-[0.44px] whitespace-pre"
-                                style={{
-                                  fontFamily:
-                                    '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                You Earned
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-end justify-center gap-[8px] h-[53px] shadow-[0px_0px_10px_0px_rgba(255,255,255,0.54)]">
-                          <div className="flex gap-[8px] items-center justify-center h-[53px]">
-                            <p
-                              className="text-[76px] leading-[0] text-white tracking-[-4.94px] whitespace-pre"
-                              style={{
-                                fontFamily:
-                                  '"Pleasure Variable Trial", sans-serif',
-                                fontWeight: 700,
-                              }}
-                            >
-                              {checkInPointsEarned}
-                            </p>
-                          </div>
-                        </div>
+                      <div className="flex flex-col gap-2 items-center w-full">
+                        <p className="text-[11px] text-white uppercase tracking-[0.44px] font-medium">
+                          You Earned
+                        </p>
+                        <p
+                          className="text-6xl text-white tracking-[-4px] font-bold"
+                          style={{
+                            fontFamily: '"Pleasure Variable Trial", sans-serif',
+                          }}
+                        >
+                          {checkInPointsEarned}
+                        </p>
                       </div>
 
                       {/* Checking In At Section */}
-                      <div className="flex flex-col gap-[8px] items-center justify-between h-[47px] w-full">
+                      <div className="flex flex-col gap-2 items-center w-full">
                         <p
-                          className="text-[11px] leading-[16px] text-white uppercase tracking-[0.44px] whitespace-pre"
+                          className="text-[11px] text-white uppercase tracking-[0.44px]"
                           style={{
                             fontFamily:
                               '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
@@ -1694,9 +1732,9 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                         >
                           Checking In At
                         </p>
-                        <div className="flex gap-[8px] items-end">
-                          <div className="flex gap-[4px] items-center justify-center border border-white rounded-[1000px] pl-[8px] pr-[6px] py-[5px]">
-                            <div className="overflow-clip relative shrink-0 w-4 h-4">
+                        <div className="flex items-center">
+                          <div className="flex gap-1 items-center justify-center border border-white rounded-full px-2 py-1.5">
+                            <div className="shrink-0 w-4 h-4">
                               <svg
                                 className="w-4 h-4 text-white"
                                 fill="none"
@@ -1717,18 +1755,9 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                                 />
                               </svg>
                             </div>
-                            <div className="flex gap-[8px] items-center h-[14px] pt-[2px]">
-                              <p
-                                className="text-[11px] leading-[16px] text-white uppercase tracking-[0.44px]"
-                                style={{
-                                  fontFamily:
-                                    '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                {checkInTarget?.name || "Location"}
-                              </p>
-                            </div>
+                            <p className="text-[11px] text-white uppercase tracking-[0.44px] font-medium">
+                              {checkInTarget?.name || "Location"}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1740,11 +1769,11 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
 
             {/* Footer */}
             {!checkInSuccess ? (
-              <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] p-4 pt-0">
-                <div className="flex w-full justify-between gap-4">
+              <div className="p-3 pt-0">
+                <div className="flex w-full gap-2">
                   <button
                     onClick={handleCloseCheckInModal}
-                    className="bg-[#ededed] hover:bg-[#e0e0e0] text-[#7d7d7d] rounded-full px-4 py-2 h-auto font-inktrap text-base tracking-[-1.28px] w-full disabled:opacity-50"
+                    className="bg-[#f0f0f0] hover:bg-[#e8e8e8] text-[#666] rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex-1 disabled:opacity-50 transition-colors flex items-center justify-center"
                     disabled={isCheckingIn}
                     type="button"
                   >
@@ -1753,41 +1782,20 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                   <button
                     onClick={handleCheckIn}
                     disabled={isCheckingIn || !checkInTarget}
-                    className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors disabled:opacity-50 whitespace-nowrap w-full"
+                    className="bg-[#1a1a1a] hover:bg-black text-white rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex items-center justify-center transition-colors disabled:opacity-50 flex-1"
                     type="button"
                   >
-                    {isCheckingIn ? "Checking In..." : "Check In"}
+                    {isCheckingIn ? "..." : "Check In"}
                   </button>
                 </div>
-                {/* Share Location Button */}
-                <button
-                  onClick={() => {
-                    if (!checkInTarget?.place_id) return;
-                    const shareUrl = `${window.location.origin}/interactive-map?placeId=${encodeURIComponent(checkInTarget.place_id)}`;
-                    navigator.clipboard.writeText(shareUrl).then(() => {
-                      toast.success("Link copied to clipboard");
-                    }).catch(() => {
-                      toast.error("Failed to copy link");
-                    });
-                  }}
-                  className="mt-2 w-full flex items-center justify-center gap-2 text-[#7d7d7d] hover:text-[#313131] text-xs font-inktrap uppercase tracking-[0.44px] py-2 transition-colors"
-                  type="button"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                    <polyline points="16 6 12 2 8 6" />
-                    <line x1="12" y1="2" x2="12" y2="15" />
-                  </svg>
-                  Share Location
-                </button>
               </div>
             ) : (
-              <div className="bg-transparent border-t border-white/20 p-4">
+              <div className="p-3">
                 <button
                   onClick={handleCloseCheckInModal}
-                  className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors w-full"
+                  className="bg-[#1a1a1a] hover:bg-black text-white rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex items-center justify-center transition-colors w-full"
                 >
-                  Back to Map
+                  Done
                 </button>
               </div>
             )}
@@ -1802,54 +1810,77 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
           if (!open) handleCloseLocationForm();
         }}
       >
-        <DialogContent className="w-full max-w-md p-2 bg-transparent border-none shadow-none [&>button]:hidden">
-          <div className="bg-white rounded-3xl overflow-hidden max-h-[90vh] flex flex-col">
-            {/* Header with Back Button */}
-            <div className="bg-white flex items-center gap-4 px-4 py-3">
-              <button
-                onClick={() => {
-                  if (formStep === "checkin-details") {
-                    setFormStep("business-details");
-                  } else {
-                    handleCloseLocationForm();
-                  }
-                }}
-                className="bg-[#ededed] cursor-pointer flex items-center justify-center p-1 rounded-full size-8 hover:bg-[#e0e0e0] transition-colors"
-                aria-label="Back"
-                disabled={isCreatingLocation}
-              >
-                <svg
-                  className="w-4 h-4 text-[#b5b5b5]"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
+        <DialogContent className="w-full max-w-[340px] p-0 bg-transparent border-none shadow-none [&>button]:hidden">
+          <div className="bg-white rounded-2xl overflow-hidden max-h-[85vh] flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+            {/* Header */}
+            {formStep !== "success" && (
+              <div className="bg-white flex items-center justify-between px-3 py-2.5 border-b border-[#f0f0f0]">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (formStep === "checkin-details") {
+                        setFormStep("business-details");
+                      } else {
+                        handleCloseLocationForm();
+                      }
+                    }}
+                    className="text-[#999] hover:text-[#666] transition-colors disabled:opacity-50"
+                    aria-label={
+                      formStep === "checkin-details" ? "Back" : "Close"
+                    }
+                    disabled={isCreatingLocation}
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      {formStep === "checkin-details" ? (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 19l-7-7 7-7"
+                        />
+                      ) : (
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      )}
+                    </svg>
+                  </button>
+                  <h2 className="text-sm font-inktrap text-[#1a1a1a] tracking-[-0.5px]">
+                    {formStep === "business-details" && "New Location"}
+                    {formStep === "checkin-details" && "Add Check-In"}
+                  </h2>
+                </div>
+                {/* Step indicator */}
+                <div className="flex items-center gap-1">
+                  <div
+                    className={`w-1.5 h-1.5 rounded-full ${formStep === "business-details" ? "bg-[#1a1a1a]" : "bg-[#e0e0e0]"}`}
                   />
-                </svg>
-              </button>
-              <h2 className="text-base font-inktrap text-[#313131] tracking-[-1.28px]">
-                {formStep === "business-details" && "Location Details"}
-                {formStep === "checkin-details" && "Optional Check-In"}
-                {formStep === "success" && "Location Created"}
-              </h2>
-            </div>
+                  <div
+                    className={`w-1.5 h-1.5 rounded-full ${formStep === "checkin-details" ? "bg-[#1a1a1a]" : "bg-[#e0e0e0]"}`}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto">
               {/* Step 1: Business Details */}
               {formStep === "business-details" && (
-                <div className="px-[16px] py-[20px]">
-                  <div className="flex flex-col gap-[16px]">
+                <div className="p-3">
+                  <div className="flex flex-col gap-3">
                     {/* Name Field */}
-                    <div className="flex flex-col gap-[8px]">
+                    <div className="flex flex-col gap-1.5">
                       <label
                         htmlFor="name"
-                        className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
+                        className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]"
                       >
                         Name <span className="text-red-500">*</span>
                       </label>
@@ -1864,16 +1895,16 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                             name: e.target.value,
                           }))
                         }
-                        className="rounded-[100px] p-[16px] border border-[#7d7d7d] bg-white text-[16px] leading-[22px] tracking-[-0.48px] text-[#313131] placeholder:text-[#b5b5b5] focus-visible:ring-0 focus-visible:ring-offset-0 h-auto"
+                        className="rounded-xl px-3 h-10 border border-[#e8e8e8] bg-white text-sm tracking-[-0.2px] text-[#1a1a1a] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#999]"
                         maxLength={100}
                       />
                     </div>
 
                     {/* Address Field */}
-                    <div className="flex flex-col gap-[8px]">
+                    <div className="flex flex-col gap-1.5">
                       <label
                         htmlFor="address"
-                        className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
+                        className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]"
                       >
                         Address
                       </label>
@@ -1888,22 +1919,22 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                             address: e.target.value,
                           }))
                         }
-                        className="rounded-[100px] p-[16px] border border-[#ededed] bg-[#ededed] text-[16px] leading-[22px] tracking-[-0.48px] text-[#7d7d7d] placeholder:text-[#7d7d7d] focus-visible:ring-0 focus-visible:ring-offset-0 h-auto"
+                        className="rounded-xl px-3 h-10 border border-[#e8e8e8] bg-[#fafafa] text-sm tracking-[-0.2px] text-[#666] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0"
                         maxLength={200}
                       />
                     </div>
 
                     {/* Description Field */}
-                    <div className="flex flex-col gap-[8px]">
+                    <div className="flex flex-col gap-1.5">
                       <label
                         htmlFor="description"
-                        className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
+                        className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]"
                       >
                         Description
                       </label>
                       <Textarea
                         id="description"
-                        placeholder="Add a description"
+                        placeholder="What makes this place special?"
                         value={formData.description}
                         onChange={(e) =>
                           setFormData((prev) => ({
@@ -1911,14 +1942,14 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                             description: e.target.value,
                           }))
                         }
-                        className="min-h-[129px] rounded-[16px] p-[16px] border border-[#7d7d7d] bg-white text-[16px] leading-[22px] tracking-[-0.48px] text-[#313131] placeholder:text-[#b5b5b5] focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className="min-h-[70px] rounded-xl p-3 border border-[#e8e8e8] bg-white text-sm tracking-[-0.2px] text-[#1a1a1a] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#999] resize-none"
                         maxLength={500}
                       />
                     </div>
 
                     {/* Image Upload */}
-                    <div className="flex flex-col gap-[8px]">
-                      <label className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]">
                         Image <span className="text-red-500">*</span>
                       </label>
                       {formData.locationImage ? (
@@ -1926,7 +1957,7 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                           <img
                             src={URL.createObjectURL(formData.locationImage)}
                             alt="Preview"
-                            className="w-full h-48 object-cover rounded-[16px]"
+                            className="w-full h-32 object-cover rounded-xl"
                           />
                           <button
                             type="button"
@@ -1936,10 +1967,10 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                                 locationImage: null,
                               }));
                             }}
-                            className="absolute top-2 right-2 bg-white/90 hover:bg-white rounded-full p-2 transition-colors"
+                            className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full w-6 h-6 flex items-center justify-center transition-colors shadow-sm"
                           >
                             <svg
-                              className="w-4 h-4 text-[#7d7d7d]"
+                              className="w-3 h-3 text-[#666]"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1947,22 +1978,19 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                strokeWidth={2}
+                                strokeWidth={2.5}
                                 d="M6 18L18 6M6 6l12 12"
                               />
                             </svg>
                           </button>
-                          <p className="text-xs text-[#7d7d7d] mt-2">
-                            {formData.locationImage.name}
-                          </p>
                         </div>
                       ) : (
                         <label
                           htmlFor="locationImage"
-                          className="bg-[#ededed] border border-[#b5b5b5] border-dashed rounded-[16px] flex flex-col items-center justify-center px-[40px] py-[16px] cursor-pointer hover:bg-[#e0e0e0] transition-colors"
+                          className="bg-[#f8f8f8] border border-dashed border-[#d0d0d0] rounded-xl flex flex-col items-center justify-center py-6 cursor-pointer hover:bg-[#f0f0f0] hover:border-[#999] transition-colors"
                         >
                           <svg
-                            className="w-6 h-6 text-[#423333] mb-2"
+                            className="w-5 h-5 text-[#999] mb-1.5"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1970,12 +1998,12 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                              strokeWidth={1.5}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                             />
                           </svg>
-                          <p className="text-[11px] font-medium text-[#423333] uppercase tracking-[0.44px] text-center">
-                            Upload an image
+                          <p className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]">
+                            Upload image
                           </p>
                         </label>
                       )}
@@ -1999,31 +2027,61 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
 
               {/* Step 2: Check-In Details */}
               {formStep === "checkin-details" && (
-                <div className="px-[16px] py-[20px]">
-                  <div className="mb-[16px]">
-                    <h3 className="font-inktrap text-[16px] leading-[16px] tracking-[-1.28px] text-[#313131]">
-                      {formData.name}
-                    </h3>
-                    <p className="font-inktrap text-[11px] uppercase tracking-[0.44px] text-[#7d7d7d] mt-1">
-                      {formData.address}
-                    </p>
-                    <p className="text-[12px] leading-[16px] text-[#7d7d7d] mt-2">
-                      We will create this location either way. Leave a note
-                      below to check in immediately and earn bonus points.
-                    </p>
+                <div className="p-3">
+                  {/* Location Preview */}
+                  <div className="flex items-center gap-3 p-2.5 bg-[#f8f8f8] rounded-xl mb-3">
+                    {formData.locationImage ? (
+                      <img
+                        src={URL.createObjectURL(formData.locationImage)}
+                        alt={formData.name}
+                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#e8e8e8] to-[#d0d0d0] flex items-center justify-center flex-shrink-0">
+                        <svg
+                          className="w-4 h-4 text-[#999]"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                        </svg>
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-inktrap text-[12px] leading-tight tracking-[-0.3px] text-[#1a1a1a] line-clamp-1">
+                        {formData.name}
+                      </h3>
+                      <p className="font-inktrap text-[9px] uppercase tracking-[0.3px] text-[#999] mt-0.5 line-clamp-1">
+                        {formData.address}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="flex flex-col gap-[8px]">
+                  {/* Info text */}
+                  <p className="text-[11px] leading-relaxed text-[#999] mb-3">
+                    Add a comment to check in when creating this location.
+                  </p>
+
+                  {/* Comment input */}
+                  <div className="flex flex-col gap-1.5">
                     <label
                       htmlFor="checkInComment"
-                      className="text-[11px] font-medium leading-[16px] text-[#7d7d7d] uppercase tracking-[0.44px]"
+                      className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]"
                     >
                       Check-in comment (optional)
                     </label>
-                    <p className="text-[12px] text-[#b5b5b5]">
-                      Share why the spot matters. Submitting a comment will also
-                      create your check-in.
-                    </p>
                     <Textarea
                       id="checkInComment"
                       value={formData.checkInComment}
@@ -2033,13 +2091,12 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                           checkInComment: e.target.value,
                         }))
                       }
-                      placeholder="A little about this location and why they should visit"
-                      className="min-h-[129px] rounded-[16px] p-[16px] border border-[#7d7d7d] bg-white text-[16px] leading-[22px] tracking-[-0.48px] text-[#313131] placeholder:text-[#b5b5b5] focus-visible:ring-0 focus-visible:ring-offset-0"
+                      placeholder="Share why this place is worth visiting..."
+                      className="min-h-[80px] rounded-xl p-3 border border-[#e8e8e8] bg-white text-sm tracking-[-0.2px] text-[#1a1a1a] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#999] resize-none"
                       maxLength={500}
                       disabled={isCreatingLocation}
                     />
-                    <div className="flex justify-between text-[10px] text-[#b5b5b5] font-inktrap">
-                      <span>Keep it respectful.</span>
+                    <div className="flex justify-end text-[9px] text-[#c0c0c0]">
                       <span>{formData.checkInComment.length}/500</span>
                     </div>
                   </div>
@@ -2049,7 +2106,7 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
               {/* Step 3: Success Screen */}
               {formStep === "success" && (
                 <div
-                  className="relative flex flex-col items-center justify-center min-h-[400px] w-full rounded-3xl overflow-hidden"
+                  className="relative flex flex-col items-center justify-center min-h-[320px] w-full overflow-hidden"
                   style={{
                     backgroundImage: "url('/city-bg.jpg')",
                     backgroundSize: "cover",
@@ -2057,178 +2114,72 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                     backgroundRepeat: "no-repeat",
                   }}
                 >
-                  <div className="relative z-10 flex flex-col items-center gap-[28px] px-0 py-[109px] w-full h-full justify-center">
-                    {/* Location Marker Icon */}
-                    <div
-                      className="relative shrink-0"
-                      style={{ width: "46px", height: "66px" }}
-                    >
+                  <div className="relative z-10 flex flex-col items-center gap-5 px-4 py-10 w-full h-full justify-center">
+                    {/* Success checkmark */}
+                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                       <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="46"
-                        height="66"
-                        viewBox="0 0 46 66"
+                        className="w-6 h-6 text-white"
                         fill="none"
-                        className="absolute inset-0"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        <g filter="url(#filter_location_success)">
-                          <path
-                            d="M41.2 16.6438C41.2 25.836 25.9572 45 25.2 45C24.4429 45 9.20001 25.836 9.20001 16.6438C9.20001 7.4517 16.3635 0 25.2 0C34.0366 0 41.2 7.4517 41.2 16.6438Z"
-                            fill="white"
-                          />
-                        </g>
-                        <defs>
-                          <filter
-                            id="filter_location_success"
-                            x="0"
-                            y="0"
-                            width="50.4"
-                            height="64.2"
-                            filterUnits="userSpaceOnUse"
-                            colorInterpolationFilters="sRGB"
-                          >
-                            <feFlood
-                              floodOpacity="0"
-                              result="BackgroundImageFix"
-                            />
-                            <feColorMatrix
-                              in="SourceAlpha"
-                              type="matrix"
-                              values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                              result="hardAlpha"
-                            />
-                            <feOffset dy="10" />
-                            <feGaussianBlur stdDeviation="4.6" />
-                            <feComposite in2="hardAlpha" operator="out" />
-                            <feColorMatrix
-                              type="matrix"
-                              values="0 0 0 0 0.4 0 0 0 0 0.835294 0 0 0 0 0.458824 0 0 0 1 0"
-                            />
-                            <feBlend
-                              mode="normal"
-                              in2="BackgroundImageFix"
-                              result="effect1_dropShadow_7557_31214"
-                            />
-                            <feBlend
-                              mode="normal"
-                              in="SourceGraphic"
-                              in2="effect1_dropShadow_7557_31214"
-                              result="shape"
-                            />
-                          </filter>
-                        </defs>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M5 13l4 4L19 7"
+                        />
                       </svg>
                     </div>
 
-                    {/* Upper Section */}
-                    <div className="flex flex-col gap-[16px] items-center w-full px-[16px] py-[12px]">
-                      {/* Reward Section */}
-                      <div className="flex flex-col gap-[8px] items-center w-full">
-                        <div className="flex gap-[8px] items-center justify-center w-[134px]">
-                          <div className="flex gap-[8px] items-center">
-                            <div className="flex gap-[8px] items-center justify-center h-[14px] pt-[2px]">
-                              <p
-                                className="text-[11px] leading-[16px] text-white uppercase tracking-[0.44px] whitespace-pre"
-                                style={{
-                                  fontFamily:
-                                    '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                You Earned
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-end justify-center gap-[8px] h-[53px] shadow-[0px_0px_10px_0px_rgba(255,255,255,0.54)]">
-                          <div className="flex gap-[8px] items-center justify-center h-[53px]">
-                            <p
-                              className="text-[76px] leading-[0] text-white tracking-[-4.94px] whitespace-pre"
-                              style={{
-                                fontFamily:
-                                  '"Pleasure Variable Trial", sans-serif',
-                                fontWeight: 700,
-                              }}
-                            >
-                              {pointsEarned.creation + pointsEarned.checkIn}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                    {/* Reward Section */}
+                    <div className="flex flex-col items-center">
+                      <p className="text-[10px] text-white/80 uppercase tracking-[0.3px] font-medium">
+                        You Earned
+                      </p>
+                      <p
+                        className="text-5xl text-white tracking-[-3px] font-bold"
+                        style={{
+                          fontFamily: '"Pleasure Variable Trial", sans-serif',
+                        }}
+                      >
+                        {pointsEarned.creation + pointsEarned.checkIn}
+                      </p>
+                    </div>
 
-                      {/* Created Location Section */}
-                      <div className="flex flex-col gap-[8px] items-center justify-between w-[183px] h-[47px]">
-                        <p
-                          className="text-[11px] leading-[16px] text-white uppercase tracking-[0.44px] whitespace-pre"
-                          style={{
-                            fontFamily:
-                              '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
-                            fontWeight: 500,
-                          }}
-                        >
-                          Created Location
-                        </p>
-                        <div className="flex gap-[8px] items-end justify-end w-[121px]">
-                          <div className="flex gap-[4px] items-center justify-center border border-white rounded-[1000px] pl-[8px] pr-[6px] py-[5px] min-h-px min-w-px">
-                            <div className="overflow-clip relative shrink-0 w-4 h-4">
-                              <svg
-                                className="w-4 h-4 text-white"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                              </svg>
-                            </div>
-                            <div className="flex gap-[8px] items-center h-[14px] pt-[2px]">
-                              <p
-                                className="text-[11px] leading-[16px] text-white uppercase tracking-[0.44px] whitespace-pre"
-                                style={{
-                                  fontFamily:
-                                    '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                {formData.name ||
-                                  selectedMarker?.name ||
-                                  "Location"}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-center px-6 mt-4 space-y-1">
-                        <p
-                          className="text-sm text-white/90 font-inktrap tracking-wide"
-                          style={{
-                            fontFamily:
-                              '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
-                            fontWeight: 500,
-                          }}
-                        >
-                          Location created successfully.
-                        </p>
-                      </div>
+                    {/* Location badge */}
+                    <div className="flex gap-1.5 items-center border border-white/30 rounded-full px-2.5 py-1.5 bg-white/10 backdrop-blur-sm">
+                      <svg
+                        className="w-3.5 h-3.5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                      <p className="text-[10px] text-white uppercase tracking-[0.3px] font-medium">
+                        {formData.name || selectedMarker?.name || "Location"}
+                      </p>
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Bottom Gradient with Button */}
-            {formStep !== "success" && (
-              <div className="bg-gradient-to-b from-[rgba(255,255,255,0)] to-white via-white/[48.07%] border-t border-[#ededed] p-4">
+            {/* Footer */}
+            {formStep !== "success" ? (
+              <div className="p-3 pt-0">
                 <button
                   onClick={() => {
                     if (formStep === "business-details") {
@@ -2238,25 +2189,22 @@ export default function InteractiveMap({ initialPlaceId }: InteractiveMapProps) 
                     }
                   }}
                   disabled={isCreatingLocation}
-                  className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors disabled:opacity-50 w-full"
+                  className="bg-[#1a1a1a] hover:bg-black text-white rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex items-center justify-center transition-colors disabled:opacity-50 w-full"
                 >
                   {isCreatingLocation
                     ? "Creating..."
                     : formStep === "business-details"
-                      ? "Next: Optional Check-In"
+                      ? "Continue"
                       : "Create Location"}
                 </button>
               </div>
-            )}
-
-            {/* Success Screen Footer */}
-            {formStep === "success" && (
-              <div className="bg-transparent border-t border-white/20 p-4">
+            ) : (
+              <div className="p-3">
                 <button
                   onClick={handleCloseLocationForm}
-                  className="bg-[#313131] hover:bg-[#424242] text-[#ededed] rounded-full h-10 font-inktrap text-base leading-4 flex items-center justify-center transition-colors w-full"
+                  className="bg-[#1a1a1a] hover:bg-black text-white rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex items-center justify-center transition-colors w-full"
                 >
-                  Back to Map
+                  Done
                 </button>
               </div>
             )}
