@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import LocationSearch from "@/components/location-search";
 import { usePrivy } from "@privy-io/react-auth";
@@ -117,6 +117,14 @@ export default function InteractiveMap({
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
+  } | null>(null);
+
+  // Don't initialize bounds - wait for map to load and provide actual viewport bounds
+  const [mapBounds, setMapBounds] = useState<{
+    north: number;
+    south: number;
+    east: number;
+    west: number;
   } | null>(null);
 
   const mapRef = useRef<any>(null);
@@ -291,6 +299,84 @@ export default function InteractiveMap({
     loadMarkers();
   }, []);
 
+  /**
+   * Calculate map bounds from mapRef or fallback to viewState.
+   * Always tries to get actual bounds from the map instance first.
+   */
+  const calculateMapBounds = useCallback(
+    (currentViewState?: typeof viewState) => {
+      // Always try to get bounds directly from map instance first (most accurate)
+      if (mapRef.current) {
+        try {
+          // Try getMap() first (for react-map-gl/mapbox)
+          const map = mapRef.current.getMap?.();
+          if (map && typeof map.getBounds === "function") {
+            const bounds = map.getBounds();
+            if (bounds && typeof bounds.getNorth === "function") {
+              const calculatedBounds = {
+                north: bounds.getNorth(),
+                south: bounds.getSouth(),
+                east: bounds.getEast(),
+                west: bounds.getWest(),
+              };
+              console.log(
+                "[MapBounds] Calculated from map instance:",
+                calculatedBounds,
+              );
+              return calculatedBounds;
+            }
+          }
+          // Fallback: try getBounds() directly on the ref (some map libraries)
+          if (typeof mapRef.current.getBounds === "function") {
+            const bounds = mapRef.current.getBounds();
+            if (bounds && typeof bounds.getNorth === "function") {
+              const calculatedBounds = {
+                north: bounds.getNorth(),
+                south: bounds.getSouth(),
+                east: bounds.getEast(),
+                west: bounds.getWest(),
+              };
+              console.log(
+                "[MapBounds] Calculated from ref.getBounds():",
+                calculatedBounds,
+              );
+              return calculatedBounds;
+            }
+          }
+        } catch (error) {
+          console.warn("[MapBounds] Failed to get map bounds:", error);
+        }
+      }
+
+      // Fallback: approximate bounds from viewState (center + zoom)
+      // Use provided viewState or current state
+      const stateToUse = currentViewState || viewState;
+      const { latitude, longitude, zoom } = stateToUse;
+      const zoomFactor = Math.pow(2, zoom);
+      // Approximate degrees per pixel (rough estimate)
+      // At zoom 0: ~360 degrees / 256 pixels = ~1.4 degrees per pixel
+      // Each zoom level doubles the resolution
+      const degreesPerPixel = 360 / (256 * zoomFactor);
+      // Approximate viewport dimensions (assuming ~800px width, ~600px height)
+      const viewportWidthDegrees = 800 * degreesPerPixel;
+      const viewportHeightDegrees = 600 * degreesPerPixel;
+
+      const fallbackBounds = {
+        north: latitude + viewportHeightDegrees / 2,
+        south: latitude - viewportHeightDegrees / 2,
+        east: longitude + viewportWidthDegrees / 2,
+        west: longitude - viewportWidthDegrees / 2,
+      };
+      console.log("[MapBounds] Calculated fallback from viewState:", {
+        center: { latitude, longitude },
+        zoom,
+        bounds: fallbackBounds,
+      });
+      return fallbackBounds;
+    },
+    [viewState],
+  );
+
   // Handle deep link to specific location via placeId URL param
   const deepLinkHandledRef = useRef(false);
   useEffect(() => {
@@ -300,13 +386,25 @@ export default function InteractiveMap({
     const targetMarker = markers.find((m) => m.place_id === initialPlaceId);
     if (targetMarker) {
       deepLinkHandledRef.current = true;
+      const targetZoom = Math.max(viewState.zoom ?? 12, 15);
       // Center map on location
       setViewState((prev) => ({
         ...prev,
         latitude: targetMarker.latitude,
         longitude: targetMarker.longitude,
-        zoom: Math.max(prev.zoom ?? 12, 15),
+        zoom: targetZoom,
       }));
+      // Update bounds after view changes
+      setTimeout(() => {
+        const bounds = calculateMapBounds({
+          longitude: targetMarker.longitude,
+          latitude: targetMarker.latitude,
+          zoom: targetZoom,
+        });
+        if (bounds) {
+          setMapBounds(bounds);
+        }
+      }, 300);
       // Open check-in modal
       setCheckInTarget(targetMarker);
       setCheckInComment("");
@@ -316,7 +414,7 @@ export default function InteractiveMap({
       setShowCheckInModal(true);
       void loadLocationCheckins(targetMarker.place_id);
     }
-  }, [initialPlaceId, markers]);
+  }, [initialPlaceId, markers, viewState.zoom, calculateMapBounds]);
 
   const loadLocationCheckins = async (placeId: string) => {
     if (!placeId) return;
@@ -464,7 +562,30 @@ export default function InteractiveMap({
     placeFormatted?: string;
   }) => {
     const { longitude, latitude, id, name, placeFormatted } = picked;
-    setViewState({ longitude, latitude, zoom: 15 });
+    const newViewState = { longitude, latitude, zoom: 15 };
+    setViewState(newViewState);
+
+    console.log("[MapBounds] Search selected:", { longitude, latitude, name });
+    // Update bounds immediately using the new viewState, then again after map settles
+    // First update uses the new coordinates for fallback calculation
+    const immediateBounds = calculateMapBounds(newViewState);
+    if (immediateBounds) {
+      console.log(
+        "[MapBounds] Setting immediate bounds after search:",
+        immediateBounds,
+      );
+      setMapBounds(immediateBounds);
+    }
+
+    // Update again after map has fully moved to get accurate bounds from map instance
+    setTimeout(() => {
+      console.log("[MapBounds] Recalculating bounds after search delay");
+      const bounds = calculateMapBounds();
+      if (bounds) {
+        console.log("[MapBounds] Setting final bounds after search:", bounds);
+        setMapBounds(bounds);
+      }
+    }, 500);
 
     // Open nearest existing marker if within 100m
     const toRad = (v: number) => (v * Math.PI) / 180;
@@ -533,21 +654,35 @@ export default function InteractiveMap({
       ({ coords }) => {
         const { latitude, longitude } = coords;
         setUserLocation({ latitude, longitude });
+        const targetZoom = Math.max(viewState.zoom ?? 12, 15);
         setViewState((prev) => ({
           ...prev,
           latitude,
           longitude,
-          zoom: Math.max(prev.zoom ?? 12, 15),
+          zoom: targetZoom,
         }));
 
         if (mapRef.current?.flyTo) {
           mapRef.current.flyTo({
             center: [longitude, latitude],
-            zoom: 15,
+            zoom: targetZoom,
             speed: 1.5,
             curve: 1.2,
           });
         }
+
+        // Update bounds after flyTo completes
+        setTimeout(() => {
+          const bounds = calculateMapBounds({
+            longitude,
+            latitude,
+            zoom: targetZoom,
+          });
+          if (bounds) {
+            setMapBounds(bounds);
+          }
+        }, 1500);
+
         setIsLocating(false);
       },
       (error) => {
@@ -987,10 +1122,11 @@ export default function InteractiveMap({
 
     const lat = location.latitude;
     const lon = location.longitude;
+    const targetZoom = Math.max(viewState.zoom ?? 12, 15);
 
     mapRef.current?.flyTo?.({
       center: [lon, lat],
-      zoom: Math.max(viewState.zoom ?? 12, 15),
+      zoom: targetZoom,
       duration: 1200,
     });
 
@@ -998,8 +1134,20 @@ export default function InteractiveMap({
       ...prev,
       latitude: lat,
       longitude: lon,
-      zoom: Math.max(prev.zoom ?? 12, 15),
+      zoom: targetZoom,
     }));
+
+    // Update bounds after flyTo completes (1200ms duration + small buffer)
+    setTimeout(() => {
+      const bounds = calculateMapBounds({
+        longitude: lon,
+        latitude: lat,
+        zoom: targetZoom,
+      });
+      if (bounds) {
+        setMapBounds(bounds);
+      }
+    }, 1300);
 
     const matchedMarker = location.place_id
       ? markers.find((marker) => marker.place_id === location.place_id)
@@ -1151,13 +1299,42 @@ export default function InteractiveMap({
       <LocationListsDrawer
         walletAddress={walletAddress}
         onLocationFocus={handleFocusLocationFromList}
+        mapBounds={mapBounds}
+        userLocation={userLocation}
       />
 
       {/* Map */}
       <Map
         ref={mapRef}
         {...viewState}
-        onMove={(evt) => setViewState(evt.viewState)}
+        onMove={(evt) => {
+          setViewState(evt.viewState);
+          // Also update bounds during move for immediate feedback
+          // This ensures bounds update even if onMoveEnd doesn't fire
+          const bounds = calculateMapBounds(evt.viewState);
+          if (bounds) {
+            setMapBounds(bounds);
+          }
+        }}
+        onMoveEnd={() => {
+          // Update map bounds when map movement ends - this ensures accurate bounds
+          // This is the most accurate as it uses the actual map instance
+          console.log("[MapBounds] onMoveEnd triggered");
+          const bounds = calculateMapBounds();
+          if (bounds) {
+            console.log("[MapBounds] Setting bounds from onMoveEnd:", bounds);
+            setMapBounds(bounds);
+          }
+        }}
+        onLoad={() => {
+          // Calculate initial bounds after map loads
+          setTimeout(() => {
+            const bounds = calculateMapBounds();
+            if (bounds) {
+              setMapBounds(bounds);
+            }
+          }, 100);
+        }}
         onClick={onMapClick}
         mapStyle="mapbox://styles/mapbox/streets-v12"
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
