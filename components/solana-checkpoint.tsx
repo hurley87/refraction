@@ -22,9 +22,12 @@ export default function SolanaCheckpoint({ id }: SolanaCheckpointProps) {
     (account) =>
       account.type === "wallet" &&
       "chainType" in account &&
-      account.chainType === "solana"
+      account.chainType === "solana",
   );
-  const solanaAddress = solanaWallet && "address" in solanaWallet ? solanaWallet.address : undefined;
+  const solanaAddress =
+    solanaWallet && "address" in solanaWallet
+      ? solanaWallet.address
+      : undefined;
   const email = user?.email?.address;
 
   const [checkinStatus, setCheckinStatus] = useState<boolean | null>(null);
@@ -55,7 +58,7 @@ export default function SolanaCheckpoint({ id }: SolanaCheckpointProps) {
 
       try {
         const playerResponse = await fetch(
-          `/api/player?walletAddress=${solanaAddress}`
+          `/api/player?walletAddress=${solanaAddress}`,
         );
         if (playerResponse.ok) {
           const playerData = await playerResponse.json();
@@ -101,7 +104,7 @@ export default function SolanaCheckpoint({ id }: SolanaCheckpointProps) {
         if (!response.ok || !result?.success) {
           setCheckinError(
             result?.error ||
-              "Unable to check in right now. Please try again later."
+              "Unable to check in right now. Please try again later.",
           );
           setCheckinStatus(false);
           return;
@@ -109,14 +112,16 @@ export default function SolanaCheckpoint({ id }: SolanaCheckpointProps) {
 
         setCheckinError(null);
         setCheckinStatus(true);
-        setPointsEarnedToday(result.pointsEarnedToday || result.pointsAwarded || 0);
+        setPointsEarnedToday(
+          result.pointsEarnedToday || result.pointsAwarded || 0,
+        );
         if (result?.player && typeof result.player.total_points === "number") {
           setTotalPoints(result.player.total_points);
         }
       } catch (error) {
         console.error("Failed to auto check-in:", error);
         setCheckinError(
-          "Something went wrong while checking you in. Please try again."
+          "Something went wrong while checking you in. Please try again.",
         );
         hasAttemptedCheckIn.current = false;
       } finally {
@@ -133,7 +138,7 @@ export default function SolanaCheckpoint({ id }: SolanaCheckpointProps) {
   if (!user) {
     return (
       <Auth>
-        <div className="flex items-center justify-center text-center w-full min-h-dvh font-inktrap text-2xl">
+        <div className="flex items-center justify-center text-center w-full min-h-dvh font-inktrap text-2xl text-black">
           Loading ...
         </div>
       </Auth>
@@ -150,7 +155,8 @@ export default function SolanaCheckpoint({ id }: SolanaCheckpointProps) {
               Create Solana Wallet
             </h1>
             <p className="text-gray-600 text-base">
-              A Solana wallet is required for this checkpoint. Create one now to check in and earn points.
+              A Solana wallet is required for this checkpoint. Create one now to
+              check in and earn points.
             </p>
             <Button
               onClick={handleCreateWallet}
@@ -199,28 +205,25 @@ export default function SolanaCheckpoint({ id }: SolanaCheckpointProps) {
           <div className="flex flex-col items-start pt-8 gap-8 flex-1 max-w-xl mx-auto">
             {/* Main Title */}
             <div className="relative w-full max-w-md my-10 mx-auto">
-              <h1 className="text-5xl md:text-6xl font-bold uppercase tracking-tight text-center font-inktrap z-10">
+              <h1 className="text-5xl md:text-6xl font-bold uppercase tracking-tight text-center font-inktrap z-10 text-black">
                 YOU&apos;RE IN
               </h1>
-              <p className="text-lg tracking-wider font-grotesk pt-1 text-center font-black">
-                Solana Check-in
-              </p>
             </div>
 
             {/* Points Display */}
             <div className="flex gap-3 w-full mt-2 justify-between">
-              <p className="text-xs uppercase tracking-wider font-grotesk pt-1">
+              <p className="text-xs uppercase tracking-wider font-grotesk pt-1 text-black">
                 YOU EARNED
               </p>
               <div className="flex items-start gap-2">
                 <span
                   style={{ lineHeight: "0.6" }}
-                  className="text-7xl md:text-8xl font-bold font-inktrap"
+                  className="text-7xl md:text-8xl font-bold font-inktrap text-black"
                 >
                   {100}
                 </span>
                 <div className="text-xs font-grotesk uppercase flex flex-col items-end justify-end h-full">
-                  <span className="text-xs font-grotesk uppercase bg-gray-500/40 rounded-full px-2.5 py-1 flex flex-col items-end justify-end h-fit">
+                  <span className="text-xs font-grotesk uppercase bg-gray-500/40 rounded-full px-2.5 py-1 flex flex-col items-end justify-end h-fit text-black">
                     PTS
                   </span>
                 </div>
@@ -229,7 +232,7 @@ export default function SolanaCheckpoint({ id }: SolanaCheckpointProps) {
 
             {/* Descriptive Text */}
             <div>
-              <p className="text-sm leading-relaxed font-grotesk">
+              <p className="text-sm leading-relaxed font-grotesk text-black">
                 IRL gives you access to global cultural intel — discover curated
                 places and events worldwide and earn points toward real rewards
                 and the $IRL airdrop.
@@ -257,7 +260,7 @@ export default function SolanaCheckpoint({ id }: SolanaCheckpointProps) {
 
               {/* Footer - Powered by Refraction */}
               <div className="flex items-center justify-between w-full">
-                <p className="text-xs uppercase tracking-wider font-inktrap opacity-80">
+                <p className="text-xs uppercase tracking-wider font-inktrap opacity-80 text-black">
                   POWERED BY
                 </p>
                 <Image
@@ -286,11 +289,10 @@ export default function SolanaCheckpoint({ id }: SolanaCheckpointProps) {
         </div>
       )}
       {!checkinStatus && !checkinError && (
-        <div className="flex items-center justify-center text-center w-full min-h-dvh font-inktrap text-2xl">
+        <div className="flex items-center justify-center text-center w-full min-h-dvh font-inktrap text-2xl text-black">
           <div>{isCheckingIn ? "Checking in..." : "Loading..."}</div>
         </div>
       )}
     </Auth>
   );
 }
-
