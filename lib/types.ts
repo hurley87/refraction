@@ -48,6 +48,9 @@ export type UserPerkRedemption = {
 export type Player = {
   id?: number;
   wallet_address: string;
+  solana_wallet_address?: string;
+  stellar_wallet_address?: string;
+  stellar_wallet_id?: string;
   email?: string;
   username?: string;
   total_points: number;

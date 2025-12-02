@@ -192,6 +192,8 @@ export type Player = {
   id?: number;
   wallet_address: string;
   solana_wallet_address?: string;
+  stellar_wallet_address?: string;
+  stellar_wallet_id?: string;
   email?: string;
   username?: string;
   total_points: number;
@@ -394,6 +396,95 @@ export const createOrUpdatePlayerForSolana = async (
       email: email || undefined,
       total_points: 0,
     })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+export const getPlayerByStellarWallet = async (
+  stellarWalletAddress: string,
+) => {
+  const { data, error } = await supabase
+    .from("players")
+    .select("*")
+    .eq("stellar_wallet_address", stellarWalletAddress)
+    .single();
+
+  if (error && error.code !== "PGRST116") throw error; // PGRST116 = not found
+  return data;
+};
+
+/**
+ * Create or update a player for Stellar checkins.
+ * Links by email if the player already exists (from EVM or Solana checkins).
+ */
+export const createOrUpdatePlayerForStellar = async (
+  stellarWalletAddress: string,
+  email?: string,
+  stellarWalletId?: string,
+) => {
+  // First, try to find an existing player by Stellar wallet
+  const existingByStellar =
+    await getPlayerByStellarWallet(stellarWalletAddress);
+  if (existingByStellar) {
+    // Update email/wallet ID if provided and not already set
+    const updates: Record<string, string> = {};
+    if (email && !existingByStellar.email) updates.email = email;
+    if (stellarWalletId && !existingByStellar.stellar_wallet_id)
+      updates.stellar_wallet_id = stellarWalletId;
+
+    if (Object.keys(updates).length > 0) {
+      const { data, error } = await supabase
+        .from("players")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingByStellar.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+    return existingByStellar;
+  }
+
+  // If email provided, try to find existing player by email (link accounts)
+  if (email) {
+    const existingByEmail = await getPlayerByEmail(email);
+    if (existingByEmail) {
+      // Link Stellar wallet to existing player
+      const updateData: Record<string, string> = {
+        stellar_wallet_address: stellarWalletAddress,
+        updated_at: new Date().toISOString(),
+      };
+      if (stellarWalletId) updateData.stellar_wallet_id = stellarWalletId;
+
+      const { data, error } = await supabase
+        .from("players")
+        .update(updateData)
+        .eq("id", existingByEmail.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+  }
+
+  // Create new player with Stellar wallet only
+  // Note: wallet_address may have EVM format constraint, so leave it null for Stellar-only players
+  const insertData: Record<string, string | number | undefined> = {
+    stellar_wallet_address: stellarWalletAddress,
+    email: email || undefined,
+    total_points: 0,
+  };
+  if (stellarWalletId) insertData.stellar_wallet_id = stellarWalletId;
+
+  const { data, error } = await supabase
+    .from("players")
+    .insert(insertData)
     .select()
     .single();
 
