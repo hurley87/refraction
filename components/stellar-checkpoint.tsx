@@ -207,7 +207,7 @@ export default function StellarCheckpoint({ id }: StellarCheckpointProps) {
 
               {/* Points Display */}
               <div className="flex gap-3 w-full mt-2 justify-between">
-                <p className="text-xs uppercase tracking-wider font-grotesk pt-1 text-black">
+                <p className="text-md md:text-xl uppercase tracking-wider font-grotesk pt-1 text-black">
                   YOU EARNED
                 </p>
                 <div className="flex items-start gap-2">
@@ -227,10 +227,9 @@ export default function StellarCheckpoint({ id }: StellarCheckpointProps) {
 
               {/* Descriptive Text */}
               <div>
-                <p className="text-sm leading-relaxed font-grotesk text-black">
-                  IRL gives you access to global cultural intel — discover
-                  curated places and events worldwide and earn points toward
-                  real rewards and the $IRL airdrop.
+                <p className="text-md md:text-xl leading-relaxed font-grotesk text-black">
+                  IRL gives you access to global cultural intel. Discover new
+                  places, earn real rewards.
                 </p>
               </div>
 
@@ -238,10 +237,10 @@ export default function StellarCheckpoint({ id }: StellarCheckpointProps) {
                 {/* Call to Action Button */}
                 <div className="w-full">
                   <Button
-                    onClick={() => router.push("/")}
+                    onClick={() => router.push("/interactive-map")}
                     className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
                   >
-                    <span>The Internet is Dead. Go IRL</span>
+                    <span>Go to the IRL Map</span>
                     <Image
                       src="/home/arrow-right.svg"
                       alt="arrow-right"
@@ -268,12 +267,6 @@ export default function StellarCheckpoint({ id }: StellarCheckpointProps) {
                 </div>
 
                 <div className="h-[30px]" aria-hidden="true"></div>
-
-                <img
-                  src="/Stencil.svg"
-                  alt="Stencil Image"
-                  className="w-full h-auto rounded-2xl"
-                />
                 <div className="w-full max-w-xl mx-auto p-0">
                   <div className="rounded-2xl overflow-hidden w-full [&>footer]:max-w-none [&>footer]:mx-0 [&>footer]:rounded-2xl">
                     <Footer />
