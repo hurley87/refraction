@@ -80,7 +80,7 @@ export default function InteractiveMap({
   const [viewState, setViewState] = useState({
     longitude: -73.9442,
     latitude: 40.7081,
-    zoom: 10,
+    zoom: 8,
   });
 
   const [markers, setMarkers] = useState<MarkerData[]>([]);
