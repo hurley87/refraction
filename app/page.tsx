@@ -20,7 +20,7 @@ export default function Home() {
         </div>
       </div>
       {/* Map Section with GSAP Scroll Transitions */}
-      <div className="py-16 md:py-24">
+      <div className="py-16 md:py-24" data-section="map">
         <MapSection />
       </div>
 
