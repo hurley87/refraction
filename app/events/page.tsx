@@ -2,12 +2,13 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
-import eventsData from "@/data/events.json";
+import Link from "next/link";
+import { Dialog, DialogContent, DialogClose, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import eventsData from "@/data/challenges/events.json";
 import MapNav from "@/components/mapnav";
 
 // Extract event data from JSON
-const { nextEvent, futureEvents } = eventsData;
+const { futureEvents } = eventsData;
 
 export default function EventsPage() {
   const [sortBy, setSortBy] = useState("date");
@@ -67,12 +68,40 @@ export default function EventsPage() {
     return eventTimestamp >= todayTimestamp;
   };
 
-  const sortedEvents = [...futureEvents].sort((a, b) => {
+  // Filter events to only show today or future events
+  const filteredEvents = futureEvents.filter((event) =>
+    isDateTodayOrFuture(event.date)
+  );
+
+  // Find the next event: sort by date (earliest first), then by priority (lower number = higher priority)
+  const nextEvent = filteredEvents.length > 0
+    ? [...filteredEvents].sort((a, b) => {
+        const dateA = parseDate(a.date);
+        const dateB = parseDate(b.date);
+        if (dateA !== dateB) {
+          return dateA - dateB;
+        }
+        // If dates are equal, sort by priority (lower number = higher priority)
+        const priorityA = a.priority ?? 999;
+        const priorityB = b.priority ?? 999;
+        return priorityA - priorityB;
+      })[0]
+    : null;
+
+  // Filter out the next event from the future events list
+  const remainingEvents = filteredEvents.filter(
+    (event) => event.id !== nextEvent?.id
+  );
+
+  const sortedEvents = [...remainingEvents].sort((a, b) => {
     if (sortBy === "date") {
       return parseDate(a.date) - parseDate(b.date);
     }
     return a.title.localeCompare(b.title);
   });
+
+  // Only show nextEvent if it exists and is today or in the future
+  const shouldShowNextEvent = nextEvent && isDateTodayOrFuture(nextEvent.date);
 
   const handlePosterClick = (posterUrl: string) => {
     setSelectedPoster(posterUrl);
@@ -102,10 +131,11 @@ export default function EventsPage() {
 
         {/* Main Content */}
         <div className="px-0 pt-2 space-y-1">
-          {/* NEXT EVENT Section */}
-          <div className="mb-1">
-            {/* Next Event Container */}
-            <div
+          {/* NEXT EVENT Section - Only show if date is today or in the future */}
+          {shouldShowNextEvent && (
+            <div className="mb-1">
+              {/* Next Event Container */}
+              <div
               style={{
                 display: "flex",
                 padding: "16px",
@@ -147,6 +177,7 @@ export default function EventsPage() {
               {/* Date and Location */}
               <div className="flex w-full gap-2 mb-4">
                 <div
+                  className="flex-1"
                   style={{
                     display: "flex",
                     padding: "4px 8px",
@@ -187,6 +218,7 @@ export default function EventsPage() {
                   </span>
                 </div>
                 <div
+                  className="flex-1"
                   style={{
                     display: "flex",
                     padding: "4px 8px",
@@ -270,7 +302,8 @@ export default function EventsPage() {
                 </a>
               )}
             </div>
-          </div>
+            </div>
+          )}
 
           {/* Sort Section */}
           <div className="mb-1">
@@ -351,6 +384,7 @@ export default function EventsPage() {
                   {/* Row 2: Date, Location, and Map Button */}
                   <div className="flex w-full gap-1">
                     <div
+                      className="flex-1"
                       style={{
                         display: "flex",
                         padding: "4px 8px",
@@ -395,6 +429,7 @@ export default function EventsPage() {
                       </span>
                     </div>
                     <div
+                      className="flex-1"
                       style={{
                         display: "flex",
                         padding: "4px 8px",
@@ -494,13 +529,45 @@ export default function EventsPage() {
             </div>
           </div>
 
+          {/* Archive Button */}
+          <div className="pt-4 pb-8">
+            <Link
+              href="/events/archive"
+              className="w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
+            >
+              <h4 className="font-pleasure text-left">Archive</h4>
+              <div
+                style={{
+                  display: "flex",
+                  width: "24px",
+                  height: "24px",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Image
+                  src="/home/arrow-right.svg"
+                  alt="arrow-right"
+                  width={20}
+                  height={20}
+                  className="w-5 h-5"
+                />
+              </div>
+            </Link>
+          </div>
+
           <div style={{ height: "100px" }} />
         </div>
       </div>
 
       {/* Poster Modal */}
       <Dialog open={isModalOpen} onOpenChange={handleModalClose}>
-        <DialogContent className="w-[95vw] max-w-[95vw] h-[95vh] max-h-[95vh] border-none bg-transparent p-0 shadow-none [&>button]:hidden overflow-hidden flex flex-col">
+        <DialogContent 
+          className="w-[95vw] max-w-[95vw] h-[95vh] max-h-[95vh] border-none p-0 shadow-none [&>button]:hidden overflow-hidden flex flex-col"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+        >
+          <DialogTitle className="sr-only">Event Poster</DialogTitle>
+          <DialogDescription className="sr-only">View the full event poster image</DialogDescription>
           {selectedPoster && (
             <div className="relative flex flex-col h-full">
               {/* Close Button */}
@@ -513,14 +580,14 @@ export default function EventsPage() {
                       alt="Close"
                       width={24}
                       height={24}
-                      style={{ width: "auto", height: "auto" }}
+                      className="w-6 h-6"
                     />
                   </button>
                 </DialogClose>
               </div>
 
               {/* Full Size Poster */}
-              <div className="w-full rounded-3xl border border-[#131313]/10 bg-white p-6 flex-1 overflow-auto flex items-center justify-center">
+              <div className="w-full rounded-3xl border bg-transparent border-[#131313]/10 p-6 flex-1 bg-opacity-15 overflow-auto flex items-center justify-center">
                 <div className="w-full h-full flex justify-center items-center">
                   <Image
                     src={selectedPoster}
