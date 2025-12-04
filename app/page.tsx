@@ -9,15 +9,14 @@ import FooterHero from "@/components/footer-hero";
 export default function Home() {
   return (
     <div className="relative min-h-screen w-screen overflow-x-hidden bg-[#131313] rounded-3xl">
+      {/* Header - Fixed at top (outside overflow-hidden for Firefox compatibility) */}
+      <Header />
+
       <div className="overflow-hidden rounded-3xl">
+
       {/* Hero Section with WebGL Background - Full viewport */}
       <div className="relative h-screen w-screen">
         <Hero />
-
-        {/* Header - Positioned absolutely on top of hero */}
-        <div className="absolute top-0 left-0 right-0 z-20">
-          <Header />
-        </div>
       </div>
       {/* Map Section with GSAP Scroll Transitions */}
       <div className="py-16 md:py-24" data-section="map">
