@@ -564,7 +564,7 @@ export default function EventsPage() {
       <Dialog open={isModalOpen} onOpenChange={handleModalClose}>
         <DialogContent 
           className="w-[95vw] max-w-[95vw] h-[95vh] max-h-[95vh] border-none p-0 shadow-none [&>button]:hidden overflow-hidden flex flex-col"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          style={{ backgroundColor: 'black' }}
         >
           <DialogTitle className="sr-only">Event Poster</DialogTitle>
           <DialogDescription className="sr-only">View the full event poster image</DialogDescription>
@@ -587,7 +587,7 @@ export default function EventsPage() {
               </div>
 
               {/* Full Size Poster */}
-              <div className="w-full rounded-3xl border bg-transparent border-[#131313]/10 p-6 flex-1 bg-opacity-15 overflow-auto flex items-center justify-center">
+              <div className="w-full rounded-3xl border bg-white border-[#131313]/10 p-6 flex-1  overflow-auto flex items-center justify-center">
                 <div className="w-full h-full flex justify-center items-center">
                   <Image
                     src={selectedPoster}
