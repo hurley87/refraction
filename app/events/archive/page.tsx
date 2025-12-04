@@ -107,8 +107,8 @@ export default function EventsArchivePage() {
           </div>
         </div>
 
-      
-
+        {/* Main Content */}
+        <div className="px-0 pt-2 space-y-1">
           {/* Sort Section */}
           <div className="mb-1">
             <div className="flex items-center mb-1 gap-4">
