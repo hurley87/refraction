@@ -11,7 +11,7 @@ import MapNav from "@/components/mapnav";
 const { futureEvents } = eventsData;
 
 export default function EventsArchivePage() {
-  const [sortBy, setSortBy] = useState("date");
+  const [sortBy] = useState("date");
   const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -107,38 +107,37 @@ export default function EventsArchivePage() {
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="px-0 pt-2 space-y-1">
-          {/* Sort Section */}
-          <div className="mb-1">
-            <div className="flex items-center mb-1 gap-4">
-              {/* Filter Button */}
-              <button
-                onClick={() => setSortBy(sortBy === "date" ? "title" : "date")}
-                style={{
-                  display: "flex",
-                  width: "100%",
-                  height: "48px",
-                  padding: "16px",
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  borderRadius: "24px",
-                  background: "#FFF",
-                }}
-                className="hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-[#7D7D7D] body-small font-grotesk uppercase tracking-wide">FILTER</span>
-                <Image
-                  src="/events/filter.svg"
-                  alt="filter"
-                  width={20}
-                  height={20}
-                  className="w-5 h-5"
-                />
-              </button>
+        {/* Back to Events Button */}
+        <div className="pt-2 pb-1">
+          <Link
+            href="/events"
+            className="w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
+          >
+            <h4 className="font-pleasure text-left">Back to Events</h4>
+            <div
+              style={{
+                display: "flex",
+                width: "24px",
+                height: "24px",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Image
+                src="/home/arrow-right.svg"
+                alt="arrow-right"
+                width={20}
+                height={20}
+                className="w-5 h-5"
+              />
             </div>
-          </div>
+          </Link>
+        </div>
+
+        {/* Main Content */}
+        <div className="px-0 pt-0 space-y-1">
+          {/* Sort Section */}
+         
 
           {/* Past Events Section */}
           <div>
@@ -321,33 +320,6 @@ export default function EventsArchivePage() {
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Back to Events Button */}
-          <div className="pt-4 pb-8">
-            <Link
-              href="/events"
-              className="w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
-            >
-              <h4 className="font-pleasure text-left">Back to Events</h4>
-              <div
-                style={{
-                  display: "flex",
-                  width: "24px",
-                  height: "24px",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <Image
-                  src="/home/arrow-right.svg"
-                  alt="arrow-right"
-                  width={20}
-                  height={20}
-                  className="w-5 h-5"
-                />
-              </div>
-            </Link>
           </div>
 
           <div style={{ height: "100px" }} />
