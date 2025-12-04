@@ -109,14 +109,6 @@ export default function EventsArchivePage() {
 
         {/* Main Content */}
         <div className="px-0 pt-2 space-y-1">
-          {/* Archive Title */}
-          <div className="mb-4">
-            <h1 className="text-black body-small font-monument-grotesk mb-2">
-              PAST EVENTS
-            </h1>
-           
-          </div>
-
           {/* Sort Section */}
           <div className="mb-1">
             <div className="flex items-center mb-1 gap-4">
