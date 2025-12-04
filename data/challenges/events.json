@@ -1,0 +1,94 @@
+{
+  "futureEvents": [
+    {
+      "id": 1,
+      "poster": "/events/refraction-devconnect-2.png",
+      "title": "Refraction Presents - the $IRL Launch Party",
+      "date": "NOV 18 2025",
+      "location": "Buenos Aires, AR",
+      "url": "https://luma.com/jzjxyt37",
+      "mapUrl": "https://maps.app.goo.gl/updzscmSxS1g1ScF8",
+      "priority": 1
+    },
+    {
+      "id": 2,
+      "poster": "/events/codexculture.png",
+      "title": "Code x Culture — Presented by LambdaClass, Ergodic Group & Refraction",
+      "date": "NOV 20 2025",
+      "location": "Buenos Aires, AR",
+      "url": "https://luma.com/zq7dzam9",
+      "mapUrl": "https://maps.app.goo.gl/TTMNQD7Tqz5J3R4q8",
+      "priority": 1
+    },
+    {
+      "id": 3,
+      "poster": "/events/livepeer-ba.png",
+      "title": "AI x Open Media Forum presented by Livepeer, co-curated with Refraction",
+      "date": "NOV 18 2025",
+      "location": "Buenos Aires, AR",
+      "url": "https://luma.com/9q0swwro",
+      "mapUrl": "https://maps.app.goo.gl/updzscmSxS1g1ScF8",
+      "priority": 2
+    },
+    {
+      "id": 4,
+      "poster": "/events/miami-dec-2025/stellar-house-miami.png",
+      "title": "Stellar House Miami",
+      "date": "DEC 4 2025",
+      "location": "MIAMI, FL",
+      "url": "https://luma.com/stellarhousemiami?tk=QbfPG1",
+      "mapUrl": "https://maps.app.goo.gl/HJ26oAp7XHbdfxtF9",
+      "priority": 1
+    },
+    {
+      "id": 5,
+      "poster": "/events/miami-dec-2025/stellar-house-miami-afterparty.png",
+      "title": "Stellar House Miami Afterparty",
+      "date": "DEC 4 2025",
+      "location": "MIAMI, FL",
+      "url": "https://luma.com/stellarhousemiamiafterparty?tk=Wv7bPm",
+      "mapUrl": "https://maps.app.goo.gl/HJ26oAp7XHbdfxtF9",
+      "priority": 2
+    },
+    {
+      "id": 6,
+      "poster": "/events/miami-dec-2025/suero.png",
+      "title": "Suero: Malibu, Juliana Huxtable, Mabe Fratti (Ground Basel 2025)",
+      "date": "DEC 4 2025",
+      "location": "MIAMI, FL",
+      "url": "https://dice.fm/partner/spotify/event/q28l2o-suero-malibu-juliana-huxtable-mabe-fratti-ground-basel-2025-4th-dec-the-ground-miami-miami-tickets?clickref=1101lBYLTZ3i&app_clickref=1101lBYLTZ3i&dice_source=spotify&utm_source=spotify&utm_medium=referral",
+      "mapUrl": "https://www.google.com/maps/place/the+ground+miami/data=!4m2!3m1!1s0x88d9b7a868252051:0x6b62126d5365dc17?sa=X&ved=1t:242&ictx=111",
+      "priority": 3
+    },
+    {
+      "id": 7,
+      "poster": "/events/miami-dec-2025/ciao-dany.png",
+      "title": "Floyd Basel: CIAO DANY",
+      "date": "DEC 4 2025",
+      "location": "MIAMI, FL",
+      "url": "https://dice.fm/partner/short-link/event/6dbe62-ciao-dany-floyd-basel-2025-5th-dec-floyd-miami-miami-tickets?dice_id=7010075&dice_channel=web&dice_tags=organic&dice_campaign=short+link&dice_feature=mio_marketing&utm_source=web&utm_campaign=short+link&utm_medium=mio_marketing",
+      "mapUrl": "https://maps.app.goo.gl/HV3H7D6mUCpHYr2d9",
+      "priority": 4
+    },
+    {
+      "id": 8,
+      "poster": "/events/miami-dec-2025/where-are-my-keys.png",
+      "title": "Where Are My Keys (Basel 2025)",
+      "date": "DEC 5 2025",
+      "location": "MIAMI, FL",
+      "url": "http://ra.co/events/2302137",
+      "mapUrl": "https://www.google.com/maps/place/94th+Aero+Squadron+Restaurant/@25.7850697,-80.2875962,17z/data=!3m1!4b1!4m6!3m5!1s0x88d9b9dd314dc1e5:0xea61285f3cc2fc1c!8m2!3d25.7850697!4d-80.2875962!16s%2Fg%2F1tj46q9s?entry=tts&g_ep=EgoyMDI1MTIwMS4wIPu8ASoASAFQAw%3D%3D&skid=7295e914-caab-4fdb-84ba-32a571c65dd7",
+      "priority": 1
+    },
+    {
+      "id": 9,
+      "poster": "/events/miami-dec-2025/discoteca-alegria.png",
+      "title": "Discoteca x Alegria x ReSolute Art Basel with Marcellus Pittman, Public Service, System Olympia",
+      "date": "DEC 6 2025",
+      "location": "MIAMI, FL",
+      "url": "https://ra.co/events/2304303",
+      "mapUrl": "https://maps.app.goo.gl/XLoDVu85snoveS1n9",
+      "priority": 1
+    }
+  ]
+}
