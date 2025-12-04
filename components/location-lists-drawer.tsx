@@ -147,7 +147,7 @@ export default function LocationListsDrawer({
 }: LocationListsDrawerProps) {
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   // const [visitedLocationIds, setVisitedLocationIds] = useState<Set<number>>(
   //   new Set(),
   // );
