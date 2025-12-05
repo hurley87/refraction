@@ -25,6 +25,17 @@ export default function Page() {
   const [quests, setQuests] = useState<Quest[]>([]);
   const [questHeader, setQuestHeader] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Track scroll position for sticky header background
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Load quests data
   useEffect(() => {
@@ -191,10 +202,9 @@ export default function Page() {
       <div className="max-w-lg mx-auto">
         {/* Status Bar - Sticky Header */}
         <div 
-          className="sticky top-0 z-50 pb-2 pt-4 -mt-4 -mx-2 px-2"
-          style={{
-            background: "#1BA351",
-          }}
+          className={`sticky top-0 z-50 pb-2 pt-4 -mt-4 -mx-2 px-2 transition-colors duration-200 ${
+            isScrolled ? "bg-transparent backdrop-blur-sm" : "bg-transparent"
+          }`}
         >
           <MapNav />
         </div>
