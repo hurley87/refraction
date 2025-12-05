@@ -69,7 +69,7 @@ export default function Page() {
     return (
       <div
         key={quest.id}
-        className="rounded-2xl flex flex-col gap-2 transition-all duration-200"
+        className="rounded-t-2xl flex flex-col gap-2 transition-all duration-200"
       >
         {/* Row 1: Title and Description */}
         <div className="min-w-0">
@@ -182,18 +182,21 @@ export default function Page() {
   return (
     <div
       style={{
-        borderRadius: "26px",
+        borderTopLeftRadius: "26px",
+        borderTopRightRadius: "26px",
         background: "linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.10) 100%), linear-gradient(0deg, #61BFD1 0%, #EE91B7 23.56%, #F24406 53.37%, #FFE600 76.92%, #1BA351 99.99%)",
-        overflow: "hidden",
       }}
       className="min-h-screen px-2 pt-4 pb-4 font-grotesk"
     >
       <div className="max-w-lg mx-auto">
-        {/* Status Bar */}
-        <div className="flex justify-between items-center">
-          <div className="flex-1">
-            <MapNav />
-          </div>
+        {/* Status Bar - Sticky Header */}
+        <div 
+          className="sticky top-0 z-50 pb-2 pt-4 -mt-4 -mx-2 px-2"
+          style={{
+            background: "#1BA351",
+          }}
+        >
+          <MapNav />
         </div>
 
         {/* Main Content */}
