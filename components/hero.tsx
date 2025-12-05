@@ -4,6 +4,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import Image from "next/image";
+
 const LazyWebGLRenderer = dynamic(() => import("@/components/webgl-renderer"), {
   ssr: false,
   loading: () => <HeroGradientFallback />,
@@ -89,7 +91,7 @@ export default function Hero() {
               <span className="font-pleasure font-medium text-[16px] leading-[16px] text-[#313131] tracking-[-1.28px]">
                 Earn Your First Points
               </span>
-              <img src="/arrow-right.svg" alt="" className="w-6 h-6" />
+              <Image src="/arrow-right.svg" alt="" width={24} height={24} />
             </button>
           </Link>
 

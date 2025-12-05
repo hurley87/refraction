@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
 
@@ -25,6 +26,26 @@ export default function MapSection() {
   const section2TextRef = useRef<HTMLDivElement>(null);
   const section3Ref = useRef<HTMLDivElement>(null);
   const section3TextRef = useRef<HTMLDivElement>(null);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+
+  // Lazy load video when section is in viewport
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setIsVideoLoaded(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     // Early return if refs aren't ready or on server
@@ -235,17 +256,20 @@ export default function MapSection() {
               </div>
             </div>
             
-            {/* Video */}
-            <div className="relative w-full md:w-[50vw] aspect-video rounded-xl overflow-hidden">
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-full object-cover"
-              >
-                <source src="/video-reel.mp4" type="video/mp4" />
-              </video>
+            {/* Video - Lazy loaded */}
+            <div className="relative w-full md:w-[50vw] aspect-video rounded-xl overflow-hidden bg-[#1a1a1a]">
+              {isVideoLoaded && (
+                <video
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="none"
+                  className="w-full h-full object-cover"
+                >
+                  <source src="/video-reel.mp4" type="video/mp4" />
+                </video>
+              )}
             </div>
             
             <div className="flex flex-col items-center gap-4 md:gap-2 w-full max-w-2xl">
@@ -270,10 +294,14 @@ export default function MapSection() {
         {/* Top Half - Map Interface Image */}
         <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden">
           <div className="relative max-w-[393px] w-full h-full flex items-center justify-center overflow-hidden rounded-t-[17px]">
-            <img
+            <Image
               src="/pre-checkin.png"
               alt="Check in map interface"
+              width={393}
+              height={600}
               className="w-full h-full object-contain"
+              loading="lazy"
+              quality={85}
             />
           </div>
         </div>
@@ -316,10 +344,14 @@ export default function MapSection() {
         {/* Top Half - Rewards Success Image */}
         <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden">
           <div className="relative max-w-[393px] w-full h-full flex items-center justify-center">
-            <img
+            <Image
               src="/pre-save.png"
               alt="You earned 100 points"
+              width={393}
+              height={600}
               className="w-full h-full object-contain"
+              loading="lazy"
+              quality={85}
             />
           </div>
         </div>
@@ -361,10 +393,14 @@ export default function MapSection() {
         {/* Top Half - Unlock Rewards Image */}
         <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden">
           <div className="relative max-w-[393px] w-full h-full flex items-center justify-center">
-            <img
+            <Image
               src="/pre-unlock.png"
               alt="Unlock exclusive rewards"
+              width={393}
+              height={600}
               className="w-full h-full object-contain"
+              loading="lazy"
+              quality={85}
             />
           </div>
         </div>

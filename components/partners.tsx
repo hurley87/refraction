@@ -46,9 +46,9 @@ const MarqueeRow = memo(function MarqueeRow({
   direction?: "left" | "right";
 }) {
   return (
-    <div className="relative overflow-hidden w-full h-16 mb-6">
+    <div className="relative overflow-hidden w-full h-20 md:h-16 mb-6">
       <div
-        className={`flex items-center gap-12 absolute whitespace-nowrap [will-change:transform] ${
+        className={`flex items-center gap-8 md:gap-12 absolute whitespace-nowrap [will-change:transform] ${
           direction === "left" ? "animate-marquee" : "animate-marquee-reverse"
         }`}
         style={{
@@ -61,15 +61,15 @@ const MarqueeRow = memo(function MarqueeRow({
         {[...partners, ...partners, ...partners].map((partner, index) => (
           <div
             key={`${partner.name}-${index}`}
-            className="flex items-center justify-center h-16 min-w-[120px]"
+            className="flex items-center justify-center h-20 md:h-16 min-w-[140px] md:min-w-[120px]"
           >
             <Image
               src={partner.logo}
               alt={`${partner.name} logo`}
-              width={120}
-              height={64}
+              width={160}
+              height={80}
               loading="lazy"
-              className="max-w-[120px] max-h-[64px] object-contain opacity-70"
+              className="max-w-[140px] md:max-w-[120px] max-h-[70px] md:max-h-[64px] object-contain opacity-80 md:opacity-70"
               unoptimized={partner.logo.endsWith(".svg")}
             />
           </div>
