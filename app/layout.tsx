@@ -183,6 +183,7 @@ export default function RootLayout({
             unoptimized
           />
         </div>
+      
         <FarcasterReady />
         <Providers>{children}</Providers>
         <Toaster />

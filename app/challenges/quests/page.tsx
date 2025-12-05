@@ -70,7 +70,7 @@ export default function QuestsPage() {
     return (
       <div
         key={quest.id}
-        className="rounded-2xl flex flex-col gap-4 transition-all duration-200"
+        className="rounded-t-2xl flex flex-col gap-4 transition-all duration-200"
       >
         {/* Row 1: Title and Description */}
         <div className="min-w-0">

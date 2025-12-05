@@ -21,11 +21,11 @@ const Footer = dynamic(() => import("@/components/footer"), {
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen w-screen overflow-x-hidden bg-[#131313] rounded-3xl">
+    <div className="relative min-h-screen w-screen overflow-x-hidden bg-[#131313] rounded-t-3xl">
       {/* Header - Fixed at top (outside overflow-hidden for Firefox compatibility) */}
       <Header />
 
-      <div className="overflow-hidden rounded-3xl">
+      <div className="overflow-hidden rounded-t-3xl">
 
       {/* Hero Section with WebGL Background - Full viewport */}
       <div className="relative h-screen w-screen">
