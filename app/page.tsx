@@ -1,10 +1,23 @@
+import dynamic from "next/dynamic";
 import Header from "@/components/header";
 import Hero from "@/components/hero";
-import ArtistCTA from "@/components/artist-cta";
-import Partners from "@/components/partners";
-import MapSection from "@/components/map-section";
-import Footer from "@/components/footer";
-import FooterHero from "@/components/footer-hero";
+
+// Lazy load below-the-fold components for better initial load performance
+const MapSection = dynamic(() => import("@/components/map-section"), {
+  ssr: true,
+});
+const Partners = dynamic(() => import("@/components/partners"), {
+  ssr: true,
+});
+const ArtistCTA = dynamic(() => import("@/components/artist-cta"), {
+  ssr: true,
+});
+const FooterHero = dynamic(() => import("@/components/footer-hero"), {
+  ssr: true,
+});
+const Footer = dynamic(() => import("@/components/footer"), {
+  ssr: true,
+});
 
 export default function Home() {
   return (
