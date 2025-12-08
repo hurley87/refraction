@@ -215,19 +215,17 @@ export default function LeaderboardPage() {
         background:
           "linear-gradient(0deg, #61BFD1 0%, #EE91B7 26.92%, #FFE600 54.33%, #1BA351 100%)",
       }}
-      className="min-h-screen px-2 pt-4 pb-0 font-grotesk relative"
+      className="min-h-screen px-2 pt-2 pb-0 font-grotesk relative"
     >
       <div className="max-w-md mx-auto">
         {/* Navigation */}
-        <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/20 to-transparent">
-          <div className="max-w-md w-full mx-auto py-4 px-4">
-            <MapNav />
-          </div>
+        <div className="mb-2">
+          <MapNav />
         </div>
 
-        <div className="pt-10">
+        <div>
           {/* Main Content */}
-          <div className="px-0 pt-4 space-y-4">
+          <div className="px-0 space-y-4">
             {/* Your Place and Points Card */}
             {currentUserAddress && (
               <div className="bg-white/20 backdrop-blur-md rounded-[26px] p-4 border border-white/30">

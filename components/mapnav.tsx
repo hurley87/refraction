@@ -25,6 +25,7 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
 
   // Map routes to display names
   const getPageName = (path: string): string => {
+    // Exact matches first
     const routeMap: Record<string, string> = {
       "/": "Dashboard",
       "/game": "Dashboard",
@@ -35,7 +36,18 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
       "/rewards": "Rewards",
       "/faq": "FAQ",
     };
-    return routeMap[path] || "Check-In Map";
+    
+    if (routeMap[path]) {
+      return routeMap[path];
+    }
+    
+    // Check for sub-routes (e.g., /events/archive, /challenges/quests)
+    if (path.startsWith("/events")) return "Events";
+    if (path.startsWith("/challenges")) return "Challenges";
+    if (path.startsWith("/rewards")) return "Rewards";
+    if (path.startsWith("/leaderboard")) return "Leaderboard";
+    
+    return "Check-In Map";
   };
 
   const currentPageName = getPageName(pathname);

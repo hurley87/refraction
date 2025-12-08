@@ -73,6 +73,9 @@ export default function EventsArchivePage() {
     isDatePast(event.date)
   );
 
+  // Check if there are any events today or in the future
+  const hasUpcomingEvents = futureEvents.some((event) => !isDatePast(event.date));
+
   const sortedEvents = [...pastEvents].sort((a, b) => {
     if (sortBy === "date") {
       // Sort by date descending (most recent first)
@@ -97,42 +100,42 @@ export default function EventsArchivePage() {
         background:
           "linear-gradient(0deg, #61BFD1 0%, #EE91B7 26.92%, #FFE600 54.33%, #1BA351 100%)",
       }}
-      className="min-h-screen px-2 pt-4 pb-0 font-grotesk"
+      className="min-h-screen px-2 pt-2 pb-0 font-grotesk"
     >
       <div className="max-w-md mx-auto">
         {/* Status Bar with Header */}
-        <div className="flex justify-between items-center">
-          <div className="flex-1">
-            <MapNav />
-          </div>
+        <div className="pb-2">
+          <MapNav />
         </div>
 
-        {/* Back to Events Button */}
-        <div className="pt-2 pb-1">
-          <Link
-            href="/events"
-            className="w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
-          >
-            <h4 className="font-pleasure text-left">Back to Events</h4>
-            <div
-              style={{
-                display: "flex",
-                width: "24px",
-                height: "24px",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
+        {/* Back to Events Button - only show if there are upcoming events */}
+        {hasUpcomingEvents && (
+          <div className="pb-1">
+            <Link
+              href="/events"
+              className="w-full h-[40px] bg-[#EDEDED] text-black  rounded-full px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
             >
-              <Image
-                src="/home/arrow-right.svg"
-                alt="arrow-right"
-                width={20}
-                height={20}
-                className="w-5 h-5"
-              />
-            </div>
-          </Link>
-        </div>
+              <h4 className="font-pleasure text-left">Back to Events</h4>
+              <div
+                style={{
+                  display: "flex",
+                  width: "24px",
+                  height: "24px",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Image
+                  src="/home/arrow-right.svg"
+                  alt="arrow-right"
+                  width={20}
+                  height={20}
+                  className="w-5 h-5"
+                />
+              </div>
+            </Link>
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="px-0 pt-0 space-y-1">

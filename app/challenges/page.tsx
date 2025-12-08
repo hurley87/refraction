@@ -80,7 +80,7 @@ export default function Page() {
     return (
       <div
         key={quest.id}
-        className="rounded-t-2xl flex flex-col gap-2 transition-all duration-200"
+        className="rounded-t-[16px] flex flex-col gap-2 transition-all duration-200"
       >
         {/* Row 1: Title and Description */}
         <div className="min-w-0">
@@ -168,10 +168,10 @@ export default function Page() {
             justifyContent: 'space-between',
             gap: '8px',
             width: '100%',
-            height: '32px',
+            height: '28px',
             backgroundColor: '#ededed',
-            borderRadius: '16px',
-            padding: '6px 12px',
+            borderRadius: '20px',
+            padding: '8px 16px',
             border: '1px solid #e0e0e0',
             cursor: 'pointer',
             textDecoration: 'none'
@@ -197,12 +197,12 @@ export default function Page() {
         borderTopRightRadius: "26px",
         background: "linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.10) 100%), linear-gradient(0deg, #61BFD1 0%, #EE91B7 23.56%, #F24406 53.37%, #FFE600 76.92%, #1BA351 99.99%)",
       }}
-      className="min-h-screen px-2 pt-4 pb-4 font-grotesk"
+      className="min-h-screen px-2 pt-2 pb-4 font-grotesk"
     >
       <div className="max-w-lg mx-auto">
         {/* Status Bar - Sticky Header */}
         <div 
-          className={`sticky top-0 z-50 pb-2 pt-4 -mt-4 -mx-2 px-2 transition-colors duration-200 ${
+          className={`sticky top-0 z-50 pb-2 pt-2 -mt-2 -mx-2 px-2 transition-colors duration-200 ${
             isScrolled ? "bg-transparent backdrop-blur-sm" : "bg-transparent"
           }`}
         >
@@ -210,10 +210,10 @@ export default function Page() {
         </div>
 
         {/* Main Content */}
-        <div className="px-0 pt-2 space-y-1">
+        <div className="px-0 space-y-1">
           {/* Loading State */}
           {isLoading && (
-            <div className="bg-white rounded-2xl p-8 text-center">
+            <div className="bg-white rounded-[16px] p-8 text-center">
               <div className="w-8 h-8 border-2 border-gray-300 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-gray-600 font-inktrap">Loading quests...</p>
             </div>
@@ -221,11 +221,11 @@ export default function Page() {
 
           {/* Quest Header/Banner Card */}
           {!isLoading && questHeader && (
-            <div className="bg-white backdrop-blur-sm rounded-2xl p-4 border border-white/20">
-              <div className="rounded-2xl flex flex-col gap-3 transition-all duration-200">
+            <div className="bg-white backdrop-blur-sm rounded-[16px] p-4 border border-white/20">
+              <div className="rounded-[16px] flex flex-col gap-3 transition-all duration-200">
                 {/* Quest Challenge Image - Full Width Above Title */}
                
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 ">
                   <span className="body-small text-gray-600 uppercase tracking-wide">
                     Challenge Quest
                   </span>
@@ -233,7 +233,7 @@ export default function Page() {
                 {/* Title and Description */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="title2 text-black">
+                    <div className="title3 text-[#020303] font-grotesk">
                       {questHeader.title}
                     </div>
                   </div>
@@ -246,7 +246,7 @@ export default function Page() {
                   href="https://app.galxe.com/quest/A2w5Zojdy46VKJVvpptTwf/GCzcut8Kwg?refer=quest_parent_collection"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full bg-[#313131] hover:bg-gray-800 text-white py-3 px-4 rounded-full font-inktrap font-medium transition-colors duration-200 flex items-center justify-between"
+                  className="w-full h-[40px] bg-[#313131] hover:bg-gray-800 text-white px-4 rounded-full font-pleasure  transition-colors duration-200 flex items-center justify-between"
                 >
                   <h4>Complete Quest on Galxe</h4>
                    <Image
@@ -267,7 +267,7 @@ export default function Page() {
              
               <div className="space-y-1">
                 {quests.map(quest => (
-                  <div key={quest.id} className="bg-white backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+                  <div key={quest.id} className="bg-white backdrop-blur-sm rounded-[16px] p-4 border border-white/20">
                     {renderQuestCard(quest)}
                   </div>
                 ))}
