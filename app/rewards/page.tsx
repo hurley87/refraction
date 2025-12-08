@@ -789,9 +789,9 @@ export default function PerksPage() {
                 ) : (
                   <button
                     onClick={() => handleOpenPerk(latestReward)}
-                    className="w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
+                    className="w-full h-[40px] bg-white text-black font-bold rounded-full px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
                   >
-                    <span className="font-pleasure text-left">View Details</span>
+                    <h4 className="font-pleasure text-left">View Details</h4>
                     <div
                       style={{
                         display: "flex",
@@ -851,7 +851,7 @@ export default function PerksPage() {
             {!perksLoading && (
               <div
                 className="mb-6 flex w-full items-center"
-                style={{ gap: "8px", height: "48px" }}
+                style={{ gap: "8px", height: "40px" }}
                 id="tiers-toggle"
               >
               <div className="flex flex-1 items-center gap-2 rounded-full bg-white/20 p-1 backdrop-blur-sm">
@@ -901,22 +901,16 @@ export default function PerksPage() {
 
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toggleSort();
-                }}
-                className="transition-colors duration-200 hover:bg-white cursor-pointer"
+                onClick={() => toggleSort()}
+                className="transition-colors duration-200 hover:bg-gray-100 cursor-pointer"
                 style={{
                   display: "flex",
-                  width: "55px",
-                  height: "48px",
-                  padding: "16px",
-                  flexDirection: "column",
+                  width: "40px",
+                  height: "40px",
+                  padding: "10px",
                   justifyContent: "center",
-                  alignItems: "flex-start",
-                  gap: "16px",
-                  borderRadius: "26px",
+                  alignItems: "center",
+                  borderRadius: "20px",
                   background: "#FFF",
                   boxShadow: "0 1px 8px 0 rgba(0, 0, 0, 0.08)",
                 }}
@@ -927,7 +921,7 @@ export default function PerksPage() {
                   alt="filter"
                   width={20}
                   height={20}
-                  className="h-5 w-5"
+                  className="h-5 w-5 pointer-events-none"
                 />
               </button>
             </div>

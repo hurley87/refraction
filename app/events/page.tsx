@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogClose, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import eventsData from "@/data/challenges/events.json";
 import MapNav from "@/components/mapnav";
@@ -11,6 +12,7 @@ import MapNav from "@/components/mapnav";
 const { futureEvents } = eventsData;
 
 export default function EventsPage() {
+  const router = useRouter();
   const [sortBy, setSortBy] = useState("date");
   const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -72,6 +74,13 @@ export default function EventsPage() {
   const filteredEvents = futureEvents.filter((event) =>
     isDateTodayOrFuture(event.date)
   );
+
+  // Redirect to archive if no events today or in the future
+  useEffect(() => {
+    if (filteredEvents.length === 0) {
+      router.replace("/events/archive");
+    }
+  }, [filteredEvents.length, router]);
 
   // Find the next event: sort by date (earliest first), then by priority (lower number = higher priority)
   const nextEvent = filteredEvents.length > 0
@@ -279,7 +288,7 @@ export default function EventsPage() {
                   href={nextEvent.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full bg-white text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
+                  className="w-full h-[40px] bg-white text-black font-bold rounded-full px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
                 >
                   <h4 className="font-pleasure text-left">Register</h4>
                   <div
@@ -314,12 +323,12 @@ export default function EventsPage() {
                 style={{
                   display: "flex",
                   width: "100%",
-                  height: "48px",
-                  padding: "16px",
+                  height: "40px",
+                  padding: "0 16px",
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  borderRadius: "24px",
+                  borderRadius: "20px",
                   background: "#FFF",
                 }}
                 className="hover:bg-gray-50 transition-colors"
@@ -502,7 +511,7 @@ export default function EventsPage() {
                       href={event.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
+                      className="w-full h-[40px] bg-[#EDEDED] text-black font-bold rounded-full px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
                     >
                       <h4 className="font-pleasure text-left">Register</h4>
                       <div
@@ -533,7 +542,7 @@ export default function EventsPage() {
           <div className="pt-4 pb-8">
             <Link
               href="/events/archive"
-              className="w-full bg-[#EDEDED] text-black font-bold rounded-full py-3 px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
+              className="w-full h-[40px] bg-[#EDEDED] text-black font-bold rounded-full px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
             >
               <h4 className="font-pleasure text-left">Archive</h4>
               <div
