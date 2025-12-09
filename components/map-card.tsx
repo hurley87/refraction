@@ -135,32 +135,36 @@ export default function MapCard({
               </svg>
             </button>
           )}
-        </div>
-
-        {/* Event URL Button */}
-        {eventUrl && (
-          <a
-            href={eventUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 px-3 font-inktrap text-[10px] uppercase tracking-[0.3px] transition-colors w-full mt-2"
-          >
-            <svg
-              className="w-3.5 h-3.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          {eventUrl && (
+            <a
+              href={eventUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 px-3 font-inktrap text-[10px] uppercase tracking-[0.3px] transition-colors w-full mt-2"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-              />
-            </svg>
-            View Event
-          </a>
-        )}
+              <button
+                className="flex items-center justify-center w-8 h-8 text-[#666] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-colors border border-[#e0e0e0] rounded-full"
+                type="button"
+                aria-label="Share"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                  <polyline points="16 6 12 2 8 6" />
+                  <line x1="12" y1="2" x2="12" y2="15" />
+                </svg>
+              </button>
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );
