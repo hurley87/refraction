@@ -21,6 +21,7 @@ export type DrawerLocationSummary = Pick<
   | "type"
   | "points_value"
   | "coin_image_url"
+  | "event_url"
 >;
 
 type DrawerList = LocationListWithCount & {

@@ -63,30 +63,45 @@ const assignmentSchema = z.object({
   locationId: z.coerce.number().int().positive(),
 });
 
-const editLocationSchema = z.object({
-  placeId: z.string().min(3, "Place ID is required"),
-  displayName: z.string().min(3, "Display name is required"),
-  name: z.string().min(3, "Name is required"),
-  description: z.string().max(500).optional(),
-  latitude: z
-    .string()
-    .min(1, "Latitude is required")
-    .pipe(
-      z.coerce.number().refine((value) => value >= -90 && value <= 90, {
-        message: "Latitude must be between -90 and 90",
-      }),
-    ),
-  longitude: z
-    .string()
-    .min(1, "Longitude is required")
-    .pipe(
-      z.coerce.number().refine((value) => value >= -180 && value <= 180, {
-        message: "Longitude must be between -180 and 180",
-      }),
-    ),
-  walletAddress: z.string().optional(),
-  username: z.string().optional(),
-});
+const editLocationSchema = z
+  .object({
+    placeId: z.string().min(3, "Place ID is required"),
+    displayName: z.string().min(3, "Display name is required"),
+    name: z.string().min(3, "Name is required"),
+    description: z.string().max(500).optional(),
+    latitude: z
+      .string()
+      .min(1, "Latitude is required")
+      .pipe(
+        z.coerce.number().refine((value) => value >= -90 && value <= 90, {
+          message: "Latitude must be between -90 and 90",
+        }),
+      ),
+    longitude: z
+      .string()
+      .min(1, "Longitude is required")
+      .pipe(
+        z.coerce.number().refine((value) => value >= -180 && value <= 180, {
+          message: "Longitude must be between -180 and 180",
+        }),
+      ),
+    walletAddress: z.string().optional(),
+    username: z.string().optional(),
+    locationType: z.enum(["location", "event"]).default("location"),
+    eventUrl: z
+      .union([z.string().url("Event URL must be a valid URL"), z.literal("")])
+      .optional()
+      .transform((val) => (val === "" ? undefined : val)),
+  })
+  .refine(
+    (data) =>
+      data.locationType !== "event" ||
+      (data.eventUrl && data.eventUrl.length > 0),
+    {
+      message: "Event URL is required for event locations",
+      path: ["eventUrl"],
+    },
+  );
 
 type NewLocationFormState = {
   placeId: string;
@@ -98,6 +113,8 @@ type NewLocationFormState = {
   walletAddress: string;
   username: string;
   locationImageFile: File | null;
+  locationType: "location" | "event";
+  eventUrl: string;
 };
 
 type EditLocationFormState = {
@@ -111,6 +128,8 @@ type EditLocationFormState = {
   username: string;
   currentImageUrl: string;
   locationImageFile: File | null;
+  locationType: "location" | "event";
+  eventUrl: string;
 };
 
 type CreateLocationVariables = {
@@ -123,6 +142,8 @@ type CreateLocationVariables = {
   walletAddress: string;
   username?: string;
   imageFile: File;
+  type: string;
+  eventUrl?: string;
 };
 
 type EditLocationVariables = {
@@ -132,30 +153,45 @@ type EditLocationVariables = {
   imageFile?: File | null;
 };
 
-const createLocationSchema = z.object({
-  placeId: z.string().min(3, "Place ID is required"),
-  displayName: z.string().min(3, "Display name is required"),
-  name: z.string().min(3, "Name is required"),
-  description: z.string().max(500).optional(),
-  latitude: z
-    .string()
-    .min(1, "Latitude is required")
-    .pipe(
-      z.coerce.number().refine((value) => value >= -90 && value <= 90, {
-        message: "Latitude must be between -90 and 90",
-      }),
-    ),
-  longitude: z
-    .string()
-    .min(1, "Longitude is required")
-    .pipe(
-      z.coerce.number().refine((value) => value >= -180 && value <= 180, {
-        message: "Longitude must be between -180 and 180",
-      }),
-    ),
-  walletAddress: z.string().min(4, "Wallet address is required"),
-  username: z.string().optional(),
-});
+const createLocationSchema = z
+  .object({
+    placeId: z.string().min(3, "Place ID is required"),
+    displayName: z.string().min(3, "Display name is required"),
+    name: z.string().min(3, "Name is required"),
+    description: z.string().max(500).optional(),
+    latitude: z
+      .string()
+      .min(1, "Latitude is required")
+      .pipe(
+        z.coerce.number().refine((value) => value >= -90 && value <= 90, {
+          message: "Latitude must be between -90 and 90",
+        }),
+      ),
+    longitude: z
+      .string()
+      .min(1, "Longitude is required")
+      .pipe(
+        z.coerce.number().refine((value) => value >= -180 && value <= 180, {
+          message: "Longitude must be between -180 and 180",
+        }),
+      ),
+    walletAddress: z.string().min(4, "Wallet address is required"),
+    username: z.string().optional(),
+    locationType: z.enum(["location", "event"]).default("location"),
+    eventUrl: z
+      .union([z.string().url("Event URL must be a valid URL"), z.literal("")])
+      .optional()
+      .transform((val) => (val === "" ? undefined : val)),
+  })
+  .refine(
+    (data) =>
+      data.locationType !== "event" ||
+      (data.eventUrl && data.eventUrl.length > 0),
+    {
+      message: "Event URL is required for event locations",
+      path: ["eventUrl"],
+    },
+  );
 
 export default function AdminLocationListsPage() {
   const { user, login } = usePrivy();
@@ -190,6 +226,8 @@ export default function AdminLocationListsPage() {
     walletAddress: "",
     username: "",
     locationImageFile: null,
+    locationType: "location",
+    eventUrl: "",
   });
   const [fileInputKey, setFileInputKey] = useState(0);
   const [editingLocation, setEditingLocation] =
@@ -209,6 +247,8 @@ export default function AdminLocationListsPage() {
       username: "",
       currentImageUrl: "",
       locationImageFile: null,
+      locationType: "location",
+      eventUrl: "",
     });
   const [editFileInputKey, setEditFileInputKey] = useState(0);
   const [showCreateLocationDialog, setShowCreateLocationDialog] =
@@ -595,6 +635,8 @@ export default function AdminLocationListsPage() {
       walletAddress,
       username,
       imageFile,
+      type,
+      eventUrl,
     }: CreateLocationVariables) => {
       const uploadForm = new FormData();
       uploadForm.append("file", imageFile);
@@ -628,7 +670,8 @@ export default function AdminLocationListsPage() {
           description: description?.trim() || null,
           lat: latitude.toString(),
           lon: longitude.toString(),
-          type: "location",
+          type: type || "location",
+          eventUrl: eventUrl?.trim() || null,
           walletAddress,
           username,
           locationImage: imageUrl,
@@ -655,6 +698,8 @@ export default function AdminLocationListsPage() {
         walletAddress: prev.walletAddress,
         username: prev.username,
         locationImageFile: null,
+        locationType: "location",
+        eventUrl: "",
       }));
       setFileInputKey((prev) => prev + 1);
       setLocationSearch(variables.displayName);
@@ -710,6 +755,8 @@ export default function AdminLocationListsPage() {
           walletAddress: payload.walletAddress?.trim() || null,
           username: payload.username?.trim() || null,
           imageUrl: imageUrl || null,
+          type: payload.locationType || "location",
+          eventUrl: payload.eventUrl?.trim() || null,
         }),
       });
 
@@ -808,6 +855,8 @@ export default function AdminLocationListsPage() {
       longitude: newLocationForm.longitude,
       walletAddress: newLocationForm.walletAddress,
       username: newLocationForm.username,
+      locationType: newLocationForm.locationType,
+      eventUrl: newLocationForm.eventUrl,
     });
 
     if (!parsed.success) {
@@ -823,6 +872,7 @@ export default function AdminLocationListsPage() {
 
     createLocationMutation.mutate({
       ...parsed.data,
+      type: parsed.data.locationType || "location",
       imageFile: newLocationForm.locationImageFile,
     });
   };
@@ -841,6 +891,8 @@ export default function AdminLocationListsPage() {
       username: entry.location.creator_username ?? "",
       currentImageUrl: entry.location.coin_image_url ?? "",
       locationImageFile: null,
+      locationType: (entry.location.type as "location" | "event") || "location",
+      eventUrl: entry.location.event_url ?? "",
     });
     setEditFileInputKey((prev) => prev + 1);
   };
@@ -859,6 +911,8 @@ export default function AdminLocationListsPage() {
       username: "",
       currentImageUrl: "",
       locationImageFile: null,
+      locationType: "location",
+      eventUrl: "",
     });
     setEditFileInputKey((prev) => prev + 1);
   };
@@ -876,6 +930,8 @@ export default function AdminLocationListsPage() {
       longitude: editLocationForm.longitude,
       walletAddress: editLocationForm.walletAddress,
       username: editLocationForm.username,
+      locationType: editLocationForm.locationType,
+      eventUrl: editLocationForm.eventUrl,
     });
 
     if (!parsed.success) {
@@ -1490,6 +1546,48 @@ export default function AdminLocationListsPage() {
                         />
                       </div>
 
+                      <div className="space-y-1">
+                        <Label>Type</Label>
+                        <Select
+                          value={editLocationForm.locationType}
+                          onValueChange={(value) =>
+                            setEditLocationForm((prev) => ({
+                              ...prev,
+                              locationType: value as "location" | "event",
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="location">Location</SelectItem>
+                            <SelectItem value="event">Event</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {editLocationForm.locationType === "event" && (
+                        <div className="space-y-1">
+                          <Label>Event URL</Label>
+                          <Input
+                            type="url"
+                            value={editLocationForm.eventUrl}
+                            onChange={(event) =>
+                              setEditLocationForm((prev) => ({
+                                ...prev,
+                                eventUrl: event.target.value,
+                              }))
+                            }
+                            placeholder="https://example.com/event"
+                            required
+                          />
+                          <p className="text-xs text-gray-500">
+                            This URL will be shown as a button in the map marker
+                          </p>
+                        </div>
+                      )}
+
                       <div className="grid gap-3 md:grid-cols-2">
                         <div className="space-y-1">
                           <Label>Latitude</Label>
@@ -1691,6 +1789,49 @@ export default function AdminLocationListsPage() {
                 maxLength={500}
               />
             </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="new-location-type">Type</Label>
+              <Select
+                value={newLocationForm.locationType}
+                onValueChange={(value) =>
+                  setNewLocationForm((prev) => ({
+                    ...prev,
+                    locationType: value as "location" | "event",
+                  }))
+                }
+              >
+                <SelectTrigger id="new-location-type">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="location">Location</SelectItem>
+                  <SelectItem value="event">Event</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {newLocationForm.locationType === "event" && (
+              <div className="space-y-1">
+                <Label htmlFor="new-event-url">Event URL</Label>
+                <Input
+                  id="new-event-url"
+                  type="url"
+                  value={newLocationForm.eventUrl}
+                  onChange={(event) =>
+                    setNewLocationForm((prev) => ({
+                      ...prev,
+                      eventUrl: event.target.value,
+                    }))
+                  }
+                  placeholder="https://example.com/event"
+                  required
+                />
+                <p className="text-xs text-gray-500">
+                  This URL will be shown as a button in the map marker
+                </p>
+              </div>
+            )}
 
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1">

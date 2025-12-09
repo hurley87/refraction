@@ -24,6 +24,8 @@ interface MarkerData {
   creator_wallet_address?: string | null;
   creator_username?: string | null;
   imageUrl?: string | null;
+  type?: string;
+  event_url?: string | null;
 }
 
 interface LocationCheckinPreview {
@@ -289,6 +291,8 @@ export default function InteractiveMap({
             creator_wallet_address: loc.creator_wallet_address ?? null,
             creator_username: loc.creator_username ?? null,
             imageUrl: loc.coin_image_url ?? null,
+            type: loc.type ?? "location",
+            event_url: loc.event_url ?? null,
           }),
         );
         setMarkers(dbMarkers);
@@ -1170,6 +1174,8 @@ export default function InteractiveMap({
         imageUrl: location.coin_image_url ?? null,
         creator_wallet_address: null,
         creator_username: null,
+        type: location.type ?? "location",
+        event_url: location.event_url ?? null,
       });
     }
   };
@@ -1468,6 +1474,7 @@ export default function InteractiveMap({
               isLoading={isCheckingIn}
               imageUrl={popupInfo.imageUrl}
               placeId={popupInfo.place_id}
+              eventUrl={popupInfo.event_url}
             />
           </Popup>
         )}
@@ -1489,6 +1496,7 @@ export default function InteractiveMap({
               onAction={handleInitiateLocationCreation}
               onClose={() => setSearchedLocation(null)}
               isLoading={false}
+              eventUrl={null}
             />
           </Popup>
         )}

@@ -211,6 +211,7 @@ export type Location = {
   place_id: string;
   points_value: number;
   type?: string;
+  event_url?: string | null;
   context?: string;
   coin_address?: string;
   coin_symbol?: string;
@@ -690,7 +691,7 @@ export const deleteLocationList = async (id: string) => {
 };
 
 const locationSelection =
-  "id, name, display_name, latitude, longitude, place_id, points_value, type, context, coin_address, coin_symbol, coin_name, coin_image_url, creator_wallet_address, creator_username";
+  "id, name, display_name, latitude, longitude, place_id, points_value, type, event_url, context, coin_address, coin_symbol, coin_name, coin_image_url, creator_wallet_address, creator_username";
 
 export const getLocationsForList = async (
   listId: string,
@@ -824,6 +825,8 @@ export const updateLocationById = async (
       | "creator_wallet_address"
       | "creator_username"
       | "coin_image_url"
+      | "type"
+      | "event_url"
     >
   >,
 ) => {

@@ -12,6 +12,8 @@ const updateLocationSchema = z.object({
   walletAddress: z.string().optional(),
   username: z.string().optional(),
   imageUrl: z.string().url().nullable().optional(),
+  type: z.string().optional(),
+  eventUrl: z.string().url().nullable().optional(),
 });
 
 export async function PATCH(
@@ -60,6 +62,9 @@ export async function PATCH(
       updates.creator_username = payload.username || null;
     if (payload.imageUrl !== undefined)
       updates.coin_image_url = payload.imageUrl || null;
+    if (payload.type !== undefined) updates.type = payload.type.trim() || null;
+    if (payload.eventUrl !== undefined)
+      updates.event_url = payload.eventUrl?.trim() || null;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(

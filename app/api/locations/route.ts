@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     const query = supabase
       .from("locations")
       .select(
-        "id, name, display_name, description, latitude, longitude, place_id, points_value, type, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username",
+        "id, name, display_name, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username",
       )
       .not("coin_image_url", "is", null);
 
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
         .select(
           `
           locations!inner (
-            id, name, display_name, description, latitude, longitude, place_id, points_value, type, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username
+            id, name, display_name, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username
           )
         `,
         )
@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
       lat,
       lon,
       type,
+      eventUrl,
       walletAddress,
       username,
       locationImage,
@@ -158,6 +159,32 @@ export async function POST(request: NextRequest) {
       typeof type === "string" && type.trim()
         ? sanitizeVarchar(type)
         : "location";
+
+    // Validate and sanitize eventUrl - must be a valid URL if provided
+    let sanitizedEventUrl: string | null = null;
+    if (eventUrl && typeof eventUrl === "string") {
+      const trimmed = eventUrl.trim();
+      if (trimmed) {
+        try {
+          // Validate URL format to prevent XSS attacks
+          const url = new URL(trimmed);
+          // Only allow http/https protocols for security
+          if (url.protocol !== "http:" && url.protocol !== "https:") {
+            return NextResponse.json(
+              { error: "Event URL must use http or https protocol" },
+              { status: 400 },
+            );
+          }
+          sanitizedEventUrl = sanitizeOptionalVarchar(trimmed);
+        } catch {
+          return NextResponse.json(
+            { error: "Invalid event URL format" },
+            { status: 400 },
+          );
+        }
+      }
+    }
+
     const sanitizedWalletAddress = walletAddress.trim();
     const sanitizedUsername = sanitizeOptionalVarchar(username);
     const normalizedLocationImage = locationImage.trim();
@@ -222,6 +249,7 @@ export async function POST(request: NextRequest) {
       latitude: parseFloat(lat),
       longitude: parseFloat(lon),
       type: sanitizedType,
+      event_url: sanitizedEventUrl,
       points_value: 100,
       creator_wallet_address: sanitizedWalletAddress,
       creator_username: sanitizedUsername,
