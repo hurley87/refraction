@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Trophy, MapPin, User, Crown } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  Trophy,
+  MapPin,
+  User,
+  Crown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useLocationGame } from "@/hooks/useLocationGame";
 import { usePrivy } from "@privy-io/react-auth";
 
 interface UserStats {
@@ -17,6 +23,13 @@ interface LeaderboardProps {
   autoOpen?: boolean;
 }
 
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 export default function Leaderboard({
   onClose,
   autoOpen = false,
@@ -25,21 +38,69 @@ export default function Leaderboard({
   const [showLeaderboard, setShowLeaderboard] = useState(autoOpen);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
-  const { fetchLeaderboard, leaderboard, isLeaderboardLoading } =
-    useLocationGame();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const itemsPerPage = 50;
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 0,
+  });
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
 
   const currentUserAddress = user?.wallet?.address;
 
+  // Fetch leaderboard data with pagination
+  const fetchLeaderboardPage = useCallback(
+    async (page: number, limit: number) => {
+      setIsLoadingLeaderboard(true);
+      try {
+        const response = await fetch(
+          `/api/leaderboard?page=${page}&limit=${limit}`,
+        );
+        const result = await response.json();
+
+        if (response.ok && result.leaderboard) {
+          setLeaderboardData(result.leaderboard);
+          if (result.pagination) {
+            setPagination(result.pagination);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading leaderboard:", error);
+      } finally {
+        setIsLoadingLeaderboard(false);
+      }
+    },
+    [],
+  );
+
   // Load leaderboard when opened - only if not already loading
   const handleOpen = () => {
-    if (!showLeaderboard && !isLeaderboardLoading) {
+    if (!showLeaderboard && !isLoadingLeaderboard) {
       setShowLeaderboard(true);
-      fetchLeaderboard(50); // Get top 50 players
+      fetchLeaderboardPage(currentPage, itemsPerPage);
 
       // Fetch user stats if logged in
       if (currentUserAddress) {
         fetchUserStats(currentUserAddress);
       }
+    }
+  };
+
+  // Fetch leaderboard when page or itemsPerPage changes
+  useEffect(() => {
+    if (showLeaderboard) {
+      fetchLeaderboardPage(currentPage, itemsPerPage);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, itemsPerPage, showLeaderboard]);
+
+  // Pagination handlers
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setCurrentPage(newPage);
     }
   };
 
@@ -138,7 +199,11 @@ export default function Leaderboard({
               ✕
             </Button>
           </div>
-          <p className="text-purple-100 mt-2">Top 50 players by total points</p>
+          <p className="text-purple-100 mt-2">
+            {pagination.total > 0
+              ? `${pagination.total.toLocaleString()} players by total points`
+              : "Top players by total points"}
+          </p>
         </div>
 
         {/* Your Rank Section */}
@@ -201,12 +266,12 @@ export default function Leaderboard({
 
         {/* Leaderboard Content */}
         <div className="p-4 overflow-y-auto max-h-96">
-          {isLeaderboardLoading ? (
+          {isLoadingLeaderboard ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
               <p className="text-gray-600 mt-2">Loading leaderboard...</p>
             </div>
-          ) : leaderboard.length === 0 ? (
+          ) : leaderboardData.length === 0 ? (
             <div className="text-center py-8">
               <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-600">No players yet!</p>
@@ -216,7 +281,7 @@ export default function Leaderboard({
             </div>
           ) : (
             <div className="space-y-3">
-              {leaderboard.map((player) => {
+              {leaderboardData.map((player) => {
                 const isCurrentUser =
                   player.wallet_address === currentUserAddress;
                 return (
@@ -288,17 +353,42 @@ export default function Leaderboard({
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer with Pagination */}
         <div className="bg-gray-50 p-4 border-t">
-          <p className="text-xs text-gray-500 text-center mb-2">
-            Showing top {leaderboard.length} players
-          </p>
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 mb-3">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4 text-gray-700" />
+              </button>
+
+              <div className="flex flex-col items-center">
+                <span className="text-sm font-medium text-gray-900">
+                  {currentPage} / {pagination.totalPages}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {pagination.total.toLocaleString()} players
+                </span>
+              </div>
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= pagination.totalPages}
+                className="w-9 h-9 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+              >
+                <ChevronRight className="w-4 h-4 text-gray-700" />
+              </button>
+            </div>
+          )}
           <Button
-            onClick={() => fetchLeaderboard(50)}
-            disabled={isLeaderboardLoading}
+            onClick={() => fetchLeaderboardPage(currentPage, itemsPerPage)}
+            disabled={isLoadingLeaderboard}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white"
           >
-            {isLeaderboardLoading ? "Refreshing..." : "Refresh Leaderboard"}
+            {isLoadingLeaderboard ? "Refreshing..." : "Refresh Leaderboard"}
           </Button>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { Trophy, ChevronDown } from "lucide-react";
+import { Trophy, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import MapNav from "./mapnav";
 import Link from "next/link";
@@ -23,6 +23,13 @@ interface LeaderboardUser {
   rank: number;
 }
 
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 // Helper function to get ordinal suffix
 const getOrdinalSuffix = (num: number): string => {
   const j = num % 10;
@@ -41,8 +48,7 @@ const getOrdinalSuffix = (num: number): string => {
 
 export default function LeaderboardPage() {
   const { user } = usePrivy();
-  const { fetchLeaderboard, leaderboard, isLeaderboardLoading } =
-    useLocationGame();
+  const { isLeaderboardLoading } = useLocationGame();
 
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
@@ -50,61 +56,56 @@ export default function LeaderboardPage() {
   const [hasJumpedToUser, setHasJumpedToUser] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMoreData, setHasMoreData] = useState(true);
-  const [extendedLeaderboard, setExtendedLeaderboard] = useState<
-    LeaderboardUser[]
-  >([]);
+  const itemsPerPage = 50;
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardUser[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 0,
+  });
   const currentUserAddress = user?.wallet?.address;
   const currentUsername = user?.google?.name || user?.twitter?.name;
 
-  const itemsPerPage = 50;
+  // Fetch leaderboard data with pagination
+  const fetchLeaderboardPage = useCallback(
+    async (page: number, limit: number) => {
+      setIsLoadingMore(true);
+      try {
+        const response = await fetch(
+          `/api/leaderboard?page=${page}&limit=${limit}`,
+        );
+        const result = await response.json();
 
-  // Fetch initial leaderboard data
-  useEffect(() => {
-    const loadLeaderboard = async () => {
-      await fetchLeaderboard(itemsPerPage); // Fetch first batch
-    };
-    loadLeaderboard();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
-
-  // Sync hook's leaderboard with extended leaderboard
-  useEffect(() => {
-    if (leaderboard.length > 0 && extendedLeaderboard.length === 0) {
-      setExtendedLeaderboard(leaderboard);
-    }
-  }, [leaderboard, extendedLeaderboard.length]);
-
-  // Load more entries
-  const loadMoreEntries = useCallback(async () => {
-    if (isLoadingMore || !hasMoreData) return;
-
-    setIsLoadingMore(true);
-    try {
-      const response = await fetch(
-        `/api/leaderboard?limit=${itemsPerPage}&offset=${currentPage * itemsPerPage}`,
-      );
-      const result = await response.json();
-
-      if (response.ok && result.leaderboard?.length > 0) {
-        // Append new entries to extended leaderboard
-        setExtendedLeaderboard((prev) => [...prev, ...result.leaderboard]);
-        setCurrentPage((prev) => prev + 1);
-
-        // Check if we got fewer items than requested (end of data)
-        if (result.leaderboard.length < itemsPerPage) {
-          setHasMoreData(false);
+        if (response.ok && result.leaderboard) {
+          setLeaderboardData(result.leaderboard);
+          if (result.pagination) {
+            setPagination(result.pagination);
+          }
+          // Scroll to top when page changes
+          window.scrollTo({ top: 0, behavior: "smooth" });
         }
-      } else {
-        setHasMoreData(false);
+      } catch (error) {
+        console.error("Error loading leaderboard:", error);
+      } finally {
+        setIsLoadingMore(false);
       }
-    } catch (error) {
-      console.error("Error loading more entries:", error);
-      setHasMoreData(false);
-    } finally {
-      setIsLoadingMore(false);
+    },
+    [],
+  );
+
+  // Fetch leaderboard when page changes
+  useEffect(() => {
+    fetchLeaderboardPage(currentPage, itemsPerPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
+
+  // Pagination handlers
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setCurrentPage(newPage);
     }
-  }, [currentPage, hasMoreData, isLoadingMore]);
+  };
 
   // Fetch current user's stats
   useEffect(() => {
@@ -157,34 +158,21 @@ export default function LeaderboardPage() {
       }
     };
 
-    if (currentUserAddress && extendedLeaderboard.length > 0) {
+    if (currentUserAddress && leaderboardData.length > 0) {
       loadUserStats();
     }
-  }, [currentUserAddress, extendedLeaderboard]);
+  }, [currentUserAddress, leaderboardData]);
 
-  // Handle scroll detection for Jump To button and infinite scroll
+  // Handle scroll detection for Jump To button
   useEffect(() => {
     const handleScroll = () => {
       const scrolled = window.scrollY > 200;
       setShowJumpButton(scrolled);
-
-      // Infinite scroll detection
-      const scrollHeight = document.documentElement.scrollHeight;
-      const scrollTop = document.documentElement.scrollTop;
-      const clientHeight = document.documentElement.clientHeight;
-
-      if (
-        scrollTop + clientHeight >= scrollHeight - 1000 &&
-        hasMoreData &&
-        !isLoadingMore
-      ) {
-        loadMoreEntries();
-      }
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [hasMoreData, isLoadingMore, loadMoreEntries]);
+  }, []);
 
   // Jump to user's rank (simple version for top 100 only)
   const jumpToUserRank = () => {
@@ -315,8 +303,8 @@ export default function LeaderboardPage() {
               {/* Leaderboard Entries */}
               {!isLeaderboardLoading && (
                 <>
-                  {extendedLeaderboard.length > 0 ? (
-                    extendedLeaderboard.map((entry: LeaderboardUser) => (
+                  {leaderboardData.length > 0 ? (
+                    leaderboardData.map((entry: LeaderboardUser) => (
                       <div
                         key={entry.player_id}
                         data-rank={entry.rank}
@@ -384,12 +372,42 @@ export default function LeaderboardPage() {
                 </div>
               )}
 
-              {/* End of Data Indicator */}
-              {!hasMoreData && extendedLeaderboard.length > 0 && (
-                <div className="bg-white rounded-[26px] p-4 text-center">
-                  <p className="text-gray-500 body-small">End of leaderboard</p>
-                </div>
-              )}
+              {/* Pagination Controls */}
+              {!isLoadingMore &&
+                leaderboardData.length > 0 &&
+                pagination.totalPages > 1 && (
+                  <div className="bg-white rounded-[26px] p-5">
+                    <div className="flex items-center justify-center gap-4">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                      >
+                        <ChevronLeft className="w-5 h-5 text-gray-700" />
+                      </button>
+
+                      <div className="flex flex-col items-center">
+                        <span className="text-base font-medium text-gray-900">
+                          {currentPage} / {pagination.totalPages}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {pagination.total.toLocaleString()} players
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage >= pagination.totalPages}
+                        className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+                      >
+                        <ChevronRight className="w-5 h-5 text-gray-700" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              {/* Bottom spacer for fixed button */}
+              <div className="h-20"></div>
             </div>
 
             {/* Jump To User Button */}
@@ -397,7 +415,7 @@ export default function LeaderboardPage() {
               <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
                 <button
                   onClick={
-                    extendedLeaderboard.some(
+                    leaderboardData.some(
                       (entry) => entry.wallet_address === currentUserAddress,
                     )
                       ? hasJumpedToUser
@@ -421,7 +439,7 @@ export default function LeaderboardPage() {
                   </div>
 
                   <span>
-                    {extendedLeaderboard.some(
+                    {leaderboardData.some(
                       (entry) => entry.wallet_address === currentUserAddress,
                     )
                       ? hasJumpedToUser
@@ -432,7 +450,7 @@ export default function LeaderboardPage() {
 
                   {/* Arrow */}
                   <div className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center">
-                    {extendedLeaderboard.some(
+                    {leaderboardData.some(
                       (entry) => entry.wallet_address === currentUserAddress,
                     ) && !hasJumpedToUser ? (
                       <ChevronDown className="w-3 h-3 text-white" />

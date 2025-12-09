@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   Dialog,
@@ -81,6 +83,13 @@ interface PendingPointsSummary {
 type SortField = "email" | "wallet_address" | "total_points" | "created_at";
 type SortDirection = "asc" | "desc";
 
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
 export default function AdminUsersPage() {
   const { user, login } = usePrivy();
   const queryClient = useQueryClient();
@@ -99,6 +108,8 @@ export default function AdminUsersPage() {
   );
   const [showUploadHistory, setShowUploadHistory] = useState(false);
   const [showPendingPoints, setShowPendingPoints] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   // Check admin status
   const checkAdminStatus = useCallback(async () => {
@@ -136,21 +147,35 @@ export default function AdminUsersPage() {
     verifyAdmin();
   }, [user, checkAdminStatus]);
 
-  // Fetch all users
-  const { data: users = [], isLoading: usersLoading } = useQuery({
-    queryKey: ["admin-users"],
+  // Fetch paginated users
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ["admin-users", currentPage, itemsPerPage],
     queryFn: async () => {
-      const response = await fetch("/api/admin/users", {
-        headers: {
-          "x-user-email": user?.email?.address || "",
+      const response = await fetch(
+        `/api/admin/users?page=${currentPage}&limit=${itemsPerPage}`,
+        {
+          headers: {
+            "x-user-email": user?.email?.address || "",
+          },
         },
-      });
+      );
       if (!response.ok) throw new Error("Failed to fetch users");
       const data = await response.json();
-      return data.users as UserStats[];
+      return {
+        users: data.users as UserStats[],
+        pagination: data.pagination as PaginationInfo,
+      };
     },
     enabled: !!isAdmin,
   });
+
+  const users = usersData?.users || [];
+  const pagination = usersData?.pagination || {
+    page: 1,
+    limit: itemsPerPage,
+    total: 0,
+    totalPages: 0,
+  };
 
   // Fetch upload history
   const { data: uploadHistory = [] } = useQuery({
@@ -223,7 +248,14 @@ export default function AdminUsersPage() {
     },
   });
 
-  // Filter and sort users
+  // Reset to page 1 when search query changes
+  useEffect(() => {
+    if (searchQuery.trim() && currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [searchQuery]);
+
+  // Filter and sort users (client-side filtering on current page)
   const filteredAndSortedUsers = useMemo(() => {
     let filtered = users;
 
@@ -263,6 +295,20 @@ export default function AdminUsersPage() {
     return sorted;
   }, [users, searchQuery, sortField, sortDirection]);
 
+  // Pagination handlers
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setCurrentPage(newPage);
+      // Scroll to top of table
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
   // Handle column header click for sorting
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -273,42 +319,97 @@ export default function AdminUsersPage() {
     }
   };
 
-  // Export to CSV
-  const exportToCSV = () => {
-    const headers = [
-      "Email",
-      "Wallet Address",
-      "Username",
-      "Points",
-      "Created At",
-    ];
-    const rows = filteredAndSortedUsers.map((user) => [
-      user.email || "",
-      user.wallet_address || "",
-      user.username || "",
-      user.total_points,
-      new Date(user.created_at).toLocaleString(),
-    ]);
+  // Export to CSV - fetches all users
+  const exportToCSV = async () => {
+    try {
+      toast.info("Fetching all users for export...");
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
-      ),
-    ].join("\n");
+      // Fetch all users (using max limit of 1000)
+      const response = await fetch(`/api/admin/users?page=1&limit=1000`, {
+        headers: {
+          "x-user-email": user?.email?.address || "",
+        },
+      });
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `users-export-${new Date().toISOString().split("T")[0]}.csv`,
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      if (!response.ok) {
+        throw new Error("Failed to fetch users for export");
+      }
+
+      const data = await response.json();
+      const allUsers = data.users as UserStats[];
+
+      // Apply current search filter if any
+      let usersToExport = allUsers;
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        usersToExport = allUsers.filter(
+          (user) =>
+            user.email?.toLowerCase().includes(query) ||
+            user.wallet_address?.toLowerCase().includes(query) ||
+            user.username?.toLowerCase().includes(query),
+        );
+      }
+
+      // Apply current sorting
+      const sorted = [...usersToExport].sort((a, b) => {
+        let aValue = a[sortField];
+        let bValue = b[sortField];
+
+        if (aValue === null || aValue === undefined) aValue = "";
+        if (bValue === null || bValue === undefined) bValue = "";
+
+        if (typeof aValue === "string") {
+          aValue = aValue.toLowerCase();
+          bValue = (bValue as string).toLowerCase();
+        }
+
+        if (sortDirection === "asc") {
+          return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+        } else {
+          return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+        }
+      });
+
+      const headers = [
+        "Email",
+        "Wallet Address",
+        "Username",
+        "Points",
+        "Created At",
+      ];
+      const rows = sorted.map((user) => [
+        user.email || "",
+        user.wallet_address || "",
+        user.username || "",
+        user.total_points,
+        new Date(user.created_at).toLocaleString(),
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row) =>
+          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
+        ),
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `users-export-${new Date().toISOString().split("T")[0]}.csv`,
+      );
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success(`Exported ${sorted.length} users to CSV`);
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export users");
+    }
   };
 
   // Copy wallet address to clipboard
@@ -439,12 +540,12 @@ export default function AdminUsersPage() {
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
             <div className="text-sm text-blue-600 font-medium">Total Users</div>
             <div className="text-2xl font-bold text-blue-900">
-              {users.length}
+              {pagination.total.toLocaleString()}
             </div>
           </div>
           <div className="bg-green-50 p-4 rounded-lg border border-green-200">
             <div className="text-sm text-green-600 font-medium">
-              Total Points Awarded
+              Total Points Awarded (Current Page)
             </div>
             <div className="text-2xl font-bold text-green-900">
               {users
@@ -565,15 +666,141 @@ export default function AdminUsersPage() {
             </table>
           </div>
 
-          {/* Table Footer */}
-          <div className="bg-gray-50 px-6 py-3 border-t">
-            <p className="text-sm text-gray-700">
-              Showing{" "}
-              <span className="font-medium">
-                {filteredAndSortedUsers.length}
-              </span>{" "}
-              of <span className="font-medium">{users.length}</span> users
-            </p>
+          {/* Table Footer with Pagination */}
+          <div className="bg-gray-50 px-6 py-4 border-t">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              {/* Results info */}
+              <div className="text-sm text-gray-700">
+                Showing{" "}
+                <span className="font-medium">
+                  {filteredAndSortedUsers.length > 0
+                    ? (currentPage - 1) * itemsPerPage + 1
+                    : 0}
+                </span>
+                {" - "}
+                <span className="font-medium">
+                  {Math.min(
+                    (currentPage - 1) * itemsPerPage +
+                      filteredAndSortedUsers.length,
+                    pagination.total,
+                  )}
+                </span>{" "}
+                of <span className="font-medium">{pagination.total}</span> users
+                {searchQuery.trim() && (
+                  <span className="text-gray-500 ml-2">
+                    (filtered from {users.length} on this page)
+                  </span>
+                )}
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="flex items-center gap-2">
+                {/* Items per page selector */}
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="items-per-page"
+                    className="text-sm text-gray-700"
+                  >
+                    Per page:
+                  </label>
+                  <select
+                    id="items-per-page"
+                    value={itemsPerPage}
+                    onChange={(e) =>
+                      handleItemsPerPageChange(Number(e.target.value))
+                    }
+                    className="px-2 py-1 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                  </select>
+                </div>
+
+                {/* Page navigation */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-4 h-4 -ml-2" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+
+                  {/* Page numbers */}
+                  <div className="flex items-center gap-1">
+                    {Array.from(
+                      { length: Math.min(5, pagination.totalPages) },
+                      (_, i) => {
+                        let pageNum: number;
+                        if (pagination.totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= pagination.totalPages - 2) {
+                          pageNum = pagination.totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={
+                              currentPage === pageNum ? "default" : "outline"
+                            }
+                            size="sm"
+                            onClick={() => handlePageChange(pageNum)}
+                            className="h-8 w-8 p-0"
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      },
+                    )}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= pagination.totalPages}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(pagination.totalPages)}
+                    disabled={currentPage >= pagination.totalPages}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-4 h-4 -ml-2" />
+                  </Button>
+                </div>
+
+                {/* Page info */}
+                <div className="text-sm text-gray-700">
+                  Page <span className="font-medium">{currentPage}</span> of{" "}
+                  <span className="font-medium">{pagination.totalPages}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
