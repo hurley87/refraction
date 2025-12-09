@@ -30,8 +30,8 @@ export default function NavigationMenu({
   const [pendingPath, setPendingPath] = useState<string | null>(null);
 
   // Define menu items with their routes
-  const menuItems: MenuItem[] = [
-    // { label: "Dashboard", path: "/game" },
+  const allMenuItems: MenuItem[] = [
+    { label: "Dashboard", path: "/dashboard" },
     { label: "Map", path: "/interactive-map" },
     { label: "Challenges", path: "/challenges" },
     { label: "Leaderboard", path: "/leaderboard" },
@@ -42,9 +42,16 @@ export default function NavigationMenu({
     { label: "Become a Partner", path: "/partners" },
   ];
 
+  // Filter menu items - Dashboard only shows if user is logged in
+  const menuItems = allMenuItems.filter(
+    (item) => item.path !== "/dashboard" || user
+  );
+
   // Determine active item based on current pathname
   const activePath =
-    pathname === "/" || pathname === "/game" ? "/game" : pathname;
+    pathname === "/" || pathname === "/game" || pathname === "/dashboard" 
+      ? "/dashboard" 
+      : pathname;
 
   const handleNavigate = (path: string) => {
     if (pendingPath) return;
