@@ -1109,6 +1109,8 @@ export const ADMIN_EMAILS = [
   "dhurls99@gmail.com",
   "kaitlyn@refractionfestival.com",
   "jim@refractionfestival.com",
+  "lovegreg@gmail.com",
+  "greg@refractionfestival.com",
 ];
 
 export const checkAdminPermission = (email: string | undefined) => {

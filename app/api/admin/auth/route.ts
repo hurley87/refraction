@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
 // Admin emails allowlist
 const ADMIN_EMAILS = [
@@ -6,6 +6,8 @@ const ADMIN_EMAILS = [
   "kaitlyn@refractionfestival.com",
   "jim@refractionfestival.com",
   "graham@refractionfestival.com",
+  "lovegreg@gmail.com",
+  "greg@refractionfestival.com",
 ];
 
 export async function POST(request: NextRequest) {
@@ -14,8 +16,8 @@ export async function POST(request: NextRequest) {
 
     if (!email) {
       return NextResponse.json(
-        { error: 'Email is required', isAdmin: false },
-        { status: 400 }
+        { error: "Email is required", isAdmin: false },
+        { status: 400 },
       );
     }
 
@@ -23,10 +25,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ isAdmin });
   } catch (error) {
-    console.error('Error checking admin status:', error);
+    console.error("Error checking admin status:", error);
     return NextResponse.json(
-      { error: 'Failed to check admin status', isAdmin: false },
-      { status: 500 }
+      { error: "Failed to check admin status", isAdmin: false },
+      { status: 500 },
     );
   }
 }
