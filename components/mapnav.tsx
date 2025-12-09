@@ -29,6 +29,7 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
     const routeMap: Record<string, string> = {
       "/": "Dashboard",
       "/game": "Dashboard",
+      "/dashboard": "Dashboard",
       "/interactive-map": "Map",
       "/challenges": "Challenges",
       "/leaderboard": "Leaderboard",
@@ -42,6 +43,7 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
     }
     
     // Check for sub-routes (e.g., /events/archive, /challenges/quests)
+    if (path.startsWith("/dashboard")) return "Dashboard";
     if (path.startsWith("/events")) return "Events";
     if (path.startsWith("/challenges")) return "Challenges";
     if (path.startsWith("/rewards")) return "Rewards";
