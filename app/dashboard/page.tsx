@@ -6,6 +6,7 @@ import { Coins } from "lucide-react";
 import Image from "next/image";
 import MapNav from "@/components/mapnav";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface UserStats {
   rank: number;
@@ -39,7 +40,14 @@ const getOrdinalSuffix = (num: number): string => {
 };
 
 export default function DashboardPage() {
-  const { user, login, ready } = usePrivy();
+  const { user, ready } = usePrivy();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (ready && !user) {
+      router.push("/");
+    }
+  }, [ready, user, router]);
 
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
@@ -150,43 +158,7 @@ export default function DashboardPage() {
 
   // Not logged in state
   if (ready && !user) {
-    return (
-      <div
-        style={{
-          borderTopLeftRadius: "26px",
-          borderTopRightRadius: "26px",
-          background:
-            "linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.10) 100%), linear-gradient(0deg, #EE91B7 0%, #FFE600 37.5%, #1BA351 66.34%, #61BFD1 100%)",
-        }}
-        className="min-h-screen px-2 pt-2 pb-4 font-grotesk"
-      >
-        <div className="max-w-md mx-auto">
-          {/* Navigation */}
-          <div
-            className={`sticky top-0 z-50 pb-2 pt-2 -mt-2 -mx-2 px-2 transition-colors duration-200 ${
-              isScrolled ? "bg-transparent backdrop-blur-sm" : "bg-transparent"
-            }`}
-          >
-            <MapNav />
-          </div>
-
-          {/* Login Prompt */}
-          <div className="bg-white rounded-[26px] p-8 text-center mt-4">
-            <Coins className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h2 className="title2 text-[#313131] mb-2">Welcome to Dashboard</h2>
-            <p className="text-gray-600 mb-6 font-grotesk">
-              Sign in to view your points, rank, and activity history.
-            </p>
-            <button
-              onClick={login}
-              className="w-full h-[40px] bg-[#313131] hover:bg-gray-800 text-white px-4 rounded-full font-pleasure transition-colors duration-200 flex items-center justify-center"
-            >
-              <h4>Sign In</h4>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -214,14 +186,14 @@ export default function DashboardPage() {
           <div className="bg-white/20 backdrop-blur-md rounded-[26px] p-2 border border-white/30">
             <div className="flex flex-col gap-4">
               {/* Points Display */}
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 pt-2 pl-2 pr-2">
                 <div className="flex items-center gap-2">
                   <Image
                     src="/ep-coin-white.svg"
                     alt="Points"
-                    width={16}
-                    height={16}
-                    className="w-6 h-6"
+                    width={12}
+                    height={12}
+                    className="w-4 h-4"
                   />
                   <div className="body-small font-grotesk text-[#EDEDED] uppercase tracking-wide">
                     Your Points
@@ -255,7 +227,7 @@ export default function DashboardPage() {
               >
                 <div className="flex items-center gap-2">
                   <span className="body-small text-[#EDEDED] uppercase tracking-wide">
-                    Challenge Quest
+                    EARN MORE
                   </span>
                 </div>
                 <div className="min-w-0">
@@ -267,13 +239,14 @@ export default function DashboardPage() {
                 
                 </div>
                 <Link
-                  href="/challenges"
+                  href="https://app.galxe.com/quest/A2w5Zojdy46VKJVvpptTwf/GCzcut8Kwg?refer=quest_parent_collection"
+                  target="_blank"
                   className="w-full h-[40px] bg-white hover:bg-gray-100 text-[#313131] px-4 rounded-full font-pleasure transition-colors duration-200 flex items-center justify-between"
                 >
-                  <h4>View All Quests</h4>
+                  <h4>Complete Quests</h4>
                   <Image
-                    src="/home/arrow-right.svg"
-                    alt="arrow"
+                    src="/glxe.png"
+                    alt="galxe"
                     width={21}
                     height={21}
                     className="w-[21px] h-[21px]"
@@ -285,14 +258,14 @@ export default function DashboardPage() {
 
           {/* Rank Section */}
           <div className="bg-white rounded-[26px] p-4">
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 p-2">
               <div className="flex items-center gap-2">
                 <Image
                   src="/leaderboard.svg"
                   alt="Place"
-                  width={16}
-                  height={16}
-                  className="w-6 h-6"
+                  width={12}
+                  height={12}
+                  className="w-4 h-4"
                 />
                 <div className="body-small font-grotesk text-[#7D7D7D] uppercase tracking-wide">
                   Your Rank
@@ -334,14 +307,14 @@ export default function DashboardPage() {
           </div>
 
           {/* Transaction Ledger Section */}
-          <div className="bg-white rounded-[26px] p-4">
-            <div className="flex items-center justify-left mb-4">
+          <div className="bg-white rounded-[26px] p-[16px] pt-[24px]">
+            <div className="flex items-center gap-2 mb-4">
               <Image
                 src="/list-icon.svg"
                 alt="Place"
                 width={8}
                 height={8}
-                className="w-6 h-6"
+                className="w-4 h-4"
               />
               <h2 className="body-small font-grotesk text-[#7D7D7D]">
                 TRANSACTIONS
@@ -406,13 +379,13 @@ export default function DashboardPage() {
                 <>
                   {/* Table Header */}
                   <div className="grid grid-cols-[1fr_2fr_auto] gap-2 pb-2 border-b border-gray-200 mb-2">
-                    <span className="body-small text-gray-500 uppercase tracking-wide">
+                    <span className="body-small text-[#B5B5B5] uppercase tracking-wide">
                       Date
                     </span>
-                    <span className="body-small text-gray-500 uppercase tracking-wide">
+                    <span className="body-small text-[#B5B5B5] uppercase tracking-wide">
                       Activity
                     </span>
-                    <span className="body-small text-gray-500 uppercase tracking-wide text-right">
+                    <span className="body-small text-[#B5B5B5] uppercase tracking-wide text-right">
                       Points
                     </span>
                   </div>
@@ -424,13 +397,13 @@ export default function DashboardPage() {
                         key={activity.id}
                         className="grid grid-cols-[1fr_2fr_auto] gap-2 py-3 border-b border-gray-100 last:border-b-0 items-center"
                       >
-                        <div className="body-small text-gray-600 font-grotesk">
+                        <div className="body-medium text-[#F0A0AF] font-grotesk">
                           {activity.date}
                         </div>
-                        <div className="body-small text-[#313131] font-grotesk truncate">
+                        <div className="body-medium text-[#4F4F4F] font-grotesk truncate">
                           {activity.event}
                         </div>
-                        <div className="body-small text-[#1BA351] font-grotesk font-medium text-right whitespace-nowrap">
+                        <div className="body-medium text-[#7D7D7D] font-grotesktext-right whitespace-nowrap">
                           +{activity.points}
                         </div>
                       </div>
