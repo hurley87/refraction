@@ -136,16 +136,11 @@ export default function MapCard({
             </button>
           )}
           {eventUrl && (
-            <a
-              href={eventUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full h-8 px-3 font-inktrap text-[10px] uppercase tracking-[0.3px] transition-colors w-full mt-2"
-            >
+            <a href={eventUrl} target="_blank" rel="noopener noreferrer">
               <button
                 className="flex items-center justify-center w-8 h-8 text-[#666] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-colors border border-[#e0e0e0] rounded-full"
                 type="button"
-                aria-label="Share"
+                aria-label="View Event"
               >
                 <svg
                   width="14"
