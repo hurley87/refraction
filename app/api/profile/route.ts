@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
           email: "",
           name: "",
           username: "",
+          website: "",
           twitter_handle: "",
           towns_handle: "",
           farcaster_handle: "",
@@ -72,6 +73,7 @@ export async function PUT(request: NextRequest) {
     if (profileData.name) validatedData.name = profileData.name.trim();
     if (profileData.username)
       validatedData.username = profileData.username.trim();
+    if (profileData.website) validatedData.website = profileData.website.trim();
 
     // Social handles - remove @ symbols if present and validate
     if (profileData.twitter_handle) {
@@ -112,6 +114,7 @@ export async function PUT(request: NextRequest) {
       email: "profile_field_email",
       name: "profile_field_name",
       username: "profile_field_username",
+      website: "profile_field_website",
       twitter_handle: "profile_field_twitter",
       towns_handle: "profile_field_towns",
       farcaster_handle: "profile_field_farcaster",

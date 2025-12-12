@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import ProfileMenu from "@/components/profile-menu";
 import UserMenu from "@/components/user-menu";
 import NavigationMenu from "@/components/navigation-menu";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface MapNavProps {
   onProfileMenuToggle?: () => void;
@@ -24,6 +24,8 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNavigationMenuOpen, setIsNavigationMenuOpen] = useState(false);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const [isLoadingProfilePicture, setIsLoadingProfilePicture] = useState(false);
 
   // Map routes to display names
   const getPageName = (path: string): string => {
@@ -55,6 +57,35 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
   };
 
   const currentPageName = getPageName(pathname);
+
+  // Fetch user profile picture
+  useEffect(() => {
+    const fetchProfilePicture = async () => {
+      if (!user?.wallet?.address) {
+        setProfilePictureUrl(null);
+        setIsLoadingProfilePicture(false);
+        return;
+      }
+
+      setIsLoadingProfilePicture(true);
+      try {
+        const response = await fetch(
+          `/api/profile?wallet_address=${user.wallet.address}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setProfilePictureUrl(data.profile_picture_url || null);
+        }
+      } catch (error) {
+        console.error("Error fetching profile picture:", error);
+        setProfilePictureUrl(null);
+      } finally {
+        setIsLoadingProfilePicture(false);
+      }
+    };
+
+    fetchProfilePicture();
+  }, [user?.wallet?.address]);
 
   const handleProfileClick = () => {
     setIsNavigationMenuOpen(false); // Close nav menu if open
@@ -123,13 +154,23 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
 
           {/* Profile Avatar Button */}
           {user ? (
-            <div className="bg-[#4f4f4f] box-border content-stretch flex flex-col gap-[8px] items-center justify-center px-[24px] py-[8px] relative rounded-[100px] shrink-0 size-[40px] cursor-pointer hover:opacity-90 transition-opacity">
+            <div className="bg-[#4f4f4f] box-border content-stretch flex flex-col gap-[8px] items-center justify-center px-[2px] py-[8px] relative rounded-[100px] shrink-0 size-[40px] cursor-pointer hover:opacity-90 transition-opacity">
               <button
                 onClick={handleProfileClick}
-                className="relative shrink-0 size-[24px] rounded-full bg-gradient-to-r from-[#2400FF] via-[#FA00FF] to-[#FF0000]"
+                className="relative shrink-0 w-[24px] h-[24px] rounded-full overflow-hidden"
                 aria-label="Open user menu"
               >
-                {/* Gradient Avatar Circle */}
+                {isLoadingProfilePicture ? (
+                  <div className="w-full h-full rounded-full bg-gradient-to-r from-[#2400FF] via-[#FA00FF] to-[#FF0000] animate-pulse"></div>
+                ) : profilePictureUrl ? (
+                  <img
+                    src={profilePictureUrl}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-gradient-to-r from-[#2400FF] via-[#FA00FF] to-[#FF0000]"></div>
+                )}
               </button>
             </div>
           ) : (
@@ -154,14 +195,44 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
       {/* User Menu */}
       <UserMenu
         isOpen={isUserMenuOpen}
-        onClose={() => setIsUserMenuOpen(false)}
+        onClose={() => {
+          setIsUserMenuOpen(false);
+          // Refresh profile picture in case it was updated
+          if (user?.wallet?.address) {
+            setIsLoadingProfilePicture(true);
+            fetch(`/api/profile?wallet_address=${user.wallet.address}`)
+              .then((res) => res.json())
+              .then((data) => {
+                setProfilePictureUrl(data.profile_picture_url || null);
+                setIsLoadingProfilePicture(false);
+              })
+              .catch(() => {
+                setIsLoadingProfilePicture(false);
+              });
+          }
+        }}
         onEditProfile={handleEditProfile}
       />
 
       {/* Profile Menu */}
       <ProfileMenu
         isOpen={isProfileMenuOpen}
-        onClose={() => setIsProfileMenuOpen(false)}
+        onClose={() => {
+          setIsProfileMenuOpen(false);
+          // Refresh profile picture in case it was updated
+          if (user?.wallet?.address) {
+            setIsLoadingProfilePicture(true);
+            fetch(`/api/profile?wallet_address=${user.wallet.address}`)
+              .then((res) => res.json())
+              .then((data) => {
+                setProfilePictureUrl(data.profile_picture_url || null);
+                setIsLoadingProfilePicture(false);
+              })
+              .catch(() => {
+                setIsLoadingProfilePicture(false);
+              });
+          }
+        }}
         onReturnToUserMenu={handleReturnToUserMenu}
       />
     </>
