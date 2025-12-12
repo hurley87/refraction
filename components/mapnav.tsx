@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import ProfileMenu from "@/components/profile-menu";
+import UserMenu from "@/components/user-menu";
 import NavigationMenu from "@/components/navigation-menu";
 import { useState } from "react";
 
@@ -20,6 +21,7 @@ interface MapNavProps {
 export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
   const { user, login } = usePrivy();
   const pathname = usePathname();
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNavigationMenuOpen, setIsNavigationMenuOpen] = useState(false);
 
@@ -56,13 +58,25 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
 
   const handleProfileClick = () => {
     setIsNavigationMenuOpen(false); // Close nav menu if open
-    setIsProfileMenuOpen(true);
+    setIsProfileMenuOpen(false); // Close profile menu if open
+    setIsUserMenuOpen(true);
     onProfileMenuToggle?.();
   };
 
   const handleNavigationMenuClick = () => {
     setIsProfileMenuOpen(false); // Close profile menu if open
+    setIsUserMenuOpen(false); // Close user menu if open
     setIsNavigationMenuOpen(true);
+  };
+
+  const handleEditProfile = () => {
+    setIsUserMenuOpen(false);
+    setIsProfileMenuOpen(true);
+  };
+
+  const handleReturnToUserMenu = () => {
+    setIsProfileMenuOpen(false);
+    setIsUserMenuOpen(true);
   };
 
   return (
@@ -137,10 +151,18 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
         onClose={() => setIsNavigationMenuOpen(false)}
       />
 
+      {/* User Menu */}
+      <UserMenu
+        isOpen={isUserMenuOpen}
+        onClose={() => setIsUserMenuOpen(false)}
+        onEditProfile={handleEditProfile}
+      />
+
       {/* Profile Menu */}
       <ProfileMenu
         isOpen={isProfileMenuOpen}
         onClose={() => setIsProfileMenuOpen(false)}
+        onReturnToUserMenu={handleReturnToUserMenu}
       />
     </>
   );
