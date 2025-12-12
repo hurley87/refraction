@@ -67,9 +67,14 @@ const PencilIcon = ({
 interface ProfileMenuProps {
   isOpen: boolean;
   onClose: () => void;
+  onReturnToUserMenu?: () => void;
 }
 
-export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
+export default function ProfileMenu({
+  isOpen,
+  onClose,
+  onReturnToUserMenu,
+}: ProfileMenuProps) {
   const { user, logout } = usePrivy();
   const [profile, setProfile] = useState<UserProfile>({
     wallet_address: "",
@@ -194,7 +199,13 @@ export default function ProfileMenu({ isOpen, onClose }: ProfileMenuProps) {
         <div className="w-full p-4">
           <div className="bg-white rounded-3xl">
             <button
-              onClick={onClose}
+              onClick={() => {
+                if (onReturnToUserMenu) {
+                  onReturnToUserMenu();
+                } else {
+                  onClose();
+                }
+              }}
               className="w-full text-black h-10 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center"
               aria-label="Close menu"
             >
