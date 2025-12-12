@@ -90,11 +90,39 @@ export default function NavigationMenu({
     }
   }, [isOpen, pendingPath]);
 
+  // Prevent body scroll when menu is open to maintain backdrop blur
+  useEffect(() => {
+    if (isOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+      // Prevent scrolling
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+      document.body.style.overflow = "hidden";
+      
+      return () => {
+        // Restore scrolling
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        document.body.style.overflow = "";
+        // Restore scroll position
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
     <div
       className="fixed inset-0 z-50 bg-[#4F4F4F] bg-opacity-70 backdrop-blur-sm"
+      style={{
+        willChange: "backdrop-filter",
+        WebkitBackdropFilter: "blur(4px)",
+        backdropFilter: "blur(4px)",
+      }}
       onClick={(e) => {
         // Close menu when clicking on backdrop
         if (e.target === e.currentTarget) {
