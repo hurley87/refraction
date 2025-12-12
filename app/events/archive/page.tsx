@@ -105,36 +105,36 @@ export default function EventsArchivePage() {
       <div className="max-w-md mx-auto">
         {/* Status Bar with Header */}
         <div className="pb-2">
-          <MapNav />
+            <MapNav />
         </div>
 
         {/* Back to Events Button - only show if there are upcoming events */}
         {hasUpcomingEvents && (
           <div className="pb-1">
-            <Link
-              href="/events"
+          <Link
+            href="/events"
               className="w-full h-[40px] bg-[#EDEDED] text-black  rounded-full px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
+          >
+            <h4 className="font-pleasure text-left">Back to Events</h4>
+            <div
+              style={{
+                display: "flex",
+                width: "24px",
+                height: "24px",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
             >
-              <h4 className="font-pleasure text-left">Back to Events</h4>
-              <div
-                style={{
-                  display: "flex",
-                  width: "24px",
-                  height: "24px",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <Image
-                  src="/home/arrow-right.svg"
-                  alt="arrow-right"
-                  width={20}
-                  height={20}
-                  className="w-5 h-5"
-                />
-              </div>
-            </Link>
-          </div>
+              <Image
+                src="/home/arrow-right.svg"
+                alt="arrow-right"
+                width={20}
+                height={20}
+                className="w-5 h-5"
+              />
+            </div>
+          </Link>
+        </div>
         )}
 
         {/* Main Content */}

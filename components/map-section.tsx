@@ -259,16 +259,16 @@ export default function MapSection() {
             {/* Video - Lazy loaded */}
             <div className="relative w-full md:w-[50vw] aspect-video rounded-xl overflow-hidden bg-[#1a1a1a]">
               {isVideoLoaded && (
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
                   preload="none"
-                  className="w-full h-full object-cover"
-                >
-                  <source src="/video-reel.mp4" type="video/mp4" />
-                </video>
+                className="w-full h-full object-cover"
+              >
+                <source src="/video-reel.mp4" type="video/mp4" />
+              </video>
               )}
             </div>
             
