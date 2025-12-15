@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getUserPerkRedemptions } from '@/lib/db/perks';
+import { apiSuccess, apiError } from '@/lib/api/response';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,19 +11,13 @@ export async function GET(request: NextRequest) {
     const walletAddress = searchParams.get('walletAddress');
 
     if (!walletAddress) {
-      return NextResponse.json(
-        { error: 'walletAddress is required' },
-        { status: 400 }
-      );
+      return apiError('walletAddress is required', 400);
     }
 
     const redemptions = await getUserPerkRedemptions(walletAddress);
-    return NextResponse.json({ redemptions });
+    return apiSuccess({ redemptions });
   } catch (error) {
     console.error('Error fetching user redemptions:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch user redemptions' },
-      { status: 500 }
-    );
+    return apiError('Failed to fetch user redemptions', 500);
   }
 }

@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -23,13 +24,10 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
     if (error) throw error;
 
-    return NextResponse.json({ perks: data ?? [] });
+    return apiSuccess({ perks: data ?? [] });
   } catch (error) {
     console.error("GET /api/perks error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch perks" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch perks", 500);
   }
 }
 
@@ -44,12 +42,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) throw error;
-    return NextResponse.json({ perk: data });
+    return apiSuccess({ perk: data });
   } catch (error) {
     console.error("POST /api/perks error:", error);
-    return NextResponse.json(
-      { error: "Failed to create perk" },
-      { status: 500 },
-    );
+    return apiError("Failed to create perk", 500);
   }
 }

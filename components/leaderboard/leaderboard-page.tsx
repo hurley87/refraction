@@ -6,6 +6,7 @@ import { Trophy, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import MapNav from "@/components/map/mapnav";
 import Link from "next/link";
+import LeaderboardAvatar from "@/components/leaderboard-avatar";
 
 interface UserStats {
   rank: number;
@@ -371,6 +372,10 @@ export default function LeaderboardPage() {
 
                         {/* Name */}
                         <div className="flex items-center gap-2 min-w-0 pl-5">
+                          <LeaderboardAvatar
+                            walletAddress={entry.wallet_address}
+                            size={16}
+                          />
                           <Link href={`/profiles/${entry.wallet_address}`}>
                             <span
                               className={`title4 truncate ${
