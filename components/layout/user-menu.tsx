@@ -123,31 +123,50 @@ export default function UserMenu({
 
     setIsLoadingUserStats(true);
     try {
-      // Fetch user points
-      const playerResponse = await fetch(
+      const response = await fetch(
         `/api/player?walletAddress=${encodeURIComponent(user.wallet.address)}`,
       );
-      if (playerResponse.ok) {
-        const playerData = await playerResponse.json();
-        const totalPoints = playerData.player?.total_points || 0;
 
-        // Fetch user rank
-        const rankResponse = await fetch(
-          `/api/player/rank?walletAddress=${encodeURIComponent(user.wallet.address)}`,
-        );
-        let rank = null;
-        if (rankResponse.ok) {
-          const rankData = await rankResponse.json();
-          rank = rankData.rank || null;
+      if (response.ok) {
+        const result = await response.json();
+        // API response is wrapped in { success: true, data: { player: {...} } }
+        const apiData = result.data || result;
+        const player = apiData.player;
+
+        if (player) {
+          // Get user's actual rank from database
+          const rankResponse = await fetch(
+            `/api/player/rank?walletAddress=${encodeURIComponent(user.wallet.address)}`,
+          );
+
+          let actualRank = 999;
+          if (rankResponse.ok) {
+            const rankResult = await rankResponse.json();
+            // API response is wrapped in { success: true, data: { rank, total_points } }
+            const rankData = rankResult.data || rankResult;
+            actualRank = rankData.rank ?? 999;
+          }
+
+          const userPoints = player.total_points ?? 0;
+
+          setUserStats({
+            rank: actualRank,
+            total_points: userPoints,
+          });
+        } else {
+          // New user with no data
+          setUserStats({
+            rank: 999,
+            total_points: 0,
+          });
         }
-
-        setUserStats({
-          total_points: totalPoints,
-          rank,
-        });
       }
     } catch (error) {
       console.error("Error fetching user stats:", error);
+      setUserStats({
+        rank: 999,
+        total_points: 0,
+      });
     } finally {
       setIsLoadingUserStats(false);
     }
