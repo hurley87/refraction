@@ -67,7 +67,6 @@ graph TD
     Tiers[lib/db/tiers.ts]
     Profiles[lib/db/profiles.ts]
     Admin[lib/db/admin.ts]
-    Notifications[lib/db/notifications.ts]
 
     Client --> Players
     Client --> Locations
@@ -78,7 +77,6 @@ graph TD
     Client --> Tiers
     Client --> Profiles
     Client --> Admin
-    Client --> Notifications
 
     Checkins --> Players
     Checkins --> Locations
@@ -362,18 +360,6 @@ if (checkAdminPermission(user.email)) {
   // Admin-only code
 }
 ```
-
----
-
-### `lib/db/notifications.ts`
-
-**Purpose**: Notification management
-
-**Exports**:
-
-- `insertNotification(notification)` - Insert webhook notification
-
-**Dependencies**: `lib/db/client.ts`, `lib/types.ts`
 
 ---
 

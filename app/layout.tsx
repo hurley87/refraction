@@ -6,7 +6,6 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import Providers from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
-import FarcasterReady from "@/components/farcaster-ready";
 import Image from "next/image";
 
 const spaceGrotesk = Space_Grotesk({
@@ -183,8 +182,7 @@ export default function RootLayout({
             unoptimized
           />
         </div>
-      
-        <FarcasterReady />
+
         <Providers>{children}</Providers>
         <Toaster />
       </body>

@@ -199,12 +199,6 @@ export type Notification = {
   created_at: string;
 };
 
-export type WebhookNotification = {
-  fid: number;
-  url?: string;
-  token?: string;
-};
-
 /**
  * Legacy checkin type (deprecated - use PlayerLocationCheckin)
  */
