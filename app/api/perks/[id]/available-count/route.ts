@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAvailableCodesCount } from '@/lib/db/perks';
+import { apiSuccess, apiError } from '@/lib/api/response';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,12 +11,9 @@ export async function GET(
 ) {
   try {
     const count = await getAvailableCodesCount(params.id);
-    return NextResponse.json({ count });
+    return apiSuccess({ count });
   } catch (error) {
     console.error('Error fetching available codes count:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch available codes count' },
-      { status: 500 }
-    );
+    return apiError('Failed to fetch available codes count', 500);
   }
 }

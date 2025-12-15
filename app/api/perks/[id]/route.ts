@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -16,13 +17,10 @@ export async function GET(
       .single();
 
     if (error) throw error;
-    return NextResponse.json({ perk: data });
+    return apiSuccess({ perk: data });
   } catch (error) {
     console.error("GET /api/perks/[id] error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch perk" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch perk", 500);
   }
 }
 
@@ -41,13 +39,10 @@ export async function PATCH(
       .single();
 
     if (error) throw error;
-    return NextResponse.json({ perk: data });
+    return apiSuccess({ perk: data });
   } catch (error) {
     console.error("PATCH /api/perks/[id] error:", error);
-    return NextResponse.json(
-      { error: "Failed to update perk" },
-      { status: 500 },
-    );
+    return apiError("Failed to update perk", 500);
   }
 }
 
@@ -59,12 +54,9 @@ export async function DELETE(
   try {
     const { error } = await supabase.from("perks").delete().eq("id", params.id);
     if (error) throw error;
-    return NextResponse.json({ success: true });
+    return apiSuccess({ success: true });
   } catch (error) {
     console.error("DELETE /api/perks/[id] error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete perk" },
-      { status: 500 },
-    );
+    return apiError("Failed to delete perk", 500);
   }
 }
