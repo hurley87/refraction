@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api/client';
-import type { Perk, UserPerkRedemption } from '@/lib/types';
+import { useQuery } from "@tanstack/react-query";
+import { apiClient } from "@/lib/api/client";
+import type { Perk, UserPerkRedemption } from "@/lib/types";
 
 /**
  * Hook to fetch perks list
@@ -8,10 +8,10 @@ import type { Perk, UserPerkRedemption } from '@/lib/types';
  */
 export function usePerks(activeOnly = true) {
   return useQuery<Perk[]>({
-    queryKey: ['perks', activeOnly],
+    queryKey: ["perks", activeOnly],
     queryFn: async () => {
       const data = await apiClient<{ perks: Perk[] }>(
-        `/api/perks?activeOnly=${activeOnly}`
+        `/api/perks?activeOnly=${activeOnly}`,
       );
       return data.perks;
     },
@@ -24,11 +24,11 @@ export function usePerks(activeOnly = true) {
  */
 export function useAvailableCodesCount(perkId?: string) {
   return useQuery<number>({
-    queryKey: ['available-codes', perkId],
+    queryKey: ["available-codes", perkId],
     queryFn: async () => {
       if (!perkId) return 0;
       const data = await apiClient<{ count: number }>(
-        `/api/perks/${perkId}/available-count`
+        `/api/perks/${perkId}/available-count`,
       );
       return data.count;
     },
@@ -42,15 +42,14 @@ export function useAvailableCodesCount(perkId?: string) {
  */
 export function useUserRedemptions(address?: string) {
   return useQuery<UserPerkRedemption[]>({
-    queryKey: ['user-redemptions', address],
+    queryKey: ["user-redemptions", address],
     queryFn: async () => {
       if (!address) return [];
       const data = await apiClient<{ redemptions: UserPerkRedemption[] }>(
-        `/api/user/redemptions?walletAddress=${encodeURIComponent(address)}`
+        `/api/user/redemptions?walletAddress=${encodeURIComponent(address)}`,
       );
       return data.redemptions;
     },
     enabled: !!address,
   });
 }
-
