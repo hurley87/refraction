@@ -4,9 +4,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { Trophy, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
-import MapNav from "./mapnav";
+import MapNav from "@/components/map/mapnav";
 import Link from "next/link";
-import { useLocationGame } from "@/hooks/useLocationGame";
 
 interface UserStats {
   rank: number;
@@ -48,7 +47,6 @@ const getOrdinalSuffix = (num: number): string => {
 
 export default function LeaderboardPage() {
   const { user } = usePrivy();
-  const { isLeaderboardLoading } = useLocationGame();
 
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
@@ -285,7 +283,7 @@ export default function LeaderboardPage() {
               </div>
 
               {/* Loading State */}
-              {isLeaderboardLoading && (
+              {isLoadingMore && (
                 <>
                   {[...Array(10)].map((_, i) => (
                     <div
@@ -301,7 +299,7 @@ export default function LeaderboardPage() {
               )}
 
               {/* Leaderboard Entries */}
-              {!isLeaderboardLoading && (
+              {!isLoadingMore && (
                 <>
                   {leaderboardData.length > 0 ? (
                     leaderboardData.map((entry: LeaderboardUser) => (

@@ -1,0 +1,116 @@
+import { z } from "zod";
+import { walletAddressSchema } from "./player";
+
+/**
+ * Common query parameter schemas for pagination and filtering
+ */
+export const paginationSchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  offset: z.coerce.number().int().min(0).default(0),
+  page: z.coerce.number().int().min(1).optional(),
+});
+
+/**
+ * Schema for checkin API POST request
+ */
+export const checkinRequestSchema = z.object({
+  walletAddress: walletAddressSchema,
+  email: z.string().email().optional(),
+  checkpoint: z.string().min(1),
+});
+
+/**
+ * Schema for player API POST request (create player)
+ */
+export const createPlayerRequestSchema = z.object({
+  walletAddress: walletAddressSchema,
+  email: z.string().email().optional(),
+  username: z.string().min(1).max(30),
+});
+
+/**
+ * Schema for player API GET request (query params)
+ */
+export const getPlayerRequestSchema = z.object({
+  walletAddress: walletAddressSchema,
+});
+
+/**
+ * Schema for player API PATCH request (update player)
+ */
+export const updatePlayerRequestSchema = z.object({
+  walletAddress: walletAddressSchema,
+  username: z.string().min(1).max(30),
+});
+
+/**
+ * Schema for leaderboard API GET request (query params)
+ */
+export const leaderboardQuerySchema = paginationSchema.extend({
+  playerId: z.coerce.number().int().positive().optional(),
+});
+
+/**
+ * Schema for location checkin API POST request
+ */
+export const locationCheckinRequestSchema = z.object({
+  walletAddress: walletAddressSchema,
+  locationId: z.coerce.number().int().positive(),
+  comment: z.string().max(500).optional(),
+  imageUrl: z.string().url().optional(),
+});
+
+/**
+ * Schema for perk redemption API POST request
+ */
+export const redeemPerkRequestSchema = z.object({
+  perkId: z.string().uuid(),
+  walletAddress: walletAddressSchema,
+});
+
+/**
+ * Schema for number assignment API POST request
+ */
+export const numberAssignmentRequestSchema = z.object({
+  walletAddress: walletAddressSchema,
+});
+
+/**
+ * Schema for contact API POST request
+ */
+export const contactRequestSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  message: z.string().min(1).max(2000),
+});
+
+/**
+ * Schema for newsletter API POST request
+ */
+export const newsletterRequestSchema = z.object({
+  email: z.string().email(),
+});
+
+/**
+ * Schema for geocode API GET request (query params)
+ */
+export const geocodeQuerySchema = z.object({
+  address: z.string().min(1),
+});
+
+/**
+ * Schema for location comments API POST request
+ */
+export const locationCommentRequestSchema = z.object({
+  locationId: z.coerce.number().int().positive(),
+  walletAddress: walletAddressSchema,
+  comment: z.string().min(1).max(500),
+});
+
+/**
+ * Schema for location comments API GET request (query params)
+ */
+export const locationCommentsQuerySchema = z.object({
+  locationId: z.coerce.number().int().positive(),
+});
+

@@ -5,4 +5,5 @@
 export * from "./player";
 export * from "./location";
 export * from "./perk";
+export * from "./api";
 

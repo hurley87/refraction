@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import MapNav from "@/components/mapnav";
-import MapCard from "@/components/map-card";
+import MapNav from "@/components/map/mapnav";
+import MapCard from "@/components/map/map-card";
 import LocationListsDrawer, {
   DrawerLocationSummary,
 } from "@/components/location-lists-drawer";

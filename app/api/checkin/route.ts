@@ -1,12 +1,11 @@
 import { NextRequest } from "next/server";
-import {
-  upsertCheckpoint,
-  createOrUpdatePlayer,
-  getUserProfile,
-  updatePlayerPoints,
-  supabase,
-  type Player,
-} from "@/lib/supabase";
+import { upsertCheckpoint } from "@/lib/db/checkins";
+import { createOrUpdatePlayer, updatePlayerPoints } from "@/lib/db/players";
+import { getUserProfile } from "@/lib/db/profiles";
+import { supabase } from "@/lib/db/client";
+import type { Player } from "@/lib/types";
+import { checkinRequestSchema } from "@/lib/schemas/api";
+import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
 
 const DAILY_CHECKIN_POINTS = 100;
 const DAILY_CHECKPOINT_LIMIT = 10;
@@ -24,21 +23,15 @@ const getUtcDayBounds = () => {
 };
 
 export async function POST(req: NextRequest) {
-  const { walletAddress, email, checkpoint } = await req.json();
-
   try {
-    if (!walletAddress || !checkpoint) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "Wallet address and checkpoint are required",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+    const body = await req.json();
+    const validationResult = checkinRequestSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return apiValidationError(validationResult.error);
     }
+
+    const { walletAddress, email, checkpoint } = validationResult.data;
 
     const playerData: Omit<Player, "id" | "created_at" | "updated_at"> = {
       wallet_address: walletAddress,
@@ -68,15 +61,9 @@ export async function POST(req: NextRequest) {
       checkpointCheckinsToday !== null &&
       checkpointCheckinsToday >= DAILY_CHECKPOINT_LIMIT
     ) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: `Daily checkpoint limit of ${DAILY_CHECKPOINT_LIMIT} reached. Come back tomorrow!`,
-        }),
-        {
-          status: 429,
-          headers: { "Content-Type": "application/json" },
-        }
+      return apiError(
+        `Daily checkpoint limit of ${DAILY_CHECKPOINT_LIMIT} reached. Come back tomorrow!`,
+        429,
       );
     }
 
@@ -148,34 +135,19 @@ export async function POST(req: NextRequest) {
       ? { ...latestPlayer, total_points: totalPoints }
       : { ...player, total_points: totalPoints };
 
-    return new Response(
-      JSON.stringify({
-        success: true,
+    return apiSuccess(
+      {
         player: responsePlayer,
         pointsAwarded,
         pointsEarnedToday,
         dailyRewardClaimed: pointsEarnedToday > 0,
         checkpointActivityId,
-        message: `Nice! You earned ${pointsAwarded} points for this checkpoint.`,
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
+      },
+      `Nice! You earned ${pointsAwarded} points for this checkpoint.`,
     );
   } catch (e) {
     console.error("Error processing checkin:", e);
     const errorMessage = e instanceof Error ? e.message : "Unknown error";
-
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: errorMessage,
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return apiError(errorMessage, 500);
   }
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import NavigationMenu from "@/components/navigation-menu";
+import NavigationMenu from "@/components/layout/navigation-menu";
 
 /**
  * Header component for the IRL website

@@ -1,29 +1,23 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { createOrUpdatePlayer, getPlayerByWallet } from "@/lib/db/players";
+import type { Player } from "@/lib/types";
 import {
-  createOrUpdatePlayer,
-  getPlayerByWallet,
-  type Player,
-} from "@/lib/supabase";
+  createPlayerRequestSchema,
+  getPlayerRequestSchema,
+  updatePlayerRequestSchema,
+} from "@/lib/schemas/api";
+import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { walletAddress, email, username } = body;
+    const validationResult = createPlayerRequestSchema.safeParse(body);
 
-    // Validate required fields
-    if (!walletAddress) {
-      return NextResponse.json(
-        { error: "Wallet address is required" },
-        { status: 400 },
-      );
+    if (!validationResult.success) {
+      return apiValidationError(validationResult.error);
     }
 
-    if (!username || username.trim().length < 1) {
-      return NextResponse.json(
-        { error: "Username is required" },
-        { status: 400 },
-      );
-    }
+    const { walletAddress, email, username } = validationResult.data;
 
     // Create or update player
     const playerData: Omit<Player, "id" | "created_at" | "updated_at"> = {
@@ -52,17 +46,13 @@ export async function POST(request: NextRequest) {
       // We log the error but do NOT block the main response
     }
 
-    return NextResponse.json({
-      success: true,
-      player,
-      message: `Welcome ${username}! Your player profile has been created.`,
-    });
+    return apiSuccess(
+      { player },
+      `Welcome ${username}! Your player profile has been created.`,
+    );
   } catch (error) {
     console.error("Player creation API error:", error);
-    return NextResponse.json(
-      { error: "Failed to create player profile" },
-      { status: 500 },
-    );
+    return apiError("Failed to create player profile", 500);
   }
 }
 
@@ -71,56 +61,43 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const walletAddress = searchParams.get("walletAddress");
 
-    if (!walletAddress) {
-      return NextResponse.json(
-        { error: "Wallet address is required" },
-        { status: 400 },
-      );
+    const validationResult = getPlayerRequestSchema.safeParse({
+      walletAddress,
+    });
+
+    if (!validationResult.success) {
+      return apiValidationError(validationResult.error);
     }
 
-    const player = await getPlayerByWallet(walletAddress);
+    const player = await getPlayerByWallet(validationResult.data.walletAddress);
 
     if (!player) {
-      return NextResponse.json({ error: "Player not found" }, { status: 404 });
+      return apiError("Player not found", 404);
     }
 
-    return NextResponse.json({
-      success: true,
-      player,
-    });
+    return apiSuccess({ player });
   } catch (error) {
     console.error("Get player API error:", error);
-    return NextResponse.json(
-      { error: "Failed to get player data" },
-      { status: 500 },
-    );
+    return apiError("Failed to get player data", 500);
   }
 }
 
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { walletAddress, username } = body;
+    const validationResult = updatePlayerRequestSchema.safeParse(body);
 
-    if (!walletAddress) {
-      return NextResponse.json(
-        { error: "Wallet address is required" },
-        { status: 400 },
-      );
+    if (!validationResult.success) {
+      return apiValidationError(validationResult.error);
     }
 
-    if (!username || username.trim().length < 1) {
-      return NextResponse.json(
-        { error: "Username is required" },
-        { status: 400 },
-      );
-    }
+    const { walletAddress, username } = validationResult.data;
 
     // Get existing player
     const existingPlayer = await getPlayerByWallet(walletAddress);
 
     if (!existingPlayer) {
-      return NextResponse.json({ error: "Player not found" }, { status: 404 });
+      return apiError("Player not found", 404);
     }
 
     // Update player
@@ -133,16 +110,12 @@ export async function PATCH(request: NextRequest) {
 
     const updatedPlayer = await createOrUpdatePlayer(playerData);
 
-    return NextResponse.json({
-      success: true,
-      player: updatedPlayer,
-      message: `Username updated to ${username}!`,
-    });
+    return apiSuccess(
+      { player: updatedPlayer },
+      `Username updated to ${username}!`,
+    );
   } catch (error) {
     console.error("Player update API error:", error);
-    return NextResponse.json(
-      { error: "Failed to update player profile" },
-      { status: 500 },
-    );
+    return apiError("Failed to update player profile", 500);
   }
 }

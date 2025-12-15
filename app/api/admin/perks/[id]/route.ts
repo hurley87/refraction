@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updatePerk, deletePerk, type Perk } from "@/lib/supabase";
+import { updatePerk, deletePerk } from "@/lib/db/perks";
+import type { Perk } from "@/lib/types";
 
 // PUT /api/admin/perks/[id] - Update a perk
 export async function PUT(

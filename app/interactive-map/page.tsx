@@ -1,9 +1,9 @@
 "use client";
 
 import { Suspense } from "react";
-import InteractiveMap from "@/components/interactive-map";
-import AuthOnboarding from "@/components/auth-onboarding";
-import MapLanding from "@/components/map-landing";
+import InteractiveMap from "@/components/map/interactive-map";
+import AuthOnboarding from "@/components/auth/auth-onboarding";
+import MapLanding from "@/components/map/map-landing";
 import { useSearchParams } from "next/navigation";
 
 function InteractiveMapContent() {

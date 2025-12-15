@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { Coins } from "lucide-react";
 import Image from "next/image";
-import MapNav from "@/components/mapnav";
+import MapNav from "@/components/map/mapnav";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 

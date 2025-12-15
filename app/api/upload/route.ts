@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/db/client";
 import { z } from "zod";
 
 // Validate the incoming request body

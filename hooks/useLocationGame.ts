@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 interface LocationSuggestion {
@@ -39,121 +39,167 @@ interface LeaderboardEntry {
   rank: number;
 }
 
+async function performCheckinRequest(
+  data: CheckinData,
+): Promise<CheckinResponse> {
+  const response = await fetch("/api/location-checkin", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw result;
+  }
+
+  return result;
+}
+
+async function fetchPlayerData(walletAddress: string) {
+  const response = await fetch(
+    `/api/location-checkin?walletAddress=${encodeURIComponent(walletAddress)}`,
+  );
+  const result = await response.json();
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null; // Player doesn't exist yet
+    }
+    throw new Error(result.error || "Failed to get player data");
+  }
+
+  return result.player;
+}
+
+async function fetchLeaderboard(limit: number = 50): Promise<LeaderboardEntry[]> {
+  const response = await fetch(`/api/leaderboard?limit=${limit}`);
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || "Failed to fetch leaderboard");
+  }
+
+  return result.leaderboard;
+}
+
+async function fetchPlayerStats(playerId: number) {
+  const response = await fetch(`/api/leaderboard?playerId=${playerId}`);
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || "Failed to get player stats");
+  }
+
+  return result.playerStats;
+}
+
 export const useLocationGame = () => {
-  const [isCheckinLoading, setIsCheckinLoading] = useState(false);
-  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(false);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const queryClient = useQueryClient();
 
-  const performCheckin = useCallback(
-    async (data: CheckinData): Promise<CheckinResponse | null> => {
-      setIsCheckinLoading(true);
-
-      try {
-        const response = await fetch("/api/location-checkin", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          if (result.alreadyCheckedIn) {
-            toast.error("You've already checked in at this location!");
-          } else {
-            toast.error(result.error || "Failed to check in");
-          }
-          return result;
-        }
-
-        toast.success(
-          result.message || `You earned ${result.pointsEarned} points!`,
-        );
-        return result;
-      } catch (error) {
-        console.error("Checkin error:", error);
-        toast.error("Failed to check in. Please try again.");
-        return null;
-      } finally {
-        setIsCheckinLoading(false);
+  // Mutation for checkin
+  const {
+    mutateAsync: performCheckin,
+    isPending: isCheckinLoading,
+  } = useMutation({
+    mutationFn: performCheckinRequest,
+    onSuccess: (result) => {
+      toast.success(
+        result.message || `You earned ${result.pointsEarned} points!`,
+      );
+      // Invalidate leaderboard queries after successful checkin
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["playerStats"] });
+    },
+    onError: (error: any) => {
+      if (error.alreadyCheckedIn) {
+        toast.error("You've already checked in at this location!");
+      } else {
+        toast.error(error.error || "Failed to check in");
       }
     },
-    [],
-  );
+  });
 
-  const getPlayerData = useCallback(async (walletAddress: string) => {
-    try {
-      const response = await fetch(
-        `/api/location-checkin?walletAddress=${encodeURIComponent(
-          walletAddress,
-        )}`,
-      );
-      const result = await response.json();
+  // Query for leaderboard
+  const useLeaderboard = (limit: number = 50) => {
+    return useQuery({
+      queryKey: ["leaderboard", limit],
+      queryFn: () => fetchLeaderboard(limit),
+      staleTime: 30_000, // 30 seconds
+    });
+  };
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          return null; // Player doesn't exist yet
-        }
-        throw new Error(result.error || "Failed to get player data");
-      }
+  // Query for player stats
+  const usePlayerStats = (playerId: number | undefined) => {
+    return useQuery({
+      queryKey: ["playerStats", playerId],
+      queryFn: () => fetchPlayerStats(playerId!),
+      enabled: !!playerId,
+      staleTime: 30_000, // 30 seconds
+    });
+  };
 
-      return result.player;
-    } catch (error) {
-      console.error("Get player data error:", error);
-      return null;
-    }
-  }, []);
-
-  const fetchLeaderboard = useCallback(async (limit: number = 50) => {
-    setIsLeaderboardLoading(true);
-
-    try {
-      const response = await fetch(`/api/leaderboard?limit=${limit}`);
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to fetch leaderboard");
-      }
-
-      setLeaderboard(result.leaderboard);
-      return result.leaderboard;
-    } catch (error) {
-      console.error("Leaderboard error:", error);
-      toast.error("Failed to load leaderboard");
-      return [];
-    } finally {
-      setIsLeaderboardLoading(false);
-    }
-  }, []);
-
-  const getPlayerStats = useCallback(async (playerId: number) => {
-    try {
-      const response = await fetch(`/api/leaderboard?playerId=${playerId}`);
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to get player stats");
-      }
-
-      return result.playerStats;
-    } catch (error) {
-      console.error("Player stats error:", error);
-      return null;
-    }
-  }, []);
+  // Query for player data
+  const usePlayerData = (walletAddress: string | undefined) => {
+    return useQuery({
+      queryKey: ["playerData", walletAddress],
+      queryFn: () => fetchPlayerData(walletAddress!),
+      enabled: !!walletAddress,
+      staleTime: 60_000, // 1 minute
+    });
+  };
 
   return {
-    // State
+    // Checkin mutation
+    performCheckin: async (data: CheckinData) => {
+      try {
+        return await performCheckin(data);
+      } catch (error) {
+        return null;
+      }
+    },
     isCheckinLoading,
-    isLeaderboardLoading,
-    leaderboard,
 
-    // Actions
-    performCheckin,
-    getPlayerData,
-    fetchLeaderboard,
-    getPlayerStats,
+    // Query hooks (returned as functions so they can be called conditionally)
+    useLeaderboard,
+    usePlayerStats,
+    usePlayerData,
+
+    // Direct fetch functions for backward compatibility
+    getPlayerData: async (walletAddress: string) => {
+      const result = await queryClient.fetchQuery({
+        queryKey: ["playerData", walletAddress],
+        queryFn: () => fetchPlayerData(walletAddress),
+      });
+      return result;
+    },
+    fetchLeaderboard: async (limit: number = 50) => {
+      try {
+        const result = await queryClient.fetchQuery({
+          queryKey: ["leaderboard", limit],
+          queryFn: () => fetchLeaderboard(limit),
+        });
+        return result;
+      } catch (error) {
+        console.error("Leaderboard error:", error);
+        toast.error("Failed to load leaderboard");
+        return [];
+      }
+    },
+    getPlayerStats: async (playerId: number) => {
+      try {
+        const result = await queryClient.fetchQuery({
+          queryKey: ["playerStats", playerId],
+          queryFn: () => fetchPlayerStats(playerId),
+        });
+        return result;
+      } catch (error) {
+        console.error("Player stats error:", error);
+        return null;
+      }
+    },
   };
 };

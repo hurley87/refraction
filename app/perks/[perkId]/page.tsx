@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
-import Header from "@/components/header";
+import Header from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,

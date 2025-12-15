@@ -1,92 +1,86 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePrivy } from "@privy-io/react-auth";
+
+interface StellarWalletResponse {
+  success: boolean;
+  address?: string;
+  walletId?: string;
+  error?: string;
+}
+
+async function fetchStellarWallet(
+  privyUserId: string,
+): Promise<StellarWalletResponse> {
+  const response = await fetch(
+    `/api/stellar-wallet?privyUserId=${encodeURIComponent(privyUserId)}`,
+  );
+  return response.json();
+}
+
+async function createStellarWallet(
+  privyUserId: string,
+): Promise<StellarWalletResponse> {
+  const response = await fetch("/api/stellar-wallet", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ privyUserId }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.error || "Failed to create Stellar wallet");
+  }
+
+  return data;
+}
 
 export const useStellarWallet = () => {
   const { user } = usePrivy();
-  const [address, setAddress] = useState<string | null>(null);
-  const [walletId, setWalletId] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  // Fetch Stellar wallet from server on mount and when user changes
-  useEffect(() => {
-    const fetchWallet = async () => {
-      if (!user?.id) {
-        setAddress(null);
-        setWalletId(null);
-        setIsLoading(false);
-        return;
-      }
+  // Query for fetching existing wallet
+  const {
+    data: walletData,
+    isLoading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ["stellarWallet", user?.id],
+    queryFn: () => fetchStellarWallet(user!.id),
+    enabled: !!user?.id,
+    staleTime: 60_000, // 1 minute
+  });
 
-      try {
-        setIsLoading(true);
-        const response = await fetch(
-          `/api/stellar-wallet?privyUserId=${encodeURIComponent(user.id)}`,
-        );
-        const data = await response.json();
+  // Mutation for creating new wallet
+  const {
+    mutateAsync: connect,
+    isPending: isConnecting,
+    error: mutationError,
+  } = useMutation({
+    mutationFn: createStellarWallet,
+    onSuccess: (data) => {
+      // Invalidate and refetch wallet query
+      queryClient.setQueryData(["stellarWallet", user?.id], data);
+    },
+  });
 
-        if (data.success && data.address) {
-          setAddress(data.address);
-          setWalletId(data.walletId || null);
-        } else {
-          setAddress(null);
-          setWalletId(null);
-        }
-      } catch (err) {
-        console.error("Failed to fetch Stellar wallet:", err);
-        setAddress(null);
-        setWalletId(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const disconnect = () => {
+    // Clear cache when disconnecting
+    queryClient.setQueryData(["stellarWallet", user?.id], {
+      success: false,
+    });
+  };
 
-    fetchWallet();
-  }, [user?.id]);
-
-  const connect = useCallback(async () => {
-    if (!user?.id) {
-      setError("Please log in first");
-      return;
-    }
-
-    setIsConnecting(true);
-    setError(null);
-
-    try {
-      // Create Stellar wallet via server-side API
-      const response = await fetch("/api/stellar-wallet", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ privyUserId: user.id }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Failed to create Stellar wallet");
-      }
-
-      setAddress(data.address);
-      setWalletId(data.walletId || null);
-      return data.address;
-    } catch (err: any) {
-      const errorMessage =
-        err?.message || "Failed to create Stellar wallet. Please try again.";
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [user?.id]);
-
-  const disconnect = useCallback(() => {
-    // Privy manages wallet state server-side, so we just clear local state
-    setAddress(null);
-    setWalletId(null);
-    setError(null);
-  }, []);
+  const address = walletData?.success ? walletData.address ?? null : null;
+  const walletId = walletData?.success ? walletData.walletId ?? null : null;
+  const error =
+    queryError || mutationError
+      ? (queryError instanceof Error
+          ? queryError.message
+          : mutationError instanceof Error
+            ? mutationError.message
+            : "An error occurred")
+      : null;
 
   return {
     address,
@@ -94,7 +88,13 @@ export const useStellarWallet = () => {
     isConnecting,
     isLoading,
     error,
-    connect,
+    connect: async () => {
+      if (!user?.id) {
+        throw new Error("Please log in first");
+      }
+      const result = await connect(user.id);
+      return result.address;
+    },
     disconnect,
     isConnected: !!address,
   };

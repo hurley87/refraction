@@ -35,29 +35,29 @@ lib/
 
 All types are centralized in `lib/types.ts`:
 
-| Type | Description | Module |
-|------|-------------|--------|
-| `Player` | User account with multi-chain wallet support (EVM, Solana, Stellar) | `lib/types.ts` |
-| `Location` | Check-in location with coordinates and coin data | `lib/types.ts` |
-| `LocationList` | Curated collection of locations | `lib/types.ts` |
-| `LocationListWithCount` | Location list with location count | `lib/types.ts` |
-| `LocationListLocation` | Location membership in a location list | `lib/types.ts` |
-| `LocationOption` | Simplified location option for dropdowns/search | `lib/types.ts` |
-| `PlayerLocationCheckin` | Record of user check-in at a location | `lib/types.ts` |
-| `LeaderboardEntry` | Aggregated player stats for ranking | `lib/types.ts` |
-| `Perk` | Redeemable reward with points threshold | `lib/types.ts` |
-| `PerkDiscountCode` | Discount codes associated with perks | `lib/types.ts` |
-| `UserPerkRedemption` | Record of perk redemption by user | `lib/types.ts` |
-| `Tier` | Points-based membership tier | `lib/types.ts` |
-| `UserProfile` | Extended profile with social handles | `lib/types.ts` |
-| `Checkin` | Legacy checkin type (deprecated) | `lib/types.ts` |
+| Type                    | Description                                                         | Module         |
+| ----------------------- | ------------------------------------------------------------------- | -------------- |
+| `Player`                | User account with multi-chain wallet support (EVM, Solana, Stellar) | `lib/types.ts` |
+| `Location`              | Check-in location with coordinates and coin data                    | `lib/types.ts` |
+| `LocationList`          | Curated collection of locations                                     | `lib/types.ts` |
+| `LocationListWithCount` | Location list with location count                                   | `lib/types.ts` |
+| `LocationListLocation`  | Location membership in a location list                              | `lib/types.ts` |
+| `LocationOption`        | Simplified location option for dropdowns/search                     | `lib/types.ts` |
+| `PlayerLocationCheckin` | Record of user check-in at a location                               | `lib/types.ts` |
+| `LeaderboardEntry`      | Aggregated player stats for ranking                                 | `lib/types.ts` |
+| `Perk`                  | Redeemable reward with points threshold                             | `lib/types.ts` |
+| `PerkDiscountCode`      | Discount codes associated with perks                                | `lib/types.ts` |
+| `UserPerkRedemption`    | Record of perk redemption by user                                   | `lib/types.ts` |
+| `Tier`                  | Points-based membership tier                                        | `lib/types.ts` |
+| `UserProfile`           | Extended profile with social handles                                | `lib/types.ts` |
+| `Checkin`               | Legacy checkin type (deprecated)                                    | `lib/types.ts` |
 
 ## Module Dependency Diagram
 
 ```mermaid
 graph TD
     Client[lib/db/client.ts<br/>Supabase Client]
-    
+
     Players[lib/db/players.ts]
     Locations[lib/db/locations.ts]
     LocationLists[lib/db/location-lists.ts]
@@ -68,7 +68,7 @@ graph TD
     Profiles[lib/db/profiles.ts]
     Admin[lib/db/admin.ts]
     Notifications[lib/db/notifications.ts]
-    
+
     Client --> Players
     Client --> Locations
     Client --> LocationLists
@@ -79,7 +79,7 @@ graph TD
     Client --> Profiles
     Client --> Admin
     Client --> Notifications
-    
+
     Checkins --> Players
     Checkins --> Locations
     Leaderboard --> Players
@@ -95,9 +95,11 @@ graph TD
 **Purpose**: Supabase client initialization
 
 **Exports**:
+
 - `supabase`: Supabase client instance with service role permissions
 
 **Usage**:
+
 ```typescript
 import { supabase } from "@/lib/db/client";
 ```
@@ -109,6 +111,7 @@ import { supabase } from "@/lib/db/client";
 **Purpose**: Player CRUD operations and multi-chain wallet linking
 
 **Exports**:
+
 - `createOrUpdatePlayer(player)` - Create or update player by wallet address
 - `getPlayerByWallet(walletAddress)` - Get player by EVM wallet
 - `getPlayerBySolanaWallet(address)` - Get player by Solana wallet
@@ -121,6 +124,7 @@ import { supabase } from "@/lib/db/client";
 **Dependencies**: `lib/db/client.ts`
 
 **Example**:
+
 ```typescript
 import { getPlayerByWallet, updatePlayerPoints } from "@/lib/db/players";
 
@@ -135,6 +139,7 @@ await updatePlayerPoints(player.id, 100);
 **Purpose**: Location CRUD operations
 
 **Exports**:
+
 - `createOrGetLocation(locationData)` - Create location or return existing by place_id
 - `listAllLocations()` - List all locations
 - `listLocationsByWallet(walletAddress)` - List locations checked in by wallet
@@ -144,6 +149,7 @@ await updatePlayerPoints(player.id, 100);
 **Dependencies**: `lib/db/client.ts`
 
 **Example**:
+
 ```typescript
 import { createOrGetLocation, listLocationOptions } from "@/lib/db/locations";
 
@@ -151,7 +157,7 @@ const location = await createOrGetLocation({
   name: "Coffee Shop",
   display_name: "Coffee Shop",
   latitude: 40.7128,
-  longitude: -74.0060,
+  longitude: -74.006,
   place_id: "ChIJ...",
   points_value: 10,
 });
@@ -166,6 +172,7 @@ const options = await listLocationOptions("coffee", 10);
 **Purpose**: Location list management
 
 **Exports**:
+
 - `getLocationLists()` - Get all lists with location counts
 - `createLocationList(payload)` - Create new location list
 - `updateLocationList(id, updates)` - Update location list
@@ -177,6 +184,7 @@ const options = await listLocationOptions("coffee", 10);
 **Dependencies**: `lib/db/client.ts`, `lib/types.ts`
 
 **Example**:
+
 ```typescript
 import { createLocationList, addLocationToList } from "@/lib/db/location-lists";
 
@@ -196,6 +204,7 @@ await addLocationToList(list.id, locationId);
 **Purpose**: Check-in operations and points updates
 
 **Exports**:
+
 - `checkUserLocationCheckin(playerId, locationId)` - Check if user checked in
 - `createLocationCheckin(checkin)` - Create new location check-in
 - `insertCheckin(checkin)` - Legacy checkpoint checkin (deprecated)
@@ -206,8 +215,12 @@ await addLocationToList(list.id, locationId);
 **Dependencies**: `lib/db/client.ts`, `lib/types.ts`
 
 **Example**:
+
 ```typescript
-import { createLocationCheckin, checkUserLocationCheckin } from "@/lib/db/checkins";
+import {
+  createLocationCheckin,
+  checkUserLocationCheckin,
+} from "@/lib/db/checkins";
 
 const existing = await checkUserLocationCheckin(playerId, locationId);
 if (!existing) {
@@ -226,12 +239,14 @@ if (!existing) {
 **Purpose**: Leaderboard queries
 
 **Exports**:
+
 - `getLeaderboard(limit?, offset?)` - Get leaderboard entries with pagination
 - `getPlayerStats(playerId)` - Get detailed player stats with check-in history
 
 **Dependencies**: `lib/db/client.ts`, `lib/types.ts`
 
 **Example**:
+
 ```typescript
 import { getLeaderboard, getPlayerStats } from "@/lib/db/leaderboard";
 
@@ -246,6 +261,7 @@ const stats = await getPlayerStats(playerId);
 **Purpose**: Perk management and redemption
 
 **Exports**:
+
 - `createPerk(perk)` - Create new perk
 - `updatePerk(id, updates)` - Update perk
 - `deletePerk(id)` - Delete perk
@@ -262,6 +278,7 @@ const stats = await getPlayerStats(playerId);
 **Dependencies**: `lib/db/client.ts`, `lib/db/players.ts`, `lib/types.ts`
 
 **Example**:
+
 ```typescript
 import { redeemPerk, getAvailablePerksForUser } from "@/lib/db/perks";
 
@@ -276,6 +293,7 @@ const redemption = await redeemPerk(perkId, walletAddress);
 **Purpose**: Tier management
 
 **Exports**:
+
 - `getTiers()` - Get all tiers ordered by min_points
 - `resolveTierForPoints(tiers, totalPoints)` - Resolve tier for point total
 - `getTierForPoints(totalPoints)` - Get tier for point total
@@ -283,6 +301,7 @@ const redemption = await redeemPerk(perkId, walletAddress);
 **Dependencies**: `lib/db/client.ts`, `lib/types.ts`
 
 **Example**:
+
 ```typescript
 import { getTierForPoints } from "@/lib/db/tiers";
 
@@ -296,6 +315,7 @@ const tier = await getTierForPoints(player.total_points);
 **Purpose**: User profile management
 
 **Exports**:
+
 - `createOrUpdateUserProfile(profile)` - Create or update profile
 - `getUserProfile(walletAddress)` - Get user profile
 - `updateUserProfile(walletAddress, updates)` - Update profile fields
@@ -304,6 +324,7 @@ const tier = await getTierForPoints(player.total_points);
 **Dependencies**: `lib/db/client.ts`, `lib/types.ts`
 
 **Example**:
+
 ```typescript
 import { updateUserProfile, awardProfileFieldPoints } from "@/lib/db/profiles";
 
@@ -312,7 +333,11 @@ await updateUserProfile(walletAddress, {
   twitter_handle: "@handle",
 });
 
-await awardProfileFieldPoints(walletAddress, "profile_field_twitter", "@handle");
+await awardProfileFieldPoints(
+  walletAddress,
+  "profile_field_twitter",
+  "@handle",
+);
 ```
 
 ---
@@ -322,12 +347,14 @@ await awardProfileFieldPoints(walletAddress, "profile_field_twitter", "@handle")
 **Purpose**: Admin permission checks
 
 **Exports**:
+
 - `ADMIN_EMAILS` - Array of admin email addresses
 - `checkAdminPermission(email)` - Check if email has admin permissions
 
 **Dependencies**: None
 
 **Example**:
+
 ```typescript
 import { checkAdminPermission } from "@/lib/db/admin";
 
@@ -343,6 +370,7 @@ if (checkAdminPermission(user.email)) {
 **Purpose**: Notification management
 
 **Exports**:
+
 - `insertNotification(notification)` - Insert webhook notification
 
 **Dependencies**: `lib/db/client.ts`, `lib/types.ts`
@@ -380,6 +408,7 @@ Validation schemas are located in `lib/schemas/`:
 - `updateLocationListSchema` - Location list update validation
 
 **Usage Example**:
+
 ```typescript
 import { createPlayerSchema } from "@/lib/schemas/player";
 import { createLocationSchema } from "@/lib/schemas/location";
@@ -396,11 +425,13 @@ const location = createLocationSchema.parse(locationData);
 All existing imports from `@/lib/supabase` will continue to work due to backward-compatible re-exports. However, new code should import directly from domain modules:
 
 **Old (still works)**:
+
 ```typescript
 import { getPlayerByWallet, createPerk } from "@/lib/supabase";
 ```
 
 **New (recommended)**:
+
 ```typescript
 import { getPlayerByWallet } from "@/lib/db/players";
 import { createPerk } from "@/lib/db/perks";
@@ -435,6 +466,7 @@ try {
 ```
 
 Common error codes:
+
 - `PGRST116`: Record not found (some functions return `null` instead of throwing)
 
 ## Testing
@@ -457,4 +489,3 @@ jest.mock("@/lib/db/client", () => ({
 3. **Add unit tests**: Test each module independently
 4. **Add integration tests**: Test database operations end-to-end
 5. **Add caching layer**: Implement Redis caching for frequently accessed data
-

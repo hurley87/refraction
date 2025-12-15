@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getLocationLists,
-  getLocationsForList,
-  LocationListWithCount,
-  Location,
-} from "@/lib/supabase";
+import { getLocationLists, getLocationsForList } from "@/lib/db/location-lists";
+import type { LocationListWithCount, Location } from "@/lib/types";
 
 type LocationListWithLocations = LocationListWithCount & {
   locations?: Array<

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Clock } from "lucide-react";
 import Image from "next/image";
-import MapNav from "@/components/mapnav";
+import MapNav from "@/components/map/mapnav";
 
 interface Quest {
   title: string;

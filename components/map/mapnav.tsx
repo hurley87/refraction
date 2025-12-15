@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import ProfileMenu from "@/components/profile-menu";
-import UserMenu from "@/components/user-menu";
-import NavigationMenu from "@/components/navigation-menu";
+import UserMenu from "@/components/layout/user-menu";
+import NavigationMenu from "@/components/layout/navigation-menu";
 import { useState, useEffect } from "react";
 
 interface MapNavProps {

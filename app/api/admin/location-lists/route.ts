@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import {
-  createLocationList,
-  getLocationLists,
-  checkAdminPermission,
-  supabase,
-} from "@/lib/supabase";
+import { checkAdminPermission } from "@/lib/db/admin";
+import { createLocationList, getLocationLists } from "@/lib/db/location-lists";
+import { supabase } from "@/lib/db/client";
 
 const colorRegex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 

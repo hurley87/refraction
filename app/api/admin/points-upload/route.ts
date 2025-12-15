@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase, checkAdminPermission } from "@/lib/supabase";
+import { supabase } from "@/lib/db/client";
+import { checkAdminPermission } from "@/lib/db/admin";
 import { v4 as uuidv4 } from "uuid";
 
 interface CSVRow {

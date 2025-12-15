@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogClose, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import eventsData from "@/data/challenges/events.json";
-import MapNav from "@/components/mapnav";
+import MapNav from "@/components/map/mapnav";
 
 // Extract event data from JSON
 const { futureEvents } = eventsData;

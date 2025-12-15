@@ -8,7 +8,7 @@ import Image from "next/image";
 
 import LogoLoop from '@/components/LogoLoop.jsx';
 import CircularGallery from "@/components/CircularGallery"
-import Footer from "@/components/footer";
+import Footer from "@/components/layout/footer";
 import MembersSection from "@/components/members-section";
 import {
   Carousel,

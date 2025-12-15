@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
-import {
-  getUserProfile,
-  createOrUpdateUserProfile,
-  awardProfileFieldPoints,
-  type UserProfile,
-} from "@/lib/supabase";
+import { getUserProfile, createOrUpdateUserProfile, awardProfileFieldPoints } from "@/lib/db/profiles";
+import type { UserProfile } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
   try {

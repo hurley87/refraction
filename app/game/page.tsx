@@ -1,5 +1,5 @@
-import Auth from "@/components/auth";
-import GameMapbox from "@/components/game-mapbox";
+import Auth from "@/components/auth/auth";
+import GameMapbox from "@/components/map/game-mapbox";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

@@ -4,7 +4,7 @@ import {
   verifyAppKeyWithNeynar,
   ParseWebhookEventResult,
 } from "@farcaster/frame-node";
-import { insertNotification } from "@/lib/supabase";
+import { insertNotification } from "@/lib/db/notifications";
 import { PostgrestError } from "@supabase/supabase-js";
 
 function isFrameEvent(

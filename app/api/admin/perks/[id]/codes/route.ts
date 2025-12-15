@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDiscountCodesByPerkId, createDiscountCodes } from '@/lib/supabase';
+import { getDiscountCodesByPerkId, createDiscountCodes } from '@/lib/db/perks';
 
 // GET /api/admin/perks/[id]/codes - Get discount codes for a perk
 export async function GET(

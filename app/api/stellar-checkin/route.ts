@@ -1,9 +1,6 @@
 import { NextRequest } from "next/server";
-import {
-  createOrUpdatePlayerForStellar,
-  updatePlayerPoints,
-  supabase,
-} from "@/lib/supabase";
+import { createOrUpdatePlayerForStellar, updatePlayerPoints } from "@/lib/db/players";
+import { supabase } from "@/lib/db/client";
 
 const DAILY_CHECKIN_POINTS = 100;
 const DAILY_CHECKPOINT_LIMIT = 10;

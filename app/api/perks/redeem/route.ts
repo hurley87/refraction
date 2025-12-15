@@ -1,18 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { NextRequest } from "next/server";
+import { supabase } from "@/lib/db/client";
+import { redeemPerkRequestSchema } from "@/lib/schemas/api";
+import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
 // POST /api/perks/redeem { perkId, walletAddress }
 export async function POST(request: NextRequest) {
   try {
-    const { perkId, walletAddress } = await request.json();
-    if (!perkId || !walletAddress) {
-      return NextResponse.json(
-        { error: "perkId and walletAddress are required" },
-        { status: 400 },
-      );
+    const body = await request.json();
+    const validationResult = redeemPerkRequestSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return apiValidationError(validationResult.error);
     }
+
+    const { perkId, walletAddress } = validationResult.data;
 
     // Check user points and perk threshold
     const { data: user, error: userError } = await supabase
@@ -30,24 +33,19 @@ export async function POST(request: NextRequest) {
     if (perkError) throw perkError;
 
     if (!user || user.total_points < perk.points_threshold) {
-      return NextResponse.json(
-        { error: "Insufficient points" },
-        { status: 400 },
-      );
+      return apiError("Insufficient points", 400);
     }
 
     // Prevent duplicate redemption
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from("user_perk_redemptions")
       .select("id")
       .eq("perk_id", perkId)
       .eq("user_wallet_address", walletAddress)
       .single();
+    if (existingError && existingError.code !== "PGRST116") throw existingError; // PGRST116 = not found
     if (existing) {
-      return NextResponse.json(
-        { error: "Perk already redeemed" },
-        { status: 400 },
-      );
+      return apiError("Perk already redeemed", 400);
     }
 
     // Get available code
@@ -59,10 +57,7 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .single();
     if (codeError || !availableCode) {
-      return NextResponse.json(
-        { error: "No discount codes available" },
-        { status: 400 },
-      );
+      return apiError("No discount codes available", 400);
     }
 
     // Create redemption and return code
@@ -77,12 +72,9 @@ export async function POST(request: NextRequest) {
       .single();
     if (error) throw error;
 
-    return NextResponse.json({ redemption: data });
+    return apiSuccess({ redemption: data });
   } catch (error) {
     console.error("POST /api/perks/redeem error:", error);
-    return NextResponse.json(
-      { error: "Failed to redeem perk" },
-      { status: 500 },
-    );
+    return apiError("Failed to redeem perk", 500);
   }
 }

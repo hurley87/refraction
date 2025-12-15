@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, MapPin } from "lucide-react";
-import Header from "./header";
+import Header from "@/components/layout/header";
 import { useLocationGame } from "@/hooks/useLocationGame";
 import { toast } from "sonner";
 import { usePrivy } from "@privy-io/react-auth";

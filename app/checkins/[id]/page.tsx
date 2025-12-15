@@ -1,4 +1,4 @@
-import SolanaCheckpoint from "@/components/solana-checkpoint";
+import SolanaCheckpoint from "@/components/checkpoint/solana-checkpoint";
 
 interface SolanaCheckinPageProps {
   params: { id: string };

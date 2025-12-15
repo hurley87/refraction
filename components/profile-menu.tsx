@@ -7,7 +7,7 @@ import { X, LogOut, Clock, Check } from "lucide-react";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserProfile } from "@/lib/supabase";
+import type { UserProfile } from "@/lib/types";
 import { toast } from "sonner";
 
 // Reusable Pencil Icon Component

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { deleteDiscountCode } from '@/lib/supabase';
+import { deleteDiscountCode } from '@/lib/db/perks';
 
 // DELETE /api/admin/perks/codes/[codeId] - Delete a discount code
 export async function DELETE(

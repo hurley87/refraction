@@ -6,7 +6,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import type { LocationListWithCount, Location } from "@/lib/supabase";
+import type { LocationListWithCount, Location } from "@/lib/types";
 
 export type DrawerLocationSummary = Pick<
   Location,

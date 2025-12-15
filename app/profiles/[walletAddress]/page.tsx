@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import { UserProfile } from "@/lib/supabase";
+import type { UserProfile } from "@/lib/types";
 import Link from "next/link";
-import PointsActivity from "@/components/points-activity";
+import PointsActivity from "@/components/perks/points-activity";
 
 interface ProfilePageProps {
   params: {

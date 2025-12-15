@@ -1,27 +1,33 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useCreateWallet } from "@privy-io/react-auth";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Auth from "./auth";
-import Footer from "./footer";
-import { useStellarWallet } from "@/hooks/useStellarWallet";
+import Auth from "@/components/auth/auth";
+import Footer from "@/components/layout/footer";
 
-interface StellarCheckpointProps {
+interface SolanaCheckpointProps {
   id: string;
 }
 
-export default function StellarCheckpoint({ id }: StellarCheckpointProps) {
+export default function SolanaCheckpoint({ id }: SolanaCheckpointProps) {
   const { user } = usePrivy();
-  const {
-    address: stellarAddress,
-    connect,
-    isConnecting,
-    isLoading: isWalletLoading,
-    error: walletError,
-  } = useStellarWallet();
+  const { createWallet } = useCreateWallet();
+  const [isCreatingWallet, setIsCreatingWallet] = useState(false);
+
+  // Get Solana embedded wallet from linked accounts
+  const solanaWallet = user?.linkedAccounts?.find(
+    (account) =>
+      account.type === "wallet" &&
+      "chainType" in account &&
+      account.chainType === "solana",
+  );
+  const solanaAddress =
+    solanaWallet && "address" in solanaWallet
+      ? solanaWallet.address
+      : undefined;
   const email = user?.email?.address;
 
   const [checkinStatus, setCheckinStatus] = useState<boolean | null>(null);
@@ -30,12 +36,15 @@ export default function StellarCheckpoint({ id }: StellarCheckpointProps) {
   const [, setPointsEarnedToday] = useState<number>(0);
   const [, setTotalPoints] = useState<number>(0);
 
-  // Handle connecting Stellar wallet
-  const handleConnectWallet = async () => {
+  // Handle creating Solana wallet
+  const handleCreateWallet = async () => {
+    setIsCreatingWallet(true);
     try {
-      await connect();
+      await createWallet({ createAdditional: true });
     } catch (error) {
-      console.error("Failed to connect Stellar wallet:", error);
+      console.error("Failed to create Solana wallet:", error);
+    } finally {
+      setIsCreatingWallet(false);
     }
   };
 
@@ -45,11 +54,11 @@ export default function StellarCheckpoint({ id }: StellarCheckpointProps) {
   // Fetch player stats
   useEffect(() => {
     const fetchPlayerStats = async () => {
-      if (!stellarAddress) return;
+      if (!solanaAddress) return;
 
       try {
         const playerResponse = await fetch(
-          `/api/player?walletAddress=${stellarAddress}`,
+          `/api/player?walletAddress=${solanaAddress}`,
         );
         if (playerResponse.ok) {
           const playerData = await playerResponse.json();
@@ -63,7 +72,7 @@ export default function StellarCheckpoint({ id }: StellarCheckpointProps) {
     };
 
     fetchPlayerStats();
-  }, [stellarAddress]);
+  }, [solanaAddress]);
 
   // Auto check-in effect
   useEffect(() => {
@@ -72,7 +81,7 @@ export default function StellarCheckpoint({ id }: StellarCheckpointProps) {
     }
 
     const autoCheckIn = async () => {
-      if (!stellarAddress || isCheckingIn) {
+      if (!user || !solanaAddress || isCheckingIn) {
         return;
       }
 
@@ -80,11 +89,11 @@ export default function StellarCheckpoint({ id }: StellarCheckpointProps) {
       setIsCheckingIn(true);
 
       try {
-        const response = await fetch("/api/stellar-checkin", {
+        const response = await fetch("/api/solana-checkin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            stellarWalletAddress: stellarAddress,
+            solanaWalletAddress: solanaAddress,
             email,
             checkpoint: id,
           }),
@@ -120,13 +129,13 @@ export default function StellarCheckpoint({ id }: StellarCheckpointProps) {
       }
     };
 
-    if (user && stellarAddress) {
+    if (user && solanaAddress) {
       autoCheckIn();
     }
-  }, [user, stellarAddress, id, email, isCheckingIn]);
+  }, [user, solanaAddress, id, email, isCheckingIn]);
 
-  // Loading state while waiting for Privy or wallet fetch
-  if (!user || isWalletLoading) {
+  // Loading state while waiting for Privy
+  if (!user) {
     return (
       <Auth>
         <div className="flex items-center justify-center text-center w-full min-h-dvh font-inktrap text-2xl text-black">
@@ -136,28 +145,25 @@ export default function StellarCheckpoint({ id }: StellarCheckpointProps) {
     );
   }
 
-  // No Stellar wallet found - prompt to create one
-  if (!stellarAddress) {
+  // No Solana wallet found - prompt to create one
+  if (!solanaAddress) {
     return (
       <Auth>
         <div className="flex flex-col items-center justify-center text-center w-full min-h-dvh font-grotesk px-6">
           <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-lg space-y-4">
             <h1 className="text-3xl font-inktrap text-black uppercase">
-              Create Stellar Wallet
+              Create Solana Wallet
             </h1>
             <p className="text-gray-600 text-base">
-              A Stellar wallet is required for this checkpoint. Create one now
-              to check in and earn points.
+              A Solana wallet is required for this checkpoint. Create one now to
+              check in and earn points.
             </p>
-            {walletError && (
-              <p className="text-red-600 text-sm">{walletError}</p>
-            )}
             <Button
-              onClick={handleConnectWallet}
-              disabled={isConnecting}
+              onClick={handleCreateWallet}
+              disabled={isCreatingWallet}
               className="text-white bg-black rounded-full w-full font-inktrap py-3 text-lg hover:bg-gray-800 disabled:opacity-50"
             >
-              {isConnecting ? "Creating Wallet..." : "Create Stellar Wallet"}
+              {isCreatingWallet ? "Creating Wallet..." : "Create Solana Wallet"}
             </Button>
             <Button
               onClick={() => router.push("/")}

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
-import Auth from "@/components/auth";
+import Auth from "@/components/auth/auth";
 
 export const metadata: Metadata = {
   title: "$IRL",

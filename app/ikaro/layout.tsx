@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import Image from "next/image";
 import Link from "next/link";
-import Auth from "@/components/ikaro-auth";
+import Auth from "@/components/auth/ikaro-auth";
 import Header from "@/components/ikaro-header";
 
 export const metadata: Metadata = {

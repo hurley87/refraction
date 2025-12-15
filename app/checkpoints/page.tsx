@@ -1,4 +1,4 @@
-import Checkpoints from "@/components/checkpoints";
+import Checkpoints from "@/components/checkpoint/checkpoints";
 
 export default async function CheckpointsPage() {
   return (

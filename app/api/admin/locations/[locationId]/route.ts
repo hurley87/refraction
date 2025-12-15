@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { checkAdminPermission, updateLocationById } from "@/lib/supabase";
+import { checkAdminPermission } from "@/lib/db/admin";
+import { updateLocationById } from "@/lib/db/locations";
 
 const updateLocationSchema = z.object({
   name: z.string().min(1).optional(),

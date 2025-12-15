@@ -35,7 +35,7 @@ import type {
   LocationListWithCount,
   LocationListLocation,
   LocationOption,
-} from "@/lib/supabase";
+} from "@/lib/types";
 
 const LISTS_KEY = ["admin-location-lists"] as const;
 const LIST_LOCATIONS_KEY = (listId: string) => ["admin-location-list", listId];

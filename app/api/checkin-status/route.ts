@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
-import {
-  getCheckinByAddressAndCheckpoint,
-  supabase,
-} from "@/lib/supabase";
+import { getCheckinByAddressAndCheckpoint } from "@/lib/db/checkins";
+import { supabase } from "@/lib/db/client";
 
 const getUtcDayBounds = () => {
   const now = new Date();

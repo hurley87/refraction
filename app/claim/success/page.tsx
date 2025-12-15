@@ -3,10 +3,10 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ClaimHeader from "@/components/claim-header";
-import Footer from "@/components/footer";
+import Footer from "@/components/layout/footer";
 import TransferTokens from "@/components/transfer-tokens";
 import MembersSection from "@/components/members-section";
-import ExportWalletButton from "@/components/export-wallet-button";
+import ExportWalletButton from "@/components/auth/export-wallet-button";
 import Image from "next/image";
 import { usePrivy } from "@privy-io/react-auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";

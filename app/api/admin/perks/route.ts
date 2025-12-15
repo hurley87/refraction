@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllPerks, createPerk, type Perk } from "@/lib/supabase";
+import { getAllPerks, createPerk } from "@/lib/db/perks";
+import type { Perk } from "@/lib/types";
 
 // GET /api/admin/perks - Get all perks
 export async function GET(request: NextRequest) {

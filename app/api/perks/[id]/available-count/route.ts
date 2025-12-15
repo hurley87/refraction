@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAvailableCodesCount } from '@/lib/supabase';
+import { getAvailableCodesCount } from '@/lib/db/perks';
 
 export const dynamic = 'force-dynamic';
 

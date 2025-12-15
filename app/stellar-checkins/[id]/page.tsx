@@ -1,4 +1,4 @@
-import StellarCheckpoint from "@/components/stellar-checkpoint";
+import StellarCheckpoint from "@/components/checkpoint/stellar-checkpoint";
 
 interface StellarCheckinPageProps {
   params: { id: string };

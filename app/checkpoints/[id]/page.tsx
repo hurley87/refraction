@@ -1,4 +1,4 @@
-import Checkpoint from "@/components/checkpoint";
+import Checkpoint from "@/components/checkpoint/checkpoint";
 
 interface CheckpointPageProps {
   params: { id: string };

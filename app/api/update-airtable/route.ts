@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/db/client";
 
 // Ensure the handler runs dynamically at request time
 export const dynamic = "force-dynamic";

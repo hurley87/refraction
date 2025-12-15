@@ -1,9 +1,9 @@
 import dynamic from "next/dynamic";
-import Header from "@/components/header";
+import Header from "@/components/layout/header";
 import Hero from "@/components/hero";
 
 // Lazy load below-the-fold components for better initial load performance
-const MapSection = dynamic(() => import("@/components/map-section"), {
+const MapSection = dynamic(() => import("@/components/map/map-section"), {
   ssr: true,
 });
 const Partners = dynamic(() => import("@/components/partners"), {
@@ -12,10 +12,10 @@ const Partners = dynamic(() => import("@/components/partners"), {
 const ArtistCTA = dynamic(() => import("@/components/artist-cta"), {
   ssr: true,
 });
-const FooterHero = dynamic(() => import("@/components/footer-hero"), {
+const FooterHero = dynamic(() => import("@/components/layout/footer-hero"), {
   ssr: true,
 });
-const Footer = dynamic(() => import("@/components/footer"), {
+const Footer = dynamic(() => import("@/components/layout/footer"), {
   ssr: true,
 });
 

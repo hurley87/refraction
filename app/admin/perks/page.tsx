@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { type Perk, type PerkDiscountCode } from "@/lib/supabase";
+import type { Perk, PerkDiscountCode } from "@/lib/types";
 import type { Tier } from "@/lib/types";
 import { usePrivy } from "@privy-io/react-auth";
 

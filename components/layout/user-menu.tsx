@@ -5,7 +5,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
 import { X, Clock } from "lucide-react";
 import Image from "next/image";
-import { UserProfile } from "@/lib/supabase";
+import type { UserProfile } from "@/lib/types";
 
 interface UserMenuProps {
   isOpen: boolean;

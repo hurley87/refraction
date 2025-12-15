@@ -2,13 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 // Button was unused here; removing import to satisfy lint
-import { type Perk } from "@/lib/supabase";
+import type { Perk } from "@/lib/types";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 import { Tag, Clock, MapPin, ExternalLink, Gift } from "lucide-react";
 
 import { useState, useEffect } from "react";
-import MapNav from "@/components/mapnav";
+import MapNav from "@/components/map/mapnav";
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {

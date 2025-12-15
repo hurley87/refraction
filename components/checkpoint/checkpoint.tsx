@@ -6,8 +6,8 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Auth from "./auth";
-import Footer from "./footer";
+import Auth from "@/components/auth/auth";
+import Footer from "@/components/layout/footer";
 
 interface CheckpointProps {
   id: string;
@@ -18,13 +18,25 @@ export default function Checkpoint({ id }: CheckpointProps) {
   const address = user?.wallet?.address as `0x${string}`;
   const email = user?.email?.address;
   const {
-    checkinStatus,
-    setCheckinStatus,
-    checkpointCheckinToday,
-    setCheckpointCheckinToday,
-    setDailyRewardClaimed,
-    setPointsEarnedToday,
+    checkinStatus: initialCheckinStatus,
+    checkpointCheckinToday: initialCheckpointCheckinToday,
+    dailyRewardClaimed: initialDailyRewardClaimed,
+    pointsEarnedToday: initialPointsEarnedToday,
   } = useCheckInStatus(address, id);
+  
+  // Local state for mutations (can be updated optimistically)
+  const [checkinStatus, setCheckinStatus] = useState<boolean | null>(initialCheckinStatus);
+  const [checkpointCheckinToday, setCheckpointCheckinToday] = useState(initialCheckpointCheckinToday);
+  const [, setDailyRewardClaimed] = useState(initialDailyRewardClaimed);
+  const [, setPointsEarnedToday] = useState(initialPointsEarnedToday);
+  
+  // Sync local state with query data when it changes
+  useEffect(() => {
+    if (initialCheckinStatus !== null) setCheckinStatus(initialCheckinStatus);
+    setCheckpointCheckinToday(initialCheckpointCheckinToday);
+    setDailyRewardClaimed(initialDailyRewardClaimed);
+    setPointsEarnedToday(initialPointsEarnedToday);
+  }, [initialCheckinStatus, initialCheckpointCheckinToday, initialDailyRewardClaimed, initialPointsEarnedToday, setCheckpointCheckinToday, setDailyRewardClaimed, setPointsEarnedToday]);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [checkinError, setCheckinError] = useState<string | null>(null);
 
@@ -148,10 +160,6 @@ export default function Checkpoint({ id }: CheckpointProps) {
     checkinStatus,
     checkpointCheckinToday,
     isCheckingIn,
-    setCheckinStatus,
-    setCheckpointCheckinToday,
-    setDailyRewardClaimed,
-    setPointsEarnedToday,
   ]);
 
   if (checkinStatus === null && !checkinError) {

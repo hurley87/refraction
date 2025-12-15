@@ -35,127 +35,73 @@ export const createLocationCheckin = async (
   return data;
 };
 
-// Legacy checkpoint checkin functions (deprecated - use location checkins)
-
 /**
- * Get checkins by address
- * @deprecated Use location checkin system instead
- */
-export const getCheckinByAddress = async (address: string) => {
-  try {
-    const { data, error } = await supabase
-      .from("irlcheckins")
-      .select("*")
-      .eq("address", address);
-
-    if (error) {
-      throw error;
-    }
-
-    return data;
-  } catch {
-    return null;
-  }
-};
-
-/**
- * Insert a legacy checkpoint checkin
- * @deprecated Use createLocationCheckin instead
- */
-export const insertCheckin = async (checkin: Checkin) => {
-  const { data, error } = await supabase.from("irlcheckins").insert(checkin);
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-};
-
-/**
- * Upsert checkpoint for an address
- * @deprecated Use location checkin system instead
- */
-export const upsertCheckpoint = async (
-  address: string,
-  email: string,
-  newCheckpoint: string,
-) => {
-  // First, get the existing record
-  const existingCheckin = await getCheckinByAddress(address);
-
-  if (existingCheckin && existingCheckin.length > 0) {
-    // Parse existing checkpoints (assuming they're stored as comma-separated or single value)
-    const currentCheckpoints = existingCheckin[0].checkpoint
-      ? existingCheckin[0].checkpoint.split(",").map((c) => c.trim())
-      : [];
-
-    // Check if checkpoint already exists
-    if (currentCheckpoints.includes(newCheckpoint)) {
-      throw new Error(`Already checked in to ${newCheckpoint}`);
-    }
-
-    // Add new checkpoint
-    currentCheckpoints.push(newCheckpoint);
-    const updatedCheckpoints = currentCheckpoints.join(", ");
-
-    // Update the existing record
-    const { data, error } = await supabase
-      .from("irlcheckins")
-      .update({
-        checkpoint: updatedCheckpoints,
-        email: email || existingCheckin[0].email, // Keep existing email if no new one provided
-      })
-      .eq("address", address)
-      .select();
-
-    if (error) {
-      throw error;
-    }
-
-    return data;
-  } else {
-    // Insert new record
-    const { data, error } = await supabase
-      .from("irlcheckins")
-      .insert({
-        address,
-        email,
-        checkpoint: newCheckpoint,
-      })
-      .select();
-
-    if (error) {
-      throw error;
-    }
-
-    return data;
-  }
-};
-
-/**
- * Get checkins by address and checkpoint
- * @deprecated Use location checkin system instead
+ * Get checkins by wallet address and checkpoint name (legacy checkins table)
  */
 export const getCheckinByAddressAndCheckpoint = async (
   address: string,
   checkpoint: string,
 ): Promise<Checkin[]> => {
   const { data, error } = await supabase
-    .from("irlcheckins")
+    .from("checkins")
+    .select("*")
+    .eq("address", address)
+    .eq("checkpoint", checkpoint);
+
+  if (error) throw error;
+  return data || [];
+};
+
+/**
+ * Get checkin by wallet address (legacy checkins table)
+ */
+export const getCheckinByAddress = async (
+  address: string,
+): Promise<Checkin[]> => {
+  const { data, error } = await supabase
+    .from("checkins")
     .select("*")
     .eq("address", address);
 
-  if (error) {
-    throw error;
+  if (error) throw error;
+  return data || [];
+};
+
+/**
+ * Insert a new checkin record (legacy checkins table)
+ */
+export const insertCheckin = async (
+  checkin: Omit<Checkin, "id" | "created_at">,
+): Promise<Checkin> => {
+  const { data, error } = await supabase
+    .from("checkins")
+    .insert(checkin)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};
+
+/**
+ * Upsert a checkpoint checkin (legacy checkins table)
+ * Creates a new checkin or updates existing one
+ */
+export const upsertCheckpoint = async (
+  address: string,
+  email: string | undefined,
+  checkpoint: string,
+): Promise<Checkin> => {
+  // Check if already exists
+  const existing = await getCheckinByAddressAndCheckpoint(address, checkpoint);
+  if (existing.length > 0) {
+    throw new Error("Already checked in");
   }
 
-  // Filter by checkpoint since checkpoints are now stored as comma-separated values
-  const filteredData = data?.filter((checkin) => {
-    if (!checkin.checkpoint) return false;
-    const checkpoints = checkin.checkpoint.split(",").map((c) => c.trim());
-    return checkpoints.includes(checkpoint);
+  // Insert new checkin
+  return insertCheckin({
+    address,
+    email: email || "",
+    checkpoint,
   });
-
-  return filteredData || [];
 };

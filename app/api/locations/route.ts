@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/db/client";
 
 const MAX_VARCHAR_LENGTH = 255;
 const MAX_LOCATIONS_PER_DAY = 30;

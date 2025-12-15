@@ -1,7 +1,7 @@
 "use client";
 
 import { usePrivy } from "@privy-io/react-auth";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 
 export function ConnectButton() {
   const { login, user } = usePrivy();

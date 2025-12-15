@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase, checkAdminPermission } from "@/lib/supabase";
+import { supabase } from "@/lib/db/client";
+import { checkAdminPermission } from "@/lib/db/admin";
 
 // GET endpoint to fetch pending points
 export async function GET(request: NextRequest) {

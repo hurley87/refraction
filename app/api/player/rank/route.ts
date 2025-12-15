@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/db/client";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30; // Extended timeout

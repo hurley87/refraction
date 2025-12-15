@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { checkAdminPermission, listLocationOptions } from "@/lib/supabase";
+import { checkAdminPermission } from "@/lib/db/admin";
+import { listLocationOptions } from "@/lib/db/locations";
 
 const querySchema = z.object({
   query: z.string().min(1).max(120).optional(),

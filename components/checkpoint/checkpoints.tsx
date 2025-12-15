@@ -2,8 +2,8 @@
 
 import { usePrivy } from "@privy-io/react-auth";
 import { useCheckpointStatuses } from "@/hooks/useCheckpointStatuses";
-import Auth from "./auth";
-import { Button } from "./ui/button";
+import Auth from "@/components/auth/auth";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 

@@ -14,8 +14,8 @@ import {
 //import { sepolia } from "viem/chains";
 import {  base } from "viem/chains";
 import { useToast } from "@/hooks/use-toast";
-import Auth from "./ikaro-auth";
-import { Button } from "./ui/button";
+import Auth from "@/components/auth/ikaro-auth";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { ToastAction } from "./ui/toast";

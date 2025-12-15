@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { checkAdminPermission } from "@/lib/db/admin";
 import {
   addLocationToList,
-  checkAdminPermission,
   getLocationsForList,
   removeLocationFromList,
-} from "@/lib/supabase";
+} from "@/lib/db/location-lists";
 
 const addSchema = z.object({
   locationId: z.coerce.number().int().positive(),

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserPerkRedemptions } from '@/lib/supabase';
+import { getUserPerkRedemptions } from '@/lib/db/perks';
 
 export const dynamic = 'force-dynamic';
 

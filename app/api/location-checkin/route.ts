@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  createOrUpdatePlayer,
-  createOrGetLocation,
-  checkUserLocationCheckin,
-  createLocationCheckin,
-  updatePlayerPoints,
-  getPlayerByWallet,
-  type Player,
-  type Location,
-} from "@/lib/supabase";
+import { createOrUpdatePlayer, getPlayerByWallet, updatePlayerPoints } from "@/lib/db/players";
+import { createOrGetLocation } from "@/lib/db/locations";
+import { checkUserLocationCheckin, createLocationCheckin } from "@/lib/db/checkins";
+import type { Player, Location } from "@/lib/types";
 
 const MAX_VARCHAR_LENGTH = 255;
 

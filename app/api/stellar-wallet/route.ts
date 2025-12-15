@@ -1,9 +1,6 @@
 import { NextRequest } from "next/server";
 import { PrivyClient } from "@privy-io/server-auth";
-import {
-  createOrUpdatePlayerForStellar,
-  getPlayerByEmail,
-} from "@/lib/supabase";
+import { createOrUpdatePlayerForStellar, getPlayerByEmail } from "@/lib/db/players";
 
 // Lazy initialization to ensure env vars are loaded
 let privyClient: PrivyClient | null = null;

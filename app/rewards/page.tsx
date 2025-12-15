@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 // Button was unused here; removing import to satisfy lint
-import { type Perk } from "@/lib/supabase";
+import type { Perk } from "@/lib/types";
 import type { Tier } from "@/lib/types";
 import Image from "next/image";
 import { usePrivy } from "@privy-io/react-auth";
@@ -20,7 +20,7 @@ import {
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import MapNav from "@/components/mapnav";
+import MapNav from "@/components/map/mapnav";
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {
