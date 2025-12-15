@@ -18,6 +18,13 @@ import {
   Copy,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import {
+  useAvailableCodesCount,
+  useUserRedemptions,
+} from "@/hooks/usePerks";
+import { useCurrentPlayer } from "@/hooks/usePlayer";
+import { apiClient } from "@/lib/api/client";
+import type { Perk } from "@/lib/types";
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {
@@ -89,55 +96,24 @@ export default function PerkDetailPage() {
     data: perk,
     isLoading: perkLoading,
     error,
-  } = useQuery({
+  } = useQuery<Perk>({
     queryKey: ["perk", perkId],
     queryFn: async () => {
-      const response = await fetch(`/api/perks/${perkId}`);
-      if (!response.ok) throw new Error("Failed to fetch perk");
-      const data = await response.json();
-      return data.perk;
+      return apiClient<{ perk: Perk }>(`/api/perks/${perkId}`).then(
+        (data) => data.perk
+      );
     },
     enabled: !!perkId,
   });
 
   // Fetch user's points
-  const { data: userStats } = useQuery({
-    queryKey: ["user-stats", address],
-    queryFn: async () => {
-      const response = await fetch(`/api/player?walletAddress=${address}`);
-      if (!response.ok) throw new Error("Failed to fetch player stats");
-      const data = await response.json();
-      return data.player;
-    },
-    enabled: !!address,
-  });
+  const { data: player } = useCurrentPlayer();
 
   // Check if user has already redeemed this perk
-  const { data: userRedemptions = [] } = useQuery({
-    queryKey: ["user-redemptions", address],
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/user/redemptions?walletAddress=${address}`,
-      );
-      if (!response.ok) throw new Error("Failed to fetch user redemptions");
-      const data = await response.json();
-      return data.redemptions;
-    },
-    enabled: !!address,
-  });
+  const { data: userRedemptions = [] } = useUserRedemptions(address);
 
   // Get available codes count
-  const { data: availableCodesCount = 0 } = useQuery({
-    queryKey: ["available-codes", perkId],
-    queryFn: async () => {
-      const response = await fetch(`/api/perks/${perkId}/available-count`);
-      if (!response.ok)
-        throw new Error("Failed to fetch available codes count");
-      const data = await response.json();
-      return data.count;
-    },
-    enabled: !!perkId,
-  });
+  const { data: availableCodesCount = 0 } = useAvailableCodesCount(perkId);
 
   // Redeem perk mutation
   const redeemPerkMutation = useMutation({
@@ -186,7 +162,7 @@ export default function PerkDetailPage() {
     );
   }
 
-  const userPoints = userStats?.total_points || 0;
+  const userPoints = player?.total_points || 0;
   const canAfford = userPoints >= perk.points_threshold;
   const hasRedeemed = userRedemptions.some(
     (redemption: any) => redemption.perk_id === perkId,

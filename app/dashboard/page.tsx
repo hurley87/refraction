@@ -7,21 +7,11 @@ import Image from "next/image";
 import MapNav from "@/components/map/mapnav";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
-interface UserStats {
-  rank: number;
-  total_points: number;
-}
-
-interface Activity {
-  id: string;
-  date: string;
-  description: string;
-  activityType: string;
-  points: number;
-  event: string;
-  metadata: any;
-}
+import {
+  useCurrentPlayer,
+  usePlayerRank,
+  usePlayerActivities,
+} from "@/hooks/usePlayer";
 
 // Helper function to get ordinal suffix
 const getOrdinalSuffix = (num: number): string => {
@@ -42,21 +32,27 @@ const getOrdinalSuffix = (num: number): string => {
 export default function DashboardPage() {
   const { user, ready } = usePrivy();
   const router = useRouter();
+  const currentUserAddress = user?.wallet?.address;
+
+  // Use new hooks for data fetching
+  const { data: player, isLoading: isLoadingPlayer } =
+    useCurrentPlayer();
+  const { data: rank, isLoading: isLoadingRank } = usePlayerRank(
+    currentUserAddress
+  );
+  const {
+    data: activities = [],
+    isLoading: isLoadingActivities,
+    error: activitiesError,
+  } = usePlayerActivities(currentUserAddress);
+
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     if (ready && !user) {
       router.push("/");
     }
   }, [ready, user, router]);
-
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
-  const [activitiesError, setActivitiesError] = useState<string | null>(null);
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  const currentUserAddress = user?.wallet?.address;
 
   // Track scroll position for sticky header background
   useEffect(() => {
@@ -68,93 +64,14 @@ export default function DashboardPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Fetch current user's stats
-  useEffect(() => {
-    const loadUserStats = async () => {
-      if (!currentUserAddress) return;
-
-      setIsLoadingUserStats(true);
-      try {
-        const response = await fetch(
-          `/api/player?walletAddress=${encodeURIComponent(currentUserAddress)}`
-        );
-
-        if (response.ok) {
-          const result = await response.json();
-          const player = result.player;
-
-          if (player) {
-            // Get user's actual rank from database
-            const rankResponse = await fetch(
-              `/api/player/rank?walletAddress=${encodeURIComponent(currentUserAddress)}`
-            );
-
-            let actualRank = 999;
-            if (rankResponse.ok) {
-              const rankResult = await rankResponse.json();
-              actualRank = rankResult.rank || 999;
-            }
-
-            setUserStats({
-              rank: actualRank,
-              total_points: player.total_points || 0,
-            });
-          } else {
-            // New user with no data
-            setUserStats({
-              rank: 999,
-              total_points: 0,
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching user stats:", error);
-        setUserStats({
-          rank: 999,
-          total_points: 0,
-        });
-      } finally {
-        setIsLoadingUserStats(false);
+  // Compute user stats from hooks
+  const isLoadingUserStats = isLoadingPlayer || isLoadingRank;
+  const userStats = player
+    ? {
+        rank: rank ?? 999,
+        total_points: player.total_points || 0,
       }
-    };
-
-    if (currentUserAddress) {
-      loadUserStats();
-    }
-  }, [currentUserAddress]);
-
-  // Fetch user's activities
-  useEffect(() => {
-    const fetchActivities = async () => {
-      if (!currentUserAddress) return;
-
-      setIsLoadingActivities(true);
-      setActivitiesError(null);
-
-      try {
-        const response = await fetch(
-          `/api/activities?wallet_address=${currentUserAddress}`
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch activities");
-        }
-
-        const data = await response.json();
-        setActivities(data);
-      } catch (err) {
-        setActivitiesError(
-          err instanceof Error ? err.message : "An error occurred"
-        );
-      } finally {
-        setIsLoadingActivities(false);
-      }
-    };
-
-    if (currentUserAddress) {
-      fetchActivities();
-    }
-  }, [currentUserAddress]);
+    : null;
 
   // Not logged in state
   if (ready && !user) {
@@ -340,7 +257,11 @@ export default function DashboardPage() {
             {/* Error State */}
             {activitiesError && (
               <div className="text-center py-6">
-                <p className="text-red-600 text-sm">{activitiesError}</p>
+                <p className="text-red-600 text-sm">
+                  {activitiesError instanceof Error
+                    ? activitiesError.message
+                    : "An error occurred"}
+                </p>
               </div>
             )}
 
@@ -403,7 +324,7 @@ export default function DashboardPage() {
                         <div className="body-medium text-[#4F4F4F] font-grotesk truncate">
                           {activity.event}
                         </div>
-                        <div className="body-medium text-[#7D7D7D] font-grotesktext-right whitespace-nowrap">
+                        <div className="body-medium text-[#7D7D7D] font-grotesk text-right whitespace-nowrap">
                           +{activity.points}
                         </div>
                       </div>

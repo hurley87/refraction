@@ -1,9 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-// Button was unused here; removing import to satisfy lint
 import type { Perk } from "@/lib/types";
-import type { Tier } from "@/lib/types";
 import Image from "next/image";
 import { usePrivy } from "@privy-io/react-auth";
 
@@ -20,7 +17,11 @@ import {
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import MapNav from "@/components/map/mapnav";
+import { usePerks, useUserRedemptions } from "@/hooks/usePerks";
+import { useCurrentPlayer } from "@/hooks/usePlayer";
+import { useTiers } from "@/hooks/useTiers";
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {
@@ -104,43 +105,15 @@ export default function PerksPage() {
   const address = user?.wallet?.address;
 
   // Fetch all active perks
-  const { data: perks = [], isLoading: perksLoading } = useQuery({
-    queryKey: ["perks"],
-    queryFn: async () => {
-      const response = await fetch("/api/perks?activeOnly=true");
-      if (!response.ok) throw new Error("Failed to fetch perks");
-      const data = await response.json();
-      return data.perks;
-    },
-  });
+  const { data: perks = [], isLoading: perksLoading } = usePerks(true);
 
   // Fetch user's points
-  const { data: userStats } = useQuery({
-    queryKey: ["user-stats", address],
-    queryFn: async () => {
-      const response = await fetch(`/api/player?walletAddress=${address}`);
-      if (!response.ok) throw new Error("Failed to fetch player stats");
-      const data = await response.json();
-      return data.player;
-    },
-    enabled: !!address,
-  });
+  const { data: player } = useCurrentPlayer();
 
   // Fetch user's redemptions
-  const { data: userRedemptions = [] } = useQuery({
-    queryKey: ["user-redemptions", address],
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/user/redemptions?walletAddress=${address}`,
-      );
-      if (!response.ok) throw new Error("Failed to fetch user redemptions");
-      const data = await response.json();
-      return data.redemptions;
-    },
-    enabled: !!address,
-  });
+  const { data: userRedemptions = [] } = useUserRedemptions(address);
 
-  const userPoints = userStats?.total_points || 0;
+  const userPoints = player?.total_points || 0;
 
   const canAfford = (perk: Perk) => userPoints >= perk.points_threshold;
 
@@ -151,17 +124,7 @@ export default function PerksPage() {
   const [selectedPerk, setSelectedPerk] = useState<Perk | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: tiers = [] } = useQuery<Tier[]>({
-    queryKey: ["tiers"],
-    queryFn: async () => {
-      const response = await fetch("/api/tiers");
-      if (!response.ok) {
-        throw new Error("Failed to fetch tiers");
-      }
-      const data = await response.json();
-      return data.tiers ?? [];
-    },
-  });
+  const { data: tiers = [] } = useTiers();
 
   const findTierForPoints = (points: number) => {
     if (!tiers.length) return null;
@@ -175,10 +138,10 @@ export default function PerksPage() {
   };
 
   const formatTierLabel = (points: number) => {
-     const tier = findTierForPoints(points);
-     if (!tier) {
+    const tier = findTierForPoints(points);
+    if (!tier) {
       return "All Members";
-     }
+    }
 
     return tier.title;
   };
@@ -209,7 +172,9 @@ export default function PerksPage() {
     enabled: isModalOpen && !!selectedPerkId,
   });
  */
-  const selectedPerkAffordable = selectedPerk ? (!address || canAfford(selectedPerk)) : false;
+  const selectedPerkAffordable = selectedPerk
+    ? !address || canAfford(selectedPerk)
+    : false;
 
   // Fetch discount codes for the selected perk
   const { data: selectedPerkCodes = [] } = useQuery({
@@ -225,9 +190,9 @@ export default function PerksPage() {
   });
 
   // Get the first available code (or first universal code)
-  const selectedDiscountCode = selectedPerkCodes.find(
-    (code: any) => code.is_universal || !code.is_claimed
-  )?.code || "IRL2026";
+  const selectedDiscountCode =
+    selectedPerkCodes.find((code: any) => code.is_universal || !code.is_claimed)
+      ?.code || "IRL2026";
 
   // Check if the code is a URL
   const isCodeUrl = (str: string) => {
@@ -278,8 +243,8 @@ export default function PerksPage() {
   /*const selectedPerkExpiringSoon = selectedPerk?.end_date
     ? new Date(selectedPerk.end_date) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     : false;*/
- // const selectedPerkRedeemed = selectedPerk?.id ? hasRedeemed(selectedPerk.id) : false;
- /*  const selectedPerkRedemption = selectedPerk
+  // const selectedPerkRedeemed = selectedPerk?.id ? hasRedeemed(selectedPerk.id) : false;
+  /*  const selectedPerkRedemption = selectedPerk
     ? userRedemptions.find((redemption: any) => redemption.perk_id === selectedPerk.id)
     : undefined; */
   /* const selectedUserDiscountCode = selectedPerkRedemption?.perk_discount_codes?.code; */
@@ -341,7 +306,7 @@ export default function PerksPage() {
       }
     }, 150);
   };
-/* 
+  /* 
   const handleRedeem = () => {
     if (!selectedPerk || !selectedPerkId) return;
 
@@ -437,15 +402,17 @@ export default function PerksPage() {
   };
 
   const startDateRaw = selectedPerk
-    ? ((selectedPerk as unknown as { start_date?: string })?.start_date ?? undefined)
+    ? ((selectedPerk as unknown as { start_date?: string })?.start_date ??
+      undefined)
     : undefined;
   const formattedStartDate = formatDate(startDateRaw);
   const formattedEndDate = formatDate(selectedPerk?.end_date);
-  const dateLabel = formattedStartDate && formattedEndDate
-    ? `${formattedStartDate} – ${formattedEndDate}`
-    : formattedEndDate
-      ? `Ends ${formattedEndDate}`
-      : "Ongoing";
+  const dateLabel =
+    formattedStartDate && formattedEndDate
+      ? `${formattedStartDate} – ${formattedEndDate}`
+      : formattedEndDate
+        ? `Ends ${formattedEndDate}`
+        : "Ongoing";
 
   //const perkType = selectedPerk?.type?.toLowerCase() ?? "";
   //const isDiscountReward = perkType === "discount";
@@ -463,7 +430,7 @@ export default function PerksPage() {
     return "Claim Reward";
   })(); */
 
- /*  const claimDisabled =
+  /*  const claimDisabled =
     !selectedPerk ||
     redeemPerkMutation.isPending ||
     selectedPerkRedeemed ||
@@ -475,7 +442,7 @@ export default function PerksPage() {
     ? formatTierLabel(selectedPerk.points_threshold)
     : "All Members";
 
-/*   const codesAvailabilityLabel = selectedPerk
+  /*   const codesAvailabilityLabel = selectedPerk
     ? selectedCodesLoading
       ? "Checking availability..."
       : `${selectedAvailableCodesCount} ${
@@ -483,7 +450,7 @@ export default function PerksPage() {
         } remaining`
     : ""; */
 
-    /*
+  /*
   const statusChips = [
     selectedPerk?.type && {
       label: selectedPerk.type,
@@ -504,33 +471,35 @@ export default function PerksPage() {
   ].filter(Boolean) as { label: string; className: string }[];
 */
   // Get the latest reward (most recently created or updated)
-  const latestReward = perks.length > 0
-    ? [...perks].sort((a, b) => {
-        const aDate = a.created_at || a.updated_at || "";
-        const bDate = b.created_at || b.updated_at || "";
-        return new Date(bDate).getTime() - new Date(aDate).getTime();
-      })[0]
-    : null;
+  const latestReward =
+    perks.length > 0
+      ? [...perks].sort((a, b) => {
+          const aDate = a.created_at || a.updated_at || "";
+          const bDate = b.created_at || b.updated_at || "";
+          return new Date(bDate).getTime() - new Date(aDate).getTime();
+        })[0]
+      : null;
 
   const sortedRewards = perks
-     .filter((perk) => perk.id !== latestReward?.id)
-     .sort((a, b) => {
+    .filter((perk) => perk.id !== latestReward?.id)
+    .sort((a, b) => {
       const aTime = getPerkEndTimestamp(a);
       const bTime = getPerkEndTimestamp(b);
 
       return sortOption === "date-asc" ? aTime - bTime : bTime - aTime;
-     });
+    });
 
   const latestRewardAffordable = latestReward
     ? !address || canAfford(latestReward)
     : false;
-  const latestRewardExpired =
+  const latestRewardExpired = Boolean(
+    latestReward?.end_date && new Date(latestReward.end_date) < new Date(),
+  );
+  const latestRewardExpiringSoon = Boolean(
     latestReward?.end_date &&
-    new Date(latestReward.end_date) < new Date();
-  const latestRewardExpiringSoon =
-    latestReward?.end_date &&
-    new Date(latestReward.end_date) <
-      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      new Date(latestReward.end_date) <
+        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  );
   const latestRewardRedeemed = latestReward?.id
     ? hasRedeemed(latestReward.id)
     : false;
@@ -581,7 +550,9 @@ export default function PerksPage() {
                 {latestReward.thumbnail_url && (
                   <div className="w-full mb-4">
                     <Image
-                      src={latestReward.hero_image || latestReward.thumbnail_url!}
+                      src={
+                        latestReward.hero_image || latestReward.thumbnail_url!
+                      }
                       alt={latestReward.title}
                       width={400}
                       height={203}
@@ -607,7 +578,7 @@ export default function PerksPage() {
                 {latestReward.description && (
                   <p className="text-[#4F4F4F] body-medium font-grotesk w-full text-left mb-4">
                     {latestReward.description.split(/[.!?]+/)[0].trim()}
-                    {latestReward.description.match(/[.!?]/) ? '.' : ''}
+                    {latestReward.description.match(/[.!?]/) ? "." : ""}
                   </p>
                 )}
 
@@ -628,8 +599,8 @@ export default function PerksPage() {
                     }}
                     className="text-black body-small uppercase whitespace-nowrap font-abc-monument-regular"
                   >
-                    {address && (
-                      latestRewardAffordable ? (
+                    {address &&
+                      (latestRewardAffordable ? (
                         <Image
                           src="/tier-eligible.svg"
                           alt="Eligible for Tier"
@@ -645,9 +616,12 @@ export default function PerksPage() {
                           height={12}
                           className="inline-block mr-1"
                         />
-                      )
-                    )}
-                    {formatTierLabel(latestReward.points_threshold).split(' ')[0]}
+                      ))}
+                    {
+                      formatTierLabel(latestReward.points_threshold).split(
+                        " ",
+                      )[0]
+                    }
                   </div>
 
                   <div
@@ -700,7 +674,7 @@ export default function PerksPage() {
                   )}
 
                   {/* View Details Button Pill */}
-                  { latestRewardAffordable && (
+                  {latestRewardAffordable && (
                     <button
                       type="button"
                       onClick={() => handleOpenPerk(latestReward)}
@@ -722,7 +696,7 @@ export default function PerksPage() {
                       }}
                       className="text-black body-small uppercase font-abc-monument-regular hover:bg-gray-50 transition-colors"
                     >
-                     <span>Details</span>
+                      <span>Details</span>
                       <Image
                         src="/home/arrow-right.svg"
                         alt="arrow-right"
@@ -778,7 +752,8 @@ export default function PerksPage() {
                   ) : (
                     <div className="w-full rounded-full bg-white/80 py-3 px-4 text-center">
                       <p className="text-black body-small font-abc-monument-regular">
-                        You don&apos;t have the required points to claim this. Come back when you reach the{" "}
+                        You don&apos;t have the required points to claim this.
+                        Come back when you reach the{" "}
                         <span className="font-bold">
                           {formatTierLabel(latestReward.points_threshold)}
                         </span>{" "}
@@ -848,12 +823,12 @@ export default function PerksPage() {
           )}
 
           {/* View toggle & sort */}
-            {!perksLoading && (
-              <div
-                className="mb-6 flex w-full items-center"
-                style={{ gap: "8px", height: "40px" }}
-                id="tiers-toggle"
-              >
+          {!perksLoading && (
+            <div
+              className="mb-6 flex w-full items-center"
+              style={{ gap: "8px", height: "40px" }}
+              id="tiers-toggle"
+            >
               <div className="flex flex-1 items-center gap-2 rounded-full bg-white/20 p-1 backdrop-blur-sm">
                 {[
                   { label: "Rewards", value: "rewards" as const },
@@ -933,12 +908,14 @@ export default function PerksPage() {
               {perks.length > 0 ? (
                 sortedRewards.map((perk) => {
                   const affordable = !address || canAfford(perk);
-                  const isExpired =
-                    perk.end_date && new Date(perk.end_date) < new Date();
-                  const isExpiringSoon =
+                  const isExpired = Boolean(
+                    perk.end_date && new Date(perk.end_date) < new Date(),
+                  );
+                  const isExpiringSoon = Boolean(
                     perk.end_date &&
-                    new Date(perk.end_date) <
-                      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                      new Date(perk.end_date) <
+                        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+                  );
                   const userRedeemed = perk.id ? hasRedeemed(perk.id) : false;
 
                   return (
@@ -949,7 +926,7 @@ export default function PerksPage() {
                         padding: "16px",
                         flexDirection: "column",
                         alignItems: "flex-start",
-                        
+
                         alignSelf: "stretch",
                         borderRadius: "26px",
                         border: "1px solid #EDEDED",
@@ -961,7 +938,6 @@ export default function PerksPage() {
                       {/* Header */}
                       <div className="flex justify-between items-start w-full">
                         <div className="flex flex-wrap gap-2 flex-1">
-                          
                           {isExpiringSoon && !isExpired && (
                             <span
                               style={{
@@ -1014,7 +990,6 @@ export default function PerksPage() {
                             </span>
                           )}
                         </div>
-                      
                       </div>
 
                       {/* Thumbnail and Content */}
@@ -1044,7 +1019,7 @@ export default function PerksPage() {
                           </h3>
                           <p className="text-[#7D7D7D] body-medium font-abc-monument-regular mb-4">
                             {perk.description?.split(/[.!?]+/)[0].trim()}
-                            {perk.description?.match(/[.!?]/) ? '.' : ''}
+                            {perk.description?.match(/[.!?]/) ? "." : ""}
                           </p>
                         </div>
                       </div>
@@ -1065,8 +1040,8 @@ export default function PerksPage() {
                           }}
                           className="text-black body-small uppercase whitespace-nowrap font-abc-monument-regular"
                         >
-                          {address && (
-                            canAfford(perk) ? (
+                          {address &&
+                            (canAfford(perk) ? (
                               <Image
                                 src="/tier-eligible.svg"
                                 alt="Eligible for Tier"
@@ -1082,11 +1057,9 @@ export default function PerksPage() {
                                 height={12}
                                 className="inline-block"
                               />
-                            )
-                          )}
-                          {formatTierLabel(perk.points_threshold).split(' ')[0]}
+                            ))}
+                          {formatTierLabel(perk.points_threshold).split(" ")[0]}
                         </div>
-                        
 
                         {perk.end_date && (
                           <div
@@ -1154,7 +1127,7 @@ export default function PerksPage() {
                           }}
                           className="text-black body-small uppercase font-abc-monument-regular bg-white"
                         >
-                          <Clock className="w-4 h-4 flex-shrink-0"/>
+                          <Clock className="w-4 h-4 flex-shrink-0" />
                           <span className="whitespace-nowrap">{dateLabel}</span>
                         </div>
 
@@ -1174,8 +1147,11 @@ export default function PerksPage() {
                               borderRadius: "1000px",
                               border: "1px solid #EDEDED",
                               background: "#EDEDED",
-                              cursor: (!affordable || isExpired) ? "not-allowed" : "pointer",
-                              opacity: (!affordable || isExpired) ? 0.5 : 1,
+                              cursor:
+                                !affordable || isExpired
+                                  ? "not-allowed"
+                                  : "pointer",
+                              opacity: !affordable || isExpired ? 0.5 : 1,
                             }}
                             className="text-black body-small uppercase font-abc-monument-regular hover:bg-gray-50 transition-colors"
                             aria-label="View Details"
@@ -1209,7 +1185,6 @@ export default function PerksPage() {
                         )}
 
                       {/* Action Button */}
-                     
                     </div>
                   );
                 })
@@ -1242,7 +1217,7 @@ export default function PerksPage() {
           )}
 
           {!perksLoading && viewMode === "tiers" && (
-             <div className="space-y-1">
+            <div className="space-y-1">
               {tiers.map((tier) => {
                 const tierRange = tier.max_points
                   ? `${tier.min_points.toLocaleString()} - ${tier.max_points.toLocaleString()}`
@@ -1250,13 +1225,16 @@ export default function PerksPage() {
 
                 const tierPerks = [...perks]
                   .filter(
-                    (perk) => formatTierLabel(perk.points_threshold) === tier.title,
+                    (perk) =>
+                      formatTierLabel(perk.points_threshold) === tier.title,
                   )
-                  .sort((a, b) =>
-                    sortOption === "date-asc"
-                      ? new Date(a.end_date).getTime() - new Date(b.end_date).getTime()
-                      : new Date(b.end_date).getTime() - new Date(a.end_date).getTime(),
-                  );
+                  .sort((a, b) => {
+                    const aDate = getPerkEndTimestamp(a);
+                    const bDate = getPerkEndTimestamp(b);
+                    return sortOption === "date-asc"
+                      ? aDate - bDate
+                      : bDate - aDate;
+                  });
 
                 return (
                   <div
@@ -1285,17 +1263,22 @@ export default function PerksPage() {
                           height={16}
                           className="h-4 w-4"
                         />
-                        <span className="body-small text-[#313131]">{tierRange}</span>
+                        <span className="body-small text-[#313131]">
+                          {tierRange}
+                        </span>
                       </div>
                     </div>
                     <div className="body-medium text-[#7D7D7D] body-medium text-left">
                       {tier.description}
                     </div>
-                    <div 
-                      className="w-full border-t border-solid border-[#E2E2E2]" 
-                      style={{ marginLeft: '-16px', marginRight: '-16px' }}
+                    <div
+                      className="w-full border-t border-solid border-[#E2E2E2]"
+                      style={{ marginLeft: "-16px", marginRight: "-16px" }}
                     />
-                    <div className="flex items-center gap-2" style={{ marginTop: "1px" }}>
+                    <div
+                      className="flex items-center gap-2"
+                      style={{ marginTop: "1px" }}
+                    >
                       <Image
                         src="/guidance_reward.svg"
                         alt="Guidance Reward"
@@ -1308,31 +1291,35 @@ export default function PerksPage() {
                       </div>
                     </div>
                     {tierPerks.length > 0 ? (
-                      <div className="w-full overflow-x-auto" style={{ marginTop: "-8px" }}>
+                      <div
+                        className="w-full overflow-x-auto"
+                        style={{ marginTop: "-8px" }}
+                      >
                         <div className="flex gap-2 py-2 pr-4">
                           {tierPerks.map((tierPerk) => {
                             const tierPerkAffordable = canAfford(tierPerk);
                             /* const tierPerkExpired =
                               tierPerk.end_date &&
                               new Date(tierPerk.end_date) < new Date(); */
- 
-                             return (
-                               <div
-                                 key={tierPerk.id}
-                                 style={{
-                                   display: "flex",
-                                   width: "280px",
-                                   padding: "16px",
-                                   flexDirection: "column",
-                                   alignItems: "flex-start",
-                                   gap: "12px",
-                                   borderRadius: "16px",
-                                   border: "1px solid #EDEDED",
-                                   background: "#FFF",
-                                   flexShrink: 0,
-                                   boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
-                                 }}
-                               >
+
+                            return (
+                              <div
+                                key={tierPerk.id}
+                                style={{
+                                  display: "flex",
+                                  width: "280px",
+                                  padding: "16px",
+                                  flexDirection: "column",
+                                  alignItems: "flex-start",
+                                  gap: "12px",
+                                  borderRadius: "16px",
+                                  border: "1px solid #EDEDED",
+                                  background: "#FFF",
+                                  flexShrink: 0,
+                                  boxShadow:
+                                    "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+                                }}
+                              >
                                 <div className="flex w-full items-center gap-3">
                                   {tierPerk.thumbnail_url ? (
                                     <Image
@@ -1340,7 +1327,12 @@ export default function PerksPage() {
                                       alt={tierPerk.title}
                                       width={45}
                                       height={46}
-                                      style={{ width: "45px", height: "46px", borderRadius: "12px", objectFit: "cover" }}
+                                      style={{
+                                        width: "45px",
+                                        height: "46px",
+                                        borderRadius: "12px",
+                                        objectFit: "cover",
+                                      }}
                                     />
                                   ) : (
                                     <div className="flex h-[46px] w-[45px] items-center justify-center rounded-[12px] bg-[#F4F4F4] text-[10px] uppercase tracking-wide text-[#7D7D7D]">
@@ -1351,34 +1343,40 @@ export default function PerksPage() {
                                     {tierPerk.title}
                                   </h4>
                                 </div>
-                                <div className="flex w-full items-center gap-2" style={{ flexWrap: "nowrap" }}>
-                                   <span className="flex-1 inline-flex items-center justify-center gap-2 rounded-full border border-[#EDEDED] bg-[#ffffff] px-3 py-1 uppercase tracking-wide text-[#313131] body-small">
-                                     {address && (
-                                       tierPerkAffordable ? (
-                                         <Image
-                                           src="/tier-eligible.svg"
-                                           alt="Eligible"
-                                           width={12}
-                                           height={12}
-                                           className="h-3 w-3"
-                                         />
-                                       ) : (
-                                         <Image
-                                           src="/tier-ineligible.svg"
-                                           alt="Not Eligible"
-                                           width={12}
-                                           height={12}
-                                           className="h-3 w-3"
-                                         />
-                                       )
-                                     )}
-                                     <div className="body-small">{formatTierLabel(tierPerk.points_threshold)}</div>
-                                   </span>
-                                   <span className="flex-1 inline-flex items-center justify-center gap-2 body-small rounded-full border border-[#EDEDED] bg-[#ffffff] px-3 py-1 uppercase tracking-wide text-[#313131]">
+                                <div
+                                  className="flex w-full items-center gap-2"
+                                  style={{ flexWrap: "nowrap" }}
+                                >
+                                  <span className="flex-1 inline-flex items-center justify-center gap-2 rounded-full border border-[#EDEDED] bg-[#ffffff] px-3 py-1 uppercase tracking-wide text-[#313131] body-small">
+                                    {address &&
+                                      (tierPerkAffordable ? (
+                                        <Image
+                                          src="/tier-eligible.svg"
+                                          alt="Eligible"
+                                          width={12}
+                                          height={12}
+                                          className="h-3 w-3"
+                                        />
+                                      ) : (
+                                        <Image
+                                          src="/tier-ineligible.svg"
+                                          alt="Not Eligible"
+                                          width={12}
+                                          height={12}
+                                          className="h-3 w-3"
+                                        />
+                                      ))}
+                                    <div className="body-small">
+                                      {formatTierLabel(
+                                        tierPerk.points_threshold,
+                                      )}
+                                    </div>
+                                  </span>
+                                  <span className="flex-1 inline-flex items-center justify-center gap-2 body-small rounded-full border border-[#EDEDED] bg-[#ffffff] px-3 py-1 uppercase tracking-wide text-[#313131]">
                                     <Clock className="h-3 w-3" />
                                     {getPerkDateRange(tierPerk)}
                                   </span>
-                                 </div>
+                                </div>
                               </div>
                             );
                           })}
@@ -1393,357 +1391,355 @@ export default function PerksPage() {
                 );
               })}
             </div>
-
           )}
         </div>
 
         <div style={{ height: "100px" }} />
       </div>
 
-    <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
-      <DialogContent className="w-full max-w-lg border-none bg-[#313131] p-1 shadow-none [&>button]:hidden">
-        {selectedPerk && (
-          <div className="max-h-[90vh] overflow-y-auto space-y-1">
-            {/* Container 1: Close */}
-            <div className="w-full rounded-full border border-[#131313]/10 shadow-none bg-white p-2 flex items-center justify-center">
-              <DialogClose asChild>
-                <button
-                  className="text-black w-full rounded-full"
-                  style={{
-                    display: "flex",
-                    height: "48px",
-                    width: "48px",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    borderRadius: "9999px",
-                    background: "#FFF",
-                 
-                  }}
-                  aria-label="Close"
-                  type="button"
-                >
-                <Image
-                  src="/x-close.svg"
-                  alt="Close"
-                  width={24}
-                  height={24}
-                />
-                </button>
-              </DialogClose>
-            </div>
-
-            {/* Container 2: Media + title */}
-            <div className="w-full rounded-[26px] border border-[#131313]/10 bg-white p-6 text-center">
-              <div style={{ gap: "8px" }} className="flex flex-col">
-                 {( selectedPerk.thumbnail_url) && (
-                  <div className="mx-auto flex items-center justify-center rounded-[12px] bg-black overflow-hidden">
+      <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
+        <DialogContent className="w-full max-w-lg border-none bg-[#313131] p-1 shadow-none [&>button]:hidden">
+          {selectedPerk && (
+            <div className="max-h-[90vh] overflow-y-auto space-y-1">
+              {/* Container 1: Close */}
+              <div className="w-full rounded-full border border-[#131313]/10 shadow-none bg-white p-2 flex items-center justify-center">
+                <DialogClose asChild>
+                  <button
+                    className="text-black w-full rounded-full"
+                    style={{
+                      display: "flex",
+                      height: "48px",
+                      width: "48px",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      borderRadius: "9999px",
+                      background: "#FFF",
+                    }}
+                    aria-label="Close"
+                    type="button"
+                  >
                     <Image
-                      src={selectedPerk.thumbnail_url}
-                      alt={selectedPerk.title}
-                      width={127}
-                      height={129}
-                      className="object-cover"
-                      style={{
-                        width: "127px",
-                        height: "129px",
-                        aspectRatio: "127/129",
-                      }}
+                      src="/x-close.svg"
+                      alt="Close"
+                      width={24}
+                      height={24}
                     />
-                  </div>
-                )}
-                <div 
-                  className="title1 font-grotesk text-[#313131]"
-                  style={{
-                    display: "flex",
-                    padding: "8px 17px",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: "8px",
-                    alignSelf: "stretch",
-                    borderRadius: "24px",
-                  }}
-                >
-                  {selectedPerk.title}
-                </div>
+                  </button>
+                </DialogClose>
               </div>
-            </div>
 
-            {/* Container 3: Details */}
-            <div className="w-full rounded-[26px] border border-[#131313]/10 bg-white p-6 space-y-6 relative">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Info className="h-4 w-4" />
-                  <div className="body-small uppercase font-grotesk tracking-wide">
-                    Details
-                  </div>
-                </div>
-                <div className="body-medium leading-relaxed text-[#4F4F4F]">
-                  {selectedPerk.description?.trim() || "Details coming soon."}
-                </div>
-                {selectedPerk.location && !selectedPerkIsOnline && (
-                  <p className="flex items-center gap-2 text-xs font-inktrap uppercase tracking-wide text-gray-500">
-                    <MapPin className="h-3 w-3" />
-                    <span>Location: {selectedPerk.location}</span>
-                  </p>
-                )}
-                <div className="grid grid-cols-2 gap-2">
-                  <span 
-                    className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 body-small font-grotesk uppercase tracking-wide"
-                    style={{
-                      padding: "6px 8px",
-                      height: "28px",
-                    }}
-                  >
-                    <Info className="h-3 w-3" />
-                    {selectedPerk.type?.length ? selectedPerk.type : "Reward"}
-                  </span>
-                  <div 
-                    className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
-                    style={{
-                      padding: "6px 8px",
-                      height: "28px",
-                    }}
-                  >
-                  {selectedPerk.location ? (
-                    <>
-                      <MapPin className="h-3 w-3" />
-                      {selectedPerk.location}
-                    </>
-                  ) : (
-                    <>
-                      <MapPin className="h-3 w-3" />
-                      Not specified
-                    </>
-                  )}
-                  </div>
-                  <div 
-                    className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
-                    style={{
-                      padding: "6px 8px",
-                      height: "28px",
-                    }}
-                  >
-                    <Clock className="h-3 w-3" />
-                    {dateLabel}
-                  </div>
-                  
-                  {selectedPerk.website_url ? (
-                    <a
-                      href={selectedPerk.website_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex w-full items-center justify-between gap-2 rounded-full border bg-[#EDEDED] border-[#131313]/20 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide hover:underline"
-                      style={{
-                        padding: "6px 8px",
-                        height: "28px",
-                      }}
-                    >
-                      <span>View Website</span>
+              {/* Container 2: Media + title */}
+              <div className="w-full rounded-[26px] border border-[#131313]/10 bg-white p-6 text-center">
+                <div style={{ gap: "8px" }} className="flex flex-col">
+                  {selectedPerk.thumbnail_url && (
+                    <div className="mx-auto flex items-center justify-center rounded-[12px] bg-black overflow-hidden">
                       <Image
-                        src="/home/arrow-right.svg"
-                        alt="arrow-right"
-                        width={16}
-                        height={16}
-                        className="w-4 h-4"
+                        src={selectedPerk.thumbnail_url}
+                        alt={selectedPerk.title}
+                        width={127}
+                        height={129}
+                        className="object-cover"
+                        style={{
+                          width: "127px",
+                          height: "129px",
+                          aspectRatio: "127/129",
+                        }}
                       />
-                    </a>
-                  ) : (
-                    <span 
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-gray-400 body-small font-grotesk uppercase tracking-wide"
-                      style={{
-                        padding: "6px 8px",
-                        height: "28px",
-                      }}
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      View Website
-                    </span>
+                    </div>
                   )}
+                  <div
+                    className="title1 font-grotesk text-[#313131]"
+                    style={{
+                      display: "flex",
+                      padding: "8px 17px",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      gap: "8px",
+                      alignSelf: "stretch",
+                      borderRadius: "24px",
+                    }}
+                  >
+                    {selectedPerk.title}
+                  </div>
                 </div>
               </div>
-              <div 
-                className="absolute border-t border-solid border-[#131313]/20" 
-                style={{ 
-                  left: "-24px",
-                  right: "-24px"
-                }} 
-              />
-              <div style={{ height: "1px" }} />
-              
-              {/* Claim Section - Only visible if user is logged in and eligible */}
-              {address && selectedPerk && canAfford(selectedPerk) && (
-                <>
-                  <div className="space-y-4">
-                    {/* Row 1: Header */}
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src="/guidance_reward.svg"
-                        alt="Guidance Reward"
-                        width={16}
-                        height={16}
-                        className="h-4 w-4"
-                      />
-                      <span className="body-small font-abc-monument-regular uppercase tracking-wide text-[#313131]">
-                        CLAIM
-                      </span>
+
+              {/* Container 3: Details */}
+              <div className="w-full rounded-[26px] border border-[#131313]/10 bg-white p-6 space-y-6 relative">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Info className="h-4 w-4" />
+                    <div className="body-small uppercase font-grotesk tracking-wide">
+                      Details
+                    </div>
+                  </div>
+                  <div className="body-medium leading-relaxed text-[#4F4F4F]">
+                    {selectedPerk.description?.trim() || "Details coming soon."}
+                  </div>
+                  {selectedPerk.location && !selectedPerkIsOnline && (
+                    <p className="flex items-center gap-2 text-xs font-inktrap uppercase tracking-wide text-gray-500">
+                      <MapPin className="h-3 w-3" />
+                      <span>Location: {selectedPerk.location}</span>
+                    </p>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <span
+                      className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 body-small font-grotesk uppercase tracking-wide"
+                      style={{
+                        padding: "6px 8px",
+                        height: "28px",
+                      }}
+                    >
+                      <Info className="h-3 w-3" />
+                      {selectedPerk.type?.length ? selectedPerk.type : "Reward"}
+                    </span>
+                    <div
+                      className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
+                      style={{
+                        padding: "6px 8px",
+                        height: "28px",
+                      }}
+                    >
+                      {selectedPerk.location ? (
+                        <>
+                          <MapPin className="h-3 w-3" />
+                          {selectedPerk.location}
+                        </>
+                      ) : (
+                        <>
+                          <MapPin className="h-3 w-3" />
+                          Not specified
+                        </>
+                      )}
+                    </div>
+                    <div
+                      className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
+                      style={{
+                        padding: "6px 8px",
+                        height: "28px",
+                      }}
+                    >
+                      <Clock className="h-3 w-3" />
+                      {dateLabel}
                     </div>
 
-                    {/* Row 2: Instructions */}
-                    <p className="body-medium text-[#4F4F4F]">
-                      {isCodeUrl(selectedDiscountCode)
-                        ? "Click the link to claim your reward."
-                        : `Click the link and use code ${selectedDiscountCode} to claim your reward.`}
-                    </p>
-
-                    {/* Row 3: Pills */}
-                    {isCodeUrl(selectedDiscountCode) ? (
-                      /* Full width claim button when code is a URL */
-                      <div className="w-full">
-                        {claimUrl ? (
-                          <a
-                            href={claimUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex w-full items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-pleasure uppercase tracking-wide text-white hover:bg-[#313131] transition-colors"
-                          >
-                            <h4 className="text-left">Claim Reward</h4>
-                            <Image
-                              src="/guidance-up-right.svg"
-                              alt="Up Right"
-                              width={16}
-                              height={16}
-                              className="h-4 w-4"
-                            />
-                          </a>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled
-                            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-pleasure uppercase tracking-wide text-gray-500 cursor-not-allowed"
-                          >
-                            <h4>Claim Reward</h4>
-                          </button>
-                        )}
-                      </div>
+                    {selectedPerk.website_url ? (
+                      <a
+                        href={selectedPerk.website_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex w-full items-center justify-between gap-2 rounded-full border bg-[#EDEDED] border-[#131313]/20 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide hover:underline"
+                        style={{
+                          padding: "6px 8px",
+                          height: "28px",
+                        }}
+                      >
+                        <span>View Website</span>
+                        <Image
+                          src="/home/arrow-right.svg"
+                          alt="arrow-right"
+                          width={16}
+                          height={16}
+                          className="w-4 h-4"
+                        />
+                      </a>
                     ) : (
-                      /* Two pills when code is not a URL */
-                      <div className="flex gap-2">
-                        {/* Pill 1: Code with Copy */}
-                        <button
-                          type="button"
-                          onClick={handleCopyCode}
-                          className="inline-flex items-center justify-between gap-2 rounded-full border font-pleasure border-[#131313]/20 bg-white px-4 py-2 body-small uppercase tracking-wide text-[#313131] hover:bg-gray-50 transition-colors flex-1"
-                        >
-                          <span>{selectedDiscountCode?.slice(0, 20) || ""}</span>
-                          <Copy className="h-4 w-4" />
-                        </button>
-
-                        {/* Pill 2: Claim Reward */}
-                        {claimUrl ? (
-                          <a
-                            href={claimUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-pleasure uppercase tracking-wide text-white hover:bg-[#313131] transition-colors flex-1"
-                          >
-                            <span className="text-left">Claim Reward</span>
-                            <Image
-                              src="/guidance-up-right.svg"
-                              alt="Up Right"
-                              width={16}
-                              height={16}
-                              className="h-4 w-4"
-                            />
-                          </a>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled
-                            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-pleasure uppercase tracking-wide text-gray-500 cursor-not-allowed flex-1"
-                          >
-                            Claim Reward
-                          </button>
-                        )}
-                      </div>
+                      <span
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-gray-400 body-small font-grotesk uppercase tracking-wide"
+                        style={{
+                          padding: "6px 8px",
+                          height: "28px",
+                        }}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View Website
+                      </span>
                     )}
                   </div>
-
-                  <div 
-                    className="absolute border-t border-solid border-[#131313]/20" 
-                    style={{ 
-                      left: "-24px",
-                      right: "-24px"
-                    }} 
-                  />
-                  <div style={{ height: "1px" }} />
-                </>
-              )}
-
-            
-              <div style={{ height: "1px" }} />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 body-small font-grotesk uppercase tracking-wide text-[#7D7D7D]">
-                  <Trophy className="h-4 w-4" />
-                  <span>Tier Required</span>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313]/5 px-4 py-2 body-small font-grotesk uppercase tracking-wide">
-                  {address && (
-                    selectedPerkAffordable ? (
-                      <Image
-                        src="/tier-eligible.svg"
-                        alt="Eligible"
-                        width={12}
-                        height={12}
-                        className="h-3 w-3"
-                      />
-                    ) : (
-                      <Image
-                        src="/tier-ineligible.svg"
-                        alt="Not Eligible"
-                        width={12}
-                        height={12}
-                        className="h-3 w-3"
-                      />
-                    )
-                  )}
-                  {tierLabel}
+                <div
+                  className="absolute border-t border-solid border-[#131313]/20"
+                  style={{
+                    left: "-24px",
+                    right: "-24px",
+                  }}
+                />
+                <div style={{ height: "1px" }} />
+
+                {/* Claim Section - Only visible if user is logged in and eligible */}
+                {address && selectedPerk && canAfford(selectedPerk) && (
+                  <>
+                    <div className="space-y-4">
+                      {/* Row 1: Header */}
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src="/guidance_reward.svg"
+                          alt="Guidance Reward"
+                          width={16}
+                          height={16}
+                          className="h-4 w-4"
+                        />
+                        <span className="body-small font-abc-monument-regular uppercase tracking-wide text-[#313131]">
+                          CLAIM
+                        </span>
+                      </div>
+
+                      {/* Row 2: Instructions */}
+                      <p className="body-medium text-[#4F4F4F]">
+                        {isCodeUrl(selectedDiscountCode)
+                          ? "Click the link to claim your reward."
+                          : `Click the link and use code ${selectedDiscountCode} to claim your reward.`}
+                      </p>
+
+                      {/* Row 3: Pills */}
+                      {isCodeUrl(selectedDiscountCode) ? (
+                        /* Full width claim button when code is a URL */
+                        <div className="w-full">
+                          {claimUrl ? (
+                            <a
+                              href={claimUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex w-full items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-pleasure uppercase tracking-wide text-white hover:bg-[#313131] transition-colors"
+                            >
+                              <h4 className="text-left">Claim Reward</h4>
+                              <Image
+                                src="/guidance-up-right.svg"
+                                alt="Up Right"
+                                width={16}
+                                height={16}
+                                className="h-4 w-4"
+                              />
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-pleasure uppercase tracking-wide text-gray-500 cursor-not-allowed"
+                            >
+                              <h4>Claim Reward</h4>
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        /* Two pills when code is not a URL */
+                        <div className="flex gap-2">
+                          {/* Pill 1: Code with Copy */}
+                          <button
+                            type="button"
+                            onClick={handleCopyCode}
+                            className="inline-flex items-center justify-between gap-2 rounded-full border font-pleasure border-[#131313]/20 bg-white px-4 py-2 body-small uppercase tracking-wide text-[#313131] hover:bg-gray-50 transition-colors flex-1"
+                          >
+                            <span>
+                              {selectedDiscountCode?.slice(0, 20) || ""}
+                            </span>
+                            <Copy className="h-4 w-4" />
+                          </button>
+
+                          {/* Pill 2: Claim Reward */}
+                          {claimUrl ? (
+                            <a
+                              href={claimUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-pleasure uppercase tracking-wide text-white hover:bg-[#313131] transition-colors flex-1"
+                            >
+                              <span className="text-left">Claim Reward</span>
+                              <Image
+                                src="/guidance-up-right.svg"
+                                alt="Up Right"
+                                width={16}
+                                height={16}
+                                className="h-4 w-4"
+                              />
+                            </a>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-pleasure uppercase tracking-wide text-gray-500 cursor-not-allowed flex-1"
+                            >
+                              Claim Reward
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div
+                      className="absolute border-t border-solid border-[#131313]/20"
+                      style={{
+                        left: "-24px",
+                        right: "-24px",
+                      }}
+                    />
+                    <div style={{ height: "1px" }} />
+                  </>
+                )}
+
+                <div style={{ height: "1px" }} />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 body-small font-grotesk uppercase tracking-wide text-[#7D7D7D]">
+                    <Trophy className="h-4 w-4" />
+                    <span>Tier Required</span>
+                  </div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313]/5 px-4 py-2 body-small font-grotesk uppercase tracking-wide">
+                    {address &&
+                      (selectedPerkAffordable ? (
+                        <Image
+                          src="/tier-eligible.svg"
+                          alt="Eligible"
+                          width={12}
+                          height={12}
+                          className="h-3 w-3"
+                        />
+                      ) : (
+                        <Image
+                          src="/tier-ineligible.svg"
+                          alt="Not Eligible"
+                          width={12}
+                          height={12}
+                          className="h-3 w-3"
+                        />
+                      ))}
+                    {tierLabel}
+                  </div>
                 </div>
+                {selectedTierInfo && (
+                  <p className="text-xs text-gray-500">
+                    {selectedTierInfo.description}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleViewAllTiersClick}
+                  className="flex items-center justify-center title4 gap-4 font-grotesk text-black underline-offset-4 hover:underline"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "16px",
+                    borderBottom: "1px solid #313131",
+                    marginInline: "auto",
+                  }}
+                >
+                  View all tiers
+                  <span>
+                    <Image
+                      src="/arrow-right.svg"
+                      alt="Arrow Right"
+                      width={16}
+                      height={16}
+                      className="h-4 w-4 text-black dark:text-white"
+                      aria-hidden="true"
+                    />
+                  </span>
+                </button>
               </div>
-              {selectedTierInfo && (
-                <p className="text-xs text-gray-500">
-                  {selectedTierInfo.description}
-                </p>
-              )}
-              <button
-                type="button"
-                onClick={handleViewAllTiersClick}
-                className="flex items-center justify-center title4 gap-4 font-grotesk text-black underline-offset-4 hover:underline"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "16px",
-                  borderBottom: "1px solid #313131",
-                  marginInline: "auto",
-                }}
-              >
-                View all tiers
-                <span>
-                  <Image
-                    src="/arrow-right.svg"
-                    alt="Arrow Right"
-                    width={16}
-                    height={16}
-                    className="h-4 w-4 text-black dark:text-white"
-                    aria-hidden="true"
-                  />
-                </span>
-              </button>
             </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  </div>
-);
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }

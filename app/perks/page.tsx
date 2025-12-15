@@ -1,7 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-// Button was unused here; removing import to satisfy lint
 import type { Perk } from "@/lib/types";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
@@ -9,6 +7,12 @@ import { Tag, Clock, MapPin, ExternalLink, Gift } from "lucide-react";
 
 import { useState, useEffect } from "react";
 import MapNav from "@/components/map/mapnav";
+import {
+  usePerks,
+  useAvailableCodesCount,
+  useUserRedemptions,
+} from "@/hooks/usePerks";
+import { useCurrentPlayer } from "@/hooks/usePlayer";
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {
@@ -69,16 +73,7 @@ const TimeLeft = ({
 };
 
 const PerkCodeCount = ({ perkId }: { perkId: string }) => {
-  const { data: availableCount = 0 } = useQuery({
-    queryKey: ["available-codes", perkId],
-    queryFn: async () => {
-      const response = await fetch(`/api/perks/${perkId}/available-count`);
-      if (!response.ok)
-        throw new Error("Failed to fetch available codes count");
-      const data = await response.json();
-      return data.count;
-    },
-  });
+  const { data: availableCount = 0 } = useAvailableCodesCount(perkId);
 
   return (
     <div className="flex items-center text-xs text-gray-600">
@@ -93,43 +88,15 @@ export default function PerksPage() {
   const address = user?.wallet?.address;
 
   // Fetch all active perks
-  const { data: perks = [], isLoading: perksLoading } = useQuery({
-    queryKey: ["perks"],
-    queryFn: async () => {
-      const response = await fetch("/api/perks?activeOnly=true");
-      if (!response.ok) throw new Error("Failed to fetch perks");
-      const data = await response.json();
-      return data.perks;
-    },
-  });
+  const { data: perks = [], isLoading: perksLoading } = usePerks(true);
 
   // Fetch user's points
-  const { data: userStats } = useQuery({
-    queryKey: ["user-stats", address],
-    queryFn: async () => {
-      const response = await fetch(`/api/player?walletAddress=${address}`);
-      if (!response.ok) throw new Error("Failed to fetch player stats");
-      const data = await response.json();
-      return data.player;
-    },
-    enabled: !!address,
-  });
+  const { data: player } = useCurrentPlayer();
 
   // Fetch user's redemptions
-  const { data: userRedemptions = [] } = useQuery({
-    queryKey: ["user-redemptions", address],
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/user/redemptions?walletAddress=${address}`,
-      );
-      if (!response.ok) throw new Error("Failed to fetch user redemptions");
-      const data = await response.json();
-      return data.redemptions;
-    },
-    enabled: !!address,
-  });
+  const { data: userRedemptions = [] } = useUserRedemptions(address);
 
-  const userPoints = userStats?.total_points || 0;
+  const userPoints = player?.total_points || 0;
 
   const canAfford = (perk: Perk) => userPoints >= perk.points_threshold;
 
@@ -211,12 +178,14 @@ export default function PerksPage() {
               {perks.length > 0 ? (
                 perks.map((perk) => {
                   const affordable = !address || canAfford(perk);
-                  const isExpired =
-                    perk.end_date && new Date(perk.end_date) < new Date();
-                  const isExpiringSoon =
+                  const isExpired = Boolean(
+                    perk.end_date && new Date(perk.end_date) < new Date()
+                  );
+                  const isExpiringSoon = Boolean(
                     perk.end_date &&
-                    new Date(perk.end_date) <
-                      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                      new Date(perk.end_date) <
+                        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                  );
                   const userRedeemed = perk.id ? hasRedeemed(perk.id) : false;
 
                   return (
