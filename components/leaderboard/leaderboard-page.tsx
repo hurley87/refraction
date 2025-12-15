@@ -75,13 +75,37 @@ export default function LeaderboardPage() {
         );
         const result = await response.json();
 
-        if (response.ok && result.leaderboard) {
-          setLeaderboardData(result.leaderboard);
-          if (result.pagination) {
-            setPagination(result.pagination);
+        // API response is wrapped in { success: true, data: { leaderboard: [...], pagination: {...} } }
+        const apiData = result.data || result;
+        
+        console.log("[LeaderboardPage] API Response:", {
+          ok: response.ok,
+          status: response.status,
+          success: result.success,
+          hasData: !!result.data,
+          hasLeaderboard: !!apiData.leaderboard,
+          leaderboardLength: apiData.leaderboard?.length,
+          leaderboardType: typeof apiData.leaderboard,
+          isArray: Array.isArray(apiData.leaderboard),
+          firstEntry: apiData.leaderboard?.[0],
+        });
+
+        if (response.ok && result.success && apiData.leaderboard) {
+          console.log("[LeaderboardPage] Setting leaderboard data:", apiData.leaderboard);
+          setLeaderboardData(apiData.leaderboard);
+          if (apiData.pagination) {
+            setPagination(apiData.pagination);
           }
           // Scroll to top when page changes
           window.scrollTo({ top: 0, behavior: "smooth" });
+        } else {
+          console.warn("[LeaderboardPage] Invalid response:", {
+            ok: response.ok,
+            success: result.success,
+            hasData: !!result.data,
+            hasLeaderboard: !!apiData.leaderboard,
+            result,
+          });
         }
       } catch (error) {
         console.error("Error loading leaderboard:", error);
@@ -118,8 +142,16 @@ export default function LeaderboardPage() {
 
         if (response.ok) {
           const result = await response.json();
-          const player = result.player;
-          console.table(player);
+          // API response is wrapped in { success: true, data: { player: {...} } }
+          const apiData = result.data || result;
+          const player = apiData.player;
+          
+          console.log("[LeaderboardPage] Player API response:", {
+            success: result.success,
+            hasData: !!result.data,
+            hasPlayer: !!player,
+            player,
+          });
 
           if (player) {
             // Get user's actual rank from database
@@ -130,20 +162,38 @@ export default function LeaderboardPage() {
             let actualRank = 999;
             if (rankResponse.ok) {
               const rankResult = await rankResponse.json();
-              actualRank = rankResult.rank || 999;
+              // API response is wrapped in { success: true, data: { rank, total_points } }
+              const rankData = rankResult.data || rankResult;
+              actualRank = rankData.rank ?? 999;
+              console.log("[LeaderboardPage] User rank response:", {
+                success: rankResult.success,
+                rankData,
+                actualRank,
+              });
+            } else {
+              console.warn("[LeaderboardPage] Rank API failed:", rankResponse.status);
             }
+
+            const userPoints = player.total_points ?? 0;
+            console.log("[LeaderboardPage] Setting user stats:", {
+              rank: actualRank,
+              total_points: userPoints,
+            });
 
             setUserStats({
               rank: actualRank,
-              total_points: player.total_points || 0,
+              total_points: userPoints,
             });
           } else {
             // New user with no data
+            console.log("[LeaderboardPage] No player found, setting default stats");
             setUserStats({
               rank: 999,
               total_points: 0,
             });
           }
+        } else {
+          console.warn("[LeaderboardPage] Player API failed:", response.status);
         }
       } catch (error) {
         console.error("Error fetching user stats:", error);

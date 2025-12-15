@@ -61,10 +61,13 @@ export default function Leaderboard({
         );
         const result = await response.json();
 
-        if (response.ok && result.leaderboard) {
-          setLeaderboardData(result.leaderboard);
-          if (result.pagination) {
-            setPagination(result.pagination);
+        // API response is wrapped in { success: true, data: { leaderboard: [...], pagination: {...} } }
+        const apiData = result.data || result;
+
+        if (response.ok && result.success && apiData.leaderboard) {
+          setLeaderboardData(apiData.leaderboard);
+          if (apiData.pagination) {
+            setPagination(apiData.pagination);
           }
         }
       } catch (error) {

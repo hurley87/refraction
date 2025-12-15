@@ -20,18 +20,29 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
+  WITH ranked_players AS (
+    SELECT 
+      p.id,
+      p.wallet_address,
+      p.username,
+      p.email,
+      COALESCE(p.total_points, 0) as total_points,
+      COALESCE(COUNT(plc.id), 0) as total_checkins,
+      DENSE_RANK() OVER (ORDER BY COALESCE(p.total_points, 0) DESC) as rank
+    FROM players p
+    LEFT JOIN player_location_checkins plc ON p.id = plc.player_id
+    GROUP BY p.id, p.wallet_address, p.username, p.email, p.total_points
+  )
   SELECT 
-    p.id::integer,
-    p.wallet_address,
-    p.username,
-    p.email,
-    p.total_points::integer,
-    COALESCE(COUNT(plc.id), 0) as checkin_count,
-    (page_offset + ROW_NUMBER() OVER (ORDER BY p.total_points DESC, p.id ASC))::integer as player_rank
-  FROM players p
-  LEFT JOIN player_location_checkins plc ON p.id = plc.player_id
-  GROUP BY p.id, p.wallet_address, p.username, p.email, p.total_points
-  ORDER BY p.total_points DESC, p.id ASC
+    ranked_players.id::integer as player_id,
+    ranked_players.wallet_address::text,
+    ranked_players.username::text,
+    ranked_players.email::text,
+    ranked_players.total_points::integer,
+    ranked_players.total_checkins::bigint,
+    ranked_players.rank::integer
+  FROM ranked_players
+  ORDER BY ranked_players.rank ASC, ranked_players.id ASC
   LIMIT page_limit
   OFFSET page_offset;
 END;
