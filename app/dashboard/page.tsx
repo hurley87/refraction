@@ -7,8 +7,7 @@ import MapNav from "@/components/map/mapnav";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  useCurrentPlayer,
-  usePlayerRank,
+  useUserStats,
   usePlayerActivities,
 } from "@/hooks/usePlayer";
 import Transactions from "@/components/transactions";
@@ -34,12 +33,11 @@ export default function DashboardPage() {
   const router = useRouter();
   const currentUserAddress = user?.wallet?.address;
 
-  // Use new hooks for data fetching
-  const { data: player, isLoading: isLoadingPlayer } =
-    useCurrentPlayer();
-  const { data: rank, isLoading: isLoadingRank } = usePlayerRank(
+  // Use reusable hook for user stats (rank and points)
+  const { userStats, isLoading: isLoadingUserStats } = useUserStats(
     currentUserAddress
   );
+
   const {
     data: activities = [],
     isLoading: isLoadingActivities,
@@ -63,15 +61,6 @@ export default function DashboardPage() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // Compute user stats from hooks
-  const isLoadingUserStats = isLoadingPlayer || isLoadingRank;
-  const userStats = player
-    ? {
-        rank: rank ?? 999,
-        total_points: player.total_points || 0,
-      }
-    : null;
 
   // Not logged in state
   if (ready && !user) {

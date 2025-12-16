@@ -75,3 +75,60 @@ export function usePlayerActivities(address?: string, limit = 20) {
   });
 }
 
+/**
+ * Interface for user stats (rank and points)
+ */
+export interface UserStats {
+  rank: number;
+  total_points: number;
+}
+
+/**
+ * Hook to fetch combined user stats (rank and points)
+ * Returns a unified interface with loading state and default values for new users
+ * 
+ * @param address - Optional wallet address. If not provided, uses current authenticated user's address
+ */
+export function useUserStats(address?: string) {
+  const { user } = usePrivy();
+  const walletAddress = address || user?.wallet?.address;
+  
+  // Fetch player data - use address if provided, otherwise use current player hook
+  const playerQuery = useQuery({
+    queryKey: ['player', walletAddress],
+    queryFn: async () => {
+      if (!walletAddress) return null;
+      return apiClient<{ player: Player }>(
+        `/api/player?walletAddress=${encodeURIComponent(walletAddress)}`
+      ).then((data) => data.player);
+    },
+    enabled: !!walletAddress,
+  });
+
+  const { data: rank, isLoading: isLoadingRank } = usePlayerRank(walletAddress);
+
+  const isLoading = playerQuery.isLoading || isLoadingRank;
+
+  // Compute user stats with defaults for new users
+  // If player data exists, use it; otherwise return defaults for new users
+  const userStats: UserStats | null = walletAddress
+    ? playerQuery.data
+      ? {
+          // Player data exists - use actual values
+          rank: rank ?? 999,
+          total_points: playerQuery.data.total_points || 0,
+        }
+      : {
+          // No player data yet (new user or still loading) - return defaults
+          // This ensures we always have a value to display, even during loading
+          rank: 999,
+          total_points: 0,
+        }
+    : null;
+
+  return {
+    userStats,
+    isLoading,
+  };
+}
+
