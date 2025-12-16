@@ -489,9 +489,11 @@ export default function ProfileMenu({
                   {isLoadingProfile ? (
                     <div className="w-full h-full bg-gray-300 animate-pulse"></div>
                   ) : profile.profile_picture_url ? (
-                    <img
+                    <Image
                       src={profile.profile_picture_url}
                       alt="Profile"
+                      width={96}
+                      height={96}
                       className="w-full h-full object-cover"
                     />
                   ) : (

@@ -7,11 +7,7 @@ import Image from "next/image";
 import MapNav from "@/components/map/mapnav";
 import Link from "next/link";
 import LeaderboardAvatar from "@/components/leaderboard-avatar";
-
-interface UserStats {
-  rank: number;
-  total_points: number;
-}
+import { useUserStats } from "@/hooks/usePlayer";
 
 interface LeaderboardUser {
   player_id: number;
@@ -48,9 +44,14 @@ const getOrdinalSuffix = (num: number): string => {
 
 export default function LeaderboardPage() {
   const { user } = usePrivy();
+  const currentUserAddress = user?.wallet?.address;
+  const currentUsername = user?.google?.name || user?.twitter?.name;
 
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
+  // Use the reusable hook for user stats
+  const { userStats, isLoading: isLoadingUserStats } = useUserStats(
+    currentUserAddress
+  );
+
   const [showJumpButton, setShowJumpButton] = useState(false);
   const [hasJumpedToUser, setHasJumpedToUser] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,8 +64,6 @@ export default function LeaderboardPage() {
     total: 0,
     totalPages: 0,
   });
-  const currentUserAddress = user?.wallet?.address;
-  const currentUsername = user?.google?.name || user?.twitter?.name;
 
   // Fetch leaderboard data with pagination
   const fetchLeaderboardPage = useCallback(
@@ -130,87 +129,6 @@ export default function LeaderboardPage() {
     }
   };
 
-  // Fetch current user's stats
-  useEffect(() => {
-    const loadUserStats = async () => {
-      if (!currentUserAddress) return;
-
-      setIsLoadingUserStats(true);
-      try {
-        const response = await fetch(
-          `/api/player?walletAddress=${encodeURIComponent(currentUserAddress)}`,
-        );
-
-        if (response.ok) {
-          const result = await response.json();
-          // API response is wrapped in { success: true, data: { player: {...} } }
-          const apiData = result.data || result;
-          const player = apiData.player;
-          
-          console.log("[LeaderboardPage] Player API response:", {
-            success: result.success,
-            hasData: !!result.data,
-            hasPlayer: !!player,
-            player,
-          });
-
-          if (player) {
-            // Get user's actual rank from database
-            const rankResponse = await fetch(
-              `/api/player/rank?walletAddress=${encodeURIComponent(currentUserAddress)}`,
-            );
-
-            let actualRank = 999;
-            if (rankResponse.ok) {
-              const rankResult = await rankResponse.json();
-              // API response is wrapped in { success: true, data: { rank, total_points } }
-              const rankData = rankResult.data || rankResult;
-              actualRank = rankData.rank ?? 999;
-              console.log("[LeaderboardPage] User rank response:", {
-                success: rankResult.success,
-                rankData,
-                actualRank,
-              });
-            } else {
-              console.warn("[LeaderboardPage] Rank API failed:", rankResponse.status);
-            }
-
-            const userPoints = player.total_points ?? 0;
-            console.log("[LeaderboardPage] Setting user stats:", {
-              rank: actualRank,
-              total_points: userPoints,
-            });
-
-            setUserStats({
-              rank: actualRank,
-              total_points: userPoints,
-            });
-          } else {
-            // New user with no data
-            console.log("[LeaderboardPage] No player found, setting default stats");
-            setUserStats({
-              rank: 999,
-              total_points: 0,
-            });
-          }
-        } else {
-          console.warn("[LeaderboardPage] Player API failed:", response.status);
-        }
-      } catch (error) {
-        console.error("Error fetching user stats:", error);
-        setUserStats({
-          rank: 999,
-          total_points: 0,
-        });
-      } finally {
-        setIsLoadingUserStats(false);
-      }
-    };
-
-    if (currentUserAddress && leaderboardData.length > 0) {
-      loadUserStats();
-    }
-  }, [currentUserAddress, leaderboardData]);
 
   // Handle scroll detection for Jump To button
   useEffect(() => {

@@ -1,0 +1,285 @@
+Unused Images in public/ directory
+Generated: 2025-01-27
+
+public/Prism SVG/Standard Double Spectrum 1.svg
+public/Prism SVG/Standard Double Spectrum 2.svg
+public/Prism SVG/Standard Double Spectrum 3.svg
+public/Prism SVG/Standard Double Spectrum 4.svg
+public/Prism SVG/Standard Double Spectrum 5.svg
+public/Prism SVG/Standard Single Black.svg
+public/Prism SVG/Standard Single Spectrum 1.svg
+public/Prism SVG/Standard Single Spectrum 2.svg
+public/Prism SVG/Standard Single Spectrum 3.svg
+public/Prism SVG/Standard Single Spectrum 4.svg
+public/Prism SVG/Standard Single Spectrum 5.svg
+public/Prism SVG/double_black.svg
+public/Prism SVG/double_white.svg
+public/Prism SVG/single_white.svg
+public/Reward 3/file-icons_telegram.svg
+public/Stencil.svg
+public/Success Animation.png
+public/artists1.svg
+public/artists10.svg
+public/artists11.svg
+public/artists12.svg
+public/artists13.svg
+public/artists14.svg
+public/artists15.svg
+public/artists16.svg
+public/artists17.svg
+public/artists2.svg
+public/artists3.svg
+public/artists4.svg
+public/artists5.svg
+public/artists6.svg
+public/artists7.svg
+public/artists8.svg
+public/artists9.svg
+public/bg-checkin.png
+public/bg.png
+public/bhx.png
+public/build.png
+public/case-studies/mutek-montreal/Photomode cadrer le jeu présenté par Ubisoft _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi (1).jpg
+public/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-185.jpg
+public/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-232.jpg
+public/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-244.jpg
+public/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-265.jpg
+public/challenges/challenge-quest.png
+public/challenges/daily.svg
+public/challenges/points-streak-modal.svg
+public/challenges/points-streak.svg
+public/challenges/telegram-32.png
+public/challenges/weekly.png
+public/checkpoint.svg
+public/checkpoint1.svg
+public/community-rings.svg
+public/denver.svg
+public/double_black.svg
+public/double_white.svg
+public/events/ResidentAdvisor_logo.png
+public/events/codexculture.png
+public/events/miami-dec-2025/ciao-dany.png
+public/events/miami-dec-2025/discoteca-alegria.png
+public/events/miami-dec-2025/stellar-house-miami-afterparty.png
+public/events/miami-dec-2025/stellar-house-miami.png
+public/events/miami-dec-2025/suero.png
+public/events/miami-dec-2025/where-are-my-keys.png
+public/events/ra-red.jpeg
+public/events/ra.png
+public/events/refraction-devconnect-2.png
+public/events/refraction-devconnect.png
+public/events.svg
+public/favicons/FAVICON/IRL - FAVICON LOGO_16x16.png
+public/favicons/FAVICON/IRL - FAVICON LOGO_16x16.svg
+public/favicons/FAVICON/IRL - FAVICON LOGO_180x180.png
+public/favicons/FAVICON/IRL - FAVICON LOGO_32x32.png
+public/favicons/FAVICON/IRL - FAVICON LOGO_32x32.svg
+public/footer-image.png
+public/guidance_down-chevron.svg
+public/home/airdrop.png
+public/home/hero.png
+public/images/$IRL_PRIMARY LOGO + WOODMARK_BLACK.svg
+public/images/$IRL_PRIMARY LOGO ICON + WOODMARK_BLACK.svg
+public/images/$IRL_PRIMARY LOGO ICON_BLACK.svg
+public/images/$IRL_PRIMARY LOGO_BLACK.svg
+public/images/$IRL_SECONDARY LOGO + WOODMARK_BLACK.svg
+public/images/$IRL_SECONDARY LOGO ICON + WOODMARK_BLACK.svg
+public/images/$IRL_SECONDARY LOGO ICON_BLACK.svg
+public/images/$IRL_SECONDARY LOGO_BLACK.svg
+public/images/$IRL_SYMBOLS_BLACK_2.svg
+public/images/$IRL_SYMBOLS_BLACK_3.svg
+public/images/$IRL_SYMBOLS_BLACK_4.svg
+public/images/$IRL_SYMBOLS_BLACK_5.svg
+public/images/$IRL_SYMBOLS_BLACK_6.svg
+public/images/$IRL_SYMBOLS_WHITE_4.svg
+public/images/$IRL_SYMBOLS_WHITE_5.svg
+public/images/$IRL_SYMBOLS_WHITE_6.svg
+public/images/$IRL_VENUE MAP_2ND FLOOR_GRADIENT.png
+public/images/$IRL_VENUE MAP_2ND FLOOR_TRANSPARENT.png
+public/images/$IRL_VENUE MAP_3RD FLOOR_GRADIENT-2.png
+public/images/$IRL_VENUE MAP_3RD FLOOR_TRANSPARENT-2.png
+public/images/Aptika QR Code 1.png
+public/images/Frame 3.png
+public/images/Frame-3-logged-in.png
+public/images/IRL Rings.svg
+public/images/Ledger 106 Experience NFT Paris copy 2.png
+public/images/Mask group.png
+public/images/arrow.png
+public/images/call_out_image.png
+public/images/call_out_vector.png
+public/images/callout-gradient-overlay.png
+public/images/checkpoint1-blockText.png
+public/images/checkpoint1-completedImage.png
+public/images/checkpoint1-completedText.png
+public/images/checkpoint1-image.png
+public/images/checkpoint2-blockText.png
+public/images/checkpoint2-completedImage.png
+public/images/checkpoint2-completedText.png
+public/images/checkpoint2-image.png
+public/images/checkpoint3-blockText.png
+public/images/checkpoint3-completedImage.png
+public/images/checkpoint3-completedText.png
+public/images/checkpoint3-image.png
+public/images/checkpoint_confirmed.png
+public/images/checkpoint_pending.png
+public/images/discord.png
+public/images/farcaster.png
+public/images/footer-logo.png
+public/images/icons8-instagram.svg
+public/images/icons8-linkedin.svg
+public/images/icons8-twitterx.svg
+public/images/ikaro.png
+public/images/imagery.png
+public/images/instagram.png
+public/images/irl-app.svg
+public/images/irl-card.png
+public/images/irl-landing-logo.png
+public/images/irl-memberships-1.png
+public/images/irl-memberships-2.png
+public/images/irl-memberships-3.png
+public/images/irl-phone-mockup.png
+public/images/irl-powered-by-refraction.svg
+public/images/irl-token.png
+public/images/irl-tshirt-mockup.png
+public/images/irl-tshirt.svg
+public/images/join_refraction.png
+public/images/join_refraction_image.png
+public/images/ledger_paris.png
+public/images/lens.png
+public/images/lenster.png
+public/images/lockup_image.png
+public/images/logo-white.png
+public/images/manifesto.png
+public/images/maps.png
+public/images/partners/Allships logo white.png
+public/images/partners/Aptos_Primary_WHT.png
+public/images/partners/Arroz Estudios white logo.png
+public/images/partners/Art Blocks light logo.png
+public/images/partners/Black Hole Experience white logo.png
+public/images/partners/Decrypt white logo.png
+public/images/partners/Fact London white logo.png
+public/images/partners/Future of Cities white logo.png
+public/images/partners/Galxe_Logo_Wordmark_White.png
+public/images/partners/LEDGER-WORDMARK-WHITE-RGB.png
+public/images/partners/Livepeer white logo.png
+public/images/partners/Mutek white logo.png
+public/images/partners/Near white logo.png
+public/images/partners/New Museum white logo.png
+public/images/partners/Opensea white logo.png
+public/images/partners/Polygon Primary light.png
+public/images/partners/Public Records white logo.png
+public/images/partners/Rainbow Discoclub white logo.png
+public/images/partners/Resident Advisor white logo.png
+public/images/partners/Rihzome logo.png
+public/images/partners/Rodeo white logo.png
+public/images/partners/Serpentine white logo..png
+public/images/partners/Standard Time white logo.png
+public/images/partners/SxSW white logo.png
+public/images/partners/TSA+Logo.jpg
+public/images/partners/The Lot Radio white logo.png
+public/images/partners/Zora Logo White.png
+public/images/partners/arweave.org logotype light@2x.png
+public/images/partners/reown-logo.svg
+public/images/partners/syndicate logo white.png
+public/images/refraction_paris.png
+public/images/socials/farcaster.svg
+public/images/socials/instagram.svg
+public/images/socials/telegram.svg
+public/images/socials/twitter.svg
+public/images/spectrum.png
+public/images/towns.png
+public/images/twitter.png
+public/images/universal.png
+public/images/white-logo-36x34.png
+public/images/x.png
+public/info.svg
+public/irl-daydream-greenpoint.png
+public/irl-logo-footer.svg
+public/irl-shirt-7282by4096.png
+public/irl-token-285x202.png
+public/irl.svg
+public/ledger/art2.png
+public/ledger/map1.png
+public/ledger/map1done.png
+public/ledger/map2.png
+public/ledger/map2done.png
+public/ledger/map3.png
+public/ledger/map3done.png
+public/ledger/powered-by.png
+public/ledger/title1.png
+public/ledger/title1done.png
+public/ledger/title2.png
+public/ledger/title2done.png
+public/ledger/title3.png
+public/ledger/title3done.png
+public/lockup@2x.svg
+public/logo-white.png
+public/logo2.svg
+public/logos/Allships logo white.png
+public/logos/Galxe_Logo_Wordmark_White.png
+public/logos/LEDGER-WORDMARK-WHITE-RGB.png
+public/logos/Livepeer white logo.png
+public/logos/Mutek white logo.png
+public/logos/Near white logo.png
+public/logos/Opensea white logo.png
+public/logos/Polygon Primary light.png
+public/logos/Public Records white logo.png
+public/logos/Rainbow Discoclub white logo.png
+public/logos/Resident Advisor white logo.png
+public/logos/Rihzome logo.png
+public/logos/Rodeo white logo.png
+public/logos/Serpentine white logo..png
+public/logos/Standard Time white logo.png
+public/logos/The Lot Radio white logo.png
+public/logos/Zora Logo White.png
+public/logos/objkt_logo_black.svg
+public/logos/reown-logo-negative 1.svg
+public/logos/syndicate logo white.png
+public/logos/towns logo rainbow.svg
+public/logos.png
+public/manychat.svg
+public/manychat.webp
+public/map-white.svg
+public/marker.png
+public/marker2.svg
+public/miniapp/1.png
+public/miniapp/banner.png
+public/miniapp/feed.png
+public/miniapp/search.png
+public/mutek/mutek-logo.svg
+public/mutek/mutek-map.jpg
+public/new-rewards.png
+public/nft.jpg
+public/nyc.svg
+public/onboarding/1.png
+public/paris.svg
+public/partners/FWB.png
+public/partners/Zora Wordmark Black.png
+public/partners/artdao logo.svg
+public/partners/image-.png
+public/partners/valeries logo.png
+public/partners/zerion-lockup.png
+public/partnerships/howitworks-ellipse3/Ellipse 23.svg
+public/partnerships/howitworks-ellipse3/Ellipse 24.svg
+public/partnerships/howitworks-ellipse3/Ellipse 25.svg
+public/place.png
+public/refraction-wordmark.png
+public/rewards/Airalo-Logo-1-1.jpg
+public/rewards/Notion-Logo-Vector.png
+public/rewards/manychat-logo.webp
+public/rewards/manychat.png
+public/rewards/notion-beige.webp
+public/rings.svg
+public/sassoon/11.png
+public/single_white.svg
+public/telegram-header.svg
+public/walletconnect.png
+public/wct/nft.svg
+public/wct/success.svg
+public/wct/wct.svg
+public/yellow-points.png
+
+Total: 252 unused image files
+
+Note: This list was generated by searching for image references in app/, components/, lib/, and hooks/ directories. 
+Images may still be referenced in HTML files, markdown files, configuration files, or dynamically loaded assets.

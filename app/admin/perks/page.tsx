@@ -664,19 +664,24 @@ export default function AdminPerksPage() {
                   />
                   {thumbnailPreview && (
                     <div className="mt-2">
-                      <img
+                      <Image
                         src={thumbnailPreview}
                         alt="Thumbnail preview"
+                        width={300}
+                        height={192}
                         className="max-w-xs max-h-48 object-cover rounded-md border"
+                        unoptimized
                       />
                     </div>
                   )}
                   {formData.thumbnail_url && !thumbnailFile && (
                     <div className="mt-2">
                       <p className="text-sm text-gray-600 mb-1">Current thumbnail:</p>
-                      <img
+                      <Image
                         src={formData.thumbnail_url}
                         alt="Current thumbnail"
+                        width={300}
+                        height={192}
                         className="max-w-xs max-h-48 object-cover rounded-md border"
                       />
                     </div>
@@ -694,19 +699,24 @@ export default function AdminPerksPage() {
                   />
                   {heroPreview && (
                     <div className="mt-2">
-                      <img
+                      <Image
                         src={heroPreview}
                         alt="Hero image preview"
+                        width={300}
+                        height={192}
                         className="max-w-xs max-h-48 object-cover rounded-md border"
+                        unoptimized
                       />
                     </div>
                   )}
                   {formData.hero_image && !heroFile && (
                     <div className="mt-2">
                       <p className="text-sm text-gray-600 mb-1">Current hero image:</p>
-                      <img
+                      <Image
                         src={formData.hero_image}
                         alt="Current hero image"
+                        width={300}
+                        height={192}
                         className="max-w-xs max-h-48 object-cover rounded-md border"
                       />
                     </div>

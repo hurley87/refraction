@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { X, Clock } from "lucide-react";
 import Image from "next/image";
 import type { UserProfile } from "@/lib/types";
+import { useUserStats } from "@/hooks/usePlayer";
 
 interface UserMenuProps {
   isOpen: boolean;
@@ -41,17 +42,17 @@ export default function UserMenu({
     telegram_handle: "",
     profile_picture_url: "",
   });
-  const [userStats, setUserStats] = useState({
-    total_points: 0,
-    rank: null as number | null,
-  });
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [isMenuMounted, setIsMenuMounted] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
   const [isLoadingChallenges, setIsLoadingChallenges] = useState(false);
   const scrollableContentRef = useRef<HTMLDivElement>(null);
+
+  // Use the reusable hook for user stats
+  const { userStats, isLoading: isLoadingUserStats } = useUserStats(
+    user?.wallet?.address
+  );
 
   // Handle menu open/close with transitions
   useEffect(() => {
@@ -148,59 +149,6 @@ export default function UserMenu({
     }
   }, [user?.wallet?.address, user?.email?.address]);
 
-  const fetchUserStats = useCallback(async () => {
-    if (!user?.wallet?.address) return;
-
-    setIsLoadingUserStats(true);
-    try {
-      const response = await fetch(
-        `/api/player?walletAddress=${encodeURIComponent(user.wallet.address)}`,
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        // API response is wrapped in { success: true, data: { player: {...} } }
-        const apiData = result.data || result;
-        const player = apiData.player;
-
-        if (player) {
-          // Get user's actual rank from database
-          const rankResponse = await fetch(
-            `/api/player/rank?walletAddress=${encodeURIComponent(user.wallet.address)}`,
-          );
-
-          let actualRank = 999;
-          if (rankResponse.ok) {
-            const rankResult = await rankResponse.json();
-            // API response is wrapped in { success: true, data: { rank, total_points } }
-            const rankData = rankResult.data || rankResult;
-            actualRank = rankData.rank ?? 999;
-          }
-
-          const userPoints = player.total_points ?? 0;
-
-          setUserStats({
-            rank: actualRank,
-            total_points: userPoints,
-          });
-        } else {
-          // New user with no data
-          setUserStats({
-            rank: 999,
-            total_points: 0,
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching user stats:", error);
-      setUserStats({
-        rank: 999,
-        total_points: 0,
-      });
-    } finally {
-      setIsLoadingUserStats(false);
-    }
-  }, [user?.wallet?.address]);
 
   const fetchChallenges = useCallback(async () => {
     setIsLoadingChallenges(true);
@@ -223,11 +171,10 @@ export default function UserMenu({
     if (isOpen && user?.wallet?.address) {
       Promise.all([
         fetchProfile(),
-        fetchUserStats(),
         fetchChallenges(),
       ]);
     }
-  }, [isOpen, user?.wallet?.address, fetchProfile, fetchUserStats, fetchChallenges]);
+  }, [isOpen, user?.wallet?.address, fetchProfile, fetchChallenges]);
 
   if (!user || !isMenuMounted) return null;
 
@@ -383,7 +330,7 @@ export default function UserMenu({
                   ) : (
                     <div className="flex items-end gap-2">
                       <div className="display1 text-[#313131] font-inktrap">
-                        {userStats.total_points.toLocaleString()}
+                        {userStats?.total_points?.toLocaleString() || "0"}
                       </div>
                       <Image
                         src="/pts.svg"
@@ -419,7 +366,7 @@ export default function UserMenu({
               <div className="flex items-center justify-between">
                 {isLoadingUserStats ? (
                   <div className="w-20 h-8 bg-gray-200 animate-pulse rounded"></div>
-                ) : userStats.rank ? (
+                ) : userStats?.rank ? (
                   <div className="flex items-end gap-2">
                     <div className="flex items-baseline">
                       <div className="display2 text-[#313131] font-inktrap">
