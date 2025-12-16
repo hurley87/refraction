@@ -19,63 +19,80 @@ const PencilIcon = ({
   onClick: () => void;
   className?: string;
   isLoading?: boolean;
-}) => (
-  <button
-    onClick={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onClick();
-    }}
-    onMouseDown={(e) => {
-      e.preventDefault(); // Prevent input blur
-    }}
-    onTouchStart={(e) => {
-      e.preventDefault(); // Prevent input blur on mobile
-    }}
-    disabled={isLoading}
-    className={`w-8 h-8 min-w-[32px] min-h-[32px] ${isLoading ? "bg-blue-500" : "bg-[#ededed] hover:bg-gray-300"} text-black rounded-full flex items-center justify-center transition-colors shadow-sm ${className}`}
-    style={{ touchAction: "manipulation" }}
-    aria-label="Edit"
-  >
-    {isLoading ? (
-      <div className="flex space-x-0.5">
-        <div
-          className="w-1 h-1 bg-white rounded-full animate-bounce"
-          style={{ animationDelay: "0ms" }}
-        ></div>
-        <div
-          className="w-1 h-1 bg-white rounded-full animate-bounce"
-          style={{ animationDelay: "150ms" }}
-        ></div>
-        <div
-          className="w-1 h-1 bg-white rounded-full animate-bounce"
-          style={{ animationDelay: "300ms" }}
-        ></div>
-      </div>
-    ) : (
-      <svg
-        className="w-3 h-3"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-        />
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M3 22h18"
-          opacity="0.3"
-        />
-      </svg>
-    )}
-  </button>
-);
+}) => {
+  const touchHandledRef = useRef(false);
+
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Only call onClick if touch wasn't already handled
+        if (!touchHandledRef.current) {
+          onClick();
+        }
+        touchHandledRef.current = false;
+      }}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation(); // Prevent input blur and event propagation
+      }}
+      onTouchStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation(); // Prevent input blur and event propagation on mobile
+        touchHandledRef.current = false;
+      }}
+      onTouchEnd={(e) => {
+        e.preventDefault();
+        e.stopPropagation(); // Prevent event propagation on touch end
+        touchHandledRef.current = true;
+        onClick();
+      }}
+      disabled={isLoading}
+      className={`w-8 h-8 min-w-[32px] min-h-[32px] ${isLoading ? "bg-blue-500" : "bg-[#ededed] hover:bg-gray-300"} text-black rounded-full flex items-center justify-center transition-colors shadow-sm ${className}`}
+      style={{ touchAction: "none" }}
+      aria-label="Edit"
+    >
+      {isLoading ? (
+        <div className="flex space-x-0.5">
+          <div
+            className="w-1 h-1 bg-white rounded-full animate-bounce"
+            style={{ animationDelay: "0ms" }}
+          ></div>
+          <div
+            className="w-1 h-1 bg-white rounded-full animate-bounce"
+            style={{ animationDelay: "150ms" }}
+          ></div>
+          <div
+            className="w-1 h-1 bg-white rounded-full animate-bounce"
+            style={{ animationDelay: "300ms" }}
+          ></div>
+        </div>
+      ) : (
+        <svg
+          className="w-3 h-3"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M3 22h18"
+            opacity="0.3"
+          />
+        </svg>
+      )}
+    </button>
+  );
+};
 
 // Reusable Checkmark Icon Component
 const CheckmarkIcon = ({
@@ -86,44 +103,61 @@ const CheckmarkIcon = ({
   onClick: () => void;
   className?: string;
   isLoading?: boolean;
-}) => (
-  <button
-    onClick={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onClick();
-    }}
-    onMouseDown={(e) => {
-      e.preventDefault(); // Prevent input blur
-    }}
-    onTouchStart={(e) => {
-      e.preventDefault(); // Prevent input blur on mobile
-    }}
-    disabled={isLoading}
-    className={`w-8 h-8 min-w-[32px] min-h-[32px] ${isLoading ? "bg-blue-500" : "bg-[#4f4f4f] hover:bg-[#3f3f3f]"} text-white rounded-full flex items-center justify-center transition-colors shadow-sm ${className}`}
-    style={{ touchAction: "manipulation" }}
-    aria-label="Save"
-  >
-    {isLoading ? (
-      <div className="flex space-x-0.5">
-        <div
-          className="w-1 h-1 bg-white rounded-full animate-bounce"
-          style={{ animationDelay: "0ms" }}
-        ></div>
-        <div
-          className="w-1 h-1 bg-white rounded-full animate-bounce"
-          style={{ animationDelay: "150ms" }}
-        ></div>
-        <div
-          className="w-1 h-1 bg-white rounded-full animate-bounce"
-          style={{ animationDelay: "300ms" }}
-        ></div>
-      </div>
-    ) : (
-      <Check className="w-3 h-3" strokeWidth={3} />
-    )}
-  </button>
-);
+}) => {
+  const touchHandledRef = useRef(false);
+
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        // Only call onClick if touch wasn't already handled
+        if (!touchHandledRef.current) {
+          onClick();
+        }
+        touchHandledRef.current = false;
+      }}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation(); // Prevent input blur and event propagation
+      }}
+      onTouchStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation(); // Prevent input blur and event propagation on mobile
+        touchHandledRef.current = false;
+      }}
+      onTouchEnd={(e) => {
+        e.preventDefault();
+        e.stopPropagation(); // Prevent event propagation on touch end
+        touchHandledRef.current = true;
+        onClick();
+      }}
+      disabled={isLoading}
+      className={`w-8 h-8 min-w-[32px] min-h-[32px] ${isLoading ? "bg-blue-500" : "bg-[#4f4f4f] hover:bg-[#3f3f3f]"} text-white rounded-full flex items-center justify-center transition-colors shadow-sm ${className}`}
+      style={{ touchAction: "none" }}
+      aria-label="Save"
+    >
+      {isLoading ? (
+        <div className="flex space-x-0.5">
+          <div
+            className="w-1 h-1 bg-white rounded-full animate-bounce"
+            style={{ animationDelay: "0ms" }}
+          ></div>
+          <div
+            className="w-1 h-1 bg-white rounded-full animate-bounce"
+            style={{ animationDelay: "150ms" }}
+          ></div>
+          <div
+            className="w-1 h-1 bg-white rounded-full animate-bounce"
+            style={{ animationDelay: "300ms" }}
+          ></div>
+        </div>
+      ) : (
+        <Check className="w-3 h-3" strokeWidth={3} />
+      )}
+    </button>
+  );
+};
 
 interface Challenge {
   title: string;
@@ -168,6 +202,7 @@ export default function ProfileMenu({
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const isSavingRef = useRef(false);
 
   // Handle menu open/close with transitions
   useEffect(() => {
@@ -244,6 +279,7 @@ export default function ProfileMenu({
   const handleSave = async (field?: string) => {
     if (!user?.wallet?.address) return;
 
+    isSavingRef.current = true;
     setSaving(true);
     try {
       const response = await fetch("/api/profile", {
@@ -282,6 +318,10 @@ export default function ProfileMenu({
       toast.error("Error saving profile");
     } finally {
       setSaving(false);
+      // Reset the saving ref after a short delay to allow blur handlers to check it
+      setTimeout(() => {
+        isSavingRef.current = false;
+      }, 100);
     }
   };
 
@@ -390,8 +430,24 @@ export default function ProfileMenu({
       className={`fixed font-inktrap inset-0 bg-[#ededed] z-50 flex flex-col transition-all duration-300 ease-in-out ${
         isMenuVisible ? "opacity-100" : "opacity-0"
       }`}
+      onTouchStart={(e) => {
+        // Prevent touch events on backdrop from closing modal
+        if (e.target === e.currentTarget) {
+          e.stopPropagation();
+        }
+      }}
     >
-      <div className="max-w-lg mx-auto w-full flex flex-col h-full">
+      <div 
+        className="max-w-lg mx-auto w-full flex flex-col h-full"
+        onTouchStart={(e) => {
+          // Stop propagation of touch events from content area
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          // Stop propagation of click events from content area
+          e.stopPropagation();
+        }}
+      >
         {/* Close Button - Full Width Overlay */}
         <div className="w-full px-4 pt-4 pb-1">
           <div className="bg-white rounded-3xl">
@@ -468,7 +524,21 @@ export default function ProfileMenu({
                 >
                   EMAIL
                 </Label>
-                <div className="flex items-center gap-2">
+                <div 
+                  className="flex items-center gap-2"
+                  onMouseDown={(e) => {
+                    // Prevent input blur when clicking on container (especially the button)
+                    if (editingField === "email") {
+                      e.preventDefault();
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    // Prevent input blur on mobile when tapping container
+                    if (editingField === "email") {
+                      e.stopPropagation();
+                    }
+                  }}
+                >
                   {isLoadingProfile ? (
                     <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                   ) : (
@@ -480,8 +550,19 @@ export default function ProfileMenu({
                         value={profile.email}
                         onChange={(e) => handleInputChange("email", e.target.value)}
                         onFocus={() => setEditingField("email")}
-                        onBlur={() => {
-                          // Don't clear on blur, let user click checkmark or save
+                        onBlur={(e) => {
+                          // Don't clear on blur if we're in the process of saving
+                          if (isSavingRef.current) {
+                            e.preventDefault();
+                            return;
+                          }
+                          // Don't clear on blur if clicking the checkmark button
+                          // The relatedTarget check helps identify if blur was caused by button click
+                          const relatedTarget = e.relatedTarget as HTMLElement;
+                          if (relatedTarget && relatedTarget.closest('button[aria-label="Save"]')) {
+                            e.preventDefault();
+                            return;
+                          }
                         }}
                         className={`body-large px-4 h-10 flex-1 ${
                           editingField === "email"
@@ -527,7 +608,21 @@ export default function ProfileMenu({
                 >
                   NAME
                 </Label>
-                <div className="flex items-center gap-2">
+                <div 
+                  className="flex items-center gap-2"
+                  onMouseDown={(e) => {
+                    // Prevent input blur when clicking on container (especially the button)
+                    if (editingField === "username") {
+                      e.preventDefault();
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    // Prevent input blur on mobile when tapping container
+                    if (editingField === "username") {
+                      e.stopPropagation();
+                    }
+                  }}
+                >
                   {isLoadingProfile ? (
                     <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                   ) : (
@@ -541,8 +636,18 @@ export default function ProfileMenu({
                           handleInputChange("username", e.target.value)
                         }
                         onFocus={() => setEditingField("username")}
-                        onBlur={() => {
-                          // Don't clear on blur, let user click checkmark or save
+                        onBlur={(e) => {
+                          // Don't clear on blur if we're in the process of saving
+                          if (isSavingRef.current) {
+                            e.preventDefault();
+                            return;
+                          }
+                          // Don't clear on blur if clicking the checkmark button
+                          const relatedTarget = e.relatedTarget as HTMLElement;
+                          if (relatedTarget && relatedTarget.closest('button[aria-label="Save"]')) {
+                            e.preventDefault();
+                            return;
+                          }
                         }}
                         className={`body-large px-4 h-10 flex-1 ${
                           editingField === "username"
@@ -740,7 +845,19 @@ export default function ProfileMenu({
                   >
                     WEBSITE
                   </Label>
-                  <div className="flex items-center gap-2">
+                  <div 
+                    className="flex items-center gap-2"
+                    onMouseDown={(e) => {
+                      if (editingField === "website") {
+                        e.preventDefault();
+                      }
+                    }}
+                    onTouchStart={(e) => {
+                      if (editingField === "website") {
+                        e.stopPropagation();
+                      }
+                    }}
+                  >
                     {isLoadingProfile ? (
                       <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                     ) : (
@@ -801,7 +918,19 @@ export default function ProfileMenu({
                   >
                     X
                   </Label>
-                  <div className="flex items-center gap-2">
+                  <div 
+                    className="flex items-center gap-2"
+                    onMouseDown={(e) => {
+                      if (editingField === "twitter_handle") {
+                        e.preventDefault();
+                      }
+                    }}
+                    onTouchStart={(e) => {
+                      if (editingField === "twitter_handle") {
+                        e.stopPropagation();
+                      }
+                    }}
+                  >
                     {isLoadingProfile ? (
                       <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                     ) : (
@@ -862,7 +991,19 @@ export default function ProfileMenu({
                   >
                     TOWNS
                   </Label>
-                  <div className="flex items-center gap-2">
+                  <div 
+                    className="flex items-center gap-2"
+                    onMouseDown={(e) => {
+                      if (editingField === "towns_handle") {
+                        e.preventDefault();
+                      }
+                    }}
+                    onTouchStart={(e) => {
+                      if (editingField === "towns_handle") {
+                        e.stopPropagation();
+                      }
+                    }}
+                  >
                     {isLoadingProfile ? (
                       <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                     ) : (
@@ -923,7 +1064,19 @@ export default function ProfileMenu({
                   >
                     FARCASTER
                   </Label>
-                  <div className="flex items-center gap-2">
+                  <div 
+                    className="flex items-center gap-2"
+                    onMouseDown={(e) => {
+                      if (editingField === "farcaster_handle") {
+                        e.preventDefault();
+                      }
+                    }}
+                    onTouchStart={(e) => {
+                      if (editingField === "farcaster_handle") {
+                        e.stopPropagation();
+                      }
+                    }}
+                  >
                     {isLoadingProfile ? (
                       <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                     ) : (
@@ -984,7 +1137,19 @@ export default function ProfileMenu({
                   >
                     TELEGRAM
                   </Label>
-                  <div className="flex items-center gap-2">
+                  <div 
+                    className="flex items-center gap-2"
+                    onMouseDown={(e) => {
+                      if (editingField === "telegram_handle") {
+                        e.preventDefault();
+                      }
+                    }}
+                    onTouchStart={(e) => {
+                      if (editingField === "telegram_handle") {
+                        e.stopPropagation();
+                      }
+                    }}
+                  >
                     {isLoadingProfile ? (
                       <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                     ) : (
