@@ -76,12 +76,27 @@ function getEventName(activityType: string): string {
     profile_field_farcaster: "Added Farcaster Handle",
     profile_field_telegram: "Added Telegram Handle",
     profile_field_picture: "Added Profile Picture",
+    profile_field_website: "Added Website",
     wallet_connect: "Connected Wallet",
     transaction_complete: "Transaction Complete",
     social_share: "Social Share",
     referral_signup: "Referral Signup",
+    location_creation: "Location Creation",
     // Add more activity types as needed
   };
 
-  return eventNames[activityType] || activityType.replace(/_/g, " ");
+  // If activity type is in the mapping, return it
+  if (eventNames[activityType]) {
+    return eventNames[activityType];
+  }
+
+  // Fallback: convert snake_case to Title Case
+  // Trim first to remove any leading/trailing whitespace, then split by underscores
+  // Filter out empty strings, capitalize each word, join with spaces
+  return activityType
+    .trim()
+    .split("_")
+    .filter((word) => word.length > 0) // Remove empty strings from leading/trailing underscores
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 }

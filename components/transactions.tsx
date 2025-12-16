@@ -25,6 +25,23 @@ interface TransactionsProps {
   maxHeight?: string;
 }
 
+// Helper function to normalize event text (trim whitespace and standardize capitalization)
+function normalizeEventText(event: string): string {
+  if (!event) return "";
+  
+  // Trim leading and trailing whitespace
+  const trimmed = event.trim();
+  
+  // Convert to title case (capitalize first letter of each word)
+  return trimmed
+    .split(/\s+/)
+    .map((word) => {
+      if (word.length === 0) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
 export default function Transactions({
   activities = [],
   isLoading = false,
@@ -132,8 +149,8 @@ export default function Transactions({
                 <div className="body-medium text-[#F0A0AF] font-grotesk">
                   {activity.date}
                 </div>
-                <div className="body-medium text-[#4F4F4F] font-grotesk truncate">
-                  {activity.event}
+                <div className="body-medium text-[#4F4F4F] font-grotesk truncate capitalize text-left">
+                  {normalizeEventText(activity.event)}
                 </div>
                 <div className="body-medium text-[#7D7D7D] font-grotesk text-right whitespace-nowrap">
                   +{activity.points}
@@ -141,7 +158,7 @@ export default function Transactions({
               </div>
             ))}
           </div>
-
+              {console.table(activities)}
           {/* Load More Button */}
           {activities.length >= 20 && (
             <div className="mt-4 pt-3 border-t border-gray-100">
