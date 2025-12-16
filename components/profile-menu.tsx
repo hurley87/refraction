@@ -21,9 +21,20 @@ const PencilIcon = ({
   isLoading?: boolean;
 }) => (
   <button
-    onClick={onClick}
+    onClick={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick();
+    }}
+    onMouseDown={(e) => {
+      e.preventDefault(); // Prevent input blur
+    }}
+    onTouchStart={(e) => {
+      e.preventDefault(); // Prevent input blur on mobile
+    }}
     disabled={isLoading}
-    className={`w-6 h-6 ${isLoading ? "bg-blue-500" : "bg-[#ededed] hover:bg-gray-300"} text-black rounded-full flex items-center justify-center transition-colors shadow-sm ${className}`}
+    className={`w-8 h-8 min-w-[32px] min-h-[32px] ${isLoading ? "bg-blue-500" : "bg-[#ededed] hover:bg-gray-300"} text-black rounded-full flex items-center justify-center transition-colors shadow-sm ${className}`}
+    style={{ touchAction: "manipulation" }}
     aria-label="Edit"
   >
     {isLoading ? (
@@ -77,9 +88,20 @@ const CheckmarkIcon = ({
   isLoading?: boolean;
 }) => (
   <button
-    onClick={onClick}
+    onClick={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick();
+    }}
+    onMouseDown={(e) => {
+      e.preventDefault(); // Prevent input blur
+    }}
+    onTouchStart={(e) => {
+      e.preventDefault(); // Prevent input blur on mobile
+    }}
     disabled={isLoading}
-    className={`w-6 h-6 ${isLoading ? "bg-blue-500" : "bg-[#4f4f4f] hover:bg-[#3f3f3f]"} text-white rounded-full flex items-center justify-center transition-colors shadow-sm ${className}`}
+    className={`w-8 h-8 min-w-[32px] min-h-[32px] ${isLoading ? "bg-blue-500" : "bg-[#4f4f4f] hover:bg-[#3f3f3f]"} text-white rounded-full flex items-center justify-center transition-colors shadow-sm ${className}`}
+    style={{ touchAction: "manipulation" }}
     aria-label="Save"
   >
     {isLoading ? (
@@ -473,9 +495,11 @@ export default function ProfileMenu({
                                 border: "1px solid #313131",
                                 background: "#FFF",
                                 boxShadow: "0 0 0 2px #FFE600",
+                                fontSize: "16px", // Prevent mobile zoom
                               }
                             : {
                                 borderRadius: "1000px",
+                                fontSize: "16px", // Prevent mobile zoom
                               }
                         }
                       />
@@ -532,9 +556,11 @@ export default function ProfileMenu({
                                 border: "1px solid #313131",
                                 background: "#FFF",
                                 boxShadow: "0 0 0 2px #FFE600",
+                                fontSize: "16px", // Prevent mobile zoom
                               }
                             : {
                                 borderRadius: "1000px",
+                                fontSize: "16px", // Prevent mobile zoom
                               }
                         }
                       />
@@ -743,9 +769,11 @@ export default function ProfileMenu({
                                   border: "1px solid #313131",
                                   background: "#FFF",
                                   boxShadow: "0 0 0 2px #FFE600",
+                                  fontSize: "16px", // Prevent mobile zoom
                                 }
                               : {
                                   borderRadius: "1000px",
+                                  fontSize: "16px", // Prevent mobile zoom
                                 }
                           }
                         />
@@ -802,9 +830,11 @@ export default function ProfileMenu({
                                   border: "1px solid #313131",
                                   background: "#FFF",
                                   boxShadow: "0 0 0 2px #FFE600",
+                                  fontSize: "16px", // Prevent mobile zoom
                                 }
                               : {
                                   borderRadius: "1000px",
+                                  fontSize: "16px", // Prevent mobile zoom
                                 }
                           }
                         />
@@ -861,9 +891,11 @@ export default function ProfileMenu({
                                   border: "1px solid #313131",
                                   background: "#FFF",
                                   boxShadow: "0 0 0 2px #FFE600",
+                                  fontSize: "16px", // Prevent mobile zoom
                                 }
                               : {
                                   borderRadius: "1000px",
+                                  fontSize: "16px", // Prevent mobile zoom
                                 }
                           }
                         />
@@ -920,9 +952,11 @@ export default function ProfileMenu({
                                   border: "1px solid #313131",
                                   background: "#FFF",
                                   boxShadow: "0 0 0 2px #FFE600",
+                                  fontSize: "16px", // Prevent mobile zoom
                                 }
                               : {
                                   borderRadius: "1000px",
+                                  fontSize: "16px", // Prevent mobile zoom
                                 }
                           }
                         />
@@ -979,9 +1013,11 @@ export default function ProfileMenu({
                                   border: "1px solid #313131",
                                   background: "#FFF",
                                   boxShadow: "0 0 0 2px #FFE600",
+                                  fontSize: "16px", // Prevent mobile zoom
                                 }
                               : {
                                   borderRadius: "1000px",
+                                  fontSize: "16px", // Prevent mobile zoom
                                 }
                           }
                         />

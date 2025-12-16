@@ -97,22 +97,52 @@ export default function UserMenu({
       const response = await fetch(
         `/api/profile?wallet_address=${user.wallet.address}`,
       );
-      const data = await response.json();
 
-      setProfile({
-        wallet_address: user.wallet.address,
-        email: data.email || user.email?.address || "",
-        name: data.name || "",
-        username: data.username || "",
-        website: data.website || "",
-        twitter_handle: data.twitter_handle || "",
-        towns_handle: data.towns_handle || "",
-        farcaster_handle: data.farcaster_handle || "",
-        telegram_handle: data.telegram_handle || "",
-        profile_picture_url: data.profile_picture_url || "",
-      });
+      if (response.ok) {
+        const data = await response.json();
+
+        setProfile({
+          wallet_address: user.wallet.address,
+          email: data.email || user.email?.address || "",
+          name: data.name || "",
+          username: data.username || "",
+          website: data.website || "",
+          twitter_handle: data.twitter_handle || "",
+          towns_handle: data.towns_handle || "",
+          farcaster_handle: data.farcaster_handle || "",
+          telegram_handle: data.telegram_handle || "",
+          profile_picture_url: data.profile_picture_url || "",
+        });
+      } else {
+        // If profile doesn't exist or API returns error, use defaults
+        setProfile({
+          wallet_address: user.wallet.address,
+          email: user.email?.address || "",
+          name: "",
+          username: "",
+          website: "",
+          twitter_handle: "",
+          towns_handle: "",
+          farcaster_handle: "",
+          telegram_handle: "",
+          profile_picture_url: "",
+        });
+      }
     } catch (error) {
       console.error("Error fetching profile:", error);
+      // On error, use defaults
+      setProfile({
+        wallet_address: user.wallet.address,
+        email: user.email?.address || "",
+        name: "",
+        username: "",
+        website: "",
+        twitter_handle: "",
+        towns_handle: "",
+        farcaster_handle: "",
+        telegram_handle: "",
+        profile_picture_url: "",
+      });
     } finally {
       setIsLoadingProfile(false);
     }

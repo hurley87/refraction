@@ -15,7 +15,7 @@ export default function ProfileAvatar({
   name,
   username,
   twitterHandle,
-  size,
+  size = 64,
 }: ProfileAvatarProps) {
   const [imageError, setImageError] = useState(false);
   const [twitterImageUrl, setTwitterImageUrl] = useState<string | null>(null);
@@ -24,8 +24,8 @@ export default function ProfileAvatar({
   const displayName = name || username;
   const initial = displayName?.charAt(0).toUpperCase() || "?";
   
-  // Determine text size based on avatar size
-  const textSize = size && size <= 16 ? "text-xs" : size && size <= 32 ? "text-sm" : "text-2xl";
+  // Calculate initial size as 75% of the circle size
+  const initialSize = size * 0.75;
 
   // Fetch Twitter profile picture if profilePictureUrl is not set and twitterHandle exists
   useEffect(() => {
@@ -52,13 +52,18 @@ export default function ProfileAvatar({
   const showImage = imageUrl && !imageError && !(twitterImageUrl && twitterImageError);
 
   return (
-    <div className="w-full h-full rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+    <div
+      className="rounded-full bg-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0"
+      style={{ width: size, height: size }}
+    >
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={imageUrl}
           alt="Profile"
           className="w-full h-full object-cover"
+          width={size}
+          height={size}
           onError={() => {
             console.error("[ProfileAvatar] Image failed to load:", {
               url: imageUrl,
@@ -77,8 +82,13 @@ export default function ProfileAvatar({
           }}
         />
       ) : (
-        <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-          <span className={`text-gray-600 ${textSize} font-medium`}>{initial}</span>
+        <div className="w-full h-full rounded-full bg-gray-300 flex items-center justify-center">
+          <span
+            className="text-gray-600 font-medium"
+            style={{ fontSize: `${initialSize}px` }}
+          >
+            {initial}
+          </span>
         </div>
       )}
     </div>

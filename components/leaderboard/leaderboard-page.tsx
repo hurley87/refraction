@@ -302,9 +302,7 @@ export default function LeaderboardPage() {
                             />
                           </div>
                         </div>
-                        <div className="text-white body-small font-inktrap mt-1">
-                          {userStats.total_points.toLocaleString()} pts
-                        </div>
+                      
                       </>
                     ) : (
                       <span className="display1 text-white">?</span>
@@ -333,8 +331,8 @@ export default function LeaderboardPage() {
                 </div>
               </div>
 
-              {/* Loading State */}
-              {isLoadingMore && (
+              {/* Loading State - Show skeleton when loading and have data */}
+              {isLoadingMore && leaderboardData.length > 0 && (
                 <>
                   {[...Array(10)].map((_, i) => (
                     <div
@@ -349,73 +347,80 @@ export default function LeaderboardPage() {
                 </>
               )}
 
-              {/* Leaderboard Entries */}
-              {!isLoadingMore && (
-                <>
-                  {leaderboardData.length > 0 ? (
-                    leaderboardData.map((entry: LeaderboardUser) => (
-                      <div
-                        key={entry.player_id}
-                        data-rank={entry.rank}
-                        className={`rounded-[26px] p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center ${
-                          entry.wallet_address === currentUserAddress
-                            ? "bg-[#4F4F4F]"
-                            : "bg-white"
-                        }`}
-                      >
-                        {/* Rank */}
-                        <div className="flex items-center gap-2">
-                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ededed] body-small font-medium text-black">
-                            {entry.rank}
-                          </span>
-                        </div>
+              {/* Initial Loading State - Empty State with Pulse */}
+              {isLoadingMore && leaderboardData.length === 0 && (
+                <div className="bg-white rounded-2xl p-8 text-center animate-pulse">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-3"></div>
+                  <div className="w-32 h-4 bg-gray-200 rounded mx-auto mb-2"></div>
+                  <div className="w-48 h-3 bg-gray-200 rounded mx-auto"></div>
+                </div>
+              )}
 
-                        {/* Name */}
-                        <div className="flex items-center gap-2 min-w-0 pl-5">
+              {/* Leaderboard Entries */}
+              {!isLoadingMore && leaderboardData.length > 0 && (
+                <>
+                  {leaderboardData.map((entry: LeaderboardUser) => (
+                    <div
+                      key={entry.player_id}
+                      data-rank={entry.rank}
+                      className={`rounded-[26px] p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center ${
+                        entry.wallet_address === currentUserAddress
+                          ? "bg-[#4F4F4F]"
+                          : "bg-white"
+                      }`}
+                    >
+                      {/* Rank */}
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ededed] body-small font-medium text-black">
+                          {entry.rank}
+                        </span>
+                      </div>
+
+                      {/* Name */}
+                      <div className="flex items-center gap-2 min-w-0 pl-5">
+                        <Link 
+                          href={`/profiles/${entry.wallet_address}`}
+                          className="flex items-center gap-2 min-w-0"
+                        >
                           <LeaderboardAvatar
                             walletAddress={entry.wallet_address}
                             size={16}
                           />
-                          <Link href={`/profiles/${entry.wallet_address}`}>
-                            <span
-                              className={`title4 truncate ${
-                                entry.wallet_address === currentUserAddress
-                                  ? "text-white"
-                                  : "text-black"
-                              }`}
-                            >
-                              {entry.username ||
-                                formatWalletAddress(entry.wallet_address)}
-                            </span>
-                          </Link>
-                        </div>
-
-                        {/* Points */}
-                        <div className="text-right">
-                          <div
-                            className={`body-medium ${
+                          <span
+                            className={`title4 truncate ${
                               entry.wallet_address === currentUserAddress
                                 ? "text-white"
                                 : "text-black"
                             }`}
                           >
-                            {entry.total_points.toLocaleString()}
-                          </div>
+                            {entry.username ||
+                              formatWalletAddress(entry.wallet_address)}
+                          </span>
+                        </Link>
+                      </div>
+
+                      {/* Points */}
+                      <div className="text-right">
+                        <div
+                          className={`body-medium ${
+                            entry.wallet_address === currentUserAddress
+                              ? "text-white"
+                              : "text-black"
+                          }`}
+                        >
+                          {entry.total_points.toLocaleString()}
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="bg-white rounded-2xl p-8 text-center">
-                      <Trophy className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-600 font-inktrap">
-                        No players yet!
-                      </p>
-                      <p className="text-sm text-gray-500 font-inktrap">
-                        Be the first to check in and earn points
-                      </p>
                     </div>
-                  )}
+                  ))}
                 </>
+              )}
+
+              {/* Empty State - Only show when not loading and no data */}
+              {!isLoadingMore && leaderboardData.length === 0 && (
+                <div className="bg-white rounded-2xl p-8 text-center">
+                 
+                </div>
               )}
 
               {/* Loading More Indicator */}

@@ -179,6 +179,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 name={profile.name}
                 username={profile.username}
                 twitterHandle={profile.twitter_handle}
+                size={256}
               />
             </div>
 

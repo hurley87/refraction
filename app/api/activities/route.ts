@@ -34,15 +34,24 @@ export async function GET(request: NextRequest) {
 
     // Transform the activities to a more readable format
     const formattedActivities =
-      activities?.map((activity) => ({
-        id: activity.id,
-        date: new Date(activity.created_at).toLocaleDateString(),
-        description: activity.description,
-        activityType: activity.activity_type,
-        points: activity.points_earned,
-        event: getEventName(activity.activity_type),
-        metadata: activity.metadata,
-      })) || [];
+      activities?.map((activity) => {
+        const date = new Date(activity.created_at);
+        // Format date as M/D/YY (e.g., 1/15/25 instead of 1/15/2025)
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const year = date.getFullYear().toString().slice(-2); // Last 2 digits of year
+        const formattedDate = `${month}/${day}/${year}`;
+        
+        return {
+          id: activity.id,
+          date: formattedDate,
+          description: activity.description,
+          activityType: activity.activity_type,
+          points: activity.points_earned,
+          event: getEventName(activity.activity_type),
+          metadata: activity.metadata,
+        };
+      }) || [];
 
     return NextResponse.json(formattedActivities, { status: 200 });
   } catch (error) {
