@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createOrUpdatePlayer, getPlayerByWallet, updatePlayerPoints } from "@/lib/db/players";
+import {
+  createOrUpdatePlayer,
+  getPlayerByWallet,
+  updatePlayerPoints,
+} from "@/lib/db/players";
 import { createOrGetLocation } from "@/lib/db/locations";
-import { checkUserLocationCheckin, createLocationCheckin } from "@/lib/db/checkins";
+import {
+  checkUserLocationCheckin,
+  createLocationCheckin,
+} from "@/lib/db/checkins";
 import type { Player, Location } from "@/lib/types";
+import { trackCheckinCompleted, trackPointsEarned } from "@/lib/analytics";
 
 const MAX_VARCHAR_LENGTH = 255;
 
@@ -153,6 +161,30 @@ export async function POST(request: NextRequest) {
       player.id,
       location.points_value,
     );
+
+    // Extract city from location context if available
+    let city: string | undefined;
+    try {
+      const context = location.context ? JSON.parse(location.context) : {};
+      city = context.city;
+    } catch {
+      // Context parsing failed, ignore
+    }
+
+    // Track analytics events
+    trackCheckinCompleted(walletAddress, {
+      location_id: location.id!,
+      city,
+      venue: location.display_name,
+      points: location.points_value,
+      checkin_type: "location",
+    });
+
+    trackPointsEarned(walletAddress, {
+      activity_type: "daily_checkin",
+      amount: location.points_value,
+      description: `Location check-in: ${location.display_name}`,
+    });
 
     return NextResponse.json({
       success: true,

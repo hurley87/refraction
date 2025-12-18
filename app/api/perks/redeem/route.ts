@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
 import { redeemPerkRequestSchema } from "@/lib/schemas/api";
 import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
+import { trackRewardClaimed } from "@/lib/analytics";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,14 @@ export async function POST(request: NextRequest) {
       .select(`*, perk_discount_codes ( code )`)
       .single();
     if (error) throw error;
+
+    // Track reward claim
+    trackRewardClaimed(walletAddress, {
+      reward_id: perkId,
+      reward_type: perk.type,
+      partner: perk.location || undefined,
+      points_required: perk.points_threshold,
+    });
 
     return apiSuccess({ redemption: data });
   } catch (error) {

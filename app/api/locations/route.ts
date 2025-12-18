@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/db/client";
+import { trackLocationCreated, trackPointsEarned } from "@/lib/analytics";
 
 const MAX_VARCHAR_LENGTH = 255;
 const MAX_LOCATIONS_PER_DAY = 30;
@@ -299,6 +300,36 @@ export async function POST(request: NextRequest) {
       console.error("Error awarding points:", pointsError);
       // Don't fail the location creation if points fail
     }
+
+    // Extract city from context if available, or try to parse from display_name
+    let city: string | undefined;
+    let country: string | undefined;
+    try {
+      const context = locationData.context
+        ? JSON.parse(locationData.context)
+        : {};
+      city = context.city;
+      country = context.country;
+    } catch {
+      // Context parsing failed, ignore
+    }
+
+    // Track location creation
+    trackLocationCreated(sanitizedWalletAddress, {
+      location_id: locationData.id!,
+      city,
+      country,
+      place_id: sanitizedPlaceId,
+      type: sanitizedType,
+      creator_wallet_address: sanitizedWalletAddress,
+    });
+
+    // Track points earned
+    trackPointsEarned(sanitizedWalletAddress, {
+      activity_type: "location_creation",
+      amount: pointsAwarded,
+      description: `Created location: ${sanitizedName}`,
+    });
 
     return NextResponse.json({
       success: true,

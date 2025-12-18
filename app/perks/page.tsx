@@ -13,6 +13,7 @@ import {
   useUserRedemptions,
 } from "@/hooks/usePerks";
 import { useCurrentPlayer } from "@/hooks/usePlayer";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {
@@ -86,6 +87,12 @@ const PerkCodeCount = ({ perkId }: { perkId: string }) => {
 export default function PerksPage() {
   const { user } = usePrivy();
   const address = user?.wallet?.address;
+  const { trackPage } = useAnalytics();
+
+  // Track page view on mount
+  useEffect(() => {
+    trackPage("perks");
+  }, [trackPage]);
 
   // Fetch all active perks
   const { data: perks = [], isLoading: perksLoading } = usePerks(true);

@@ -6,6 +6,7 @@ import { supabase } from "@/lib/db/client";
 import type { Player } from "@/lib/types";
 import { checkinRequestSchema } from "@/lib/schemas/api";
 import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
+import { trackCheckinCompleted, trackPointsEarned } from "@/lib/analytics";
 
 const DAILY_CHECKIN_POINTS = 100;
 const DAILY_CHECKPOINT_LIMIT = 10;
@@ -134,6 +135,20 @@ export async function POST(req: NextRequest) {
     const responsePlayer = latestPlayer
       ? { ...latestPlayer, total_points: totalPoints }
       : { ...player, total_points: totalPoints };
+
+    // Track analytics events
+    trackCheckinCompleted(walletAddress, {
+      location_id: 0, // Checkpoint doesn't have location_id
+      checkpoint,
+      points: pointsAwarded,
+      checkin_type: "checkpoint",
+    });
+
+    trackPointsEarned(walletAddress, {
+      activity_type: "checkpoint_checkin",
+      amount: pointsAwarded,
+      description: `Checkpoint visit: ${checkpoint}`,
+    });
 
     return apiSuccess(
       {

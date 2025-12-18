@@ -22,6 +22,8 @@ import MapNav from "@/components/map/mapnav";
 import { usePerks, useUserRedemptions } from "@/hooks/usePerks";
 import { useCurrentPlayer } from "@/hooks/usePlayer";
 import { useTiers } from "@/hooks/useTiers";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { ANALYTICS_EVENTS } from "@/lib/analytics";
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {
@@ -103,6 +105,12 @@ const PerkCodeCount = ({ perkId }: { perkId: string }) => {
 export default function PerksPage() {
   const { user } = usePrivy();
   const address = user?.wallet?.address;
+  const { trackEvent, trackPage } = useAnalytics();
+
+  // Track page view on mount
+  useEffect(() => {
+    trackPage("rewards");
+  }, [trackPage]);
 
   // Fetch all active perks
   const { data: perks = [], isLoading: perksLoading } = usePerks(true);
@@ -284,6 +292,12 @@ export default function PerksPage() {
   const handleOpenPerk = (perk: Perk) => {
     setSelectedPerk(perk);
     setIsModalOpen(true);
+    // Track reward page view
+    trackEvent(ANALYTICS_EVENTS.REWARD_PAGE_VIEWED, {
+      reward_id: perk.id,
+      reward_type: perk.type,
+      points_required: perk.points_threshold,
+    });
   };
 
   const handleModalOpenChange = (open: boolean) => {

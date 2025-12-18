@@ -7,6 +7,7 @@ import {
   updatePlayerRequestSchema,
 } from "@/lib/schemas/api";
 import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
+import { trackAccountCreated } from "@/lib/analytics";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +20,10 @@ export async function POST(request: NextRequest) {
 
     const { walletAddress, email, username } = validationResult.data;
 
+    // Check if player already exists
+    const existingPlayer = await getPlayerByWallet(walletAddress);
+    const isNewPlayer = !existingPlayer;
+
     // Create or update player
     const playerData: Omit<Player, "id" | "created_at" | "updated_at"> = {
       wallet_address: walletAddress,
@@ -28,6 +33,15 @@ export async function POST(request: NextRequest) {
     };
 
     const player = await createOrUpdatePlayer(playerData);
+
+    // Track account creation for new players
+    if (isNewPlayer) {
+      trackAccountCreated(walletAddress, {
+        wallet_type: "EVM", // Default to EVM, could be enhanced to detect chain
+        has_email: !!email,
+        wallet_address: walletAddress,
+      });
+    }
 
     // === Sync the player data to Airtable via internal API ===
     try {
