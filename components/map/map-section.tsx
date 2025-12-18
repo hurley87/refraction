@@ -292,14 +292,14 @@ export default function MapSection() {
         className="absolute inset-0 flex flex-col items-center justify-center bg-[#131313]"
       >
         {/* Top Half - Map Interface Image */}
-        <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden">
-          <div className="relative max-w-[393px] w-full h-full flex items-center justify-center overflow-hidden rounded-t-[17px]">
+        <div className="relative w-full flex-1 flex items-center justify-center mb-[47px]">
+          <div className="relative w-full overflow-hidden rounded-b-[17px]">
             <Image
-              src="/pre-checkin.png"
+              src="/homepage/homepage-checkin.svg"
               alt="Check in map interface"
               width={393}
-              height={600}
-              className="w-full h-full object-contain"
+              height={498}
+              className="w-full h-auto object-contain rounded-b-[17px]"
               loading="lazy"
               quality={85}
             />
@@ -342,14 +342,14 @@ export default function MapSection() {
         className="absolute inset-0 flex flex-col items-center justify-center bg-[#131313]"
       >
         {/* Top Half - Rewards Success Image */}
-        <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden">
-          <div className="relative max-w-[393px] w-full h-full flex items-center justify-center">
+        <div className="relative w-full flex-1 flex items-center justify-center mb-[47px]">
+          <div className="relative w-full overflow-hidden rounded-b-[17px]">
             <Image
-              src="/pre-save.png"
+              src="/homepage/homepage-earn-points.svg"
               alt="You earned 100 points"
               width={393}
               height={600}
-              className="w-full h-full object-contain"
+              className="w-full h-auto object-contain rounded-b-[17px]"
               loading="lazy"
               quality={85}
             />
@@ -391,14 +391,14 @@ export default function MapSection() {
         className="absolute inset-0 flex flex-col items-center justify-center bg-[#131313]"
       >
         {/* Top Half - Unlock Rewards Image */}
-        <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden">
-          <div className="relative max-w-[393px] w-full h-full flex items-center justify-center">
+        <div className="relative w-[295.56px] flex-1 flex items-center justify-center mb-[47px] mt-[70px]">
+          <div className="relative w-[295.56px] overflow-hidden rounded-b-[17px]">
             <Image
-              src="/pre-unlock.png"
+              src="/homepage/homepage-reward.svg"
               alt="Unlock exclusive rewards"
-              width={393}
-              height={600}
-              className="w-full h-full object-contain"
+              width={295.56}
+              height={376.83}
+              className="w-full h-auto object-contain"
               loading="lazy"
               quality={85}
             />
@@ -430,7 +430,7 @@ export default function MapSection() {
               Redeem your IRL Points for exclusive perks, discounts, and
               experiences at your favorite venues and events.
             </p>
-            <div className="mt-2"></div>
+            <div className="mt-20"></div>
           </div>
         </div>
       </div>
