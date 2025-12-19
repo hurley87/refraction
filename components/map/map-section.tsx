@@ -18,8 +18,7 @@ if (typeof window !== "undefined") {
  */
 export default function MapSection() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const videoSectionRef = useRef<HTMLDivElement>(null);
-  const stencilRef = useRef<HTMLDivElement>(null);
+
   const section1Ref = useRef<HTMLDivElement>(null);
   const section1TextRef = useRef<HTMLDivElement>(null);
   const section2Ref = useRef<HTMLDivElement>(null);
@@ -48,9 +47,9 @@ export default function MapSection() {
     }
 
     // Mobile: Set initial states for scroll animation
-    gsap.set(stencilRef.current, { opacity: 0 });
-    gsap.set(section1Ref.current, { opacity: 0, y: "100%" });
-    gsap.set(section1TextRef.current, { opacity: 0, y: 50 });
+    // Show first section immediately to avoid black gap
+    gsap.set(section1Ref.current, { opacity: 1, y: 0 });
+    gsap.set(section1TextRef.current, { opacity: 1, y: 0 });
     gsap.set(section2Ref.current, { opacity: 0, y: "100%" });
     gsap.set(section2TextRef.current, { opacity: 0, y: 50 });
     gsap.set(section3Ref.current, { opacity: 0, y: "100%" });
@@ -61,7 +60,7 @@ export default function MapSection() {
       scrollTrigger: {
         trigger: container,
         start: "top top",
-        end: () => `+=${window.innerHeight * 8}`, // 8x longer for 4 sections
+        end: () => `+=${window.innerHeight * 6}`, // Reduced from 8 to 6 since first section is already visible
         pin: true,
         scrub: 0.8,
         anticipatePin: 1,
@@ -69,64 +68,10 @@ export default function MapSection() {
       },
     });
 
-    // Video Section: Stage 1 - Show video, hold briefly
-    tl.to({}, { duration: 0 });
-
-    // Video Section: Stage 2 - Fade in stencil overlay
-    tl.to(
-      stencilRef.current,
-      {
-        opacity: 1,
-        duration: 0.1,
-        ease: "power2.inOut",
-      },
-      "+=0.1",
-    );
-
-    // Video Section: Stage 3 - Hold stencil visible
-    tl.to({}, { duration: 0.4 });
-
-    // Video Section: Stage 4 - Fade out entire video section
-    tl.to(
-      videoSectionRef.current,
-      {
-        opacity: 0,
-        y: "-15%",
-        duration: 1,
-        ease: "power1.inOut",
-      },
-      "+=0.1",
-    );
-
-    // Section 1: Stage 5 - Slide up map section
-    tl.fromTo(
-      section1Ref.current,
-      { opacity: 0, y: "100%" },
-      {
-        opacity: 1,
-        y: "0%",
-        duration: 1.2,
-        ease: "power2.out",
-      },
-      "-=0.8",
-    );
-
-    // Section 1: Stage 6 - Fade in text
-    tl.to(
-      section1TextRef.current,
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.5,
-        ease: "power2.out",
-      },
-      "-=0.4",
-    );
-
-    // Section 1: Stage 7 - Hold map and text together
+    // Section 1: Stage 1 - Hold section 1 visible briefly (already visible)
     tl.to({}, { duration: 0.3 });
 
-    // Section 1: Stage 8 - Fade out
+    // Section 1: Stage 2 - Fade out
     tl.to(
       section1Ref.current,
       {
@@ -225,7 +170,7 @@ export default function MapSection() {
         className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-center bg-[#131313] md:flex-1 md:max-w-[389px] md:min-w-0 md:h-full md:justify-start md:overflow-visible"
       >
         {/* Top Half - Map Interface Image */}
-        <div className="relative w-full flex-1 flex items-center justify-center mb-[47px] md:flex-none md:mb-[50px]">
+        <div className="relative w-full flex-1 flex items-center justify-center mb-[-40px] md:flex-none md:mb-[50px]">
           <div className="relative w-full overflow-hidden rounded-b-[17px]  md:rounded-t-[17px]">
             <Image
               src="/homepage/homepage-checkin.svg"
@@ -244,7 +189,7 @@ export default function MapSection() {
           ref={section1TextRef}
           className="relative w-full flex-1 flex flex-col items-center justify-center px-4 pb-20 md:pb-40"
         >
-          <div className="flex flex-col items-center gap-4 max-w-[361px] w-full">
+          <div className="flex flex-col items-center gap-4 md:gap-0 max-w-[361px] w-full">
             <h3
               className="text-[25px]  leading-[28px] md:leading-[40px] tracking-[-0.5px] md:tracking-[-0.8px] text-white text-center font-pleasure font-medium"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}
@@ -264,6 +209,16 @@ export default function MapSection() {
               Show up and support underground venues in your city to begin your
               journey in the IRL network.
             </p>
+            <div className="mt-[16px] flex justify-center md:hidden">
+              <Image
+                src="/guidance_down-one-chevron.svg"
+                alt="Guidance chevron"
+                width={16}
+                height={16}
+                className="w-4 h-4"
+                style={{ filter: "none", textShadow: "none" }}
+              />
+            </div>
             <div className="mt-2"></div>
           </div>
         </div>
@@ -275,7 +230,7 @@ export default function MapSection() {
         className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-center bg-[#131313] md:flex-1 md:max-w-[389px] md:min-w-0 md:h-full md:justify-start md:overflow-visible"
       >
         {/* Top Half - Rewards Success Image */}
-        <div className="relative w-full flex-1 flex items-center justify-center mb-[47px] md:flex-none md:mb-[50px]">
+        <div className="relative w-full flex-1 flex items-center justify-center mb-[-40px] md:flex-none md:mb-[50px]">
           <div className="relative w-full overflow-hidden rounded-b-[17px]">
             <Image
               src="/homepage/homepage-earn-points.svg"
@@ -294,7 +249,7 @@ export default function MapSection() {
           ref={section2TextRef}
           className="relative w-full flex-1 flex flex-col items-center justify-center px-4 pb-20 md:pb-40"
         >
-          <div className="flex flex-col items-center gap-4 max-w-[361px] w-full">
+          <div className="flex flex-col items-center gap-4 md:gap-0 max-w-[361px] w-full">
             <h3
               className="text-[25px] leading-[28px] md:leading-[40px] tracking-[-0.5px] md:tracking-[-0.8px] text-white text-center font-pleasure font-medium"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}
@@ -313,6 +268,16 @@ export default function MapSection() {
             >
               Pay using $IRL to get lower prices on each ticket or drink you buy, and earn IRL Points for every dollar spent.
             </p>
+             <div className="mt-[16px] flex justify-center md:hidden">
+              <Image
+                src="/guidance_down-one-chevron.svg"
+                alt="Guidance chevron"
+                width={16}
+                height={16}
+                className="w-4 h-4"
+                style={{ filter: "none", textShadow: "none" }}
+              />
+            </div>
             <div className="mt-2"></div>
           </div>
         </div>
@@ -324,7 +289,7 @@ export default function MapSection() {
         className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-center bg-[#131313] md:flex-1 md:max-w-[389px] md:min-w-0 md:h-full md:justify-start md:overflow-visible"
       >
         {/* Top Half - Unlock Rewards Image */}
-        <div className="relative w-full flex-1 flex items-center justify-center mb-[47px] mt-[70px] md:flex-none md:mb-[50px] md:mt-0">
+       <div className="relative w-full flex-1 flex items-center justify-center mb-[-40px] mt-[70px] md:flex-none md:mb-[50px] md:mt-0 px-[49px] md:px-0 md:scale-105">
           <div className="relative w-full overflow-hidden rounded-b-[17px]">
             <Image
               src="/homepage/homepage-reward.svg"
@@ -343,7 +308,7 @@ export default function MapSection() {
           ref={section3TextRef}
           className="relative w-full flex-1 flex flex-col items-center justify-center px-4 pb-20 md:pb-40"
         >
-          <div className="flex flex-col items-center gap-4 max-w-[361px] w-full">
+          <div className="flex flex-col items-center gap-4 md:gap-0 max-w-[361px] w-full">
             <h3
               className="text-[25px]  leading-[28px] md:leading-[40px] tracking-[-0.5px] md:tracking-[-0.8px] text-white text-center font-pleasure font-medium"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { MapPin, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -55,10 +56,12 @@ export default function MapCard({
       {/* Location Image with Close Button Overlay */}
       {imageUrl && (
         <div className="w-full h-24 relative">
-          <img
+          <Image
             src={imageUrl}
             alt={name}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            unoptimized
           />
           {/* Close Button Overlay */}
           {onClose && (
