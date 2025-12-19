@@ -160,7 +160,7 @@ export default function MapSection() {
   return (
     <div
       ref={containerRef}
-      className="relative h-screen md:min-h-screen w-full overflow-hidden md:overflow-visible md:flex md:flex-row md:gap-[108px] md:justify-center md:items-start md:px-[187px] md:pt-[400px] md:pb-[900px]"
+      className="relative h-screen md:min-h-screen w-full overflow-hidden md:overflow-visible md:flex md:flex-row md:gap-[108px] md:justify-center md:items-start md:px-[50px] md:pt-[400px] md:pb-[900px]"
     >
       
 

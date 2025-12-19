@@ -55,7 +55,7 @@ export default function Footer() {
 
   // Social media icons component for reuse
   const SocialIcons = () => (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between gap-2 w-full md:w-auto">
       <a
         href="https://x.com/refraction_irl"
         target="_blank"
