@@ -170,7 +170,7 @@ export default function MapSection() {
         className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-center bg-[#131313] md:flex-1 md:max-w-[389px] md:min-w-0 md:h-full md:justify-start md:overflow-visible"
       >
         {/* Top Half - Map Interface Image */}
-        <div className="relative w-full flex-1 flex items-center justify-center mb-[-40px] md:flex-none md:mb-[50px]">
+        <div className="relative w-full flex-1 flex items-center justify-center  md:flex-none md:mb-[50px]">
           <div className="relative w-full overflow-hidden rounded-b-[17px]  md:rounded-t-[17px]">
             <Image
               src="/homepage/homepage-checkin.svg"
@@ -187,7 +187,7 @@ export default function MapSection() {
         {/* Bottom Half - Content */}
         <div
           ref={section1TextRef}
-          className="relative w-full flex-1 flex flex-col items-center justify-center px-4 pb-20 md:pb-40"
+          className="relative w-full flex-1 flex flex-col items-center justify-center px-4 pt-10 md:pb-40"
         >
           <div className="flex flex-col items-center gap-4 md:gap-0 max-w-[361px] w-full">
             <h3
@@ -230,7 +230,7 @@ export default function MapSection() {
         className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-center bg-[#131313] md:flex-1 md:max-w-[389px] md:min-w-0 md:h-full md:justify-start md:overflow-visible"
       >
         {/* Top Half - Rewards Success Image */}
-        <div className="relative w-full flex-1 flex items-center justify-center mb-[-40px] md:flex-none md:mb-[50px]">
+        <div className="relative w-full flex-1 flex items-center justify-center md:flex-none md:mb-[50px]">
           <div className="relative w-full overflow-hidden rounded-b-[17px]">
             <Image
               src="/homepage/homepage-earn-points.svg"
@@ -247,7 +247,7 @@ export default function MapSection() {
         {/* Bottom Half - Content */}
         <div
           ref={section2TextRef}
-          className="relative w-full flex-1 flex flex-col items-center justify-center px-4 pb-20 md:pb-40"
+          className="relative w-full flex-1 flex flex-col items-center justify-center px-4 pt-10 md:pb-40"
         >
           <div className="flex flex-col items-center gap-4 md:gap-0 max-w-[361px] w-full">
             <h3
@@ -289,7 +289,7 @@ export default function MapSection() {
         className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-center bg-[#131313] md:flex-1 md:max-w-[389px] md:min-w-0 md:h-full md:justify-start md:overflow-visible"
       >
         {/* Top Half - Unlock Rewards Image */}
-       <div className="relative w-full flex-1 flex items-center justify-center mb-[-40px] mt-[70px] md:flex-none md:mb-[50px] md:mt-0 px-[49px] md:px-0 md:scale-105">
+       <div className="relative w-full flex-1 flex items-center justify-center  mt-[70px] md:flex-none md:mb-[50px] md:mt-0 px-[49px] md:px-0 md:scale-105">
           <div className="relative w-full overflow-hidden rounded-b-[17px]">
             <Image
               src="/homepage/homepage-reward.svg"
@@ -306,7 +306,7 @@ export default function MapSection() {
         {/* Bottom Half - Content */}
         <div
           ref={section3TextRef}
-          className="relative w-full flex-1 flex flex-col items-center justify-center px-4 pb-20 md:pb-40"
+          className="relative w-full flex-1 flex flex-col items-center justify-center px-4 pt-10 md:pb-40"
         >
           <div className="flex flex-col items-center gap-4 md:gap-0 max-w-[361px] w-full">
             <h3
