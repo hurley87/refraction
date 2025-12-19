@@ -52,7 +52,7 @@ export default function FooterHero() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full min-h-screen overflow-hidden pt-[900px]"
+      className="relative w-full min-h-screen overflow-hidden md:pt-[900px] pt-[250px]"
     >
       {/* WebGL Background with padding */}
       <div className="absolute inset-0 p-0 md:p-4 top-[250px] md:top-[800px]">
@@ -71,18 +71,26 @@ export default function FooterHero() {
         <div className="flex flex-col gap-[57px] items-center text-white text-center max-w-[600px] w-full">
           {/* Heading section */}
           <div className="flex flex-col gap-4 items-center w-full">
-            <h2
-              className="font-pleasure display2 font-medium text-[50px] leading-[40px] tracking-[-2.34px] mb-0"
-              style={{ textShadow: "rgba(255,255,255,0.54) 0px 0px 24px" }}
+            <h1
+              className="font-pleasure display2 font-medium text-[50px] leading-[40px] tracking-[-2.34px] mb-0 text-center"
+              style={{ 
+                color: "var(--UI-White, #FFF)",
+                textAlign: "center",
+                textShadow: "0 0 24px rgba(255, 255, 255, 0.54)"
+              }}
             >
               Support Culture
-            </h2>
-            <h2
-              className="font-pleasure display2 font-bold text-[61px] leading-[64px] tracking-[-4.88px]  mb-0"
-              style={{ textShadow: "rgba(255,255,255,0.54) 0px 0px 24px" }}
+            </h1>
+            <div
+              className="font-pleasure display2 font-bold text-[61px] leading-[64px] tracking-[-4.88px] uppercase mb-0 text-center"
+              style={{ 
+                color: "var(--UI-White, #FFF)",
+                textAlign: "center",
+                textShadow: "0 0 24px rgba(255, 255, 255, 0.54)"
+              }}
             >
               Earn Rewards
-            </h2>
+            </div>
             <p className="font-mono font-bold text-[16px] leading-[24px] tracking-[-0.32px] w-full mt-4">
               Start earning IRL points for check-ins, completing challenges and
               spending at underground venues in your city.

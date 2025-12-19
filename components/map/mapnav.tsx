@@ -163,10 +163,12 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
                 {isLoadingProfilePicture ? (
                   <div className="w-full h-full rounded-full bg-gradient-to-r from-[#2400FF] via-[#FA00FF] to-[#FF0000] animate-pulse"></div>
                 ) : profilePictureUrl ? (
-                  <img
+                  <Image
                     src={profilePictureUrl}
                     alt="Profile"
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    unoptimized
                   />
                 ) : (
                   <div className="w-full h-full rounded-full bg-gradient-to-r from-[#2400FF] via-[#FA00FF] to-[#FF0000]"></div>

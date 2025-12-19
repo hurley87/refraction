@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { usePrivy } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -69,9 +70,11 @@ export default function MapLanding({ children }: MapLandingProps) {
           {/* IRL Marker */}
           <div className="relative mb-16">
             <div className="w-20 h-24 flex items-center justify-center">
-              <img
+              <Image
                 src="/marker.svg"
                 alt="IRL marker"
+                width={80}
+                height={96}
                 className="w-full h-full drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]"
               />
             </div>
