@@ -112,7 +112,7 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
 
   return (
     <>
-      <div className="box-border content-stretch flex items-center justify-between relative size-full">
+      <div className="box-border pt-10 content-stretch flex items-center justify-between relative size-full">
         {/* IRL Logo - Centered */}
         <div className="bg-[#313131] relative rounded-[100px] shrink-0 size-[40px] flex items-center justify-center">
           <Link href="/">
