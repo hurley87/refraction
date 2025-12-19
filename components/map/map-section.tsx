@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
@@ -26,26 +26,6 @@ export default function MapSection() {
   const section2TextRef = useRef<HTMLDivElement>(null);
   const section3Ref = useRef<HTMLDivElement>(null);
   const section3TextRef = useRef<HTMLDivElement>(null);
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-
-  // Lazy load video when section is in viewport
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setIsVideoLoaded(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "200px" }
-    );
-
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     // Early return if refs aren't ready or on server
@@ -53,7 +33,21 @@ export default function MapSection() {
 
     const container = containerRef.current;
 
-    // Set initial states
+    // Check if we're on desktop (md breakpoint = 768px)
+    const isDesktop = window.innerWidth >= 768;
+
+    if (isDesktop) {
+      // Desktop: Show all sections immediately, no animations
+      gsap.set(section1Ref.current, { opacity: 1, y: 0 });
+      gsap.set(section1TextRef.current, { opacity: 1, y: 0 });
+      gsap.set(section2Ref.current, { opacity: 1, y: 0 });
+      gsap.set(section2TextRef.current, { opacity: 1, y: 0 });
+      gsap.set(section3Ref.current, { opacity: 1, y: 0 });
+      gsap.set(section3TextRef.current, { opacity: 1, y: 0 });
+      return; // Skip ScrollTrigger setup on desktop
+    }
+
+    // Mobile: Set initial states for scroll animation
     gsap.set(stencilRef.current, { opacity: 0 });
     gsap.set(section1Ref.current, { opacity: 0, y: "100%" });
     gsap.set(section1TextRef.current, { opacity: 0, y: 50 });
@@ -221,79 +215,18 @@ export default function MapSection() {
   return (
     <div
       ref={containerRef}
-      className="relative h-screen w-full overflow-hidden"
+      className="relative h-screen md:min-h-screen w-full overflow-hidden md:overflow-visible md:flex md:flex-row md:gap-[108px] md:justify-center md:items-start md:px-[187px] md:pt-[400px] md:pb-[900px]"
     >
-      {/* Video Section: Earn Rewards Stencil */}
-      <div
-        ref={videoSectionRef}
-        className="absolute inset-0 flex items-center justify-center bg-[#131313] overflow-visible"
-      >
-        {/* Gradient Background */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div
-            className="relative w-full h-full flex items-center justify-center overflow-hidden md:rounded-none rounded-[26px]"
-            style={{
-              background:
-                "var(--Gradients-Rewards-Pink, linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.10) 100%), linear-gradient(0deg, #FFE600 0%, #1BA351 36.06%, #61BFD1 65.39%, #EE91B7 100%))",
-            }}
-          />
-        </div>
-
-        {/* Text and Video Overlay */}
-        <div
-          ref={stencilRef}
-          className="absolute inset-0 flex flex-col items-center justify-center gap-4 overflow-visible px-4 py-8 md:py-8"
-        >
-          <div className="flex flex-col items-center gap-4 md:gap-2 w-full my-auto">
-            <div className="flex flex-col items-center gap-4 md:gap-2 w-full max-w-2xl">
-              <div
-                className="font-pleasure title2 text-[30px] tracking-[-1px] md:text-[30px] md:leading-[40px] md:tracking-[-1px] uppercase text-white text-center w-3/4 py-4 md:py-0"
-                style={{
-                  textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
-                }}
-              >
-                Earn Rewards For Showing Up To The Things You Love
-              </div>
-            </div>
-            
-            {/* Video - Lazy loaded */}
-            <div className="relative w-full md:w-[50vw] aspect-video rounded-xl overflow-hidden bg-[#1a1a1a]">
-              {isVideoLoaded && (
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                  preload="none"
-                className="w-full h-full object-cover"
-              >
-                <source src="/video-reel.mp4" type="video/mp4" />
-              </video>
-              )}
-            </div>
-            
-            <div className="flex flex-col items-center gap-4 md:gap-2 w-full max-w-2xl">
-              <div
-                className="font-pleasure title2 text-[30px] tracking-[-1px] md:text-[40px] md:leading-[50px] md:tracking-[-1px] uppercase text-white text-center w-3/4 py-4 md:py-0"
-                style={{
-                  textShadow: "0 0 24px rgba(255, 255, 255, 0.54)",
-                }}
-              >
-                Built By Artists, Curators, And Event Organizers
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      
 
       {/* Section 1: Discover and Check In */}
       <div
         ref={section1Ref}
-        className="absolute inset-0 flex flex-col items-center justify-center bg-[#131313]"
+        className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-center bg-[#131313] md:flex-1 md:max-w-[389px] md:min-w-0 md:h-full md:justify-start md:overflow-visible"
       >
         {/* Top Half - Map Interface Image */}
-        <div className="relative w-full flex-1 flex items-center justify-center mb-[47px]">
-          <div className="relative w-full overflow-hidden rounded-b-[17px]">
+        <div className="relative w-full flex-1 flex items-center justify-center mb-[47px] md:flex-none md:mb-[50px]">
+          <div className="relative w-full overflow-hidden rounded-b-[17px]  md:rounded-t-[17px]">
             <Image
               src="/homepage/homepage-checkin.svg"
               alt="Check in map interface"
@@ -311,21 +244,21 @@ export default function MapSection() {
           ref={section1TextRef}
           className="relative w-full flex-1 flex flex-col items-center justify-center px-4 pb-20 md:pb-40"
         >
-          <div className="flex flex-col items-center gap-4 max-w-[361px] md:max-w-[600px] w-full">
-            <p
-              className="text-[25px] md:text-[36px] leading-[28px] md:leading-[40px] tracking-[-0.5px] md:tracking-[-0.8px] text-white text-center font-pleasure font-medium"
+          <div className="flex flex-col items-center gap-4 max-w-[361px] w-full">
+            <h3
+              className="text-[25px]  leading-[28px] md:leading-[40px] tracking-[-0.5px] md:tracking-[-0.8px] text-white text-center font-pleasure font-medium"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}
             >
               Discover and
-            </p>
+            </h3>
             <p
-              className="text-[48px] md:text-[72px] leading-[48px] md:leading-[72px] tracking-[-3.84px] md:tracking-[-5px] text-white text-center font-pleasure font-bold uppercase"
+              className="display2 text-[48px]leading-[48px] md:leading-[72px] tracking-[-3.84px] md:tracking-[-5px] text-white text-center font-pleasure font-bold uppercase"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}
             >
               Check In
             </p>
             <p
-              className="text-[13px] md:text-[16px] leading-[20px] md:leading-[24px] tracking-[-0.26px] md:tracking-[-0.32px] text-[#b5b5b5] text-center font-mono"
+              className="body-medium text-[13px] leading-[20px] md:leading-[24px] tracking-[-0.26px] md:tracking-[-0.32px] text-[#b5b5b5] text-center font-grotesk"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}
             >
               Show up and support underground venues in your city to begin your
@@ -339,10 +272,10 @@ export default function MapSection() {
       {/* Section 2: Earn Points & Save */}
       <div
         ref={section2Ref}
-        className="absolute inset-0 flex flex-col items-center justify-center bg-[#131313]"
+        className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-center bg-[#131313] md:flex-1 md:max-w-[389px] md:min-w-0 md:h-full md:justify-start md:overflow-visible"
       >
         {/* Top Half - Rewards Success Image */}
-        <div className="relative w-full flex-1 flex items-center justify-center mb-[47px]">
+        <div className="relative w-full flex-1 flex items-center justify-center mb-[47px] md:flex-none md:mb-[50px]">
           <div className="relative w-full overflow-hidden rounded-b-[17px]">
             <Image
               src="/homepage/homepage-earn-points.svg"
@@ -361,21 +294,21 @@ export default function MapSection() {
           ref={section2TextRef}
           className="relative w-full flex-1 flex flex-col items-center justify-center px-4 pb-20 md:pb-40"
         >
-          <div className="flex flex-col items-center gap-4 max-w-[361px] md:max-w-[600px] w-full">
-            <p
-              className="text-[25px] md:text-[36px] leading-[28px] md:leading-[40px] tracking-[-0.5px] md:tracking-[-0.8px] text-white text-center font-pleasure font-medium"
+          <div className="flex flex-col items-center gap-4 max-w-[361px] w-full">
+            <h3
+              className="text-[25px] leading-[28px] md:leading-[40px] tracking-[-0.5px] md:tracking-[-0.8px] text-white text-center font-pleasure font-medium"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}
             >
               Earn Points &
-            </p>
+            </h3>
             <p
-              className="text-[48px] md:text-[72px] leading-[48px] md:leading-[72px] tracking-[-3.84px] md:tracking-[-5px] text-white text-center font-pleasure font-bold uppercase"
+              className="display2 text-[48px] leading-[48px] md:leading-[72px] tracking-[-3.84px] md:tracking-[-5px] text-white text-center font-pleasure font-bold uppercase"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}
             >
               Save
             </p>
             <p
-              className="text-[13px] md:text-[16px] leading-[20px] md:leading-[24px] tracking-[-0.26px] md:tracking-[-0.32px] text-[#b5b5b5] text-center font-mono"
+              className="body-medium text-[13px]leading-[20px] md:leading-[24px] tracking-[-0.26px] md:tracking-[-0.32px] text-[#b5b5b5] text-center font-grotesk"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}
             >
               Pay using $IRL to get lower prices on each ticket or drink you buy, and earn IRL Points for every dollar spent.
@@ -388,11 +321,11 @@ export default function MapSection() {
       {/* Section 3: Unlock Exclusive Rewards */}
       <div
         ref={section3Ref}
-        className="absolute inset-0 flex flex-col items-center justify-center bg-[#131313]"
+        className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-center bg-[#131313] md:flex-1 md:max-w-[389px] md:min-w-0 md:h-full md:justify-start md:overflow-visible"
       >
         {/* Top Half - Unlock Rewards Image */}
-        <div className="relative w-[295.56px] flex-1 flex items-center justify-center mb-[47px] mt-[70px]">
-          <div className="relative w-[295.56px] overflow-hidden rounded-b-[17px]">
+        <div className="relative w-full flex-1 flex items-center justify-center mb-[47px] mt-[70px] md:flex-none md:mb-[50px] md:mt-0">
+          <div className="relative w-full overflow-hidden rounded-b-[17px]">
             <Image
               src="/homepage/homepage-reward.svg"
               alt="Unlock exclusive rewards"
@@ -410,21 +343,21 @@ export default function MapSection() {
           ref={section3TextRef}
           className="relative w-full flex-1 flex flex-col items-center justify-center px-4 pb-20 md:pb-40"
         >
-          <div className="flex flex-col items-center gap-4 max-w-[361px] md:max-w-[600px] w-full">
-            <p
-              className="text-[25px] md:text-[36px] leading-[28px] md:leading-[40px] tracking-[-0.5px] md:tracking-[-0.8px] text-white text-center font-pleasure font-medium"
+          <div className="flex flex-col items-center gap-4 max-w-[361px] w-full">
+            <h3
+              className="text-[25px]  leading-[28px] md:leading-[40px] tracking-[-0.5px] md:tracking-[-0.8px] text-white text-center font-pleasure font-medium"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}
             >
               Unlock Exclusive
-            </p>
+            </h3>
             <p
-              className="text-[48px] md:text-[72px] leading-[48px] md:leading-[72px] tracking-[-3.84px] md:tracking-[-5px] text-white text-center font-pleasure font-bold uppercase"
+              className="text-[48px] leading-[48px] md:leading-[72px] tracking-[-3.84px] display2 md:tracking-[-5px] text-white text-center font-pleasure font-bold uppercase"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}
             >
               Rewards
             </p>
             <p
-              className="text-[13px] md:text-[16px] leading-[20px] md:leading-[24px] tracking-[-0.26px] md:tracking-[-0.32px] text-[#b5b5b5] text-center font-mono"
+              className="body-medium text-[13px] leading-[20px] md:leading-[24px] tracking-[-0.26px] md:tracking-[-0.32px] text-[#b5b5b5] text-center font-grotesk"
               style={{ textShadow: "rgba(255,255,255,0.7) 0px 0px 16px" }}
             >
               Redeem your IRL Points for exclusive perks, discounts, and

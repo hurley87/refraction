@@ -52,10 +52,10 @@ export default function FooterHero() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full min-h-screen overflow-hidden"
+      className="relative w-full min-h-screen overflow-hidden pt-[900px]"
     >
       {/* WebGL Background with padding */}
-      <div className="absolute inset-0 p-0 md:p-4">
+      <div className="absolute inset-0 p-0 md:p-4 top-[250px] md:top-[800px]">
         <div className="w-full h-full rounded-[48px] overflow-hidden">
           {shouldLoadWebGL ? (
             <WebGLRenderer data={webglData} />
@@ -66,19 +66,19 @@ export default function FooterHero() {
       </div>
 
       {/* Content overlay */}
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20">
+      <div className="relative z-10 flex flex-col items-center justify-center pt-[320px] pb-[320px]  px-4 py-20 ">
         {/* Main content container */}
         <div className="flex flex-col gap-[57px] items-center text-white text-center max-w-[600px] w-full">
           {/* Heading section */}
           <div className="flex flex-col gap-4 items-center w-full">
-            <h1
-              className="font-pleasure font-medium text-[39px] leading-[40px] tracking-[-2.34px] mb-0"
+            <h2
+              className="font-pleasure display2 font-medium text-[50px] leading-[40px] tracking-[-2.34px] mb-0"
               style={{ textShadow: "rgba(255,255,255,0.54) 0px 0px 24px" }}
             >
               Support Culture
-            </h1>
+            </h2>
             <h2
-              className="font-pleasure font-bold text-[61px] leading-[64px] tracking-[-4.88px] uppercase mb-0"
+              className="font-pleasure display2 font-bold text-[61px] leading-[64px] tracking-[-4.88px]  mb-0"
               style={{ textShadow: "rgba(255,255,255,0.54) 0px 0px 24px" }}
             >
               Earn Rewards
