@@ -278,58 +278,58 @@ export default function LeaderboardPage() {
               {!isLoadingMore && leaderboardData.length > 0 && (
                 <>
                   {leaderboardData.map((entry: LeaderboardUser) => (
-                    <div
-                      key={entry.player_id}
-                      data-rank={entry.rank}
-                      className={`rounded-[26px] p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center ${
-                        entry.wallet_address === currentUserAddress
-                          ? "bg-[#4F4F4F]"
-                          : "bg-white"
-                      }`}
-                    >
-                      {/* Rank */}
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ededed] body-small font-medium text-black">
-                          {entry.rank}
-                        </span>
-                      </div>
+                      <div
+                        key={entry.player_id}
+                        data-rank={entry.rank}
+                        className={`rounded-[26px] p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center ${
+                          entry.wallet_address === currentUserAddress
+                            ? "bg-[#4F4F4F]"
+                            : "bg-white"
+                        }`}
+                      >
+                        {/* Rank */}
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ededed] body-small font-medium text-black">
+                            {entry.rank}
+                          </span>
+                        </div>
 
-                      {/* Name */}
-                      <div className="flex items-center gap-2 min-w-0 pl-5">
+                        {/* Name */}
+                        <div className="flex items-center gap-2 min-w-0 pl-5">
                         <Link 
                           href={`/profiles/${entry.wallet_address}`}
                           className="flex items-center gap-2 min-w-0"
                         >
-                          <LeaderboardAvatar
-                            walletAddress={entry.wallet_address}
-                            size={16}
-                          />
-                          <span
-                            className={`title4 truncate ${
+                            <LeaderboardAvatar
+                              walletAddress={entry.wallet_address}
+                              size={16}
+                            />
+                            <span
+                              className={`title4 truncate ${
+                                entry.wallet_address === currentUserAddress
+                                  ? "text-white"
+                                  : "text-black"
+                              }`}
+                            >
+                              {entry.username ||
+                                formatWalletAddress(entry.wallet_address)}
+                            </span>
+                          </Link>
+                        </div>
+
+                        {/* Points */}
+                        <div className="text-right">
+                          <div
+                            className={`body-medium ${
                               entry.wallet_address === currentUserAddress
                                 ? "text-white"
                                 : "text-black"
                             }`}
                           >
-                            {entry.username ||
-                              formatWalletAddress(entry.wallet_address)}
-                          </span>
-                        </Link>
-                      </div>
-
-                      {/* Points */}
-                      <div className="text-right">
-                        <div
-                          className={`body-medium ${
-                            entry.wallet_address === currentUserAddress
-                              ? "text-white"
-                              : "text-black"
-                          }`}
-                        >
-                          {entry.total_points.toLocaleString()}
+                            {entry.total_points.toLocaleString()}
+                          </div>
                         </div>
                       </div>
-                    </div>
                   ))}
                 </>
               )}

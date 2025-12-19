@@ -23,7 +23,7 @@ const PencilIcon = ({
   const touchHandledRef = useRef(false);
 
   return (
-    <button
+  <button
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -48,50 +48,50 @@ const PencilIcon = ({
         touchHandledRef.current = true;
         onClick();
       }}
-      disabled={isLoading}
+    disabled={isLoading}
       className={`w-8 h-8 min-w-[32px] min-h-[32px] ${isLoading ? "bg-blue-500" : "bg-[#ededed] hover:bg-gray-300"} text-black rounded-full flex items-center justify-center transition-colors shadow-sm ${className}`}
       style={{ touchAction: "none" }}
-      aria-label="Edit"
-    >
-      {isLoading ? (
-        <div className="flex space-x-0.5">
-          <div
-            className="w-1 h-1 bg-white rounded-full animate-bounce"
-            style={{ animationDelay: "0ms" }}
-          ></div>
-          <div
-            className="w-1 h-1 bg-white rounded-full animate-bounce"
-            style={{ animationDelay: "150ms" }}
-          ></div>
-          <div
-            className="w-1 h-1 bg-white rounded-full animate-bounce"
-            style={{ animationDelay: "300ms" }}
-          ></div>
-        </div>
-      ) : (
-        <svg
-          className="w-3 h-3"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M3 22h18"
-            opacity="0.3"
-          />
-        </svg>
-      )}
-    </button>
-  );
+    aria-label="Edit"
+  >
+    {isLoading ? (
+      <div className="flex space-x-0.5">
+        <div
+          className="w-1 h-1 bg-white rounded-full animate-bounce"
+          style={{ animationDelay: "0ms" }}
+        ></div>
+        <div
+          className="w-1 h-1 bg-white rounded-full animate-bounce"
+          style={{ animationDelay: "150ms" }}
+        ></div>
+        <div
+          className="w-1 h-1 bg-white rounded-full animate-bounce"
+          style={{ animationDelay: "300ms" }}
+        ></div>
+      </div>
+    ) : (
+      <svg
+        className="w-3 h-3"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M3 22h18"
+          opacity="0.3"
+        />
+      </svg>
+    )}
+  </button>
+);
 };
 
 // Reusable Checkmark Icon Component
@@ -545,12 +545,12 @@ export default function ProfileMenu({
                     <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                   ) : (
                     <>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="name@gmail.com"
-                        value={profile.email}
-                        onChange={(e) => handleInputChange("email", e.target.value)}
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@gmail.com"
+                    value={profile.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
                         onFocus={() => setEditingField("email")}
                         onBlur={(e) => {
                           // Don't clear on blur if we're in the process of saving
@@ -629,14 +629,14 @@ export default function ProfileMenu({
                     <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                   ) : (
                     <>
-                      <Input
-                        id="name"
-                        type="text"
-                        placeholder="Your name"
-                        value={profile.username}
-                        onChange={(e) =>
-                          handleInputChange("username", e.target.value)
-                        }
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Your name"
+                    value={profile.username}
+                    onChange={(e) =>
+                      handleInputChange("username", e.target.value)
+                    }
                         onFocus={() => setEditingField("username")}
                         onBlur={(e) => {
                           // Don't clear on blur if we're in the process of saving
@@ -840,13 +840,13 @@ export default function ProfileMenu({
               {/* Social Handles */}
               <div className="space-y-4">
                 {/* Website */}
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="website"
-                    className="text-black body-small uppercase"
-                  >
-                    WEBSITE
-                  </Label>
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="website"
+                      className="text-black body-small uppercase"
+                    >
+                      WEBSITE
+                    </Label>
                   <div 
                     className="flex items-center gap-2"
                     onMouseDown={(e) => {
@@ -864,14 +864,14 @@ export default function ProfileMenu({
                       <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                     ) : (
                       <>
-                        <Input
-                          id="website"
-                          type="text"
-                          placeholder="www.yourwebsite.com"
+                      <Input
+                        id="website"
+                        type="text"
+                        placeholder="www.yourwebsite.com"
                           value={profile.website || ""}
-                          onChange={(e) =>
-                            handleInputChange("website", e.target.value)
-                          }
+                        onChange={(e) =>
+                          handleInputChange("website", e.target.value)
+                        }
                           onFocus={() => setEditingField("website")}
                           onBlur={() => {
                             // Don't clear on blur, let user click checkmark or save
@@ -937,14 +937,14 @@ export default function ProfileMenu({
                       <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                     ) : (
                       <>
-                        <Input
-                          id="twitter"
-                          type="text"
-                          placeholder="Your X handle"
-                          value={profile.twitter_handle}
-                          onChange={(e) =>
-                            handleInputChange("twitter_handle", e.target.value)
-                          }
+                    <Input
+                      id="twitter"
+                      type="text"
+                      placeholder="Your X handle"
+                      value={profile.twitter_handle}
+                      onChange={(e) =>
+                        handleInputChange("twitter_handle", e.target.value)
+                      }
                           onFocus={() => setEditingField("twitter_handle")}
                           onBlur={() => {
                             // Don't clear on blur, let user click checkmark or save
@@ -1010,14 +1010,14 @@ export default function ProfileMenu({
                       <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                     ) : (
                       <>
-                        <Input
-                          id="towns"
-                          type="text"
-                          placeholder="Your Towns handle"
-                          value={profile.towns_handle}
-                          onChange={(e) =>
-                            handleInputChange("towns_handle", e.target.value)
-                          }
+                    <Input
+                      id="towns"
+                      type="text"
+                      placeholder="Your Towns handle"
+                      value={profile.towns_handle}
+                      onChange={(e) =>
+                        handleInputChange("towns_handle", e.target.value)
+                      }
                           onFocus={() => setEditingField("towns_handle")}
                           onBlur={() => {
                             // Don't clear on blur, let user click checkmark or save
@@ -1083,14 +1083,14 @@ export default function ProfileMenu({
                       <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                     ) : (
                       <>
-                        <Input
-                          id="farcaster"
-                          type="text"
-                          placeholder="Your Farcaster handle"
-                          value={profile.farcaster_handle}
-                          onChange={(e) =>
-                            handleInputChange("farcaster_handle", e.target.value)
-                          }
+                    <Input
+                      id="farcaster"
+                      type="text"
+                      placeholder="Your Farcaster handle"
+                      value={profile.farcaster_handle}
+                      onChange={(e) =>
+                        handleInputChange("farcaster_handle", e.target.value)
+                      }
                           onFocus={() => setEditingField("farcaster_handle")}
                           onBlur={() => {
                             // Don't clear on blur, let user click checkmark or save
@@ -1156,14 +1156,14 @@ export default function ProfileMenu({
                       <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
                     ) : (
                       <>
-                        <Input
-                          id="telegram"
-                          type="text"
-                          placeholder="Your Telegram handle"
-                          value={profile.telegram_handle}
-                          onChange={(e) =>
-                            handleInputChange("telegram_handle", e.target.value)
-                          }
+                    <Input
+                      id="telegram"
+                      type="text"
+                      placeholder="Your Telegram handle"
+                      value={profile.telegram_handle}
+                      onChange={(e) =>
+                        handleInputChange("telegram_handle", e.target.value)
+                      }
                           onFocus={() => setEditingField("telegram_handle")}
                           onBlur={() => {
                             // Don't clear on blur, let user click checkmark or save
