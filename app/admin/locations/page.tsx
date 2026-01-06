@@ -107,7 +107,7 @@ export default function AdminLocationsPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: LOCATIONS_KEY });
+      queryClient.invalidateQueries({ queryKey: [...LOCATIONS_KEY, "all"] });
       toast.success("Visibility updated");
     },
     onError: () => {

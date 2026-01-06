@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
       points_value: 100, // Each location is worth 100 points
       type: sanitizedType || "location",
       context: sanitizedContext,
+      is_visible: false, // New locations require admin approval
     };
 
     const location = await createOrGetLocation(locationInfo);
