@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
-import { getCheckinByAddressAndCheckpoint } from "@/lib/db/checkins";
 import { supabase } from "@/lib/db/client";
 
 const getUtcDayBounds = () => {
@@ -36,12 +35,9 @@ export async function GET(request: Request) {
       );
     }
 
-    const checkins = await getCheckinByAddressAndCheckpoint(address, checkpoint);
-    const hasCheckedIn = checkins.length > 0;
-
     const { startIso, endIso } = getUtcDayBounds();
 
-    const [todaysCheckpointActivities, checkpointActivityResult] = await Promise.all([
+    const [todaysCheckpointActivities, checkpointActivityResult, allTimeCheckpointResult] = await Promise.all([
       supabase
         .from("points_activities")
         .select("points_earned")
@@ -58,7 +54,17 @@ export async function GET(request: Request) {
         .gte("created_at", startIso)
         .lt("created_at", endIso)
         .limit(1),
+      // Check if user has ever checked in at this checkpoint (all time)
+      supabase
+        .from("points_activities")
+        .select("id")
+        .eq("user_wallet_address", address)
+        .eq("activity_type", "checkpoint_checkin")
+        .contains("metadata", { checkpoint })
+        .limit(1),
     ]);
+
+    const hasCheckedIn = (allTimeCheckpointResult.data?.length ?? 0) > 0;
 
     if (todaysCheckpointActivities.error) {
       throw todaysCheckpointActivities.error;
@@ -66,6 +72,10 @@ export async function GET(request: Request) {
 
     if (checkpointActivityResult.error) {
       throw checkpointActivityResult.error;
+    }
+
+    if (allTimeCheckpointResult.error) {
+      throw allTimeCheckpointResult.error;
     }
 
     const todaysActivities = todaysCheckpointActivities.data || [];

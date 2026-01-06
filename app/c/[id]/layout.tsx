@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "$IRL is your key to unlocking a new way to experience culture",
 };
 
-export default function RootLayout({
+export default function CheckpointLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

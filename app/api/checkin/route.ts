@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { upsertCheckpoint } from "@/lib/db/checkins";
 import { createOrUpdatePlayer, updatePlayerPoints } from "@/lib/db/players";
 import { getUserProfile } from "@/lib/db/profiles";
 import { supabase } from "@/lib/db/client";
@@ -66,16 +65,6 @@ export async function POST(req: NextRequest) {
         `Daily checkpoint limit of ${DAILY_CHECKPOINT_LIMIT} reached. Come back tomorrow!`,
         429,
       );
-    }
-
-    try {
-      await upsertCheckpoint(walletAddress, email, checkpoint);
-    } catch (error) {
-      if (
-        !(error instanceof Error && error.message.includes("Already checked in"))
-      ) {
-        throw error;
-      }
     }
 
     let pointsAwarded = 0;
@@ -162,7 +151,14 @@ export async function POST(req: NextRequest) {
     );
   } catch (e) {
     console.error("Error processing checkin:", e);
-    const errorMessage = e instanceof Error ? e.message : "Unknown error";
+    let errorMessage = "Unknown error";
+    if (e instanceof Error) {
+      errorMessage = e.message;
+    } else if (typeof e === "object" && e !== null && "message" in e) {
+      errorMessage = String((e as { message: unknown }).message);
+    } else if (typeof e === "string") {
+      errorMessage = e;
+    }
     return apiError(errorMessage, 500);
   }
 }

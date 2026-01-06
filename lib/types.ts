@@ -210,3 +210,21 @@ export type Checkin = {
   created_at?: string;
   checkpoint: string;
 };
+
+/**
+ * Unified checkpoint for /c/[id] URLs
+ * Supports multiple chain types (EVM, Solana, Stellar)
+ */
+export type ChainType = 'evm' | 'solana' | 'stellar';
+
+export type Checkpoint = {
+  id: string;
+  name: string;
+  description?: string | null;
+  chain_type: ChainType;
+  points_value: number;
+  is_active: boolean;
+  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};

@@ -114,3 +114,30 @@ export const locationCommentsQuerySchema = z.object({
   locationId: z.coerce.number().int().positive(),
 });
 
+/**
+ * Schema for checkpoint chain types
+ */
+export const chainTypeSchema = z.enum(["evm", "solana", "stellar"]);
+
+/**
+ * Schema for creating a checkpoint (admin)
+ */
+export const createCheckpointRequestSchema = z.object({
+  name: z.string().min(1).max(255),
+  description: z.string().max(1000).optional(),
+  chain_type: chainTypeSchema,
+  points_value: z.coerce.number().int().min(1).max(10000).default(100),
+  is_active: z.boolean().default(true),
+});
+
+/**
+ * Schema for updating a checkpoint (admin)
+ */
+export const updateCheckpointRequestSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().max(1000).optional().nullable(),
+  chain_type: chainTypeSchema.optional(),
+  points_value: z.coerce.number().int().min(1).max(10000).optional(),
+  is_active: z.boolean().optional(),
+});
+
