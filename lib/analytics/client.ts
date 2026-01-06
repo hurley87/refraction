@@ -3,18 +3,23 @@
 import mixpanel from "mixpanel-browser";
 import type { UserProperties } from "./types";
 
+let _mixpanelInitialized = false;
+
 /**
  * Initialize Mixpanel client-side tracking
  * Should be called once when the app loads
  */
 export function initMixpanel(token: string): void {
   if (typeof window === "undefined") return;
+  if (_mixpanelInitialized) return;
 
   mixpanel.init(token, {
     debug: process.env.NODE_ENV === "development",
     track_pageview: false, // We'll track pageviews manually
     persistence: "localStorage",
   });
+
+  _mixpanelInitialized = true;
 }
 
 /**
@@ -25,6 +30,7 @@ export function identifyUser(
   properties?: UserProperties,
 ): void {
   if (typeof window === "undefined") return;
+  if (!_mixpanelInitialized) return;
 
   mixpanel.identify(distinctId);
 
@@ -41,6 +47,7 @@ export function trackEvent(
   properties?: Record<string, any>,
 ): void {
   if (typeof window === "undefined") return;
+  if (!_mixpanelInitialized) return;
 
   mixpanel.track(eventName, properties);
 }
@@ -50,6 +57,7 @@ export function trackEvent(
  */
 export function setUserProperties(properties: UserProperties): void {
   if (typeof window === "undefined") return;
+  if (!_mixpanelInitialized) return;
 
   mixpanel.people.set(properties);
 }
@@ -59,6 +67,7 @@ export function setUserProperties(properties: UserProperties): void {
  */
 export function trackPageView(pageName?: string, properties?: Record<string, any>): void {
   if (typeof window === "undefined") return;
+  if (!_mixpanelInitialized) return;
 
   mixpanel.track("$pageview", {
     page: pageName || window.location.pathname,
@@ -71,6 +80,7 @@ export function trackPageView(pageName?: string, properties?: Record<string, any
  */
 export function resetUser(): void {
   if (typeof window === "undefined") return;
+  if (!_mixpanelInitialized) return;
 
   mixpanel.reset();
 }
@@ -80,7 +90,5 @@ export function resetUser(): void {
  */
 export function isInitialized(): boolean {
   if (typeof window === "undefined") return false;
-  // Check if mixpanel has been initialized by verifying it has the track method
-  return typeof mixpanel.track === "function";
+  return _mixpanelInitialized;
 }
-
