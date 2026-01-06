@@ -15,6 +15,7 @@ const updateLocationSchema = z.object({
   imageUrl: z.string().url().nullable().optional(),
   type: z.string().optional(),
   eventUrl: z.string().url().nullable().optional(),
+  isVisible: z.boolean().optional(),
 });
 
 export async function PATCH(
@@ -66,6 +67,7 @@ export async function PATCH(
     if (payload.type !== undefined) updates.type = payload.type.trim() || null;
     if (payload.eventUrl !== undefined)
       updates.event_url = payload.eventUrl?.trim() || null;
+    if (payload.isVisible !== undefined) updates.is_visible = payload.isVisible;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(

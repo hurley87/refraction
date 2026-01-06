@@ -85,6 +85,7 @@ export const updateLocationById = async (
       | "coin_image_url"
       | "type"
       | "event_url"
+      | "is_visible"
     >
   >,
 ) => {

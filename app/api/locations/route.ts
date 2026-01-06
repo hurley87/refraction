@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/db/client";
 import { trackLocationCreated, trackPointsEarned } from "@/lib/analytics";
+import { checkAdminPermission } from "@/lib/auth";
 
 const MAX_VARCHAR_LENGTH = 255;
 const MAX_LOCATIONS_PER_DAY = 30;
@@ -26,14 +27,28 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const walletAddress = searchParams.get("walletAddress");
+    const includeHidden = searchParams.get("includeHidden") === "true";
+
+    // Only allow includeHidden if admin
+    if (includeHidden) {
+      const adminEmail = request.headers.get("x-user-email");
+      if (!checkAdminPermission(adminEmail || undefined)) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      }
+    }
 
     // Base query - only return locations with images
-    const query = supabase
+    let query = supabase
       .from("locations")
       .select(
-        "id, name, display_name, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username",
+        "id, name, display_name, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible",
       )
       .not("coin_image_url", "is", null);
+
+    // Filter by visibility unless admin requested all
+    if (!includeHidden) {
+      query = query.eq("is_visible", true);
+    }
 
     // If filtering by player's check-ins, join through player_location_checkins
     if (walletAddress) {
@@ -50,17 +65,24 @@ export async function GET(request: NextRequest) {
         throw playerError;
       }
 
-      const { data, error } = await supabase
+      let checkinQuery = supabase
         .from("player_location_checkins")
         .select(
           `
           locations!inner (
-            id, name, display_name, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username
+            id, name, display_name, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible
           )
         `,
         )
         .eq("player_id", player.id)
         .not("locations.coin_image_url", "is", null);
+
+      // Filter by visibility unless admin requested all
+      if (!includeHidden) {
+        checkinQuery = checkinQuery.eq("locations.is_visible", true);
+      }
+
+      const { data, error } = await checkinQuery;
 
       if (error) throw error;
 
@@ -241,7 +263,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Insert the new location
+    // Insert the new location (hidden by default, requires admin approval)
     const locationInsertPayload = {
       place_id: sanitizedPlaceId,
       display_name: sanitizedDisplayName,
@@ -255,6 +277,7 @@ export async function POST(request: NextRequest) {
       creator_wallet_address: sanitizedWalletAddress,
       creator_username: sanitizedUsername,
       coin_image_url: normalizedLocationImage,
+      is_visible: false,
       context: JSON.stringify({
         created_at: new Date().toISOString(),
       }),

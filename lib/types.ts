@@ -38,6 +38,7 @@ export type Location = {
   coin_transaction_hash?: string;
   creator_wallet_address?: string;
   creator_username?: string;
+  is_visible?: boolean;
   created_at?: string;
 };
 

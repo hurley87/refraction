@@ -121,6 +121,14 @@ export async function POST(request: NextRequest) {
 
     const location = await createOrGetLocation(locationInfo);
 
+    // Reject check-ins at hidden locations
+    if (location.is_visible === false) {
+      return NextResponse.json(
+        { error: "This location is not available for check-ins" },
+        { status: 403 },
+      );
+    }
+
     const sanitizedComment =
       typeof comment === "string" && comment.trim().length > 0
         ? comment.trim().slice(0, 500)
