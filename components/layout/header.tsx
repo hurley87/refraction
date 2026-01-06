@@ -15,7 +15,7 @@ export default function Header() {
   return (
     <>
       <div
-        className="fixed top-[8px] left-[8px] right-[8px] md:left-10 md:right-10 max-w-7xl mx-auto z-50 rounded-[26px] backdrop-blur-[32px] bg-gradient-to-b from-white/[0.157] to-white/[0.45] border border-white/25"
+        className="fixed md:top-[16px] top-[8px] left-[8px] right-[8px] md:left-10 md:right-10 max-w-7xl mx-auto z-50 rounded-[26px] backdrop-blur-[32px] bg-gradient-to-b from-white/[0.157] to-white/[0.45] border border-white/25"
         data-name="Hero"
       >
         <nav

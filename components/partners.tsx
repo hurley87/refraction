@@ -41,12 +41,14 @@ const partners: Partner[] = [
 const MarqueeRow = memo(function MarqueeRow({
   partners,
   direction = "left",
+  className = "",
 }: {
   partners: Partner[];
   direction?: "left" | "right";
+  className?: string;
 }) {
   return (
-    <div className="relative overflow-hidden w-full h-20 md:h-16 mb-6">
+    <div className={`relative overflow-hidden w-full h-20 md:h-16 mb-6 ${className}`}>
       <div
         className={`flex items-center gap-8 md:gap-12 absolute whitespace-nowrap [will-change:transform] ${
           direction === "left" ? "animate-marquee" : "animate-marquee-reverse"
@@ -95,8 +97,8 @@ export default function Partners() {
 
         {/* Marquee Rows */}
         <div className="mb-12">
-          <MarqueeRow partners={partners.slice(0, 6)} direction="left" />
-          <MarqueeRow partners={partners.slice(6)} direction="right" />
+          <MarqueeRow partners={partners} direction="right" />
+          <MarqueeRow partners={partners} direction="left" className="md:hidden" />
         </div>
 
         {/* Call to Action Buttons */}

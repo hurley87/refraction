@@ -112,7 +112,7 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
 
   return (
     <>
-      <div className="box-border content-stretch flex items-center justify-between relative size-full">
+      <div className="box-border pt-10 content-stretch flex items-center justify-between relative size-full">
         {/* IRL Logo - Centered */}
         <div className="bg-[#313131] relative rounded-[100px] shrink-0 size-[40px] flex items-center justify-center">
           <Link href="/">
@@ -163,10 +163,12 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
                 {isLoadingProfilePicture ? (
                   <div className="w-full h-full rounded-full bg-gradient-to-r from-[#2400FF] via-[#FA00FF] to-[#FF0000] animate-pulse"></div>
                 ) : profilePictureUrl ? (
-                  <img
+                  <Image
                     src={profilePictureUrl}
                     alt="Profile"
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    unoptimized
                   />
                 ) : (
                   <div className="w-full h-full rounded-full bg-gradient-to-r from-[#2400FF] via-[#FA00FF] to-[#FF0000]"></div>

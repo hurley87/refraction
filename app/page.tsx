@@ -21,7 +21,7 @@ const Footer = dynamic(() => import("@/components/layout/footer"), {
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen w-screen overflow-x-hidden bg-[#131313] rounded-t-3xl">
+    <div className="relative min-h-screen w-screen overflow-x-hidden bg-[#131313]  rounded-t-3xl">
       {/* Header - Fixed at top (outside overflow-hidden for Firefox compatibility) */}
       <Header />
 
@@ -32,7 +32,7 @@ export default function Home() {
         <Hero />
       </div>
       {/* Map Section with GSAP Scroll Transitions */}
-      <div className="py-16 md:py-24" data-section="map">
+      <div className="pt-0 pb-16 md:py-24" data-section="map">
         <MapSection />
       </div>
 

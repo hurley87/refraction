@@ -43,13 +43,13 @@ export async function GET(request: NextRequest) {
         const formattedDate = `${month}/${day}/${year}`;
         
         return {
-          id: activity.id,
+        id: activity.id,
           date: formattedDate,
-          description: activity.description,
-          activityType: activity.activity_type,
-          points: activity.points_earned,
-          event: getEventName(activity.activity_type),
-          metadata: activity.metadata,
+        description: activity.description,
+        activityType: activity.activity_type,
+        points: activity.points_earned,
+        event: getEventName(activity.activity_type),
+        metadata: activity.metadata,
         };
       }) || [];
 
