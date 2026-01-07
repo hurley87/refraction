@@ -361,7 +361,9 @@ export default function AdminCheckpointsPage() {
           <DialogContent className="max-w-lg bg-white border shadow-lg">
             <DialogHeader>
               <DialogTitle>
-                {editingCheckpoint ? "Edit Checkpoint" : "Create New Checkpoint"}
+                {editingCheckpoint
+                  ? "Edit Checkpoint"
+                  : "Create New Checkpoint"}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -526,7 +528,9 @@ export default function AdminCheckpointsPage() {
                     </span>
                   </div>
                   {checkpoint.description && (
-                    <p className="text-gray-600 mb-2">{checkpoint.description}</p>
+                    <p className="text-gray-600 mb-2">
+                      {checkpoint.description}
+                    </p>
                   )}
                   <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
                     <div>Points: {checkpoint.points_value}</div>
@@ -579,8 +583,8 @@ export default function AdminCheckpointsPage() {
 
           {checkpoints.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              No checkpoints found. Click &quot;Create Checkpoint&quot; to create
-              your first checkpoint.
+              No checkpoints found. Click &quot;Create Checkpoint&quot; to
+              create your first checkpoint.
             </div>
           )}
         </div>
