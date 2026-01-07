@@ -22,6 +22,7 @@ yarn test:coverage    # Generate coverage report
 ## Architecture
 
 ### Tech Stack
+
 - **Framework**: Next.js 14 (App Router)
 - **Auth**: Privy (social login + embedded wallets)
 - **Database**: Supabase PostgreSQL
@@ -63,24 +64,34 @@ database/               # SQL migration scripts
 ### Key Patterns
 
 **API Response Format** (`lib/api/response.ts`):
+
 ```typescript
-type ApiResponse<T> = { success: boolean; data?: T; error?: string; message?: string }
+type ApiResponse<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+};
 ```
+
 Use `apiSuccess()`, `apiError()`, `apiValidationError()` helpers.
 
 **Data Layer**:
+
 - `lib/db/*.ts` for database operations
 - `lib/schemas/*.ts` for Zod validation
 - `lib/types.ts` for TypeScript types
 
 **React Query for Data Fetching**:
+
 ```typescript
 // Example from hooks/usePlayer.ts
 useQuery({
-  queryKey: ['player', address],
-  queryFn: () => apiClient<{player: Player}>(`/api/player?walletAddress=${address}`),
+  queryKey: ["player", address],
+  queryFn: () =>
+    apiClient<{ player: Player }>(`/api/player?walletAddress=${address}`),
   enabled: !!address,
-})
+});
 ```
 
 **Admin Auth**: Simple email allowlist in `lib/auth.ts` (checks `x-user-email` header)
@@ -88,6 +99,7 @@ useQuery({
 ### Database
 
 Supabase PostgreSQL with schemas in `/database/*.sql`. Key tables:
+
 - `players` - User accounts with wallet addresses
 - `locations` - Check-in points with coordinates
 - `player_location_checkins` - Check-in records
@@ -98,18 +110,21 @@ Supabase PostgreSQL with schemas in `/database/*.sql`. Key tables:
 ### Smart Contracts
 
 Contract ABIs in `lib/contracts/`. Key addresses:
+
 - Events Contract: `0xDCF6fbBbbF83848Bf68500432392C0988712Bf43`
 
 ## Environment Variables
 
 Required in `.env.local`:
+
 ```
 NEXT_PUBLIC_PRIVY_APP_ID
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-NEXT_PUBLIC_MIXPANEL_TOKEN
-MIXPANEL_SECRET
+NEXT_PUBLIC_MIXPANEL_TOKEN  # Client-side Mixpanel project token
+MIXPANEL_TOKEN              # Server-side Mixpanel project token (optional, falls back to NEXT_PUBLIC_MIXPANEL_TOKEN)
+MIXPANEL_SECRET             # Server-side Mixpanel API secret (optional, for enhanced security)
 SERVER_WALLET_PRIVATE_KEY
 BASE_RPC_URL
 ```

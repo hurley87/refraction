@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useCallback,
+  Suspense,
+} from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import {
   initMixpanel,
@@ -9,6 +16,7 @@ import {
   trackPageView,
   resetUser,
   isInitialized,
+  waitForInitialization,
   trackEvent as trackEventClient,
 } from "@/lib/analytics";
 import { useCurrentPlayer } from "@/hooks/usePlayer";
@@ -26,11 +34,29 @@ const AnalyticsContext = createContext<AnalyticsContextType | undefined>(
   undefined,
 );
 
-export function AnalyticsProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function PageViewTracker() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Track pageviews on route changes
+  useEffect(() => {
+    // Wait for initialization to complete before tracking
+    // This ensures we don't miss pageviews due to async initialization race condition
+    waitForInitialization().then(() => {
+      if (isInitialized()) {
+        const queryString = searchParams.toString();
+        trackPageView(undefined, {
+          pathname,
+          query: queryString || undefined,
+        });
+      }
+    });
+  }, [pathname, searchParams]);
+
+  return null;
+}
+
+export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
   const { user, authenticated } = usePrivy();
   const { data: player } = useCurrentPlayer();
   const { data: tiers = [] } = useTiers();
@@ -39,7 +65,10 @@ export function AnalyticsProvider({
   useEffect(() => {
     const token = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN;
     if (token && !isInitialized()) {
-      initMixpanel(token);
+      // initMixpanel is async but we don't need to await it
+      initMixpanel(token).catch((error) => {
+        console.error("Failed to initialize Mixpanel:", error);
+      });
     }
   }, []);
 
@@ -139,6 +168,9 @@ export function AnalyticsProvider({
     <AnalyticsContext.Provider
       value={{ trackEvent, trackPage, identify, setProperties }}
     >
+      <Suspense fallback={null}>
+        <PageViewTracker />
+      </Suspense>
       {children}
     </AnalyticsContext.Provider>
   );

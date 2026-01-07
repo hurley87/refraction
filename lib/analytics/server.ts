@@ -27,7 +27,10 @@ export function initMixpanelServer(token: string, secret?: string): void {
  * Get or initialize Mixpanel instance
  */
 function getMixpanel(): Mixpanel.Mixpanel {
-  const token = process.env.MIXPANEL_SECRET || process.env.NEXT_PUBLIC_MIXPANEL_TOKEN;
+  // Token should be the project token, not the secret
+  const token =
+    process.env.MIXPANEL_TOKEN || process.env.NEXT_PUBLIC_MIXPANEL_TOKEN;
+  const secret = process.env.MIXPANEL_SECRET;
 
   if (!token) {
     console.warn("Mixpanel token not found. Analytics events will be skipped.");
@@ -43,7 +46,7 @@ function getMixpanel(): Mixpanel.Mixpanel {
   }
 
   if (!mixpanelInstance) {
-    initMixpanelServer(token);
+    initMixpanelServer(token, secret);
   }
 
   return mixpanelInstance!;

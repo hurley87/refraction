@@ -12,6 +12,10 @@ export {
   trackPageView,
   resetUser,
   isInitialized,
+  waitForInitialization,
+  optOutTracking,
+  optInTracking,
+  hasOptedOutTracking,
 } from "./client";
 
 // Server-side exports
