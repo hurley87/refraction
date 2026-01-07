@@ -51,7 +51,7 @@ export interface WalletContextType {
 
 const POLL_INTERVAL = 1000;
 
-export const WalletContext = // eslint-disable-line react-refresh/only-export-components
+export const WalletContext =
   createContext<WalletContextType>({
     isPending: true,
     balances: {},
