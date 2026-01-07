@@ -90,7 +90,11 @@ export default function AdminCheckpointsPage() {
   >({
     queryKey: ["admin-checkpoints"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/checkpoints");
+      const response = await fetch("/api/admin/checkpoints", {
+        headers: {
+          "x-user-email": user?.email?.address || "",
+        },
+      });
       if (!response.ok) throw new Error("Failed to fetch checkpoints");
       const data = await response.json();
       return data.checkpoints;
