@@ -12,15 +12,18 @@ const generateCheckpointId = () => {
 
 /**
  * Create a new checkpoint
+ * @param checkpoint - Checkpoint data without id, created_at, updated_at
+ * @param id - Optional checkpoint ID. If not provided, generates a new one.
  */
 export const createCheckpoint = async (
   checkpoint: Omit<Checkpoint, "id" | "created_at" | "updated_at">,
+  id?: string,
 ): Promise<Checkpoint> => {
-  const id = generateCheckpointId();
+  const checkpointId = id || generateCheckpointId();
 
   const { data, error } = await supabase
     .from("checkpoints")
-    .insert({ ...checkpoint, id })
+    .insert({ ...checkpoint, id: checkpointId })
     .select()
     .single();
 

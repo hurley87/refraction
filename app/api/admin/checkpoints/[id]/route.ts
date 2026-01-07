@@ -6,6 +6,7 @@ import {
 } from "@/lib/db/checkpoints";
 import { updateCheckpointRequestSchema } from "@/lib/schemas/api";
 import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
+import { requireAdmin } from "@/lib/auth";
 
 interface RouteParams {
   params: { id: string };
@@ -14,6 +15,15 @@ interface RouteParams {
 // GET /api/admin/checkpoints/[id] - Get a checkpoint by ID
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    // Check admin permission
+    const adminCheck = await requireAdmin(request);
+    if (!adminCheck.isValid) {
+      return NextResponse.json(
+        { error: "Unauthorized - Admin access required" },
+        { status: 403 },
+      );
+    }
+
     const checkpoint = await getCheckpointById(params.id);
 
     if (!checkpoint) {
@@ -33,6 +43,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PATCH /api/admin/checkpoints/[id] - Update a checkpoint
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
+    // Check admin permission
+    const adminCheck = await requireAdmin(request);
+    if (!adminCheck.isValid) {
+      return NextResponse.json(
+        { error: "Unauthorized - Admin access required" },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const validationResult = updateCheckpointRequestSchema.safeParse(body);
 
@@ -52,6 +71,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 // DELETE /api/admin/checkpoints/[id] - Delete a checkpoint
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    // Check admin permission
+    const adminCheck = await requireAdmin(request);
+    if (!adminCheck.isValid) {
+      return NextResponse.json(
+        { error: "Unauthorized - Admin access required" },
+        { status: 403 },
+      );
+    }
+
     await deleteCheckpoint(params.id);
 
     return apiSuccess({ deleted: true }, "Checkpoint deleted successfully");

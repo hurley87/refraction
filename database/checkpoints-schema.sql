@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS checkpoints (
     points_value INTEGER NOT NULL DEFAULT 100,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_by VARCHAR(255),  -- Admin email who created it
+    partner_image_url TEXT,  -- Optional partner logo image URL
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

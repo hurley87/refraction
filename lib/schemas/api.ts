@@ -128,6 +128,7 @@ export const createCheckpointRequestSchema = z.object({
   chain_type: chainTypeSchema,
   points_value: z.coerce.number().int().min(1).max(10000).default(100),
   is_active: z.boolean().default(true),
+  partner_image_url: z.string().url().optional().nullable(),
 });
 
 /**
@@ -139,5 +140,6 @@ export const updateCheckpointRequestSchema = z.object({
   chain_type: chainTypeSchema.optional(),
   points_value: z.coerce.number().int().min(1).max(10000).optional(),
   is_active: z.boolean().optional(),
+  partner_image_url: z.string().url().optional().nullable(),
 });
 

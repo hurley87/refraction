@@ -61,6 +61,10 @@ export default function AdminCheckpointsPage() {
     points_value: 100,
     is_active: true,
   });
+  const [partnerImageFile, setPartnerImageFile] = useState<File | null>(null);
+  const [partnerImagePreview, setPartnerImagePreview] = useState<string | null>(
+    null,
+  );
 
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
@@ -96,20 +100,52 @@ export default function AdminCheckpointsPage() {
 
   // Create checkpoint mutation
   const createCheckpointMutation = useMutation({
-    mutationFn: async (
-      checkpointData: Omit<Checkpoint, "id" | "created_at" | "updated_at">,
-    ) => {
-      const response = await fetch("/api/admin/checkpoints", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-email": user?.email?.address || "",
-        },
-        body: JSON.stringify(checkpointData),
-      });
-      if (!response.ok) throw new Error("Failed to create checkpoint");
-      const data = await response.json();
-      return data;
+    mutationFn: async ({
+      checkpointData,
+      imageFile,
+    }: {
+      checkpointData: Omit<Checkpoint, "id" | "created_at" | "updated_at">;
+      imageFile?: File | null;
+    }) => {
+      // If image file is provided, use FormData; otherwise use JSON
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("name", checkpointData.name);
+        formData.append("description", checkpointData.description || "");
+        formData.append("chain_type", checkpointData.chain_type);
+        formData.append("points_value", String(checkpointData.points_value));
+        formData.append("is_active", String(checkpointData.is_active));
+        formData.append("partner_image", imageFile);
+
+        const response = await fetch("/api/admin/checkpoints", {
+          method: "POST",
+          headers: {
+            "x-user-email": user?.email?.address || "",
+          },
+          body: formData,
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.error || "Failed to create checkpoint");
+        }
+        const data = await response.json();
+        return data;
+      } else {
+        const response = await fetch("/api/admin/checkpoints", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-email": user?.email?.address || "",
+          },
+          body: JSON.stringify(checkpointData),
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.error || "Failed to create checkpoint");
+        }
+        const data = await response.json();
+        return data;
+      }
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-checkpoints"] });
@@ -137,7 +173,9 @@ export default function AdminCheckpointsPage() {
     },
     onError: (error) => {
       console.error("Error creating checkpoint:", error);
-      toast.error("Failed to create checkpoint");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to create checkpoint";
+      toast.error(errorMessage);
     },
   });
 
@@ -152,10 +190,16 @@ export default function AdminCheckpointsPage() {
     }) => {
       const response = await fetch(`/api/admin/checkpoints/${id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-email": user?.email?.address || "",
+        },
         body: JSON.stringify(updates),
       });
-      if (!response.ok) throw new Error("Failed to update checkpoint");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to update checkpoint");
+      }
       const data = await response.json();
       return data.data.checkpoint;
     },
@@ -175,8 +219,14 @@ export default function AdminCheckpointsPage() {
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/admin/checkpoints/${id}`, {
         method: "DELETE",
+        headers: {
+          "x-user-email": user?.email?.address || "",
+        },
       });
-      if (!response.ok) throw new Error("Failed to delete checkpoint");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to delete checkpoint");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-checkpoints"] });
@@ -197,7 +247,10 @@ export default function AdminCheckpointsPage() {
         updates: formData,
       });
     } else {
-      createCheckpointMutation.mutate(formData);
+      createCheckpointMutation.mutate({
+        checkpointData: formData,
+        imageFile: partnerImageFile,
+      });
     }
   };
 
@@ -210,6 +263,8 @@ export default function AdminCheckpointsPage() {
       points_value: checkpoint.points_value,
       is_active: checkpoint.is_active,
     });
+    setPartnerImageFile(null);
+    setPartnerImagePreview(checkpoint.partner_image_url || null);
     setIsDialogOpen(true);
   };
 
@@ -232,6 +287,8 @@ export default function AdminCheckpointsPage() {
       points_value: 100,
       is_active: true,
     });
+    setPartnerImageFile(null);
+    setPartnerImagePreview(null);
   };
 
   const handleNewCheckpoint = () => {
@@ -379,6 +436,42 @@ export default function AdminCheckpointsPage() {
                   }
                 />
                 <Label htmlFor="is_active">Active</Label>
+              </div>
+
+              <div>
+                <Label htmlFor="partner_image">Partner Image (Optional)</Label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Upload a partner logo image (PNG, JPEG, or WebP, max 5MB)
+                </p>
+                <input
+                  id="partner_image"
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
+                    setPartnerImageFile(file);
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setPartnerImagePreview(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    } else {
+                      setPartnerImagePreview(null);
+                    }
+                  }}
+                  className="w-full p-2 border rounded-md"
+                />
+                {partnerImagePreview && (
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-500 mb-1">Preview:</p>
+                    <img
+                      src={partnerImagePreview}
+                      alt="Partner image preview"
+                      className="max-w-xs max-h-32 object-contain border rounded"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">

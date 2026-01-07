@@ -225,6 +225,7 @@ export type Checkpoint = {
   points_value: number;
   is_active: boolean;
   created_by?: string | null;
+  partner_image_url?: string | null;
   created_at?: string;
   updated_at?: string;
 };

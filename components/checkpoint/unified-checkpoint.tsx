@@ -373,6 +373,19 @@ export default function UnifiedCheckpoint({
 
               <div className="w-full" />
 
+              {/* Partner Image (if present) */}
+              {checkpoint.partner_image_url && (
+                <div className="flex items-center justify-center w-full py-4">
+                  <Image
+                    src={checkpoint.partner_image_url}
+                    alt="Partner"
+                    width={200}
+                    height={80}
+                    className="object-contain max-h-20"
+                  />
+                </div>
+              )}
+
               {/* Footer - Powered by Refraction */}
               <div className="flex items-center justify-between w-full">
                 <p className="text-xs uppercase tracking-wider font-inktrap opacity-80 text-black">
