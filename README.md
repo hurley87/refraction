@@ -9,12 +9,24 @@ Create a `.env.local` file in the root directory and add:
 ```bash
 MAPBOX_ACCESS_TOKEN=your_mapbox_access_token_here
 GOOGLE_PLACES_API_KEY=your_google_places_api_key_here
+
+# Stellar Network Configuration (optional, defaults to TESTNET)
+NEXT_PUBLIC_STELLAR_NETWORK=TESTNET
+NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
+NEXT_PUBLIC_STELLAR_RPC_URL=https://rpc-futurenet.stellar.org
+NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
 ```
 
 To get these API keys:
 
 - **Mapbox**: Sign up at [mapbox.com](https://mapbox.com) and get your access token
 - **Google Places**: Enable the Places API in [Google Cloud Console](https://console.cloud.google.com) and create an API key
+
+**Stellar Network Options:**
+- `TESTNET` - Stellar Testnet (default)
+- `FUTURENET` - Stellar Futurenet
+- `PUBLIC` - Stellar Mainnet
+- `LOCAL` - Local Stellar network (requires local Horizon server)
 
 First, run the development server:
 
