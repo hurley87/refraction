@@ -179,8 +179,3 @@ sequenceDiagram
 - `lib/schemas/*` (optional if you centralize Zod schemas)
 - `lib/db/*` + `database/*.sql` (if persisting synced events in Supabase)
 - `.env.example` (document required vars)
-
-## Acceptance criteria
-
-- Events list + details load server-side, are validated, and render with good empty/error states.
-- Ticket panel shows availability/prices when enabled; otherwise shows a safe fallback.
