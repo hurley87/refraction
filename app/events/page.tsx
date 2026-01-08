@@ -1,9 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogClose, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import eventsData from "@/data/challenges/events.json";
 import MapNav from "@/components/map/mapnav";
@@ -12,7 +10,6 @@ import MapNav from "@/components/map/mapnav";
 const { futureEvents } = eventsData;
 
 export default function EventsPage() {
-  const router = useRouter();
   const [sortBy, setSortBy] = useState("date");
   const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,21 +67,18 @@ export default function EventsPage() {
     return eventTimestamp >= todayTimestamp;
   };
 
-  // Filter events to only show today or future events
-  const filteredEvents = futureEvents.filter((event) =>
+  // Separate future and past events
+  const futureEventsList = futureEvents.filter((event) =>
     isDateTodayOrFuture(event.date)
   );
 
-  // Redirect to archive if no events today or in the future
-  useEffect(() => {
-    if (filteredEvents.length === 0) {
-      router.replace("/events/archive");
-    }
-  }, [filteredEvents.length, router]);
+  const pastEventsList = futureEvents.filter((event) =>
+    !isDateTodayOrFuture(event.date)
+  );
 
   // Find the next event: sort by date (earliest first), then by priority (lower number = higher priority)
-  const nextEvent = filteredEvents.length > 0
-    ? [...filteredEvents].sort((a, b) => {
+  const nextEvent = futureEventsList.length > 0
+    ? [...futureEventsList].sort((a, b) => {
         const dateA = parseDate(a.date);
         const dateB = parseDate(b.date);
         if (dateA !== dateB) {
@@ -97,14 +91,23 @@ export default function EventsPage() {
       })[0]
     : null;
 
-  // Filter out the next event from the future events list
-  const remainingEvents = filteredEvents.filter(
+  // Remaining future events (excluding next event)
+  const remainingFutureEvents = futureEventsList.filter(
     (event) => event.id !== nextEvent?.id
   );
 
-  const sortedEvents = [...remainingEvents].sort((a, b) => {
+  // Sort future events
+  const sortedFutureEvents = [...remainingFutureEvents].sort((a, b) => {
     if (sortBy === "date") {
       return parseDate(a.date) - parseDate(b.date);
+    }
+    return a.title.localeCompare(b.title);
+  });
+
+  // Sort past events (most recent first when sorted by date)
+  const sortedPastEvents = [...pastEventsList].sort((a, b) => {
+    if (sortBy === "date") {
+      return parseDate(b.date) - parseDate(a.date); // Reverse order for past events
     }
     return a.title.localeCompare(b.title);
   });
@@ -314,41 +317,68 @@ export default function EventsPage() {
             </div>
           )}
 
-          {/* Sort Section */}
-          <div className="mb-1">
-            <div className="flex items-center mb-1 gap-4">
-              {/* Filter Button */}
-              <button
-                onClick={() => setSortBy(sortBy === "date" ? "title" : "date")}
-                style={{
-                  display: "flex",
-                  width: "100%",
-                  height: "40px",
-                  padding: "0 16px",
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  borderRadius: "20px",
-                  background: "#FFF",
-                }}
-                className="hover:bg-gray-50 transition-colors"
-              >
-                <span className="text-[#7D7D7D] body-small font-grotesk uppercase tracking-wide">FILTER</span>
-                <Image
-                  src="/events/filter.svg"
-                  alt="filter"
-                  width={20}
-                  height={20}
-                  className="w-5 h-5"
-                />
-              </button>
+          {/* Empty State - No Events */}
+          {sortedFutureEvents.length === 0 && sortedPastEvents.length === 0 && (
+            <div
+              style={{
+                display: "flex",
+                padding: "32px 16px",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "16px",
+                borderRadius: "26px",
+                background: "#FFF",
+                textAlign: "center",
+              }}
+            >
+              <h3 className="text-[#313131] title2 font-grotesk">No Events Available</h3>
+              <p className="text-[#7D7D7D] body-medium font-grotesk">
+                Check back soon for upcoming events!
+              </p>
             </div>
-          </div>
+          )}
+
+          {/* Sort Section with Upcoming Events Title */}
+          {sortedFutureEvents.length > 0 && (
+            <div className="mb-1">
+              <h2 className="text-black body-small font-monument-grotesk mb-2 px-4">
+                UPCOMING EVENTS
+              </h2>
+              <div className="flex items-center mb-1 gap-4">
+                {/* Filter Button */}
+                <button
+                  onClick={() => setSortBy(sortBy === "date" ? "title" : "date")}
+                  style={{
+                    display: "flex",
+                    width: "100%",
+                    height: "40px",
+                    padding: "0 16px",
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    borderRadius: "20px",
+                    background: "#FFF",
+                  }}
+                  className="hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-[#7D7D7D] body-small font-grotesk uppercase tracking-wide">FILTER</span>
+                  <Image
+                    src="/events/filter.svg"
+                    alt="filter"
+                    width={20}
+                    height={20}
+                    className="w-5 h-5"
+                  />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Future Events Section */}
-          <div>
-            <div className="space-y-1">
-              {sortedEvents.map((event) => (
+          {sortedFutureEvents.length > 0 && (
+            <div>
+              <div className="space-y-1">
+                {sortedFutureEvents.map((event) => (
                 <div
                   key={event.id}
                   style={{
@@ -537,33 +567,177 @@ export default function EventsPage() {
               ))}
             </div>
           </div>
+          )}
 
-          {/* Archive Button */}
-          <div className="pt-4 pb-8">
-            <Link
-              href="/events/archive"
-              className="w-full h-[40px] bg-[#EDEDED] text-black font-bold rounded-full px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
-            >
-              <h4 className="font-pleasure text-left">Archive</h4>
-              <div
-                style={{
-                  display: "flex",
-                  width: "24px",
-                  height: "24px",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <Image
-                  src="/home/arrow-right.svg"
-                  alt="arrow-right"
-                  width={20}
-                  height={20}
-                  className="w-5 h-5"
-                />
+          {/* Past Events Section */}
+          {sortedPastEvents.length > 0 && (
+            <div className="mt-4">
+              <h2 className="text-black body-small font-monument-grotesk mb-2 px-4">
+                PAST EVENTS
+              </h2>
+              <div className="space-y-1">
+                {sortedPastEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    style={{
+                      display: "flex",
+                      padding: "16px",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      gap: "8px",
+                      alignSelf: "stretch",
+                      borderRadius: "26px",
+                      border: "1px solid #EDEDED",
+                      background: "#FFF",
+                      boxShadow: "0 1px 8px 0 rgba(0, 0, 0, 0.08)",
+                      opacity: 0.7,
+                    }}
+                  >
+                    {/* Row 1: Title and Poster */}
+                    <div className="flex w-full gap-4 items-start">
+                      {/* Column 1: Title */}
+                      <div className="flex-1">
+                        <div className="text-[#313131] title3 font-grotesk text-left">
+                          {event.title}
+                        </div>
+                      </div>
+
+                      {/* Column 2: Small Poster */}
+                      <button
+                        type="button"
+                        onClick={() => handlePosterClick(event.poster)}
+                        className="flex-shrink-0 cursor-pointer overflow-hidden rounded-lg"
+                      >
+                        <Image
+                          src={event.poster}
+                          alt={event.title}
+                          width={80}
+                          height={100}
+                          className="rounded-xl object-cover hover:opacity-90 transition-opacity"
+                          style={{ width: "80px", height: "100px" }}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Row 2: Date, Location, and Map Button */}
+                    <div className="flex w-full gap-1">
+                      <div
+                        className="flex-1"
+                        style={{
+                          display: "flex",
+                          padding: "4px 8px",
+                          alignItems: "center",
+                          gap: "8px",
+                          alignSelf: "stretch",
+                          borderRadius: "1000px",
+                          border: "1px solid #EDEDED",
+                        }}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-4 h-4 inline-block text-black"
+                          fill="#7D7D7D"
+                          viewBox="0 0 20 20"
+                          stroke="#7D7D7D"
+                          strokeWidth={1.5}
+                          aria-hidden="true"
+                        >
+                          <rect
+                            x="3"
+                            y="4"
+                            width="14"
+                            height="13"
+                            rx="2"
+                            className="fill-transparent"
+                            stroke="#7D7D7D"
+                          />
+                          <path
+                            d="M3 8h14"
+                            stroke="#7D7D7D"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M7 2v2M13 2v2"
+                            stroke="#7D7D7D"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <span className="text-[#4f4f4f] body-small uppercase font-grotesk">
+                          {formatDate(event.date)}
+                        </span>
+                      </div>
+                      <div
+                        className="flex-1"
+                        style={{
+                          display: "flex",
+                          padding: "4px 8px",
+                          alignItems: "center",
+                          gap: "8px",
+                          alignSelf: "stretch",
+                          borderRadius: "1000px",
+                          border: "1px solid #EDEDED",
+                        }}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="w-4 h-4 text-black inline-block"
+                          fill="none"
+                          viewBox="0 0 20 20"
+                          stroke="#7D7D7D"
+                          strokeWidth={1.5}
+                          aria-hidden="true"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M10 18s6-5.686 6-10A6 6 0 1 0 4 8c0 4.314 6 10 6 10Z"
+                            className="stroke-current"
+                          />
+                          <circle
+                            cx="10"
+                            cy="8"
+                            r="2.25"
+                            className="stroke-current"
+                            strokeWidth={1.5}
+                          />
+                        </svg>
+                        <span className="flex items-center gap-1 text-[#4f4f4f] body-small uppercase font-grotesk truncate whitespace-nowrap">
+                          {getCity(event.location)}
+                        </span>
+                      </div>
+
+                      {/* Map Button */}
+                      <a
+                        href={event.mapUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-200 transition-colors"
+                        style={{
+                          display: "flex",
+                          padding: "4px 12px",
+                          alignItems: "center",
+                          gap: "8px",
+                          borderRadius: "1000px",
+                          background: "#EDEDED",
+                        }}
+                      >
+                        <span className="text-[#4f4f4f] body-small font-grotesk">
+                          MAP
+                        </span>
+                        <Image
+                          src="/arrow-diag-right.svg"
+                          alt="arrow-right"
+                          width={16}
+                          height={16}
+                          className="w-4 h-4"
+                        />
+                      </a>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </Link>
-          </div>
+            </div>
+          )}
 
           <div style={{ height: "100px" }} />
         </div>
