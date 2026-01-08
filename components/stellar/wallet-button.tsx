@@ -6,8 +6,13 @@ import { connectWallet, disconnectWallet } from "@/lib/stellar/utils/wallet";
 
 export const WalletButton = () => {
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
-  const { address, isPending, balances } = useWallet();
+  const { address, isPending, balances, network } = useWallet();
   const buttonLabel = isPending ? "Loading..." : "Connect";
+
+  // Debug: Log balance and network to see what we're getting
+  if (address) {
+    console.log("[WalletButton] Balance:", balances?.xlm, "Network:", network);
+  }
 
   if (!address) {
     return (
