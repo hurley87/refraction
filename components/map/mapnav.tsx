@@ -24,7 +24,9 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNavigationMenuOpen, setIsNavigationMenuOpen] = useState(false);
-  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(
+    null,
+  );
   const [isLoadingProfilePicture, setIsLoadingProfilePicture] = useState(false);
 
   // Map routes to display names
@@ -41,18 +43,18 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
       "/rewards": "Rewards",
       "/faq": "FAQ",
     };
-    
+
     if (routeMap[path]) {
       return routeMap[path];
     }
-    
+
     // Check for sub-routes (e.g., /events/archive, /challenges/quests)
     if (path.startsWith("/dashboard")) return "Dashboard";
     if (path.startsWith("/events")) return "Events";
     if (path.startsWith("/challenges")) return "Challenges";
     if (path.startsWith("/rewards")) return "Rewards";
     if (path.startsWith("/leaderboard")) return "Leaderboard";
-    
+
     return "Check-In Map";
   };
 
@@ -70,7 +72,7 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
       setIsLoadingProfilePicture(true);
       try {
         const response = await fetch(
-          `/api/profile?wallet_address=${user.wallet.address}`
+          `/api/profile?wallet_address=${user.wallet.address}`,
         );
         if (response.ok) {
           const data = await response.json();
@@ -112,7 +114,7 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
 
   return (
     <>
-      <div className="box-border pt-10 content-stretch flex items-center justify-between relative size-full">
+      <div className="box-border content-stretch flex items-center justify-between relative size-full">
         {/* IRL Logo - Centered */}
         <div className="bg-[#313131] relative rounded-[100px] shrink-0 size-[40px] flex items-center justify-center">
           <Link href="/">
