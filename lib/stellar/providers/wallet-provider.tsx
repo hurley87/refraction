@@ -99,9 +99,13 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    // Normalize network for comparison
+    const normalizedNetwork = network?.toUpperCase() || 'default';
+    const normalizedLastNetwork = lastFetchedNetwork.current?.toUpperCase();
+    
     // Create a unique key for this network/address combination
-    const fetchKey = `${network || 'default'}:${address}`;
-    const lastFetchKey = `${lastFetchedNetwork.current || 'default'}:${lastFetchedAddress.current || ''}`;
+    const fetchKey = `${normalizedNetwork}:${address}`;
+    const lastFetchKey = `${normalizedLastNetwork || 'default'}:${lastFetchedAddress.current || ''}`;
 
     // If we're already fetching for this key, skip
     if (isFetchingRef.current && fetchKey === lastFetchKey) {
@@ -126,7 +130,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     // Mark as fetching
     isFetchingRef.current = true;
     
-    // Update tracking refs before fetching
+    // Update tracking refs before fetching (use normalized network)
     lastFetchedNetwork.current = network;
     lastFetchedAddress.current = address;
 
@@ -159,15 +163,27 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     // Don't do anything if we don't have an address or network
     if (!address || !network) {
+      console.log("[Stellar] useEffect: Skipping balance fetch - missing address or network", { address: !!address, network: !!network });
       return;
     }
 
-    // Create fetch key for comparison
-    const currentFetchKey = `${network}:${address}`;
-    const lastFetchKey = `${lastFetchedNetwork.current || ''}:${lastFetchedAddress.current || ''}`;
+    // Normalize network for comparison
+    const normalizedNetwork = network.toUpperCase();
+    const normalizedLastNetwork = lastFetchedNetwork.current?.toUpperCase() || '';
+    
+    // Create fetch key for comparison (use normalized network)
+    const currentFetchKey = `${normalizedNetwork}:${address}`;
+    const lastFetchKey = `${normalizedLastNetwork}:${lastFetchedAddress.current || ''}`;
     
     // Check if network or address has changed
     const hasChanged = currentFetchKey !== lastFetchKey;
+    
+    console.log("[Stellar] useEffect: Balance fetch check", {
+      currentFetchKey,
+      lastFetchKey,
+      hasChanged,
+      accountExists: accountExistsRef.current,
+    });
     
     // If we've already fetched for this exact network/address combination
     // and account doesn't exist, don't fetch again
@@ -180,6 +196,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     // and account exists, don't refetch immediately (let polling handle updates)
     // BUT allow the first fetch if we haven't fetched yet (lastFetchKey is empty)
     if (!hasChanged && accountExistsRef.current && lastFetchKey !== '') {
+      console.log("[Stellar] Skipping fetch - already fetched for", currentFetchKey);
       return;
     }
     
@@ -195,6 +212,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     // Fetch balances (updateBalances will check if we should skip)
+    console.log("[Stellar] useEffect: Triggering balance update for", currentFetchKey);
     void updateBalances();
   }, [updateBalances, address, network]);
 
@@ -207,26 +225,21 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     const walletAddr = storage.getItem("walletAddress");
     const passphrase = storage.getItem("networkPassphrase");
 
-    // Only set from storage if we don't already have values AND haven't initialized yet
-    // This prevents overwriting current state with storage values and prevents loops
+    // Only restore address from storage initially - network will be fetched from wallet
+    // This ensures we always get the current network from the wallet, not a stale value from storage
     if (
       !hasInitializedRef.current &&
       address === undefined &&
       network === undefined &&
-      walletAddr !== null &&
-      walletNetwork !== null &&
-      passphrase !== null
+      walletAddr !== null
     ) {
-      console.log("[Stellar] Restoring wallet state from storage:", {
-        network: walletNetwork,
+      console.log("[Stellar] Restoring wallet address from storage, will fetch network from wallet:", {
         address: walletAddr,
       });
+      // Set address temporarily so we can check wallet state
+      // But don't set hasInitializedRef yet - we want to fetch network from wallet
       setAddress(walletAddr);
-      setNetwork(walletNetwork);
-      setNetworkPassphrase(passphrase);
-      // Don't set fetch tracking here - let the effect handle the first fetch
-      // This ensures the balance is fetched when state is restored
-      hasInitializedRef.current = true;
+      // Don't restore network from storage - always fetch from wallet to ensure accuracy
     }
 
     if (!walletId) {
@@ -239,21 +252,84 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         popupLock.current = true;
         wallet.setWallet(walletId);
-        if (walletId !== "freighter" && walletAddr !== null) return;
-        const [a, n] = await Promise.all([
-          wallet.getAddress(),
-          wallet.getNetwork(),
-        ]);
+        
+        // For Freighter and Hot-wallet, always check network to detect changes
+        // For other wallets, only check if we don't have an address yet
+        const shouldCheckNetwork = walletId === "freighter" || walletId === "hot-wallet";
+        if (!shouldCheckNetwork && walletAddr !== null) {
+          console.log("[Stellar] Skipping network check for wallet:", walletId);
+          return;
+        }
+        
+        console.log("[Stellar] Checking wallet state for:", walletId, "shouldCheckNetwork:", shouldCheckNetwork);
+        
+        // For wallets that support network detection, always fetch both address and network
+        // This allows us to detect network changes even if address is already known
+        const addressPromise = wallet.getAddress();
+        const networkPromise = shouldCheckNetwork 
+          ? wallet.getNetwork() 
+          : Promise.resolve({ network: walletNetwork || undefined, networkPassphrase: passphrase || undefined });
+        
+        const [a, n] = await Promise.all([addressPromise, networkPromise]);
+        
+        console.log("[Stellar] Wallet state fetched:", {
+          address: a.address,
+          network: n.network,
+          networkPassphrase: n.networkPassphrase,
+        });
 
         if (!a.address) {
           storage.setItem("walletId", "");
           return;
         }
 
+        // Always update storage with the latest network from wallet
+        // This ensures we have the correct network even if it was changed in the extension
+        if (n.network && n.networkPassphrase) {
+          storage.setItem("walletNetwork", n.network);
+          storage.setItem("networkPassphrase", n.networkPassphrase);
+        }
+        
+        // Normalize network names for comparison (handle case differences)
+        const normalizedCurrentNetwork = network?.toUpperCase();
+        const normalizedNewNetwork = n.network?.toUpperCase();
+        
+        // If we don't have a network set yet, always set it (even if address matches)
+        // This handles the case where we restored address from storage but network wasn't available
+        if (network === undefined || normalizedCurrentNetwork !== normalizedNewNetwork) {
+          console.log("[Stellar] Setting or updating network:", {
+            currentNetwork: network,
+            newNetwork: n.network,
+            normalizedCurrent: normalizedCurrentNetwork,
+            normalizedNew: normalizedNewNetwork,
+            addressMatches: address === a.address,
+          });
+          storage.setItem("walletAddress", a.address);
+          setAddress(a.address);
+          setNetwork(n.network);
+          setNetworkPassphrase(n.networkPassphrase);
+          
+          // If this is the first time setting values, mark as initialized
+          if (!hasInitializedRef.current) {
+            console.log("[Stellar] First time initialization complete");
+            hasInitializedRef.current = true;
+          }
+          
+          // If network changed, reset fetch tracking
+          if (normalizedCurrentNetwork !== normalizedNewNetwork) {
+            lastFetchedNetwork.current = undefined;
+            lastFetchedAddress.current = undefined;
+            setAccountExists(true);
+            accountExistsRef.current = true;
+          }
+          
+          return; // Let the useEffect handle balance fetch
+        }
+        
         // If values are already set and match exactly, don't do anything
         // This prevents unnecessary state updates during polling
         if (address === a.address && 
-            network === n.network && 
+            normalizedCurrentNetwork === normalizedNewNetwork && 
             networkPassphrase === n.networkPassphrase &&
             address !== undefined && 
             network !== undefined) {
@@ -263,23 +339,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         // Only consider it a change if we had a previous value and it's different
         // This prevents undefined -> value from being treated as a change
         const addressChanged = address !== undefined && a.address !== address;
-        const networkChanged = network !== undefined && (n.network !== network || n.networkPassphrase !== networkPassphrase);
-        
-        // If this is the first time we're setting values (both are undefined), just set them
-        if (!hasInitializedRef.current && address === undefined && network === undefined && a.address && n.network) {
-          console.log("[Stellar] Initial wallet state:", {
-            network: n.network,
-            address: a.address,
-          });
-          storage.setItem("walletAddress", a.address);
-          setAddress(a.address);
-          setNetwork(n.network);
-          setNetworkPassphrase(n.networkPassphrase);
-          // Don't set fetch tracking here - let the effect handle the first fetch
-          // This ensures the balance is fetched when state is set
-          hasInitializedRef.current = true;
-          return; // Don't trigger balance fetch yet, let the effect handle it
-        }
+        const networkChanged = network !== undefined && (normalizedCurrentNetwork !== normalizedNewNetwork || n.networkPassphrase !== networkPassphrase);
         
         // Only update if there's an actual change (not initial set)
         // Explicitly check that we had previous values before treating as change
@@ -295,6 +355,13 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
             newAddress: a.address,
           });
           storage.setItem("walletAddress", a.address);
+          
+          // Always update network in storage when it changes
+          if (networkChanged && n.network && n.networkPassphrase) {
+            storage.setItem("walletNetwork", n.network);
+            storage.setItem("networkPassphrase", n.networkPassphrase);
+          }
+          
           setAddress(a.address);
           setNetwork(n.network);
           setNetworkPassphrase(n.networkPassphrase);
@@ -304,6 +371,11 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
           // Reset fetch tracking when network/address changes
           lastFetchedNetwork.current = undefined;
           lastFetchedAddress.current = undefined;
+          // Trigger balance update when network changes
+          if (networkChanged) {
+            console.log("[Stellar] Network changed from", network, "to", n.network, "- will update balances");
+            // Balance update will be triggered by the useEffect that depends on network
+          }
         } else if (!hadPreviousValues && !hasInitializedRef.current) {
           // If we don't have previous values and haven't initialized, this is initialization, not a change
           // Set values without triggering change detection

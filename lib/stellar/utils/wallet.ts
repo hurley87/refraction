@@ -53,6 +53,54 @@ export const disconnectWallet = async () => {
   storage.removeItem("walletId");
 };
 
+/**
+ * Check and update network. For wallets like Freighter and Hot-wallet,
+ * the network is controlled by the wallet extension. This function
+ * will check the wallet's current network and update storage accordingly.
+ * The wallet provider's polling mechanism will detect when the user switches
+ * networks in their wallet extension.
+ */
+export const switchNetwork = async (network: "PUBLIC" | "TESTNET" | "FUTURENET"): Promise<void> => {
+  const walletId = storage.getItem("walletId");
+  if (!walletId) {
+    throw new Error("No wallet connected");
+  }
+
+  // Only Freighter and Hot-wallet support network detection
+  if (walletId !== "freighter" && walletId !== "hot-wallet") {
+    throw new Error(`Network switching not supported for wallet: ${walletId}. Please switch networks in your wallet extension.`);
+  }
+
+  // Set the wallet first
+  kit.setWallet(walletId);
+
+  // Get the current network from the wallet
+  const networkInfo = await kit.getNetwork();
+  if (networkInfo.network && networkInfo.networkPassphrase) {
+    storage.setItem("walletNetwork", networkInfo.network);
+    storage.setItem("networkPassphrase", networkInfo.networkPassphrase);
+    
+    // Check if the wallet's network matches what we requested
+    const walletNetworkUpper = networkInfo.network.toUpperCase();
+    const requestedNetworkUpper = network.toUpperCase();
+    
+    // For PUBLIC network, check if it's "MAINNET" as well
+    const isPublicNetwork = walletNetworkUpper === "PUBLIC" || walletNetworkUpper === "MAINNET";
+    const requestingPublic = requestedNetworkUpper === "PUBLIC";
+    
+    if (!isPublicNetwork && requestingPublic) {
+      throw new Error(`Please switch your ${walletId} wallet to Mainnet (Public Network) in your wallet extension.`);
+    } else if (walletNetworkUpper !== requestedNetworkUpper && !requestingPublic) {
+      const networkName = requestedNetworkUpper === "TESTNET" ? "Testnet" : requestedNetworkUpper;
+      throw new Error(`Please switch your ${walletId} wallet to ${networkName} in your wallet extension.`);
+    }
+    
+    console.log("[Stellar] Network updated:", networkInfo.network);
+  } else {
+    throw new Error("Could not get network information from wallet");
+  }
+};
+
 // Cache Horizon servers by network to avoid recreating them
 const horizonServers: Map<string, Horizon.Server> = new Map();
 

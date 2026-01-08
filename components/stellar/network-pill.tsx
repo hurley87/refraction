@@ -17,6 +17,11 @@ const formatNetworkName = (name: string) => {
 const NetworkPill: React.FC = () => {
   const { network, address } = useWallet();
 
+  // Debug: Log network value to see what we're getting
+  if (address && network) {
+    console.log("[NetworkPill] Wallet network:", network);
+  }
+
   // Show the wallet's network if connected, otherwise show app's default network
   const displayNetwork = address && network 
     ? formatNetworkName(network) 
