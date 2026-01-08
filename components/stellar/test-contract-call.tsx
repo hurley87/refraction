@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   AssembledTransaction,
-  Client as ContractClient,
   Spec as ContractSpec,
 } from "@stellar/stellar-sdk/contract";
 import { networkPassphrase, rpcUrl } from "@/lib/stellar/utils/network";

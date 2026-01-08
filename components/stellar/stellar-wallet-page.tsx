@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WalletProvider } from "@/lib/stellar/providers/wallet-provider";
 import { NotificationProvider } from "@/lib/stellar/providers/notification-provider";
 import ConnectAccount from "./connect-account";
-import { TestContractCall } from "./test-contract-call";
+
 import { Toaster } from "sonner";
 
 const queryClient = new QueryClient({

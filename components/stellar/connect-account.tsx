@@ -8,7 +8,7 @@ import { WalletButton } from "./wallet-button";
 import NetworkPill from "./network-pill";
 
 const ConnectAccount: React.FC = () => {
-  const { address, network } = useWallet();
+  const { network } = useWallet();
   const currentNetwork = network?.toUpperCase() || stellarNetwork;
 
   return (
