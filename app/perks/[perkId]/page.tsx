@@ -23,6 +23,8 @@ import {
   useUserRedemptions,
 } from "@/hooks/usePerks";
 import { useCurrentPlayer } from "@/hooks/usePlayer";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { ANALYTICS_EVENTS } from "@/lib/analytics";
 import { apiClient } from "@/lib/api/client";
 import type { Perk } from "@/lib/types";
 
@@ -90,6 +92,7 @@ export default function PerkDetailPage() {
   const address = user?.wallet?.address;
   const queryClient = useQueryClient();
   const perkId = params.perkId as string;
+  const { trackEvent } = useAnalytics();
 
   // Fetch perk details
   const {
@@ -105,6 +108,17 @@ export default function PerkDetailPage() {
     },
     enabled: !!perkId,
   });
+
+  // Track reward page view when perk data loads
+  useEffect(() => {
+    if (perk?.id) {
+      trackEvent(ANALYTICS_EVENTS.REWARD_PAGE_VIEWED, {
+        reward_id: perk.id,
+        reward_type: perk.type,
+        points_required: perk.points_threshold,
+      });
+    }
+  }, [perk?.id, perk?.type, perk?.points_threshold, trackEvent]);
 
   // Fetch user's points
   const { data: player } = useCurrentPlayer();
