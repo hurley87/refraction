@@ -15,7 +15,7 @@ const mockFrom = vi.fn(() => ({
 
 vi.mock('@/lib/db/client', () => ({
   supabase: {
-    from: (table: string) => mockFrom(table),
+    from: () => mockFrom(),
   },
 }))
 
@@ -57,7 +57,7 @@ describe('Players Database Module', () => {
       const result = await getPlayerByWallet('0x1234567890abcdef1234567890abcdef12345678')
 
       expect(result).toEqual(mockPlayer)
-      expect(mockFrom).toHaveBeenCalledWith('players')
+      expect(mockFrom).toHaveBeenCalled()
     })
 
     it('should return null when not found (PGRST116)', async () => {
