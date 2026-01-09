@@ -7,6 +7,7 @@ import {
   MAX_LOCATIONS_PER_DAY,
   SUPABASE_ERROR_CODES,
 } from "@/lib/constants";
+import { getUtcDayBounds } from "@/lib/utils/date";
 
 const sanitizeVarchar = (value: string) => {
   const trimmed = value.trim();
@@ -107,20 +108,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-const getUtcDayBounds = () => {
-  const now = new Date();
-  const start = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-
-  return {
-    startIso: start.toISOString(),
-    endIso: end.toISOString(),
-  };
-};
 
 const isDuplicateKeyError = (error: unknown) =>
   typeof error === "object" &&

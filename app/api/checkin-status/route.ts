@@ -2,18 +2,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 import { supabase } from "@/lib/db/client";
-
-const getUtcDayBounds = () => {
-  const now = new Date();
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-
-  return {
-    startIso: start.toISOString(),
-    endIso: end.toISOString(),
-  };
-};
+import { getUtcDayBounds } from "@/lib/utils/date";
 
 export async function GET(request: Request) {
   try {

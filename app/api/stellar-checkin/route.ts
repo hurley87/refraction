@@ -2,20 +2,7 @@ import { NextRequest } from "next/server";
 import { createOrUpdatePlayerForStellar, updatePlayerPoints } from "@/lib/db/players";
 import { supabase } from "@/lib/db/client";
 import { DAILY_CHECKIN_POINTS, DAILY_CHECKPOINT_LIMIT } from "@/lib/constants";
-
-const getUtcDayBounds = () => {
-  const now = new Date();
-  const start = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-
-  return {
-    startIso: start.toISOString(),
-    endIso: end.toISOString(),
-  };
-};
+import { getUtcDayBounds } from "@/lib/utils/date";
 
 export async function POST(req: NextRequest) {
   const { stellarWalletAddress, email, checkpoint } = await req.json();
