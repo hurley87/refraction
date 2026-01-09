@@ -11,8 +11,7 @@ import {
 } from "@/lib/db/checkins";
 import type { Player, Location } from "@/lib/types";
 import { trackCheckinCompleted, trackPointsEarned } from "@/lib/analytics";
-
-const MAX_VARCHAR_LENGTH = 255;
+import { MAX_VARCHAR_LENGTH } from "@/lib/constants";
 
 const sanitizeString = (
   value: unknown,

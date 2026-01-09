@@ -1,9 +1,7 @@
 import { NextRequest } from "next/server";
 import { createOrUpdatePlayerForSolana, updatePlayerPoints } from "@/lib/db/players";
 import { supabase } from "@/lib/db/client";
-
-const DAILY_CHECKIN_POINTS = 100;
-const DAILY_CHECKPOINT_LIMIT = 10;
+import { DAILY_CHECKIN_POINTS, DAILY_CHECKPOINT_LIMIT } from "@/lib/constants";
 
 const getUtcDayBounds = () => {
   const now = new Date();

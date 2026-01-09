@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/db/client";
 import { trackLocationCreated, trackPointsEarned } from "@/lib/analytics";
 import { checkAdminPermission } from "@/lib/auth";
-
-const MAX_VARCHAR_LENGTH = 255;
-const MAX_LOCATIONS_PER_DAY = 30;
+import {
+  MAX_VARCHAR_LENGTH,
+  MAX_LOCATIONS_PER_DAY,
+  SUPABASE_ERROR_CODES,
+} from "@/lib/constants";
 
 const sanitizeVarchar = (value: string) => {
   const trimmed = value.trim();
@@ -59,7 +61,7 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (playerError) {
-        if (playerError.code === "PGRST116") {
+        if (playerError.code === SUPABASE_ERROR_CODES.NOT_FOUND) {
           return NextResponse.json({ locations: [] });
         }
         throw playerError;
@@ -222,7 +224,7 @@ export async function POST(request: NextRequest) {
         .eq("place_id", sanitizedPlaceId)
         .maybeSingle();
 
-    if (locationLookupError && locationLookupError.code !== "PGRST116") {
+    if (locationLookupError && locationLookupError.code !== SUPABASE_ERROR_CODES.NOT_FOUND) {
       console.error("Error checking duplicate location:", locationLookupError);
       throw locationLookupError;
     }

@@ -6,9 +6,7 @@ import type { Player } from "@/lib/types";
 import { checkinRequestSchema } from "@/lib/schemas/api";
 import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
 import { trackCheckinCompleted, trackPointsEarned } from "@/lib/analytics";
-
-const DAILY_CHECKIN_POINTS = 100;
-const DAILY_CHECKPOINT_LIMIT = 10;
+import { DAILY_CHECKIN_POINTS, DAILY_CHECKPOINT_LIMIT } from "@/lib/constants";
 
 const getUtcDayBounds = () => {
   const now = new Date();
