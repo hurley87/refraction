@@ -115,8 +115,8 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": "Comments indicate these are deprecated - active system uses player_location_checkins"
+      "passes": true,
+      "notes": "Removed 4 legacy functions (71 lines) from checkins.ts and deprecated Checkin type from types.ts"
     }
   ]
 }

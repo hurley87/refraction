@@ -201,17 +201,6 @@ export type Notification = {
 };
 
 /**
- * Legacy checkin type (deprecated - use PlayerLocationCheckin)
- */
-export type Checkin = {
-  id?: number;
-  address: string;
-  email: string;
-  created_at?: string;
-  checkpoint: string;
-};
-
-/**
  * Unified checkpoint for /c/[id] URLs
  * Supports multiple chain types (EVM, Solana, Stellar)
  */

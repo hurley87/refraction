@@ -115,3 +115,19 @@
   - Hooks pattern (usePerks.ts) has superseded utility-function pattern (perks-api.ts)
   - Unused code accumulates when new patterns replace old ones without cleanup
 ---
+
+## 2026-01-09 - CLEAN-008
+- Removed legacy checkin code from lib/db/checkins.ts
+- Deleted functions: getCheckinByAddressAndCheckpoint, getCheckinByAddress, insertCheckin, upsertCheckpoint
+- Removed deprecated Checkin type from lib/types.ts (7 lines)
+- Updated DATA_LAYER_SCHEMA.md to remove deprecated references
+- **Total lines removed:** ~78 lines (71 from checkins.ts, 7 from types.ts)
+- Modified files:
+  - lib/db/checkins.ts (107 → 36 lines)
+  - lib/types.ts (removed Checkin type)
+  - DATA_LAYER_SCHEMA.md (removed deprecated documentation)
+- **Learnings for future iterations:**
+  - Active checkin system uses player_location_checkins table, not checkins table
+  - Legacy code marked "deprecated" in comments often can be safely deleted
+  - Documentation files (DATA_LAYER_SCHEMA.md) should be updated alongside code changes
+---

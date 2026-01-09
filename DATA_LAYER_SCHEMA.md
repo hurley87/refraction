@@ -50,7 +50,6 @@ All types are centralized in `lib/types.ts`:
 | `UserPerkRedemption`    | Record of perk redemption by user                                   | `lib/types.ts` |
 | `Tier`                  | Points-based membership tier                                        | `lib/types.ts` |
 | `UserProfile`           | Extended profile with social handles                                | `lib/types.ts` |
-| `Checkin`               | Legacy checkin type (deprecated)                                    | `lib/types.ts` |
 
 ## Module Dependency Diagram
 
@@ -205,10 +204,6 @@ await addLocationToList(list.id, locationId);
 
 - `checkUserLocationCheckin(playerId, locationId)` - Check if user checked in
 - `createLocationCheckin(checkin)` - Create new location check-in
-- `insertCheckin(checkin)` - Legacy checkpoint checkin (deprecated)
-- `upsertCheckpoint(address, email, checkpoint)` - Legacy checkpoint upsert (deprecated)
-- `getCheckinByAddress(address)` - Legacy get checkins (deprecated)
-- `getCheckinByAddressAndCheckpoint(address, checkpoint)` - Legacy filtered checkins (deprecated)
 
 **Dependencies**: `lib/db/client.ts`, `lib/types.ts`
 

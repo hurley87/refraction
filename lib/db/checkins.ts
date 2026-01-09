@@ -1,5 +1,5 @@
 import { supabase } from "./client";
-import type { PlayerLocationCheckin, Checkin } from "../types";
+import type { PlayerLocationCheckin } from "../types";
 
 /**
  * Check if a user has already checked in to a specific location
@@ -33,75 +33,4 @@ export const createLocationCheckin = async (
 
   if (error) throw error;
   return data;
-};
-
-/**
- * Get checkins by wallet address and checkpoint name (legacy checkins table)
- */
-export const getCheckinByAddressAndCheckpoint = async (
-  address: string,
-  checkpoint: string,
-): Promise<Checkin[]> => {
-  const { data, error } = await supabase
-    .from("checkins")
-    .select("*")
-    .eq("address", address)
-    .eq("checkpoint", checkpoint);
-
-  if (error) throw error;
-  return data || [];
-};
-
-/**
- * Get checkin by wallet address (legacy checkins table)
- */
-export const getCheckinByAddress = async (
-  address: string,
-): Promise<Checkin[]> => {
-  const { data, error } = await supabase
-    .from("checkins")
-    .select("*")
-    .eq("address", address);
-
-  if (error) throw error;
-  return data || [];
-};
-
-/**
- * Insert a new checkin record (legacy checkins table)
- */
-export const insertCheckin = async (
-  checkin: Omit<Checkin, "id" | "created_at">,
-): Promise<Checkin> => {
-  const { data, error } = await supabase
-    .from("checkins")
-    .insert(checkin)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-};
-
-/**
- * Upsert a checkpoint checkin (legacy checkins table)
- * Creates a new checkin or updates existing one
- */
-export const upsertCheckpoint = async (
-  address: string,
-  email: string | undefined,
-  checkpoint: string,
-): Promise<Checkin> => {
-  // Check if already exists
-  const existing = await getCheckinByAddressAndCheckpoint(address, checkpoint);
-  if (existing.length > 0) {
-    throw new Error("Already checked in");
-  }
-
-  // Insert new checkin
-  return insertCheckin({
-    address,
-    email: email || "",
-    checkpoint,
-  });
 };
