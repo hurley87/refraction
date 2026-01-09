@@ -104,3 +104,14 @@
   - leaderboardCache provides 30-second TTL caching for leaderboard data
   - playerStatsCache provides 30-second TTL caching for player stats
 ---
+
+## 2026-01-09 - CLEAN-007
+- Deleted lib/perks-api.ts (124 lines) - completely unused dead code
+- File was never imported anywhere in the codebase
+- hooks/usePerks.ts already provides equivalent functionality via apiClient
+- No refactoring needed - deletion is the better outcome
+- **Learnings for future iterations:**
+  - Before refactoring, always check if code is even used (grep for imports)
+  - Hooks pattern (usePerks.ts) has superseded utility-function pattern (perks-api.ts)
+  - Unused code accumulates when new patterns replace old ones without cleanup
+---

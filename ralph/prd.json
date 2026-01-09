@@ -101,8 +101,8 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": "perks-api.ts duplicates what apiClient already provides"
+      "passes": true,
+      "notes": "DELETED: lib/perks-api.ts was completely unused - hooks/usePerks.ts already provides same functionality via apiClient"
     },
     {
       "id": "CLEAN-008",
