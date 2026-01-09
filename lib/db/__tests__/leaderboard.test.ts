@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { LeaderboardEntry, Player } from '@/lib/types'
+import type { Player } from '@/lib/types'
 
 // Mock the supabase client
 const mockRpc = vi.fn()

@@ -3,7 +3,7 @@ import type { Location, LocationOption } from '@/lib/types'
 
 // Mock the supabase client - use any for complex mock chains
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockFrom = vi.fn((_table?: string): any => ({}))
+const mockFrom = vi.fn((): any => ({}))
 
 vi.mock('@/lib/db/client', () => ({
   supabase: {
@@ -204,9 +204,7 @@ describe('Locations Database Module', () => {
         { locations: { ...sampleLocation, id: 2 } },
       ]
 
-      let callCount = 0
       mockFrom.mockImplementation((table) => {
-        callCount++
         if (table === 'players') {
           return {
             select: vi.fn(() => ({

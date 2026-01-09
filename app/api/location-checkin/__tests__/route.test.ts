@@ -140,6 +140,7 @@ describe('Location Checkin API Route', () => {
       })
 
       it('should return 400 for missing place_id', async () => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { place_id, ...locationWithoutPlaceId } = validLocationData
         const request = createPostRequest({
           walletAddress: validWallet,
