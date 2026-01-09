@@ -1,0 +1,122 @@
+{
+  "project": "IRL Codebase Cleanup",
+  "branchName": "ralph/codebase-cleanup",
+  "description": "Reduce code liability by eliminating duplication, consolidating patterns, and removing dead code. Guided by tech-lead principle: less code = less bugs = less maintenance.",
+  "userStories": [
+    {
+      "id": "CLEAN-001",
+      "title": "Centralize shared constants",
+      "description": "As a developer, I need magic numbers and strings in one place so changes propagate automatically.",
+      "acceptanceCriteria": [
+        "Create lib/constants.ts with DAILY_CHECKIN_POINTS, DAILY_CHECKPOINT_LIMIT, MAX_VARCHAR_LENGTH",
+        "Add common Supabase error codes (e.g., PGRST116 for not found)",
+        "Update all API routes to import from lib/constants.ts",
+        "Remove duplicate constant definitions from individual files",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Currently defined in 3+ files each: solana-checkin, stellar-checkin, checkin, locations routes"
+    },
+    {
+      "id": "CLEAN-002",
+      "title": "Extract shared date utilities",
+      "description": "As a developer, I need getUtcDayBounds() in one place instead of copied across 4 files.",
+      "acceptanceCriteria": [
+        "Create lib/utils/date.ts with getUtcDayBounds() function",
+        "Update solana-checkin, stellar-checkin, checkin, and locations routes to use shared function",
+        "Delete duplicate implementations from route files",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Identical function defined in 4 route files"
+    },
+    {
+      "id": "CLEAN-003",
+      "title": "Extract shared validation utilities",
+      "description": "As a developer, I need consistent string sanitization across all API routes.",
+      "acceptanceCriteria": [
+        "Create lib/utils/validation.ts with sanitizeVarchar(), sanitizeOptionalVarchar(), sanitizeString()",
+        "Add URL validation helper",
+        "Update locations and location-checkin routes to use shared functions",
+        "Delete duplicate implementations",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Different sanitize functions in locations/route.ts and location-checkin/route.ts"
+    },
+    {
+      "id": "CLEAN-004",
+      "title": "Unify checkin business logic",
+      "description": "As a developer, I need checkin logic in one place so bug fixes apply to all chains.",
+      "acceptanceCriteria": [
+        "Create lib/api/checkin-handler.ts with shared checkin business logic",
+        "Extract: daily limit checking, points awarding, activity insertion, response building",
+        "Refactor solana-checkin, stellar-checkin, and checkin routes to use shared handler",
+        "Reduce total lines in these 3 files by at least 50%",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "~520 lines of duplicated logic across 3 files - biggest win"
+    },
+    {
+      "id": "CLEAN-005",
+      "title": "Standardize API response pattern",
+      "description": "As a developer, I need one consistent way to return API responses.",
+      "acceptanceCriteria": [
+        "Audit all routes in app/api/ for response patterns",
+        "Migrate raw Response() and NextResponse.json() calls to use apiSuccess()/apiError() helpers",
+        "Update solana-checkin and stellar-checkin routes (currently use raw Response)",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "3 different patterns currently: raw Response, NextResponse.json, apiSuccess/apiError"
+    },
+    {
+      "id": "CLEAN-006",
+      "title": "Remove unused cache module",
+      "description": "As a developer, I don't want dead code in the codebase.",
+      "acceptanceCriteria": [
+        "Verify lib/cache/index.ts exports are not imported anywhere",
+        "Delete lib/cache/index.ts if unused",
+        "Remove lib/cache/ directory if empty",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "VERIFIED IN USE: leaderboardCache and playerStatsCache are actively used in app/api/leaderboard/route.ts - do not delete"
+    },
+    {
+      "id": "CLEAN-007",
+      "title": "Consolidate perks-api to use apiClient",
+      "description": "As a developer, I need one API client pattern, not two competing implementations.",
+      "acceptanceCriteria": [
+        "Refactor lib/perks-api.ts to use apiClient() from lib/api/client.ts",
+        "Remove custom json() helper function",
+        "Ensure all fetch calls go through apiClient",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "perks-api.ts duplicates what apiClient already provides"
+    },
+    {
+      "id": "CLEAN-008",
+      "title": "Remove legacy checkin code",
+      "description": "As a developer, I don't want deprecated code confusing the active patterns.",
+      "acceptanceCriteria": [
+        "Verify legacy functions in lib/db/checkins.ts are not used (getCheckinByAddressAndCheckpoint, insertCheckin, etc.)",
+        "Remove unused legacy functions",
+        "Update lib/types.ts to remove deprecated Checkin type if unused",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "Comments indicate these are deprecated - active system uses player_location_checkins"
+    }
+  ]
+}
