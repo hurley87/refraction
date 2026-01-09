@@ -1,6 +1,6 @@
 "use client";
 
-import type { Perk } from "@/lib/types";
+import type { Perk, UserPerkRedemption, PerkDiscountCode } from "@/lib/types";
 import Image from "next/image";
 import { usePrivy } from "@privy-io/react-auth";
 
@@ -82,26 +82,7 @@ const TimeLeft = ({
 
   return <span className={className}>{timeLeft.text}</span>;
 };
-/*
-const PerkCodeCount = ({ perkId }: { perkId: string }) => {
-  const { data: availableCount = 0 } = useQuery({
-    queryKey: ["available-codes", perkId],
-    queryFn: async () => {
-      const response = await fetch(`/api/perks/${perkId}/available-count`);
-      if (!response.ok)
-        throw new Error("Failed to fetch available codes count");
-      const data = await response.json();
-      return data.count;
-    },
-  });
 
-
-  return (
-    <span className="text-black body-small uppercase font-abc-monument-regular">
-      {availableCount} codes available
-    </span>
-  );
-};  */
 export default function PerksPage() {
   const { user } = usePrivy();
   const address = user?.wallet?.address;
@@ -126,7 +107,7 @@ export default function PerksPage() {
   const canAfford = (perk: Perk) => userPoints >= perk.points_threshold;
 
   const hasRedeemed = (perkId: string) =>
-    userRedemptions.some((redemption: any) => redemption.perk_id === perkId);
+    userRedemptions.some((redemption: UserPerkRedemption) => redemption.perk_id === perkId);
 
   //const queryClient = useQueryClient();
   const [selectedPerk, setSelectedPerk] = useState<Perk | null>(null);
@@ -199,7 +180,7 @@ export default function PerksPage() {
 
   // Get the first available code (or first universal code)
   const selectedDiscountCode =
-    selectedPerkCodes.find((code: any) => code.is_universal || !code.is_claimed)
+    selectedPerkCodes.find((code: PerkDiscountCode) => code.is_universal || !code.is_claimed)
       ?.code || "IRL2026";
 
   // Check if the code is a URL
