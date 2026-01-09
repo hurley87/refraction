@@ -59,6 +59,21 @@ If all stories are complete, respond with exactly: `COMPLETE`
 
 Otherwise, continue normally — the next iteration will pick up remaining stories.
 
+## Progress Announcements
+
+Announce your progress clearly as you work. Output these markers so the user can follow along:
+
+```
+📋 STARTING: [Story ID] - [Story Title]
+🔍 READING: [file or context being analyzed]
+✏️  EDITING: [file being modified]
+🧪 TESTING: [running tests/checks]
+✅ COMMITTED: [commit message]
+📝 LOGGED: Updated progress.txt
+```
+
+Be verbose about what you're doing. The user should never wonder what's happening.
+
 ## Key Principles
 
 - Work on ONE story per iteration

@@ -1,133 +1,149 @@
 # Ralph Progress Log
+Started: Fri Jan  9 17:46:59 EST 2026
+---
 
 ## Codebase Patterns
-
-- Use `apiSuccess()` and `apiError()` from `lib/api/response.ts` for all API responses
-- Zod schemas live in `lib/schemas/*.ts`
-- React Query hooks follow `useX` naming in `hooks/` directory
-- Database operations go in `lib/db/*.ts` files
-- Active checkin system uses `player_location_checkins` table (not legacy `checkins`)
-- Path alias `@/*` maps to project root
-- API routes follow REST patterns in `app/api/`
-- Shared constants live in `lib/constants.ts` (DAILY_CHECKIN_POINTS, DAILY_CHECKPOINT_LIMIT, MAX_VARCHAR_LENGTH, etc.)
-- Use `SUPABASE_ERROR_CODES.NOT_FOUND` instead of hardcoding "PGRST116"
-- Date utilities live in `lib/utils/date.ts` (getUtcDayBounds)
-- Validation utilities live in `lib/utils/validation.ts` (sanitizeVarchar, sanitizeOptionalVarchar, sanitizeString, validateUrl)
-- Checkin business logic lives in `lib/api/checkin-handler.ts` (processCheckin, extractErrorMessage)
+- Use vitest with `describe`, `it`, `expect` from 'vitest' for tests
+- Test files go in `__tests__` subdirectories adjacent to source files
+- Use `.safeParse()` for testing Zod schemas - returns `{ success, data, error }`
+- Vitest config at `vitest.config.ts` - uses happy-dom environment
+- Path alias `@/*` maps to root directory
+- Run tests with `yarn test <path>` or `yarn test <path> --run` for non-watch mode
 
 ---
 
-## 2026-01-09 - CLEAN-001
-- Created `lib/constants.ts` with centralized constants
-- Updated 5 route files to import from shared constants
-- Constants centralized: DAILY_CHECKIN_POINTS (100), DAILY_CHECKPOINT_LIMIT (10), MAX_VARCHAR_LENGTH (255), MAX_LOCATIONS_PER_DAY (30)
-- Added SUPABASE_ERROR_CODES object for standardized error code references
+## 2026-01-09 - TEST-001
+- Implementation summary: Added comprehensive unit tests for all Zod validation schemas
 - Modified files:
-  - lib/constants.ts (new)
-  - app/api/checkin/route.ts
-  - app/api/solana-checkin/route.ts
-  - app/api/stellar-checkin/route.ts
-  - app/api/locations/route.ts
-  - app/api/location-checkin/route.ts
+  - lib/schemas/__tests__/player.test.ts (new, 46 tests)
+  - lib/schemas/__tests__/api.test.ts (new, 74 tests)
+  - lib/schemas/__tests__/perk.test.ts (new, 53 tests)
+  - lib/schemas/__tests__/location.test.ts (new, 50 tests)
 - **Learnings for future iterations:**
-  - No `yarn typecheck` script - use `npx tsc --noEmit` instead
-  - Pre-existing type errors in test files (leaderboard, player tests)
-  - Pre-existing lint warnings (mostly `<img>` instead of `<Image />`)
+  - Solana base58 alphabet excludes: 0, O, I, l - test addresses must use valid chars
+  - Stellar addresses use [A-Z0-9] (includes digits 0-9, not standard base32)
+  - Zod `.coerce.number()` converts strings to numbers automatically
+  - Pre-existing TypeScript errors in node_modules and other test files don't affect new code
 ---
 
-## 2026-01-09 - CLEAN-002
-- Created `lib/utils/date.ts` with shared `getUtcDayBounds()` function
-- Updated 5 route files to import from shared date utility
-- Removed 44 lines of duplicate code (net reduction of 44 lines)
+## 2026-01-09 - TEST-002
+- Implementation summary: Added unit tests for lib/db/players.ts database module
 - Modified files:
-  - lib/utils/date.ts (new)
-  - app/api/checkin/route.ts
-  - app/api/solana-checkin/route.ts
-  - app/api/stellar-checkin/route.ts
-  - app/api/locations/route.ts
-  - app/api/checkin-status/route.ts
+  - lib/db/__tests__/players.test.ts (new, 18 tests)
 - **Learnings for future iterations:**
-  - checkin-status route also uses getUtcDayBounds (5 files total, not 4)
-  - lib/utils/ directory now exists for categorized utility functions
+  - Mock supabase chain: mockFrom → mockSelect → mockEq → mockSingle
+  - PGRST116 error code means "not found" - should return null, not throw
+  - For createOrUpdatePlayer: first call checks existence, second performs update/insert
+  - Use `vi.mocked()` for type-safe mock assertions
 ---
 
-## 2026-01-09 - CLEAN-003
-- Created `lib/utils/validation.ts` with shared validation functions
-- Consolidated 3 different sanitization functions into reusable utilities
-- Added URL validation helper with protocol security checking
+## 2026-01-09 - TEST-003
+- Implementation summary: Added unit tests for lib/db/perks.ts database module
 - Modified files:
-  - lib/utils/validation.ts (new)
-  - app/api/locations/route.ts (removed 32 lines)
-  - app/api/location-checkin/route.ts (removed 14 lines)
-- Net reduction: 59 lines removed, 68 lines added (consolidation + documentation)
+  - lib/db/__tests__/perks.test.ts (new, 17 tests)
 - **Learnings for future iterations:**
-  - sanitizeString returns undefined, sanitizeOptionalVarchar returns null (different null semantics)
-  - validateUrl returns discriminated union for cleaner error handling
+  - Mock complex chains like `.select().eq().lte().or()` with nested mock functions
+  - Use `vi.fn<any>()` to avoid TypeScript inference issues with mock return types
+  - redeemPerk has 4 sequential DB calls - mock each mockSingle response in order
+  - When mocking functions from other modules, use vi.mock then vi.mocked() for type safety
 ---
 
-## 2026-01-09 - CLEAN-004
-- Created `lib/api/checkin-handler.ts` with unified checkin business logic
-- Consolidated daily limit checking, points awarding, activity insertion, response building
-- Refactored all 3 checkin routes to use shared handler
-- **Line reduction:** 475 lines → 141 lines in route files (70% reduction)
+## 2026-01-09 - TEST-004
+- Implementation summary: Added integration tests for /api/perks/redeem POST endpoint
 - Modified files:
-  - lib/api/checkin-handler.ts (new, 263 lines)
-  - app/api/checkin/route.ts (152 → 55 lines)
-  - app/api/solana-checkin/route.ts (161 → 43 lines)
-  - app/api/stellar-checkin/route.ts (162 → 43 lines)
+  - app/api/perks/redeem/__tests__/route.test.ts (new, 13 tests)
 - **Learnings for future iterations:**
-  - Chain-specific wallet queries use different filter fields (user_wallet_address vs metadata->>solana_wallet)
-  - Solana/Stellar routes now also use apiSuccess/apiError (CLEAN-005 partially addressed)
-  - processCheckin returns discriminated union for type-safe error handling
+  - For API route tests, mock analytics before importing the route to prevent side effects
+  - Create helper function `createRequest(body)` using NextRequest for cleaner test setup
+  - API routes test differently from db modules - test full request/response cycle
+  - Sequential mockSingle calls match the order of DB operations in the route handler
+  - Pre-existing TS errors in other test files don't block new work - verify with grep
 ---
 
-## 2026-01-09 - CLEAN-005
-- Audited all API routes for response patterns
-- Migrated remaining raw Response() calls to apiSuccess/apiError helpers
+## 2026-01-09 - TEST-005
+- Implementation summary: Added unit tests for lib/db/leaderboard.ts database module
 - Modified files:
-  - app/api/stellar-wallet/route.ts (9 Response() → helpers, 190 → 161 lines)
-  - app/api/add-checkpoint/route.ts (4 Response() → helpers, 73 → 62 lines)
-- **Net reduction:** 39 lines removed
+  - lib/db/__tests__/leaderboard.test.ts (new, 14 tests)
 - **Learnings for future iterations:**
-  - solana-checkin and stellar-checkin were already using helpers (done in CLEAN-004)
-  - Many routes still use NextResponse.json() - consistent enough, leave as-is
-  - apiError only accepts specific status codes (400, 404, 429, 500) - map others appropriately
+  - For complex functions like getPlayerStats with multiple DB calls, use mockFrom.mockImplementation with callCount
+  - Dense rank calculation: same points get same rank, next rank skips (1,1,3 not 1,1,2)
+  - RPC functions return arrays - empty array is valid success, null is failure
+  - Mock supabase.rpc separately from supabase.from chain
 ---
 
-## 2026-01-09 - CLEAN-006
-- Verified lib/cache/index.ts is ACTIVELY USED - no deletion needed
-- Cache module used by: app/api/leaderboard/route.ts (leaderboardCache, playerStatsCache)
-- Also tested in: app/api/leaderboard/__tests__/route.test.ts
-- No code changes required - story premise was incorrect
-- **Learnings for future iterations:**
-  - Always verify "appears unused" claims before acting
-  - leaderboardCache provides 30-second TTL caching for leaderboard data
-  - playerStatsCache provides 30-second TTL caching for player stats
----
-
-## 2026-01-09 - CLEAN-007
-- Deleted lib/perks-api.ts (124 lines) - completely unused dead code
-- File was never imported anywhere in the codebase
-- hooks/usePerks.ts already provides equivalent functionality via apiClient
-- No refactoring needed - deletion is the better outcome
-- **Learnings for future iterations:**
-  - Before refactoring, always check if code is even used (grep for imports)
-  - Hooks pattern (usePerks.ts) has superseded utility-function pattern (perks-api.ts)
-  - Unused code accumulates when new patterns replace old ones without cleanup
----
-
-## 2026-01-09 - CLEAN-008
-- Removed legacy checkin code from lib/db/checkins.ts
-- Deleted functions: getCheckinByAddressAndCheckpoint, getCheckinByAddress, insertCheckin, upsertCheckpoint
-- Removed deprecated Checkin type from lib/types.ts (7 lines)
-- Updated DATA_LAYER_SCHEMA.md to remove deprecated references
-- **Total lines removed:** ~78 lines (71 from checkins.ts, 7 from types.ts)
+## 2026-01-09 - TEST-006
+- Implementation summary: Added unit tests for lib/db/tiers.ts database module
 - Modified files:
-  - lib/db/checkins.ts (107 → 36 lines)
-  - lib/types.ts (removed Checkin type)
-  - DATA_LAYER_SCHEMA.md (removed deprecated documentation)
+  - lib/db/__tests__/tiers.test.ts (new, 20 tests)
 - **Learnings for future iterations:**
-  - Active checkin system uses player_location_checkins table, not checkins table
-  - Legacy code marked "deprecated" in comments often can be safely deleted
-  - Documentation files (DATA_LAYER_SCHEMA.md) should be updated alongside code changes
+  - For ordered queries, mock chain: mockFrom → mockSelect → mockOrder
+  - resolveTierForPoints is a pure function - no mocking needed, test directly
+  - max_points=null indicates unbounded highest tier
+  - Boundary testing: check exact min_points (inclusive) and max_points (exclusive)
+---
+
+## 2026-01-09 - TEST-007
+- Implementation summary: Added unit tests for lib/db/locations.ts database module
+- Modified files:
+  - lib/db/__tests__/locations.test.ts (new, 20 tests)
+- **Learnings for future iterations:**
+  - Use `vi.fn((_table?: string): any => ({}))` for flexible mockFrom that accepts optional table param
+  - mockImplementation callback should use `(table)` not `(table: string)` to match mock signature
+  - For multi-table queries (players + checkins), use mockFrom.mockImplementation with table switch
+  - Search sanitization tests: verify % and _ are escaped with backslashes
+---
+
+## 2026-01-09 - TEST-008
+- Implementation summary: Added unit tests for lib/db/checkins.ts database module
+- Modified files:
+  - lib/db/__tests__/checkins.test.ts (new, 12 tests)
+- **Learnings for future iterations:**
+  - PGRST116 error code is "not found" - function returns null, not throws
+  - Duplicate constraint error code is '23505' (PostgreSQL unique violation)
+  - Optional fields (comment, image_url) should be tested with null values too
+  - Simple two-function modules can use straightforward mock patterns without complex chains
+---
+
+## 2026-01-09 - TEST-009
+- Implementation summary: Added integration tests for /api/location-checkin POST and GET endpoints
+- Modified files:
+  - app/api/location-checkin/__tests__/route.test.ts (new, 17 tests)
+- **Learnings for future iterations:**
+  - For API routes that call multiple db functions, mock each function individually with vi.mock
+  - Use vi.mocked() to set return values for mocked functions
+  - Test hidden location (is_visible: false) returns 403, duplicate checkin returns 409
+  - GET endpoint tests are simpler - just test query param extraction and db lookup
+---
+
+## 2026-01-09 - TEST-010
+- Implementation summary: Added unit tests for lib/db/checkpoints.ts database module
+- Modified files:
+  - lib/db/__tests__/checkpoints.test.ts (new, 22 tests)
+- **Learnings for future iterations:**
+  - Use vi.stubGlobal('crypto', {...}) to mock crypto.randomUUID for predictable IDs
+  - ChainType is 'evm' | 'solana' | 'stellar' - test each variant
+  - listActive functions filter by is_active=true in the query
+  - getCheckpointsByChainType filters by both chain_type AND is_active
+---
+
+## 2026-01-09 - TEST-011
+- Implementation summary: Added integration tests for /api/tiers GET endpoint
+- Modified files:
+  - app/api/tiers/__tests__/route.test.ts (new, 8 tests)
+- **Learnings for future iterations:**
+  - Simple GET routes only need mockOrder to test ordered queries
+  - apiSuccess/apiError helpers wrap NextResponse.json with standard structure
+  - Header tests may fail in vitest environment - verify response body instead
+  - Route uses export const dynamic = 'force-dynamic' for fresh data
+---
+
+## 2026-01-09 - TEST-012
+- Implementation summary: Extended lib/api/__tests__/response.test.ts with edge cases
+- Modified files:
+  - lib/api/__tests__/response.test.ts (extended, now 20 tests)
+- **Learnings for future iterations:**
+  - response.headers.get() fails in vitest happy-dom environment - verify JSON parsing instead
+  - Test null, empty objects, arrays, and deeply nested structures for data handlers
+  - Test empty strings and very long strings (10000 chars) for message handlers
+  - ZodError can have multiple issues - test aggregated error message format
 ---

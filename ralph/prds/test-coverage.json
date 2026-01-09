@@ -16,7 +16,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "Schemas are pure functions - no mocking needed. Focus on boundary values."
     },
     {
@@ -32,7 +32,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "Mock supabase.from().select().eq().single() chain. Test PGRST116 not-found handling."
     },
     {
@@ -48,7 +48,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "redeemPerk has 4 sequential DB calls - mock each step. Revenue-critical."
     },
     {
@@ -65,7 +65,7 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": "Revenue-critical endpoint. Follow existing checkin test patterns."
     },
     {
@@ -81,7 +81,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "Test both RPC and fallback paths. Dense rank is business-critical."
     },
     {
@@ -97,7 +97,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "Tier boundaries critical for perk access control."
     },
     {
@@ -113,7 +113,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "Test SQL injection prevention via escaping in search."
     },
     {
@@ -129,7 +129,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "Core engagement flow - verify duplicate prevention."
     },
     {
@@ -145,7 +145,7 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "Follow existing checkin route test patterns."
     },
     {
@@ -161,7 +161,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "Checkpoints are the unified /c/[id] multi-chain system."
     },
     {
@@ -177,7 +177,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "Simple GET endpoint - good pattern reference."
     },
     {
@@ -193,7 +193,7 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "Extend existing tests with edge cases."
     }
   ]
