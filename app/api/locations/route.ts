@@ -2,29 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/db/client";
 import { trackLocationCreated, trackPointsEarned } from "@/lib/analytics";
 import { checkAdminPermission } from "@/lib/auth";
-import {
-  MAX_VARCHAR_LENGTH,
-  MAX_LOCATIONS_PER_DAY,
-  SUPABASE_ERROR_CODES,
-} from "@/lib/constants";
+import { MAX_LOCATIONS_PER_DAY, SUPABASE_ERROR_CODES } from "@/lib/constants";
 import { getUtcDayBounds } from "@/lib/utils/date";
-
-const sanitizeVarchar = (value: string) => {
-  const trimmed = value.trim();
-  return trimmed.length > MAX_VARCHAR_LENGTH
-    ? trimmed.slice(0, MAX_VARCHAR_LENGTH)
-    : trimmed;
-};
-
-const sanitizeOptionalVarchar = (value?: string | null) => {
-  if (!value) return null;
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  return trimmed.length > MAX_VARCHAR_LENGTH
-    ? trimmed.slice(0, MAX_VARCHAR_LENGTH)
-    : trimmed;
-};
+import {
+  sanitizeVarchar,
+  sanitizeOptionalVarchar,
+  validateUrl,
+} from "@/lib/utils/validation";
 
 export async function GET(request: NextRequest) {
   try {
@@ -173,29 +157,14 @@ export async function POST(request: NextRequest) {
         : "location";
 
     // Validate and sanitize eventUrl - must be a valid URL if provided
-    let sanitizedEventUrl: string | null = null;
-    if (eventUrl && typeof eventUrl === "string") {
-      const trimmed = eventUrl.trim();
-      if (trimmed) {
-        try {
-          // Validate URL format to prevent XSS attacks
-          const url = new URL(trimmed);
-          // Only allow http/https protocols for security
-          if (url.protocol !== "http:" && url.protocol !== "https:") {
-            return NextResponse.json(
-              { error: "Event URL must use http or https protocol" },
-              { status: 400 },
-            );
-          }
-          sanitizedEventUrl = sanitizeOptionalVarchar(trimmed);
-        } catch {
-          return NextResponse.json(
-            { error: "Invalid event URL format" },
-            { status: 400 },
-          );
-        }
-      }
+    const eventUrlResult = validateUrl(eventUrl);
+    if (!eventUrlResult.valid) {
+      return NextResponse.json(
+        { error: eventUrlResult.error },
+        { status: 400 },
+      );
     }
+    const sanitizedEventUrl = eventUrlResult.url;
 
     const sanitizedWalletAddress = walletAddress.trim();
     const sanitizedUsername = sanitizeOptionalVarchar(username);
