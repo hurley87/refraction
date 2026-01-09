@@ -1725,7 +1725,7 @@ export default function InteractiveMap({
                           htmlFor="checkInComment"
                           className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]"
                         >
-                          Your Comment
+                          Your Comment <span className="text-red-500">*</span>
                         </label>
                         <Textarea
                           id="checkInComment"
@@ -1909,7 +1909,7 @@ export default function InteractiveMap({
                   </button>
                   <button
                     onClick={handleCheckIn}
-                    disabled={isCheckingIn || !checkInTarget}
+                    disabled={isCheckingIn || !checkInTarget || !checkInComment.trim()}
                     className="bg-[#1a1a1a] hover:bg-black text-white rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex items-center justify-center transition-colors disabled:opacity-50 flex-1"
                     type="button"
                   >
