@@ -1,5 +1,6 @@
-import { apiSuccess, apiError, apiValidationError } from '../response';
-import { ZodError } from 'zod';
+import { describe, it, expect } from 'vitest'
+import { apiSuccess, apiError, apiValidationError } from '../response'
+import { ZodError } from 'zod'
 
 describe('API Response Utilities', () => {
   describe('apiSuccess', () => {

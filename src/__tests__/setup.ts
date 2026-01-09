@@ -1,20 +1,56 @@
 // Vitest test setup file
 import '@testing-library/jest-dom'
-import { vi, beforeAll, afterAll } from 'vitest'
+import { vi, beforeAll, afterAll, afterEach } from 'vitest'
+import { server } from './mocks/server'
 
-// Mock NextResponse for testing
-vi.mock('next/server', () => ({
-  NextResponse: {
-    json: vi.fn((data: unknown, init?: { status?: number }) => {
-      const response = {
-        status: init?.status || 200,
-        json: async () => data,
-        body: JSON.stringify(data),
-      }
-      return response
-    }),
-  },
-}))
+// MSW server lifecycle and console error suppression
+const originalError = console.error
+
+beforeAll(() => {
+  // Start MSW server
+  server.listen({ onUnhandledRequest: 'warn' })
+
+  // Suppress common React warnings in tests
+  console.error = (...args: unknown[]) => {
+    if (
+      typeof args[0] === 'string' &&
+      (args[0].includes('Warning: ReactDOM.render') ||
+        args[0].includes('Warning: validateDOMNesting'))
+    ) {
+      return
+    }
+    originalError.call(console, ...args)
+  }
+})
+
+// Reset handlers after each test to ensure test isolation
+afterEach(() => {
+  server.resetHandlers()
+})
+
+// Close server and restore console after all tests
+afterAll(() => {
+  server.close()
+  console.error = originalError
+})
+
+// Mock NextResponse for testing - use importOriginal to keep NextRequest
+vi.mock('next/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next/server')>()
+  return {
+    ...actual,
+    NextResponse: {
+      json: vi.fn((data: unknown, init?: { status?: number }) => {
+        const response = {
+          status: init?.status || 200,
+          json: async () => data,
+          body: JSON.stringify(data),
+        }
+        return response
+      }),
+    },
+  }
+})
 
 // Mock Next.js router
 vi.mock('next/navigation', () => ({
@@ -88,22 +124,3 @@ vi.mock('mapbox-gl', () => ({
 }))
 
 // react-map-gl is mocked via alias in vitest.config.ts
-
-// Suppress console errors in tests (optional - remove if you want to see all errors)
-const originalError = console.error
-beforeAll(() => {
-  console.error = (...args: unknown[]) => {
-    if (
-      typeof args[0] === 'string' &&
-      (args[0].includes('Warning: ReactDOM.render') ||
-        args[0].includes('Warning: validateDOMNesting'))
-    ) {
-      return
-    }
-    originalError.call(console, ...args)
-  }
-})
-
-afterAll(() => {
-  console.error = originalError
-})
