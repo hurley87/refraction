@@ -11,22 +11,7 @@ import {
 } from "@/lib/db/checkins";
 import type { Player, Location } from "@/lib/types";
 import { trackCheckinCompleted, trackPointsEarned } from "@/lib/analytics";
-
-const MAX_VARCHAR_LENGTH = 255;
-
-const sanitizeString = (
-  value: unknown,
-  maxLength: number = MAX_VARCHAR_LENGTH,
-): string | undefined => {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return undefined;
-  }
-  return trimmed.slice(0, maxLength);
-};
+import { sanitizeString } from "@/lib/utils/validation";
 
 export async function POST(request: NextRequest) {
   try {

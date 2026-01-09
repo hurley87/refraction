@@ -46,7 +46,7 @@ interface LocationFormData {
   checkInComment: string;
 }
 
-type FormStep = "business-details" | "checkin-details" | "success";
+type FormStep = "business-details" | "success";
 
 interface SearchLocationData {
   latitude: number;
@@ -866,7 +866,8 @@ export default function InteractiveMap({
       return;
     }
 
-    setFormStep("checkin-details");
+    // Go directly to creating the location (no check-in step)
+    handleCreateLocation();
   };
 
   const handleCreateLocation = async () => {
@@ -1026,71 +1027,13 @@ export default function InteractiveMap({
         throw new Error(result.error || "Failed to create location");
       }
 
-      // Create new marker for the map
-      const newPermanentMarker: MarkerData = {
-        ...selectedMarker,
-        name: formData.name,
-        display_name: formData.address || selectedMarker.display_name,
-        description: formData.description?.trim() || null,
-        creator_wallet_address: walletAddress,
-        creator_username: userUsername,
-        imageUrl: locationImageUrl || null,
-      };
-
-      setMarkers((current) => [...current, newPermanentMarker]);
+      // Location created successfully - it will appear on the map after admin approval
+      // Do NOT add to local markers state - location is hidden until admin approves
 
       const creationPoints = result.pointsAwarded || 100;
-      let checkInPoints = 0;
-
-      const trimmedComment = formData.checkInComment.trim();
-
-      // If user provided a check-in comment, check them in
-      if (trimmedComment) {
-        try {
-          const checkInResponse = await fetch("/api/location-checkin", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              walletAddress,
-              email: user?.email?.address,
-              username: userUsername,
-              locationData: {
-                place_id: selectedMarker.place_id,
-                display_name: formData.address || selectedMarker.display_name,
-                name: formData.name,
-                lat: selectedMarker.latitude.toString(),
-                lon: selectedMarker.longitude.toString(),
-                type: "location",
-              },
-              comment: trimmedComment,
-            }),
-          });
-
-          const checkInResult = await checkInResponse.json();
-
-          if (checkInResponse.ok) {
-            checkInPoints = checkInResult.pointsEarned || 100;
-          } else {
-            // Check-in failed - inform the user but don't fail the location creation
-            const errorMessage =
-              checkInResult.error ||
-              "Check-in failed. Location was created successfully.";
-            toast.error(errorMessage);
-            console.error("Check-in failed:", checkInResult);
-          }
-        } catch (checkInError) {
-          // Network or parsing error
-          console.error("Check-in failed:", checkInError);
-          toast.error(
-            "Check-in failed. Location was created successfully, but we couldn't complete your check-in.",
-          );
-        }
-      }
 
       // Store points and show success screen
-      setPointsEarned({ creation: creationPoints, checkIn: checkInPoints });
+      setPointsEarned({ creation: creationPoints, checkIn: 0 });
       setFormStep("success");
       remindLocationCreationFlow();
     } catch (error) {
@@ -2002,17 +1945,9 @@ export default function InteractiveMap({
               <div className="bg-white flex items-center justify-between px-3 py-2.5 border-b border-[#f0f0f0]">
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => {
-                      if (formStep === "checkin-details") {
-                        setFormStep("business-details");
-                      } else {
-                        handleCloseLocationForm();
-                      }
-                    }}
+                    onClick={handleCloseLocationForm}
                     className="text-[#999] hover:text-[#666] transition-colors disabled:opacity-50"
-                    aria-label={
-                      formStep === "checkin-details" ? "Back" : "Close"
-                    }
+                    aria-label="Close"
                     disabled={isCreatingLocation}
                   >
                     <svg
@@ -2021,36 +1956,17 @@ export default function InteractiveMap({
                       stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
-                      {formStep === "checkin-details" ? (
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 19l-7-7 7-7"
-                        />
-                      ) : (
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      )}
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                   <h2 className="text-sm font-inktrap text-[#1a1a1a] tracking-[-0.5px]">
-                    {formStep === "business-details" && "New Location"}
-                    {formStep === "checkin-details" && "Add Check-In"}
+                    New Location
                   </h2>
-                </div>
-                {/* Step indicator */}
-                <div className="flex items-center gap-1">
-                  <div
-                    className={`w-1.5 h-1.5 rounded-full ${formStep === "business-details" ? "bg-[#1a1a1a]" : "bg-[#e0e0e0]"}`}
-                  />
-                  <div
-                    className={`w-1.5 h-1.5 rounded-full ${formStep === "checkin-details" ? "bg-[#1a1a1a]" : "bg-[#e0e0e0]"}`}
-                  />
                 </div>
               </div>
             )}
@@ -2210,85 +2126,7 @@ export default function InteractiveMap({
                 </div>
               )}
 
-              {/* Step 2: Check-In Details */}
-              {formStep === "checkin-details" && (
-                <div className="p-3">
-                  {/* Location Preview */}
-                  <div className="flex items-center gap-3 p-2.5 bg-[#f8f8f8] rounded-xl mb-3">
-                    {formData.locationImage ? (
-                      <img
-                        src={URL.createObjectURL(formData.locationImage)}
-                        alt={formData.name}
-                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#e8e8e8] to-[#d0d0d0] flex items-center justify-center flex-shrink-0">
-                        <svg
-                          className="w-4 h-4 text-[#999]"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-inktrap text-[12px] leading-tight tracking-[-0.3px] text-[#1a1a1a] line-clamp-1">
-                        {formData.name}
-                      </h3>
-                      <p className="font-inktrap text-[9px] uppercase tracking-[0.3px] text-[#999] mt-0.5 line-clamp-1">
-                        {formData.address}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Info text */}
-                  <p className="text-[11px] leading-relaxed text-[#999] mb-3">
-                    Add a comment to check in when creating this location.
-                  </p>
-
-                  {/* Comment input */}
-                  <div className="flex flex-col gap-1.5">
-                    <label
-                      htmlFor="checkInComment"
-                      className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]"
-                    >
-                      Check-in comment (optional)
-                    </label>
-                    <Textarea
-                      id="checkInComment"
-                      value={formData.checkInComment}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          checkInComment: e.target.value,
-                        }))
-                      }
-                      placeholder="Share why this place is worth visiting..."
-                      className="min-h-[80px] rounded-xl p-3 border border-[#e8e8e8] bg-white text-sm tracking-[-0.2px] text-[#1a1a1a] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#999] resize-none"
-                      maxLength={500}
-                      disabled={isCreatingLocation}
-                    />
-                    <div className="flex justify-end text-[9px] text-[#c0c0c0]">
-                      <span>{formData.checkInComment.length}/500</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3: Success Screen */}
+              {/* Step 2: Success Screen */}
               {formStep === "success" && (
                 <div
                   className="relative flex flex-col items-center justify-center min-h-[320px] w-full overflow-hidden"
@@ -2318,7 +2156,7 @@ export default function InteractiveMap({
                     </div>
 
                     {/* Reward Section */}
-                    <div className="flex flex-col items-center">
+                    <div className="flex flex-col items-center gap-2">
                       <p className="text-[10px] text-white/80 uppercase tracking-[0.3px] font-medium">
                         You Earned
                       </p>
@@ -2328,12 +2166,22 @@ export default function InteractiveMap({
                           fontFamily: '"Pleasure Variable Trial", sans-serif',
                         }}
                       >
-                        {pointsEarned.creation + pointsEarned.checkIn}
+                        {pointsEarned.creation}
+                      </p>
+                      <p className="text-[10px] text-white/70 uppercase tracking-[0.3px] font-medium mt-1">
+                        Points for creating location
+                      </p>
+                    </div>
+
+                    {/* Pending Approval Message */}
+                    <div className="flex flex-col items-center gap-2 mt-2">
+                      <p className="text-[11px] text-white/90 text-center leading-relaxed px-4">
+                        Your location is pending review and will appear on the map once approved by an admin.
                       </p>
                     </div>
 
                     {/* Location badge */}
-                    <div className="flex gap-1.5 items-center border border-white/30 rounded-full px-2.5 py-1.5 bg-white/10 backdrop-blur-sm">
+                    <div className="flex gap-1.5 items-center border border-white/30 rounded-full px-2.5 py-1.5 bg-white/10 backdrop-blur-sm mt-2">
                       <svg
                         className="w-3.5 h-3.5 text-white"
                         fill="none"
@@ -2366,21 +2214,11 @@ export default function InteractiveMap({
             {formStep !== "success" ? (
               <div className="p-3 pt-0">
                 <button
-                  onClick={() => {
-                    if (formStep === "business-details") {
-                      handleBusinessDetailsNext();
-                    } else if (formStep === "checkin-details") {
-                      handleCreateLocation();
-                    }
-                  }}
+                  onClick={handleBusinessDetailsNext}
                   disabled={isCreatingLocation}
                   className="bg-[#1a1a1a] hover:bg-black text-white rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex items-center justify-center transition-colors disabled:opacity-50 w-full"
                 >
-                  {isCreatingLocation
-                    ? "Creating..."
-                    : formStep === "business-details"
-                      ? "Continue"
-                      : "Create Location"}
+                  {isCreatingLocation ? "Creating..." : "Create Location"}
                 </button>
               </div>
             ) : (

@@ -2,26 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/db/client";
 import { trackLocationCreated, trackPointsEarned } from "@/lib/analytics";
 import { checkAdminPermission } from "@/lib/auth";
-
-const MAX_VARCHAR_LENGTH = 255;
-const MAX_LOCATIONS_PER_DAY = 30;
-
-const sanitizeVarchar = (value: string) => {
-  const trimmed = value.trim();
-  return trimmed.length > MAX_VARCHAR_LENGTH
-    ? trimmed.slice(0, MAX_VARCHAR_LENGTH)
-    : trimmed;
-};
-
-const sanitizeOptionalVarchar = (value?: string | null) => {
-  if (!value) return null;
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  return trimmed.length > MAX_VARCHAR_LENGTH
-    ? trimmed.slice(0, MAX_VARCHAR_LENGTH)
-    : trimmed;
-};
+import { MAX_LOCATIONS_PER_DAY, SUPABASE_ERROR_CODES } from "@/lib/constants";
+import { getUtcDayBounds } from "@/lib/utils/date";
+import {
+  sanitizeVarchar,
+  sanitizeOptionalVarchar,
+  validateUrl,
+} from "@/lib/utils/validation";
 
 export async function GET(request: NextRequest) {
   try {
@@ -59,7 +46,7 @@ export async function GET(request: NextRequest) {
         .single();
 
       if (playerError) {
-        if (playerError.code === "PGRST116") {
+        if (playerError.code === SUPABASE_ERROR_CODES.NOT_FOUND) {
           return NextResponse.json({ locations: [] });
         }
         throw playerError;
@@ -105,20 +92,6 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-const getUtcDayBounds = () => {
-  const now = new Date();
-  const start = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-
-  return {
-    startIso: start.toISOString(),
-    endIso: end.toISOString(),
-  };
-};
 
 const isDuplicateKeyError = (error: unknown) =>
   typeof error === "object" &&
@@ -184,29 +157,14 @@ export async function POST(request: NextRequest) {
         : "location";
 
     // Validate and sanitize eventUrl - must be a valid URL if provided
-    let sanitizedEventUrl: string | null = null;
-    if (eventUrl && typeof eventUrl === "string") {
-      const trimmed = eventUrl.trim();
-      if (trimmed) {
-        try {
-          // Validate URL format to prevent XSS attacks
-          const url = new URL(trimmed);
-          // Only allow http/https protocols for security
-          if (url.protocol !== "http:" && url.protocol !== "https:") {
-            return NextResponse.json(
-              { error: "Event URL must use http or https protocol" },
-              { status: 400 },
-            );
-          }
-          sanitizedEventUrl = sanitizeOptionalVarchar(trimmed);
-        } catch {
-          return NextResponse.json(
-            { error: "Invalid event URL format" },
-            { status: 400 },
-          );
-        }
-      }
+    const eventUrlResult = validateUrl(eventUrl);
+    if (!eventUrlResult.valid) {
+      return NextResponse.json(
+        { error: eventUrlResult.error },
+        { status: 400 },
+      );
     }
+    const sanitizedEventUrl = eventUrlResult.url;
 
     const sanitizedWalletAddress = walletAddress.trim();
     const sanitizedUsername = sanitizeOptionalVarchar(username);
@@ -222,7 +180,7 @@ export async function POST(request: NextRequest) {
         .eq("place_id", sanitizedPlaceId)
         .maybeSingle();
 
-    if (locationLookupError && locationLookupError.code !== "PGRST116") {
+    if (locationLookupError && locationLookupError.code !== SUPABASE_ERROR_CODES.NOT_FOUND) {
       console.error("Error checking duplicate location:", locationLookupError);
       throw locationLookupError;
     }

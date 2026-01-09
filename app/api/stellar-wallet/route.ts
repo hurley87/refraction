@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { PrivyClient } from "@privy-io/server-auth";
 import { createOrUpdatePlayerForStellar, getPlayerByEmail } from "@/lib/db/players";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 // Lazy initialization to ensure env vars are loaded
 let privyClient: PrivyClient | null = null;
@@ -39,10 +40,7 @@ export async function GET(req: NextRequest) {
   const privyUserId = searchParams.get("privyUserId");
 
   if (!privyUserId) {
-    return new Response(
-      JSON.stringify({ success: false, error: "Privy user ID is required" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
+    return apiError("Privy user ID is required", 400);
   }
 
   try {
@@ -60,14 +58,10 @@ export async function GET(req: NextRequest) {
     );
 
     if (stellarWallet && "address" in stellarWallet) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          address: stellarWallet.address,
-          walletId: "id" in stellarWallet ? stellarWallet.id : undefined,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
+      return apiSuccess({
+        address: stellarWallet.address,
+        walletId: "id" in stellarWallet ? stellarWallet.id : undefined,
+      });
     }
 
     // For Tier 2 server-managed wallets, check the database via user's email
@@ -75,30 +69,19 @@ export async function GET(req: NextRequest) {
     if (email) {
       const player = await getPlayerByEmail(email);
       if (player?.stellar_wallet_address) {
-        return new Response(
-          JSON.stringify({
-            success: true,
-            address: player.stellar_wallet_address,
-            walletId: player.stellar_wallet_id ?? undefined,
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        );
+        return apiSuccess({
+          address: player.stellar_wallet_address,
+          walletId: player.stellar_wallet_id ?? undefined,
+        });
       }
     }
 
-    return new Response(JSON.stringify({ success: true, address: null }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return apiSuccess({ address: null });
   } catch (error) {
     console.error("Error fetching Stellar wallet:", error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to fetch wallet",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+    return apiError(
+      error instanceof Error ? error.message : "Failed to fetch wallet",
+      500,
     );
   }
 }
@@ -110,10 +93,7 @@ export async function POST(req: NextRequest) {
   const { privyUserId } = await req.json();
 
   if (!privyUserId) {
-    return new Response(
-      JSON.stringify({ success: false, error: "Privy user ID is required" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
+    return apiError("Privy user ID is required", 400);
   }
 
   try {
@@ -139,17 +119,15 @@ export async function POST(req: NextRequest) {
         walletId ?? undefined,
       );
 
-      return new Response(
-        JSON.stringify({
-          success: true,
+      return apiSuccess(
+        {
           address: existingStellarWallet.address,
           walletId:
             "id" in existingStellarWallet
               ? existingStellarWallet.id
               : undefined,
-          message: "Stellar wallet already exists",
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
+        },
+        "Stellar wallet already exists",
       );
     }
 
@@ -166,24 +144,18 @@ export async function POST(req: NextRequest) {
     // Save to database (creates player or links wallet to existing player by email)
     await createOrUpdatePlayerForStellar(wallet.address, email, wallet.id);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
+    return apiSuccess(
+      {
         address: wallet.address,
         walletId: wallet.id,
-        message: "Stellar wallet created successfully",
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
+      },
+      "Stellar wallet created successfully",
     );
   } catch (error) {
     console.error("Error creating Stellar wallet:", error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to create wallet",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+    return apiError(
+      error instanceof Error ? error.message : "Failed to create wallet",
+      500,
     );
   }
 }

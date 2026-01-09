@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function POST(req: NextRequest) {
   console.log("Adding checkpoint", req);
@@ -6,13 +7,7 @@ export async function POST(req: NextRequest) {
     const token = process.env.SYNDICATE_API_KEY;
 
     if (!token) {
-      return new Response(
-        JSON.stringify({ error: "Syndicate API token not configured" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return apiError("Syndicate API token not configured", 500);
     }
     // Prepare the request payload for Syndicate API
     const payload = {
@@ -41,33 +36,27 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       const errorData = await response.json();
       console.error("Syndicate API error:", errorData);
-      return new Response(
-        JSON.stringify({
-          error: "Failed to send transaction via Syndicate API",
-          details: errorData,
-        }),
-        {
-          status: response.status,
-          headers: { "Content-Type": "application/json" },
-        }
+      // Map non-standard status codes to valid apiError status codes
+      const status =
+        response.status === 400
+          ? 400
+          : response.status === 404
+            ? 404
+            : response.status === 429
+              ? 429
+              : 500;
+      return apiError(
+        `Failed to send transaction via Syndicate API: ${JSON.stringify(errorData)}`,
+        status,
       );
     }
 
     const data = await response.json();
     console.log("Transaction sent:", data);
 
-    return new Response(JSON.stringify({ success: true, data }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return apiSuccess(data);
   } catch (e) {
     console.error("Error adding checkpoint:", e);
-    return new Response(
-      JSON.stringify({ error: "An error occurred while adding checkpoint" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return apiError("An error occurred while adding checkpoint", 500);
   }
 }
