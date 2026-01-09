@@ -64,12 +64,13 @@ export async function POST(req: NextRequest) {
     const transferPromise = (async () => {
       try {
         return await performTransfer(fromAddress, toAddress, transferAmount);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error("Error in performTransfer:", error);
+        const message = error instanceof Error ? error.message : "Failed to transfer tokens";
         return NextResponse.json(
           {
             success: false,
-            error: error.message || "Failed to transfer tokens",
+            error: message,
           },
           { status: 500 },
         );
@@ -80,12 +81,13 @@ export async function POST(req: NextRequest) {
 
     transferLocks.set(normalizedFromAddress, transferPromise);
     return transferPromise;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in POST handler:", error);
+    const message = error instanceof Error ? error.message : "Failed to process transfer request";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to process transfer request",
+        error: message,
       },
       { status: 500 },
     );
@@ -243,12 +245,13 @@ export async function GET(req: NextRequest) {
       balance: balance.toString(),
       decimals: Number(decimals),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching token info:", error);
+    const message = error instanceof Error ? error.message : "Failed to fetch token info";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch token info",
+        error: message,
       },
       { status: 500 },
     );

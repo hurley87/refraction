@@ -38,13 +38,14 @@ export async function POST(req: NextRequest) {
     const mintPromise = (async () => {
       try {
         return await performMint(userAddress);
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle errors from performMint and return proper error response
         console.error("Error in performMint:", error);
+        const message = error instanceof Error ? error.message : "Failed to mint NFT";
         return NextResponse.json(
           {
             success: false,
-            error: error.message || "Failed to mint NFT",
+            error: message,
           },
           { status: 500 },
         );
@@ -56,12 +57,13 @@ export async function POST(req: NextRequest) {
 
     mintLocks.set(normalizedAddress, mintPromise);
     return mintPromise;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error in POST handler:", error);
+    const message = error instanceof Error ? error.message : "Failed to process mint request";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to process mint request",
+        error: message,
       },
       { status: 500 },
     );
@@ -270,12 +272,13 @@ export async function GET(req: NextRequest) {
       tokenBalance,
       canMint: canMint,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error checking mint status:", error);
+    const message = error instanceof Error ? error.message : "Failed to check mint status";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to check mint status",
+        error: message,
       },
       { status: 500 },
     );
@@ -298,8 +301,8 @@ async function waitForReceiptWithTimeout(
       timeout: WAIT_FOR_RECEIPT_TIMEOUT_MS,
       pollingInterval: RECEIPT_POLL_INTERVAL_MS,
     });
-  } catch (error: any) {
-    if (error?.name === "WaitForTransactionReceiptTimeoutError") {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === "WaitForTransactionReceiptTimeoutError") {
       console.warn(
         "Transaction confirmation timed out; returning pending state",
         { hash },
