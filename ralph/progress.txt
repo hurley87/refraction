@@ -1,0 +1,42 @@
+# Test Migration Progress
+
+## Phase 1: Migrate to Vitest
+
+### Task 1: Remove Jest dependencies - COMPLETED
+- Removed: jest, jest-environment-jsdom, @types/jest, ts-jest
+- Commit: 80cf315 - "chore: remove Jest dependencies in preparation for Vitest migration"
+- Date: 2026-01-09
+
+### Task 2: Install Vitest and dependencies - COMPLETED
+- Installed: vitest, @vitest/ui, happy-dom, msw, @testing-library/user-event, @vitejs/plugin-react
+- Commit: ef5eb03 - "chore: install Vitest and testing dependencies"
+- Date: 2026-01-09
+### Task 3: Create Vitest config - COMPLETED
+- Created `vitest.config.ts` with:
+  - React plugin
+  - happy-dom environment
+  - Global test utilities enabled
+  - Path alias for `@/`
+  - Path alias for `react-map-gl` to mock file (workaround for missing exports)
+  - Proper exclude patterns for node_modules, .next, contracts, hardhat
+  - Coverage configuration
+- Created `vitest.d.ts` for TypeScript globals support
+- Date: 2026-01-09
+
+### Task 4: Create test setup - COMPLETED
+- Created `src/__tests__/setup.ts` with:
+  - @testing-library/jest-dom import
+  - NextResponse mock
+  - next/navigation mock (useRouter, usePathname, useSearchParams)
+  - Supabase client mock
+  - Privy mock
+  - Mapbox GL mock
+  - Console error suppression for common warnings
+- Created `src/__tests__/mocks/react-map-gl.ts` mock module
+- Date: 2026-01-09
+
+### Task 5: Create MSW setup files - PENDING
+### Task 6: Create test utilities - PENDING
+### Task 7: Update package.json scripts - PENDING
+### Task 8: Migrate existing test - PENDING
+### Task 9: Remove old config files - PENDING
