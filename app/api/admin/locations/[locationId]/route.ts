@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { checkAdminPermission } from "@/lib/db/admin";
 import { updateLocationById } from "@/lib/db/locations";
+import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
 
 const updateLocationSchema = z.object({
   name: z.string().min(1).optional(),
@@ -25,25 +26,19 @@ export async function PATCH(
   try {
     const adminEmail = request.headers.get("x-user-email") || undefined;
     if (!checkAdminPermission(adminEmail)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return apiError("Unauthorized", 403);
     }
 
     const locationId = Number(params.locationId);
     if (Number.isNaN(locationId) || locationId <= 0) {
-      return NextResponse.json(
-        { error: "Invalid location id" },
-        { status: 400 },
-      );
+      return apiError("Invalid location id", 400);
     }
 
     const json = await request.json();
     const parsed = updateLocationSchema.safeParse(json);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid payload", issues: parsed.error.issues },
-        { status: 400 },
-      );
+      return apiValidationError(parsed.error);
     }
 
     const payload = parsed.data;
@@ -70,19 +65,13 @@ export async function PATCH(
     if (payload.isVisible !== undefined) updates.is_visible = payload.isVisible;
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json(
-        { error: "No update fields provided" },
-        { status: 400 },
-      );
+      return apiError("No update fields provided", 400);
     }
 
     const location = await updateLocationById(locationId, updates);
-    return NextResponse.json({ location });
+    return apiSuccess({ location });
   } catch (error) {
     console.error("Failed to update location", error);
-    return NextResponse.json(
-      { error: "Failed to update location" },
-      { status: 500 },
-    );
+    return apiError("Failed to update location", 500);
   }
 }

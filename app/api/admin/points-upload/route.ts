@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
 import { checkAdminPermission } from "@/lib/db/admin";
 import { v4 as uuidv4 } from "uuid";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 interface CSVRow {
   email: string;
@@ -25,17 +26,14 @@ export async function POST(request: NextRequest) {
 
     // Check admin permission
     if (!checkAdminPermission(adminEmail || undefined)) {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 403 },
-      );
+      return apiError("Unauthorized - Admin access required", 403);
     }
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      return apiError("No file provided", 400);
     }
 
     // Read and parse CSV
@@ -43,10 +41,7 @@ export async function POST(request: NextRequest) {
     const rows = parseCSV(text);
 
     if (rows.length === 0) {
-      return NextResponse.json(
-        { error: "CSV file is empty or invalid" },
-        { status: 400 },
-      );
+      return apiError("CSV file is empty or invalid", 400);
     }
 
     // Generate batch ID for this upload
@@ -212,21 +207,15 @@ export async function POST(request: NextRequest) {
         .reduce((sum, r) => sum + r.points, 0),
     };
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       batchId,
       summary,
       results,
     });
   } catch (error) {
     console.error("Error in points upload route:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to process upload",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    );
+    const details = error instanceof Error ? error.message : "Unknown error";
+    return apiError(`Failed to process upload: ${details}`, 500);
   }
 }
 
@@ -236,10 +225,7 @@ export async function GET(request: NextRequest) {
     const adminEmail = request.headers.get("x-user-email");
 
     if (!checkAdminPermission(adminEmail || undefined)) {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 403 },
-      );
+      return apiError("Unauthorized - Admin access required", 403);
     }
 
     const { searchParams } = new URL(request.url);
@@ -268,16 +254,13 @@ export async function GET(request: NextRequest) {
       throw uploadsError;
     }
 
-    return NextResponse.json({
+    return apiSuccess({
       batches: batches || [],
       uploads: uploads || [],
     });
   } catch (error) {
     console.error("Error fetching upload history:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch upload history" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch upload history", 500);
   }
 }
 

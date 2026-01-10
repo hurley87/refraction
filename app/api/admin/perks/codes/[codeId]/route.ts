@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { deleteDiscountCode } from '@/lib/db/perks';
+import { apiSuccess, apiError } from '@/lib/api/response';
 
 // DELETE /api/admin/perks/codes/[codeId] - Delete a discount code
 export async function DELETE(
@@ -8,12 +9,9 @@ export async function DELETE(
 ) {
   try {
     await deleteDiscountCode(params.codeId);
-    return NextResponse.json({ success: true });
+    return apiSuccess({ deleted: true });
   } catch (error) {
     console.error('Error deleting discount code:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete discount code' },
-      { status: 500 }
-    );
+    return apiError('Failed to delete discount code', 500);
   }
 }

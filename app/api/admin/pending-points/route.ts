@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
 import { checkAdminPermission } from "@/lib/db/admin";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 // GET endpoint to fetch pending points
 export async function GET(request: NextRequest) {
@@ -8,10 +9,7 @@ export async function GET(request: NextRequest) {
     const adminEmail = request.headers.get("x-user-email");
 
     if (!checkAdminPermission(adminEmail || undefined)) {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 403 },
-      );
+      return apiError("Unauthorized - Admin access required", 403);
     }
 
     const { searchParams } = new URL(request.url);
@@ -39,16 +37,13 @@ export async function GET(request: NextRequest) {
       .from("pending_points_summary")
       .select("*");
 
-    return NextResponse.json({
+    return apiSuccess({
       pendingPoints: pendingPoints || [],
       summary: summary || [],
     });
   } catch (error) {
     console.error("Error fetching pending points:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch pending points" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch pending points", 500);
   }
 }
 
@@ -58,20 +53,14 @@ export async function DELETE(request: NextRequest) {
     const adminEmail = request.headers.get("x-user-email");
 
     if (!checkAdminPermission(adminEmail || undefined)) {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 403 },
-      );
+      return apiError("Unauthorized - Admin access required", 403);
     }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Pending points ID required" },
-        { status: 400 },
-      );
+      return apiError("Pending points ID required", 400);
     }
 
     const { error } = await supabase
@@ -84,12 +73,9 @@ export async function DELETE(request: NextRequest) {
       throw error;
     }
 
-    return NextResponse.json({ success: true });
+    return apiSuccess({ deleted: true });
   } catch (error) {
     console.error("Error deleting pending points:", error);
-    return NextResponse.json(
-      { error: "Failed to delete pending points" },
-      { status: 500 },
-    );
+    return apiError("Failed to delete pending points", 500);
   }
 }

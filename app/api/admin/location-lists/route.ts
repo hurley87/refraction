@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { checkAdminPermission } from "@/lib/db/admin";
 import { createLocationList, getLocationLists } from "@/lib/db/location-lists";
 import { supabase } from "@/lib/db/client";
+import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
 
 const colorRegex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
@@ -51,17 +52,14 @@ export async function GET(request: NextRequest) {
   try {
     const adminEmail = request.headers.get("x-user-email") || undefined;
     if (!checkAdminPermission(adminEmail)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return apiError("Unauthorized", 403);
     }
 
     const lists = await getLocationLists();
-    return NextResponse.json({ lists });
+    return apiSuccess({ lists });
   } catch (error) {
     console.error("Failed to fetch location lists", error);
-    return NextResponse.json(
-      { error: "Failed to fetch location lists" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch location lists", 500);
   }
 }
 
@@ -69,7 +67,7 @@ export async function POST(request: NextRequest) {
   try {
     const adminEmail = request.headers.get("x-user-email") || undefined;
     if (!checkAdminPermission(adminEmail)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return apiError("Unauthorized", 403);
     }
 
     const json = await request.json();
@@ -84,19 +82,13 @@ export async function POST(request: NextRequest) {
       is_active: payload.isActive ?? true,
     });
 
-    return NextResponse.json({ list });
+    return apiSuccess({ list });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid payload", issues: error.issues },
-        { status: 400 },
-      );
+      return apiValidationError(error);
     }
 
     console.error("Failed to create location list", error);
-    return NextResponse.json(
-      { error: "Failed to create location list" },
-      { status: 500 },
-    );
+    return apiError("Failed to create location list", 500);
   }
 }

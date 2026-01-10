@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
 import { checkAdminPermission } from "@/lib/db/admin";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,10 +10,7 @@ export async function GET(request: NextRequest) {
 
     // Check admin permission
     if (!checkAdminPermission(email || undefined)) {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 403 },
-      );
+      return apiError("Unauthorized - Admin access required", 403);
     }
 
     // Get pagination parameters from query string
@@ -23,10 +21,7 @@ export async function GET(request: NextRequest) {
 
     // Validate pagination parameters
     if (page < 1 || limit < 1 || limit > 1000) {
-      return NextResponse.json(
-        { error: "Invalid pagination parameters" },
-        { status: 400 },
-      );
+      return apiError("Invalid pagination parameters", 400);
     }
 
     // Fetch total count
@@ -36,10 +31,7 @@ export async function GET(request: NextRequest) {
 
     if (countError) {
       console.error("Error fetching user count:", countError);
-      return NextResponse.json(
-        { error: "Failed to fetch user count" },
-        { status: 500 },
-      );
+      return apiError("Failed to fetch user count", 500);
     }
 
     // Fetch paginated users from players table with their points
@@ -51,14 +43,11 @@ export async function GET(request: NextRequest) {
 
     if (usersError) {
       console.error("Error fetching users:", usersError);
-      return NextResponse.json(
-        { error: "Failed to fetch users" },
-        { status: 500 },
-      );
+      return apiError("Failed to fetch users", 500);
     }
 
     if (!users || users.length === 0) {
-      return NextResponse.json({
+      return apiSuccess({
         users: [],
         pagination: {
           page,
@@ -79,7 +68,7 @@ export async function GET(request: NextRequest) {
       created_at: user.created_at,
     }));
 
-    return NextResponse.json({
+    return apiSuccess({
       users: usersWithStats,
       pagination: {
         page,
@@ -90,10 +79,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error in users admin route:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return apiError("Internal server error", 500);
   }
 }
 
@@ -104,9 +90,9 @@ export async function POST(request: NextRequest) {
 
     const isAdmin = checkAdminPermission(email);
 
-    return NextResponse.json({ isAdmin });
+    return apiSuccess({ isAdmin });
   } catch (error) {
     console.error("Error checking admin status:", error);
-    return NextResponse.json({ isAdmin: false }, { status: 500 });
+    return apiError("Failed to check admin status", 500);
   }
 }

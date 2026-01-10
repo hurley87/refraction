@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getDiscountCodesByPerkId, createDiscountCodes } from '@/lib/db/perks';
+import { apiSuccess, apiError } from '@/lib/api/response';
 
 // GET /api/admin/perks/[id]/codes - Get discount codes for a perk
 export async function GET(
@@ -8,13 +9,10 @@ export async function GET(
 ) {
   try {
     const codes = await getDiscountCodesByPerkId(params.id);
-    return NextResponse.json({ codes });
+    return apiSuccess({ codes });
   } catch (error) {
     console.error('Error fetching discount codes:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch discount codes' },
-      { status: 500 }
-    );
+    return apiError('Failed to fetch discount codes', 500);
   }
 }
 
@@ -26,12 +24,9 @@ export async function POST(
   try {
     const { codes, is_universal } = await request.json();
     const createdCodes = await createDiscountCodes(params.id, codes, is_universal ?? false);
-    return NextResponse.json({ codes: createdCodes });
+    return apiSuccess({ codes: createdCodes });
   } catch (error) {
     console.error('Error creating discount codes:', error);
-    return NextResponse.json(
-      { error: 'Failed to create discount codes' },
-      { status: 500 }
-    );
+    return apiError('Failed to create discount codes', 500);
   }
 }

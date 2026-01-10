@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { checkAdminPermission } from "@/lib/db/admin";
 import { listLocationOptions } from "@/lib/db/locations";
+import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
 
 const querySchema = z.object({
   query: z.string().min(1).max(120).optional(),
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
   try {
     const adminEmail = request.headers.get("x-user-email") || undefined;
     if (!checkAdminPermission(adminEmail)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return apiError("Unauthorized", 403);
     }
 
     const { searchParams } = new URL(request.url);
@@ -22,19 +23,13 @@ export async function GET(request: NextRequest) {
     });
 
     const locations = await listLocationOptions(parsed.query, parsed.limit);
-    return NextResponse.json({ locations });
+    return apiSuccess({ locations });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid query", issues: error.issues },
-        { status: 400 },
-      );
+      return apiValidationError(error);
     }
 
     console.error("Failed to fetch location options", error);
-    return NextResponse.json(
-      { error: "Failed to fetch location options" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch location options", 500);
   }
 }

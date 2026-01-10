@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 // Admin emails allowlist
 const ADMIN_EMAILS = [
@@ -15,20 +16,14 @@ export async function POST(request: NextRequest) {
     const { email } = await request.json();
 
     if (!email) {
-      return NextResponse.json(
-        { error: "Email is required", isAdmin: false },
-        { status: 400 },
-      );
+      return apiError("Email is required", 400);
     }
 
     const isAdmin = ADMIN_EMAILS.includes(email);
 
-    return NextResponse.json({ isAdmin });
+    return apiSuccess({ isAdmin });
   } catch (error) {
     console.error("Error checking admin status:", error);
-    return NextResponse.json(
-      { error: "Failed to check admin status", isAdmin: false },
-      { status: 500 },
-    );
+    return apiError("Failed to check admin status", 500);
   }
 }

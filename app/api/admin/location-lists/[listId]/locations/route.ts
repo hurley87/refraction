@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { checkAdminPermission } from "@/lib/db/admin";
 import {
@@ -6,6 +6,7 @@ import {
   getLocationsForList,
   removeLocationFromList,
 } from "@/lib/db/location-lists";
+import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
 
 const addSchema = z.object({
   locationId: z.coerce.number().int().positive(),
@@ -28,17 +29,14 @@ export async function GET(
   try {
     const adminEmail = request.headers.get("x-user-email") || undefined;
     if (!checkAdminPermission(adminEmail)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return apiError("Unauthorized", 403);
     }
 
     const locations = await getLocationsForList(params.listId);
-    return NextResponse.json({ locations });
+    return apiSuccess({ locations });
   } catch (error) {
     console.error("Failed to fetch list locations", error);
-    return NextResponse.json(
-      { error: "Failed to fetch list locations" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch list locations", 500);
   }
 }
 
@@ -49,34 +47,25 @@ export async function POST(
   try {
     const adminEmail = request.headers.get("x-user-email") || undefined;
     if (!checkAdminPermission(adminEmail)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return apiError("Unauthorized", 403);
     }
 
     const json = await request.json();
     const { locationId } = addSchema.parse(json);
 
     const membership = await addLocationToList(params.listId, locationId);
-    return NextResponse.json({ membership });
+    return apiSuccess({ membership });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid payload", issues: error.issues },
-        { status: 400 },
-      );
+      return apiValidationError(error);
     }
 
     if (isDuplicateError(error)) {
-      return NextResponse.json(
-        { error: "Location is already on this list" },
-        { status: 409 },
-      );
+      return apiError("Location is already on this list", 409);
     }
 
     console.error("Failed to add location to list", error);
-    return NextResponse.json(
-      { error: "Failed to add location" },
-      { status: 500 },
-    );
+    return apiError("Failed to add location", 500);
   }
 }
 
@@ -87,7 +76,7 @@ export async function DELETE(
   try {
     const adminEmail = request.headers.get("x-user-email") || undefined;
     if (!checkAdminPermission(adminEmail)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return apiError("Unauthorized", 403);
     }
 
     const { searchParams } = new URL(request.url);
@@ -96,19 +85,13 @@ export async function DELETE(
     });
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: "locationId is required" },
-        { status: 400 },
-      );
+      return apiError("locationId is required", 400);
     }
 
     await removeLocationFromList(params.listId, parsed.data.locationId);
-    return NextResponse.json({ success: true });
+    return apiSuccess({ deleted: true });
   } catch (error) {
     console.error("Failed to remove location from list", error);
-    return NextResponse.json(
-      { error: "Failed to remove location" },
-      { status: 500 },
-    );
+    return apiError("Failed to remove location", 500);
   }
 }
