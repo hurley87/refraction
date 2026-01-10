@@ -1,200 +1,163 @@
 {
-  "project": "IRL Test Coverage Enhancement",
-  "branchName": "ralph/test-coverage-improvement",
-  "description": "Systematically improve test coverage from ~10% to 50%+ by adding unit tests for critical database layer functions, Zod validation schemas, and integration tests for high-priority API routes.",
+  "project": "IRL Codebase Refactor",
+  "branchName": "ralph/codebase-refactor",
+  "description": "Incremental refactor to standardize API responses, decompose large components, and eliminate any types.",
   "userStories": [
     {
-      "id": "TEST-001",
-      "title": "Add unit tests for Zod validation schemas",
-      "description": "As a developer, I need comprehensive tests for all Zod validation schemas in lib/schemas/ to ensure input validation catches malformed data.",
+      "id": "API-001",
+      "title": "Audit API response patterns",
+      "description": "As a developer, I need a clear list of which API routes use response helpers vs raw NextResponse.json().",
       "acceptanceCriteria": [
-        "Create lib/schemas/__tests__/player.test.ts testing walletAddressSchema, solanaWalletAddressSchema, stellarWalletAddressSchema",
-        "Create lib/schemas/__tests__/api.test.ts testing paginationSchema, checkinRequestSchema, leaderboardQuerySchema, redeemPerkRequestSchema",
-        "Create lib/schemas/__tests__/perk.test.ts testing createPerkSchema, updatePerkSchema, redeemPerkSchema",
-        "Create lib/schemas/__tests__/location.test.ts testing latitudeSchema, longitudeSchema, createLocationSchema",
-        "Each test covers: valid input passes, required fields missing fails, type mismatches fail, boundary values",
-        "Typecheck passes"
+        "Create ralph/api-audit.md documenting all 56 API routes",
+        "Mark each route as: uses-helpers, uses-raw, or mixed",
+        "List specific files and line numbers for raw NextResponse.json() usage",
+        "Prioritize routes by traffic/importance"
       ],
       "priority": 1,
       "passes": true,
-      "notes": "Schemas are pure functions - no mocking needed. Focus on boundary values."
+      "notes": "Discovery task - no code changes, just documentation."
     },
     {
-      "id": "TEST-002",
-      "title": "Add unit tests for players database module",
-      "description": "As a developer, I need tests for lib/db/players.ts to verify player creation, retrieval, and points management.",
+      "id": "TYPE-001",
+      "title": "Replace catch (error: any) with proper error handling",
+      "description": "As a developer, I need type-safe error handling to catch bugs at compile time.",
       "acceptanceCriteria": [
-        "Create lib/db/__tests__/players.test.ts with vi.mock for @/lib/db/client",
-        "Test getPlayerByWallet returns player when found, null when not found (PGRST116)",
-        "Test getPlayerBySolanaWallet and getPlayerByStellarWallet with same patterns",
-        "Test createOrUpdatePlayer creates new or updates existing player",
-        "Test updatePlayerPoints correctly adds points to existing total",
-        "Typecheck passes"
+        "Replace catch (error: any) with catch (error: unknown) in app/api/claim-nft/route.ts",
+        "Replace catch (error: any) with catch (error: unknown) in app/api/transfer-tokens/route.ts",
+        "Add type guard: const message = error instanceof Error ? error.message : 'Unknown error'",
+        "yarn build passes with no errors",
+        "yarn lint passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": "Mock supabase.from().select().eq().single() chain. Test PGRST116 not-found handling."
+      "notes": "6 occurrences total. Mechanical fix."
     },
     {
-      "id": "TEST-003",
-      "title": "Add unit tests for perks database module",
-      "description": "As a developer, I need tests for lib/db/perks.ts to verify the critical redeemPerk flow.",
+      "id": "TYPE-002",
+      "title": "Type rewards page redemption handlers",
+      "description": "As a developer, I need proper types in rewards page to enable IDE autocomplete.",
       "acceptanceCriteria": [
-        "Create lib/db/__tests__/perks.test.ts with vi.mock for @/lib/db/client",
-        "Test getAllPerks filters active perks and respects end_date",
-        "Test getAvailablePerksForUser filters by points threshold and excludes redeemed",
-        "Test redeemPerk success: validates points, checks duplicate, allocates code",
-        "Test redeemPerk failures: insufficient points, already redeemed, no codes available",
-        "Typecheck passes"
+        "Replace (redemption: any) with proper UserPerkRedemption type in app/rewards/page.tsx",
+        "Import type from lib/types.ts or define locally if not exported",
+        "Remove commented-out PerkCodeCount component (lines 85-104)",
+        "yarn build passes",
+        "yarn lint passes"
       ],
       "priority": 1,
       "passes": true,
-      "notes": "redeemPerk has 4 sequential DB calls - mock each step. Revenue-critical."
+      "notes": "Single file cleanup."
     },
     {
-      "id": "TEST-004",
-      "title": "Add integration tests for perks/redeem API route",
-      "description": "As a developer, I need integration tests for /api/perks/redeem POST endpoint.",
+      "id": "API-002",
+      "title": "Standardize admin API routes",
+      "description": "As a developer, I need consistent API responses across all admin endpoints.",
       "acceptanceCriteria": [
-        "Create app/api/perks/redeem/__tests__/route.test.ts",
-        "Test successful redemption returns code and redemption record",
-        "Test validation errors for missing perkId/walletAddress return 400",
-        "Test insufficient points returns 400",
-        "Test already redeemed returns 400",
-        "Test no available codes returns 400",
-        "Typecheck passes"
-      ],
-      "priority": 1,
-      "passes": true,
-      "notes": "Revenue-critical endpoint. Follow existing checkin test patterns."
-    },
-    {
-      "id": "TEST-005",
-      "title": "Add unit tests for leaderboard database module",
-      "description": "As a developer, I need tests for lib/db/leaderboard.ts to verify ranking and dense rank calculation.",
-      "acceptanceCriteria": [
-        "Create lib/db/__tests__/leaderboard.test.ts with vi.mock",
-        "Test getLeaderboard uses RPC when available, falls back on failure",
-        "Test dense rank calculation: same points get same rank",
-        "Test pagination with offset and limit",
-        "Test getPlayerStats returns combined player data with checkins",
-        "Typecheck passes"
+        "Convert app/api/admin/perks/route.ts to use apiSuccess/apiError helpers",
+        "Convert app/api/admin/points-upload/route.ts to use apiSuccess/apiError helpers",
+        "Convert app/api/admin/users/route.ts to use apiSuccess/apiError helpers",
+        "Convert remaining admin routes (locations, checkins, etc.)",
+        "All responses follow {success, data?, error?, message?} shape",
+        "yarn build passes",
+        "yarn test passes"
       ],
       "priority": 2,
       "passes": true,
-      "notes": "Test both RPC and fallback paths. Dense rank is business-critical."
+      "notes": "8 routes total. Import from lib/api/response.ts."
     },
     {
-      "id": "TEST-006",
-      "title": "Add unit tests for tiers database module",
-      "description": "As a developer, I need tests for lib/db/tiers.ts to verify tier resolution logic.",
+      "id": "API-003",
+      "title": "Standardize location and geocoding routes",
+      "description": "As a developer, I need consistent responses for location-related endpoints.",
       "acceptanceCriteria": [
-        "Create lib/db/__tests__/tiers.test.ts with vi.mock",
-        "Test resolveTierForPoints with 0 points returns lowest tier",
-        "Test resolveTierForPoints at exact tier boundaries",
-        "Test resolveTierForPoints with points exceeding highest tier (max_points=null)",
-        "Test getTierForPoints combines fetch and resolution",
-        "Typecheck passes"
+        "Convert app/api/locations/route.ts to use apiSuccess/apiError helpers",
+        "Convert app/api/location-checkin/route.ts to use apiSuccess/apiError helpers",
+        "Convert app/api/geocode-mapbox/route.ts to use apiSuccess/apiError helpers",
+        "Convert app/api/geocode-nominatim/route.ts to use apiSuccess/apiError helpers",
+        "yarn build passes",
+        "yarn test passes"
       ],
       "priority": 2,
       "passes": true,
-      "notes": "Tier boundaries critical for perk access control."
+      "notes": "High-traffic routes. Also fixed any types with proper interfaces (MapboxFeature, NominatimPlace). Note: geocode-google route doesn't exist in codebase."
     },
     {
-      "id": "TEST-007",
-      "title": "Add unit tests for locations database module",
-      "description": "As a developer, I need tests for lib/db/locations.ts to verify location CRUD and search.",
+      "id": "API-004",
+      "title": "Standardize perk routes",
+      "description": "As a developer, I need consistent responses for perk-related endpoints.",
       "acceptanceCriteria": [
-        "Create lib/db/__tests__/locations.test.ts with vi.mock",
-        "Test createOrGetLocation returns existing or creates new by place_id",
-        "Test listAllLocations returns locations ordered by created_at",
-        "Test listLocationsByWallet returns locations player checked into",
-        "Test listLocationOptions filters by search term with ilike",
-        "Typecheck passes"
+        "Convert app/api/perks/route.ts to use apiSuccess/apiError helpers consistently",
+        "Convert app/api/perks/[id]/route.ts to use helpers",
+        "Convert app/api/perks/[id]/codes/route.ts to use helpers",
+        "Convert app/api/perks/codes/[codeId]/route.ts to use helpers",
+        "Convert app/api/perks/redeem/route.ts to use helpers",
+        "yarn build passes",
+        "yarn test passes"
       ],
       "priority": 2,
       "passes": true,
-      "notes": "Test SQL injection prevention via escaping in search."
+      "notes": "Revenue-critical. Most routes were already converted. Fixed remaining codes routes and added CodeRow interface."
     },
     {
-      "id": "TEST-008",
-      "title": "Add unit tests for checkins database module",
-      "description": "As a developer, I need tests for lib/db/checkins.ts to verify check-in duplicate detection.",
+      "id": "COMP-001",
+      "title": "Decompose interactive-map.tsx",
+      "description": "As a developer, I need smaller, testable components instead of one 2239-line file.",
       "acceptanceCriteria": [
-        "Create lib/db/__tests__/checkins.test.ts with vi.mock",
-        "Test checkUserLocationCheckin returns data when exists, null when not found",
-        "Test createLocationCheckin creates record with generated id",
-        "Test createLocationCheckin throws on duplicate constraint",
-        "Test optional comment and image_url fields",
-        "Typecheck passes"
+        "Extract LocationFormDialog component to components/map/location-form-dialog.tsx",
+        "Extract MarkerPopup component to components/map/marker-popup.tsx",
+        "Extract map configuration/state to useMapState hook in hooks/useMapState.ts",
+        "Main interactive-map.tsx reduced to under 500 lines",
+        "No visual changes to map functionality",
+        "yarn build passes"
       ],
-      "priority": 2,
-      "passes": true,
-      "notes": "Core engagement flow - verify duplicate prevention."
+      "priority": 3,
+      "passes": false,
+      "notes": "Largest component. Extract incrementally, test after each extraction."
     },
     {
-      "id": "TEST-009",
-      "title": "Add integration tests for location-checkin API route",
-      "description": "As a developer, I need integration tests for /api/location-checkin POST endpoint.",
+      "id": "COMP-002",
+      "title": "Decompose admin location-lists page",
+      "description": "As a developer, I need the 1943-line admin page broken into manageable pieces.",
       "acceptanceCriteria": [
-        "Create app/api/location-checkin/__tests__/route.test.ts",
-        "Test successful checkin returns points earned",
-        "Test validation errors for missing fields return 400",
-        "Test player not found creates new player",
-        "Test points correctly added to player total",
-        "Typecheck passes"
+        "Extract LocationListTable to app/admin/location-lists/components/location-list-table.tsx",
+        "Extract LocationAssignmentDialog to app/admin/location-lists/components/assignment-dialog.tsx",
+        "Extract useLocationLists hook to hooks/admin/useLocationLists.ts",
+        "Main page.tsx reduced to under 400 lines",
+        "Admin functionality unchanged",
+        "yarn build passes"
       ],
-      "priority": 2,
-      "passes": true,
-      "notes": "Follow existing checkin route test patterns."
+      "priority": 3,
+      "passes": false,
+      "notes": "Admin page - lower traffic, good candidate for refactor."
     },
     {
-      "id": "TEST-010",
-      "title": "Add unit tests for checkpoints database module",
-      "description": "As a developer, I need tests for lib/db/checkpoints.ts to verify checkpoint CRUD and chain filtering.",
+      "id": "TYPE-003",
+      "title": "Fix publicClient and partners page types",
+      "description": "As a developer, I need to eliminate remaining as any casts.",
       "acceptanceCriteria": [
-        "Create lib/db/__tests__/checkpoints.test.ts with vi.mock",
-        "Test createCheckpoint generates short ID when not provided",
-        "Test getCheckpointById and getActiveCheckpointById",
-        "Test listAllCheckpoints and listActiveCheckpoints",
-        "Test getCheckpointsByChainType filters correctly",
-        "Typecheck passes"
+        "Remove as any casts in lib/publicClient.ts with proper Viem types",
+        "Remove as any casts in app/partners/page.tsx with proper component types",
+        "Add missing type imports as needed",
+        "yarn build passes",
+        "yarn lint passes"
       ],
       "priority": 3,
       "passes": true,
-      "notes": "Checkpoints are the unified /c/[id] multi-chain system."
+      "notes": "4 occurrences fixed. publicClient needed no cast removal (Viem provides proper types). Partners page used LogoLoopProps interface."
     },
     {
-      "id": "TEST-011",
-      "title": "Add integration tests for tiers API route",
-      "description": "As a developer, I need integration tests for /api/tiers GET endpoint.",
+      "id": "API-005",
+      "title": "Standardize remaining API routes",
+      "description": "As a developer, I need all remaining routes converted to use response helpers.",
       "acceptanceCriteria": [
-        "Create app/api/tiers/__tests__/route.test.ts",
-        "Test GET returns all tiers with success: true",
-        "Test tiers ordered by min_points ascending",
-        "Test response matches Tier type structure",
-        "Test database error returns 500",
-        "Typecheck passes"
+        "Convert all remaining routes in app/api/ to use apiSuccess/apiError",
+        "Verify no raw NextResponse.json() calls remain (except redirects)",
+        "Update ralph/api-audit.md to mark all routes as complete",
+        "yarn build passes",
+        "yarn test passes"
       ],
-      "priority": 3,
+      "priority": 4,
       "passes": true,
-      "notes": "Simple GET endpoint - good pattern reference."
-    },
-    {
-      "id": "TEST-012",
-      "title": "Add API response utility edge case tests",
-      "description": "As a developer, I need edge case tests for lib/api/response.ts.",
-      "acceptanceCriteria": [
-        "Extend lib/api/__tests__/response.test.ts",
-        "Test apiSuccess with null, empty object, array, nested objects",
-        "Test apiError with empty and long messages",
-        "Test apiValidationError with multiple and nested errors",
-        "Verify Content-Type header is application/json",
-        "Typecheck passes"
-      ],
-      "priority": 3,
-      "passes": true,
-      "notes": "Extend existing tests with edge cases."
+      "notes": "Converted 17 routes: activities, add-user, admin/checkpoints, checkin-events, checkin-status, claim-nft, contact, newsletter, profile, location-comments, location-lists, number-assignment, transfer-tokens, update-airtable, upload. Fixed Supabase joined table array handling and ZodError instanceof check."
     }
   ]
 }

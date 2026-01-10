@@ -41,7 +41,7 @@ export function apiSuccess<T>(
  */
 export function apiError(
   error: string,
-  status: 400 | 404 | 429 | 500 = 500,
+  status: 400 | 401 | 403 | 404 | 409 | 429 | 500 = 500,
 ): NextResponse<ApiResponse> {
   return NextResponse.json(
     {

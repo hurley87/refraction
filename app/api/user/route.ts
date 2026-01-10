@@ -1,17 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
-type UserData = {
-  username: string;
-};
-
-export async function GET(
-  request: NextRequest
-): Promise<NextResponse<UserData | { error: string }>> {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const address = searchParams.get("address");
 
   if (!address) {
-    return NextResponse.json({ error: "Invalid address" }, { status: 400 });
+    return apiError("Invalid address", 400);
   }
 
   try {
@@ -22,11 +17,8 @@ export async function GET(
     const username = data.user_profile?.username || "";
     const avatar = data.user_profile?.avatar || "";
 
-    return NextResponse.json({ username, avatar });
+    return apiSuccess({ username, avatar });
   } catch {
-    return NextResponse.json(
-      { error: "Failed to fetch user data" },
-      { status: 500 }
-    );
+    return apiError("Failed to fetch user data", 500);
   }
 }
