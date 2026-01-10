@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +16,9 @@ export async function DELETE(
       .eq("id", params.codeId);
 
     if (error) throw error;
-    return NextResponse.json({ success: true });
+    return apiSuccess({ deleted: true });
   } catch (error) {
     console.error("DELETE /api/perks/codes/[codeId] error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete code" },
-      { status: 500 },
-    );
+    return apiError("Failed to delete code", 500);
   }
 }
