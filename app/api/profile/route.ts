@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 import { getUserProfile, createOrUpdateUserProfile, awardProfileFieldPoints } from "@/lib/db/profiles";
 import type { UserProfile } from "@/lib/types";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,10 +13,7 @@ export async function GET(request: NextRequest) {
     console.log("walletAddress", walletAddress);
 
     if (!walletAddress) {
-      return NextResponse.json(
-        { error: "Wallet address is required" },
-        { status: 400 }
-      );
+      return apiError("Wallet address is required", 400);
     }
 
     const profile = await getUserProfile(walletAddress);
@@ -23,30 +21,24 @@ export async function GET(request: NextRequest) {
     console.log("profile", profile);
 
     if (!profile) {
-      return NextResponse.json(
-        {
-          wallet_address: walletAddress,
-          email: "",
-          name: "",
-          username: "",
-          website: "",
-          twitter_handle: "",
-          towns_handle: "",
-          farcaster_handle: "",
-          telegram_handle: "",
-          profile_picture_url: "",
-        },
-        { status: 200 }
-      );
+      return apiSuccess({
+        wallet_address: walletAddress,
+        email: "",
+        name: "",
+        username: "",
+        website: "",
+        twitter_handle: "",
+        towns_handle: "",
+        farcaster_handle: "",
+        telegram_handle: "",
+        profile_picture_url: "",
+      });
     }
 
-    return NextResponse.json(profile, { status: 200 });
+    return apiSuccess(profile);
   } catch (error) {
     console.error("Error fetching profile:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch profile" },
-      { status: 500 }
-    );
+    return apiError("Failed to fetch profile", 500);
   }
 }
 
@@ -56,10 +48,7 @@ export async function PUT(request: NextRequest) {
     const { wallet_address, ...profileData } = body;
 
     if (!wallet_address) {
-      return NextResponse.json(
-        { error: "Wallet address is required" },
-        { status: 400 }
-      );
+      return apiError("Wallet address is required", 400);
     }
 
     // Validate social handles
@@ -152,18 +141,12 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    return NextResponse.json(
-      {
-        profile: updatedProfile,
-        pointsAwarded,
-      },
-      { status: 200 }
-    );
+    return apiSuccess({
+      profile: updatedProfile,
+      pointsAwarded,
+    });
   } catch (error) {
     console.error("Error updating profile:", error);
-    return NextResponse.json(
-      { error: "Failed to update profile" },
-      { status: 500 }
-    );
+    return apiError("Failed to update profile", 500);
   }
 }

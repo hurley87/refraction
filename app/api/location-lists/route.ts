@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getLocationLists, getLocationsForList } from "@/lib/db/location-lists";
 import type { LocationListWithCount, Location } from "@/lib/types";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 type LocationListWithLocations = LocationListWithCount & {
   locations?: Array<
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
     const activeLists = lists.filter((list) => list.is_active);
 
     if (!includeLocations) {
-      return NextResponse.json({
+      return apiSuccess({
         lists: activeLists satisfies LocationListWithCount[],
       });
     }
@@ -40,12 +41,9 @@ export async function GET(request: NextRequest) {
       }),
     );
 
-    return NextResponse.json({ lists: listsWithLocations });
+    return apiSuccess({ lists: listsWithLocations });
   } catch (error) {
     console.error("Failed to fetch location lists", error);
-    return NextResponse.json(
-      { error: "Failed to fetch location lists" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch location lists", 500);
   }
 }

@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 import { supabase } from "@/lib/db/client";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,10 +11,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "20");
 
     if (!walletAddress) {
-      return NextResponse.json(
-        { error: "Wallet address is required" },
-        { status: 400 },
-      );
+      return apiError("Wallet address is required", 400);
     }
 
     // Fetch user activities from points_activities table
@@ -26,10 +24,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("Error fetching activities:", error);
-      return NextResponse.json(
-        { error: "Failed to fetch activities" },
-        { status: 500 },
-      );
+      return apiError("Failed to fetch activities", 500);
     }
 
     // Transform the activities to a more readable format
@@ -53,13 +48,10 @@ export async function GET(request: NextRequest) {
         };
       }) || [];
 
-    return NextResponse.json(formattedActivities, { status: 200 });
+    return apiSuccess(formattedActivities);
   } catch (error) {
     console.error("Error fetching activities:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch activities" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch activities", 500);
   }
 }
 

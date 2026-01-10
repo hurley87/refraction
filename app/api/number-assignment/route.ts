@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 import { supabase } from "@/lib/db/client";
 import { z } from "zod";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 // Input validation schema
 const requestSchema = z.object({
@@ -28,10 +29,7 @@ export async function GET(request: NextRequest) {
     const userAddress = request.nextUrl.searchParams.get("address");
     console.log("userAddress", userAddress);
     if (!userAddress) {
-      return NextResponse.json(
-        { error: "User address is required" },
-        { status: 400 }
-      );
+      return apiError("User address is required", 400);
     }
 
     // Validate input
@@ -45,7 +43,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (existingAssignment) {
-      return NextResponse.json({
+      return apiSuccess({
         number: parseInt(existingAssignment.assigned_number),
       });
     }
@@ -80,10 +78,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!nextNumber) {
-      return NextResponse.json(
-        { error: "All number slots are filled" },
-        { status: 409 }
-      );
+      return apiError("All number slots are filled", 409);
     }
 
     // Assign the new number
@@ -107,7 +102,7 @@ export async function GET(request: NextRequest) {
           .single();
 
         if (raceConditionAssignment) {
-          return NextResponse.json({
+          return apiSuccess({
             number: parseInt(raceConditionAssignment.assigned_number),
           });
         }
@@ -115,12 +110,9 @@ export async function GET(request: NextRequest) {
       throw insertError;
     }
 
-    return NextResponse.json({ number: nextNumber });
+    return apiSuccess({ number: nextNumber });
   } catch (error) {
     console.error("Error in number assignment:", error);
-    return NextResponse.json(
-      { error: "Failed to assign number" },
-      { status: 500 }
-    );
+    return apiError("Failed to assign number", 500);
   }
 }

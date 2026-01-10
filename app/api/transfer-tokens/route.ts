@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createPublicClient, http, parseAbi } from "viem";
 import { base } from "viem/chains";
 import { REWARD1155_ADDRESS, REWARD1155_ABI, ERC20_ABI } from "@/lib/reward1155-abi";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 // In-memory lock to prevent concurrent transfers for the same user
 const transferLocks = new Map<string, Promise<any>>();
@@ -15,49 +16,25 @@ export async function POST(req: NextRequest) {
     const { fromAddress, toAddress, amount } = await req.json();
 
     if (!fromAddress || !toAddress || !amount) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "From address, to address, and amount are required",
-        },
-        { status: 400 },
-      );
+      return apiError("From address, to address, and amount are required", 400);
     }
 
     // Validate addresses
     if (fromAddress.toLowerCase() === toAddress.toLowerCase()) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Cannot transfer to the same address",
-        },
-        { status: 400 },
-      );
+      return apiError("Cannot transfer to the same address", 400);
     }
 
     // Validate amount
     const transferAmount = BigInt(amount);
     if (transferAmount <= 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Amount must be greater than 0",
-        },
-        { status: 400 },
-      );
+      return apiError("Amount must be greater than 0", 400);
     }
 
     const normalizedFromAddress = fromAddress.toLowerCase();
 
     // Check if this user already has a transfer in progress
     if (transferLocks.has(normalizedFromAddress)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Transfer already in progress for this address",
-        },
-        { status: 429 },
-      );
+      return apiError("Transfer already in progress for this address", 429);
     }
 
     // Create a lock promise for this transfer operation
@@ -67,13 +44,7 @@ export async function POST(req: NextRequest) {
       } catch (error: unknown) {
         console.error("Error in performTransfer:", error);
         const message = error instanceof Error ? error.message : "Failed to transfer tokens";
-        return NextResponse.json(
-          {
-            success: false,
-            error: message,
-          },
-          { status: 500 },
-        );
+        return apiError(message, 500);
       } finally {
         transferLocks.delete(normalizedFromAddress);
       }
@@ -84,13 +55,7 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     console.error("Error in POST handler:", error);
     const message = error instanceof Error ? error.message : "Failed to process transfer request";
-    return NextResponse.json(
-      {
-        success: false,
-        error: message,
-      },
-      { status: 500 },
-    );
+    return apiError(message, 500);
   }
 }
 
@@ -103,20 +68,14 @@ async function performTransfer(
   const privateKey = process.env.SERVER_PRIVATE_KEY;
   if (!privateKey) {
     console.error("SERVER_PRIVATE_KEY not found in environment");
-    return NextResponse.json(
-      { success: false, error: "Server configuration error" },
-      { status: 500 },
-    );
+    return apiError("Server configuration error", 500);
   }
 
   // Get the RPC URL from env
   const rpcUrl = process.env.NEXT_PUBLIC_BASE_RPC;
   if (!rpcUrl) {
     console.error("NEXT_PUBLIC_BASE_RPC not found in environment");
-    return NextResponse.json(
-      { success: false, error: "Server configuration error" },
-      { status: 500 },
-    );
+    return apiError("Server configuration error", 500);
   }
 
   // Create viem clients
@@ -136,10 +95,7 @@ async function performTransfer(
     !rewardTokenAddress ||
     rewardTokenAddress === "0x0000000000000000000000000000000000000000"
   ) {
-    return NextResponse.json(
-      { success: false, error: "No reward token configured" },
-      { status: 400 },
-    );
+    return apiError("No reward token configured", 400);
   }
 
   // Check the user's token balance
@@ -151,15 +107,7 @@ async function performTransfer(
   });
 
   if (balance < amount) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Insufficient token balance",
-        balance: balance.toString(),
-        requested: amount.toString(),
-      },
-      { status: 400 },
-    );
+    return apiError("Insufficient token balance", 400);
   }
 
   // Transfer tokens from the user to the recipient
@@ -169,15 +117,7 @@ async function performTransfer(
 
   // Since we can't transfer on behalf of users without approval,
   // we need to use a different approach - user signs on frontend
-  return NextResponse.json(
-    {
-      success: false,
-      error:
-        "Direct server transfers not supported. Use client-side signing instead.",
-      rewardTokenAddress,
-    },
-    { status: 501 },
-  );
+  return apiError("Direct server transfers not supported. Use client-side signing instead.", 500);
 }
 
 // GET endpoint to get token info for transfers
@@ -187,20 +127,14 @@ export async function GET(req: NextRequest) {
     const userAddress = searchParams.get("userAddress");
 
     if (!userAddress) {
-      return NextResponse.json(
-        { success: false, error: "User address is required" },
-        { status: 400 },
-      );
+      return apiError("User address is required", 400);
     }
 
     // Get the RPC URL from env
     const rpcUrl = process.env.NEXT_PUBLIC_BASE_RPC;
     if (!rpcUrl) {
       console.error("NEXT_PUBLIC_BASE_RPC not found in environment");
-      return NextResponse.json(
-        { success: false, error: "Server configuration error" },
-        { status: 500 },
-      );
+      return apiError("Server configuration error", 500);
     }
 
     const publicClient = createPublicClient({
@@ -218,8 +152,7 @@ export async function GET(req: NextRequest) {
       !rewardTokenAddress ||
       rewardTokenAddress === "0x0000000000000000000000000000000000000000"
     ) {
-      return NextResponse.json({
-        success: true,
+      return apiSuccess({
         tokenAddress: null,
         balance: "0",
         decimals: 18,
@@ -239,8 +172,7 @@ export async function GET(req: NextRequest) {
       functionName: "decimals",
     });
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       tokenAddress: rewardTokenAddress,
       balance: balance.toString(),
       decimals: Number(decimals),
@@ -248,12 +180,6 @@ export async function GET(req: NextRequest) {
   } catch (error: unknown) {
     console.error("Error fetching token info:", error);
     const message = error instanceof Error ? error.message : "Failed to fetch token info";
-    return NextResponse.json(
-      {
-        success: false,
-        error: message,
-      },
-      { status: 500 },
-    );
+    return apiError(message, 500);
   }
 }

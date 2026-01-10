@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,10 +9,7 @@ export async function GET(request: NextRequest) {
     const limitParam = searchParams.get("limit");
 
     if (!placeId) {
-      return NextResponse.json(
-        { error: "placeId query parameter is required" },
-        { status: 400 },
-      );
+      return apiError("placeId query parameter is required", 400);
     }
 
     const limit = Math.max(
@@ -27,14 +25,14 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       if (error.code === "PGRST116") {
-        return NextResponse.json({ checkins: [] });
+        return apiSuccess({ checkins: [] });
       }
       throw error;
     }
 
     const locationId = data?.id;
     if (!locationId) {
-      return NextResponse.json({ checkins: [] });
+      return apiSuccess({ checkins: [] });
     }
 
     const { data: checkinData, error: checkinError } = await supabase
@@ -65,22 +63,23 @@ export async function GET(request: NextRequest) {
       throw checkinError;
     }
 
-    const checkins = (checkinData || []).map((entry: any) => ({
-      id: entry.id,
-      comment: entry.comment,
-      imageUrl: entry.image_url,
-      pointsEarned: entry.points_earned,
-      createdAt: entry.created_at || entry.checkin_at,
-      username: entry.players?.username || null,
-      walletAddress: entry.players?.wallet_address || null,
-    }));
+    const checkins = (checkinData || []).map((entry) => {
+      // Supabase returns joined tables as arrays, extract first element
+      const player = Array.isArray(entry.players) ? entry.players[0] : entry.players;
+      return {
+        id: entry.id,
+        comment: entry.comment,
+        imageUrl: entry.image_url,
+        pointsEarned: entry.points_earned,
+        createdAt: entry.created_at || entry.checkin_at,
+        username: player?.username || null,
+        walletAddress: player?.wallet_address || null,
+      };
+    });
 
-    return NextResponse.json({ checkins });
+    return apiSuccess({ checkins });
   } catch (error) {
     console.error("Location comments API error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch location comments" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch location comments", 500);
   }
 }

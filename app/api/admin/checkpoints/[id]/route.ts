@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import {
   getCheckpointById,
   updateCheckpoint,
@@ -18,10 +18,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Check admin permission
     const adminCheck = await requireAdmin(request);
     if (!adminCheck.isValid) {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 403 },
-      );
+      return apiError("Unauthorized - Admin access required", 403);
     }
 
     const checkpoint = await getCheckpointById(params.id);
@@ -30,13 +27,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return apiError("Checkpoint not found", 404);
     }
 
-    return NextResponse.json({ checkpoint });
+    return apiSuccess({ checkpoint });
   } catch (error) {
     console.error("Error fetching checkpoint:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch checkpoint" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch checkpoint", 500);
   }
 }
 
@@ -46,10 +40,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Check admin permission
     const adminCheck = await requireAdmin(request);
     if (!adminCheck.isValid) {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 403 },
-      );
+      return apiError("Unauthorized - Admin access required", 403);
     }
 
     const body = await request.json();
@@ -74,10 +65,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Check admin permission
     const adminCheck = await requireAdmin(request);
     if (!adminCheck.isValid) {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access required" },
-        { status: 403 },
-      );
+      return apiError("Unauthorized - Admin access required", 403);
     }
 
     await deleteCheckpoint(params.id);

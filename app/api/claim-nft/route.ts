@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createPublicClient, createWalletClient, http, parseAbi } from "viem";
 import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { REWARD1155_ADDRESS, REWARD1155_ABI, ERC20_ABI } from "@/lib/reward1155-abi";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 // In-memory lock to prevent concurrent mints for the same user
 const mintLocks = new Map<string, Promise<any>>();
@@ -18,20 +19,14 @@ export async function POST(req: NextRequest) {
     const { userAddress } = await req.json();
 
     if (!userAddress) {
-      return NextResponse.json(
-        { success: false, error: "User address is required" },
-        { status: 400 },
-      );
+      return apiError("User address is required", 400);
     }
 
     const normalizedAddress = userAddress.toLowerCase();
 
     // Check if this user is already minting
     if (mintLocks.has(normalizedAddress)) {
-      return NextResponse.json(
-        { success: false, error: "Mint already in progress for this address" },
-        { status: 429 },
-      );
+      return apiError("Mint already in progress for this address", 429);
     }
 
     // Create a lock promise for this mint operation
@@ -42,13 +37,7 @@ export async function POST(req: NextRequest) {
         // Handle errors from performMint and return proper error response
         console.error("Error in performMint:", error);
         const message = error instanceof Error ? error.message : "Failed to mint NFT";
-        return NextResponse.json(
-          {
-            success: false,
-            error: message,
-          },
-          { status: 500 },
-        );
+        return apiError(message, 500);
       } finally {
         // Always remove the lock when done
         mintLocks.delete(normalizedAddress);
@@ -60,13 +49,7 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     console.error("Error in POST handler:", error);
     const message = error instanceof Error ? error.message : "Failed to process mint request";
-    return NextResponse.json(
-      {
-        success: false,
-        error: message,
-      },
-      { status: 500 },
-    );
+    return apiError(message, 500);
   }
 }
 
@@ -75,10 +58,7 @@ async function performMint(userAddress: string) {
   const privateKey = process.env.SERVER_PRIVATE_KEY;
   if (!privateKey) {
     console.error("SERVER_PRIVATE_KEY not found in environment");
-    return NextResponse.json(
-      { success: false, error: "Server configuration error" },
-      { status: 500 },
-    );
+    return apiError("Server configuration error", 500);
   }
 
   // Create viem clients
@@ -112,20 +92,10 @@ async function performMint(userAddress: string) {
     });
 
     if (hasMinted) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "You have already claimed your NFT",
-          alreadyClaimed: true,
-        },
-        { status: 400 },
-      );
+      return apiError("You have already claimed your NFT", 400);
     }
 
-    return NextResponse.json(
-      { success: false, error: "Max supply reached or cannot mint" },
-      { status: 400 },
-    );
+    return apiError("Max supply reached or cannot mint", 400);
   }
 
   // Mint the NFT for the user using mintTo function
@@ -141,23 +111,14 @@ async function performMint(userAddress: string) {
   const receipt = await waitForReceiptWithTimeout(publicClient, hash);
 
   if (!receipt) {
-    return NextResponse.json(
-      {
-        success: true,
-        pending: true,
-        transactionHash: hash,
-        message:
-          "Transaction submitted. Waiting for confirmation on Base before finalizing your claim.",
-      },
-      { status: 202 },
-    );
+    return apiSuccess({
+      pending: true,
+      transactionHash: hash,
+    }, "Transaction submitted. Waiting for confirmation on Base before finalizing your claim.");
   }
 
   if (receipt.status !== "success") {
-    return NextResponse.json(
-      { success: false, error: "Transaction failed" },
-      { status: 500 },
-    );
+    return apiError("Transaction failed", 500);
   }
 
   // Get updated balances for the user
@@ -195,14 +156,12 @@ async function performMint(userAddress: string) {
     ).toString();
   }
 
-  return NextResponse.json({
-    success: true,
+  return apiSuccess({
     transactionHash: hash,
     nftBalance: nftBalance.toString(),
     tokenBalance: tokenBalance.toString(),
     rewardAmount: rewardAmount.toString(),
-    message: "NFT claimed successfully! 🎉",
-  });
+  }, "NFT claimed successfully!");
 }
 
 // GET endpoint to check if user has claimed
@@ -212,10 +171,7 @@ export async function GET(req: NextRequest) {
     const userAddress = searchParams.get("userAddress");
 
     if (!userAddress) {
-      return NextResponse.json(
-        { success: false, error: "User address is required" },
-        { status: 400 },
-      );
+      return apiError("User address is required", 400);
     }
 
     const publicClient = createPublicClient({
@@ -265,8 +221,7 @@ export async function GET(req: NextRequest) {
       ).toString();
     }
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       hasClaimed: hasMinted,
       nftBalance: nftBalance.toString(),
       tokenBalance,
@@ -275,13 +230,7 @@ export async function GET(req: NextRequest) {
   } catch (error: unknown) {
     console.error("Error checking mint status:", error);
     const message = error instanceof Error ? error.message : "Failed to check mint status";
-    return NextResponse.json(
-      {
-        success: false,
-        error: message,
-      },
-      { status: 500 },
-    );
+    return apiError(message, 500);
   }
 }
 

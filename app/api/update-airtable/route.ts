@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { supabase } from "@/lib/db/client";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 // Ensure the handler runs dynamically at request time
 export const dynamic = "force-dynamic";
@@ -27,10 +27,7 @@ export async function GET() {
     const TABLE_NAME = process.env.AIRTABLE_TABLE_NAME ?? "IRL";
 
     if (!AIRTABLE_PAT || !AIRTABLE_BASE_ID) {
-      return NextResponse.json(
-        { error: "Airtable credentials are not configured." },
-        { status: 500 },
-      );
+      return apiError("Airtable credentials are not configured.", 500);
     }
 
     // Fetch all players with an email address
@@ -44,11 +41,9 @@ export async function GET() {
     }
 
     if (!players || players.length === 0) {
-      return NextResponse.json({ 
-        success: true, 
-        message: "No players found to update",
-        updateResults: [] 
-      });
+      return apiSuccess({
+        updateResults: []
+      }, "No players found to update");
     }
 
     const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(
@@ -167,8 +162,7 @@ export async function GET() {
     const successCount = updateResults.filter(r => r.updated).length;
     const errorCount = updateResults.filter(r => !r.updated).length;
 
-    return NextResponse.json({ 
-      success: true, 
+    return apiSuccess({
       updateResults,
       summary: {
         total: players.length,
@@ -180,10 +174,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Airtable update error:", error);
-    return NextResponse.json({ 
-      error: "Failed to update Airtable",
-      details: error instanceof Error ? error.message : "Unknown error",
-      executionTime: Date.now() - startTime
-    }, { status: 500 });
+    return apiError("Failed to update Airtable", 500);
   }
 }

@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function POST(request: NextRequest) {
   try {
@@ -6,19 +7,13 @@ export async function POST(request: NextRequest) {
 
     // Validate email
     if (!email) {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      );
+      return apiError('Email is required', 400);
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      );
+      return apiError('Invalid email format', 400);
     }
 
     // Airtable configuration
@@ -34,10 +29,7 @@ export async function POST(request: NextRequest) {
 
     if (!AIRTABLE_BASE_ID || !AIRTABLE_PERSONAL_ACCESS_TOKEN) {
       console.error('Missing Airtable configuration for newsletter');
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
+      return apiError('Server configuration error', 500);
     }
 
     // Check if email already exists
@@ -55,10 +47,7 @@ export async function POST(request: NextRequest) {
     } else {
       const existingData = await checkResponse.json();
       if (existingData.records && existingData.records.length > 0) {
-        return NextResponse.json(
-          { message: 'Email already subscribed', alreadySubscribed: true },
-          { status: 200 }
-        );
+        return apiSuccess({ alreadySubscribed: true }, 'Email already subscribed');
       }
     }
 
@@ -102,10 +91,7 @@ export async function POST(request: NextRequest) {
         error: errorData,
         url: `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE_NAME}`
       });
-      return NextResponse.json(
-        { error: 'Failed to subscribe to newsletter', details: errorData },
-        { status: 500 }
-      );
+      return apiError('Failed to subscribe to newsletter', 500);
     }
 
     const result = await airtableResponse.json();
@@ -114,23 +100,14 @@ export async function POST(request: NextRequest) {
     // Ensure we have a valid result with records
     if (!result.records || result.records.length === 0) {
       console.error('Unexpected newsletter Airtable response structure:', result);
-      return NextResponse.json(
-        { error: 'Unexpected response from newsletter service' },
-        { status: 500 }
-      );
+      return apiError('Unexpected response from newsletter service', 500);
     }
 
     console.log('Returning newsletter success response with status 200');
-    return NextResponse.json(
-      { message: 'Successfully subscribed to newsletter', id: result.records[0].id },
-      { status: 200 }
-    );
+    return apiSuccess({ id: result.records[0].id }, 'Successfully subscribed to newsletter');
 
   } catch (error) {
     console.error('Newsletter subscription error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return apiError('Internal server error', 500);
   }
 }
