@@ -226,7 +226,9 @@ export default function ProfileMenu({
       const response = await fetch(
         `/api/profile?wallet_address=${user.wallet.address}`,
       );
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
 
       setProfile({
         wallet_address: user.wallet.address,
@@ -353,7 +355,9 @@ export default function ProfileMenu({
         );
       }
 
-      const uploadResult = await uploadResponse.json();
+      const uploadResponseData = await uploadResponse.json();
+      // Unwrap the apiSuccess wrapper
+      const uploadResult = uploadResponseData.data || uploadResponseData;
       const imageUrl = uploadResult.imageUrl || uploadResult.url;
 
       if (!imageUrl) {

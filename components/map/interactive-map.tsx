@@ -209,7 +209,9 @@ export default function InteractiveMap({
             `/api/player?walletAddress=${encodeURIComponent(walletAddress)}`,
           );
           if (response.ok) {
-            const result = await response.json();
+            const responseData = await response.json();
+            // Unwrap the apiSuccess wrapper
+            const result = responseData.data || responseData;
             if (result.player?.username) {
               setUserUsername(result.player.username);
             }
@@ -313,7 +315,9 @@ export default function InteractiveMap({
       try {
         const response = await fetch("/api/locations");
         if (!response.ok) return;
-        const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper - data is in responseData.data
+        const data = responseData.data || responseData;
         const dbMarkers: MarkerData[] = (data.locations || []).map(
           (loc: any) => ({
             latitude: loc.latitude,
@@ -465,7 +469,9 @@ export default function InteractiveMap({
       if (!response.ok) {
         throw new Error("Failed to fetch comments");
       }
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       setLocationCheckins(data.checkins || []);
     } catch (error) {
       console.error("Failed to load location check-ins:", error);
@@ -910,7 +916,9 @@ export default function InteractiveMap({
               "Failed to upload location image. Please try again.",
           );
         }
-        const uploadResult = await uploadResponse.json();
+        const uploadResponseData = await uploadResponse.json();
+        // Unwrap the apiSuccess wrapper
+        const uploadResult = uploadResponseData.data || uploadResponseData;
         locationImageUrl = uploadResult.imageUrl || uploadResult.url;
         if (!locationImageUrl) {
           throw new Error("Image upload succeeded but no URL was returned");
@@ -973,7 +981,10 @@ export default function InteractiveMap({
           try {
             const locationsResponse = await fetch("/api/locations");
             if (locationsResponse.ok) {
-              const locationsData = await locationsResponse.json();
+              const locationsResponseData = await locationsResponse.json();
+              // Unwrap the apiSuccess wrapper
+              const locationsData =
+                locationsResponseData.data || locationsResponseData;
               const existingLocation = (locationsData.locations || []).find(
                 (loc: any) => loc.place_id === selectedMarker.place_id,
               );

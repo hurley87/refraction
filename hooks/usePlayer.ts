@@ -56,7 +56,6 @@ export function usePlayerRank(address?: string) {
 
 /**
  * Hook to fetch player's activities/transactions
- * Note: This API endpoint returns data directly (not wrapped in ApiResponse)
  */
 export function usePlayerActivities(address?: string, limit = 20) {
   return useQuery<Activity[]>({
@@ -69,7 +68,10 @@ export function usePlayerActivities(address?: string, limit = 20) {
       if (!response.ok) {
         throw new Error('Failed to fetch activities');
       }
-      return response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!address,
   });

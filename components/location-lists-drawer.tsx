@@ -163,7 +163,9 @@ export default function LocationListsDrawer({
           { signal: controller.signal },
         );
         if (!response.ok) throw new Error("Failed to load lists");
-        const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        const data = responseData.data || responseData;
         const fetchedLists: DrawerList[] = data.lists || [];
         setLists(fetchedLists);
       } catch (error) {

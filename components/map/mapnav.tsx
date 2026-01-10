@@ -75,7 +75,9 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
           `/api/profile?wallet_address=${user.wallet.address}`,
         );
         if (response.ok) {
-          const data = await response.json();
+          const responseData = await response.json();
+          // Unwrap the apiSuccess wrapper
+          const data = responseData.data || responseData;
           setProfilePictureUrl(data.profile_picture_url || null);
         }
       } catch (error) {
@@ -206,7 +208,9 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
             setIsLoadingProfilePicture(true);
             fetch(`/api/profile?wallet_address=${user.wallet.address}`)
               .then((res) => res.json())
-              .then((data) => {
+              .then((responseData) => {
+                // Unwrap the apiSuccess wrapper
+                const data = responseData.data || responseData;
                 setProfilePictureUrl(data.profile_picture_url || null);
                 setIsLoadingProfilePicture(false);
               })
@@ -228,7 +232,9 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
             setIsLoadingProfilePicture(true);
             fetch(`/api/profile?wallet_address=${user.wallet.address}`)
               .then((res) => res.json())
-              .then((data) => {
+              .then((responseData) => {
+                // Unwrap the apiSuccess wrapper
+                const data = responseData.data || responseData;
                 setProfilePictureUrl(data.profile_picture_url || null);
                 setIsLoadingProfilePicture(false);
               })

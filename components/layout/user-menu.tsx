@@ -100,20 +100,22 @@ export default function UserMenu({
       );
 
       if (response.ok) {
-      const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        const data = responseData.data || responseData;
 
-      setProfile({
-        wallet_address: user.wallet.address,
-        email: data.email || user.email?.address || "",
-        name: data.name || "",
-        username: data.username || "",
-        website: data.website || "",
-        twitter_handle: data.twitter_handle || "",
-        towns_handle: data.towns_handle || "",
-        farcaster_handle: data.farcaster_handle || "",
-        telegram_handle: data.telegram_handle || "",
-        profile_picture_url: data.profile_picture_url || "",
-      });
+        setProfile({
+          wallet_address: user.wallet.address,
+          email: data.email || user.email?.address || "",
+          name: data.name || "",
+          username: data.username || "",
+          website: data.website || "",
+          twitter_handle: data.twitter_handle || "",
+          towns_handle: data.towns_handle || "",
+          farcaster_handle: data.farcaster_handle || "",
+          telegram_handle: data.telegram_handle || "",
+          profile_picture_url: data.profile_picture_url || "",
+        });
       } else {
         // If profile doesn't exist or API returns error, use defaults
         setProfile({

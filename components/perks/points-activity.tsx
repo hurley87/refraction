@@ -24,8 +24,10 @@ export default function PointsActivity({ walletAddress }: PointsActivityProps) {
           throw new Error("Failed to fetch activities");
         }
 
-        const data = await response.json();
-        setActivities(data);
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper - data is in responseData.data
+        const data = responseData.data || responseData;
+        setActivities(Array.isArray(data) ? data : []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
       } finally {

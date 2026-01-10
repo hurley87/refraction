@@ -32,7 +32,9 @@ function PerkCodeTypeInfo({ perkId }: { perkId: string }) {
     queryFn: async () => {
       const response = await fetch(`/api/admin/perks/${perkId}/codes`);
       if (!response.ok) return [];
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return data.codes ?? [];
     },
   });
@@ -78,7 +80,9 @@ export default function AdminPerksPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: user.email.address }),
         });
-        const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        const data = responseData.data || responseData;
         return data.isAdmin;
       } catch (error) {
         console.error("Error checking admin status:", error);
@@ -139,7 +143,9 @@ export default function AdminPerksPage() {
       queryFn: async () => {
         const response = await fetch("/api/admin/perks?activeOnly=false");
         if (!response.ok) throw new Error("Failed to fetch perks");
-        const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        const data = responseData.data || responseData;
         return data.perks;
       },
       enabled: !!isAdmin,
@@ -152,7 +158,9 @@ export default function AdminPerksPage() {
         if (!response.ok) {
           throw new Error("Failed to fetch tiers");
         }
-        const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        const data = responseData.data || responseData;
         return data.tiers ?? [];
       },
       enabled: !adminLoading,
@@ -169,7 +177,9 @@ export default function AdminPerksPage() {
           body: JSON.stringify(perkData),
         });
         if (!response.ok) throw new Error("Failed to create perk");
-        const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        const data = responseData.data || responseData;
         return data.perk;
       },
       onSuccess: () => {
@@ -198,7 +208,9 @@ export default function AdminPerksPage() {
           body: JSON.stringify(updates),
         });
         if (!response.ok) throw new Error("Failed to update perk");
-        const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        const data = responseData.data || responseData;
         return data.perk;
       },
       onSuccess: () => {
@@ -247,7 +259,9 @@ export default function AdminPerksPage() {
           body: JSON.stringify({ codes, is_universal: isUniversal }),
         });
         if (!response.ok) throw new Error("Failed to create discount codes");
-        const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        const data = responseData.data || responseData;
         return data.codes;
       },
       onSuccess: (_, variables) => {
@@ -431,7 +445,9 @@ export default function AdminPerksPage() {
           );
         }
 
-        const uploadResult = await uploadResponse.json();
+        const uploadResponseData = await uploadResponse.json();
+        // Unwrap the apiSuccess wrapper
+        const uploadResult = uploadResponseData.data || uploadResponseData;
         
         if (!uploadResult.url) {
           throw new Error("Image upload succeeded but no URL was returned");
@@ -448,7 +464,9 @@ export default function AdminPerksPage() {
       try {
         const response = await fetch(`/api/admin/perks/${perkId}/codes`);
         if (!response.ok) throw new Error("Failed to fetch discount codes");
-        const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        const data = responseData.data || responseData;
         setPerkCodes(data.codes);
       } catch (error) {
         console.error("Error loading codes:", error);

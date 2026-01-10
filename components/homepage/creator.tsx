@@ -16,7 +16,9 @@ export default function Creator({ creator }: CreatorProps) {
   const fetchData = useCallback(async () => {
     try {
       const response = await fetch(`/api/user?address=${creator}`);
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       setUsername(data.username);
 
       const image = `https://ipfs.io/ipfs/${data.avatar.replace(

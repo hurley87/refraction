@@ -138,8 +138,10 @@ export default function UnifiedCheckpoint({
           `/api/player?walletAddress=${walletAddress}`,
         );
         if (playerResponse.ok) {
-          const playerData = await playerResponse.json();
-          if (playerData.success && playerData.player) {
+          const responseData = await playerResponse.json();
+          // Unwrap the apiSuccess wrapper
+          const playerData = responseData.data || responseData;
+          if (playerData.player) {
             setTotalPoints(playerData.player.total_points);
           }
         }

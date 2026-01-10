@@ -125,7 +125,9 @@ export default function Leaderboard({
       );
 
       if (response.ok) {
-        const result = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        const result = responseData.data || responseData;
         const player = result.player;
 
         if (player) {
@@ -136,7 +138,9 @@ export default function Leaderboard({
 
           let actualRank = 0;
           if (rankResponse.ok) {
-            const rankResult = await rankResponse.json();
+            const rankResponseData = await rankResponse.json();
+            // Unwrap the apiSuccess wrapper
+            const rankResult = rankResponseData.data || rankResponseData;
             actualRank = rankResult.rank || 0;
           }
 

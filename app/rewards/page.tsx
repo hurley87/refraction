@@ -155,7 +155,9 @@ export default function PerksPage() {
     queryFn: async () => {
       const response = await fetch(`/api/perks/${selectedPerkId}/available-count`);
       if (!response.ok) throw new Error("Failed to fetch available codes count");
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return data.count;
     },
     enabled: isModalOpen && !!selectedPerkId,
@@ -172,7 +174,9 @@ export default function PerksPage() {
       if (!selectedPerk?.id) return [];
       const response = await fetch(`/api/admin/perks/${selectedPerk.id}/codes`);
       if (!response.ok) return [];
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return data.codes ?? [];
     },
     enabled: !!selectedPerk?.id && isModalOpen,
@@ -254,7 +258,9 @@ export default function PerksPage() {
         throw new Error(errorData.error || "Failed to redeem perk");
       }
 
-      return response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      return responseData.data || responseData;
     },
     onSuccess: (_, perkId) => {
       toast.success(
