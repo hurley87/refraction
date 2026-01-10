@@ -5,6 +5,8 @@ import { POST } from '../route'
 // Mock the database functions
 vi.mock('@/lib/db/players', () => ({
   createOrUpdatePlayer: vi.fn(),
+  createOrUpdatePlayerForSolana: vi.fn(),
+  createOrUpdatePlayerForStellar: vi.fn(),
   updatePlayerPoints: vi.fn(),
 }))
 
@@ -26,7 +28,12 @@ vi.mock('@/lib/analytics', () => ({
   trackPointsEarned: vi.fn(),
 }))
 
-import { createOrUpdatePlayer, updatePlayerPoints } from '@/lib/db/players'
+import {
+  createOrUpdatePlayer,
+  createOrUpdatePlayerForSolana,
+  createOrUpdatePlayerForStellar,
+  updatePlayerPoints,
+} from '@/lib/db/players'
 import { trackCheckinCompleted, trackPointsEarned } from '@/lib/analytics'
 
 // Helper to create a mock NextRequest
@@ -310,6 +317,320 @@ describe('Checkin API Route', () => {
 
       expect(response.status).toBe(200)
       expect(json.data.pointsEarnedToday).toBe(300)
+    })
+
+    it('should support unified format with chain parameter for EVM', async () => {
+      const mockPlayer = {
+        id: '123',
+        wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+        total_points: 0,
+      }
+
+      vi.mocked(createOrUpdatePlayer).mockResolvedValueOnce(mockPlayer)
+      vi.mocked(updatePlayerPoints).mockResolvedValueOnce({
+        ...mockPlayer,
+        total_points: 100,
+      })
+
+      createMockSupabaseChain({
+        selectCount: 0,
+        insertData: { id: 'activity-123' },
+        sumData: [{ points_earned: 100 }],
+      })
+
+      const request = createMockRequest({
+        chain: 'evm',
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        checkpoint: 'checkpoint-abc',
+      })
+
+      const response = await POST(request)
+      const json = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(json.success).toBe(true)
+      expect(createOrUpdatePlayer).toHaveBeenCalled()
+    })
+
+    it('should support Solana chain checkin', async () => {
+      const mockPlayer = {
+        id: '123',
+        solana_wallet_address: 'SolanaWallet123',
+        total_points: 0,
+      }
+
+      vi.mocked(createOrUpdatePlayerForSolana).mockResolvedValueOnce(mockPlayer)
+      vi.mocked(updatePlayerPoints).mockResolvedValueOnce({
+        ...mockPlayer,
+        total_points: 100,
+      })
+
+      createMockSupabaseChain({
+        selectCount: 0,
+        insertData: { id: 'activity-123' },
+        sumData: [{ points_earned: 100 }],
+      })
+
+      const request = createMockRequest({
+        chain: 'solana',
+        walletAddress: 'SolanaWallet123',
+        checkpoint: 'checkpoint-abc',
+      })
+
+      const response = await POST(request)
+      const json = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(json.success).toBe(true)
+      expect(createOrUpdatePlayerForSolana).toHaveBeenCalledWith(
+        'SolanaWallet123',
+        undefined,
+      )
+    })
+
+    it('should support Stellar chain checkin', async () => {
+      const mockPlayer = {
+        id: '123',
+        stellar_wallet_address: 'StellarWallet123',
+        total_points: 0,
+      }
+
+      vi.mocked(createOrUpdatePlayerForStellar).mockResolvedValueOnce(mockPlayer)
+      vi.mocked(updatePlayerPoints).mockResolvedValueOnce({
+        ...mockPlayer,
+        total_points: 100,
+      })
+
+      createMockSupabaseChain({
+        selectCount: 0,
+        insertData: { id: 'activity-123' },
+        sumData: [{ points_earned: 100 }],
+      })
+
+      const request = createMockRequest({
+        chain: 'stellar',
+        walletAddress: 'StellarWallet123',
+        checkpoint: 'checkpoint-abc',
+      })
+
+      const response = await POST(request)
+      const json = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(json.success).toBe(true)
+      expect(createOrUpdatePlayerForStellar).toHaveBeenCalledWith(
+        'StellarWallet123',
+        undefined,
+      )
+    })
+
+    it('should return error for unsupported chain type', async () => {
+      const request = createMockRequest({
+        chain: 'unsupported',
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        checkpoint: 'checkpoint-abc',
+      })
+
+      const response = await POST(request)
+      const json = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(json.success).toBe(false)
+      // Should reject due to invalid chain parameter, not silently default to EVM
+      // The error should come from validation, not from the switch statement
+      expect(json.error).toBeDefined()
+    })
+
+    it('should maintain backward compatibility with legacy format', async () => {
+      const mockPlayer = {
+        id: '123',
+        wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+        total_points: 0,
+      }
+
+      vi.mocked(createOrUpdatePlayer).mockResolvedValueOnce(mockPlayer)
+      vi.mocked(updatePlayerPoints).mockResolvedValueOnce({
+        ...mockPlayer,
+        total_points: 100,
+      })
+
+      createMockSupabaseChain({
+        selectCount: 0,
+        insertData: { id: 'activity-123' },
+        sumData: [{ points_earned: 100 }],
+      })
+
+      // Legacy format without chain parameter (should default to EVM)
+      const request = createMockRequest({
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        checkpoint: 'checkpoint-abc',
+      })
+
+      const response = await POST(request)
+      const json = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(json.success).toBe(true)
+      expect(createOrUpdatePlayer).toHaveBeenCalled()
+    })
+
+    it('should reject invalid EVM wallet address format', async () => {
+      const request = createMockRequest({
+        chain: 'evm',
+        walletAddress: 'invalid-address',
+        checkpoint: 'checkpoint-abc',
+      })
+
+      const response = await POST(request)
+      const json = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(json.success).toBe(false)
+      expect(json.error).toContain('Invalid EVM wallet address')
+    })
+
+    it('should reject invalid Solana wallet address format', async () => {
+      const request = createMockRequest({
+        chain: 'solana',
+        walletAddress: 'invalid-solana-address',
+        checkpoint: 'checkpoint-abc',
+      })
+
+      const response = await POST(request)
+      const json = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(json.success).toBe(false)
+      expect(json.error).toContain('Invalid Solana wallet address')
+    })
+
+    it('should reject invalid Stellar wallet address format', async () => {
+      const request = createMockRequest({
+        chain: 'stellar',
+        walletAddress: 'invalid-stellar-address',
+        checkpoint: 'checkpoint-abc',
+      })
+
+      const response = await POST(request)
+      const json = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(json.success).toBe(false)
+      expect(json.error).toContain('Invalid Stellar wallet address')
+    })
+
+    it('should reject request with invalid chain parameter even if wallet address is valid EVM', async () => {
+      const request = createMockRequest({
+        chain: 'unsupported',
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        checkpoint: 'checkpoint-abc',
+      })
+
+      const response = await POST(request)
+      const json = await response.json()
+
+      expect(response.status).toBe(400)
+      expect(json.success).toBe(false)
+      // Should reject due to invalid chain, not silently default to EVM
+      expect(json.error).toBeDefined()
+    })
+
+    it('should accept valid EVM wallet address with evm chain', async () => {
+      const mockPlayer = {
+        id: '123',
+        wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+        total_points: 0,
+      }
+
+      vi.mocked(createOrUpdatePlayer).mockResolvedValueOnce(mockPlayer)
+      vi.mocked(updatePlayerPoints).mockResolvedValueOnce({
+        ...mockPlayer,
+        total_points: 100,
+      })
+
+      createMockSupabaseChain({
+        selectCount: 0,
+        insertData: { id: 'activity-123' },
+        sumData: [{ points_earned: 100 }],
+      })
+
+      const request = createMockRequest({
+        chain: 'evm',
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        checkpoint: 'checkpoint-abc',
+      })
+
+      const response = await POST(request)
+      const json = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(json.success).toBe(true)
+    })
+
+    it('should accept valid Solana wallet address with solana chain', async () => {
+      const mockPlayer = {
+        id: '123',
+        solana_wallet_address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+        total_points: 0,
+      }
+
+      vi.mocked(createOrUpdatePlayerForSolana).mockResolvedValueOnce(mockPlayer)
+      vi.mocked(updatePlayerPoints).mockResolvedValueOnce({
+        ...mockPlayer,
+        total_points: 100,
+      })
+
+      createMockSupabaseChain({
+        selectCount: 0,
+        insertData: { id: 'activity-123' },
+        sumData: [{ points_earned: 100 }],
+      })
+
+      const request = createMockRequest({
+        chain: 'solana',
+        walletAddress: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+        checkpoint: 'checkpoint-abc',
+      })
+
+      const response = await POST(request)
+      const json = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(json.success).toBe(true)
+    })
+
+    it('should accept valid Stellar wallet address with stellar chain', async () => {
+      // Valid Stellar address: G + 55 base32 characters
+      const validStellarAddress = 'GABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEF'
+      const mockPlayer = {
+        id: '123',
+        stellar_wallet_address: validStellarAddress,
+        total_points: 0,
+      }
+
+      vi.mocked(createOrUpdatePlayerForStellar).mockResolvedValueOnce(mockPlayer)
+      vi.mocked(updatePlayerPoints).mockResolvedValueOnce({
+        ...mockPlayer,
+        total_points: 100,
+      })
+
+      createMockSupabaseChain({
+        selectCount: 0,
+        insertData: { id: 'activity-123' },
+        sumData: [{ points_earned: 100 }],
+      })
+
+      const request = createMockRequest({
+        chain: 'stellar',
+        walletAddress: validStellarAddress,
+        checkpoint: 'checkpoint-abc',
+      })
+
+      const response = await POST(request)
+      const json = await response.json()
+
+      expect(response.status).toBe(200)
+      expect(json.success).toBe(true)
     })
   })
 })

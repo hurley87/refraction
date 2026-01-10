@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { walletAddressSchema } from "./player";
+import {
+  walletAddressSchema,
+  solanaWalletAddressSchema,
+  stellarWalletAddressSchema,
+} from "./player";
 
 /**
  * Common query parameter schemas for pagination and filtering
@@ -11,7 +15,7 @@ export const paginationSchema = z.object({
 });
 
 /**
- * Schema for checkin API POST request
+ * Schema for checkin API POST request (legacy EVM-only format)
  */
 export const checkinRequestSchema = z.object({
   walletAddress: walletAddressSchema,
@@ -111,6 +115,60 @@ export const locationCommentsQuerySchema = z.object({
  * Schema for checkpoint chain types
  */
 export const chainTypeSchema = z.enum(["evm", "solana", "stellar"]);
+
+/**
+ * Schema for unified checkin API POST request (supports all chains)
+ * Validates wallet address format based on chain type
+ */
+export const unifiedCheckinRequestSchema = z
+  .object({
+    chain: chainTypeSchema,
+    walletAddress: z.string().min(1),
+    email: z.string().email().optional(),
+    checkpoint: z.string().min(1),
+  })
+  .superRefine((data, ctx) => {
+    // Validate wallet address format based on chain type
+    switch (data.chain) {
+      case "evm": {
+        const evmResult = walletAddressSchema.safeParse(data.walletAddress);
+        if (!evmResult.success) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Invalid EVM wallet address format",
+            path: ["walletAddress"],
+          });
+        }
+        break;
+      }
+      case "solana": {
+        const solanaResult = solanaWalletAddressSchema.safeParse(
+          data.walletAddress,
+        );
+        if (!solanaResult.success) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Invalid Solana wallet address format",
+            path: ["walletAddress"],
+          });
+        }
+        break;
+      }
+      case "stellar": {
+        const stellarResult = stellarWalletAddressSchema.safeParse(
+          data.walletAddress,
+        );
+        if (!stellarResult.success) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Invalid Stellar wallet address format",
+            path: ["walletAddress"],
+          });
+        }
+        break;
+      }
+    }
+  });
 
 /**
  * Schema for creating a checkpoint (admin)

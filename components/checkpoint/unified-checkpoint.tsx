@@ -63,48 +63,14 @@ export default function UnifiedCheckpoint({
   const hasAttemptedCheckIn = useRef(false);
   const router = useRouter();
 
-  // Get the appropriate API endpoint based on chain type
-  const getCheckinEndpoint = useCallback(() => {
-    switch (checkpoint.chain_type) {
-      case "evm":
-        return "/api/checkin";
-      case "solana":
-        return "/api/solana-checkin";
-      case "stellar":
-        return "/api/stellar-checkin";
-      default:
-        return "/api/checkin";
-    }
-  }, [checkpoint.chain_type]);
-
-  // Get the appropriate request body based on chain type
+  // Get the unified request body with chain type
   const getCheckinBody = useCallback(() => {
-    switch (checkpoint.chain_type) {
-      case "evm":
-        return {
-          walletAddress,
-          email,
-          checkpoint: checkpoint.id,
-        };
-      case "solana":
-        return {
-          solanaWalletAddress: walletAddress,
-          email,
-          checkpoint: checkpoint.id,
-        };
-      case "stellar":
-        return {
-          stellarWalletAddress: walletAddress,
-          email,
-          checkpoint: checkpoint.id,
-        };
-      default:
-        return {
-          walletAddress,
-          email,
-          checkpoint: checkpoint.id,
-        };
-    }
+    return {
+      chain: checkpoint.chain_type,
+      walletAddress,
+      email,
+      checkpoint: checkpoint.id,
+    };
   }, [checkpoint.chain_type, checkpoint.id, walletAddress, email]);
 
   // Handle creating Solana wallet
@@ -168,7 +134,7 @@ export default function UnifiedCheckpoint({
       setIsCheckingIn(true);
 
       try {
-        const response = await fetch(getCheckinEndpoint(), {
+        const response = await fetch("/api/checkin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(getCheckinBody()),
@@ -207,7 +173,7 @@ export default function UnifiedCheckpoint({
     if (user && walletAddress) {
       autoCheckIn();
     }
-  }, [user, walletAddress, isCheckingIn, getCheckinEndpoint, getCheckinBody]);
+  }, [user, walletAddress, isCheckingIn, getCheckinBody]);
 
   // Loading state while waiting for Privy or wallet fetch
   const isLoading =

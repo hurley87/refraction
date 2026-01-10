@@ -262,6 +262,7 @@ describe('UnifiedCheckpoint', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            chain: 'evm',
             walletAddress: '0x1234567890abcdef',
             email: 'test@example.com',
             checkpoint: 'checkpoint-1',
@@ -270,7 +271,7 @@ describe('UnifiedCheckpoint', () => {
       })
     })
 
-    it('should call Solana endpoint for Solana checkpoint', async () => {
+    it('should call unified endpoint for Solana checkpoint', async () => {
       mockUsePrivy.mockReturnValue({
         user: {
           wallet: { address: '0x123' },
@@ -294,11 +295,20 @@ describe('UnifiedCheckpoint', () => {
       render(<UnifiedCheckpoint checkpoint={mockSolanaCheckpoint} />)
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith('/api/solana-checkin', expect.any(Object))
+        expect(global.fetch).toHaveBeenCalledWith('/api/checkin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chain: 'solana',
+            walletAddress: 'SolanaWallet123',
+            email: 'test@example.com',
+            checkpoint: 'checkpoint-1',
+          }),
+        })
       })
     })
 
-    it('should call Stellar endpoint for Stellar checkpoint', async () => {
+    it('should call unified endpoint for Stellar checkpoint', async () => {
       mockUsePrivy.mockReturnValue({
         user: {
           wallet: { address: '0x123' },
@@ -326,7 +336,16 @@ describe('UnifiedCheckpoint', () => {
       render(<UnifiedCheckpoint checkpoint={mockStellarCheckpoint} />)
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith('/api/stellar-checkin', expect.any(Object))
+        expect(global.fetch).toHaveBeenCalledWith('/api/checkin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chain: 'stellar',
+            walletAddress: 'StellarWallet123',
+            email: 'test@example.com',
+            checkpoint: 'checkpoint-1',
+          }),
+        })
       })
     })
   })
