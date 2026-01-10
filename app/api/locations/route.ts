@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
 import { trackLocationCreated, trackPointsEarned } from "@/lib/analytics";
 import { checkAdminPermission } from "@/lib/auth";
@@ -9,6 +9,7 @@ import {
   sanitizeOptionalVarchar,
   validateUrl,
 } from "@/lib/utils/validation";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     if (includeHidden) {
       const adminEmail = request.headers.get("x-user-email");
       if (!checkAdminPermission(adminEmail || undefined)) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        return apiError("Unauthorized", 403);
       }
     }
 
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
 
       if (playerError) {
         if (playerError.code === SUPABASE_ERROR_CODES.NOT_FOUND) {
-          return NextResponse.json({ locations: [] });
+          return apiSuccess({ locations: [] });
         }
         throw playerError;
       }
@@ -74,22 +75,19 @@ export async function GET(request: NextRequest) {
       if (error) throw error;
 
       const locations = (data || [])
-        .map((row: any) => row.locations)
+        .map((row: { locations: unknown }) => row.locations)
         .filter(Boolean);
 
-      return NextResponse.json({ locations });
+      return apiSuccess({ locations });
     }
 
     const { data, error } = await query;
     if (error) throw error;
 
-    return NextResponse.json({ locations: data || [] });
+    return apiSuccess({ locations: data || [] });
   } catch (error) {
     console.error("Locations API error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch locations" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch locations", 500);
   }
 }
 
@@ -129,10 +127,7 @@ export async function POST(request: NextRequest) {
       typeof walletAddress !== "string" ||
       !walletAddress.trim()
     ) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 },
-      );
+      return apiError("Missing required fields", 400);
     }
 
     // Validate that locationImage is provided (required since GET endpoint filters by it)
@@ -141,10 +136,7 @@ export async function POST(request: NextRequest) {
       typeof locationImage !== "string" ||
       locationImage.trim() === ""
     ) {
-      return NextResponse.json(
-        { error: "Location image is required" },
-        { status: 400 },
-      );
+      return apiError("Location image is required", 400);
     }
 
     const sanitizedPlaceId = sanitizeVarchar(place_id);
@@ -159,10 +151,7 @@ export async function POST(request: NextRequest) {
     // Validate and sanitize eventUrl - must be a valid URL if provided
     const eventUrlResult = validateUrl(eventUrl);
     if (!eventUrlResult.valid) {
-      return NextResponse.json(
-        { error: eventUrlResult.error },
-        { status: 400 },
-      );
+      return apiError(eventUrlResult.error || "Invalid URL", 400);
     }
     const sanitizedEventUrl = eventUrlResult.url;
 
@@ -186,13 +175,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingLocation) {
-      return NextResponse.json(
-        {
-          error: "Location already exists for this place_id",
-          location: existingLocation,
-        },
-        { status: 409 },
-      );
+      return apiError("Location already exists for this place_id", 409);
     }
 
     // Check if user has already created a location today
@@ -213,12 +196,7 @@ export async function POST(request: NextRequest) {
       existingLocations &&
       existingLocations.length >= MAX_LOCATIONS_PER_DAY
     ) {
-      return NextResponse.json(
-        {
-          error: "You can only add 30 locations per day. Come back tomorrow!",
-        },
-        { status: 429 },
-      );
+      return apiError("You can only add 30 locations per day. Come back tomorrow!", 429);
     }
 
     // Insert the new location (hidden by default, requires admin approval)
@@ -251,10 +229,7 @@ export async function POST(request: NextRequest) {
 
     if (locationError) {
       if (isDuplicateKeyError(locationError)) {
-        return NextResponse.json(
-          { error: "Location already exists for this place_id" },
-          { status: 409 },
-        );
+        return apiError("Location already exists for this place_id", 409);
       }
       throw locationError;
     }
@@ -312,22 +287,15 @@ export async function POST(request: NextRequest) {
       description: `Created location: ${sanitizedName}`,
     });
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       location: locationData,
       pointsAwarded,
     });
   } catch (error) {
     console.error("Create location API error:", error);
     if (isDuplicateKeyError(error)) {
-      return NextResponse.json(
-        { error: "Location already exists for this place_id" },
-        { status: 409 },
-      );
+      return apiError("Location already exists for this place_id", 409);
     }
-    return NextResponse.json(
-      { error: "Failed to create location" },
-      { status: 500 },
-    );
+    return apiError("Failed to create location", 500);
   }
 }

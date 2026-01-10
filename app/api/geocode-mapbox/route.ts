@@ -1,4 +1,21 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api/response";
+
+// Mapbox geocoding API feature type
+interface MapboxFeature {
+  id: string;
+  place_name: string;
+  center: [number, number]; // [lng, lat]
+  place_type?: string[];
+  text: string;
+  context?: Array<{ text: string }>;
+  properties?: {
+    category?: string;
+    maki?: string;
+    landmark?: boolean;
+  };
+  relevance?: number;
+}
 
 // Famous landmarks fallback database
 const FAMOUS_LANDMARKS = [
@@ -74,18 +91,12 @@ export async function GET(request: NextRequest) {
   const query = searchParams.get("q");
 
   if (!query) {
-    return NextResponse.json(
-      { error: "Query parameter is required" },
-      { status: 400 },
-    );
+    return apiError("Query parameter is required", 400);
   }
 
   const apiKey = process.env.MAPBOX_ACCESS_TOKEN;
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "Mapbox access token not configured" },
-      { status: 500 },
-    );
+    return apiError("Mapbox access token not configured", 500);
   }
 
   console.log(`[Mapbox Geocode API] Processing query: "${query}"`);
@@ -143,7 +154,7 @@ export async function GET(request: NextRequest) {
       data.features?.length || 0,
     );
 
-    let mapboxLocations = data.features.map((feature: any) => {
+    let mapboxLocations = data.features.map((feature: MapboxFeature) => {
       // Enhanced landmark detection
       const isLandmark =
         feature.properties?.category?.includes("landmark") ||
@@ -160,7 +171,7 @@ export async function GET(request: NextRequest) {
         lon: feature.center[0].toString(),
         type: feature.place_type?.[0] || "location",
         name: feature.text,
-        context: feature.context?.map((c: any) => c.text).join(", "),
+        context: feature.context?.map((c) => c.text).join(", "),
         category: feature.properties?.category || "",
         landmark: isLandmark,
         maki: feature.properties?.maki || "",
@@ -187,7 +198,7 @@ export async function GET(request: NextRequest) {
           broadData.features?.length || 0,
         );
 
-        mapboxLocations = broadData.features.map((feature: any) => {
+        mapboxLocations = broadData.features.map((feature: MapboxFeature) => {
           const isLandmark =
             feature.properties?.category?.includes("landmark") ||
             feature.properties?.category?.includes("monument") ||
@@ -203,7 +214,7 @@ export async function GET(request: NextRequest) {
             lon: feature.center[0].toString(),
             type: feature.place_type?.[0] || "location",
             name: feature.text,
-            context: feature.context?.map((c: any) => c.text).join(", "),
+            context: feature.context?.map((c) => c.text).join(", "),
             category: feature.properties?.category || "",
             landmark: isLandmark,
             maki: feature.properties?.maki || "",
@@ -261,12 +272,9 @@ export async function GET(request: NextRequest) {
       sortedLocations[0]?.name || "none",
     );
 
-    return NextResponse.json(sortedLocations);
+    return apiSuccess(sortedLocations);
   } catch (error) {
     console.error("Mapbox geocoding error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch location data" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch location data", 500);
   }
 }

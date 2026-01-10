@@ -189,10 +189,10 @@ describe('Location Checkin API Route', () => {
 
         expect(response.status).toBe(200)
         expect(json.success).toBe(true)
-        expect(json.pointsEarned).toBe(100)
-        expect(json.checkin).toBeDefined()
-        expect(json.player).toBeDefined()
-        expect(json.location).toBeDefined()
+        expect(json.data.pointsEarned).toBe(100)
+        expect(json.data.checkin).toBeDefined()
+        expect(json.data.player).toBeDefined()
+        expect(json.data.location).toBeDefined()
       })
 
       it('should call createOrUpdatePlayer with correct data', async () => {
@@ -239,7 +239,7 @@ describe('Location Checkin API Route', () => {
         const json = await response.json()
 
         expect(updatePlayerPoints).toHaveBeenCalledWith(mockPlayer.id, 100)
-        expect(json.player.total_points).toBe(200)
+        expect(json.data.player.total_points).toBe(200)
       })
 
       it('should track analytics events', async () => {
@@ -277,7 +277,6 @@ describe('Location Checkin API Route', () => {
 
         expect(response.status).toBe(409)
         expect(json.error).toContain('already checked in')
-        expect(json.alreadyCheckedIn).toBe(true)
       })
     })
 
@@ -353,7 +352,7 @@ describe('Location Checkin API Route', () => {
 
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
-      expect(json.player).toEqual(mockPlayer)
+      expect(json.data.player).toEqual(mockPlayer)
     })
 
     it('should return 500 on database error', async () => {
