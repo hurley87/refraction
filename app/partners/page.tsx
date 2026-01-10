@@ -8,6 +8,20 @@ import Image from "next/image";
 
 import LogoLoop from '@/components/LogoLoop.jsx';
 import CircularGallery from "@/components/CircularGallery"
+
+// Type interface for LogoLoop component props
+interface LogoLoopProps {
+  logos: { src: string; alt: string }[];
+  speed?: number;
+  direction?: 'left' | 'right';
+  logoHeight?: number;
+  gap?: number;
+  pauseOnHover?: boolean;
+  scaleOnHover?: boolean;
+  fadeOut?: boolean;
+  fadeOutColor?: string;
+  ariaLabel?: string;
+}
 import Footer from "@/components/layout/footer";
 import MembersSection from "@/components/members-section";
 import {
@@ -870,7 +884,7 @@ const benefitsData = [
               fadeOut: true,
               fadeOutColor: "#131313",
               ariaLabel: "Technology partners"
-            } as any)}
+            } as LogoLoopProps)}
           />
           <LogoLoop
             {...({
@@ -884,7 +898,7 @@ const benefitsData = [
               fadeOut: true,
               fadeOutColor: "#131313",
               ariaLabel: "Technology partners"
-            } as any)}
+            } as LogoLoopProps)}
           />
    
      

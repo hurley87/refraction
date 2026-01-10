@@ -31,9 +31,9 @@ export const irlChain = defineChain({
 export const publicClient = createPublicClient({
   chain: irlChain,
   transport: http(IRl_RPC_URL),
-}) as any;
+});
 
 export const testPublicClient = createPublicClient({
   chain: irlChain,
   transport: http(IRl_RPC_URL),
-}) as any;
+});
