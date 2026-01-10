@@ -92,13 +92,6 @@ export const newsletterRequestSchema = z.object({
 });
 
 /**
- * Schema for geocode API GET request (query params)
- */
-export const geocodeQuerySchema = z.object({
-  address: z.string().min(1),
-});
-
-/**
  * Schema for location comments API POST request
  */
 export const locationCommentRequestSchema = z.object({

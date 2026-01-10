@@ -10,7 +10,6 @@ import {
   updatePlayerRequestSchema,
   contactRequestSchema,
   newsletterRequestSchema,
-  geocodeQuerySchema,
   locationCommentRequestSchema,
   locationCommentsQuerySchema,
   chainTypeSchema,
@@ -425,23 +424,6 @@ describe('API Schemas', () => {
 
     it('should reject missing email', () => {
       const result = newsletterRequestSchema.safeParse({})
-      expect(result.success).toBe(false)
-    })
-  })
-
-  describe('geocodeQuerySchema', () => {
-    it('should accept valid address', () => {
-      const result = geocodeQuerySchema.safeParse({ address: '123 Main St' })
-      expect(result.success).toBe(true)
-    })
-
-    it('should reject empty address', () => {
-      const result = geocodeQuerySchema.safeParse({ address: '' })
-      expect(result.success).toBe(false)
-    })
-
-    it('should reject missing address', () => {
-      const result = geocodeQuerySchema.safeParse({})
       expect(result.success).toBe(false)
     })
   })
