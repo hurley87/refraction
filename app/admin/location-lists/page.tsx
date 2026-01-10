@@ -267,7 +267,9 @@ export default function AdminLocationListsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user.email.address }),
       });
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return data.isAdmin;
     } catch (error) {
       console.error("Error checking admin status", error);
@@ -368,7 +370,9 @@ export default function AdminLocationListsPage() {
       if (!response.ok) {
         throw new Error("Failed to fetch location lists");
       }
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return data.lists ?? [];
     },
     enabled: !!isAdmin,
@@ -387,7 +391,9 @@ export default function AdminLocationListsPage() {
         if (!response.ok) {
           throw new Error("Failed to fetch location options");
         }
-        const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        const data = responseData.data || responseData;
         return data.locations ?? [];
       },
       enabled: !!isAdmin,
@@ -432,7 +438,9 @@ export default function AdminLocationListsPage() {
         if (!response.ok) {
           throw new Error("Failed to fetch list locations");
         }
-        const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        const data = responseData.data || responseData;
         return data.locations ?? [];
       },
       enabled: !!selectedListId && !!isAdmin,
@@ -651,7 +659,9 @@ export default function AdminLocationListsPage() {
         throw new Error(errorBody.error || "Failed to upload image");
       }
 
-      const uploadData = await uploadResponse.json();
+      const uploadResponseData = await uploadResponse.json();
+      // Unwrap the apiSuccess wrapper
+      const uploadData = uploadResponseData.data || uploadResponseData;
       const imageUrl = uploadData.imageUrl || uploadData.url;
 
       if (!imageUrl) {
@@ -735,7 +745,9 @@ export default function AdminLocationListsPage() {
           throw new Error(errorBody.error || "Failed to upload image");
         }
 
-        const uploadData = await uploadResponse.json();
+        const uploadResponseData = await uploadResponse.json();
+        // Unwrap the apiSuccess wrapper
+        const uploadData = uploadResponseData.data || uploadResponseData;
         imageUrl = uploadData.imageUrl || uploadData.url || "";
       }
 

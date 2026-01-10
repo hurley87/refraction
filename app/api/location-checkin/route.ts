@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import {
   createOrUpdatePlayer,
   getPlayerByWallet,
@@ -12,6 +12,7 @@ import {
 import type { Player, Location } from "@/lib/types";
 import { trackCheckinCompleted, trackPointsEarned } from "@/lib/analytics";
 import { sanitizeString } from "@/lib/utils/validation";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,10 +22,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!walletAddress || !locationData) {
-      return NextResponse.json(
-        { error: "Wallet address and location data are required" },
-        { status: 400 },
-      );
+      return apiError("Wallet address and location data are required", 400);
     }
 
     // Validate location data
@@ -50,10 +48,7 @@ export async function POST(request: NextRequest) {
       lon === null ||
       lon === undefined
     ) {
-      return NextResponse.json(
-        { error: "Invalid location data" },
-        { status: 400 },
-      );
+      return apiError("Invalid location data", 400);
     }
 
     const parsedLat =
@@ -76,10 +71,7 @@ export async function POST(request: NextRequest) {
       parsedLon < -180 ||
       parsedLon > 180
     ) {
-      return NextResponse.json(
-        { error: "Invalid location data" },
-        { status: 400 },
-      );
+      return apiError("Invalid location data", 400);
     }
 
     // Create or update player
@@ -109,10 +101,7 @@ export async function POST(request: NextRequest) {
 
     // Reject check-ins at hidden locations
     if (location.is_visible === false) {
-      return NextResponse.json(
-        { error: "This location is not available for check-ins" },
-        { status: 403 },
-      );
+      return apiError("This location is not available for check-ins", 403);
     }
 
     const sanitizedComment =
@@ -131,13 +120,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (existingCheckin) {
-      return NextResponse.json(
-        {
-          error: "You have already checked in at this location",
-          alreadyCheckedIn: true,
-        },
-        { status: 409 },
-      );
+      return apiError("You have already checked in at this location", 409);
     }
 
     // Create new checkin
@@ -180,20 +163,15 @@ export async function POST(request: NextRequest) {
       description: `Location check-in: ${location.display_name}`,
     });
 
-    return NextResponse.json({
-      success: true,
+    return apiSuccess({
       checkin,
       player: updatedPlayer,
       location,
       pointsEarned: location.points_value,
-      message: `Congratulations! You earned ${location.points_value} points!`,
-    });
+    }, `Congratulations! You earned ${location.points_value} points!`);
   } catch (error) {
     console.error("Location checkin API error:", error);
-    return NextResponse.json(
-      { error: "Failed to process location checkin" },
-      { status: 500 },
-    );
+    return apiError("Failed to process location checkin", 500);
   }
 }
 
@@ -203,27 +181,18 @@ export async function GET(request: NextRequest) {
     const walletAddress = searchParams.get("walletAddress");
 
     if (!walletAddress) {
-      return NextResponse.json(
-        { error: "Wallet address is required" },
-        { status: 400 },
-      );
+      return apiError("Wallet address is required", 400);
     }
 
     const player = await getPlayerByWallet(walletAddress);
 
     if (!player) {
-      return NextResponse.json({ error: "Player not found" }, { status: 404 });
+      return apiError("Player not found", 404);
     }
 
-    return NextResponse.json({
-      success: true,
-      player,
-    });
+    return apiSuccess({ player });
   } catch (error) {
     console.error("Get player API error:", error);
-    return NextResponse.json(
-      { error: "Failed to get player data" },
-      { status: 500 },
-    );
+    return apiError("Failed to get player data", 500);
   }
 }

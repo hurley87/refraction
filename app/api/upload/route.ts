@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { supabase } from "@/lib/db/client";
-import { z } from "zod";
+import { z, ZodError } from "zod";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 // Validate the incoming request body
 const uploadSchema = z.object({
@@ -19,10 +19,7 @@ export async function POST(request: Request) {
       const file = formData.get("file") as File;
 
       if (!file) {
-        return NextResponse.json(
-          { success: false, error: "No file provided" },
-          { status: 400 },
-        );
+        return apiError("No file provided", 400);
       }
 
       // Upload to Supabase Storage
@@ -40,13 +37,7 @@ export async function POST(request: Request) {
 
       if (uploadError) {
         console.error("Supabase Storage upload error:", uploadError);
-        return NextResponse.json(
-          {
-            success: false,
-            error: uploadError.message || "Failed to upload to storage",
-          },
-          { status: 500 },
-        );
+        return apiError(uploadError.message || "Failed to upload to storage", 500);
       }
 
       // Get public URL
@@ -54,8 +45,7 @@ export async function POST(request: Request) {
         .from("images")
         .getPublicUrl(filePath);
 
-      return NextResponse.json({
-        success: true,
+      return apiSuccess({
         url: urlData.publicUrl,
         imageUrl: urlData.publicUrl, // for backward compatibility
       });
@@ -77,17 +67,11 @@ export async function POST(request: Request) {
         imageBuffer = Buffer.from(base64Data, "base64");
       } catch (bufferError) {
         console.error("Buffer conversion error:", bufferError);
-        return NextResponse.json(
-          { success: false, error: "Invalid base64 image data" },
-          { status: 400 },
-        );
+        return apiError("Invalid base64 image data", 400);
       }
 
       if (imageBuffer.length === 0) {
-        return NextResponse.json(
-          { success: false, error: "Empty image data" },
-          { status: 400 },
-        );
+        return apiError("Empty image data", 400);
       }
 
       // Get file extension from base64 mime type
@@ -126,33 +110,22 @@ export async function POST(request: Request) {
         data: { publicUrl },
       } = supabase.storage.from("images").getPublicUrl(filepath);
 
-      return NextResponse.json({
-        success: true,
+      return apiSuccess({
         imageUrl: publicUrl,
         url: publicUrl, // for backward compatibility
       });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Upload error:", error);
 
     // Handle validation errors
-    if (error.name === "ZodError") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Validation error: ${error.errors.map((e: any) => e.message).join(", ")}`,
-        },
-        { status: 400 },
-      );
+    if (error instanceof ZodError) {
+      return apiError(`Validation error: ${error.errors.map((e) => e.message).join(", ")}`, 400);
     }
 
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to upload image",
-      },
-      { status: 500 },
+    return apiError(
+      error instanceof Error ? error.message : "Failed to upload image",
+      500,
     );
   }
 }

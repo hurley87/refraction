@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 // Create a new user record in Airtable
 export async function POST(request: NextRequest) {
@@ -7,12 +8,9 @@ export async function POST(request: NextRequest) {
     const { createdAt, email } = await request.json();
 
     if (!createdAt || !email) {
-      return NextResponse.json(
-        {
-          error:
-            "Missing required field(s). createdAt and email are mandatory.",
-        },
-        { status: 400 },
+      return apiError(
+        "Missing required field(s). createdAt and email are mandatory.",
+        400,
       );
     }
 
@@ -23,10 +21,7 @@ export async function POST(request: NextRequest) {
     const TABLE_NAME = process.env.AIRTABLE_TABLE_NAME ?? "IRL";
 
     if (!AIRTABLE_PAT || !AIRTABLE_BASE_ID) {
-      return NextResponse.json(
-        { error: "Airtable credentials are not configured." },
-        { status: 500 },
-      );
+      return apiError("Airtable credentials are not configured.", 500);
     }
 
     // Use encodeURIComponent to safely handle spaces or special characters in the table name
@@ -57,15 +52,12 @@ export async function POST(request: NextRequest) {
     const data = await airtableRes.json();
 
     if (!airtableRes.ok) {
-      return NextResponse.json({ error: data }, { status: airtableRes.status });
+      return apiError(JSON.stringify(data), 500);
     }
 
-    return NextResponse.json({ success: true, data });
+    return apiSuccess(data);
   } catch (error) {
     console.error("Airtable user creation error:", error);
-    return NextResponse.json(
-      { error: "Failed to connect to Airtable" },
-      { status: 500 },
-    );
+    return apiError("Failed to connect to Airtable", 500);
   }
 }

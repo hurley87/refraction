@@ -143,7 +143,9 @@ export default function PerkDetailPage() {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to redeem perk");
       }
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return data.redemption;
     },
     onSuccess: () => {

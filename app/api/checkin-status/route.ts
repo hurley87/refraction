@@ -1,8 +1,7 @@
-import { NextResponse } from "next/server";
-
 export const dynamic = "force-dynamic";
 import { supabase } from "@/lib/db/client";
 import { getUtcDayBounds } from "@/lib/utils/date";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function GET(request: Request) {
   try {
@@ -11,17 +10,11 @@ export async function GET(request: Request) {
     const checkpoint = searchParams.get("checkpoint");
 
     if (!address) {
-      return NextResponse.json(
-        { error: "Address parameter is required" },
-        { status: 400 }
-      );
+      return apiError("Address parameter is required", 400);
     }
 
     if (!checkpoint) {
-      return NextResponse.json(
-        { error: "Checkpoint parameter is required" },
-        { status: 400 }
-      );
+      return apiError("Checkpoint parameter is required", 400);
     }
 
     const { startIso, endIso } = getUtcDayBounds();
@@ -80,7 +73,7 @@ export async function GET(request: Request) {
       checkpointActivity && checkpointActivity.length > 0
     );
 
-    return NextResponse.json({
+    return apiSuccess({
       hasCheckedIn,
       checkpointCheckinToday,
       dailyRewardClaimed,
@@ -88,9 +81,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Error checking check-in status:", error);
-    return NextResponse.json(
-      { error: "Failed to check check-in status" },
-      { status: 500 }
-    );
+    return apiError("Failed to check check-in status", 500);
   }
 }

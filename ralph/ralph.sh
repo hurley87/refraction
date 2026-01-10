@@ -55,8 +55,8 @@ echo "Starting Ralph - Max iterations: $MAX_ITERATIONS"
 
 # Show PRD summary
 if [ -f "$PRD_FILE" ]; then
-  TOTAL_STORIES=$(jq '.stories | length' "$PRD_FILE" 2>/dev/null || echo "0")
-  COMPLETED=$(jq '[.stories[] | select(.passes == true)] | length' "$PRD_FILE" 2>/dev/null || echo "0")
+  TOTAL_STORIES=$(jq '.userStories | length' "$PRD_FILE" 2>/dev/null || echo "0")
+  COMPLETED=$(jq '[.userStories[] | select(.passes == true)] | length' "$PRD_FILE" 2>/dev/null || echo "0")
   if [ "$TOTAL_STORIES" -gt 0 ] 2>/dev/null; then
     REMAINING=$((TOTAL_STORIES - COMPLETED))
     echo ""
@@ -67,7 +67,7 @@ if [ -f "$PRD_FILE" ]; then
   fi
 
   # Show next story to work on
-  NEXT_STORY=$(jq -r '[.stories[] | select(.passes == false)] | sort_by(.priority) | .[0] | "\(.id): \(.title)"' "$PRD_FILE" 2>/dev/null || echo "")
+  NEXT_STORY=$(jq -r '[.userStories[] | select(.passes == false)] | sort_by(.priority) | .[0] | "\(.id): \(.title)"' "$PRD_FILE" 2>/dev/null || echo "")
   if [ -n "$NEXT_STORY" ] && [ "$NEXT_STORY" != "null: null" ]; then
     echo "📌 Next up: $NEXT_STORY"
   fi
@@ -89,15 +89,18 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 
   # Run Claude Code with the ralph prompt
   PROMPT=$(cat "$SCRIPT_DIR/prompt.md")
-  OUTPUT=$(claude -p "$PROMPT" --dangerously-skip-permissions 2>&1 | tee /dev/stderr) || true
+
+  # Run claude directly - output streams to terminal in real-time
+  claude -p "$PROMPT" --dangerously-skip-permissions || true
 
   ITER_END=$(date +%s)
   ITER_DURATION=$((ITER_END - ITER_START))
   echo ""
   echo "⏱️  Iteration $i took ${ITER_DURATION}s"
 
-  # Check for completion signal
-  if echo "$OUTPUT" | grep -q "COMPLETE"; then
+  # Check for completion by reading PRD file (all stories pass)
+  ALL_PASS=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE" 2>/dev/null || echo "1")
+  if [ "$ALL_PASS" = "0" ]; then
     TOTAL_TIME=$((ITER_END - START_TIME))
     TOTAL_MIN=$((TOTAL_TIME / 60))
     TOTAL_SEC=$((TOTAL_TIME % 60))
@@ -110,7 +113,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 
   # Show updated status after iteration
   if [ -f "$PRD_FILE" ]; then
-    COMPLETED=$(jq '[.stories[] | select(.passes == true)] | length' "$PRD_FILE" 2>/dev/null || echo "?")
+    COMPLETED=$(jq '[.userStories[] | select(.passes == true)] | length' "$PRD_FILE" 2>/dev/null || echo "?")
     echo "📊 Progress: $COMPLETED/$TOTAL_STORIES stories complete"
   fi
 

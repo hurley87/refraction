@@ -124,7 +124,9 @@ export default function AdminUsersPage() {
         },
         body: JSON.stringify({ email: user.email.address }),
       });
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return data.isAdmin;
     } catch (error) {
       console.error("Error checking admin status:", error);
@@ -160,7 +162,9 @@ export default function AdminUsersPage() {
         },
       );
       if (!response.ok) throw new Error("Failed to fetch users");
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return {
         users: data.users as UserStats[],
         pagination: data.pagination as PaginationInfo,
@@ -187,7 +191,9 @@ export default function AdminUsersPage() {
         },
       });
       if (!response.ok) throw new Error("Failed to fetch upload history");
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return data.uploads as UploadHistory[];
     },
     enabled: !!isAdmin && showUploadHistory,
@@ -203,7 +209,9 @@ export default function AdminUsersPage() {
         },
       });
       if (!response.ok) throw new Error("Failed to fetch pending points");
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return {
         pendingPoints: data.pendingPoints as PendingPoint[],
         summary: data.summary as PendingPointsSummary[],
@@ -231,7 +239,9 @@ export default function AdminUsersPage() {
         throw new Error(error.error || "Failed to upload CSV");
       }
 
-      return response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      return responseData.data || responseData;
     },
     onSuccess: (data) => {
       setUploadResults(data.results);
@@ -335,7 +345,9 @@ export default function AdminUsersPage() {
         throw new Error("Failed to fetch users for export");
       }
 
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       const allUsers = data.users as UserStats[];
 
       // Apply current search filter if any

@@ -7,6 +7,7 @@ import {
   fetchCheckInEventsWithCache,
   getEventCacheStatus,
 } from "@/lib/event-utils";
+import { apiError } from "@/lib/api/response";
 
 export interface CheckInEvent {
   user: `0x${string}`;
@@ -204,14 +205,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(serializeBigInt(responseData));
   } catch (error) {
     console.error("Error fetching CheckIn events:", error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to fetch CheckIn events",
-        message: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiError("Failed to fetch CheckIn events", 500);
   }
 }

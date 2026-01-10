@@ -27,9 +27,9 @@ export default function LeaderboardAvatar({
           `/api/profile?wallet_address=${encodeURIComponent(walletAddress)}`
         );
         if (response.ok) {
-          const result = await response.json();
-          // Handle both wrapped and unwrapped responses
-          const profile = result.profile || result.data?.profile || result;
+          const responseData = await response.json();
+          // Unwrap the apiSuccess wrapper - profile data is directly in data
+          const profile = responseData.data || responseData;
           if (profile) {
             setProfileData({
               profile_picture_url: profile.profile_picture_url,

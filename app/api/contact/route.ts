@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 export async function POST(request: NextRequest) {
   try {
@@ -6,19 +7,13 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!name || !email || !message) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 },
-      );
+      return apiError("Missing required fields", 400);
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: "Invalid email format" },
-        { status: 400 },
-      );
+      return apiError("Invalid email format", 400);
     }
 
     // Airtable configuration
@@ -37,10 +32,7 @@ export async function POST(request: NextRequest) {
 
     if (!AIRTABLE_BASE_ID2 || !AIRTABLE_PERSONAL_ACCESS_TOKEN) {
       console.error("Missing Airtable configuration");
-      return NextResponse.json(
-        { error: "Server configuration error" },
-        { status: 500 },
-      );
+      return apiError("Server configuration error", 500);
     }
 
     // Prepare data for Airtable
@@ -93,10 +85,7 @@ export async function POST(request: NextRequest) {
         error: errorData,
         url: `https://api.airtable.com/v0/${AIRTABLE_BASE_ID2}/${AIRTABLE_TABLE_NAME}`,
       });
-      return NextResponse.json(
-        { error: "Failed to save submission", details: errorData },
-        { status: 500 },
-      );
+      return apiError("Failed to save submission", 500);
     }
 
     const result = await airtableResponse.json();
@@ -105,28 +94,13 @@ export async function POST(request: NextRequest) {
     // Ensure we have a valid result with records
     if (!result.records || result.records.length === 0) {
       console.error("Unexpected Airtable response structure:", result);
-      return NextResponse.json(
-        { error: "Unexpected response from Airtable" },
-        { status: 500 },
-      );
+      return apiError("Unexpected response from Airtable", 500);
     }
 
     console.log("Returning success response with status 200");
-    const successResponse = {
-      message: "Contact form submitted successfully",
-      id: result.records[0].id,
-    };
-    console.log(
-      "Success response body:",
-      JSON.stringify(successResponse, null, 2),
-    );
-
-    return NextResponse.json(successResponse, { status: 200 });
+    return apiSuccess({ id: result.records[0].id }, "Contact form submitted successfully");
   } catch (error) {
     console.error("Contact form submission error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return apiError("Internal server error", 500);
   }
 }

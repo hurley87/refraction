@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getAllPerks, createPerk } from "@/lib/db/perks";
 import type { Perk } from "@/lib/types";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 // GET /api/admin/perks - Get all perks
 export async function GET(request: NextRequest) {
@@ -9,13 +10,10 @@ export async function GET(request: NextRequest) {
     const activeOnly = searchParams.get("activeOnly") !== "false";
 
     const perks = await getAllPerks(activeOnly);
-    return NextResponse.json({ perks });
+    return apiSuccess({ perks });
   } catch (error) {
     console.error("Error fetching perks:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch perks" },
-      { status: 500 },
-    );
+    return apiError("Failed to fetch perks", 500);
   }
 }
 
@@ -36,12 +34,9 @@ export async function POST(request: NextRequest) {
     const perk = await createPerk(
       normalizedBody as Omit<Perk, "id" | "created_at" | "updated_at">,
     );
-    return NextResponse.json({ perk });
+    return apiSuccess({ perk });
   } catch (error) {
     console.error("Error creating perk:", error);
-    return NextResponse.json(
-      { error: "Failed to create perk" },
-      { status: 500 },
-    );
+    return apiError("Failed to create perk", 500);
   }
 }

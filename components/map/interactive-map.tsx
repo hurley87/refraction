@@ -5,14 +5,14 @@ import Map, { Marker, Popup } from "react-map-gl/mapbox";
 import LocationSearch from "@/components/location-search";
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import MapNav from "@/components/map/mapnav";
 import MapCard from "@/components/map/map-card";
 import LocationListsDrawer, {
   DrawerLocationSummary,
 } from "@/components/location-lists-drawer";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface MarkerData {
   latitude: number;
@@ -67,6 +67,40 @@ const getWelcomeBannerStorageKey = (wallet?: string | null) =>
   wallet
     ? `${WELCOME_BANNER_STORAGE_KEY}:${wallet}`
     : WELCOME_BANNER_STORAGE_KEY;
+
+function getCheckinDisplayName(entry: LocationCheckinPreview) {
+  if (entry.username && entry.username.trim().length > 0) {
+    return entry.username;
+  }
+  if (entry.walletAddress && entry.walletAddress.length > 8) {
+    return `${entry.walletAddress.slice(0, 6)}...${entry.walletAddress.slice(-4)}`;
+  }
+  return "Explorer";
+}
+
+function getCheckinInitial(entry: LocationCheckinPreview) {
+  if (entry.username && entry.username.trim().length > 0) {
+    return entry.username.trim().charAt(0).toUpperCase();
+  }
+  if (entry.walletAddress && entry.walletAddress.length > 2) {
+    return entry.walletAddress.slice(2, 3).toUpperCase();
+  }
+  return "+";
+}
+
+function formatCheckinTimestamp(timestamp?: string | null) {
+  if (!timestamp) return "Moments ago";
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "Recently";
+  try {
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "Recently";
+  }
+}
 
 interface InteractiveMapProps {
   initialPlaceId?: string | null;
@@ -175,7 +209,9 @@ export default function InteractiveMap({
             `/api/player?walletAddress=${encodeURIComponent(walletAddress)}`,
           );
           if (response.ok) {
-            const result = await response.json();
+            const responseData = await response.json();
+            // Unwrap the apiSuccess wrapper
+            const result = responseData.data || responseData;
             if (result.player?.username) {
               setUserUsername(result.player.username);
             }
@@ -279,7 +315,9 @@ export default function InteractiveMap({
       try {
         const response = await fetch("/api/locations");
         if (!response.ok) return;
-        const data = await response.json();
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper - data is in responseData.data
+        const data = responseData.data || responseData;
         const dbMarkers: MarkerData[] = (data.locations || []).map(
           (loc: any) => ({
             latitude: loc.latitude,
@@ -431,7 +469,9 @@ export default function InteractiveMap({
       if (!response.ok) {
         throw new Error("Failed to fetch comments");
       }
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       setLocationCheckins(data.checkins || []);
     } catch (error) {
       console.error("Failed to load location check-ins:", error);
@@ -439,40 +479,6 @@ export default function InteractiveMap({
       setLocationCheckinsError("Unable to load check-ins right now.");
     } finally {
       setIsLoadingLocationCheckins(false);
-    }
-  };
-
-  const getCheckinDisplayName = (entry: LocationCheckinPreview) => {
-    if (entry.username && entry.username.trim().length > 0) {
-      return entry.username;
-    }
-    if (entry.walletAddress && entry.walletAddress.length > 8) {
-      return `${entry.walletAddress.slice(0, 6)}...${entry.walletAddress.slice(-4)}`;
-    }
-    return "Explorer";
-  };
-
-  const getCheckinInitial = (entry: LocationCheckinPreview) => {
-    if (entry.username && entry.username.trim().length > 0) {
-      return entry.username.trim().charAt(0).toUpperCase();
-    }
-    if (entry.walletAddress && entry.walletAddress.length > 2) {
-      return entry.walletAddress.slice(2, 3).toUpperCase();
-    }
-    return "+";
-  };
-
-  const formatCheckinTimestamp = (timestamp?: string | null) => {
-    if (!timestamp) return "Moments ago";
-    const date = new Date(timestamp);
-    if (Number.isNaN(date.getTime())) return "Recently";
-    try {
-      return date.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-      });
-    } catch {
-      return "Recently";
     }
   };
 
@@ -910,7 +916,9 @@ export default function InteractiveMap({
               "Failed to upload location image. Please try again.",
           );
         }
-        const uploadResult = await uploadResponse.json();
+        const uploadResponseData = await uploadResponse.json();
+        // Unwrap the apiSuccess wrapper
+        const uploadResult = uploadResponseData.data || uploadResponseData;
         locationImageUrl = uploadResult.imageUrl || uploadResult.url;
         if (!locationImageUrl) {
           throw new Error("Image upload succeeded but no URL was returned");
@@ -973,7 +981,10 @@ export default function InteractiveMap({
           try {
             const locationsResponse = await fetch("/api/locations");
             if (locationsResponse.ok) {
-              const locationsData = await locationsResponse.json();
+              const locationsResponseData = await locationsResponse.json();
+              // Unwrap the apiSuccess wrapper
+              const locationsData =
+                locationsResponseData.data || locationsResponseData;
               const existingLocation = (locationsData.locations || []).find(
                 (loc: any) => loc.place_id === selectedMarker.place_id,
               );
@@ -1909,7 +1920,9 @@ export default function InteractiveMap({
                   </button>
                   <button
                     onClick={handleCheckIn}
-                    disabled={isCheckingIn || !checkInTarget || !checkInComment.trim()}
+                    disabled={
+                      isCheckingIn || !checkInTarget || !checkInComment.trim()
+                    }
                     className="bg-[#1a1a1a] hover:bg-black text-white rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex items-center justify-center transition-colors disabled:opacity-50 flex-1"
                     type="button"
                   >
@@ -2176,7 +2189,8 @@ export default function InteractiveMap({
                     {/* Pending Approval Message */}
                     <div className="flex flex-col items-center gap-2 mt-2">
                       <p className="text-[11px] text-white/90 text-center leading-relaxed px-4">
-                        Your location is pending review and will appear on the map once approved by an admin.
+                        Your location is pending review and will appear on the
+                        map once approved by an admin.
                       </p>
                     </div>
 

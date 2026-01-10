@@ -1,0 +1,200 @@
+{
+  "project": "IRL Test Coverage Enhancement",
+  "branchName": "ralph/test-coverage-improvement",
+  "description": "Systematically improve test coverage from ~10% to 50%+ by adding unit tests for critical database layer functions, Zod validation schemas, and integration tests for high-priority API routes.",
+  "userStories": [
+    {
+      "id": "TEST-001",
+      "title": "Add unit tests for Zod validation schemas",
+      "description": "As a developer, I need comprehensive tests for all Zod validation schemas in lib/schemas/ to ensure input validation catches malformed data.",
+      "acceptanceCriteria": [
+        "Create lib/schemas/__tests__/player.test.ts testing walletAddressSchema, solanaWalletAddressSchema, stellarWalletAddressSchema",
+        "Create lib/schemas/__tests__/api.test.ts testing paginationSchema, checkinRequestSchema, leaderboardQuerySchema, redeemPerkRequestSchema",
+        "Create lib/schemas/__tests__/perk.test.ts testing createPerkSchema, updatePerkSchema, redeemPerkSchema",
+        "Create lib/schemas/__tests__/location.test.ts testing latitudeSchema, longitudeSchema, createLocationSchema",
+        "Each test covers: valid input passes, required fields missing fails, type mismatches fail, boundary values",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Schemas are pure functions - no mocking needed. Focus on boundary values."
+    },
+    {
+      "id": "TEST-002",
+      "title": "Add unit tests for players database module",
+      "description": "As a developer, I need tests for lib/db/players.ts to verify player creation, retrieval, and points management.",
+      "acceptanceCriteria": [
+        "Create lib/db/__tests__/players.test.ts with vi.mock for @/lib/db/client",
+        "Test getPlayerByWallet returns player when found, null when not found (PGRST116)",
+        "Test getPlayerBySolanaWallet and getPlayerByStellarWallet with same patterns",
+        "Test createOrUpdatePlayer creates new or updates existing player",
+        "Test updatePlayerPoints correctly adds points to existing total",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Mock supabase.from().select().eq().single() chain. Test PGRST116 not-found handling."
+    },
+    {
+      "id": "TEST-003",
+      "title": "Add unit tests for perks database module",
+      "description": "As a developer, I need tests for lib/db/perks.ts to verify the critical redeemPerk flow.",
+      "acceptanceCriteria": [
+        "Create lib/db/__tests__/perks.test.ts with vi.mock for @/lib/db/client",
+        "Test getAllPerks filters active perks and respects end_date",
+        "Test getAvailablePerksForUser filters by points threshold and excludes redeemed",
+        "Test redeemPerk success: validates points, checks duplicate, allocates code",
+        "Test redeemPerk failures: insufficient points, already redeemed, no codes available",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "redeemPerk has 4 sequential DB calls - mock each step. Revenue-critical."
+    },
+    {
+      "id": "TEST-004",
+      "title": "Add integration tests for perks/redeem API route",
+      "description": "As a developer, I need integration tests for /api/perks/redeem POST endpoint.",
+      "acceptanceCriteria": [
+        "Create app/api/perks/redeem/__tests__/route.test.ts",
+        "Test successful redemption returns code and redemption record",
+        "Test validation errors for missing perkId/walletAddress return 400",
+        "Test insufficient points returns 400",
+        "Test already redeemed returns 400",
+        "Test no available codes returns 400",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Revenue-critical endpoint. Follow existing checkin test patterns."
+    },
+    {
+      "id": "TEST-005",
+      "title": "Add unit tests for leaderboard database module",
+      "description": "As a developer, I need tests for lib/db/leaderboard.ts to verify ranking and dense rank calculation.",
+      "acceptanceCriteria": [
+        "Create lib/db/__tests__/leaderboard.test.ts with vi.mock",
+        "Test getLeaderboard uses RPC when available, falls back on failure",
+        "Test dense rank calculation: same points get same rank",
+        "Test pagination with offset and limit",
+        "Test getPlayerStats returns combined player data with checkins",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Test both RPC and fallback paths. Dense rank is business-critical."
+    },
+    {
+      "id": "TEST-006",
+      "title": "Add unit tests for tiers database module",
+      "description": "As a developer, I need tests for lib/db/tiers.ts to verify tier resolution logic.",
+      "acceptanceCriteria": [
+        "Create lib/db/__tests__/tiers.test.ts with vi.mock",
+        "Test resolveTierForPoints with 0 points returns lowest tier",
+        "Test resolveTierForPoints at exact tier boundaries",
+        "Test resolveTierForPoints with points exceeding highest tier (max_points=null)",
+        "Test getTierForPoints combines fetch and resolution",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Tier boundaries critical for perk access control."
+    },
+    {
+      "id": "TEST-007",
+      "title": "Add unit tests for locations database module",
+      "description": "As a developer, I need tests for lib/db/locations.ts to verify location CRUD and search.",
+      "acceptanceCriteria": [
+        "Create lib/db/__tests__/locations.test.ts with vi.mock",
+        "Test createOrGetLocation returns existing or creates new by place_id",
+        "Test listAllLocations returns locations ordered by created_at",
+        "Test listLocationsByWallet returns locations player checked into",
+        "Test listLocationOptions filters by search term with ilike",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Test SQL injection prevention via escaping in search."
+    },
+    {
+      "id": "TEST-008",
+      "title": "Add unit tests for checkins database module",
+      "description": "As a developer, I need tests for lib/db/checkins.ts to verify check-in duplicate detection.",
+      "acceptanceCriteria": [
+        "Create lib/db/__tests__/checkins.test.ts with vi.mock",
+        "Test checkUserLocationCheckin returns data when exists, null when not found",
+        "Test createLocationCheckin creates record with generated id",
+        "Test createLocationCheckin throws on duplicate constraint",
+        "Test optional comment and image_url fields",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Core engagement flow - verify duplicate prevention."
+    },
+    {
+      "id": "TEST-009",
+      "title": "Add integration tests for location-checkin API route",
+      "description": "As a developer, I need integration tests for /api/location-checkin POST endpoint.",
+      "acceptanceCriteria": [
+        "Create app/api/location-checkin/__tests__/route.test.ts",
+        "Test successful checkin returns points earned",
+        "Test validation errors for missing fields return 400",
+        "Test player not found creates new player",
+        "Test points correctly added to player total",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Follow existing checkin route test patterns."
+    },
+    {
+      "id": "TEST-010",
+      "title": "Add unit tests for checkpoints database module",
+      "description": "As a developer, I need tests for lib/db/checkpoints.ts to verify checkpoint CRUD and chain filtering.",
+      "acceptanceCriteria": [
+        "Create lib/db/__tests__/checkpoints.test.ts with vi.mock",
+        "Test createCheckpoint generates short ID when not provided",
+        "Test getCheckpointById and getActiveCheckpointById",
+        "Test listAllCheckpoints and listActiveCheckpoints",
+        "Test getCheckpointsByChainType filters correctly",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Checkpoints are the unified /c/[id] multi-chain system."
+    },
+    {
+      "id": "TEST-011",
+      "title": "Add integration tests for tiers API route",
+      "description": "As a developer, I need integration tests for /api/tiers GET endpoint.",
+      "acceptanceCriteria": [
+        "Create app/api/tiers/__tests__/route.test.ts",
+        "Test GET returns all tiers with success: true",
+        "Test tiers ordered by min_points ascending",
+        "Test response matches Tier type structure",
+        "Test database error returns 500",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Simple GET endpoint - good pattern reference."
+    },
+    {
+      "id": "TEST-012",
+      "title": "Add API response utility edge case tests",
+      "description": "As a developer, I need edge case tests for lib/api/response.ts.",
+      "acceptanceCriteria": [
+        "Extend lib/api/__tests__/response.test.ts",
+        "Test apiSuccess with null, empty object, array, nested objects",
+        "Test apiError with empty and long messages",
+        "Test apiValidationError with multiple and nested errors",
+        "Verify Content-Type header is application/json",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Extend existing tests with edge cases."
+    }
+  ]
+}

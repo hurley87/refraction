@@ -363,44 +363,6 @@ export const handlers = [
     )
   }),
 
-  // Transfer tokens
-  http.post('/api/transfer-tokens', async ({ request }) => {
-    const body = await request.json() as Record<string, unknown>
-
-    if (!body.toAddress || !body.amount) {
-      return HttpResponse.json(apiError('toAddress and amount are required'), { status: 400 })
-    }
-
-    return HttpResponse.json(
-      apiSuccess({
-        transactionHash: '0xabc123def456',
-        amount: body.amount,
-      }),
-      { status: 201 }
-    )
-  }),
-
-  // Geocode
-  http.get('/api/geocode-mapbox', ({ request }) => {
-    const url = new URL(request.url)
-    const query = url.searchParams.get('query')
-
-    if (!query) {
-      return HttpResponse.json(apiError('query is required'), { status: 400 })
-    }
-
-    return HttpResponse.json(
-      apiSuccess({
-        results: [
-          {
-            place_name: '123 Test St, New York, NY',
-            center: [-74.006, 40.7128],
-          },
-        ],
-      })
-    )
-  }),
-
   // Profile
   http.get('/api/profile', ({ request }) => {
     const url = new URL(request.url)

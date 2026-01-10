@@ -29,7 +29,9 @@ export default function AdminLocationsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user.email.address }),
       });
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return data.isAdmin;
     } catch (error) {
       console.error("Error checking admin status", error);
@@ -60,7 +62,9 @@ export default function AdminLocationsPage() {
         headers: { "x-user-email": user?.email?.address || "" },
       });
       if (!res.ok) throw new Error("Failed to fetch locations");
-      const json = await res.json();
+      const responseData = await res.json();
+      // Unwrap the apiSuccess wrapper
+      const json = responseData.data || responseData;
       return (json.locations || []) as Location[];
     },
     enabled: !!isAdmin && !!user?.email?.address,

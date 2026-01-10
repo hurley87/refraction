@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api/response";
 
 /**
  * Friendbot API route for funding test accounts on local/testnet networks
@@ -9,10 +10,7 @@ export async function GET(request: NextRequest) {
   const address = searchParams.get("addr");
 
   if (!address) {
-    return NextResponse.json(
-      { error: "Address parameter is required" },
-      { status: 400 },
-    );
+    return apiError("Address parameter is required", 400);
   }
 
   const network = process.env.NEXT_PUBLIC_STELLAR_NETWORK || "TESTNET";
@@ -31,21 +29,16 @@ export async function GET(request: NextRequest) {
       friendbotUrl = `https://friendbot.stellar.org/?addr=${address}`;
       break;
     default:
-      return NextResponse.json(
-        { error: `Friendbot not available for network: ${network}` },
-        { status: 400 },
-      );
+      return apiError(`Friendbot not available for network: ${network}`, 400);
   }
 
   try {
     const response = await fetch(friendbotUrl);
     const data = await response.json();
+    // Preserve upstream status code for friendbot response
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error("Friendbot proxy error:", error);
-    return NextResponse.json(
-      { error: "Failed to fund account" },
-      { status: 500 },
-    );
+    return apiError("Failed to fund account", 500);
   }
 }

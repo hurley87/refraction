@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { invalidateEventCache, getEventCacheStatus } from "@/lib/event-utils";
+import { apiSuccess, apiError } from "@/lib/api/response";
 
 /**
  * POST endpoint to invalidate the CheckIn events cache
@@ -22,22 +23,12 @@ export async function POST(req: NextRequest) {
     // Get cache status after invalidation
     const afterStatus = getEventCacheStatus();
 
-    return NextResponse.json({
-      success: true,
-      message: "Cache invalidated successfully",
+    return apiSuccess({
       before: beforeStatus,
       after: afterStatus,
-    });
+    }, "Cache invalidated successfully");
   } catch (error) {
     console.error("Error invalidating cache:", error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Failed to invalidate cache",
-        message: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiError("Failed to invalidate cache", 500);
   }
 }

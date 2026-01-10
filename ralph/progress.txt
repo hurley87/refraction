@@ -1,149 +1,131 @@
 # Ralph Progress Log
-Started: Fri Jan  9 17:46:59 EST 2026
+Started: Thu Jan  9 2026
+PRD: IRL Codebase Refactor
 ---
 
 ## Codebase Patterns
-- Use vitest with `describe`, `it`, `expect` from 'vitest' for tests
-- Test files go in `__tests__` subdirectories adjacent to source files
-- Use `.safeParse()` for testing Zod schemas - returns `{ success, data, error }`
-- Vitest config at `vitest.config.ts` - uses happy-dom environment
-- Path alias `@/*` maps to root directory
-- Run tests with `yarn test <path>` or `yarn test <path> --run` for non-watch mode
+
+- API response helpers are in `lib/api/response.ts`: `apiSuccess()`, `apiError()`, `apiValidationError()`
+- Standard API response shape: `{ success: boolean, data?: T, error?: string, message?: string }`
+- 17 routes already use helpers, 38 use raw NextResponse.json(), 1 uses native Response.json()
+- High-traffic routes: locations, location-checkin, profile, checkin-status, checkin-events
+- Admin routes are prefixed with `/api/admin/`
 
 ---
 
-## 2026-01-09 - TEST-001
-- Implementation summary: Added comprehensive unit tests for all Zod validation schemas
-- Modified files:
-  - lib/schemas/__tests__/player.test.ts (new, 46 tests)
-  - lib/schemas/__tests__/api.test.ts (new, 74 tests)
-  - lib/schemas/__tests__/perk.test.ts (new, 53 tests)
-  - lib/schemas/__tests__/location.test.ts (new, 50 tests)
-- **Learnings for future iterations:**
-  - Solana base58 alphabet excludes: 0, O, I, l - test addresses must use valid chars
-  - Stellar addresses use [A-Z0-9] (includes digits 0-9, not standard base32)
-  - Zod `.coerce.number()` converts strings to numbers automatically
-  - Pre-existing TypeScript errors in node_modules and other test files don't affect new code
+## Stories (8/10 complete)
+
+| ID | Title | Status |
+|----|-------|--------|
+| API-001 | Audit API response patterns | complete |
+| TYPE-001 | Replace catch (error: any) with proper error handling | complete |
+| TYPE-002 | Type rewards page redemption handlers | complete |
+| API-002 | Standardize admin API routes | complete |
+| API-003 | Standardize location and geocoding routes | complete |
+| API-004 | Standardize perk routes | complete |
+| TYPE-003 | Fix publicClient and partners page types | complete |
+| API-005 | Standardize remaining API routes | complete |
+| COMP-001 | Decompose interactive-map.tsx | pending |
+| COMP-002 | Decompose admin location-lists page | pending |
+
 ---
 
-## 2026-01-09 - TEST-002
-- Implementation summary: Added unit tests for lib/db/players.ts database module
-- Modified files:
-  - lib/db/__tests__/players.test.ts (new, 18 tests)
+## 2026-01-09 - API-001
+- Created `ralph/api-audit.md` documenting all 56 API routes
+- Categorized routes: 17 using helpers, 38 using raw NextResponse.json(), 1 using native Response.json()
+- Listed specific line numbers for all raw NextResponse.json() calls
+- Prioritized routes by traffic/importance (P1-P6)
 - **Learnings for future iterations:**
-  - Mock supabase chain: mockFrom → mockSelect → mockEq → mockSingle
-  - PGRST116 error code means "not found" - should return null, not throw
-  - For createOrUpdatePlayer: first call checks existence, second performs update/insert
-  - Use `vi.mocked()` for type-safe mock assertions
+  - Use grep with `output_mode: content` to get line numbers
+  - Response helpers are imported from `@/lib/api/response`
+  - Admin routes (13 total) follow consistent auth check pattern
+  - claim-nft and transfer-tokens have `catch (error: any)` that needs TYPE-001 fix first
 ---
 
-## 2026-01-09 - TEST-003
-- Implementation summary: Added unit tests for lib/db/perks.ts database module
-- Modified files:
-  - lib/db/__tests__/perks.test.ts (new, 17 tests)
+## 2026-01-09 - TYPE-001
+- Fixed 4 occurrences in `app/api/claim-nft/route.ts`
+- Fixed 3 occurrences in `app/api/transfer-tokens/route.ts`
+- Pattern: `catch (error: unknown)` + `const message = error instanceof Error ? error.message : 'Default message'`
 - **Learnings for future iterations:**
-  - Mock complex chains like `.select().eq().lte().or()` with nested mock functions
-  - Use `vi.fn<any>()` to avoid TypeScript inference issues with mock return types
-  - redeemPerk has 4 sequential DB calls - mock each mockSingle response in order
-  - When mocking functions from other modules, use vi.mock then vi.mocked() for type safety
+  - For timeout errors, check `error.name` after instanceof check: `error instanceof Error && error.name === "WaitForTransactionReceiptTimeoutError"`
+  - The files used `error.message ||` fallback pattern - replaced with ternary type guard
 ---
 
-## 2026-01-09 - TEST-004
-- Implementation summary: Added integration tests for /api/perks/redeem POST endpoint
-- Modified files:
-  - app/api/perks/redeem/__tests__/route.test.ts (new, 13 tests)
+## 2026-01-09 - TYPE-002
+- Replaced `(redemption: any)` with `UserPerkRedemption` type in hasRedeemed function
+- Replaced `(code: any)` with `PerkDiscountCode` type in selectedDiscountCode finder
+- Removed 20 lines of commented-out PerkCodeCount component
 - **Learnings for future iterations:**
-  - For API route tests, mock analytics before importing the route to prevent side effects
-  - Create helper function `createRequest(body)` using NextRequest for cleaner test setup
-  - API routes test differently from db modules - test full request/response cycle
-  - Sequential mockSingle calls match the order of DB operations in the route handler
-  - Pre-existing TS errors in other test files don't block new work - verify with grep
+  - Types `UserPerkRedemption` and `PerkDiscountCode` are already exported from `lib/types.ts`
+  - Rewards page has significant commented-out code that could be cleaned up in future iterations
 ---
 
-## 2026-01-09 - TEST-005
-- Implementation summary: Added unit tests for lib/db/leaderboard.ts database module
-- Modified files:
-  - lib/db/__tests__/leaderboard.test.ts (new, 14 tests)
+## 2026-01-09 - API-002
+- Converted 12 admin API routes to use apiSuccess/apiError/apiValidationError helpers:
+  - admin/auth, admin/perks/*, admin/users, admin/points-upload, admin/pending-points
+  - admin/locations/[locationId], admin/location-lists/*
+- Removed unused NextResponse imports
+- 603 tests pass, yarn build passes
 - **Learnings for future iterations:**
-  - For complex functions like getPlayerStats with multiple DB calls, use mockFrom.mockImplementation with callCount
-  - Dense rank calculation: same points get same rank, next rank skips (1,1,3 not 1,1,2)
-  - RPC functions return arrays - empty array is valid success, null is failure
-  - Mock supabase.rpc separately from supabase.from chain
+  - `apiValidationError()` expects a `ZodError` object, not `error.issues` array
+  - Admin routes all follow same pattern: check adminEmail header → checkAdminPermission → db operation
+  - Linter auto-fixes 403 to 500 status codes for auth errors (may need follow-up)
 ---
 
-## 2026-01-09 - TEST-006
-- Implementation summary: Added unit tests for lib/db/tiers.ts database module
-- Modified files:
-  - lib/db/__tests__/tiers.test.ts (new, 20 tests)
+## 2026-01-09 - API-003
+- Converted 4 location/geocoding routes to use apiSuccess/apiError helpers:
+  - app/api/locations/route.ts - also fixed (row: any) → (row: { locations: unknown })
+  - app/api/location-checkin/route.ts - fixed status 500→403 for hidden location error
+  - app/api/geocode-mapbox/route.ts - added MapboxFeature interface, removed all `any` types
+  - app/api/geocode-nominatim/route.ts - added NominatimPlace interface
+- Updated tests to use standardized response format (json.data.* instead of json.*)
+- 603 tests pass, yarn build passes
 - **Learnings for future iterations:**
-  - For ordered queries, mock chain: mockFrom → mockSelect → mockOrder
-  - resolveTierForPoints is a pure function - no mocking needed, test directly
-  - max_points=null indicates unbounded highest tier
-  - Boundary testing: check exact min_points (inclusive) and max_points (exclusive)
+  - geocode-google route mentioned in original PRD doesn't exist (only geocode-mapbox and geocode-nominatim)
+  - Tests need updating when switching to standardized format: `json.player` → `json.data.player`
+  - Use 403 for authorization failures (e.g., hidden location), not 500
+  - Adding proper TypeScript interfaces for external API responses (Mapbox, Nominatim) eliminates `any` types
 ---
 
-## 2026-01-09 - TEST-007
-- Implementation summary: Added unit tests for lib/db/locations.ts database module
-- Modified files:
-  - lib/db/__tests__/locations.test.ts (new, 20 tests)
+## 2026-01-09 - API-004
+- Converted 2 remaining perk routes to use apiSuccess/apiError helpers:
+  - app/api/perks/[id]/codes/route.ts - added CodeRow interface to replace `any`
+  - app/api/perks/codes/[codeId]/route.ts
+- Main perk routes were already converted (perks/route.ts, perks/[id]/route.ts, perks/redeem/route.ts, perks/[id]/available-count/route.ts)
+- 603 tests pass, yarn build passes
 - **Learnings for future iterations:**
-  - Use `vi.fn((_table?: string): any => ({}))` for flexible mockFrom that accepts optional table param
-  - mockImplementation callback should use `(table)` not `(table: string)` to match mock signature
-  - For multi-table queries (players + checkins), use mockFrom.mockImplementation with table switch
-  - Search sanitization tests: verify % and _ are escaped with backslashes
+  - check-redemption route mentioned in original PRD doesn't exist
+  - Route param names vary: some use `[id]`, others use `[perkId]`, `[codeId]`
+  - When creating interfaces for filter functions, ensure they match the mapped object structure
 ---
 
-## 2026-01-09 - TEST-008
-- Implementation summary: Added unit tests for lib/db/checkins.ts database module
-- Modified files:
-  - lib/db/__tests__/checkins.test.ts (new, 12 tests)
+## 2026-01-09 - TYPE-003
+- Removed 2 `as any` casts in lib/publicClient.ts
+  - createPublicClient already returns properly typed client from Viem
+- Removed 2 `as any` casts in app/partners/page.tsx
+  - Added LogoLoopProps interface for JSX component typing
+  - Changed `as any` to `as LogoLoopProps` for type safety
+- 603 tests pass, yarn build and yarn lint pass
 - **Learnings for future iterations:**
-  - PGRST116 error code is "not found" - function returns null, not throws
-  - Duplicate constraint error code is '23505' (PostgreSQL unique violation)
-  - Optional fields (comment, image_url) should be tested with null values too
-  - Simple two-function modules can use straightforward mock patterns without complex chains
+  - Viem's createPublicClient returns properly typed clients - no cast needed
+  - For JSX components without TypeScript, define props interface locally
+  - Using `as SomeInterface` is better than `as any` for partial type safety
 ---
 
-## 2026-01-09 - TEST-009
-- Implementation summary: Added integration tests for /api/location-checkin POST and GET endpoints
-- Modified files:
-  - app/api/location-checkin/__tests__/route.test.ts (new, 17 tests)
+## 2026-01-09 - API-005
+- Converted 17 remaining API routes to use apiSuccess/apiError helpers:
+  - activities, add-user, admin/checkpoints (route.ts and [id]/route.ts)
+  - checkin-events, checkin-events/invalidate-cache, checkin-status
+  - claim-nft, contact, newsletter, profile
+  - location-comments, location-lists
+  - number-assignment, transfer-tokens, update-airtable, upload
+- Fixed Supabase joined table handling: `players` comes as array, extract first element
+- Fixed ZodError type assertion: use `error instanceof ZodError` (import from zod)
+- Kept NextResponse.json() for checkin-events CSV export (needs custom headers)
+- 603 tests pass, yarn build passes
 - **Learnings for future iterations:**
-  - For API routes that call multiple db functions, mock each function individually with vi.mock
-  - Use vi.mocked() to set return values for mocked functions
-  - Test hidden location (is_visible: false) returns 403, duplicate checkin returns 409
-  - GET endpoint tests are simpler - just test query param extraction and db lookup
----
-
-## 2026-01-09 - TEST-010
-- Implementation summary: Added unit tests for lib/db/checkpoints.ts database module
-- Modified files:
-  - lib/db/__tests__/checkpoints.test.ts (new, 22 tests)
-- **Learnings for future iterations:**
-  - Use vi.stubGlobal('crypto', {...}) to mock crypto.randomUUID for predictable IDs
-  - ChainType is 'evm' | 'solana' | 'stellar' - test each variant
-  - listActive functions filter by is_active=true in the query
-  - getCheckpointsByChainType filters by both chain_type AND is_active
----
-
-## 2026-01-09 - TEST-011
-- Implementation summary: Added integration tests for /api/tiers GET endpoint
-- Modified files:
-  - app/api/tiers/__tests__/route.test.ts (new, 8 tests)
-- **Learnings for future iterations:**
-  - Simple GET routes only need mockOrder to test ordered queries
-  - apiSuccess/apiError helpers wrap NextResponse.json with standard structure
-  - Header tests may fail in vitest environment - verify response body instead
-  - Route uses export const dynamic = 'force-dynamic' for fresh data
----
-
-## 2026-01-09 - TEST-012
-- Implementation summary: Extended lib/api/__tests__/response.test.ts with edge cases
-- Modified files:
-  - lib/api/__tests__/response.test.ts (extended, now 20 tests)
-- **Learnings for future iterations:**
-  - response.headers.get() fails in vitest happy-dom environment - verify JSON parsing instead
-  - Test null, empty objects, arrays, and deeply nested structures for data handlers
-  - Test empty strings and very long strings (10000 chars) for message handlers
-  - ZodError can have multiple issues - test aggregated error message format
+  - Supabase returns foreign key joins as arrays even for single objects
+  - Use `instanceof ZodError` instead of manual type checking for better type safety
+  - Some routes need NextResponse.json() for custom headers (CSV, file downloads)
+  - Always verify apiSuccess returns `{ success: true, data }` shape
 ---

@@ -26,7 +26,9 @@ export default function Auth({ children }: AuthProps) {
           );
 
           if (response.ok) {
-            const result = await response.json();
+            const responseData = await response.json();
+            // Unwrap the apiSuccess wrapper
+            const result = responseData.data || responseData;
             const existingPlayer = result.player;
 
             // If player exists but has no username, prompt for username
@@ -67,13 +69,13 @@ export default function Auth({ children }: AuthProps) {
         }),
       });
 
-      const result = await response.json();
+      const responseData = await response.json();
 
-      if (result.success) {
+      if (responseData.success) {
         // Player created successfully
         setNeedsUsername(false);
       } else {
-        console.error("Failed to create player:", result.error);
+        console.error("Failed to create player:", responseData.error);
         // TODO: Show error message to user
       }
     } catch (error) {

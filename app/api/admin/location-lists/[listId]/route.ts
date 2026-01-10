@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { checkAdminPermission } from "@/lib/db/admin";
 import { deleteLocationList, updateLocationList } from "@/lib/db/location-lists";
+import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
 
 const colorRegex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
@@ -19,7 +20,7 @@ export async function PUT(
   try {
     const adminEmail = request.headers.get("x-user-email") || undefined;
     if (!checkAdminPermission(adminEmail)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return apiError("Unauthorized", 403);
     }
 
     const json = await request.json();
@@ -40,20 +41,14 @@ export async function PUT(
     }
 
     const list = await updateLocationList(params.listId, updates);
-    return NextResponse.json({ list });
+    return apiSuccess({ list });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid payload", issues: error.issues },
-        { status: 400 },
-      );
+      return apiValidationError(error);
     }
 
     console.error("Failed to update location list", error);
-    return NextResponse.json(
-      { error: "Failed to update location list" },
-      { status: 500 },
-    );
+    return apiError("Failed to update location list", 500);
   }
 }
 
@@ -64,16 +59,13 @@ export async function DELETE(
   try {
     const adminEmail = request.headers.get("x-user-email") || undefined;
     if (!checkAdminPermission(adminEmail)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return apiError("Unauthorized", 403);
     }
 
     await deleteLocationList(params.listId);
-    return NextResponse.json({ success: true });
+    return apiSuccess({ deleted: true });
   } catch (error) {
     console.error("Failed to delete location list", error);
-    return NextResponse.json(
-      { error: "Failed to delete location list" },
-      { status: 500 },
-    );
+    return apiError("Failed to delete location list", 500);
   }
 }

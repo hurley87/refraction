@@ -36,7 +36,9 @@ export default function AdminCheckpointsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: user.email.address }),
       });
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return data.isAdmin;
     } catch (error) {
       console.error("Error checking admin status:", error);
@@ -96,7 +98,9 @@ export default function AdminCheckpointsPage() {
         },
       });
       if (!response.ok) throw new Error("Failed to fetch checkpoints");
-      const data = await response.json();
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
       return data.checkpoints;
     },
     enabled: !!isAdmin,
@@ -132,8 +136,9 @@ export default function AdminCheckpointsPage() {
           const errorData = await response.json().catch(() => null);
           throw new Error(errorData?.error || "Failed to create checkpoint");
         }
-        const data = await response.json();
-        return data;
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        return responseData.data || responseData;
       } else {
         const response = await fetch("/api/admin/checkpoints", {
           method: "POST",
@@ -147,8 +152,9 @@ export default function AdminCheckpointsPage() {
           const errorData = await response.json().catch(() => null);
           throw new Error(errorData?.error || "Failed to create checkpoint");
         }
-        const data = await response.json();
-        return data;
+        const responseData = await response.json();
+        // Unwrap the apiSuccess wrapper
+        return responseData.data || responseData;
       }
     },
     onSuccess: (data) => {
@@ -204,8 +210,10 @@ export default function AdminCheckpointsPage() {
         const errorData = await response.json().catch(() => null);
         throw new Error(errorData?.error || "Failed to update checkpoint");
       }
-      const data = await response.json();
-      return data.data.checkpoint;
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
+      return data.checkpoint;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-checkpoints"] });
