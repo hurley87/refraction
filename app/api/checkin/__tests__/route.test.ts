@@ -353,9 +353,11 @@ describe('Checkin API Route', () => {
     })
 
     it('should support Solana chain checkin', async () => {
+      // Valid Solana address: base58, exactly 44 characters
+      const validSolanaAddress = '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM6'
       const mockPlayer = {
         id: '123',
-        solana_wallet_address: 'SolanaWallet123',
+        solana_wallet_address: validSolanaAddress,
         total_points: 0,
       }
 
@@ -373,7 +375,7 @@ describe('Checkin API Route', () => {
 
       const request = createMockRequest({
         chain: 'solana',
-        walletAddress: 'SolanaWallet123',
+        walletAddress: validSolanaAddress,
         checkpoint: 'checkpoint-abc',
       })
 
@@ -383,15 +385,17 @@ describe('Checkin API Route', () => {
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
       expect(createOrUpdatePlayerForSolana).toHaveBeenCalledWith(
-        'SolanaWallet123',
+        validSolanaAddress,
         undefined,
       )
     })
 
     it('should support Stellar chain checkin', async () => {
+      // Valid Stellar address: G + exactly 55 base32 characters (A-Z0-9) = 56 total
+      const validStellarAddress = 'GABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABC'
       const mockPlayer = {
         id: '123',
-        stellar_wallet_address: 'StellarWallet123',
+        stellar_wallet_address: validStellarAddress,
         total_points: 0,
       }
 
@@ -409,7 +413,7 @@ describe('Checkin API Route', () => {
 
       const request = createMockRequest({
         chain: 'stellar',
-        walletAddress: 'StellarWallet123',
+        walletAddress: validStellarAddress,
         checkpoint: 'checkpoint-abc',
       })
 
@@ -419,7 +423,7 @@ describe('Checkin API Route', () => {
       expect(response.status).toBe(200)
       expect(json.success).toBe(true)
       expect(createOrUpdatePlayerForStellar).toHaveBeenCalledWith(
-        'StellarWallet123',
+        validStellarAddress,
         undefined,
       )
     })
@@ -568,9 +572,11 @@ describe('Checkin API Route', () => {
     })
 
     it('should accept valid Solana wallet address with solana chain', async () => {
+      // Valid Solana address: base58, exactly 44 characters
+      const validSolanaAddress = '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM6'
       const mockPlayer = {
         id: '123',
-        solana_wallet_address: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+        solana_wallet_address: validSolanaAddress,
         total_points: 0,
       }
 
@@ -588,7 +594,7 @@ describe('Checkin API Route', () => {
 
       const request = createMockRequest({
         chain: 'solana',
-        walletAddress: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty',
+        walletAddress: validSolanaAddress,
         checkpoint: 'checkpoint-abc',
       })
 
@@ -600,8 +606,8 @@ describe('Checkin API Route', () => {
     })
 
     it('should accept valid Stellar wallet address with stellar chain', async () => {
-      // Valid Stellar address: G + 55 base32 characters
-      const validStellarAddress = 'GABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEF'
+      // Valid Stellar address: G + exactly 55 base32 characters (A-Z0-9) = 56 total
+      const validStellarAddress = 'GABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABC'
       const mockPlayer = {
         id: '123',
         stellar_wallet_address: validStellarAddress,
