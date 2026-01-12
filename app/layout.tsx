@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import "mapbox-gl/dist/mapbox-gl.css";
-import Providers from "@/components/providers";
+import Providers from "@/components/shared/providers";
 import { Toaster } from "@/components/ui/sonner";
 import Script from "next/script";
 import Image from "next/image";

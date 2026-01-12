@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
-import Auth from "@/components/auth/auth";
+import AuthWrapper from "@/components/auth/auth-wrapper";
 
 export const metadata: Metadata = {
   title: "$IRL",
@@ -23,7 +23,7 @@ export default function CheckpointLayout({
           backgroundRepeat: "no-repeat",
         }}
       >
-        <Auth>{children}</Auth>
+        <AuthWrapper requireUsername requireEmail>{children}</AuthWrapper>
       </div>
       <Toaster />
     </div>

@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import LocationSearch from "@/components/location-search";
+import LocationSearch from "@/components/shared/location-search";
 import type {
   LocationListWithCount,
   LocationListLocation,

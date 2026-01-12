@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Map, { Marker, Popup } from "react-map-gl/mapbox";
-import LocationSearch from "@/components/location-search";
+import LocationSearch from "@/components/shared/location-search";
 import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
 import MapNav from "@/components/map/mapnav";

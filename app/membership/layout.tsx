@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import Image from "next/image";
 import Link from "next/link";
-import Auth from "@/components/auth/ikaro-auth";
+import AuthWrapper from "@/components/auth/auth-wrapper";
 import Header from "@/components/ikaro-header";
 
 export const metadata: Metadata = {
@@ -32,7 +32,7 @@ export default function RootLayout({
           </Link>
           <Header />
         </div>
-        <Auth>{children}</Auth>
+        <AuthWrapper unauthenticatedUI="minimal">{children}</AuthWrapper>
       </div>
       <Toaster />
     </div>

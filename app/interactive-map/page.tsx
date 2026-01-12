@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import InteractiveMap from "@/components/map/interactive-map";
-import AuthOnboarding from "@/components/auth/auth-onboarding";
+import AuthWrapper from "@/components/auth/auth-wrapper";
 import MapLanding from "@/components/map/map-landing";
 import { useSearchParams } from "next/navigation";
 
@@ -12,11 +12,11 @@ function InteractiveMapContent() {
 
   return (
     <MapLanding>
-      <AuthOnboarding>
+      <AuthWrapper unauthenticatedUI="map-onboarding">
         <div className="font-grotesk h-full w-full">
           <InteractiveMap initialPlaceId={placeId} />
         </div>
-      </AuthOnboarding>
+      </AuthWrapper>
     </MapLanding>
   );
 }
