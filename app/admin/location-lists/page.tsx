@@ -672,6 +672,7 @@ export default function AdminLocationListsPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-user-email": user?.email?.address || "",
         },
         body: JSON.stringify({
           place_id: placeId,

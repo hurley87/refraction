@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
 import { trackLocationCreated, trackPointsEarned } from "@/lib/analytics";
-import { checkAdminPermission } from "@/lib/auth";
+import { checkAdminPermission } from "@/lib/db/admin";
 import { MAX_LOCATIONS_PER_DAY, SUPABASE_ERROR_CODES } from "@/lib/constants";
 import { getUtcDayBounds } from "@/lib/utils/date";
 import {
@@ -199,7 +199,11 @@ export async function POST(request: NextRequest) {
       return apiError("You can only add 30 locations per day. Come back tomorrow!", 429);
     }
 
-    // Insert the new location (hidden by default, requires admin approval)
+    // Check if creator is an admin
+    const creatorEmail = request.headers.get("x-user-email");
+    const isAdminCreator = checkAdminPermission(creatorEmail || undefined);
+
+    // Insert the new location (visible for admins, hidden for regular users)
     const locationInsertPayload = {
       place_id: sanitizedPlaceId,
       display_name: sanitizedDisplayName,
@@ -213,7 +217,7 @@ export async function POST(request: NextRequest) {
       creator_wallet_address: sanitizedWalletAddress,
       creator_username: sanitizedUsername,
       coin_image_url: normalizedLocationImage,
-      is_visible: false,
+      is_visible: isAdminCreator,
       context: JSON.stringify({
         created_at: new Date().toISOString(),
       }),
