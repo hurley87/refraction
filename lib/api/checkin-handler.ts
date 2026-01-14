@@ -219,21 +219,23 @@ export async function processCheckin(input: CheckinInput): Promise<CheckinResult
     ? { ...latestPlayer, total_points: totalPoints }
     : { ...player, total_points: totalPoints };
 
-  // Track analytics (only for EVM chain which has tracking set up)
-  if (chain === "evm") {
-    trackCheckinCompleted(chainWalletAddress, {
-      location_id: 0,
-      checkpoint,
-      points: pointsAwarded,
-      checkin_type: "checkpoint",
-    });
+  // Track analytics for all chains using player ID as distinct identifier
+  const distinctId = player.id ? String(player.id) : chainWalletAddress;
 
-    trackPointsEarned(chainWalletAddress, {
-      activity_type: "checkpoint_checkin",
-      amount: pointsAwarded,
-      description: `Checkpoint visit: ${checkpoint}`,
-    });
-  }
+  trackCheckinCompleted(distinctId, {
+    location_id: 0,
+    checkpoint,
+    points: pointsAwarded,
+    checkin_type: "checkpoint",
+    chain,
+  });
+
+  trackPointsEarned(distinctId, {
+    activity_type: "checkpoint_checkin",
+    amount: pointsAwarded,
+    description: `${chainDisplay}Checkpoint visit: ${checkpoint}`,
+    chain,
+  });
 
   return {
     success: true,

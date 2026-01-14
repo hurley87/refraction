@@ -27,6 +27,7 @@ export interface CheckinEventProperties {
   points: number;
   checkpoint?: string;
   checkin_type: "location" | "checkpoint";
+  chain?: "evm" | "solana" | "stellar";
 }
 
 export interface RewardEventProperties {
@@ -50,6 +51,7 @@ export interface PointsEarnedProperties {
   amount: number;
   cohort?: "new" | "returning" | "power";
   description?: string;
+  chain?: "evm" | "solana" | "stellar";
 }
 
 export interface TierChangedProperties {

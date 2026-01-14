@@ -169,19 +169,21 @@ describe('Checkin API Route', () => {
       expect(json.message).toContain('100 points')
 
       expect(trackCheckinCompleted).toHaveBeenCalledWith(
-        '0x1234567890abcdef1234567890abcdef12345678',
+        '123',
         expect.objectContaining({
           checkpoint: 'checkpoint-abc',
           points: 100,
           checkin_type: 'checkpoint',
+          chain: 'evm',
         })
       )
 
       expect(trackPointsEarned).toHaveBeenCalledWith(
-        '0x1234567890abcdef1234567890abcdef12345678',
+        '123',
         expect.objectContaining({
           activity_type: 'checkpoint_checkin',
           amount: 100,
+          chain: 'evm',
         })
       )
     })
