@@ -162,14 +162,14 @@ export default function AdminCheckpointsPage() {
       toast.success(
         <div>
           <p>Checkpoint created!</p>
-          <p className="mt-1 font-mono text-sm">URL: {data.data.url}</p>
+          <p className="mt-1 font-mono text-sm">URL: {data.url}</p>
           <Button
             variant="outline"
             size="sm"
             className="mt-2"
             onClick={() => {
               navigator.clipboard.writeText(
-                `${window.location.origin}${data.data.url}`,
+                `${window.location.origin}${data.url}`,
               );
               toast.success("URL copied to clipboard!");
             }}
