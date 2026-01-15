@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"enum":["Context","ContractExecutable","InvokerContractAuthEntry"],"struct":["ContractContext","CreateContractHostFnContext","SubContractInvocation"],"trait":["CustomAccountInterface"]};
