@@ -12,9 +12,28 @@ export const getStellarNetworkConfig = () => {
     (process.env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE ||
       "Test SDF Network ; September 2015") as WalletNetwork;
 
-  const rpcUrl =
-    process.env.NEXT_PUBLIC_STELLAR_RPC_URL ||
-    "https://rpc-futurenet.stellar.org";
+  // Get RPC URL based on network, defaulting to testnet
+  const getRpcUrlForNetwork = (net: string): string => {
+    const normalizedNet = net.toUpperCase();
+    switch (normalizedNet) {
+      case "PUBLIC":
+      case "MAINNET":
+        return "https://rpc-mainnet.stellar.org";
+      case "TESTNET":
+        // Use gateway.fm as it's more reliable and has better CORS support
+        return "https://soroban-rpc.testnet.stellar.gateway.fm";
+      case "FUTURENET":
+        return "https://rpc-futurenet.stellar.org";
+      case "LOCAL":
+      case "STANDALONE":
+        return "http://localhost:8000/soroban/rpc";
+      default:
+        return "https://soroban-rpc.testnet.stellar.gateway.fm"; // Default to testnet
+    }
+  };
+
+  // Get RPC URL - environment variable takes precedence, then network-based selection
+  const rpcUrl = process.env.NEXT_PUBLIC_STELLAR_RPC_URL || getRpcUrlForNetwork(network);
 
   const horizonUrl =
     process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL ||

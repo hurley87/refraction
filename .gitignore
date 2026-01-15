@@ -37,3 +37,5 @@ next-env.d.ts
 
 # contracts
 contracts
+
+soroban-contracts/simple_payment/target/
