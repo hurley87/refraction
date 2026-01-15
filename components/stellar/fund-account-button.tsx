@@ -22,12 +22,23 @@ const FundAccountButton: React.FC = () => {
   const handleFundAccount = () => {
     startTransition(async () => {
       try {
-        const response = await fetch(getFriendbotUrl(address));
+        const friendbotUrl = getFriendbotUrl(address);
+        console.log("[Fund Account] Requesting funding from:", friendbotUrl);
+        
+        const response = await fetch(friendbotUrl);
 
         if (response.ok) {
-          addNotification("Account funded successfully!", "success");
+          const result = await response.json();
+          console.log("[Fund Account] Funding successful:", result);
+          addNotification("Account funded successfully! Please wait a moment for the balance to update.", "success");
+          
+          // Refresh the page after a short delay to update balances
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
         } else {
           const body: unknown = await response.json();
+          console.error("[Fund Account] Funding failed:", body);
           if (
             body !== null &&
             typeof body === "object" &&
@@ -39,7 +50,8 @@ const FundAccountButton: React.FC = () => {
             addNotification("Error funding account: Unknown error", "error");
           }
         }
-      } catch {
+      } catch (error) {
+        console.error("[Fund Account] Exception:", error);
         addNotification("Error funding account. Please try again.", "error");
       }
     });

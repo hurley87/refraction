@@ -216,6 +216,27 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     void updateBalances();
   }, [updateBalances, address, network]);
 
+  // Poll balances every 10 seconds
+  useEffect(() => {
+    if (!address || !network) {
+      return;
+    }
+
+    // Initial fetch
+    void updateBalances();
+
+    // Set up interval to fetch balances every 10 seconds
+    const balancePollInterval = setInterval(() => {
+      console.log("[Stellar] Polling balances (10s interval)");
+      void updateBalances();
+    }, 10000); // 10 seconds
+
+    // Cleanup interval on unmount or when address/network changes
+    return () => {
+      clearInterval(balancePollInterval);
+    };
+  }, [updateBalances, address, network]);
+
   const updateCurrentWalletState = async () => {
     // There is no way, with StellarWalletsKit, to check if the wallet is
     // installed/connected/authorized. We need to manage that on our side by

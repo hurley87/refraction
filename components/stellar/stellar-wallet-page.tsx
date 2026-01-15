@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WalletProvider } from "@/lib/stellar/providers/wallet-provider";
 import { NotificationProvider } from "@/lib/stellar/providers/notification-provider";
 import ConnectAccount from "./connect-account";
+import TestSendContract from "./test-send-contract";
 
 import { Toaster } from "sonner";
 
@@ -29,6 +30,9 @@ export function StellarWalletPage() {
                 <ConnectAccount />
               </div>
 
+              <div className="bg-[#1a1a1a] rounded-lg p-6 border border-[#313131]">
+                <TestSendContract />
+              </div>
               
             </div>
           </div>
