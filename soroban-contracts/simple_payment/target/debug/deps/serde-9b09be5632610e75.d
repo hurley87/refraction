@@ -1,0 +1,14 @@
+/home/gb/Dev/Refraction/refraction/soroban-contracts/simple_payment/target/debug/deps/serde-9b09be5632610e75.d: /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/gb/Dev/Refraction/refraction/soroban-contracts/simple_payment/target/debug/build/serde-0c79bc1bb5bf9eba/out/private.rs
+
+/home/gb/Dev/Refraction/refraction/soroban-contracts/simple_payment/target/debug/deps/libserde-9b09be5632610e75.rlib: /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/gb/Dev/Refraction/refraction/soroban-contracts/simple_payment/target/debug/build/serde-0c79bc1bb5bf9eba/out/private.rs
+
+/home/gb/Dev/Refraction/refraction/soroban-contracts/simple_payment/target/debug/deps/libserde-9b09be5632610e75.rmeta: /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /home/gb/Dev/Refraction/refraction/soroban-contracts/simple_payment/target/debug/build/serde-0c79bc1bb5bf9eba/out/private.rs
+
+/home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/home/gb/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/home/gb/Dev/Refraction/refraction/soroban-contracts/simple_payment/target/debug/build/serde-0c79bc1bb5bf9eba/out/private.rs:
+
+# env-dep:OUT_DIR=/home/gb/Dev/Refraction/refraction/soroban-contracts/simple_payment/target/debug/build/serde-0c79bc1bb5bf9eba/out
