@@ -6,6 +6,8 @@ import { NotificationProvider } from "@/lib/stellar/providers/notification-provi
 import ConnectAccount from "./connect-account";
 import TestSendContract from "./test-send-contract";
 
+import MintNFT from "./mint-nft";
+
 import { Toaster } from "sonner";
 
 const queryClient = new QueryClient({
@@ -32,6 +34,11 @@ export function StellarWalletPage() {
 
               <div className="bg-[#1a1a1a] rounded-lg p-6 border border-[#313131]">
                 <TestSendContract />
+              </div>
+
+        
+              <div className="bg-[#1a1a1a] rounded-lg p-6 border border-[#313131]">
+                <MintNFT />
               </div>
               
             </div>
