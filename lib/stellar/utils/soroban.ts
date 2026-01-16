@@ -8,8 +8,7 @@ import {
   scValToNative,
   StrKey,
   TransactionBuilder,
-  Operation,
-  Asset,
+
   Horizon,
 } from "@stellar/stellar-sdk";
 import { networkPassphrase, rpcUrl, horizonUrl } from "./network";
@@ -446,11 +445,11 @@ export const readContract = async (
     // Try Horizon first as it's more reliable
     const horizonServer = new Horizon.Server(effectiveHorizonUrl);
     account = await horizonServer.loadAccount(dummyAccount);
-  } catch (horizonError) {
+  } catch {
     // If Horizon fails, try RPC
     try {
       account = await rpc.getAccount(dummyAccount);
-    } catch (rpcError) {
+    } catch {
       // If both fail, create a minimal account object
       // This is fine for view functions - we just need an account for transaction building
       account = {
@@ -709,7 +708,7 @@ export const mintNFT = async (
     if (passphrase && passphrase !== Networks.TESTNET) {
       try {
         signedTx = TransactionBuilder.fromXDR(signedTxXdrString, Networks.TESTNET);
-      } catch (error) {
+      } catch {
         throw new Error(
           `Failed to parse signed transaction XDR: ${errorMessage}. ` +
           `Tried passphrases: "${passphrase}" and "${Networks.TESTNET}".`

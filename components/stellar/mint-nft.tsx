@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useWallet } from "@/lib/stellar/hooks/use-wallet";
 import { useNotification } from "@/lib/stellar/hooks/use-notification";
-import { mintNFT, isValidAddress, isValidContractAddress } from "@/lib/stellar/utils/soroban";
+import { mintNFT, isValidContractAddress } from "@/lib/stellar/utils/soroban";
 import { getNFTContractAddress } from "@/lib/stellar/utils/network";
 import { toast } from "sonner";
 
