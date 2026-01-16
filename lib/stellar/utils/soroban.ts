@@ -8,11 +8,11 @@ import {
   scValToNative,
   StrKey,
   TransactionBuilder,
- 
+
+  Horizon,
 } from "@stellar/stellar-sdk";
 import { networkPassphrase, rpcUrl, horizonUrl } from "./network";
 import { wallet } from "./wallet";
-import { Horizon } from "@stellar/stellar-sdk";
 
 /**
  * Get Soroban RPC server instance for the current network
@@ -432,16 +432,50 @@ export const readContract = async (
   const rpc = getSorobanRpc();
   const contract = getContract(contractId);
 
+  // Ensure we're using testnet configuration
+  const passphrase = networkPassphrase || Networks.TESTNET;
+  const effectiveHorizonUrl = horizonUrl || "https://horizon-testnet.stellar.org";
+  
   // Build a simulation transaction (no signing needed for view functions)
-  // Use a dummy account for simulation
+  // Use Horizon to get a real account (more reliable than RPC getAccount)
+  let account: any;
   const dummyAccount = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
-  const account = await rpc.getAccount(dummyAccount).catch(() => {
-    // If account doesn't exist, create a minimal account object
-    return {
-      accountId: dummyAccount,
-      sequenceNumber: "0",
-    } as any;
-  });
+  
+  try {
+    // Try Horizon first as it's more reliable
+    const horizonServer = new Horizon.Server(effectiveHorizonUrl);
+    account = await horizonServer.loadAccount(dummyAccount);
+  } catch {
+    // If Horizon fails, try RPC
+    try {
+      account = await rpc.getAccount(dummyAccount);
+    } catch {
+      // If both fail, create a minimal account object
+      // This is fine for view functions - we just need an account for transaction building
+      account = {
+        accountId: dummyAccount,
+        sequenceNumber: "0",
+      } as any;
+    }
+  }
+  
+  // Determine network name for logging
+  const networkName = passphrase.includes("Test") ? "TESTNET" 
+    : passphrase.includes("Public") ? "MAINNET" 
+    : "UNKNOWN";
+  
+  if (process.env.NODE_ENV === "development") {
+    console.log(`[readContract] Calling function "${functionName}" on contract ${contractId}`, {
+      contractId,
+      functionName,
+      args,
+      network: networkName,
+      networkPassphrase: passphrase.substring(0, 30) + "...",
+      horizonUrl: effectiveHorizonUrl,
+      rpcUrl: rpcUrl,
+      account: account.accountId || account.account?.accountId(),
+    });
+  }
 
   const contractCall = contract.call(
     functionName,
@@ -455,7 +489,7 @@ export const readContract = async (
 
   const transaction = new TransactionBuilder(account as any, {
     fee: "100",
-    networkPassphrase: networkPassphrase || Networks.TESTNET,
+    networkPassphrase: passphrase,
   })
     .addOperation(contractCall)
     .setTimeout(30)
@@ -465,15 +499,288 @@ export const readContract = async (
   const simulation = await rpc.simulateTransaction(transaction);
 
   if (SorobanRpc.Api.isSimulationError(simulation)) {
+    const errorDetails = simulation.error 
+      ? JSON.stringify(simulation.error, null, 2)
+      : "Unknown simulation error";
+    const errorMsg = `Simulation error for function "${functionName}" on ${networkName}: ${errorDetails}. ` +
+      `This might indicate the function doesn't exist, has wrong arguments, or the contract isn't deployed on ${networkName}. ` +
+      `Contract: ${contractId}, Network: ${networkName}, RPC: ${rpcUrl}, Horizon: ${effectiveHorizonUrl}`;
+    if (process.env.NODE_ENV === "development") {
+      console.error("[readContract] Simulation error:", errorMsg);
+    }
+    throw new Error(errorMsg);
+  }
+
+  if (!simulation.result) {
+    const errorMsg = `Simulation returned no result for function "${functionName}" on ${networkName}. ` +
+      `The contract might not exist or the function signature might be incorrect. ` +
+      `Contract: ${contractId}, Network: ${networkName}, RPC: ${rpcUrl}`;
+    if (process.env.NODE_ENV === "development") {
+      console.error("[readContract] No simulation result:", errorMsg);
+    }
+    throw new Error(errorMsg);
+  }
+
+  if (!simulation.result.retval) {
+    const errorMsg = `Simulation returned no retval for function "${functionName}" on ${networkName}. ` +
+      `The function might not return a value or the contract might not be initialized. ` +
+      `Contract: ${contractId}, Network: ${networkName}`;
+    if (process.env.NODE_ENV === "development") {
+      console.error("[readContract] No retval:", errorMsg);
+    }
+    throw new Error(errorMsg);
+  }
+
+  // Convert the result back to native JavaScript types
+  try {
+    const result = scValToNative(simulation.result.retval);
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[readContract] Successfully called "${functionName}" on ${networkName}:`, result);
+    }
+    return result;
+  } catch (convertError) {
+    const errorMessage = convertError instanceof Error ? convertError.message : String(convertError);
+    const errorMsg = `Failed to convert result for function "${functionName}" on ${networkName}: ${errorMessage}. ` +
+      `Result: ${JSON.stringify(simulation.result.retval)}`;
+    if (process.env.NODE_ENV === "development") {
+      console.error("[readContract] Conversion error:", errorMsg);
+    }
+    throw new Error(errorMsg);
+  }
+};
+
+/**
+ * Invoke an NFT contract function
+ * @param contractId - The NFT contract address or ID
+ * @param functionName - Name of the function to invoke
+ * @param args - Array of arguments to pass to the function
+ * @param signerAddress - Address of the account signing the transaction
+ * @param customNetworkPassphrase - Network passphrase for transaction building
+ */
+export const invokeNFTContract = async (
+  contractId: string,
+  functionName: string,
+  args: any[],
+  signerAddress: string,
+  customNetworkPassphrase?: string,
+): Promise<string> => {
+  // Use the general invokeContract function
+  return invokeContract(
+    contractId,
+    functionName,
+    args,
+    signerAddress,
+    customNetworkPassphrase,
+  );
+};
+
+/**
+ * Mint an NFT to a recipient address with a payment of 1 XLM
+ * @param contractId - The NFT contract address or ID
+ * @param recipientAddress - Address to receive the minted NFT
+ * @param signerAddress - Address of the account signing the transaction (any user can mint)
+ * @param customNetworkPassphrase - Network passphrase for transaction building
+ * @returns Transaction hash
+ */
+export const mintNFT = async (
+  contractId: string,
+  recipientAddress: string,
+  signerAddress: string,
+  customNetworkPassphrase?: string,
+): Promise<string> => {
+  if (!isValidAddress(recipientAddress)) {
+    throw new Error(`Invalid recipient address: ${recipientAddress}`);
+  }
+
+  const rpc = getSorobanRpc();
+  const contract = getContract(contractId);
+  const passphrase = customNetworkPassphrase || networkPassphrase;
+
+  // Get the current account to build the transaction
+  let account;
+  try {
+    const horizonServer = new Horizon.Server(horizonUrl);
+    account = await horizonServer.loadAccount(signerAddress);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes("not found") || errorMessage.includes("does not exist") || errorMessage.includes("404")) {
+      const networkName = passphrase.includes("Test") ? "TESTNET" : passphrase.includes("Public") ? "MAINNET" : "UNKNOWN";
+      throw new Error(
+        `Account not found on ${networkName}: ${signerAddress}. ` +
+        `The account must be funded before it can invoke contracts. ` +
+        `On testnet/futurenet, you can fund it using Friendbot: ` +
+        `curl "https://friendbot.stellar.org/?addr=${signerAddress}" ` +
+        `Current network: ${networkName}, Horizon: ${horizonUrl}, RPC: ${rpcUrl}`
+      );
+    }
+    throw error;
+  }
+
+  // Build the contract call
+  const contractCall = contract.call(
+    "mint",
+    addressToScVal(recipientAddress),
+  );
+
+  // Note: Payment is now handled within the contract itself.
+  // The contract's mint function automatically transfers 1 XLM from the recipient to the contract.
+  // The recipient address must authorize the transaction (sign it) for the payment to work.
+
+  // Build transaction with contract call
+  const transaction = new TransactionBuilder(account, {
+    fee: "100",
+    networkPassphrase: passphrase || Networks.TESTNET,
+  })
+    .addOperation(contractCall)
+    .setTimeout(30)
+    .build();
+
+  // Simulate the transaction first
+  const simulation = await rpc.simulateTransaction(transaction);
+
+  if (SorobanRpc.Api.isSimulationError(simulation)) {
+    const errorDetails = simulation.error 
+      ? JSON.stringify(simulation.error, null, 2)
+      : "Unknown simulation error";
     throw new Error(
-      `Simulation error: ${JSON.stringify(simulation.error)}`,
+      `Simulation error for mint function: ${errorDetails}. ` +
+      `This might indicate the function doesn't exist, has wrong arguments, or the contract isn't deployed.`
     );
   }
 
   if (!simulation.result) {
-    throw new Error("Simulation returned no result");
+    throw new Error(
+      `Simulation returned no result for mint function. ` +
+      `The contract might not exist or the function signature might be incorrect.`
+    );
   }
 
-  // Convert the result back to native JavaScript types
-  return scValToNative(simulation.result.retval);
+  // Prepare the transaction
+  const preparedTransaction = await rpc.prepareTransaction(transaction);
+
+  // Sign the transaction using the wallet kit
+  const signedTransactionResult = await wallet.signTransaction(
+    preparedTransaction.toXDR(),
+    {
+      networkPassphrase: passphrase || Networks.TESTNET,
+      address: signerAddress,
+    },
+  );
+
+  // Handle the signed transaction result
+  let signedTxXdrString: string;
+  
+  if (typeof signedTransactionResult === 'string') {
+    signedTxXdrString = signedTransactionResult;
+  } else if (signedTransactionResult && typeof signedTransactionResult === 'object') {
+    if ('signedTxXdr' in signedTransactionResult && typeof signedTransactionResult.signedTxXdr === 'string') {
+      signedTxXdrString = signedTransactionResult.signedTxXdr;
+    } else if ('xdr' in signedTransactionResult && typeof signedTransactionResult.xdr === 'string') {
+      signedTxXdrString = signedTransactionResult.xdr;
+    } else if ('signedXdr' in signedTransactionResult && typeof signedTransactionResult.signedXdr === 'string') {
+      signedTxXdrString = signedTransactionResult.signedXdr;
+    } else if ('toXDR' in signedTransactionResult && typeof signedTransactionResult.toXDR === 'function') {
+      signedTxXdrString = signedTransactionResult.toXDR();
+    } else {
+      console.error("[Soroban] Unexpected signTransaction result format:", signedTransactionResult);
+      const keys = Object.keys(signedTransactionResult);
+      throw new Error(
+        `Wallet returned unexpected format from signTransaction. ` +
+        `Expected string or object with 'signedTxXdr'/'xdr'/'signedXdr' property. ` +
+        `Got object with keys: ${keys.join(', ')}.`
+      );
+    }
+  } else {
+    throw new Error(
+      `Wallet signTransaction returned unexpected type: ${typeof signedTransactionResult}. ` +
+      `Expected string or object.`
+    );
+  }
+  
+  // Parse the signed transaction XDR
+  let signedTx;
+  try {
+    signedTx = TransactionBuilder.fromXDR(signedTxXdrString, passphrase || Networks.TESTNET);
+  } catch (parseError) {
+    const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+    console.error("[Soroban] Failed to parse signed transaction XDR:", errorMessage);
+    
+    if (passphrase && passphrase !== Networks.TESTNET) {
+      try {
+        signedTx = TransactionBuilder.fromXDR(signedTxXdrString, Networks.TESTNET);
+      } catch {
+        throw new Error(
+          `Failed to parse signed transaction XDR: ${errorMessage}. ` +
+          `Tried passphrases: "${passphrase}" and "${Networks.TESTNET}".`
+        );
+      }
+    } else {
+      throw new Error(
+        `Failed to parse signed transaction XDR: ${errorMessage}. ` +
+        `Network passphrase: ${passphrase || Networks.TESTNET}.`
+      );
+    }
+  }
+
+  // Send the transaction
+  const sendResponse = await rpc.sendTransaction(signedTx);
+
+  if (sendResponse.status === "ERROR") {
+    throw new Error(`Transaction failed: ${sendResponse.errorResult?.toString()}`);
+  }
+
+  // Wait for the transaction to complete
+  const getTxResponse = await rpc.getTransaction(sendResponse.hash);
+
+  if (getTxResponse.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
+    throw new Error(
+      `Transaction failed: ${getTxResponse.resultXdr?.toString()}`,
+    );
+  }
+
+  return sendResponse.hash;
+};
+
+/**
+ * Read a value from an NFT contract (view function)
+ * @param contractId - The NFT contract address or ID
+ * @param functionName - Name of the view function to call
+ * @param args - Array of arguments to pass to the function
+ * @returns The result of the view function call
+ */
+export const readNFTContract = async (
+  contractId: string,
+  functionName: string,
+  args: any[] = [],
+): Promise<any> => {
+  return readContract(contractId, functionName, args);
+};
+
+/**
+ * Get the collection name
+ * @param contractId - The NFT contract address or ID
+ * @returns The collection name as a string
+ */
+export const getNFTName = async (contractId: string): Promise<string> => {
+  return readNFTContract(contractId, "name", []);
+};
+
+/**
+ * Get the collection symbol
+ * @param contractId - The NFT contract address or ID
+ * @returns The collection symbol as a string
+ */
+export const getNFTSymbol = async (contractId: string): Promise<string> => {
+  return readNFTContract(contractId, "symbol", []);
+};
+
+/**
+ * Get the total supply of minted NFTs
+ * @param contractId - The NFT contract address or ID
+ * @returns The total supply as a number
+ */
+export const getNFTTotalSupply = async (contractId: string): Promise<number> => {
+  const result = await readNFTContract(contractId, "total_supply", []);
+  // Ensure we return a number (result might be a string or other type)
+  return typeof result === "number" ? result : Number(result);
 };

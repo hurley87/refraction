@@ -76,3 +76,11 @@ export const getHorizonUrlForNetwork = (networkName: string | undefined): string
 
 export const { stellarNetwork, networkPassphrase, rpcUrl, horizonUrl } =
   getStellarNetworkConfig();
+
+/**
+ * Get NFT contract address from environment variable
+ * @returns The NFT contract address, or empty string if not configured
+ */
+export const getNFTContractAddress = (): string => {
+  return process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS || "";
+};
