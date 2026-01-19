@@ -4,9 +4,16 @@ A minimal Soroban smart contract that transfers XLM (the native Stellar asset) f
 
 ## Contract Functions
 
-- `send(recipient: Address, amount: i128)` - Send XLM to a recipient
-- `transfer(recipient: Address, amount: i128)` - Alias for `send()`
-- `pay(recipient: Address, amount: i128)` - Alias for `send()`
+### Public Functions
+- `send(recipient: Address, amount: i128)` - Send XLM to a recipient (anyone can call)
+- `transfer(recipient: Address, amount: i128)` - Alias for `send()` (anyone can call)
+- `pay(recipient: Address, amount: i128)` - Alias for `send()` (anyone can call)
+- `send_with_native_address(native_asset_address: Address, recipient: Address, amount: i128)` - Send XLM using explicit native asset address (anyone can call, works across networks)
+
+**Security:** All send functions validate that:
+- Amount is positive (greater than zero)
+- Contract has sufficient balance
+- Anyone can call these functions to send XLM from the contract
 
 ## Prerequisites
 
@@ -29,6 +36,17 @@ A minimal Soroban smart contract that transfers XLM (the native Stellar asset) f
    ```bash
    cargo install --locked soroban-cli
    ```
+
+## Security Considerations
+
+### Storage TTL Management
+
+This contract does not use persistent storage, so TTL management is not a concern for this contract.
+
+**Current SDK Version:**
+- `soroban-sdk = "23.4"` - Current stable version
+- Periodically check for SDK updates: `cargo search soroban-sdk`
+- Before upgrading, verify compatibility with any dependencies
 4. Add the Soroban WASM target:
    ```bash
    # Soroban uses a custom WASM target
@@ -131,7 +149,11 @@ soroban contract invoke \
   --amount 10000000
 ```
 
-Note: Amount is in stroops (1 XLM = 10,000,000 stroops). So `10000000` = 1 XLM.
+**Important Notes:**
+- Anyone can call `send()`, `transfer()`, `pay()`, and `send_with_native_address()` functions
+- Amount is in stroops (1 XLM = 10,000,000 stroops). So `10000000` = 1 XLM
+- The amount must be positive and the contract must have sufficient balance
+- The function will panic if amount is zero or negative, or if contract balance is insufficient
 
 ## Important Notes
 

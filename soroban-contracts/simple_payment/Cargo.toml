@@ -7,10 +7,10 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-soroban-sdk = "21.0.0"
+soroban-sdk = "23.4"
 
 [dev-dependencies]
-soroban-sdk = { version = "21.0.0", features = ["testutils"] }
+soroban-sdk = { version = "23.4", features = ["testutils"] }
 
 # Use vendored OpenSSL for dev dependencies to avoid system dependency issues
 # This helps when running tests or building dev tools
