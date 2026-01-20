@@ -86,7 +86,6 @@ export default function AdminCheckpointsPage() {
     verifyAdmin();
   }, [user, checkAdminStatus]);
 
-  // Fetch all checkpoints
   const { data: checkpoints = [], isLoading: checkpointsLoading } = useQuery<
     Checkpoint[]
   >({
