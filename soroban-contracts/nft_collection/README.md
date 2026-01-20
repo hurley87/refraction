@@ -43,6 +43,28 @@ The contract implements the standard NonFungibleToken interface from OpenZeppeli
    rustup target add wasm32v1-none
    ```
 
+## Security Considerations
+
+### Storage TTL Management
+
+This contract uses **instance storage** for critical data:
+- Native asset address
+- Maximum supply
+- Current supply counter
+
+**Important:** Instance storage entries in Soroban have a Time-To-Live (TTL) and may expire unless explicitly extended. If storage entries expire, the contract may fail to function correctly.
+
+**Recommendations:**
+- Monitor storage TTL for instance storage entries
+- Extend TTL before entries expire if needed
+- For production deployments, consider implementing a maintenance function to extend TTLs
+- Document TTL requirements in your deployment procedures
+
+**Current SDK Version:**
+- `soroban-sdk = "23.4"` - Current stable version compatible with OpenZeppelin v0.6.0
+- Periodically check for SDK updates: `cargo search soroban-sdk`
+- Before upgrading, verify compatibility with OpenZeppelin contracts
+
   
 # upload nft image to pinata, copy the cid to insert into the "url" key in the metadata file
 # update /soroban-contracts/nft_collection/metadata.json with your collection info
@@ -76,17 +98,27 @@ cargo build --target wasm32v1-none --release
    curl "https://friendbot.stellar.org/?addr=YOUR_ACCOUNT_ADDRESS"
    ```
 
-2. Deploy the contract (the constructor will be called automatically during deployment):
+  2. Get the XLM native asset contract address for your network:
+   ```bash
+   soroban contract id asset --asset native --network testnet
+   ```
+   This will return an address starting with 'C' (e.g., `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`)
+
+3. Deploy the contract (the constructor will be called automatically during deployment):
    ```bash
    soroban contract deploy \
      --wasm target/wasm32v1-none/release/nft_collection.wasm \
      --source SECRET_KEY \
      --network testnet \
-     -- --owner GBPOXKFVX4BRAQHMNE66EWKPVQRE6ZR3P4WQGKIA4WUFVX7K3NN6SWA6
+     -- --owner GBPOXKFVX4BRAQHMNE66EWKPVQRE6ZR3P4WQGKIA4WUFVX7K3NN6SWA6 \
+        --native_asset_address CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC \
+        --max_supply 10000
    ```
    
    **Important:** 
    - Replace `GBPOXKFVX4BRAQHMNE66EWKPVQRE6ZR3P4WQGKIA4WUFVX7K3NN6SWA6` with your actual Stellar account address (starts with 'G', 56 characters)
+   - Replace `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` with the XLM contract address from step 2
+   - Replace `10000` with your desired maximum supply (use `0` for unlimited)
    - The `--` separator is required before constructor arguments
    - The constructor is automatically called during deployment, so you don't need a separate initialization step
 
@@ -96,13 +128,23 @@ cargo build --target wasm32v1-none --release
 
 ### To Futurenet
 
-```bash
-soroban contract deploy \
-  --wasm target/wasm32v1-none/release/nft_collection.wasm \
-  --source YOUR_SECRET_KEY \
-  --network futurenet \
-  -- --owner GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-```
+1. Get the XLM native asset contract address:
+   ```bash
+   soroban contract id asset --asset native --network futurenet
+   ```
+
+2. Deploy the contract:
+   ```bash
+   soroban contract deploy \
+     --wasm target/wasm32v1-none/release/nft_collection.wasm \
+     --source YOUR_SECRET_KEY \
+     --network futurenet \
+     -- --owner GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \
+        --native_asset_address CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \
+        --max_supply 10000
+   ```
+   
+   Replace the addresses and max_supply value as needed.
 
 ## Using the Contract
 

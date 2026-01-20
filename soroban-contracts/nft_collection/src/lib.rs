@@ -14,11 +14,18 @@ impl NonFungibleTokenContract {
     /// 
     /// # Arguments
     /// * `owner` - The address that will own the contract (for administrative purposes)
+    /// * `native_asset_address` - The XLM native asset contract address for your network
+    /// * `max_supply` - Maximum number of NFTs that can be minted (0 = unlimited)
     /// 
     /// # Note
     /// Sets the contract metadata (name, symbol, URI) and assigns the owner.
     /// The owner can be used for future administrative functions, but any user can mint NFTs.
-    pub fn __constructor(e: &Env, owner: Address) {
+    /// 
+    /// To get the XLM contract address for your network:
+    /// ```bash
+    /// soroban contract id asset --asset native --network <network>
+    /// ```
+    pub fn __constructor(e: &Env, owner: Address, native_asset_address: Address, max_supply: u32) {
         // Set token metadata
         Base::set_metadata(
             e,
@@ -29,18 +36,62 @@ impl NonFungibleTokenContract {
 
         // Set the contract owner
         ownable::set_owner(e, &owner);
+        
+        // Store the native asset address in contract storage
+        // Note: Instance storage entries have TTL and may expire unless extended
+        let native_asset_key = String::from_str(e, "native_asset");
+        e.storage().instance().set(&native_asset_key, &native_asset_address);
+        
+        // Store the max supply in contract storage
+        // Note: Instance storage entries have TTL and may expire unless extended
+        let max_supply_key = String::from_str(e, "max_supply");
+        e.storage().instance().set(&max_supply_key, &max_supply);
+        
+        // Initialize supply counter to 0
+        // Note: Instance storage entries have TTL and may expire unless extended
+        let supply_key = String::from_str(e, "supply");
+        e.storage().instance().set(&supply_key, &0u32);
     }
 
-    /// Get the XLM native asset contract address
+    /// Get the XLM native asset contract address from storage
     /// 
-    /// In Soroban, XLM (the native Stellar asset) has a contract address that is network-specific.
-    /// You can get the XLM contract address using: `soroban contract id asset --asset native --network <network>`
+    /// Returns the native asset address that was set during contract initialization.
     fn get_native_asset_address(env: &Env) -> Address {
-        // XLM native asset contract address for Testnet
-        // For other networks, update this address
-        // Get it using: soroban contract id asset --asset native --network <network>
-        let native_asset_str = String::from_str(env, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC");
-        Address::from_string(&native_asset_str)
+        let storage_key = String::from_str(env, "native_asset");
+        env.storage()
+            .instance()
+            .get(&storage_key)
+            .expect("Native asset address not initialized")
+    }
+
+    /// Get the maximum supply from storage
+    /// 
+    /// Returns the maximum supply that was set during contract initialization.
+    /// Returns 0 if unlimited.
+    fn get_max_supply(env: &Env) -> u32 {
+        let storage_key = String::from_str(env, "max_supply");
+        env.storage()
+            .instance()
+            .get(&storage_key)
+            .unwrap_or(0) // Default to 0 (unlimited) if not set
+    }
+
+    /// Get the current supply from storage
+    /// 
+    /// Returns the current number of minted NFTs.
+    fn get_current_supply(env: &Env) -> u32 {
+        let storage_key = String::from_str(env, "supply");
+        env.storage()
+            .instance()
+            .get(&storage_key)
+            .unwrap_or(0) // Default to 0 if not set
+    }
+
+    /// Increment the supply counter
+    fn increment_supply(env: &Env) {
+        let current = Self::get_current_supply(env);
+        let storage_key = String::from_str(env, "supply");
+        env.storage().instance().set(&storage_key, &(current + 1));
     }
 
     /// Mint a new NFT to the specified address
@@ -55,23 +106,57 @@ impl NonFungibleTokenContract {
     /// Any user can mint NFTs. The function automatically transfers 1 XLM (10,000,000 stroops)
     /// from the recipient (`to`) to the contract as payment. The recipient must have sufficient XLM balance
     /// and must authorize the transaction (sign it).
+    /// 
+    /// If minting fails after payment, the payment will be refunded to the recipient.
+    /// In Soroban, if sequential_mint panics, the entire transaction reverts,
+    /// so the payment transfer will also be reverted automatically. No explicit refund needed.
     pub fn mint(env: Env, to: Address) -> u32 {
+        // Validate recipient address is not the contract itself (prevents self-minting issues)
+        let contract_address = env.current_contract_address();
+        if to == contract_address {
+            panic!("Cannot mint to contract address");
+        }
+        
+        // Check supply cap before proceeding
+        let max_supply = Self::get_max_supply(&env);
+        if max_supply > 0 {
+            let current_supply = Self::get_current_supply(&env);
+            if current_supply >= max_supply {
+                panic!("Maximum supply reached: {} / {}", current_supply, max_supply);
+            }
+        }
+        
         // Get the native asset (XLM) contract address
         let native_asset_address = Self::get_native_asset_address(&env);
         let native_token = token::Client::new(&env, &native_asset_address);
         
         // Require authorization from the recipient (they must sign the transaction)
         // This ensures they are paying for the mint
+        // Note: In Soroban, we cannot easily distinguish between account addresses (G...) 
+        // and contract addresses (C...) at runtime. The require_auth() ensures the address
+        // authorizes the transaction, which provides some protection against malicious contracts.
         to.require_auth();
-        
-        let contract_address = env.current_contract_address();
         
         // Transfer 1 XLM (10,000,000 stroops) from the recipient to the contract as payment
         let mint_cost: i128 = 10_000_000; // 1 XLM in stroops
+        
+        // Check recipient balance before attempting transfer
+        let recipient_balance = native_token.balance(&to);
+        if mint_cost > recipient_balance {
+            panic!("Insufficient balance: recipient has {} but needs {}", recipient_balance, mint_cost);
+        }
+        
+        // Transfer payment first (checks-effects-interactions pattern)
         native_token.transfer(&to, &contract_address, &mint_cost);
         
         // Mint the NFT to the recipient
-        Base::sequential_mint(&env, &to)
+        // If this fails, the entire transaction reverts, including the payment transfer
+        let token_id = Base::sequential_mint(&env, &to);
+        
+        // Increment supply counter after successful mint
+        Self::increment_supply(&env);
+        
+        token_id
     }
 
     /// Withdraw XLM from the contract to the owner
@@ -99,6 +184,10 @@ impl NonFungibleTokenContract {
         // Determine how much to withdraw
         let withdraw_amount = match amount {
             Some(amt) => {
+                // Validate amount is positive
+                if amt <= 0 {
+                    panic!("Amount must be positive, got: {}", amt);
+                }
                 // Validate that requested amount doesn't exceed balance
                 if amt > contract_balance {
                     panic!("Insufficient balance: requested {} but contract has {}", amt, contract_balance);

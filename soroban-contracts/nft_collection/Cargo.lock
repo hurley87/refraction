@@ -1508,7 +1508,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "stellar-access"
 version = "0.6.0"
-source = "git+https://github.com/OpenZeppelin/stellar-contracts?branch=main#82f97111f9568d32653dd5b3563baf5b73509c89"
+source = "git+https://github.com/OpenZeppelin/stellar-contracts?tag=v0.6.0#82f97111f9568d32653dd5b3563baf5b73509c89"
 dependencies = [
  "soroban-sdk",
 ]
@@ -1516,7 +1516,7 @@ dependencies = [
 [[package]]
 name = "stellar-contract-utils"
 version = "0.6.0"
-source = "git+https://github.com/OpenZeppelin/stellar-contracts?branch=main#82f97111f9568d32653dd5b3563baf5b73509c89"
+source = "git+https://github.com/OpenZeppelin/stellar-contracts?tag=v0.6.0#82f97111f9568d32653dd5b3563baf5b73509c89"
 dependencies = [
  "soroban-sdk",
 ]
@@ -1524,7 +1524,7 @@ dependencies = [
 [[package]]
 name = "stellar-macros"
 version = "0.6.0"
-source = "git+https://github.com/OpenZeppelin/stellar-contracts?branch=main#82f97111f9568d32653dd5b3563baf5b73509c89"
+source = "git+https://github.com/OpenZeppelin/stellar-contracts?tag=v0.6.0#82f97111f9568d32653dd5b3563baf5b73509c89"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1544,7 +1544,7 @@ dependencies = [
 [[package]]
 name = "stellar-tokens"
 version = "0.6.0"
-source = "git+https://github.com/OpenZeppelin/stellar-contracts?branch=main#82f97111f9568d32653dd5b3563baf5b73509c89"
+source = "git+https://github.com/OpenZeppelin/stellar-contracts?tag=v0.6.0#82f97111f9568d32653dd5b3563baf5b73509c89"
 dependencies = [
  "soroban-sdk",
  "stellar-contract-utils",

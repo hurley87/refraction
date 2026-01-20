@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { useWallet } from "@/lib/stellar/hooks/use-wallet";
-import { useNotification } from "@/lib/stellar/hooks/use-notification";
 import { mintNFT, isValidContractAddress } from "@/lib/stellar/utils/soroban";
 import { getNFTContractAddress } from "@/lib/stellar/utils/network";
 import { toast } from "sonner";
@@ -22,7 +21,6 @@ const MintNFT: React.FC<MintNFTProps> = ({
   onError,
 }) => {
   const { address, networkPassphrase, accountExists, balances } = useWallet();
-  const { addNotification } = useNotification();
   const contractAddress = getNFTContractAddress();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -69,7 +67,6 @@ const MintNFT: React.FC<MintNFTProps> = ({
       );
 
       toast.success(`NFT minted successfully! Transaction hash: ${txHash}`);
-      addNotification(`NFT minted successfully: ${txHash}`, "success");
       onSuccess?.(txHash);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
@@ -79,13 +76,8 @@ const MintNFT: React.FC<MintNFTProps> = ({
           "Account not found or not funded. Please fund your account first.",
           { duration: 5000 }
         );
-        addNotification(
-          "Account not found or not funded. Please fund your account before minting NFTs.",
-          "error"
-        );
       } else {
         toast.error(`Minting failed: ${errorMessage}`);
-        addNotification(`Minting failed: ${errorMessage}`, "error");
       }
       console.error("NFT minting error:", error);
       onError?.(errorMessage);
