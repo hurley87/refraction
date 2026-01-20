@@ -3,35 +3,39 @@
 import React, { useState } from "react";
 import { useWallet } from "@/lib/stellar/hooks/use-wallet";
 import { useNotification } from "@/lib/stellar/hooks/use-notification";
-import { mintNFT, isValidContractAddress } from "@/lib/stellar/utils/soroban";
-import { getNFTContractAddress } from "@/lib/stellar/utils/network";
-import { toast } from "sonner";
+import { invokePaymentContract, isValidAddress, isValidContractAddress } from "@/lib/stellar/utils/soroban";
 import FundAccountButton from "./fund-account-button";
+import { toast } from "sonner";
 
-interface MintNFTProps {
-  ctaLabel?: string;
+interface ClaimPointsProps {
   onPending?: () => void;
   onSuccess?: (txHash: string) => void;
   onError?: (error: string) => void;
 }
 
-const MintNFT: React.FC<MintNFTProps> = ({
-  ctaLabel = "Mint NFT (1 XLM)",
+const ClaimPoints: React.FC<ClaimPointsProps> = ({
   onPending,
   onSuccess,
   onError,
 }) => {
   const { address, networkPassphrase, accountExists, balances } = useWallet();
   const { addNotification } = useNotification();
-  const contractAddress = getNFTContractAddress();
+  // Fixed contract address (same as TestSendContract)
+  const contractAddress = "CBPPHUSZS6B76X7NPJY76FQ3ZHGYFXVC4YJSOR2HAYNVEXVQZIJJCFAG";
+  // Fixed amount: 1 XLM
+  const amount = 1;
+  // Recipient is the connected user's address
+  const recipientAddress = address || "";
   const [isLoading, setIsLoading] = useState(false);
 
   // Check if account exists and has balance
   const xlmBalance = balances?.xlm?.balance;
   const hasBalance = xlmBalance && Number(xlmBalance) > 0;
+  // Account needs funding if it doesn't exist OR if it exists but has no balance
   const needsFunding = (!accountExists && !hasBalance) || (accountExists && !hasBalance);
 
-  const handleMint = async () => {
+  const handleClaim = async () => {
+    // Validate inputs
     if (!isValidContractAddress(contractAddress)) {
       const errorMsg = "Invalid contract address format. Contract addresses must start with 'C' and be 56 characters long, or be a valid Stellar address starting with 'G'.";
       toast.error(errorMsg);
@@ -39,15 +43,15 @@ const MintNFT: React.FC<MintNFTProps> = ({
       return;
     }
 
-    if (!address) {
-      const errorMsg = "Please connect your wallet first.";
+    if (!recipientAddress) {
+      const errorMsg = "Recipient address is required. Please connect your wallet.";
       toast.error(errorMsg);
       onError?.(errorMsg);
       return;
     }
 
-    if (!contractAddress) {
-      const errorMsg = "NFT contract address not configured. Please set NEXT_PUBLIC_NFT_CONTRACT_ADDRESS environment variable.";
+    if (!isValidAddress(recipientAddress)) {
+      const errorMsg = "Invalid recipient address format";
       toast.error(errorMsg);
       onError?.(errorMsg);
       return;
@@ -55,39 +59,38 @@ const MintNFT: React.FC<MintNFTProps> = ({
 
     setIsLoading(true);
     onPending?.();
-    
+
     try {
-      // Mint NFT to the connected wallet address
-      // The contract requires the recipient to authorize the transaction (sign it)
-      // because the contract transfers 1 XLM from the recipient to the contract as payment.
-      // The recipient is always the connected wallet (they're paying for their own mint).
-      const txHash = await mintNFT(
+      // Use payment contract helper that tries multiple function names
+      const txHash = await invokePaymentContract(
         contractAddress,
-        address, // Recipient is always the connected wallet
-        address, // Signer is always the connected wallet
+        recipientAddress,
+        amount,
+        address!,
         networkPassphrase,
       );
 
-      toast.success(`NFT minted successfully! Transaction hash: ${txHash}`);
-      addNotification(`NFT minted successfully: ${txHash}`, "success");
+      toast.success(`Points claimed successfully! Transaction hash: ${txHash}`);
+      addNotification(`Points claimed successfully: ${txHash}`, "success");
       onSuccess?.(txHash);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       
-      if (errorMessage.includes("Account not found")) {
+      // Provide helpful message for account not found errors
+      if (errorMessage.includes("Account not found") || errorMessage.includes("not found")) {
         toast.error(
-          "Account not found or not funded. Please fund your account first.",
+          "Account not found or not funded. Please fund your account first using the 'Fund Account' button.",
           { duration: 5000 }
         );
         addNotification(
-          "Account not found or not funded. Please fund your account before minting NFTs.",
+          "Account not found or not funded. Please fund your account before claiming points.",
           "error"
         );
       } else {
-        toast.error(`Minting failed: ${errorMessage}`);
-        addNotification(`Minting failed: ${errorMessage}`, "error");
+        toast.error(`Transaction failed: ${errorMessage}`);
+        addNotification(`Transaction failed: ${errorMessage}`, "error");
       }
-      console.error("NFT minting error:", error);
+      console.error("Claim points error:", error);
       onError?.(errorMessage);
     } finally {
       setIsLoading(false);
@@ -98,17 +101,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
     return (
       <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
         <p className="text-sm text-gray-600">
-          Please connect your wallet to buy a ticket.
-        </p>
-      </div>
-    );
-  }
-
-  if (!contractAddress) {
-    return (
-      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <p className="text-sm text-yellow-800">
-          NFT contract address not configured. Please set NEXT_PUBLIC_NFT_CONTRACT_ADDRESS environment variable.
+          Please connect your wallet to claim points.
         </p>
       </div>
     );
@@ -117,7 +110,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
   return (
     <div className="space-y-4">
       <p className="body-medium text-[#7D7D7D] font-grotesk">
-        Purchase your event ticket as an NFT. Cost: 1 XLM per ticket.
+        Claim your reward points for completing this transaction.
       </p>
 
       {needsFunding && (
@@ -139,14 +132,14 @@ const MintNFT: React.FC<MintNFTProps> = ({
       )}
 
       <button
-        onClick={handleMint}
-        disabled={isLoading || !contractAddress || !address || needsFunding}
+        onClick={handleClaim}
+        disabled={isLoading || !contractAddress || !recipientAddress || needsFunding}
         className="w-full h-[40px] bg-[#FFE600] text-[#131313] rounded-full font-pleasure hover:bg-[#FFD700] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
       >
-        {isLoading ? "Processing..." : ctaLabel}
+        {isLoading ? "Processing..." : "Claim Points"}
       </button>
     </div>
   );
 };
 
-export default MintNFT;
+export default ClaimPoints;

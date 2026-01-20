@@ -5,7 +5,6 @@ import { useWallet } from "@/lib/stellar/hooks/use-wallet";
 import { stellarNetwork } from "@/lib/stellar/utils/network";
 import FundAccountButton from "./fund-account-button";
 import { WalletButton } from "./wallet-button";
-import NetworkPill from "./network-pill";
 
 const ConnectAccount: React.FC = () => {
   const { network } = useWallet();
@@ -15,7 +14,6 @@ const ConnectAccount: React.FC = () => {
     <div className="flex flex-row items-center gap-3">
       <WalletButton />
       {currentNetwork !== "PUBLIC" && <FundAccountButton />}
-      <NetworkPill />
     </div>
   );
 };

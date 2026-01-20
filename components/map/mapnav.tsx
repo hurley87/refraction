@@ -42,6 +42,7 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
       "/events": "Events",
       "/rewards": "Rewards",
       "/faq": "FAQ",
+      "/stellar": "Stellar",
     };
 
     if (routeMap[path]) {
@@ -54,6 +55,7 @@ export default function MapNav({ onProfileMenuToggle }: MapNavProps) {
     if (path.startsWith("/challenges")) return "Challenges";
     if (path.startsWith("/rewards")) return "Rewards";
     if (path.startsWith("/leaderboard")) return "Leaderboard";
+    if (path.startsWith("/stellar")) return "Stellar";
 
     return "Check-In Map";
   };
