@@ -18,7 +18,6 @@ import {
   isInitialized,
   waitForInitialization,
   trackEvent as trackEventClient,
-  resolveDistinctId,
 } from '@/lib/analytics';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useTiers } from '@/hooks/useTiers';
