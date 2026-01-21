@@ -74,7 +74,7 @@ describe('Player API Route', () => {
       expect(json.data.player).toEqual(mockPlayer);
       expect(json.message).toContain('testuser');
       expect(trackAccountCreated).toHaveBeenCalledWith(
-        'test@example.com', // Email-first distinct_id
+        '0x1234567890abcdef1234567890abcdef12345678', // Wallet address as distinct_id
         expect.objectContaining({
           wallet_type: 'EVM',
           has_email: true,

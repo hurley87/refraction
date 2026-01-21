@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/db/client';
 import { redeemPerkRequestSchema } from '@/lib/schemas/api';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
-import { trackRewardClaimed, resolveDistinctId } from '@/lib/analytics';
+import { trackRewardClaimed } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 
 export const dynamic = 'force-dynamic';
@@ -74,22 +74,8 @@ export async function POST(request: NextRequest) {
       .single();
     if (error) throw error;
 
-    // Resolve distinct_id using email-first strategy
-    let distinctId: string;
-    try {
-      const identityResult = resolveDistinctId({
-        email: user.email || undefined,
-        walletAddress,
-      });
-      distinctId = identityResult.distinctId;
-    } catch (error) {
-      // Fallback to wallet address if resolution fails
-      console.warn(
-        'Failed to resolve distinct_id, using wallet address:',
-        error
-      );
-      distinctId = walletAddress;
-    }
+    // Use wallet address as distinct_id for analytics
+    const distinctId = walletAddress;
 
     // Set user properties server-side
     setUserPropertiesServer(distinctId, {

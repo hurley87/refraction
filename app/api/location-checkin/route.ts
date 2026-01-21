@@ -10,11 +10,7 @@ import {
   createLocationCheckin,
 } from '@/lib/db/checkins';
 import type { Player, Location } from '@/lib/types';
-import {
-  trackCheckinCompleted,
-  trackPointsEarned,
-  resolveDistinctId,
-} from '@/lib/analytics';
+import { trackCheckinCompleted, trackPointsEarned } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { sanitizeString } from '@/lib/utils/validation';
 import { apiSuccess, apiError } from '@/lib/api/response';
@@ -144,23 +140,8 @@ export async function POST(request: NextRequest) {
       location.points_value
     );
 
-    // Resolve distinct_id using email-first strategy
-    let distinctId: string;
-    try {
-      const identityResult = resolveDistinctId({
-        email,
-        walletAddress,
-        playerId: player.id,
-      });
-      distinctId = identityResult.distinctId;
-    } catch (error) {
-      // Fallback to wallet address if resolution fails
-      console.warn(
-        'Failed to resolve distinct_id, using wallet address:',
-        error
-      );
-      distinctId = walletAddress;
-    }
+    // Use wallet address as distinct_id for analytics
+    const distinctId = walletAddress;
 
     // Set user properties server-side
     setUserPropertiesServer(distinctId, {

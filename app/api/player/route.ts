@@ -7,7 +7,7 @@ import {
   updatePlayerRequestSchema,
 } from '@/lib/schemas/api';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
-import { trackAccountCreated, resolveDistinctId } from '@/lib/analytics';
+import { trackAccountCreated } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 
 export async function POST(request: NextRequest) {
@@ -35,23 +35,8 @@ export async function POST(request: NextRequest) {
 
     const player = await createOrUpdatePlayer(playerData);
 
-    // Resolve distinct_id using email-first strategy
-    let distinctId: string;
-    try {
-      const identityResult = resolveDistinctId({
-        email,
-        walletAddress,
-        playerId: player.id,
-      });
-      distinctId = identityResult.distinctId;
-    } catch (error) {
-      // Fallback to wallet address if resolution fails
-      console.warn(
-        'Failed to resolve distinct_id, using wallet address:',
-        error
-      );
-      distinctId = walletAddress;
-    }
+    // Use wallet address as distinct_id for analytics
+    const distinctId = walletAddress;
 
     // Set user properties server-side
     setUserPropertiesServer(distinctId, {

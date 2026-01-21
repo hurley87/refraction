@@ -1,10 +1,6 @@
 import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/db/client';
-import {
-  trackLocationCreated,
-  trackPointsEarned,
-  resolveDistinctId,
-} from '@/lib/analytics';
+import { trackLocationCreated, trackPointsEarned } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { checkAdminPermission } from '@/lib/db/admin';
 import { MAX_LOCATIONS_PER_DAY, SUPABASE_ERROR_CODES } from '@/lib/constants';
@@ -285,22 +281,8 @@ export async function POST(request: NextRequest) {
       // Context parsing failed, ignore
     }
 
-    // Resolve distinct_id using email-first strategy
-    let distinctId: string;
-    try {
-      const identityResult = resolveDistinctId({
-        email: creatorEmail || undefined,
-        walletAddress: sanitizedWalletAddress,
-      });
-      distinctId = identityResult.distinctId;
-    } catch (error) {
-      // Fallback to wallet address if resolution fails
-      console.warn(
-        'Failed to resolve distinct_id, using wallet address:',
-        error
-      );
-      distinctId = sanitizedWalletAddress;
-    }
+    // Use wallet address as distinct_id for analytics
+    const distinctId = sanitizedWalletAddress;
 
     // Set user properties server-side
     setUserPropertiesServer(distinctId, {

@@ -1,11 +1,7 @@
 import { supabase } from '@/lib/db/client';
 import { updatePlayerPoints } from '@/lib/db/players';
 import { getUserProfile } from '@/lib/db/profiles';
-import {
-  trackCheckinCompleted,
-  trackPointsEarned,
-  resolveDistinctId,
-} from '@/lib/analytics';
+import { trackCheckinCompleted, trackPointsEarned } from '@/lib/analytics';
 import { DAILY_CHECKIN_POINTS, DAILY_CHECKPOINT_LIMIT } from '@/lib/constants';
 import { getUtcDayBounds } from '@/lib/utils/date';
 import type { Player } from '@/lib/types';
@@ -222,20 +218,8 @@ export async function processCheckin(
     ? { ...latestPlayer, total_points: totalPoints }
     : { ...player, total_points: totalPoints };
 
-  // Resolve distinct_id using email-first strategy
-  let distinctId: string;
-  try {
-    const identityResult = resolveDistinctId({
-      email: input.email,
-      walletAddress: chainWalletAddress,
-      playerId: player.id,
-    });
-    distinctId = identityResult.distinctId;
-  } catch (error) {
-    // Fallback to wallet address or player ID if resolution fails
-    console.warn('Failed to resolve distinct_id, using fallback:', error);
-    distinctId = player.id ? String(player.id) : chainWalletAddress;
-  }
+  // Use wallet address as distinct_id for analytics
+  const distinctId = chainWalletAddress;
 
   trackCheckinCompleted(distinctId, {
     location_id: 0,
