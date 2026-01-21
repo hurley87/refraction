@@ -16,7 +16,11 @@ export {
   optOutTracking,
   optInTracking,
   hasOptedOutTracking,
-} from "./client";
+} from './client';
+
+// Identity resolver
+export { resolveDistinctId } from './identity';
+export type { IdentityInput, IdentityResult, IdentitySource } from './identity';
 
 // Server-side exports
 export {
@@ -30,10 +34,10 @@ export {
   trackLocationCreated,
   trackPointsEarned,
   trackTierChanged,
-} from "./server";
+} from './server';
 
 // Event constants
-export { ANALYTICS_EVENTS } from "./events";
+export { ANALYTICS_EVENTS } from './events';
 
 // Types
 export type {
@@ -45,5 +49,4 @@ export type {
   PointsEarnedProperties,
   TierChangedProperties,
   AccountCreatedProperties,
-} from "./types";
-
+} from './types';

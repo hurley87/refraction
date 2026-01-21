@@ -1,15 +1,19 @@
-import { supabase } from "@/lib/db/client";
-import { updatePlayerPoints } from "@/lib/db/players";
-import { getUserProfile } from "@/lib/db/profiles";
-import { trackCheckinCompleted, trackPointsEarned } from "@/lib/analytics";
-import { DAILY_CHECKIN_POINTS, DAILY_CHECKPOINT_LIMIT } from "@/lib/constants";
-import { getUtcDayBounds } from "@/lib/utils/date";
-import type { Player } from "@/lib/types";
+import { supabase } from '@/lib/db/client';
+import { updatePlayerPoints } from '@/lib/db/players';
+import { getUserProfile } from '@/lib/db/profiles';
+import {
+  trackCheckinCompleted,
+  trackPointsEarned,
+  resolveDistinctId,
+} from '@/lib/analytics';
+import { DAILY_CHECKIN_POINTS, DAILY_CHECKPOINT_LIMIT } from '@/lib/constants';
+import { getUtcDayBounds } from '@/lib/utils/date';
+import type { Player } from '@/lib/types';
 
 /**
  * Chain type for checkin operations
  */
-export type CheckinChain = "evm" | "solana" | "stellar";
+export type CheckinChain = 'evm' | 'solana' | 'stellar';
 
 /**
  * Input for processing a checkin
@@ -65,39 +69,37 @@ export type CheckinResult = CheckinSuccess | CheckinRateLimited | CheckinError;
  */
 function getActivityFilter(chain: CheckinChain): string {
   switch (chain) {
-    case "evm":
-      return "user_wallet_address";
-    case "solana":
-      return "metadata->>solana_wallet";
-    case "stellar":
-      return "metadata->>stellar_wallet";
+    case 'evm':
+      return 'user_wallet_address';
+    case 'solana':
+      return 'metadata->>solana_wallet';
+    case 'stellar':
+      return 'metadata->>stellar_wallet';
   }
 }
 
 /**
  * Build activity metadata based on chain type
  */
-function buildActivityMetadata(
-  input: CheckinInput,
-): Record<string, unknown> {
+function buildActivityMetadata(input: CheckinInput): Record<string, unknown> {
   const { chain, checkpoint, email, chainWalletAddress, player } = input;
 
   const base = { checkpoint, email };
 
   switch (chain) {
-    case "evm":
+    case 'evm':
       return base;
-    case "solana":
+    case 'solana':
       return {
         ...base,
-        chain: "solana",
+        chain: 'solana',
         solana_wallet: chainWalletAddress,
         player_id: player.id,
       };
-    case "stellar":
+    case 'stellar':
       return {
         ...base,
-        chain: "stellar",
+        chain: 'stellar',
         stellar_wallet: chainWalletAddress,
         player_id: player.id,
       };
@@ -109,12 +111,12 @@ function buildActivityMetadata(
  */
 function getChainDisplayName(chain: CheckinChain): string {
   switch (chain) {
-    case "evm":
-      return "";
-    case "solana":
-      return "Solana ";
-    case "stellar":
-      return "Stellar ";
+    case 'evm':
+      return '';
+    case 'solana':
+      return 'Solana ';
+    case 'stellar':
+      return 'Stellar ';
   }
 }
 
@@ -122,7 +124,9 @@ function getChainDisplayName(chain: CheckinChain): string {
  * Processes a checkpoint checkin for any supported chain.
  * Handles daily limit checking, points awarding, activity insertion, and response building.
  */
-export async function processCheckin(input: CheckinInput): Promise<CheckinResult> {
+export async function processCheckin(
+  input: CheckinInput
+): Promise<CheckinResult> {
   const { player, checkpoint, chain, chainWalletAddress } = input;
   const { startIso, endIso } = getUtcDayBounds();
   const filterField = getActivityFilter(chain);
@@ -130,12 +134,12 @@ export async function processCheckin(input: CheckinInput): Promise<CheckinResult
   // Check daily checkpoint limit
   const { count: checkpointCheckinsToday, error: checkpointCountError } =
     await supabase
-      .from("points_activities")
-      .select("id", { count: "exact", head: true })
+      .from('points_activities')
+      .select('id', { count: 'exact', head: true })
       .eq(filterField, chainWalletAddress)
-      .eq("activity_type", "checkpoint_checkin")
-      .gte("created_at", startIso)
-      .lt("created_at", endIso);
+      .eq('activity_type', 'checkpoint_checkin')
+      .gte('created_at', startIso)
+      .lt('created_at', endIso);
 
   if (checkpointCountError) {
     throw checkpointCountError;
@@ -155,7 +159,7 @@ export async function processCheckin(input: CheckinInput): Promise<CheckinResult
   // Build activity data
   const chainDisplay = getChainDisplayName(chain);
   const activityData: Record<string, unknown> = {
-    activity_type: "checkpoint_checkin",
+    activity_type: 'checkpoint_checkin',
     points_earned: DAILY_CHECKIN_POINTS,
     description: `${chainDisplay}Checkpoint visit: ${checkpoint}`,
     metadata: buildActivityMetadata(input),
@@ -170,7 +174,7 @@ export async function processCheckin(input: CheckinInput): Promise<CheckinResult
   // Insert points activity
   const { data: checkpointActivity, error: checkpointActivityError } =
     await supabase
-      .from("points_activities")
+      .from('points_activities')
       .insert(activityData)
       .select()
       .single();
@@ -186,7 +190,7 @@ export async function processCheckin(input: CheckinInput): Promise<CheckinResult
   let latestPlayer = player;
   if (latestPlayer?.id) {
     latestPlayer = await updatePlayerPoints(latestPlayer.id, pointsAwarded);
-  } else if (chain === "evm" && player.wallet_address) {
+  } else if (chain === 'evm' && player.wallet_address) {
     // Fallback for EVM: fetch updated profile
     const updatedProfile = await getUserProfile(player.wallet_address);
     if (updatedProfile) {
@@ -195,14 +199,13 @@ export async function processCheckin(input: CheckinInput): Promise<CheckinResult
   }
 
   // Calculate today's total points
-  const { data: todaysCheckpoints, error: checkpointsSumError } =
-    await supabase
-      .from("points_activities")
-      .select("points_earned")
-      .eq(filterField, chainWalletAddress)
-      .eq("activity_type", "checkpoint_checkin")
-      .gte("created_at", startIso)
-      .lt("created_at", endIso);
+  const { data: todaysCheckpoints, error: checkpointsSumError } = await supabase
+    .from('points_activities')
+    .select('points_earned')
+    .eq(filterField, chainWalletAddress)
+    .eq('activity_type', 'checkpoint_checkin')
+    .gte('created_at', startIso)
+    .lt('created_at', endIso);
 
   if (checkpointsSumError) {
     throw checkpointsSumError;
@@ -211,7 +214,7 @@ export async function processCheckin(input: CheckinInput): Promise<CheckinResult
   const pointsEarnedToday =
     todaysCheckpoints?.reduce(
       (sum, activity) => sum + (activity.points_earned ?? 0),
-      0,
+      0
     ) ?? pointsAwarded;
 
   const totalPoints = latestPlayer?.total_points || 0;
@@ -219,22 +222,36 @@ export async function processCheckin(input: CheckinInput): Promise<CheckinResult
     ? { ...latestPlayer, total_points: totalPoints }
     : { ...player, total_points: totalPoints };
 
-  // Track analytics for all chains using player ID as distinct identifier
-  const distinctId = player.id ? String(player.id) : chainWalletAddress;
+  // Resolve distinct_id using email-first strategy
+  let distinctId: string;
+  try {
+    const identityResult = resolveDistinctId({
+      email: input.email,
+      walletAddress: chainWalletAddress,
+      playerId: player.id,
+    });
+    distinctId = identityResult.distinctId;
+  } catch (error) {
+    // Fallback to wallet address or player ID if resolution fails
+    console.warn('Failed to resolve distinct_id, using fallback:', error);
+    distinctId = player.id ? String(player.id) : chainWalletAddress;
+  }
 
   trackCheckinCompleted(distinctId, {
     location_id: 0,
     checkpoint,
+    checkpoint_id: checkpoint,
     points: pointsAwarded,
-    checkin_type: "checkpoint",
+    checkin_type: 'checkpoint',
     chain,
   });
 
   trackPointsEarned(distinctId, {
-    activity_type: "checkpoint_checkin",
+    activity_type: 'checkpoint_checkin',
     amount: pointsAwarded,
     description: `${chainDisplay}Checkpoint visit: ${checkpoint}`,
     chain,
+    checkpoint_id: checkpoint,
   });
 
   return {
@@ -255,11 +272,11 @@ export function extractErrorMessage(e: unknown): string {
   if (e instanceof Error) {
     return e.message;
   }
-  if (typeof e === "object" && e !== null && "message" in e) {
+  if (typeof e === 'object' && e !== null && 'message' in e) {
     return String((e as { message: unknown }).message);
   }
-  if (typeof e === "string") {
+  if (typeof e === 'string') {
     return e;
   }
-  return "Unknown error";
+  return 'Unknown error';
 }

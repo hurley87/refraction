@@ -1,18 +1,23 @@
-import { NextRequest } from "next/server";
+import { NextRequest } from 'next/server';
 import {
   createOrUpdatePlayer,
   getPlayerByWallet,
   updatePlayerPoints,
-} from "@/lib/db/players";
-import { createOrGetLocation } from "@/lib/db/locations";
+} from '@/lib/db/players';
+import { createOrGetLocation } from '@/lib/db/locations';
 import {
   checkUserLocationCheckin,
   createLocationCheckin,
-} from "@/lib/db/checkins";
-import type { Player, Location } from "@/lib/types";
-import { trackCheckinCompleted, trackPointsEarned } from "@/lib/analytics";
-import { sanitizeString } from "@/lib/utils/validation";
-import { apiSuccess, apiError } from "@/lib/api/response";
+} from '@/lib/db/checkins';
+import type { Player, Location } from '@/lib/types';
+import {
+  trackCheckinCompleted,
+  trackPointsEarned,
+  resolveDistinctId,
+} from '@/lib/analytics';
+import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
+import { sanitizeString } from '@/lib/utils/validation';
+import { apiSuccess, apiError } from '@/lib/api/response';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!walletAddress || !locationData) {
-      return apiError("Wallet address and location data are required", 400);
+      return apiError('Wallet address and location data are required', 400);
     }
 
     // Validate location data
@@ -36,7 +41,7 @@ export async function POST(request: NextRequest) {
     const sanitizedType = sanitizeString(type);
     const sanitizedContext =
       sanitizeString(context) ??
-      (context && typeof context === "object"
+      (context && typeof context === 'object'
         ? sanitizeString(JSON.stringify(context))
         : undefined);
 
@@ -48,15 +53,15 @@ export async function POST(request: NextRequest) {
       lon === null ||
       lon === undefined
     ) {
-      return apiError("Invalid location data", 400);
+      return apiError('Invalid location data', 400);
     }
 
     const parsedLat =
-      typeof lat === "string" || typeof lat === "number"
+      typeof lat === 'string' || typeof lat === 'number'
         ? parseFloat(String(lat))
         : NaN;
     const parsedLon =
-      typeof lon === "string" || typeof lon === "number"
+      typeof lon === 'string' || typeof lon === 'number'
         ? parseFloat(String(lon))
         : NaN;
 
@@ -71,11 +76,11 @@ export async function POST(request: NextRequest) {
       parsedLon < -180 ||
       parsedLon > 180
     ) {
-      return apiError("Invalid location data", 400);
+      return apiError('Invalid location data', 400);
     }
 
     // Create or update player
-    const playerData: Omit<Player, "id" | "created_at" | "updated_at"> = {
+    const playerData: Omit<Player, 'id' | 'created_at' | 'updated_at'> = {
       wallet_address: walletAddress,
       email: email || undefined,
       username: username || undefined,
@@ -85,14 +90,14 @@ export async function POST(request: NextRequest) {
     const player = await createOrUpdatePlayer(playerData);
 
     // Create or get location
-    const locationInfo: Omit<Location, "id" | "created_at"> = {
+    const locationInfo: Omit<Location, 'id' | 'created_at'> = {
       place_id: sanitizedPlaceId,
       display_name: sanitizedDisplayName,
       name: sanitizedName,
       latitude: parsedLat,
       longitude: parsedLon,
       points_value: 100, // Each location is worth 100 points
-      type: sanitizedType || "location",
+      type: sanitizedType || 'location',
       context: sanitizedContext,
       is_visible: false, // New locations require admin approval
     };
@@ -101,26 +106,26 @@ export async function POST(request: NextRequest) {
 
     // Reject check-ins at hidden locations
     if (location.is_visible === false) {
-      return apiError("This location is not available for check-ins", 403);
+      return apiError('This location is not available for check-ins', 403);
     }
 
     const sanitizedComment =
-      typeof comment === "string" && comment.trim().length > 0
+      typeof comment === 'string' && comment.trim().length > 0
         ? comment.trim().slice(0, 500)
         : undefined;
     const sanitizedImageUrl =
-      typeof imageUrl === "string" && imageUrl.trim().length > 0
+      typeof imageUrl === 'string' && imageUrl.trim().length > 0
         ? imageUrl.trim()
         : undefined;
 
     // Check if user has already checked in at this location
     const existingCheckin = await checkUserLocationCheckin(
       player.id,
-      location.id,
+      location.id
     );
 
     if (existingCheckin) {
-      return apiError("You have already checked in at this location", 409);
+      return apiError('You have already checked in at this location', 409);
     }
 
     // Create new checkin
@@ -136,8 +141,32 @@ export async function POST(request: NextRequest) {
     // Update player points
     const updatedPlayer = await updatePlayerPoints(
       player.id,
-      location.points_value,
+      location.points_value
     );
+
+    // Resolve distinct_id using email-first strategy
+    let distinctId: string;
+    try {
+      const identityResult = resolveDistinctId({
+        email,
+        walletAddress,
+        playerId: player.id,
+      });
+      distinctId = identityResult.distinctId;
+    } catch (error) {
+      // Fallback to wallet address if resolution fails
+      console.warn(
+        'Failed to resolve distinct_id, using wallet address:',
+        error
+      );
+      distinctId = walletAddress;
+    }
+
+    // Set user properties server-side
+    setUserPropertiesServer(distinctId, {
+      $email: email,
+      wallet_address: walletAddress,
+    });
 
     // Extract city from location context if available
     let city: string | undefined;
@@ -149,50 +178,53 @@ export async function POST(request: NextRequest) {
     }
 
     // Track analytics events
-    trackCheckinCompleted(walletAddress, {
+    trackCheckinCompleted(distinctId, {
       location_id: location.id!,
       city,
       venue: location.display_name,
       points: location.points_value,
-      checkin_type: "location",
+      checkin_type: 'location',
     });
 
-    trackPointsEarned(walletAddress, {
-      activity_type: "daily_checkin",
+    trackPointsEarned(distinctId, {
+      activity_type: 'daily_checkin',
       amount: location.points_value,
       description: `Location check-in: ${location.display_name}`,
     });
 
-    return apiSuccess({
-      checkin,
-      player: updatedPlayer,
-      location,
-      pointsEarned: location.points_value,
-    }, `Congratulations! You earned ${location.points_value} points!`);
+    return apiSuccess(
+      {
+        checkin,
+        player: updatedPlayer,
+        location,
+        pointsEarned: location.points_value,
+      },
+      `Congratulations! You earned ${location.points_value} points!`
+    );
   } catch (error) {
-    console.error("Location checkin API error:", error);
-    return apiError("Failed to process location checkin", 500);
+    console.error('Location checkin API error:', error);
+    return apiError('Failed to process location checkin', 500);
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get("walletAddress");
+    const walletAddress = searchParams.get('walletAddress');
 
     if (!walletAddress) {
-      return apiError("Wallet address is required", 400);
+      return apiError('Wallet address is required', 400);
     }
 
     const player = await getPlayerByWallet(walletAddress);
 
     if (!player) {
-      return apiError("Player not found", 404);
+      return apiError('Player not found', 404);
     }
 
     return apiSuccess({ player });
   } catch (error) {
-    console.error("Get player API error:", error);
-    return apiError("Failed to get player data", 500);
+    console.error('Get player API error:', error);
+    return apiError('Failed to get player data', 500);
   }
 }

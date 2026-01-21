@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   createContext,
@@ -6,9 +6,9 @@ import {
   useEffect,
   useCallback,
   Suspense,
-} from "react";
-import { usePathname, useSearchParams } from "next/navigation";
-import { usePrivy } from "@privy-io/react-auth";
+} from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { usePrivy } from '@privy-io/react-auth';
 import {
   initMixpanel,
   identifyUser,
@@ -18,10 +18,11 @@ import {
   isInitialized,
   waitForInitialization,
   trackEvent as trackEventClient,
-} from "@/lib/analytics";
-import { useCurrentPlayer } from "@/hooks/usePlayer";
-import { useTiers } from "@/hooks/useTiers";
-import type { UserProperties } from "@/lib/analytics/types";
+  resolveDistinctId,
+} from '@/lib/analytics';
+import { useCurrentPlayer } from '@/hooks/usePlayer';
+import { useTiers } from '@/hooks/useTiers';
+import type { UserProperties } from '@/lib/analytics/types';
 
 interface AnalyticsContextType {
   trackEvent: (eventName: string, properties?: Record<string, any>) => void;
@@ -31,7 +32,7 @@ interface AnalyticsContextType {
 }
 
 const AnalyticsContext = createContext<AnalyticsContextType | undefined>(
-  undefined,
+  undefined
 );
 
 function PageViewTracker() {
@@ -45,9 +46,15 @@ function PageViewTracker() {
     waitForInitialization().then(() => {
       if (isInitialized()) {
         const queryString = searchParams.toString();
+
+        // Extract checkpoint_id from /c/[id] routes
+        const checkpointMatch = pathname.match(/^\/c\/([^/]+)$/);
+        const checkpointId = checkpointMatch ? checkpointMatch[1] : undefined;
+
         trackPageView(undefined, {
           pathname,
           query: queryString || undefined,
+          ...(checkpointId && { checkpoint_id: checkpointId }),
         });
       }
     });
@@ -67,7 +74,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     if (token && !isInitialized()) {
       // initMixpanel is async but we don't need to await it
       initMixpanel(token).catch((error) => {
-        console.error("Failed to initialize Mixpanel:", error);
+        console.error('Failed to initialize Mixpanel:', error);
       });
     }
   }, []);
@@ -78,27 +85,27 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
 
     const walletAddress =
       user.wallet?.address ||
-      user.linkedAccounts?.find((acc) => acc.type === "wallet")?.address;
+      user.linkedAccounts?.find((acc) => acc.type === 'wallet')?.address;
 
     if (!walletAddress) return;
 
     // Determine wallet type
-    let walletType: "EVM" | "Solana" | "Stellar" = "EVM";
+    let walletType: 'EVM' | 'Solana' | 'Stellar' = 'EVM';
     if (user.linkedAccounts) {
       const solanaAccount = user.linkedAccounts.find(
         (acc) =>
-          acc.type === "wallet" &&
-          "chainType" in acc &&
-          acc.chainType === "solana",
+          acc.type === 'wallet' &&
+          'chainType' in acc &&
+          acc.chainType === 'solana'
       );
       const stellarAccount = user.linkedAccounts.find(
         (acc) =>
-          acc.type === "wallet" &&
-          "chainType" in acc &&
-          acc.chainType === "stellar",
+          acc.type === 'wallet' &&
+          'chainType' in acc &&
+          acc.chainType === 'stellar'
       );
-      if (solanaAccount) walletType = "Solana";
-      if (stellarAccount) walletType = "Stellar";
+      if (solanaAccount) walletType = 'Solana';
+      if (stellarAccount) walletType = 'Stellar';
     }
 
     // Get tier information
@@ -107,13 +114,13 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
       const userTier = tiers.find(
         (t) =>
           player.total_points >= t.min_points &&
-          (t.max_points === null || player.total_points < t.max_points),
+          (t.max_points === null || player.total_points < t.max_points)
       );
       tier = userTier?.title;
     }
 
     // Calculate cohort (simplified - would need first_action_at from database)
-    const cohort: "new" | "returning" | "power" = "new"; // TODO: Calculate based on first_action_at
+    const cohort: 'new' | 'returning' | 'power' = 'new'; // TODO: Calculate based on first_action_at
 
     const properties: UserProperties = {
       $email: user.email?.address,
@@ -140,7 +147,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
       if (!isInitialized()) return;
       trackEventClient(eventName, properties);
     },
-    [],
+    []
   );
 
   const trackPage = useCallback(
@@ -148,7 +155,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
       if (!isInitialized()) return;
       trackPageView(pageName, properties);
     },
-    [],
+    []
   );
 
   const identify = useCallback(
@@ -156,7 +163,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
       if (!isInitialized()) return;
       identifyUser(distinctId, properties);
     },
-    [],
+    []
   );
 
   const setProperties = useCallback((properties: UserProperties) => {
@@ -179,7 +186,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
 export function useAnalytics(): AnalyticsContextType {
   const context = useContext(AnalyticsContext);
   if (context === undefined) {
-    throw new Error("useAnalytics must be used within AnalyticsProvider");
+    throw new Error('useAnalytics must be used within AnalyticsProvider');
   }
   return context;
 }

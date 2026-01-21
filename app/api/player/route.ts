@@ -1,13 +1,14 @@
-import { NextRequest } from "next/server";
-import { createOrUpdatePlayer, getPlayerByWallet } from "@/lib/db/players";
-import type { Player } from "@/lib/types";
+import { NextRequest } from 'next/server';
+import { createOrUpdatePlayer, getPlayerByWallet } from '@/lib/db/players';
+import type { Player } from '@/lib/types';
 import {
   createPlayerRequestSchema,
   getPlayerRequestSchema,
   updatePlayerRequestSchema,
-} from "@/lib/schemas/api";
-import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
-import { trackAccountCreated } from "@/lib/analytics";
+} from '@/lib/schemas/api';
+import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
+import { trackAccountCreated, resolveDistinctId } from '@/lib/analytics';
+import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     const isNewPlayer = !existingPlayer;
 
     // Create or update player
-    const playerData: Omit<Player, "id" | "created_at" | "updated_at"> = {
+    const playerData: Omit<Player, 'id' | 'created_at' | 'updated_at'> = {
       wallet_address: walletAddress,
       email: email || undefined,
       username: username.trim(),
@@ -34,10 +35,35 @@ export async function POST(request: NextRequest) {
 
     const player = await createOrUpdatePlayer(playerData);
 
+    // Resolve distinct_id using email-first strategy
+    let distinctId: string;
+    try {
+      const identityResult = resolveDistinctId({
+        email,
+        walletAddress,
+        playerId: player.id,
+      });
+      distinctId = identityResult.distinctId;
+    } catch (error) {
+      // Fallback to wallet address if resolution fails
+      console.warn(
+        'Failed to resolve distinct_id, using wallet address:',
+        error
+      );
+      distinctId = walletAddress;
+    }
+
+    // Set user properties server-side
+    setUserPropertiesServer(distinctId, {
+      $email: email,
+      wallet_address: walletAddress,
+      wallet_type: 'EVM', // Default to EVM, could be enhanced to detect chain
+    });
+
     // Track account creation for new players
     if (isNewPlayer) {
-      trackAccountCreated(walletAddress, {
-        wallet_type: "EVM", // Default to EVM, could be enhanced to detect chain
+      trackAccountCreated(distinctId, {
+        wallet_type: 'EVM', // Default to EVM, could be enhanced to detect chain
         has_email: !!email,
         wallet_address: walletAddress,
       });
@@ -48,32 +74,32 @@ export async function POST(request: NextRequest) {
       // Derive the base URL (e.g., https://example.com) from the incoming request
       const baseUrl = new URL(request.url).origin;
       await fetch(`${baseUrl}/api/add-user`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           createdAt: player.created_at,
-          email: player.email ?? "",
+          email: player.email ?? '',
         }),
       });
     } catch (airtableSyncError) {
-      console.error("Failed to sync user to Airtable:", airtableSyncError);
+      console.error('Failed to sync user to Airtable:', airtableSyncError);
       // We log the error but do NOT block the main response
     }
 
     return apiSuccess(
       { player },
-      `Welcome ${username}! Your player profile has been created.`,
+      `Welcome ${username}! Your player profile has been created.`
     );
   } catch (error) {
-    console.error("Player creation API error:", error);
-    return apiError("Failed to create player profile", 500);
+    console.error('Player creation API error:', error);
+    return apiError('Failed to create player profile', 500);
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get("walletAddress");
+    const walletAddress = searchParams.get('walletAddress');
 
     const validationResult = getPlayerRequestSchema.safeParse({
       walletAddress,
@@ -86,13 +112,13 @@ export async function GET(request: NextRequest) {
     const player = await getPlayerByWallet(validationResult.data.walletAddress);
 
     if (!player) {
-      return apiError("Player not found", 404);
+      return apiError('Player not found', 404);
     }
 
     return apiSuccess({ player });
   } catch (error) {
-    console.error("Get player API error:", error);
-    return apiError("Failed to get player data", 500);
+    console.error('Get player API error:', error);
+    return apiError('Failed to get player data', 500);
   }
 }
 
@@ -111,11 +137,11 @@ export async function PATCH(request: NextRequest) {
     const existingPlayer = await getPlayerByWallet(walletAddress);
 
     if (!existingPlayer) {
-      return apiError("Player not found", 404);
+      return apiError('Player not found', 404);
     }
 
     // Update player
-    const playerData: Omit<Player, "id" | "created_at" | "updated_at"> = {
+    const playerData: Omit<Player, 'id' | 'created_at' | 'updated_at'> = {
       wallet_address: walletAddress,
       email: existingPlayer.email,
       username: username.trim(),
@@ -126,10 +152,10 @@ export async function PATCH(request: NextRequest) {
 
     return apiSuccess(
       { player: updatedPlayer },
-      `Username updated to ${username}!`,
+      `Username updated to ${username}!`
     );
   } catch (error) {
-    console.error("Player update API error:", error);
-    return apiError("Failed to update player profile", 500);
+    console.error('Player update API error:', error);
+    return apiError('Failed to update player profile', 500);
   }
 }

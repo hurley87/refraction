@@ -1,49 +1,54 @@
-import { NextRequest } from "next/server";
-import { supabase } from "@/lib/db/client";
-import { trackLocationCreated, trackPointsEarned } from "@/lib/analytics";
-import { checkAdminPermission } from "@/lib/db/admin";
-import { MAX_LOCATIONS_PER_DAY, SUPABASE_ERROR_CODES } from "@/lib/constants";
-import { getUtcDayBounds } from "@/lib/utils/date";
+import { NextRequest } from 'next/server';
+import { supabase } from '@/lib/db/client';
+import {
+  trackLocationCreated,
+  trackPointsEarned,
+  resolveDistinctId,
+} from '@/lib/analytics';
+import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
+import { checkAdminPermission } from '@/lib/db/admin';
+import { MAX_LOCATIONS_PER_DAY, SUPABASE_ERROR_CODES } from '@/lib/constants';
+import { getUtcDayBounds } from '@/lib/utils/date';
 import {
   sanitizeVarchar,
   sanitizeOptionalVarchar,
   validateUrl,
-} from "@/lib/utils/validation";
-import { apiSuccess, apiError } from "@/lib/api/response";
+} from '@/lib/utils/validation';
+import { apiSuccess, apiError } from '@/lib/api/response';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get("walletAddress");
-    const includeHidden = searchParams.get("includeHidden") === "true";
+    const walletAddress = searchParams.get('walletAddress');
+    const includeHidden = searchParams.get('includeHidden') === 'true';
 
     // Only allow includeHidden if admin
     if (includeHidden) {
-      const adminEmail = request.headers.get("x-user-email");
+      const adminEmail = request.headers.get('x-user-email');
       if (!checkAdminPermission(adminEmail || undefined)) {
-        return apiError("Unauthorized", 403);
+        return apiError('Unauthorized', 403);
       }
     }
 
     // Base query - only return locations with images
     let query = supabase
-      .from("locations")
+      .from('locations')
       .select(
-        "id, name, display_name, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible",
+        'id, name, display_name, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible'
       )
-      .not("coin_image_url", "is", null);
+      .not('coin_image_url', 'is', null);
 
     // Filter by visibility unless admin requested all
     if (!includeHidden) {
-      query = query.eq("is_visible", true);
+      query = query.eq('is_visible', true);
     }
 
     // If filtering by player's check-ins, join through player_location_checkins
     if (walletAddress) {
       const { data: player, error: playerError } = await supabase
-        .from("players")
-        .select("id")
-        .eq("wallet_address", walletAddress)
+        .from('players')
+        .select('id')
+        .eq('wallet_address', walletAddress)
         .single();
 
       if (playerError) {
@@ -54,20 +59,20 @@ export async function GET(request: NextRequest) {
       }
 
       let checkinQuery = supabase
-        .from("player_location_checkins")
+        .from('player_location_checkins')
         .select(
           `
           locations!inner (
             id, name, display_name, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible
           )
-        `,
+        `
         )
-        .eq("player_id", player.id)
-        .not("locations.coin_image_url", "is", null);
+        .eq('player_id', player.id)
+        .not('locations.coin_image_url', 'is', null);
 
       // Filter by visibility unless admin requested all
       if (!includeHidden) {
-        checkinQuery = checkinQuery.eq("locations.is_visible", true);
+        checkinQuery = checkinQuery.eq('locations.is_visible', true);
       }
 
       const { data, error } = await checkinQuery;
@@ -86,16 +91,16 @@ export async function GET(request: NextRequest) {
 
     return apiSuccess({ locations: data || [] });
   } catch (error) {
-    console.error("Locations API error:", error);
-    return apiError("Failed to fetch locations", 500);
+    console.error('Locations API error:', error);
+    return apiError('Failed to fetch locations', 500);
   }
 }
 
 const isDuplicateKeyError = (error: unknown) =>
-  typeof error === "object" &&
+  typeof error === 'object' &&
   error !== null &&
-  "code" in error &&
-  (error as { code?: string }).code === "23505";
+  'code' in error &&
+  (error as { code?: string }).code === '23505';
 
 export async function POST(request: NextRequest) {
   try {
@@ -116,27 +121,27 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (
-      typeof place_id !== "string" ||
+      typeof place_id !== 'string' ||
       !place_id.trim() ||
-      typeof display_name !== "string" ||
+      typeof display_name !== 'string' ||
       !display_name.trim() ||
-      typeof name !== "string" ||
+      typeof name !== 'string' ||
       !name.trim() ||
       !lat ||
       !lon ||
-      typeof walletAddress !== "string" ||
+      typeof walletAddress !== 'string' ||
       !walletAddress.trim()
     ) {
-      return apiError("Missing required fields", 400);
+      return apiError('Missing required fields', 400);
     }
 
     // Validate that locationImage is provided (required since GET endpoint filters by it)
     if (
       !locationImage ||
-      typeof locationImage !== "string" ||
-      locationImage.trim() === ""
+      typeof locationImage !== 'string' ||
+      locationImage.trim() === ''
     ) {
-      return apiError("Location image is required", 400);
+      return apiError('Location image is required', 400);
     }
 
     const sanitizedPlaceId = sanitizeVarchar(place_id);
@@ -144,14 +149,14 @@ export async function POST(request: NextRequest) {
     const sanitizedName = sanitizeVarchar(name);
     const sanitizedDescription = sanitizeOptionalVarchar(description);
     const sanitizedType =
-      typeof type === "string" && type.trim()
+      typeof type === 'string' && type.trim()
         ? sanitizeVarchar(type)
-        : "location";
+        : 'location';
 
     // Validate and sanitize eventUrl - must be a valid URL if provided
     const eventUrlResult = validateUrl(eventUrl);
     if (!eventUrlResult.valid) {
-      return apiError(eventUrlResult.error || "Invalid URL", 400);
+      return apiError(eventUrlResult.error || 'Invalid URL', 400);
     }
     const sanitizedEventUrl = eventUrlResult.url;
 
@@ -162,33 +167,36 @@ export async function POST(request: NextRequest) {
     // Ensure location doesn't already exist before proceeding
     const { data: existingLocation, error: locationLookupError } =
       await supabase
-        .from("locations")
+        .from('locations')
         .select(
-          "id, name, display_name, creator_wallet_address, creator_username, coin_image_url, latitude, longitude",
+          'id, name, display_name, creator_wallet_address, creator_username, coin_image_url, latitude, longitude'
         )
-        .eq("place_id", sanitizedPlaceId)
+        .eq('place_id', sanitizedPlaceId)
         .maybeSingle();
 
-    if (locationLookupError && locationLookupError.code !== SUPABASE_ERROR_CODES.NOT_FOUND) {
-      console.error("Error checking duplicate location:", locationLookupError);
+    if (
+      locationLookupError &&
+      locationLookupError.code !== SUPABASE_ERROR_CODES.NOT_FOUND
+    ) {
+      console.error('Error checking duplicate location:', locationLookupError);
       throw locationLookupError;
     }
 
     if (existingLocation) {
-      return apiError("Location already exists for this place_id", 409);
+      return apiError('Location already exists for this place_id', 409);
     }
 
     // Check if user has already created a location today
     const { startIso, endIso } = getUtcDayBounds();
     const { data: existingLocations, error: checkError } = await supabase
-      .from("locations")
-      .select("id")
-      .eq("creator_wallet_address", sanitizedWalletAddress)
-      .gte("created_at", startIso)
-      .lt("created_at", endIso);
+      .from('locations')
+      .select('id')
+      .eq('creator_wallet_address', sanitizedWalletAddress)
+      .gte('created_at', startIso)
+      .lt('created_at', endIso);
 
     if (checkError) {
-      console.error("Error checking existing locations:", checkError);
+      console.error('Error checking existing locations:', checkError);
       throw checkError;
     }
 
@@ -196,11 +204,14 @@ export async function POST(request: NextRequest) {
       existingLocations &&
       existingLocations.length >= MAX_LOCATIONS_PER_DAY
     ) {
-      return apiError("You can only add 30 locations per day. Come back tomorrow!", 429);
+      return apiError(
+        'You can only add 30 locations per day. Come back tomorrow!',
+        429
+      );
     }
 
     // Check if creator is an admin
-    const creatorEmail = request.headers.get("x-user-email");
+    const creatorEmail = request.headers.get('x-user-email');
     const isAdminCreator = checkAdminPermission(creatorEmail || undefined);
 
     // Insert the new location (visible for admins, hidden for regular users)
@@ -223,17 +234,17 @@ export async function POST(request: NextRequest) {
       }),
     };
 
-    console.log("Creating location with payload:", locationInsertPayload);
+    console.log('Creating location with payload:', locationInsertPayload);
 
     const { data: locationData, error: locationError } = await supabase
-      .from("locations")
+      .from('locations')
       .insert(locationInsertPayload)
       .select()
       .single();
 
     if (locationError) {
       if (isDuplicateKeyError(locationError)) {
-        return apiError("Location already exists for this place_id", 409);
+        return apiError('Location already exists for this place_id', 409);
       }
       throw locationError;
     }
@@ -242,10 +253,10 @@ export async function POST(request: NextRequest) {
     const pointsAwarded = 100;
 
     const { error: pointsError } = await supabase
-      .from("points_activities")
+      .from('points_activities')
       .insert({
         user_wallet_address: sanitizedWalletAddress,
-        activity_type: "location_creation",
+        activity_type: 'location_creation',
         points_earned: pointsAwarded,
         description: `Created location: ${sanitizedName}`,
         metadata: {
@@ -257,7 +268,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (pointsError) {
-      console.error("Error awarding points:", pointsError);
+      console.error('Error awarding points:', pointsError);
       // Don't fail the location creation if points fail
     }
 
@@ -274,8 +285,31 @@ export async function POST(request: NextRequest) {
       // Context parsing failed, ignore
     }
 
+    // Resolve distinct_id using email-first strategy
+    let distinctId: string;
+    try {
+      const identityResult = resolveDistinctId({
+        email: creatorEmail || undefined,
+        walletAddress: sanitizedWalletAddress,
+      });
+      distinctId = identityResult.distinctId;
+    } catch (error) {
+      // Fallback to wallet address if resolution fails
+      console.warn(
+        'Failed to resolve distinct_id, using wallet address:',
+        error
+      );
+      distinctId = sanitizedWalletAddress;
+    }
+
+    // Set user properties server-side
+    setUserPropertiesServer(distinctId, {
+      $email: creatorEmail || undefined,
+      wallet_address: sanitizedWalletAddress,
+    });
+
     // Track location creation
-    trackLocationCreated(sanitizedWalletAddress, {
+    trackLocationCreated(distinctId, {
       location_id: locationData.id!,
       city,
       country,
@@ -285,8 +319,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Track points earned
-    trackPointsEarned(sanitizedWalletAddress, {
-      activity_type: "location_creation",
+    trackPointsEarned(distinctId, {
+      activity_type: 'location_creation',
       amount: pointsAwarded,
       description: `Created location: ${sanitizedName}`,
     });
@@ -296,10 +330,10 @@ export async function POST(request: NextRequest) {
       pointsAwarded,
     });
   } catch (error) {
-    console.error("Create location API error:", error);
+    console.error('Create location API error:', error);
     if (isDuplicateKeyError(error)) {
-      return apiError("Location already exists for this place_id", 409);
+      return apiError('Location already exists for this place_id', 409);
     }
-    return apiError("Failed to create location", 500);
+    return apiError('Failed to create location', 500);
   }
 }

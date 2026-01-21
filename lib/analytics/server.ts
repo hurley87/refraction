@@ -1,4 +1,4 @@
-import Mixpanel from "mixpanel";
+import Mixpanel from 'mixpanel';
 import type {
   UserProperties,
   CheckinEventProperties,
@@ -7,8 +7,8 @@ import type {
   PointsEarnedProperties,
   TierChangedProperties,
   AccountCreatedProperties,
-} from "./types";
-import { ANALYTICS_EVENTS } from "./events";
+} from './types';
+import { ANALYTICS_EVENTS } from './events';
 
 let mixpanelInstance: Mixpanel.Mixpanel | null = null;
 
@@ -33,7 +33,7 @@ function getMixpanel(): Mixpanel.Mixpanel {
   const secret = process.env.MIXPANEL_SECRET;
 
   if (!token) {
-    console.warn("Mixpanel token not found. Analytics events will be skipped.");
+    console.warn('Mixpanel token not found. Analytics events will be skipped.');
     // Return a mock instance that does nothing
     return {
       track: () => {},
@@ -58,7 +58,7 @@ function getMixpanel(): Mixpanel.Mixpanel {
 export function trackEvent(
   distinctId: string,
   eventName: string,
-  properties?: Record<string, any>,
+  properties?: Record<string, any>
 ): void {
   try {
     const mixpanel = getMixpanel();
@@ -67,7 +67,7 @@ export function trackEvent(
       ...properties,
     });
   } catch (error) {
-    console.error("Failed to track Mixpanel event:", error);
+    console.error('Failed to track Mixpanel event:', error);
   }
 }
 
@@ -76,13 +76,13 @@ export function trackEvent(
  */
 export function setUserProperties(
   distinctId: string,
-  properties: UserProperties,
+  properties: UserProperties
 ): void {
   try {
     const mixpanel = getMixpanel();
     mixpanel.people.set(distinctId, properties);
   } catch (error) {
-    console.error("Failed to set Mixpanel user properties:", error);
+    console.error('Failed to set Mixpanel user properties:', error);
   }
 }
 
@@ -91,13 +91,13 @@ export function setUserProperties(
  */
 export function setUserPropertiesOnce(
   distinctId: string,
-  properties: Partial<UserProperties>,
+  properties: Partial<UserProperties>
 ): void {
   try {
     const mixpanel = getMixpanel();
     mixpanel.people.set_once(distinctId, properties);
   } catch (error) {
-    console.error("Failed to set Mixpanel user properties once:", error);
+    console.error('Failed to set Mixpanel user properties once:', error);
   }
 }
 
@@ -107,74 +107,73 @@ export function setUserPropertiesOnce(
 export function incrementUserProperty(
   distinctId: string,
   property: string,
-  value: number = 1,
+  value: number = 1
 ): void {
   try {
     const mixpanel = getMixpanel();
     mixpanel.people.increment(distinctId, property, value);
   } catch (error) {
-    console.error("Failed to increment Mixpanel user property:", error);
+    console.error('Failed to increment Mixpanel user property:', error);
   }
 }
 
 // Convenience functions for specific events
 
 export function trackAccountCreated(
-  walletAddress: string,
-  properties: AccountCreatedProperties,
+  distinctId: string,
+  properties: AccountCreatedProperties
 ): void {
-  trackEvent(walletAddress, ANALYTICS_EVENTS.ACCOUNT_CREATED, properties);
-  setUserPropertiesOnce(walletAddress, {
-    wallet_address: walletAddress,
+  trackEvent(distinctId, ANALYTICS_EVENTS.ACCOUNT_CREATED, properties);
+  setUserPropertiesOnce(distinctId, {
+    wallet_address: properties.wallet_address,
     wallet_type: properties.wallet_type,
     first_action_at: new Date().toISOString(),
   });
 }
 
 export function trackCheckinCompleted(
-  walletAddress: string,
-  properties: CheckinEventProperties,
+  distinctId: string,
+  properties: CheckinEventProperties
 ): void {
-  trackEvent(walletAddress, ANALYTICS_EVENTS.CHECKIN_COMPLETED, properties);
-  trackEvent(walletAddress, ANALYTICS_EVENTS.USER_ACTIVE, {
-    action_type: "checkin",
+  trackEvent(distinctId, ANALYTICS_EVENTS.CHECKIN_COMPLETED, properties);
+  trackEvent(distinctId, ANALYTICS_EVENTS.USER_ACTIVE, {
+    action_type: 'checkin',
   });
 }
 
 export function trackRewardClaimed(
-  walletAddress: string,
-  properties: RewardEventProperties,
+  distinctId: string,
+  properties: RewardEventProperties
 ): void {
-  trackEvent(walletAddress, ANALYTICS_EVENTS.REWARD_CLAIMED, properties);
-  trackEvent(walletAddress, ANALYTICS_EVENTS.USER_ACTIVE, {
-    action_type: "reward_claim",
+  trackEvent(distinctId, ANALYTICS_EVENTS.REWARD_CLAIMED, properties);
+  trackEvent(distinctId, ANALYTICS_EVENTS.USER_ACTIVE, {
+    action_type: 'reward_claim',
   });
 }
 
 export function trackLocationCreated(
-  walletAddress: string,
-  properties: LocationCreatedProperties,
+  distinctId: string,
+  properties: LocationCreatedProperties
 ): void {
-  trackEvent(walletAddress, ANALYTICS_EVENTS.LOCATION_CREATED, properties);
-  trackEvent(walletAddress, ANALYTICS_EVENTS.USER_ACTIVE, {
-    action_type: "location_created",
+  trackEvent(distinctId, ANALYTICS_EVENTS.LOCATION_CREATED, properties);
+  trackEvent(distinctId, ANALYTICS_EVENTS.USER_ACTIVE, {
+    action_type: 'location_created',
   });
 }
 
 export function trackPointsEarned(
-  walletAddress: string,
-  properties: PointsEarnedProperties,
+  distinctId: string,
+  properties: PointsEarnedProperties
 ): void {
-  trackEvent(walletAddress, ANALYTICS_EVENTS.POINTS_EARNED, properties);
+  trackEvent(distinctId, ANALYTICS_EVENTS.POINTS_EARNED, properties);
 }
 
 export function trackTierChanged(
-  walletAddress: string,
-  properties: TierChangedProperties,
+  distinctId: string,
+  properties: TierChangedProperties
 ): void {
-  trackEvent(walletAddress, ANALYTICS_EVENTS.TIER_CHANGED, properties);
-  setUserProperties(walletAddress, {
+  trackEvent(distinctId, ANALYTICS_EVENTS.TIER_CHANGED, properties);
+  setUserProperties(distinctId, {
     tier: properties.new_tier,
   });
 }
-
