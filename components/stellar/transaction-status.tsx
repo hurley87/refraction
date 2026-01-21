@@ -1,13 +1,15 @@
-"use client";
+'use client';
 
-import { toast } from "sonner";
+import Link from 'next/link';
+import { toast } from 'sonner';
 
 interface TransactionStatusProps {
-  status: "idle" | "pending" | "success" | "error";
+  status: 'idle' | 'pending' | 'success' | 'error';
   txHash: string | null;
   error: string | null;
   successMessage: string;
   pendingMessage?: string;
+  network?: string;
 }
 
 export function TransactionStatus({
@@ -15,13 +17,25 @@ export function TransactionStatus({
   txHash,
   error,
   successMessage,
-  pendingMessage = "Confirm transaction in your wallet...",
+  pendingMessage = 'Confirm transaction in your wallet...',
+  network,
 }: TransactionStatusProps) {
-  if (status === "idle") {
+  // Determine explorer URL based on network
+  const getExplorerUrl = (hash: string): string => {
+    const normalizedNetwork = network?.toUpperCase() || '';
+    const isMainnet =
+      normalizedNetwork === 'PUBLIC' || normalizedNetwork === 'MAINNET';
+    const baseUrl = isMainnet
+      ? 'https://stellar.expert/explorer/public'
+      : 'https://stellar.expert/explorer/testnet';
+    return `${baseUrl}/tx/${hash}`;
+  };
+
+  if (status === 'idle') {
     return null;
   }
 
-  if (status === "success" && txHash) {
+  if (status === 'success' && txHash) {
     return (
       <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
         <div className="flex items-start gap-2">
@@ -45,13 +59,19 @@ export function TransactionStatus({
               {successMessage}
             </p>
             <div className="flex items-center gap-2">
-              <code className="text-xs text-green-700 break-all font-mono">
+              <Link
+                href={getExplorerUrl(txHash)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-green-700 break-all font-mono hover:underline"
+                title="View transaction on Stellar Explorer"
+              >
                 {txHash}
-              </code>
+              </Link>
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(txHash);
-                  toast.success("Transaction hash copied!");
+                  toast.success('Transaction hash copied!');
                 }}
                 className="flex-shrink-0 p-1 hover:bg-green-100 rounded transition-colors"
                 title="Copy transaction hash"
@@ -77,7 +97,7 @@ export function TransactionStatus({
     );
   }
 
-  if (status === "pending") {
+  if (status === 'pending') {
     return (
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <div className="flex items-center gap-2">
@@ -88,7 +108,7 @@ export function TransactionStatus({
     );
   }
 
-  if (status === "error") {
+  if (status === 'error') {
     return (
       <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
         <p className="text-sm font-medium text-red-800 mb-1">
