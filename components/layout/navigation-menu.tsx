@@ -37,6 +37,7 @@ export default function NavigationMenu({
     { label: "Leaderboard", path: "/leaderboard" },
     { label: "Events", path: "/events" },
     { label: "Rewards", path: "/rewards" },
+    { label: "Stellar", path: "/stellar" },
     { label: "FAQ", path: "/faq" },
     { label: "Livepaper", path: "/livepaper" },
     { label: "Become a Partner", path: "/partners" },
