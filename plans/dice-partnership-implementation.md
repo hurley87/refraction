@@ -69,23 +69,10 @@ Operational alignment confirmed:
 - **Promos**: supported short term via bulk promo code exports, with potential API automation longer term.
 - **POS**: agreed this is the most complex piece — ticketing and check-ins come first, with POS/cashless scoped in parallel and rolled out post-initial pilots.
 
-## Next steps (post-agreement)
-
-### Immediate
-
-- Agreement can be signed as-is — once signed, we're good to move forward.
-- Kick off implementation planning and identify the first pilot events.
-
-### Ongoing (DICE side)
-
-- Internal follow-ups on barcode handling details and listing scope.
-- Loop back as needed.
-
 ## Architecture (server-first, credential-safe)
 
 - **All DICE/Fever requests are server-side only** (Next.js Route Handlers / server actions). Never ship partner keys to clients.
 - Use **Zod** at boundaries (query/body validation and upstream response validation).
-- Prefer **feature flags** for capability-dependent areas (orders, checkout, scanning, promos).
 
 ## Data contracts (what we must define before awarding points)
 
