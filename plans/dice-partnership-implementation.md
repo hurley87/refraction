@@ -8,6 +8,15 @@ This plan reflects the operational partnership discussion between IRL and DICE/F
 - **In-venue purchases (POS)** + potential **Fever cashless** integration was identified as the **hardest / highest-risk** track and should be scoped after core foundations ship.
 - The team outlined **experiments** (Standard Time, Public Records, Space) and **next steps** for both parties.
 
+### Technical Confirmation (Post-Call)
+
+DICE's **Ticket Holders API (THAPI)** has been confirmed to support the technical requirements:
+
+- **API Endpoint**: `https://partners-endpoint.dice.fm/graphql` (GraphQL)
+- **Authentication**: MIO-managed Bearer tokens (DICE's internal back office)
+- **Confirmed capabilities**: events, orders, ticket holders, tickets, and **barcodes**
+- Barcodes can be exposed to partners and queried via the API, enabling IRL-native scanning workflows
+
 ## Goals
 
 - **Discovery**: browse/curate events via DICE **Collections** + broader **event listing API** access (not only “refractions events”).
@@ -26,7 +35,9 @@ This plan reflects the operational partnership discussion between IRL and DICE/F
 
 1. **POS/cashless complexity**: time-intensive; requires separate Fever cashless team + possible changes to existing POS systems.
 2. **Event listing scope**: currently limited to **“refractions events only”**, which blocks broad curation.
-3. **Barcode availability**: whether ticket barcodes can be accessed via API is an open question and gates IRL-native scanning.
+3. **Event listing scope**: currently limited to **"refractions events only"**, which blocks broad curation. (DICE side following up internally on expansion timeline.)
+
+**Resolved**: Barcode availability is confirmed — ticket barcodes can be accessed via THAPI GraphQL API (`code` field on `Ticket` type), enabling IRL-native scanning workflows.
 
 ## Next steps (from the call)
 
@@ -51,14 +62,119 @@ This plan reflects the operational partnership discussion between IRL and DICE/F
 - Use **Zod** at boundaries (query/body validation and upstream response validation).
 - Prefer **feature flags** for capability-dependent areas (orders, checkout, scanning, promos).
 
+## THAPI Integration Details
+
+DICE's Ticket Holders API (THAPI) is a GraphQL API accessible at `https://partners-endpoint.dice.fm/graphql`.
+
+### Authentication
+
+- Bearer token authentication via MIO-managed API tokens (DICE's internal back office)
+- Tokens are provisioned per partner account
+
+### Key GraphQL Queries
+
+**Fetch tickets for an event**:
+
+```graphql
+query GetEventTickets($eventId: ID!) {
+  node(id: $eventId) {
+    ... on Event {
+      id
+      name
+      startDatetime
+      tickets(first: 50) {
+        edges {
+          node {
+            id
+            code # QR code (barcode)
+            ticketType {
+              id
+              name
+              description
+            }
+            holder {
+              id
+              firstName
+              lastName
+              email
+              phoneNumber
+            }
+            claimedAt
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  }
+}
+```
+
+**Query tickets by fan phone number**:
+
+```graphql
+query GetTicketsByPhone($phoneNumber: String!) {
+  viewer {
+    tickets(first: 50, where: { fanPhoneNumber: { eq: $phoneNumber } }) {
+      edges {
+        node {
+          id
+          code
+          ticketType {
+            name
+          }
+          holder {
+            email
+            phoneNumber
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**Query orders with purchase date filter**:
+
+```graphql
+query GetOrders($purchasedAfter: Datetime!) {
+  viewer {
+    orders(first: 50, where: { purchasedAt: { gte: $purchasedAfter } }) {
+      edges {
+        node {
+          id
+          purchasedAt
+          tickets {
+            code
+            holder {
+              email
+              phoneNumber
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Implementation Notes
+
+- All queries should be executed server-side only (Next.js API routes or server actions)
+- Use cursor-based pagination (`first`/`after`) for large result sets
+- Cache responses appropriately (revalidate) to respect rate limits
+- Handle GraphQL errors gracefully (authentication, rate limits, schema drift)
+
 ```mermaid
 flowchart TD
-  apiAccess[APIAccessAndScopes] --> discovery[DiscoveryCollectionsAndListing]
-  apiAccess --> ticketProof[TicketProofVerification]
-  ticketProof --> scanningDecision[BarcodeOrScanDataDecision]
-  scanningDecision --> scanning[ScanningIntegration]
-  apiAccess --> promo[PromoCodePromotions]
-  scanning --> posCashless[POSCashlessTrackDeferred]
+  thapi[THAPI_GraphQL_API] --> discovery[Discovery_Events_Collections]
+  thapi --> ticketProof[Ticket_Proof_Verification]
+  thapi --> barcodes[Barcode_Access_Confirmed]
+  barcodes --> scanning[IRL_Native_Scanning]
+  thapi --> promos[Promos_Bulk_Export_Then_API]
+  scanning --> posCashless[POS_Cashless_Deferred]
 ```
 
 ## Workstreams + phases (incremental)
@@ -95,7 +211,7 @@ Deliverable: ticket-gated check-in for DICE events.
 
 - Integrate DICE Partners GraphQL (ticket holders) server-side.\n- Add a minimal identity link:\n - Store `players.dice_linked_email` (or other agreed identifier).\n- At check-in time, if `location.dice_event_id` exists:\n - Verify ticket holder.\n - Return clear errors for “not linked” and “no ticket”.
 
-### Phase 4 — Scanning integration (week 2–3, gated on barcode/scan capability)
+### Phase 4 — Scanning integration (week 2–3)
 
 Deliverable: robust in-venue validation + anti-fraud.
 
@@ -105,11 +221,19 @@ Two modes:
   Key product choices:
 - How to handle re-entry scans, partial scans, offline mode, and refunds/chargebacks.\n- How scan proof maps to “one check-in per user per event”.
 
-### Phase 5 — Promotions / discounts (week 3, gated on promo API)
+### Phase 5 — Promotions / discounts (week 3)
 
 Deliverable: trackable discount campaigns.
 
-- If DICE ships automated promo API:\n - Generate codes programmatically per campaign/partner, with constraints (expiry, max uses, eligible events).\n - Require reporting fields to attribute redemptions to IRL.\n- Fallback:\n - Manual promo codes with operational tracking.
+Two-phase approach (confirmed alignment):
+
+- **Short term**: bulk promo code exports (manual operational process)
+  - DICE provides promo codes via export
+  - IRL tracks redemptions and attribution manually
+- **Longer term**: potential API automation (to be explored)
+  - Generate codes programmatically per campaign/partner
+  - Constraints: expiry, max uses, eligible events
+  - Reporting fields to attribute redemptions to IRL
 
 ### Phase 6 — POS / Fever cashless integration (deferred; highest risk)
 
@@ -137,11 +261,30 @@ Pilot experiments (from call):
 
 ### C) Scanning / barcodes / scan data
 
-- Can IRL access **ticket barcodes via API**?\n - If yes: what is the barcode type (QR/PDF417/etc), payload format, rotation/expiry behavior, and anti-forgery requirements?\n- If barcodes are not available: can IRL receive **scan outcomes**?\n - Via webhook? Polling API? Daily export?\n - Required fields: event id, ticket id/order id, scan timestamp, scan status, venue/door.\n- How are re-entry scans represented?\n- How do refunds/chargebacks affect scan validity?\n- What is the recommended dedupe/idempotency key?\n
+**Mostly answered**:
+
+- ✅ **Barcodes ARE available via API**: THAPI `Ticket` type exposes `code` field (QR code/barcode)
+- ✅ Can query tickets with barcodes via THAPI GraphQL API
+
+**Still need**:
+
+- Barcode type (QR/PDF417/etc), payload format, rotation/expiry behavior, and anti-forgery requirements?
+- How are re-entry scans represented?
+- How do refunds/chargebacks affect scan validity?
+- What is the recommended dedupe/idempotency key?\n
 
 ### D) Promotions / discounting
 
-- Will there be an API for **automated promo code generation**?\n- Constraints supported: per-event, per-collection, per-venue, start/end time, max uses, min spend.\n- What reporting is available (redemptions, revenue impact, attribution to IRL)?\n
+**Partially answered**:
+
+- ✅ **Short term**: bulk promo code exports confirmed (manual operational process)
+- ✅ **Longer term**: potential API automation to be explored
+
+**Still need**:
+
+- When will automated promo code generation API be available?
+- Constraints supported: per-event, per-collection, per-venue, start/end time, max uses, min spend?
+- What reporting is available (redemptions, revenue impact, attribution to IRL)?\n
 
 ### E) POS / Fever cashless (the hard track)
 
