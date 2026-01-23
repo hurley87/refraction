@@ -15,6 +15,16 @@ NEXT_PUBLIC_STELLAR_NETWORK=TESTNET
 NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
 NEXT_PUBLIC_STELLAR_RPC_URL=https://rpc-futurenet.stellar.org
 NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
+
+# WalletConnect Configuration (optional, enables WalletConnect wallet option)
+# Get your project ID from https://cloud.walletconnect.com
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id_here
+
+# Optional: Customize WalletConnect app metadata
+NEXT_PUBLIC_APP_NAME=Refraction
+NEXT_PUBLIC_APP_DESCRIPTION=Refraction Stellar Wallet
+NEXT_PUBLIC_APP_URL=https://your-app-url.com
+NEXT_PUBLIC_APP_ICONS=https://your-app-url.com/icon1.png,https://your-app-url.com/icon2.png
 ```
 
 To get these API keys:
@@ -23,10 +33,18 @@ To get these API keys:
 - **Google Places**: Enable the Places API in [Google Cloud Console](https://console.cloud.google.com) and create an API key
 
 **Stellar Network Options:**
+
 - `TESTNET` - Stellar Testnet (default)
 - `FUTURENET` - Stellar Futurenet
 - `PUBLIC` - Stellar Mainnet
 - `LOCAL` - Local Stellar network (requires local Horizon server)
+
+**WalletConnect Setup:**
+
+- Sign up at [WalletConnect Cloud](https://cloud.walletconnect.com) to get your project ID
+- Add `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` to your `.env.local` file
+- WalletConnect will automatically appear as a wallet option in the connection modal
+- Optional: Customize app metadata with `NEXT_PUBLIC_APP_NAME`, `NEXT_PUBLIC_APP_DESCRIPTION`, `NEXT_PUBLIC_APP_URL`, and `NEXT_PUBLIC_APP_ICONS`
 
 First, run the development server:
 
