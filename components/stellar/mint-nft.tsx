@@ -23,7 +23,8 @@ const MintNFT: React.FC<MintNFTProps> = ({
 }) => {
   const { address, networkPassphrase, accountExists, balances, isPending } =
     useWallet();
-  const contractAddress = getNFTContractAddress();
+  // Get contract address based on wallet's network (not app config)
+  const contractAddress = getNFTContractAddress(networkPassphrase);
   const [isLoading, setIsLoading] = useState(false);
 
   // Check if account exists and has balance

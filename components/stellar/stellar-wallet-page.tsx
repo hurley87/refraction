@@ -9,6 +9,8 @@ import MintNFT from './mint-nft';
 import ClaimPoints from './claim-points';
 import { TransactionStatus } from './transaction-status';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
+import NetworkPill from './network-pill';
+
 
 function StellarWalletPageContent() {
   const { network } = useWallet();
@@ -33,7 +35,7 @@ function StellarWalletPageContent() {
     >
       <div className="max-w-md mx-auto">
         {/* Navigation */}
-        <div className="pb-2 pt-2">
+        <div className="pb-2 pt-2 flex items-center justify-between">
           <MapNav />
         </div>
 
@@ -151,6 +153,11 @@ function StellarWalletPageContent() {
                 network={network}
               />
             </div>
+          </div>
+
+          {/* Footer - Network Pill */}
+          <div className="flex justify-end pt-2">
+            <NetworkPill />
           </div>
         </div>
       </div>
