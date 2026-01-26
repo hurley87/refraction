@@ -1,8 +1,13 @@
-import { supabase } from "./client";
-import type { LocationList, LocationListWithCount, LocationListLocation, Location } from "../types";
+import { supabase } from './client';
+import type {
+  LocationList,
+  LocationListWithCount,
+  LocationListLocation,
+  Location,
+} from '../types';
 
 const locationSelection =
-  "id, name, display_name, latitude, longitude, place_id, points_value, type, event_url, context, coin_address, coin_symbol, coin_name, coin_image_url, creator_wallet_address, creator_username";
+  'id, name, display_name, latitude, longitude, place_id, points_value, type, event_url, context, coin_address, coin_symbol, coin_name, coin_image_url, creator_wallet_address, creator_username';
 
 type LocationListInput = {
   title: string;
@@ -12,20 +17,44 @@ type LocationListInput = {
   is_active?: boolean;
 };
 
+// Columns for location list queries
+const LOCATION_LIST_COLUMNS = `
+  id,
+  title,
+  slug,
+  description,
+  accent_color,
+  is_active,
+  created_at,
+  updated_at
+`;
+
 /**
- * Get all location lists with location counts
+ * Get all location lists with location counts.
+ * Uses RPC function if available for single-query efficiency,
+ * falls back to two-query approach if RPC doesn't exist.
  */
 export const getLocationLists = async (): Promise<LocationListWithCount[]> => {
+  // Try RPC function first (single query with aggregation)
+  const { data: rpcData, error: rpcError } = await supabase.rpc(
+    'get_location_lists_with_counts'
+  );
+
+  if (!rpcError && rpcData && Array.isArray(rpcData)) {
+    return rpcData as LocationListWithCount[];
+  }
+
+  // Fallback: two separate queries (less efficient but backward compatible)
   const { data: lists, error: listsError } = await supabase
-    .from("location_lists")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .from('location_lists')
+    .select(LOCATION_LIST_COLUMNS)
+    .order('created_at', { ascending: false });
 
   if (listsError) throw listsError;
 
   const { data: memberships, error: membershipsError } = await supabase
-    .from("location_list_members")
-    .select("list_id");
+    .from('location_list_members')
+    .select('list_id');
 
   if (membershipsError) throw membershipsError;
 
@@ -34,7 +63,7 @@ export const getLocationLists = async (): Promise<LocationListWithCount[]> => {
       acc[member.list_id] = (acc[member.list_id] || 0) + 1;
       return acc;
     },
-    {},
+    {}
   );
 
   const typedLists = (lists || []) as LocationList[];
@@ -49,10 +78,10 @@ export const getLocationLists = async (): Promise<LocationListWithCount[]> => {
  * Create a new location list
  */
 export const createLocationList = async (
-  payload: LocationListInput,
+  payload: LocationListInput
 ): Promise<LocationList> => {
   const { data, error } = await supabase
-    .from("location_lists")
+    .from('location_lists')
     .insert({
       title: payload.title,
       slug: payload.slug,
@@ -72,15 +101,15 @@ export const createLocationList = async (
  */
 export const updateLocationList = async (
   id: string,
-  updates: Partial<LocationListInput>,
+  updates: Partial<LocationListInput>
 ): Promise<LocationList> => {
   const { data, error } = await supabase
-    .from("location_lists")
+    .from('location_lists')
     .update({
       ...updates,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id)
+    .eq('id', id)
     .select()
     .single();
 
@@ -92,7 +121,7 @@ export const updateLocationList = async (
  * Delete a location list
  */
 export const deleteLocationList = async (id: string) => {
-  const { error } = await supabase.from("location_lists").delete().eq("id", id);
+  const { error } = await supabase.from('location_lists').delete().eq('id', id);
 
   if (error) throw error;
 };
@@ -101,10 +130,10 @@ export const deleteLocationList = async (id: string) => {
  * Get all locations in a specific list
  */
 export const getLocationsForList = async (
-  listId: string,
+  listId: string
 ): Promise<LocationListLocation[]> => {
   const { data, error } = await supabase
-    .from("location_list_members")
+    .from('location_list_members')
     .select(
       `
         id,
@@ -114,10 +143,10 @@ export const getLocationsForList = async (
         locations (
           ${locationSelection}
         )
-      `,
+      `
     )
-    .eq("list_id", listId)
-    .order("created_at", { ascending: false });
+    .eq('list_id', listId)
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
 
@@ -143,10 +172,10 @@ export const getLocationsForList = async (
  */
 export const addLocationToList = async (
   listId: string,
-  locationId: number,
+  locationId: number
 ): Promise<LocationListLocation> => {
   const { data, error } = await supabase
-    .from("location_list_members")
+    .from('location_list_members')
     .insert({
       list_id: listId,
       location_id: locationId,
@@ -160,13 +189,13 @@ export const addLocationToList = async (
         locations (
           ${locationSelection}
         )
-      `,
+      `
     )
     .single();
 
   if (error) throw error;
   if (!data?.locations) {
-    throw new Error("Location missing for membership record");
+    throw new Error('Location missing for membership record');
   }
 
   // Supabase returns nested relations as arrays, extract the first element
@@ -175,7 +204,7 @@ export const addLocationToList = async (
     : data.locations;
 
   if (!location) {
-    throw new Error("Location missing for membership record");
+    throw new Error('Location missing for membership record');
   }
 
   return {
@@ -192,14 +221,13 @@ export const addLocationToList = async (
  */
 export const removeLocationFromList = async (
   listId: string,
-  locationId: number,
+  locationId: number
 ) => {
   const { error } = await supabase
-    .from("location_list_members")
+    .from('location_list_members')
     .delete()
-    .eq("list_id", listId)
-    .eq("location_id", locationId);
+    .eq('list_id', listId)
+    .eq('location_id', locationId);
 
   if (error) throw error;
 };
-
