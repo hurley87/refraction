@@ -1,6 +1,20 @@
 import { supabase } from './client';
 import type { LeaderboardEntry } from '../types';
 
+// Select specific columns for player queries
+const PLAYER_COLUMNS = `
+  id,
+  wallet_address,
+  solana_wallet_address,
+  stellar_wallet_address,
+  stellar_wallet_id,
+  email,
+  username,
+  total_points,
+  created_at,
+  updated_at
+`;
+
 /**
  * Verify that get_leaderboard_optimized RPC function exists and works
  * @returns true if function exists and works, false otherwise
@@ -157,7 +171,7 @@ export const getLeaderboard = async (
 export const getPlayerStats = async (playerId: number) => {
   const { data: player, error: playerError } = await supabase
     .from('players')
-    .select('*')
+    .select(PLAYER_COLUMNS)
     .eq('id', playerId)
     .single();
 

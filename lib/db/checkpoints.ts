@@ -1,12 +1,26 @@
-import { supabase } from "./client";
-import type { Checkpoint, ChainType } from "../types";
+import { supabase } from './client';
+import type { Checkpoint, ChainType } from '../types';
+
+// Select specific columns for checkpoint queries
+const CHECKPOINT_COLUMNS = `
+  id,
+  name,
+  description,
+  chain_type,
+  points_value,
+  is_active,
+  created_by,
+  partner_image_url,
+  created_at,
+  updated_at
+`;
 
 /**
  * Generate a short, URL-friendly ID for checkpoints
  * Uses crypto.randomUUID and takes first 10 chars for a short URL
  */
 const generateCheckpointId = () => {
-  const uuid = crypto.randomUUID().replace(/-/g, "");
+  const uuid = crypto.randomUUID().replace(/-/g, '');
   return uuid.slice(0, 10);
 };
 
@@ -16,15 +30,15 @@ const generateCheckpointId = () => {
  * @param id - Optional checkpoint ID. If not provided, generates a new one.
  */
 export const createCheckpoint = async (
-  checkpoint: Omit<Checkpoint, "id" | "created_at" | "updated_at">,
-  id?: string,
+  checkpoint: Omit<Checkpoint, 'id' | 'created_at' | 'updated_at'>,
+  id?: string
 ): Promise<Checkpoint> => {
   const checkpointId = id || generateCheckpointId();
 
   const { data, error } = await supabase
-    .from("checkpoints")
+    .from('checkpoints')
     .insert({ ...checkpoint, id: checkpointId })
-    .select()
+    .select(CHECKPOINT_COLUMNS)
     .single();
 
   if (error) throw error;
@@ -35,15 +49,15 @@ export const createCheckpoint = async (
  * Get a checkpoint by ID
  */
 export const getCheckpointById = async (
-  id: string,
+  id: string
 ): Promise<Checkpoint | null> => {
   const { data, error } = await supabase
-    .from("checkpoints")
-    .select("*")
-    .eq("id", id)
+    .from('checkpoints')
+    .select(CHECKPOINT_COLUMNS)
+    .eq('id', id)
     .single();
 
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== 'PGRST116') throw error;
   return data;
 };
 
@@ -51,16 +65,16 @@ export const getCheckpointById = async (
  * Get an active checkpoint by ID (for public access)
  */
 export const getActiveCheckpointById = async (
-  id: string,
+  id: string
 ): Promise<Checkpoint | null> => {
   const { data, error } = await supabase
-    .from("checkpoints")
-    .select("*")
-    .eq("id", id)
-    .eq("is_active", true)
+    .from('checkpoints')
+    .select(CHECKPOINT_COLUMNS)
+    .eq('id', id)
+    .eq('is_active', true)
     .single();
 
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== 'PGRST116') throw error;
   return data;
 };
 
@@ -69,9 +83,9 @@ export const getActiveCheckpointById = async (
  */
 export const listAllCheckpoints = async (): Promise<Checkpoint[]> => {
   const { data, error } = await supabase
-    .from("checkpoints")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .from('checkpoints')
+    .select(CHECKPOINT_COLUMNS)
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
   return data || [];
@@ -82,10 +96,10 @@ export const listAllCheckpoints = async (): Promise<Checkpoint[]> => {
  */
 export const listActiveCheckpoints = async (): Promise<Checkpoint[]> => {
   const { data, error } = await supabase
-    .from("checkpoints")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
+    .from('checkpoints')
+    .select(CHECKPOINT_COLUMNS)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
   return data || [];
@@ -96,13 +110,13 @@ export const listActiveCheckpoints = async (): Promise<Checkpoint[]> => {
  */
 export const updateCheckpoint = async (
   id: string,
-  updates: Partial<Omit<Checkpoint, "id" | "created_at">>,
+  updates: Partial<Omit<Checkpoint, 'id' | 'created_at'>>
 ): Promise<Checkpoint> => {
   const { data, error } = await supabase
-    .from("checkpoints")
+    .from('checkpoints')
     .update(updates)
-    .eq("id", id)
-    .select()
+    .eq('id', id)
+    .select(CHECKPOINT_COLUMNS)
     .single();
 
   if (error) throw error;
@@ -113,7 +127,7 @@ export const updateCheckpoint = async (
  * Delete a checkpoint
  */
 export const deleteCheckpoint = async (id: string): Promise<void> => {
-  const { error } = await supabase.from("checkpoints").delete().eq("id", id);
+  const { error } = await supabase.from('checkpoints').delete().eq('id', id);
 
   if (error) throw error;
 };
@@ -123,7 +137,7 @@ export const deleteCheckpoint = async (id: string): Promise<void> => {
  */
 export const toggleCheckpointActive = async (
   id: string,
-  isActive: boolean,
+  isActive: boolean
 ): Promise<Checkpoint> => {
   return updateCheckpoint(id, { is_active: isActive });
 };
@@ -132,14 +146,14 @@ export const toggleCheckpointActive = async (
  * Get checkpoints by chain type
  */
 export const getCheckpointsByChainType = async (
-  chainType: ChainType,
+  chainType: ChainType
 ): Promise<Checkpoint[]> => {
   const { data, error } = await supabase
-    .from("checkpoints")
-    .select("*")
-    .eq("chain_type", chainType)
-    .eq("is_active", true)
-    .order("created_at", { ascending: false });
+    .from('checkpoints')
+    .select(CHECKPOINT_COLUMNS)
+    .eq('chain_type', chainType)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
   return data || [];

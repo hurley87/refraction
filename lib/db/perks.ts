@@ -1,17 +1,46 @@
-import { supabase } from "./client";
-import type { Perk } from "../types";
-import { getPlayerByWallet } from "./players";
+import { supabase } from './client';
+import type { Perk } from '../types';
+import { getPlayerByWallet } from './players';
+
+// Select specific columns for perk queries
+const PERK_COLUMNS = `
+  id,
+  title,
+  description,
+  location,
+  points_threshold,
+  website_url,
+  type,
+  end_date,
+  created_at,
+  updated_at,
+  is_active,
+  thumbnail_url,
+  hero_image
+`;
+
+// Select specific columns for discount code queries
+const DISCOUNT_CODE_COLUMNS = `
+  id,
+  perk_id,
+  code,
+  is_claimed,
+  claimed_by_wallet_address,
+  claimed_at,
+  created_at,
+  is_universal
+`;
 
 /**
  * Create a new perk
  */
 export const createPerk = async (
-  perk: Omit<Perk, "id" | "created_at" | "updated_at">,
+  perk: Omit<Perk, 'id' | 'created_at' | 'updated_at'>
 ) => {
   const { data, error } = await supabase
-    .from("perks")
+    .from('perks')
     .insert(perk)
-    .select()
+    .select(PERK_COLUMNS)
     .single();
 
   if (error) throw error;
@@ -23,13 +52,13 @@ export const createPerk = async (
  */
 export const updatePerk = async (
   id: string,
-  updates: Partial<Omit<Perk, "id" | "created_at">>,
+  updates: Partial<Omit<Perk, 'id' | 'created_at'>>
 ) => {
   const { data, error } = await supabase
-    .from("perks")
+    .from('perks')
     .update(updates)
-    .eq("id", id)
-    .select()
+    .eq('id', id)
+    .select(PERK_COLUMNS)
     .single();
 
   if (error) throw error;
@@ -40,7 +69,7 @@ export const updatePerk = async (
  * Delete a perk
  */
 export const deletePerk = async (id: string) => {
-  const { error } = await supabase.from("perks").delete().eq("id", id);
+  const { error } = await supabase.from('perks').delete().eq('id', id);
 
   if (error) throw error;
 };
@@ -50,13 +79,13 @@ export const deletePerk = async (id: string) => {
  */
 export const getAllPerks = async (activeOnly: boolean = true) => {
   let query = supabase
-    .from("perks")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .from('perks')
+    .select(PERK_COLUMNS)
+    .order('created_at', { ascending: false });
 
   if (activeOnly) {
     query = query
-      .eq("is_active", true)
+      .eq('is_active', true)
       .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`);
   }
 
@@ -70,9 +99,9 @@ export const getAllPerks = async (activeOnly: boolean = true) => {
  */
 export const getPerkById = async (id: string) => {
   const { data, error } = await supabase
-    .from("perks")
-    .select("*")
-    .eq("id", id)
+    .from('perks')
+    .select(PERK_COLUMNS)
+    .eq('id', id)
     .single();
 
   if (error) throw error;
@@ -89,18 +118,18 @@ export const getAvailablePerksForUser = async (walletAddress: string) => {
 
   // Get all active perks that user can afford and haven't expired
   const { data: perks, error } = await supabase
-    .from("perks")
+    .from('perks')
     .select(
       `
-      *,
+      ${PERK_COLUMNS},
       user_perk_redemptions!left(
         id,
         redeemed_at
       )
-    `,
+    `
     )
-    .eq("is_active", true)
-    .lte("points_threshold", userPoints)
+    .eq('is_active', true)
+    .lte('points_threshold', userPoints)
     .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`);
 
   if (error) throw error;
@@ -109,7 +138,7 @@ export const getAvailablePerksForUser = async (walletAddress: string) => {
   return (
     perks?.filter((perk) => {
       const redemption = perk.user_perk_redemptions.find(
-        (r: any) => r.user_wallet_address === walletAddress,
+        (r: any) => r.user_wallet_address === walletAddress
       );
       return !redemption;
     }) || []
@@ -125,37 +154,37 @@ export const redeemPerk = async (perkId: string, walletAddress: string) => {
   const perk = await getPerkById(perkId);
 
   if (!userStats || userStats.total_points < perk.points_threshold) {
-    throw new Error("Insufficient points to redeem this perk");
+    throw new Error('Insufficient points to redeem this perk');
   }
 
   // Check if already redeemed
   const { data: existingRedemption } = await supabase
-    .from("user_perk_redemptions")
-    .select("id")
-    .eq("perk_id", perkId)
-    .eq("user_wallet_address", walletAddress)
+    .from('user_perk_redemptions')
+    .select('id')
+    .eq('perk_id', perkId)
+    .eq('user_wallet_address', walletAddress)
     .single();
 
   if (existingRedemption) {
-    throw new Error("Perk already redeemed");
+    throw new Error('Perk already redeemed');
   }
 
   // Find an available discount code
   const { data: availableCode, error: codeError } = await supabase
-    .from("perk_discount_codes")
-    .select("*")
-    .eq("perk_id", perkId)
-    .eq("is_claimed", false)
+    .from('perk_discount_codes')
+    .select(DISCOUNT_CODE_COLUMNS)
+    .eq('perk_id', perkId)
+    .eq('is_claimed', false)
     .limit(1)
     .single();
 
   if (codeError || !availableCode) {
-    throw new Error("No discount codes available for this perk");
+    throw new Error('No discount codes available for this perk');
   }
 
   // Create redemption record (this will trigger the database function to mark the code as claimed)
   const { data, error } = await supabase
-    .from("user_perk_redemptions")
+    .from('user_perk_redemptions')
     .insert({
       perk_id: perkId,
       discount_code_id: availableCode.id,
@@ -167,7 +196,7 @@ export const redeemPerk = async (perkId: string, walletAddress: string) => {
       perk_discount_codes (
         code
       )
-    `,
+    `
     )
     .single();
 
@@ -180,7 +209,7 @@ export const redeemPerk = async (perkId: string, walletAddress: string) => {
  */
 export const getUserPerkRedemptions = async (walletAddress: string) => {
   const { data, error } = await supabase
-    .from("user_perk_redemptions")
+    .from('user_perk_redemptions')
     .select(
       `
       *,
@@ -193,10 +222,10 @@ export const getUserPerkRedemptions = async (walletAddress: string) => {
       perk_discount_codes (
         code
       )
-    `,
+    `
     )
-    .eq("user_wallet_address", walletAddress)
-    .order("redeemed_at", { ascending: false });
+    .eq('user_wallet_address', walletAddress)
+    .order('redeemed_at', { ascending: false });
 
   if (error) throw error;
   return data;
@@ -208,7 +237,7 @@ export const getUserPerkRedemptions = async (walletAddress: string) => {
 export const createDiscountCodes = async (
   perkId: string,
   codes: string[],
-  isUniversal: boolean = false,
+  isUniversal: boolean = false
 ) => {
   const discountCodes = codes.map((code) => ({
     perk_id: perkId,
@@ -217,7 +246,7 @@ export const createDiscountCodes = async (
   }));
 
   const { data, error } = await supabase
-    .from("perk_discount_codes")
+    .from('perk_discount_codes')
     .insert(discountCodes)
     .select();
 
@@ -230,10 +259,10 @@ export const createDiscountCodes = async (
  */
 export const getDiscountCodesByPerkId = async (perkId: string) => {
   const { data, error } = await supabase
-    .from("perk_discount_codes")
-    .select("*")
-    .eq("perk_id", perkId)
-    .order("created_at", { ascending: false });
+    .from('perk_discount_codes')
+    .select(DISCOUNT_CODE_COLUMNS)
+    .eq('perk_id', perkId)
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
   return data;
@@ -244,9 +273,9 @@ export const getDiscountCodesByPerkId = async (perkId: string) => {
  */
 export const deleteDiscountCode = async (codeId: string) => {
   const { error } = await supabase
-    .from("perk_discount_codes")
+    .from('perk_discount_codes')
     .delete()
-    .eq("id", codeId);
+    .eq('id', codeId);
 
   if (error) throw error;
 };
@@ -256,10 +285,10 @@ export const deleteDiscountCode = async (codeId: string) => {
  */
 export const getAvailableCodesCount = async (perkId: string) => {
   const { count, error } = await supabase
-    .from("perk_discount_codes")
-    .select("*", { count: "exact", head: true })
-    .eq("perk_id", perkId)
-    .eq("is_claimed", false);
+    .from('perk_discount_codes')
+    .select('*', { count: 'exact', head: true })
+    .eq('perk_id', perkId)
+    .eq('is_claimed', false);
 
   if (error) throw error;
   return count || 0;
