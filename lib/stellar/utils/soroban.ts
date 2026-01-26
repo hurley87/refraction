@@ -13,8 +13,6 @@ import {
 import {
   networkPassphrase,
   rpcUrl,
-  horizonUrl,
-  getStellarNetworkConfig,
 } from './network';
 import { wallet } from './wallet';
 

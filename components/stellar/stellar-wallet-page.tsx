@@ -10,7 +10,7 @@ import ClaimPoints from './claim-points';
 import { TransactionStatus } from './transaction-status';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
 import NetworkPill from './network-pill';
-import { stellarNetwork } from '@/lib/stellar/utils/network';
+
 
 function StellarWalletPageContent() {
   const { network } = useWallet();
