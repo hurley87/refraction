@@ -1,21 +1,22 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useWallet } from "@/lib/stellar/hooks/use-wallet";
-import { invokePaymentContract, isValidAddress, isValidContractAddress } from "@/lib/stellar/utils/soroban";
-import FundAccountButton from "./fund-account-button";
-import { toast } from "sonner";
-import { getSimplePaymentContractAddress } from "@/lib/stellar/utils/network";
-
+import React, { useState } from 'react';
+import { useWallet } from '@/lib/stellar/hooks/use-wallet';
+import {
+  invokePaymentContract,
+  isValidAddress,
+  isValidContractAddress,
+} from '@/lib/stellar/utils/soroban';
+import FundAccountButton from './fund-account-button';
+import { toast } from 'sonner';
+import { getSimplePaymentContractAddress } from '@/lib/stellar/utils/network';
 
 const TestSendContract: React.FC = () => {
   const { address, networkPassphrase, accountExists, balances } = useWallet();
-  // Fixed contract address
-  const contractAddress = getSimplePaymentContractAddress();
-  // Fixed amount: 1 XLM
-  const amount = 1;
+  // Get contract address based on wallet's network (not app config)
+  const contractAddress = getSimplePaymentContractAddress(networkPassphrase);
   // Recipient is the connected user's address
-  const recipientAddress = address || "";
+  const recipientAddress = address || '';
   const [isLoading, setIsLoading] = useState(false);
 
   if (!address) {
@@ -31,12 +32,15 @@ const TestSendContract: React.FC = () => {
   const hasBalance = xlmBalance && Number(xlmBalance) > 0;
   // Account needs funding if it doesn't exist OR if it exists but has no balance
   // Note: accountExists might be false even if the account is funded (timing issue)
-  const needsFunding = (!accountExists && !hasBalance) || (accountExists && !hasBalance);
+  const needsFunding =
+    (!accountExists && !hasBalance) || (accountExists && !hasBalance);
 
   const handleSend = async () => {
     // Validate contract address exists
     if (!contractAddress) {
-      toast.error("Contract address not configured. Please set NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS environment variable.");
+      toast.error(
+        'Contract address not configured. Please set NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS environment variable.'
+      );
       return;
     }
 
@@ -44,51 +48,60 @@ const TestSendContract: React.FC = () => {
     if (!isValidContractAddress(contractAddress)) {
       toast.error(
         `Invalid contract address format: "${contractAddress}". ` +
-        "Contract addresses must start with 'C' and be 56 characters long, " +
-        "or be a valid Stellar address starting with 'G'. " +
-        "Please check your NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS environment variable."
+          "Contract addresses must start with 'C' and be 56 characters long, " +
+          "or be a valid Stellar address starting with 'G'. " +
+          'Please check your NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS environment variable.'
       );
       return;
     }
 
     if (!recipientAddress) {
-      toast.error("Recipient address is required. Please connect your wallet.");
+      toast.error('Recipient address is required. Please connect your wallet.');
       return;
     }
 
     if (!isValidAddress(recipientAddress)) {
-      toast.error("Invalid recipient address format");
+      toast.error('Invalid recipient address format');
       return;
     }
 
     setIsLoading(true);
     try {
-  
-      // Use payment contract helper that tries multiple function names
+      // Use payment contract helper (no amount parameter - contract sends fixed 0.1 XLM)
       const txHash = await invokePaymentContract(
         contractAddress,
         recipientAddress,
-        amount,
+        undefined, // No amount - contract sends fixed 0.1 XLM
         address,
-        networkPassphrase,
+        networkPassphrase
       );
 
       toast.success(`Transaction sent! Hash: ${txHash}`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+
       // Provide helpful message for account not found errors
-      if (errorMessage.includes("Account not found") || errorMessage.includes("not found")) {
+      if (
+        errorMessage.includes('Account not found') ||
+        errorMessage.includes('not found')
+      ) {
         toast.error(
           "Account not found or not funded. Please fund your account first using the 'Fund Account' button.",
           { duration: 5000 }
         );
-      } else if (errorMessage.includes("no XLM balance") || errorMessage.includes("Contract has no")) {
+      } else if (
+        errorMessage.includes('no XLM balance') ||
+        errorMessage.includes('Contract has no') ||
+        errorMessage.includes('insufficient XLM balance') ||
+        errorMessage.includes('UnreachableCodeReached') ||
+        errorMessage.includes('needs at least 0.1 XLM')
+      ) {
         toast.error(
-          "The payment contract has no XLM balance. The contract must be funded with XLM before it can send rewards. Please fund the contract address first.",
-          { duration: 8000 }
+          `The payment contract has insufficient XLM balance. The contract must be funded with at least 0.1 XLM before it can send rewards. Please fund the contract address: ${contractAddress}`,
+          { duration: 10000 }
         );
-      } else if (errorMessage.includes("Insufficient balance")) {
+      } else if (errorMessage.includes('Insufficient balance')) {
         toast.error(
           `Insufficient contract balance: ${errorMessage}. The contract needs more XLM to send this amount.`,
           { duration: 8000 }
@@ -96,7 +109,7 @@ const TestSendContract: React.FC = () => {
       } else {
         toast.error(`Transaction failed: ${errorMessage}`);
       }
-      console.error("Contract invocation error:", error);
+      console.error('Contract invocation error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -105,19 +118,23 @@ const TestSendContract: React.FC = () => {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-white">Test Contract Send</h2>
-   
 
       {needsFunding && (
         <div className="p-4 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <p className="text-sm text-yellow-200 mb-1">
-                <strong>Account needs funding:</strong> Your account must be funded with XLM before it can invoke contracts.
+                <strong>Account needs funding:</strong> Your account must be
+                funded with XLM before it can invoke contracts.
               </p>
               <p className="text-xs text-yellow-300/80 mb-2">
-                Click the button below to fund your account using Friendbot (testnet only).
+                Click the button below to fund your account using Friendbot
+                (testnet only).
                 {accountExists && !hasBalance && (
-                  <span className="block mt-1">Note: Account exists but has no balance. You may need to refresh the page after funding.</span>
+                  <span className="block mt-1">
+                    Note: Account exists but has no balance. You may need to
+                    refresh the page after funding.
+                  </span>
                 )}
               </p>
             </div>
@@ -135,18 +152,14 @@ const TestSendContract: React.FC = () => {
       )}
 
       <div className="space-y-4">
-       
-         
         <button
           onClick={handleSend}
           disabled={isLoading || !contractAddress || !recipientAddress}
           className="w-full px-4 py-2 bg-[#FFE600] text-[#131313] rounded-lg font-medium hover:bg-[#FFD700] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? "Sending..." : "Send reward"}
+          {isLoading ? 'Sending...' : 'Send reward'}
         </button>
       </div>
-
-     
     </div>
   );
 };

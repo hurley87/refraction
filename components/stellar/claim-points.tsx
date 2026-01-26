@@ -9,6 +9,7 @@ import {
   isValidContractAddress,
 } from '@/lib/stellar/utils/soroban';
 import { connectWallet } from '@/lib/stellar/utils/wallet';
+import { getSimplePaymentContractAddress } from '@/lib/stellar/utils/network';
 import FundAccountButton from './fund-account-button';
 import { toast } from 'sonner';
 
@@ -26,11 +27,8 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
   const { address, networkPassphrase, accountExists, balances, isPending } =
     useWallet();
   const { addNotification } = useNotification();
-  // Fixed contract address (same as TestSendContract)
-  const contractAddress =
-    'CBPPHUSZS6B76X7NPJY76FQ3ZHGYFXVC4YJSOR2HAYNVEXVQZIJJCFAG';
-  // Fixed amount: 1 XLM
-  const amount = 1;
+  // Get contract address based on wallet's network (not app config)
+  const contractAddress = getSimplePaymentContractAddress(networkPassphrase);
   // Recipient is the connected user's address
   const recipientAddress = address || '';
   const [isLoading, setIsLoading] = useState(false);
@@ -71,11 +69,11 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
     onPending?.();
 
     try {
-      // Use payment contract helper that tries multiple function names
+      // Use payment contract helper (no amount parameter - contract sends fixed 0.1 XLM)
       const txHash = await invokePaymentContract(
         contractAddress,
         recipientAddress,
-        amount,
+        undefined, // No amount - contract sends fixed 0.1 XLM
         address!,
         networkPassphrase
       );
@@ -98,6 +96,19 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
         );
         addNotification(
           'Account not found or not funded. Please fund your account before claiming points.',
+          'error'
+        );
+      } else if (
+        errorMessage.includes('insufficient XLM balance') ||
+        errorMessage.includes('UnreachableCodeReached') ||
+        errorMessage.includes('needs at least 0.1 XLM')
+      ) {
+        toast.error(
+          `The payment contract has insufficient XLM balance. The contract must be funded with at least 0.1 XLM before rewards can be claimed. Please fund the contract address: ${contractAddress}`,
+          { duration: 10000 }
+        );
+        addNotification(
+          `Contract needs funding: ${contractAddress} requires at least 0.1 XLM`,
           'error'
         );
       } else {
