@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   createContext,
@@ -8,11 +8,11 @@ import {
   useRef,
   useState,
   useTransition,
-} from "react";
-import { wallet } from "../utils/wallet";
-import storage from "../utils/storage";
-import { fetchBalances } from "../utils/wallet";
-import type { MappedBalances } from "../utils/wallet";
+} from 'react';
+import { wallet } from '../utils/wallet';
+import storage from '../utils/storage';
+import { fetchBalances } from '../utils/wallet';
+import type { MappedBalances } from '../utils/wallet';
 
 const signTransaction = wallet.signTransaction.bind(wallet);
 
@@ -29,12 +29,12 @@ function deepEqual<T>(a: T, b: T): boolean {
   }
 
   const bothAreObjects =
-    a && b && typeof a === "object" && typeof b === "object";
+    a && b && typeof a === 'object' && typeof b === 'object';
 
   return Boolean(
     bothAreObjects &&
       Object.keys(a).length === Object.keys(b).length &&
-      Object.entries(a).every(([k, v]) => deepEqual(v, b[k as keyof T])),
+      Object.entries(a).every(([k, v]) => deepEqual(v, b[k as keyof T]))
   );
 }
 
@@ -51,14 +51,13 @@ export interface WalletContextType {
 
 const POLL_INTERVAL = 1000;
 
-export const WalletContext =
-  createContext<WalletContextType>({
-    isPending: true,
-    balances: {},
-    accountExists: true,
-    updateBalances: async () => {},
-    signTransaction,
-  });
+export const WalletContext = createContext<WalletContextType>({
+  isPending: true,
+  balances: {},
+  accountExists: true,
+  updateBalances: async () => {},
+  signTransaction,
+});
 
 export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   const [balances, setBalances] = useState<MappedBalances>({});
@@ -84,10 +83,10 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     lastFetchedNetwork.current = undefined;
     lastFetchedAddress.current = undefined;
     hasInitializedRef.current = false; // Reset initialization flag
-    storage.setItem("walletId", "");
-    storage.setItem("walletAddress", "");
-    storage.setItem("walletNetwork", "");
-    storage.setItem("networkPassphrase", "");
+    storage.setItem('walletId', '');
+    storage.setItem('walletAddress', '');
+    storage.setItem('walletNetwork', '');
+    storage.setItem('networkPassphrase', '');
   };
 
   const updateBalances = useCallback(async () => {
@@ -102,34 +101,42 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     // Normalize network for comparison
     const normalizedNetwork = network?.toUpperCase() || 'default';
     const normalizedLastNetwork = lastFetchedNetwork.current?.toUpperCase();
-    
+
     // Create a unique key for this network/address combination
     const fetchKey = `${normalizedNetwork}:${address}`;
     const lastFetchKey = `${normalizedLastNetwork || 'default'}:${lastFetchedAddress.current || ''}`;
 
     // If we're already fetching for this key, skip
     if (isFetchingRef.current && fetchKey === lastFetchKey) {
-      console.log("[Stellar] Already fetching for", fetchKey, ", skipping");
+      console.log('[Stellar] Already fetching for', fetchKey, ', skipping');
       return;
     }
 
     // Check if we've already fetched for this exact network/address combination
     // and the account doesn't exist - don't fetch again
     if (!accountExistsRef.current && fetchKey === lastFetchKey) {
-      console.log("[Stellar] Account already known to not exist for", fetchKey, ", skipping fetch");
+      console.log(
+        '[Stellar] Account already known to not exist for',
+        fetchKey,
+        ', skipping fetch'
+      );
       return;
     }
 
     // If we're fetching for the same key and account exists, check if we really need to refetch
     // (only refetch if balances might have changed, not on every render)
-    if (accountExistsRef.current && fetchKey === lastFetchKey && !isFetchingRef.current) {
+    if (
+      accountExistsRef.current &&
+      fetchKey === lastFetchKey &&
+      !isFetchingRef.current
+    ) {
       // Don't refetch if we just fetched - let the polling interval handle updates
       return;
     }
 
     // Mark as fetching
     isFetchingRef.current = true;
-    
+
     // Update tracking refs before fetching (use normalized network)
     lastFetchedNetwork.current = network;
     lastFetchedAddress.current = address;
@@ -137,13 +144,22 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       // Use the wallet's network if available, otherwise fall back to app config
       const networkToUse = network || undefined;
-      console.log("[Stellar] Fetching balances for", fetchKey);
-      const result = await fetchBalances(address, networkToUse);
-      
+      console.log(
+        '[Stellar] Fetching balances for',
+        fetchKey,
+        'networkPassphrase:',
+        networkPassphrase ? 'provided' : 'not provided'
+      );
+      const result = await fetchBalances(
+        address,
+        networkToUse,
+        networkPassphrase
+      );
+
       // Update account existence state (both state and ref)
       setAccountExists(result.accountExists);
       accountExistsRef.current = result.accountExists;
-      
+
       // Only update balances if account exists or if we got balances (account might have been funded)
       if (result.accountExists || Object.keys(result.balances).length > 0) {
         setBalances((prev) => {
@@ -163,56 +179,74 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     // Don't do anything if we don't have an address or network
     if (!address || !network) {
-      console.log("[Stellar] useEffect: Skipping balance fetch - missing address or network", { address: !!address, network: !!network });
+      console.log(
+        '[Stellar] useEffect: Skipping balance fetch - missing address or network',
+        { address: !!address, network: !!network }
+      );
       return;
     }
 
     // Normalize network for comparison
     const normalizedNetwork = network.toUpperCase();
-    const normalizedLastNetwork = lastFetchedNetwork.current?.toUpperCase() || '';
-    
+    const normalizedLastNetwork =
+      lastFetchedNetwork.current?.toUpperCase() || '';
+
     // Create fetch key for comparison (use normalized network)
     const currentFetchKey = `${normalizedNetwork}:${address}`;
     const lastFetchKey = `${normalizedLastNetwork}:${lastFetchedAddress.current || ''}`;
-    
+
     // Check if network or address has changed
     const hasChanged = currentFetchKey !== lastFetchKey;
-    
-    console.log("[Stellar] useEffect: Balance fetch check", {
+
+    console.log('[Stellar] useEffect: Balance fetch check', {
       currentFetchKey,
       lastFetchKey,
       hasChanged,
       accountExists: accountExistsRef.current,
     });
-    
+
     // If we've already fetched for this exact network/address combination
     // and account doesn't exist, don't fetch again
     if (!hasChanged && !accountExistsRef.current) {
-      console.log("[Stellar] Skipping fetch - account doesn't exist for", currentFetchKey);
+      console.log(
+        "[Stellar] Skipping fetch - account doesn't exist for",
+        currentFetchKey
+      );
       return;
     }
-    
+
     // If we've already fetched for this exact network/address combination
     // and account exists, don't refetch immediately (let polling handle updates)
     // BUT allow the first fetch if we haven't fetched yet (lastFetchKey is empty)
     if (!hasChanged && accountExistsRef.current && lastFetchKey !== '') {
-      console.log("[Stellar] Skipping fetch - already fetched for", currentFetchKey);
+      console.log(
+        '[Stellar] Skipping fetch - already fetched for',
+        currentFetchKey
+      );
       return;
     }
-    
+
     // If network/address changed or this is the first fetch, reset accountExists to allow fetch
     if (hasChanged || lastFetchKey === '') {
       if (hasChanged) {
-        console.log("[Stellar] Network/address changed, resetting accountExists. From:", lastFetchKey, "To:", currentFetchKey);
+        console.log(
+          '[Stellar] Network/address changed, resetting accountExists. From:',
+          lastFetchKey,
+          'To:',
+          currentFetchKey
+        );
       } else {
-        console.log("[Stellar] First fetch for", currentFetchKey);
+        console.log('[Stellar] First fetch for', currentFetchKey);
       }
       setAccountExists(true);
       accountExistsRef.current = true;
     }
-    
+
     // Fetch balances (updateBalances will check if we should skip)
-    console.log("[Stellar] useEffect: Triggering balance update for", currentFetchKey);
+    console.log(
+      '[Stellar] useEffect: Triggering balance update for',
+      currentFetchKey
+    );
     void updateBalances();
   }, [updateBalances, address, network]);
 
@@ -227,7 +261,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Set up interval to fetch balances every 10 seconds
     const balancePollInterval = setInterval(() => {
-      console.log("[Stellar] Polling balances (10s interval)");
+      console.log('[Stellar] Polling balances (10s interval)');
       void updateBalances();
     }, 10000); // 10 seconds
 
@@ -241,10 +275,10 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     // There is no way, with StellarWalletsKit, to check if the wallet is
     // installed/connected/authorized. We need to manage that on our side by
     // checking our storage item.
-    const walletId = storage.getItem("walletId");
-    const walletNetwork = storage.getItem("walletNetwork");
-    const walletAddr = storage.getItem("walletAddress");
-    const passphrase = storage.getItem("networkPassphrase");
+    const walletId = storage.getItem('walletId');
+    const walletNetwork = storage.getItem('walletNetwork');
+    const walletAddr = storage.getItem('walletAddress');
+    const passphrase = storage.getItem('networkPassphrase');
 
     // Only restore address from storage initially - network will be fetched from wallet
     // This ensures we always get the current network from the wallet, not a stale value from storage
@@ -254,9 +288,12 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       network === undefined &&
       walletAddr !== null
     ) {
-      console.log("[Stellar] Restoring wallet address from storage, will fetch network from wallet:", {
-        address: walletAddr,
-      });
+      console.log(
+        '[Stellar] Restoring wallet address from storage, will fetch network from wallet:',
+        {
+          address: walletAddr,
+        }
+      );
       // Set address temporarily so we can check wallet state
       // But don't set hasInitializedRef yet - we want to fetch network from wallet
       setAddress(walletAddr);
@@ -273,69 +310,81 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         popupLock.current = true;
         wallet.setWallet(walletId);
-        
+
         // For Freighter and Hot-wallet, always check network to detect changes
         // For other wallets, only check if we don't have an address yet
-        const shouldCheckNetwork = walletId === "freighter" || walletId === "hot-wallet";
+        const shouldCheckNetwork =
+          walletId === 'freighter' || walletId === 'hot-wallet';
         if (!shouldCheckNetwork && walletAddr !== null) {
-          console.log("[Stellar] Skipping network check for wallet:", walletId);
+          console.log('[Stellar] Skipping network check for wallet:', walletId);
           return;
         }
-        
-        console.log("[Stellar] Checking wallet state for:", walletId, "shouldCheckNetwork:", shouldCheckNetwork);
-        
+
+        console.log(
+          '[Stellar] Checking wallet state for:',
+          walletId,
+          'shouldCheckNetwork:',
+          shouldCheckNetwork
+        );
+
         // For wallets that support network detection, always fetch both address and network
         // This allows us to detect network changes even if address is already known
         const addressPromise = wallet.getAddress();
-        const networkPromise = shouldCheckNetwork 
-          ? wallet.getNetwork() 
-          : Promise.resolve({ network: walletNetwork || undefined, networkPassphrase: passphrase || undefined });
-        
+        const networkPromise = shouldCheckNetwork
+          ? wallet.getNetwork()
+          : Promise.resolve({
+              network: walletNetwork || undefined,
+              networkPassphrase: passphrase || undefined,
+            });
+
         const [a, n] = await Promise.all([addressPromise, networkPromise]);
-        
-        console.log("[Stellar] Wallet state fetched:", {
+
+        console.log('[Stellar] Wallet state fetched:', {
           address: a.address,
           network: n.network,
           networkPassphrase: n.networkPassphrase,
         });
 
         if (!a.address) {
-          storage.setItem("walletId", "");
+          storage.setItem('walletId', '');
           return;
         }
 
         // Always update storage with the latest network from wallet
         // This ensures we have the correct network even if it was changed in the extension
         if (n.network && n.networkPassphrase) {
-          storage.setItem("walletNetwork", n.network);
-          storage.setItem("networkPassphrase", n.networkPassphrase);
+          storage.setItem('walletNetwork', n.network);
+          storage.setItem('networkPassphrase', n.networkPassphrase);
         }
-        
+
         // Normalize network names for comparison (handle case differences)
         const normalizedCurrentNetwork = network?.toUpperCase();
         const normalizedNewNetwork = n.network?.toUpperCase();
-        
+
         // If we don't have a network set yet, always set it (even if address matches)
         // This handles the case where we restored address from storage but network wasn't available
-        if (network === undefined || normalizedCurrentNetwork !== normalizedNewNetwork) {
-          console.log("[Stellar] Setting or updating network:", {
+        if (
+          network === undefined ||
+          normalizedCurrentNetwork !== normalizedNewNetwork
+        ) {
+          console.log('[Stellar] Setting or updating network:', {
             currentNetwork: network,
             newNetwork: n.network,
             normalizedCurrent: normalizedCurrentNetwork,
             normalizedNew: normalizedNewNetwork,
             addressMatches: address === a.address,
           });
-          storage.setItem("walletAddress", a.address);
+          storage.setItem('walletAddress', a.address);
           setAddress(a.address);
           setNetwork(n.network);
           setNetworkPassphrase(n.networkPassphrase);
-          
+
           // If this is the first time setting values, mark as initialized
           if (!hasInitializedRef.current) {
-            console.log("[Stellar] First time initialization complete");
+            console.log('[Stellar] First time initialization complete');
             hasInitializedRef.current = true;
           }
-          
+
           // If network changed, reset fetch tracking
           if (normalizedCurrentNetwork !== normalizedNewNetwork) {
             lastFetchedNetwork.current = undefined;
@@ -343,31 +392,37 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
             setAccountExists(true);
             accountExistsRef.current = true;
           }
-          
+
           return; // Let the useEffect handle balance fetch
         }
-        
+
         // If values are already set and match exactly, don't do anything
         // This prevents unnecessary state updates during polling
-        if (address === a.address && 
-            normalizedCurrentNetwork === normalizedNewNetwork && 
-            networkPassphrase === n.networkPassphrase &&
-            address !== undefined && 
-            network !== undefined) {
+        if (
+          address === a.address &&
+          normalizedCurrentNetwork === normalizedNewNetwork &&
+          networkPassphrase === n.networkPassphrase &&
+          address !== undefined &&
+          network !== undefined
+        ) {
           return; // No change, skip update
         }
 
         // Only consider it a change if we had a previous value and it's different
         // This prevents undefined -> value from being treated as a change
         const addressChanged = address !== undefined && a.address !== address;
-        const networkChanged = network !== undefined && (normalizedCurrentNetwork !== normalizedNewNetwork || n.networkPassphrase !== networkPassphrase);
-        
+        const networkChanged =
+          network !== undefined &&
+          (normalizedCurrentNetwork !== normalizedNewNetwork ||
+            n.networkPassphrase !== networkPassphrase);
+
         // Only update if there's an actual change (not initial set)
         // Explicitly check that we had previous values before treating as change
-        const hadPreviousValues = address !== undefined && network !== undefined;
-        
+        const hadPreviousValues =
+          address !== undefined && network !== undefined;
+
         if (hadPreviousValues && (addressChanged || networkChanged)) {
-          console.log("[Stellar] Wallet state changed:", {
+          console.log('[Stellar] Wallet state changed:', {
             addressChanged,
             networkChanged,
             oldNetwork: network,
@@ -375,14 +430,14 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
             oldAddress: address,
             newAddress: a.address,
           });
-          storage.setItem("walletAddress", a.address);
-          
+          storage.setItem('walletAddress', a.address);
+
           // Always update network in storage when it changes
           if (networkChanged && n.network && n.networkPassphrase) {
-            storage.setItem("walletNetwork", n.network);
-            storage.setItem("networkPassphrase", n.networkPassphrase);
+            storage.setItem('walletNetwork', n.network);
+            storage.setItem('networkPassphrase', n.networkPassphrase);
           }
-          
+
           setAddress(a.address);
           setNetwork(n.network);
           setNetworkPassphrase(n.networkPassphrase);
@@ -394,19 +449,28 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
           lastFetchedAddress.current = undefined;
           // Trigger balance update when network changes
           if (networkChanged) {
-            console.log("[Stellar] Network changed from", network, "to", n.network, "- will update balances");
+            console.log(
+              '[Stellar] Network changed from',
+              network,
+              'to',
+              n.network,
+              '- will update balances'
+            );
             // Balance update will be triggered by the useEffect that depends on network
           }
         } else if (!hadPreviousValues && !hasInitializedRef.current) {
           // If we don't have previous values and haven't initialized, this is initialization, not a change
           // Set values without triggering change detection
-          console.log("[Stellar] Setting initial wallet state (not a change):", {
-            network: n.network,
-            address: a.address,
-            hadAddress: address !== undefined,
-            hadNetwork: network !== undefined,
-          });
-          storage.setItem("walletAddress", a.address);
+          console.log(
+            '[Stellar] Setting initial wallet state (not a change):',
+            {
+              network: n.network,
+              address: a.address,
+              hadAddress: address !== undefined,
+              hadNetwork: network !== undefined,
+            }
+          );
+          storage.setItem('walletAddress', a.address);
           setAddress(a.address);
           setNetwork(n.network);
           setNetworkPassphrase(n.networkPassphrase);
@@ -469,8 +533,20 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       isPending,
       signTransaction,
     }),
-    [address, network, networkPassphrase, balances, accountExists, updateBalances, isPending],
+    [
+      address,
+      network,
+      networkPassphrase,
+      balances,
+      accountExists,
+      updateBalances,
+      isPending,
+    ]
   );
 
-  return <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>;
+  return (
+    <WalletContext.Provider value={contextValue}>
+      {children}
+    </WalletContext.Provider>
+  );
 };
