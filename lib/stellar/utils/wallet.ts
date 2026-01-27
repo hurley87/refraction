@@ -193,9 +193,36 @@ export const switchNetwork = async (
 // Cache Horizon servers by network to avoid recreating them
 const horizonServers: Map<string, Horizon.Server> = new Map();
 
-const getHorizonServer = (networkName?: string) => {
-  const url = getHorizonUrlForNetwork(networkName);
-  const normalizedNetwork = networkName?.toUpperCase() || 'TESTNET';
+const getHorizonServer = (networkName?: string, networkPassphrase?: string) => {
+  // If network name is not recognized, try to derive it from passphrase
+  let effectiveNetworkName = networkName;
+
+  // Check if the network name matches expected values
+  const normalizedNetworkName = networkName?.toUpperCase();
+  const isRecognizedNetwork =
+    normalizedNetworkName === 'PUBLIC' ||
+    normalizedNetworkName === 'MAINNET' ||
+    normalizedNetworkName === 'TESTNET' ||
+    normalizedNetworkName === 'FUTURENET' ||
+    normalizedNetworkName === 'LOCAL' ||
+    normalizedNetworkName === 'STANDALONE';
+
+  // If network name is not recognized or not provided, use passphrase to determine network
+  if (!isRecognizedNetwork && networkPassphrase) {
+    if (networkPassphrase.includes('Public')) {
+      effectiveNetworkName = 'PUBLIC';
+    } else if (
+      networkPassphrase.includes('Test') &&
+      !networkPassphrase.includes('Future')
+    ) {
+      effectiveNetworkName = 'TESTNET';
+    } else if (networkPassphrase.includes('Future')) {
+      effectiveNetworkName = 'FUTURENET';
+    }
+  }
+
+  const url = getHorizonUrlForNetwork(effectiveNetworkName);
+  const normalizedNetwork = effectiveNetworkName?.toUpperCase() || 'TESTNET';
   const isLocal =
     normalizedNetwork === 'LOCAL' || normalizedNetwork === 'STANDALONE';
 
@@ -208,7 +235,11 @@ const getHorizonServer = (networkName?: string) => {
       '[Stellar] Horizon server initialized:',
       url,
       'Network:',
-      normalizedNetwork
+      normalizedNetwork,
+      'Original networkName:',
+      networkName,
+      'Using passphrase:',
+      !!networkPassphrase
     );
   }
 
@@ -232,15 +263,18 @@ export type FetchBalancesResult = {
 
 export const fetchBalances = async (
   address: string,
-  networkName?: string
+  networkName?: string,
+  networkPassphrase?: string
 ): Promise<FetchBalancesResult> => {
   try {
-    const server = getHorizonServer(networkName);
+    const server = getHorizonServer(networkName, networkPassphrase);
     console.log(
       '[Stellar] Fetching balances for address:',
       address,
       'on network:',
-      networkName || 'default'
+      networkName || 'default',
+      'passphrase provided:',
+      !!networkPassphrase
     );
     const account = await server.accounts().accountId(address).call();
     console.log('[Stellar] Account data received:', {
