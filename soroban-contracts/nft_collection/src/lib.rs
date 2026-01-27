@@ -137,8 +137,8 @@ impl NonFungibleTokenContract {
         // authorizes the transaction, which provides some protection against malicious contracts.
         to.require_auth();
         
-        // Transfer 1 XLM (10,000,000 stroops) from the recipient to the contract as payment
-        let mint_cost: i128 = 10_000_000; // 1 XLM in stroops
+        // Transfer 0.1 XLM (1,000,000 stroops) from the recipient to the contract as payment
+        let mint_cost: i128 = 1_000_000; // 1 XLM in stroops
         
         // Check recipient balance before attempting transfer
         let recipient_balance = native_token.balance(&to);

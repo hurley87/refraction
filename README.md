@@ -10,11 +10,31 @@ Create a `.env.local` file in the root directory and add:
 MAPBOX_ACCESS_TOKEN=your_mapbox_access_token_here
 GOOGLE_PLACES_API_KEY=your_google_places_api_key_here
 
-# Stellar Network Configuration (optional, defaults to TESTNET)
-NEXT_PUBLIC_STELLAR_NETWORK=TESTNET
-NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"
-NEXT_PUBLIC_STELLAR_RPC_URL=https://rpc-futurenet.stellar.org
-NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
+# Stellar Network Configuration
+# The app automatically uses MAINNET in production and TESTNET in development
+# You can override this behavior with the env vars below
+
+# Production Detection (optional)
+# Set to "true" for production/mainnet, "false" for development/testnet
+# If not set, the app uses VERCEL_ENV or NODE_ENV to determine production status
+PRODUCTION=false
+
+# Network Override (optional - only needed if you want to override auto-detection)
+# NEXT_PUBLIC_STELLAR_NETWORK=TESTNET  # or PUBLIC for mainnet
+# NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"  # Auto-set if not provided
+# NEXT_PUBLIC_STELLAR_RPC_URL=https://rpc-futurenet.stellar.org  # Auto-set if not provided
+# NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org  # Auto-set if not provided
+
+# Contract Addresses (optional - supports network-specific addresses)
+# Option 1: Network-specific addresses (recommended for production)
+# NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_MAINNET=your_mainnet_nft_contract_id
+# NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_TESTNET=your_testnet_nft_contract_id
+# NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_MAINNET=your_mainnet_payment_contract_id
+# NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_TESTNET=your_testnet_payment_contract_id
+
+# Option 2: Single address for all networks (fallback)
+# NEXT_PUBLIC_NFT_CONTRACT_ADDRESS=your_nft_contract_id
+# NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS=your_payment_contract_id
 
 # WalletConnect Configuration (optional, enables WalletConnect wallet option)
 # Get your project ID from https://cloud.walletconnect.com
@@ -32,11 +52,48 @@ To get these API keys:
 - **Mapbox**: Sign up at [mapbox.com](https://mapbox.com) and get your access token
 - **Google Places**: Enable the Places API in [Google Cloud Console](https://console.cloud.google.com) and create an API key
 
-**Stellar Network Options:**
+**Stellar Network Configuration:**
 
-- `TESTNET` - Stellar Testnet (default)
+The app automatically switches between networks based on environment:
+
+- **Development/Local**: Uses `TESTNET` by default
+- **Production (Vercel)**: Automatically uses `PUBLIC` (Mainnet) when `PRODUCTION=true` or `VERCEL_ENV=production`
+
+**Production Detection:**
+
+- Set `PRODUCTION=true` in Vercel environment variables for production deployments
+- Set `PRODUCTION=false` (or omit) for local development
+- The app also checks `VERCEL_ENV` and `NODE_ENV` as fallbacks
+
+**Manual Override:**
+If you need to override the automatic network selection, you can set:
+
+- `NEXT_PUBLIC_STELLAR_NETWORK` - `TESTNET`, `PUBLIC`, `FUTURENET`, or `LOCAL`
+- `NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE` - Network passphrase (auto-set if not provided)
+- `NEXT_PUBLIC_STELLAR_RPC_URL` - Soroban RPC URL (auto-set if not provided)
+- `NEXT_PUBLIC_STELLAR_HORIZON_URL` - Horizon API URL (auto-set if not provided)
+
+**Contract Addresses:**
+The app supports network-specific contract addresses for easier deployment:
+
+- **Network-specific (recommended)**: Use `_MAINNET` and `_TESTNET` suffixes
+
+  - `NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_MAINNET` - NFT contract on mainnet
+  - `NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_TESTNET` - NFT contract on testnet
+  - `NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_MAINNET` - Payment contract on mainnet
+  - `NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_TESTNET` - Payment contract on testnet
+
+- **Single address (fallback)**: Use generic env vars for all networks
+  - `NEXT_PUBLIC_NFT_CONTRACT_ADDRESS` - NFT contract (used if network-specific not set)
+  - `NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS` - Payment contract (used if network-specific not set)
+
+The app automatically selects the correct address based on the current network.
+
+**Network Options:**
+
+- `TESTNET` - Stellar Testnet (default for development)
+- `PUBLIC` - Stellar Mainnet (default for production)
 - `FUTURENET` - Stellar Futurenet
-- `PUBLIC` - Stellar Mainnet
 - `LOCAL` - Local Stellar network (requires local Horizon server)
 
 **WalletConnect Setup:**
