@@ -10,10 +10,7 @@ import {
   TransactionBuilder,
   Horizon,
 } from '@stellar/stellar-sdk';
-import {
-  networkPassphrase,
-  rpcUrl,
-} from './network';
+import { networkPassphrase, rpcUrl } from './network';
 import { wallet } from './wallet';
 
 /**
@@ -197,6 +194,77 @@ export const getContract = (contractId: string): Contract => {
 };
 
 /**
+ * Get the appropriate transaction fee for a network
+ * Mainnet requires higher fees than testnet
+ * @param networkPassphrase - Network passphrase to determine fee
+ * @returns Fee in stroops as a string
+ */
+const getTransactionFee = (customNetworkPassphrase?: string): string => {
+  const passphrase = customNetworkPassphrase || networkPassphrase;
+  // Mainnet requires higher fees (100,000 stroops = 0.01 XLM minimum)
+  // Testnet can use lower fees (100 stroops = 0.00001 XLM)
+  if (passphrase?.includes('Public')) {
+    // Mainnet: Use 100,000 stroops (0.01 XLM) as minimum
+    // This can be increased if transactions fail with insufficient fee errors
+    return '100000';
+  }
+  // Testnet/Futurenet: Use 100 stroops (0.00001 XLM)
+  return '100';
+};
+
+/**
+ * Poll for transaction confirmation
+ * Waits for a transaction to be confirmed on the network
+ * @param rpc - Soroban RPC server instance
+ * @param txHash - Transaction hash to poll for
+ * @param maxAttempts - Maximum number of polling attempts (default: 30)
+ * @param delayMs - Delay between polling attempts in milliseconds (default: 1000)
+ * @returns The confirmed transaction response
+ */
+const pollTransactionConfirmation = async (
+  rpc: SorobanRpc.Server,
+  txHash: string,
+  maxAttempts: number = 30,
+  delayMs: number = 1000
+): Promise<SorobanRpc.Api.GetTransactionResponse> => {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const getTxResponse = await rpc.getTransaction(txHash);
+
+    // Check if transaction is confirmed (SUCCESS or FAILED)
+    if (
+      getTxResponse.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS ||
+      getTxResponse.status === SorobanRpc.Api.GetTransactionStatus.FAILED
+    ) {
+      return getTxResponse;
+    }
+
+    // If status is NOT_FOUND (transaction still pending), wait and retry
+    if (
+      getTxResponse.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND
+    ) {
+      if (attempt < maxAttempts - 1) {
+        // Wait before next attempt
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      }
+    }
+
+    // If we've exhausted attempts, throw an error
+    throw new Error(
+      `Transaction confirmation timeout after ${maxAttempts} attempts. ` +
+        `Transaction hash: ${txHash}. ` +
+        `Last status: ${getTxResponse.status}. ` +
+        `The transaction may still be processing. Please check the Stellar explorer.`
+    );
+  }
+
+  // This should never be reached, but TypeScript requires it
+  throw new Error(
+    `Transaction confirmation polling failed for hash: ${txHash}`
+  );
+};
+
+/**
  * Invoke a Soroban contract function
  * @param contractId - The contract address or ID
  * @param functionName - Name of the function to invoke
@@ -270,7 +338,7 @@ export const invokeContract = async (
   );
 
   const transaction = new TransactionBuilder(account, {
-    fee: '100',
+    fee: getTransactionFee(passphrase),
     networkPassphrase: passphrase || Networks.TESTNET,
   })
     .addOperation(contractCall)
@@ -438,12 +506,22 @@ export const invokeContract = async (
     );
   }
 
-  // Wait for the transaction to complete
-  const getTxResponse = await rpc.getTransaction(sendResponse.hash);
+  // Poll for transaction confirmation (wait until SUCCESS or FAILED)
+  const getTxResponse = await pollTransactionConfirmation(
+    rpc,
+    sendResponse.hash
+  );
 
   if (getTxResponse.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
     throw new Error(
       `Transaction failed: ${getTxResponse.resultXdr?.toString()}`
+    );
+  }
+
+  if (getTxResponse.status !== SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+    throw new Error(
+      `Transaction did not succeed. Status: ${getTxResponse.status}. ` +
+        `Transaction hash: ${sendResponse.hash}`
     );
   }
 
@@ -685,7 +763,7 @@ export const readContract = async (
   );
 
   const transaction = new TransactionBuilder(account as any, {
-    fee: '100',
+    fee: getTransactionFee(passphrase),
     networkPassphrase: passphrase,
   })
     .addOperation(contractCall)
@@ -841,7 +919,7 @@ export const mintNFT = async (
 
   // Build transaction with contract call
   const transaction = new TransactionBuilder(account, {
-    fee: '100',
+    fee: getTransactionFee(passphrase),
     networkPassphrase: passphrase || Networks.TESTNET,
   })
     .addOperation(contractCall)
@@ -996,12 +1074,22 @@ export const mintNFT = async (
     );
   }
 
-  // Wait for the transaction to complete
-  const getTxResponse = await rpc.getTransaction(sendResponse.hash);
+  // Poll for transaction confirmation (wait until SUCCESS or FAILED)
+  const getTxResponse = await pollTransactionConfirmation(
+    rpc,
+    sendResponse.hash
+  );
 
   if (getTxResponse.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
     throw new Error(
       `Transaction failed: ${getTxResponse.resultXdr?.toString()}`
+    );
+  }
+
+  if (getTxResponse.status !== SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+    throw new Error(
+      `Transaction did not succeed. Status: ${getTxResponse.status}. ` +
+        `Transaction hash: ${sendResponse.hash}`
     );
   }
 
