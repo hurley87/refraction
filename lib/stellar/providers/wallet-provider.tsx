@@ -311,10 +311,13 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         popupLock.current = true;
         wallet.setWallet(walletId);
 
-        // For Freighter and Hot-wallet, always check network to detect changes
+        // For Freighter, Hot-wallet, and WalletConnect, always check network to detect changes
+        // These wallets support network detection and can change networks
         // For other wallets, only check if we don't have an address yet
         const shouldCheckNetwork =
-          walletId === 'freighter' || walletId === 'hot-wallet';
+          walletId === 'freighter' ||
+          walletId === 'hot-wallet' ||
+          walletId === 'wallet_connect';
         if (!shouldCheckNetwork && walletAddr !== null) {
           console.log('[Stellar] Skipping network check for wallet:', walletId);
           return;
