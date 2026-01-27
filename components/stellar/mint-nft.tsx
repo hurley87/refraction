@@ -33,6 +33,11 @@ const MintNFT: React.FC<MintNFTProps> = ({
   const needsFunding =
     (!accountExists && !hasBalance) || (accountExists && !hasBalance);
 
+  // Check if user is on testnet (Friendbot only works on testnet)
+  const isOnTestnet =
+    networkPassphrase?.includes('Test') &&
+    !networkPassphrase?.includes('Future');
+
   const handleMint = async () => {
     if (!isValidContractAddress(contractAddress)) {
       const errorMsg =
@@ -127,7 +132,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
         Purchase your event ticket as an NFT. Cost: 1 XLM per ticket.
       </p>
 
-      {needsFunding && (
+      {needsFunding && isOnTestnet && (
         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <div className="flex flex-col gap-3">
             <div className="flex-1">
@@ -144,6 +149,16 @@ const MintNFT: React.FC<MintNFTProps> = ({
               <FundAccountButton />
             </div>
           </div>
+        </div>
+      )}
+
+      {needsFunding && !isOnTestnet && (
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800">
+            <strong>Account needs funding:</strong> Your account must be funded
+            with XLM before it can invoke contracts. Please fund your account
+            using a Stellar wallet or exchange.
+          </p>
         </div>
       )}
 

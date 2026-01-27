@@ -40,6 +40,11 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
   const needsFunding =
     (!accountExists && !hasBalance) || (accountExists && !hasBalance);
 
+  // Check if user is on testnet (Friendbot only works on testnet)
+  const isOnTestnet =
+    networkPassphrase?.includes('Test') &&
+    !networkPassphrase?.includes('Future');
+
   const handleClaim = async () => {
     // Validate inputs
     if (!isValidContractAddress(contractAddress)) {
@@ -145,7 +150,7 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
         Claim your reward points for completing this transaction.
       </p>
 
-      {needsFunding && (
+      {needsFunding && isOnTestnet && (
         <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <div className="flex flex-col gap-3">
             <div className="flex-1">
@@ -162,6 +167,16 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
               <FundAccountButton />
             </div>
           </div>
+        </div>
+      )}
+
+      {needsFunding && !isOnTestnet && (
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800">
+            <strong>Account needs funding:</strong> Your account must be funded
+            with XLM before it can invoke contracts. Please fund your account
+            using a Stellar wallet or exchange.
+          </p>
         </div>
       )}
 
