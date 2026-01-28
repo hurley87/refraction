@@ -17,6 +17,8 @@ import {
   getHorizonUrlForNetwork,
 } from './network';
 import { wallet } from './wallet';
+import { WalletNetwork } from '@creit.tech/stellar-wallets-kit';
+import storage from './storage';
 
 /**
  * Get Soroban RPC server instance for the current network
@@ -184,7 +186,22 @@ export const invokeContract = async (
   signerAddress: string,
   customNetworkPassphrase?: string
 ): Promise<string> => {
+  // Use customNetworkPassphrase if provided, otherwise fall back to module-level networkPassphrase
+  // IMPORTANT: For WalletConnect, customNetworkPassphrase should always be provided from the wallet's detected network
   const passphrase = customNetworkPassphrase || networkPassphrase;
+
+  console.log('[Soroban] invokeContract called with:', {
+    contractId,
+    functionName,
+    signerAddress,
+    hasCustomPassphrase: !!customNetworkPassphrase,
+    passphrase: passphrase?.substring(0, 30) + '...',
+    network: passphrase?.includes('Test')
+      ? 'TESTNET'
+      : passphrase?.includes('Public')
+        ? 'MAINNET'
+        : 'UNKNOWN',
+  });
   const rpc = getSorobanRpc(passphrase);
   const contract = getContract(contractId);
 
@@ -367,13 +384,83 @@ export const invokeContract = async (
 
   // Sign the transaction using the wallet kit
   // The wallet kit's signTransaction expects the XDR string and options
-  const signedTransactionResult = await wallet.signTransaction(
-    preparedTransaction.toXDR(),
-    {
-      networkPassphrase: passphrase || Networks.TESTNET,
-      address: signerAddress,
+  // For WalletConnect, we need to use WalletNetwork enum instead of passphrase string
+  const walletId = storage.getItem('walletId');
+  const isWalletConnect = walletId === 'wallet_connect';
+
+  // IMPORTANT: Ensure the wallet is set before signing, especially for WalletConnect
+  // This is critical for WalletConnect to properly route the signing request to the mobile wallet
+  if (walletId) {
+    wallet.setWallet(walletId);
+    console.log('[Soroban] Set wallet before signing:', walletId);
+  }
+
+  // Convert passphrase to WalletNetwork enum for WalletConnect compatibility
+  // WalletConnect expects WalletNetwork enum, not the passphrase string
+  let networkPassphraseForSigning: string | WalletNetwork;
+  if (isWalletConnect) {
+    // Convert passphrase to WalletNetwork enum for WalletConnect
+    if (passphrase?.includes('Test')) {
+      networkPassphraseForSigning = WalletNetwork.TESTNET;
+    } else if (passphrase?.includes('Public')) {
+      networkPassphraseForSigning = WalletNetwork.PUBLIC;
+    } else if (passphrase?.includes('Future')) {
+      networkPassphraseForSigning = WalletNetwork.FUTURENET;
+    } else {
+      networkPassphraseForSigning = WalletNetwork.TESTNET;
     }
+  } else {
+    // For other wallets, use the passphrase string directly
+    networkPassphraseForSigning = passphrase || Networks.TESTNET;
+  }
+
+  console.log('[Soroban] Signing transaction with network passphrase:', {
+    passphrase: passphrase || Networks.TESTNET,
+    networkPassphraseForSigning,
+    signerAddress,
+    walletId,
+    isWalletConnect,
+    networkName: passphrase?.includes('Test')
+      ? 'TESTNET'
+      : passphrase?.includes('Public')
+        ? 'MAINNET'
+        : 'TESTNET',
+    xdrLength: preparedTransaction.toXDR().length,
+  });
+
+  const signOptions = {
+    networkPassphrase: networkPassphraseForSigning,
+    address: signerAddress,
+  };
+
+  console.log(
+    '[Soroban] Calling wallet.signTransaction, waiting for mobile wallet prompt...'
   );
+  let signedTransactionResult;
+  try {
+    signedTransactionResult = await wallet.signTransaction(
+      preparedTransaction.toXDR(),
+      signOptions
+    );
+    console.log('[Soroban] signTransaction returned:', {
+      resultType: typeof signedTransactionResult,
+      hasSignedTxXdr:
+        signedTransactionResult &&
+        typeof signedTransactionResult === 'object' &&
+        'signedTxXdr' in signedTransactionResult,
+    });
+  } catch (signError) {
+    const errorMessage =
+      signError instanceof Error ? signError.message : String(signError);
+    console.error('[Soroban] signTransaction error:', {
+      error: errorMessage,
+      walletId,
+      isWalletConnect,
+      signOptions,
+      xdrLength: preparedTransaction.toXDR().length,
+    });
+    throw signError;
+  }
 
   // Handle the signed transaction result
   // The wallet kit may return different formats depending on the wallet
@@ -566,12 +653,30 @@ export const invokeContract = async (
           preparedTransaction = await rpc.prepareTransaction(transaction);
 
           // Re-sign transaction
+          // For WalletConnect, use WalletNetwork enum instead of passphrase string
+          let reNetworkPassphrase: string | WalletNetwork;
+          if (isWalletConnect) {
+            if (passphrase?.includes('Test')) {
+              reNetworkPassphrase = WalletNetwork.TESTNET;
+            } else if (passphrase?.includes('Public')) {
+              reNetworkPassphrase = WalletNetwork.PUBLIC;
+            } else if (passphrase?.includes('Future')) {
+              reNetworkPassphrase = WalletNetwork.FUTURENET;
+            } else {
+              reNetworkPassphrase = WalletNetwork.TESTNET;
+            }
+          } else {
+            reNetworkPassphrase = passphrase || Networks.TESTNET;
+          }
+
+          const reSignOptions = {
+            networkPassphrase: reNetworkPassphrase,
+            address: signerAddress,
+          };
+
           const reSignedResult = await wallet.signTransaction(
             preparedTransaction.toXDR(),
-            {
-              networkPassphrase: passphrase || Networks.TESTNET,
-              address: signerAddress,
-            }
+            reSignOptions
           );
 
           // Parse re-signed transaction
@@ -702,6 +807,21 @@ export const invokePaymentContract = async (
   signerAddress: string,
   customNetworkPassphrase?: string
 ): Promise<string> => {
+  // Log network information for debugging
+  const passphrase = customNetworkPassphrase || networkPassphrase;
+  console.log('[Soroban] invokePaymentContract called with:', {
+    contractId,
+    recipientAddress,
+    amount,
+    signerAddress,
+    hasCustomPassphrase: !!customNetworkPassphrase,
+    passphrase: passphrase?.substring(0, 30) + '...',
+    network: passphrase?.includes('Test')
+      ? 'TESTNET'
+      : passphrase?.includes('Public')
+        ? 'MAINNET'
+        : 'UNKNOWN',
+  });
   // Validate amount if provided, or use default of 0.1 XLM for claim points
   const effectiveAmount = amount !== undefined ? amount : 0.1;
 
@@ -1018,7 +1138,30 @@ export const mintNFT = async (
     throw new Error(`Invalid recipient address: ${recipientAddress}`);
   }
 
+  // Use customNetworkPassphrase if provided, otherwise fall back to module-level networkPassphrase
+  // IMPORTANT: For WalletConnect, customNetworkPassphrase should always be provided from the wallet's detected network
   const passphrase = customNetworkPassphrase || networkPassphrase;
+
+  // Determine if WalletConnect is being used
+  // Note: WalletConnect derives chainId from the network configured during module initialization
+  // We don't need to pass chainId to signTransaction
+  const walletId = storage.getItem('walletId');
+  const isWalletConnect = walletId === 'wallet_connect';
+
+  console.log('[Soroban] mintNFT called with:', {
+    contractId,
+    recipientAddress,
+    signerAddress,
+    hasCustomPassphrase: !!customNetworkPassphrase,
+    passphrase: passphrase?.substring(0, 30) + '...',
+    network: passphrase?.includes('Test')
+      ? 'TESTNET'
+      : passphrase?.includes('Public')
+        ? 'MAINNET'
+        : 'UNKNOWN',
+    walletId,
+    isWalletConnect,
+  });
   const rpc = getSorobanRpc(passphrase);
   const contract = getContract(contractId);
 
@@ -1084,6 +1227,30 @@ export const mintNFT = async (
     .setTimeout(30)
     .build();
 
+  // Check account balance before simulating
+  // The mint requires 0.1 XLM payment + transaction fees + minimum reserve
+  // The native token contract enforces a minimum balance (typically 1 XLM for basic accounts)
+  // On mainnet: fee is ~0.01 XLM, minimum reserve is typically 1 XLM (enforced by native token contract)
+  // On testnet: fee is ~0.00001 XLM, minimum reserve is typically 0.5 XLM
+  const accountBalanceXlm = parseFloat(account.balances[0]?.balance || '0');
+  const mintCostXlm = 0.1; // Payment to contract
+  const estimatedFeeXlm = isMainnet ? 0.01 : 0.00001;
+  // The native token contract requires maintaining a minimum balance after transfer
+  // Based on the error, it appears the contract enforces ~1 XLM minimum
+  // We need: payment + fee + minimum balance that must remain after transfer
+  const minBalanceAfterTransferXlm = isMainnet ? 1.0 : 0.5; // Minimum balance that must remain
+  const requiredBalanceXlm =
+    mintCostXlm + estimatedFeeXlm + minBalanceAfterTransferXlm;
+
+  if (accountBalanceXlm < requiredBalanceXlm) {
+    throw new Error(
+      `Insufficient balance to mint NFT. ` +
+        `You have ${accountBalanceXlm.toFixed(2)} XLM, but need at least ${requiredBalanceXlm.toFixed(2)} XLM ` +
+        `(0.1 XLM payment + ${estimatedFeeXlm.toFixed(5)} XLM fee + ${minBalanceAfterTransferXlm.toFixed(1)} XLM minimum balance that must remain). ` +
+        `The native token contract requires maintaining a minimum balance after the transfer. Please add more XLM to your account.`
+    );
+  }
+
   // Simulate the transaction first
   const simulation = await rpc.simulateTransaction(transaction);
 
@@ -1091,9 +1258,28 @@ export const mintNFT = async (
     const errorDetails = simulation.error
       ? JSON.stringify(simulation.error, null, 2)
       : 'Unknown simulation error';
+
+    // Parse error to provide more helpful messages
+    let helpfulMessage = '';
+    if (
+      errorDetails.includes('resulting balance is not within the allowed range')
+    ) {
+      // Extract balance values from error if possible
+      const balanceMatch = errorDetails.match(/10000000.*?9000000/);
+      if (balanceMatch) {
+        // Account has 10 XLM, after transfer would have 9 XLM, but contract requires minimum
+        // The native token contract requires maintaining a minimum balance (typically 1 XLM)
+        helpfulMessage = ` Your account balance is too low. You have 10 XLM, but after paying 0.1 XLM, your balance would be 9 XLM, which is below the minimum required by the native token contract. Please ensure you have at least ${requiredBalanceXlm.toFixed(2)} XLM in your account (0.1 XLM payment + fees + ${minBalanceAfterTransferXlm.toFixed(1)} XLM minimum balance).`;
+      } else {
+        helpfulMessage = ` Your account balance is too low. After paying 0.1 XLM for the NFT, your account would fall below the minimum required balance enforced by the native token contract. Please ensure you have at least ${requiredBalanceXlm.toFixed(2)} XLM in your account.`;
+      }
+    } else if (errorDetails.includes('Insufficient balance')) {
+      helpfulMessage = ` Your account doesn't have enough XLM to complete this transaction. Please add more XLM to your account.`;
+    }
+
     throw new Error(
-      `Simulation error for mint function: ${errorDetails}. ` +
-        `This might indicate the function doesn't exist, has wrong arguments, or the contract isn't deployed.`
+      `Simulation error for mint function: ${errorDetails}.${helpfulMessage} ` +
+        `This might indicate insufficient balance, the function doesn't exist, has wrong arguments, or the contract isn't deployed.`
     );
   }
 
@@ -1184,13 +1370,139 @@ export const mintNFT = async (
   }
 
   // Sign the transaction using the wallet kit
-  const signedTransactionResult = await wallet.signTransaction(
-    preparedTransaction.toXDR(),
+  // For WalletConnect, we need to use WalletNetwork enum instead of passphrase string
+  // WalletConnect expects WalletNetwork enum, not the passphrase string
+  // (walletId and isWalletConnect are already defined at function start)
+
+  // IMPORTANT: Ensure the wallet is set before signing, especially for WalletConnect
+  // This is critical for WalletConnect to properly route the signing request to the mobile wallet
+  if (walletId) {
+    wallet.setWallet(walletId);
+    console.log('[Soroban] mintNFT: Set wallet before signing:', walletId);
+  }
+
+  // Convert passphrase to WalletNetwork enum for WalletConnect compatibility
+  // WalletNetwork enum values ARE the passphrase strings, so this conversion ensures type compatibility
+  let networkPassphraseForSigning: string | WalletNetwork;
+  if (isWalletConnect) {
+    // For WalletConnect, use WalletNetwork enum to ensure it matches module initialization
+    if (passphrase?.includes('Test')) {
+      networkPassphraseForSigning = WalletNetwork.TESTNET;
+    } else if (passphrase?.includes('Public')) {
+      networkPassphraseForSigning = WalletNetwork.PUBLIC;
+    } else if (passphrase?.includes('Future')) {
+      networkPassphraseForSigning = WalletNetwork.FUTURENET;
+    } else {
+      networkPassphraseForSigning = WalletNetwork.TESTNET;
+    }
+  } else {
+    // For other wallets, use the passphrase string directly
+    networkPassphraseForSigning = passphrase || Networks.TESTNET;
+  }
+
+  console.log(
+    '[Soroban] mintNFT: Signing transaction with network passphrase:',
     {
-      networkPassphrase: passphrase || Networks.TESTNET,
-      address: signerAddress,
+      passphrase: passphrase || Networks.TESTNET,
+      networkPassphraseForSigning,
+      networkPassphraseType: typeof networkPassphraseForSigning,
+      isWalletNetworkEnum: isWalletConnect
+        ? networkPassphraseForSigning === WalletNetwork.TESTNET ||
+          networkPassphraseForSigning === WalletNetwork.PUBLIC ||
+          networkPassphraseForSigning === WalletNetwork.FUTURENET
+        : 'N/A',
+      signerAddress,
+      walletId,
+      isWalletConnect,
+      networkName: passphrase?.includes('Test')
+        ? 'TESTNET'
+        : passphrase?.includes('Public')
+          ? 'MAINNET'
+          : 'TESTNET',
+      xdrLength: preparedTransaction.toXDR().length,
     }
   );
+
+  const signOptions = {
+    networkPassphrase: networkPassphraseForSigning,
+    address: signerAddress,
+  };
+
+  // For WalletConnect, verify connection before signing
+  if (isWalletConnect) {
+    try {
+      // Verify WalletConnect is still connected by checking address
+      const currentAddress = await wallet.getAddress();
+      if (
+        !currentAddress?.address ||
+        currentAddress.address !== signerAddress
+      ) {
+        throw new Error(
+          `WalletConnect address mismatch. Expected: ${signerAddress}, Got: ${currentAddress?.address || 'none'}. Please reconnect your wallet.`
+        );
+      }
+      console.log(
+        '[Soroban] mintNFT: WalletConnect connection verified:',
+        currentAddress.address
+      );
+    } catch (connectionError) {
+      const errorMessage =
+        connectionError instanceof Error
+          ? connectionError.message
+          : String(connectionError);
+      console.error(
+        '[Soroban] mintNFT: WalletConnect connection check failed:',
+        errorMessage
+      );
+      throw new Error(
+        `WalletConnect session lost. Please reconnect your wallet. Original error: ${errorMessage}`
+      );
+    }
+  }
+
+  console.log(
+    '[Soroban] mintNFT: Calling wallet.signTransaction, waiting for mobile wallet prompt...'
+  );
+  let signedTransactionResult;
+  try {
+    // Add a timeout for WalletConnect to detect if it's hanging
+    const signPromise = wallet.signTransaction(
+      preparedTransaction.toXDR(),
+      signOptions
+    );
+
+    // For WalletConnect, add a longer timeout (60 seconds) as mobile wallets can be slow
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(
+          new Error(
+            'Transaction signing timed out after 60 seconds. Please check your mobile wallet for the signing prompt.'
+          )
+        );
+      }, 60000);
+    });
+
+    signedTransactionResult = await Promise.race([signPromise, timeoutPromise]);
+
+    console.log('[Soroban] mintNFT: signTransaction returned:', {
+      resultType: typeof signedTransactionResult,
+      hasSignedTxXdr:
+        signedTransactionResult &&
+        typeof signedTransactionResult === 'object' &&
+        'signedTxXdr' in signedTransactionResult,
+    });
+  } catch (signError) {
+    const errorMessage =
+      signError instanceof Error ? signError.message : String(signError);
+    console.error('[Soroban] mintNFT: signTransaction error:', {
+      error: errorMessage,
+      walletId,
+      isWalletConnect,
+      signOptions,
+      xdrLength: preparedTransaction.toXDR().length,
+    });
+    throw signError;
+  }
 
   // Handle the signed transaction result
   let signedTxXdrString: string;
@@ -1348,12 +1660,30 @@ export const mintNFT = async (
             await rpc.prepareTransaction(transaction);
 
           // Re-sign transaction
+          // For WalletConnect, use WalletNetwork enum instead of passphrase string
+          let reNetworkPassphrase: string | WalletNetwork;
+          if (isWalletConnect) {
+            if (passphrase?.includes('Test')) {
+              reNetworkPassphrase = WalletNetwork.TESTNET;
+            } else if (passphrase?.includes('Public')) {
+              reNetworkPassphrase = WalletNetwork.PUBLIC;
+            } else if (passphrase?.includes('Future')) {
+              reNetworkPassphrase = WalletNetwork.FUTURENET;
+            } else {
+              reNetworkPassphrase = WalletNetwork.TESTNET;
+            }
+          } else {
+            reNetworkPassphrase = passphrase || Networks.TESTNET;
+          }
+
+          const reSignOptions = {
+            networkPassphrase: reNetworkPassphrase,
+            address: signerAddress,
+          };
+
           const reSignedResult = await wallet.signTransaction(
             rePreparedTransaction.toXDR(),
-            {
-              networkPassphrase: passphrase || Networks.TESTNET,
-              address: signerAddress,
-            }
+            reSignOptions
           );
 
           // Parse re-signed transaction

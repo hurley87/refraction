@@ -21,17 +21,34 @@ const MintNFT: React.FC<MintNFTProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { address, networkPassphrase, accountExists, balances, isPending } =
-    useWallet();
+  const {
+    address,
+    network,
+    networkPassphrase,
+    accountExists,
+    balances,
+    isPending,
+  } = useWallet();
   // Get contract address based on wallet's network (not app config)
   const contractAddress = getNFTContractAddress(networkPassphrase);
   const [isLoading, setIsLoading] = useState(false);
 
   // Check if account exists and has balance
   const xlmBalance = balances?.xlm?.balance;
-  const hasBalance = xlmBalance && Number(xlmBalance) > 0;
+  const balanceNum = xlmBalance ? Number(xlmBalance) : 0;
+  const hasBalance = balanceNum > 0;
   const needsFunding =
     (!accountExists && !hasBalance) || (accountExists && !hasBalance);
+
+  // Calculate minimum balance needed for minting
+  // 0.1 XLM payment + fee + minimum balance that must remain after transfer
+  // The native token contract enforces a minimum balance (typically 1 XLM for mainnet)
+  const isOnMainnet = networkPassphrase?.includes('Public');
+  const mintCost = 0.1;
+  const estimatedFee = isOnMainnet ? 0.01 : 0.00001;
+  const minBalanceAfterTransfer = isOnMainnet ? 1.0 : 0.5; // Minimum balance that must remain (enforced by native token contract)
+  const minBalanceRequired = mintCost + estimatedFee + minBalanceAfterTransfer;
+  const hasEnoughBalance = balanceNum >= minBalanceRequired;
 
   // Check if user is on testnet (Friendbot only works on testnet)
   const isOnTestnet =
@@ -58,6 +75,29 @@ const MintNFT: React.FC<MintNFTProps> = ({
       const errorMsg =
         'NFT contract address not configured. Please set NEXT_PUBLIC_NFT_CONTRACT_ADDRESS environment variable.';
       toast.error(errorMsg);
+      onError?.(errorMsg);
+      return;
+    }
+
+    if (!networkPassphrase) {
+      const errorMsg =
+        'Network information not available. Please reconnect your wallet.';
+      toast.error(errorMsg);
+      onError?.(errorMsg);
+      console.error('[MintNFT] networkPassphrase is undefined:', {
+        address,
+        network,
+        networkPassphrase: networkPassphrase,
+      });
+      return;
+    }
+
+    // Check if user has enough balance before attempting mint
+    if (!hasEnoughBalance) {
+      const errorMsg =
+        `Insufficient balance. You need at least ${minBalanceRequired.toFixed(2)} XLM to mint (you have ${balanceNum.toFixed(2)} XLM). ` +
+        `This covers the 0.1 XLM payment, transaction fees, and the minimum balance (${minBalanceAfterTransfer.toFixed(1)} XLM) that must remain as required by the native token contract.`;
+      toast.error(errorMsg, { duration: 6000 });
       onError?.(errorMsg);
       return;
     }
@@ -162,9 +202,31 @@ const MintNFT: React.FC<MintNFTProps> = ({
         </div>
       )}
 
+      {hasBalance && !hasEnoughBalance && (
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800 mb-1">
+            <strong>Insufficient Balance:</strong> You have{' '}
+            {balanceNum.toFixed(2)} XLM, but need at least{' '}
+            {minBalanceRequired.toFixed(2)} XLM to mint an NFT.
+          </p>
+          <p className="text-xs text-yellow-700">
+            This covers the 0.1 XLM payment, transaction fees (~
+            {estimatedFee.toFixed(5)} XLM), and the minimum balance that must
+            remain ({minBalanceAfterTransfer.toFixed(1)} XLM) as required by the
+            native token contract.
+          </p>
+        </div>
+      )}
+
       <button
         onClick={handleMint}
-        disabled={isLoading || !contractAddress || !address || needsFunding}
+        disabled={
+          isLoading ||
+          !contractAddress ||
+          !address ||
+          needsFunding ||
+          !hasEnoughBalance
+        }
         className="w-full h-[40px] bg-[#FFE600] text-[#131313] rounded-full font-pleasure hover:bg-[#FFD700] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
       >
         {isLoading ? 'Processing...' : ctaLabel}

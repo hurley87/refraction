@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { base } from "viem/chains";
-import { PrivyProvider } from "@privy-io/react-auth";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider, createConfig, http } from "wagmi";
-import { AnalyticsProvider } from "@/components/shared/analytics-provider";
+import { base } from 'viem/chains';
+import { PrivyProvider } from '@privy-io/react-auth';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { WagmiProvider, createConfig, http } from 'wagmi';
+import { AnalyticsProvider } from '@/components/shared/analytics-provider';
 
 const baseRpcUrl =
   process.env.NEXT_PUBLIC_BASE_RPC || base.rpcUrls.default.http[0];
@@ -27,13 +27,13 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <PrivyProvider
           appId={appId}
           config={{
-            loginMethods: ["email"],
+            loginMethods: ['email'],
             supportedChains: [base],
             defaultChain: base,
             embeddedWallets: {
-              createOnLogin: "all-users",
+              createOnLogin: 'all-users',
               solana: {
-                createOnLogin: "all-users",
+                createOnLogin: 'all-users',
               },
             },
           }}
