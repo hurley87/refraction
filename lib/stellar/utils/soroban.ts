@@ -10,77 +10,53 @@ import {
   TransactionBuilder,
   Horizon,
 } from '@stellar/stellar-sdk';
-import { networkPassphrase, rpcUrl } from './network';
+import {
+  networkPassphrase,
+  rpcUrl,
+  horizonUrl,
+  getHorizonUrlForNetwork,
+} from './network';
 import { wallet } from './wallet';
-
-/**
- * Get RPC URL for a given network passphrase
- */
-const getRpcUrlForPassphrase = (passphrase: string): string => {
-  if (passphrase.includes('Public')) {
-    return 'https://soroban-rpc.mainnet.stellar.gateway.fm';
-  } else if (passphrase.includes('Test') && !passphrase.includes('Future')) {
-    return 'https://soroban-rpc.testnet.stellar.gateway.fm';
-  } else if (passphrase.includes('Future')) {
-    return 'https://rpc-futurenet.stellar.org';
-  }
-  // Default to testnet
-  return 'https://soroban-rpc.testnet.stellar.gateway.fm';
-};
-
-/**
- * Get Horizon URL for a given network passphrase
- */
-const getHorizonUrlForPassphrase = (passphrase: string): string => {
-  if (passphrase.includes('Public')) {
-    return 'https://horizon.stellar.org';
-  } else if (passphrase.includes('Test') && !passphrase.includes('Future')) {
-    return 'https://horizon-testnet.stellar.org';
-  } else if (passphrase.includes('Future')) {
-    return 'https://horizon-futurenet.stellar.org';
-  }
-  // Default to testnet
-  return 'https://horizon-testnet.stellar.org';
-};
 
 /**
  * Get Soroban RPC server instance for the current network
  * Uses a proxy API route to avoid CORS issues in the browser
- * @param customPassphrase - Optional network passphrase to use (overrides default)
+ * @param customNetworkPassphrase - Optional network passphrase to determine which network to use
  */
-export const getSorobanRpc = (customPassphrase?: string): SorobanRpc.Server => {
-  const passphrase = customPassphrase || networkPassphrase;
-  const rpcUrlForNetwork = getRpcUrlForPassphrase(passphrase);
-
+export const getSorobanRpc = (
+  customNetworkPassphrase?: string
+): SorobanRpc.Server => {
   // In the browser, use the proxy API route to avoid CORS issues
   // On the server, use the direct RPC URL
   const isBrowser = typeof window !== 'undefined';
+  const passphrase = customNetworkPassphrase || networkPassphrase;
+
+  // Determine network from passphrase
+  const isMainnet =
+    passphrase.includes('Public') ||
+    passphrase.includes('Public Global Stellar Network');
+  const networkName = isMainnet
+    ? 'mainnet'
+    : passphrase.includes('Future')
+      ? 'futurenet'
+      : 'testnet';
+
   let effectiveRpcUrl: string;
 
   if (isBrowser) {
-    // In browser, use the proxy API route with network parameter
-    // The proxy will use the correct RPC URL based on the network
+    // Use full URL for the proxy API route in browser with network parameter
     const origin = window.location.origin;
-    // Pass network info as query parameter so proxy can route to correct RPC
-    const networkParam = passphrase.includes('Public')
-      ? 'mainnet'
-      : passphrase.includes('Future')
-        ? 'futurenet'
-        : 'testnet';
-    effectiveRpcUrl = `${origin}/api/soroban-rpc?network=${networkParam}`;
+    effectiveRpcUrl = `${origin}/api/soroban-rpc?network=${networkName}`;
   } else {
     // Use direct RPC URL on server
-    effectiveRpcUrl = rpcUrlForNetwork;
+    effectiveRpcUrl = rpcUrl;
   }
 
   // Log network configuration for debugging (only in development)
   if (process.env.NODE_ENV === 'development') {
     console.log('[Soroban] Network configuration:', {
-      network: passphrase.includes('Test')
-        ? 'TESTNET'
-        : passphrase.includes('Public')
-          ? 'MAINNET'
-          : 'UNKNOWN',
+      network: isMainnet ? 'MAINNET' : 'TESTNET',
+      networkName,
       rpcUrl: effectiveRpcUrl,
       originalRpcUrl: rpcUrl,
       isBrowser,
@@ -194,77 +170,6 @@ export const getContract = (contractId: string): Contract => {
 };
 
 /**
- * Get the appropriate transaction fee for a network
- * Mainnet requires higher fees than testnet
- * @param networkPassphrase - Network passphrase to determine fee
- * @returns Fee in stroops as a string
- */
-const getTransactionFee = (customNetworkPassphrase?: string): string => {
-  const passphrase = customNetworkPassphrase || networkPassphrase;
-  // Mainnet requires higher fees (100,000 stroops = 0.01 XLM minimum)
-  // Testnet can use lower fees (100 stroops = 0.00001 XLM)
-  if (passphrase?.includes('Public')) {
-    // Mainnet: Use 100,000 stroops (0.01 XLM) as minimum
-    // This can be increased if transactions fail with insufficient fee errors
-    return '100000';
-  }
-  // Testnet/Futurenet: Use 100 stroops (0.00001 XLM)
-  return '100';
-};
-
-/**
- * Poll for transaction confirmation
- * Waits for a transaction to be confirmed on the network
- * @param rpc - Soroban RPC server instance
- * @param txHash - Transaction hash to poll for
- * @param maxAttempts - Maximum number of polling attempts (default: 30)
- * @param delayMs - Delay between polling attempts in milliseconds (default: 1000)
- * @returns The confirmed transaction response
- */
-const pollTransactionConfirmation = async (
-  rpc: SorobanRpc.Server,
-  txHash: string,
-  maxAttempts: number = 30,
-  delayMs: number = 1000
-): Promise<SorobanRpc.Api.GetTransactionResponse> => {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const getTxResponse = await rpc.getTransaction(txHash);
-
-    // Check if transaction is confirmed (SUCCESS or FAILED)
-    if (
-      getTxResponse.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS ||
-      getTxResponse.status === SorobanRpc.Api.GetTransactionStatus.FAILED
-    ) {
-      return getTxResponse;
-    }
-
-    // If status is NOT_FOUND (transaction still pending), wait and retry
-    if (
-      getTxResponse.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND
-    ) {
-      if (attempt < maxAttempts - 1) {
-        // Wait before next attempt
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-        continue;
-      }
-    }
-
-    // If we've exhausted attempts, throw an error
-    throw new Error(
-      `Transaction confirmation timeout after ${maxAttempts} attempts. ` +
-        `Transaction hash: ${txHash}. ` +
-        `Last status: ${getTxResponse.status}. ` +
-        `The transaction may still be processing. Please check the Stellar explorer.`
-    );
-  }
-
-  // This should never be reached, but TypeScript requires it
-  throw new Error(
-    `Transaction confirmation polling failed for hash: ${txHash}`
-  );
-};
-
-/**
  * Invoke a Soroban contract function
  * @param contractId - The contract address or ID
  * @param functionName - Name of the function to invoke
@@ -282,13 +187,22 @@ export const invokeContract = async (
   const passphrase = customNetworkPassphrase || networkPassphrase;
   const rpc = getSorobanRpc(passphrase);
   const contract = getContract(contractId);
-  const horizonUrlForNetwork = getHorizonUrlForPassphrase(passphrase);
+
+  // Determine the correct Horizon URL based on network passphrase
+  const networkName = passphrase.includes('Test')
+    ? 'TESTNET'
+    : passphrase.includes('Public')
+      ? 'MAINNET'
+      : passphrase.includes('Future')
+        ? 'FUTURENET'
+        : 'TESTNET';
+  const effectiveHorizonUrl = getHorizonUrlForNetwork(networkName);
 
   // Get the current account to build the transaction
   // Use Horizon for account lookups as it's more reliable across networks
   let account;
   try {
-    const horizonServer = new Horizon.Server(horizonUrlForNetwork);
+    const horizonServer = new Horizon.Server(effectiveHorizonUrl);
     account = await horizonServer.loadAccount(signerAddress);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -298,18 +212,13 @@ export const invokeContract = async (
       errorMessage.includes('404')
     ) {
       // Verify the account on the correct network
-      const networkName = passphrase.includes('Test')
-        ? 'TESTNET'
-        : passphrase.includes('Public')
-          ? 'MAINNET'
-          : 'UNKNOWN';
       throw new Error(
         `Account not found on ${networkName}: ${signerAddress}. ` +
           `The account must be funded before it can invoke contracts. ` +
           `On testnet/futurenet, you can fund it using Friendbot: ` +
           `curl "https://friendbot.stellar.org/?addr=${signerAddress}" ` +
           `(or use the "Fund Account" button if available). ` +
-          `Current network: ${networkName}, Horizon: ${horizonUrlForNetwork}, RPC: ${getRpcUrlForPassphrase(passphrase)}`
+          `Current network: ${networkName}, Horizon: ${effectiveHorizonUrl}, RPC: ${rpcUrl}`
       );
     }
     throw error;
@@ -337,8 +246,17 @@ export const invokeContract = async (
     })
   );
 
-  const transaction = new TransactionBuilder(account, {
-    fee: getTransactionFee(passphrase),
+  // Use higher fees for mainnet Soroban transactions
+  // Mainnet typically requires 100,000+ stroops (0.01+ XLM) for Soroban contract invocations
+  // Testnet can use lower fees (100 stroops = 0.00001 XLM)
+  const isMainnet =
+    passphrase.includes('Public') ||
+    passphrase.includes('Public Global Stellar Network');
+  const baseFee = isMainnet ? '100000' : '100'; // 0.01 XLM for mainnet, 0.00001 XLM for testnet
+
+  // Build initial transaction for simulation
+  let transaction = new TransactionBuilder(account, {
+    fee: baseFee,
     networkPassphrase: passphrase || Networks.TESTNET,
   })
     .addOperation(contractCall)
@@ -365,7 +283,42 @@ export const invokeContract = async (
     );
   }
 
-  // Prepare the transaction
+  // Fetch fresh account right before preparing to ensure correct sequence number
+  // This prevents txBadSeq errors that can occur if the account sequence changed
+  // Use RPC for more up-to-date sequence numbers
+  try {
+    account = await rpc.getAccount(signerAddress);
+  } catch (rpcError) {
+    // Fallback to Horizon if RPC fails
+    try {
+      const horizonServer = new Horizon.Server(effectiveHorizonUrl);
+      account = await horizonServer.loadAccount(signerAddress);
+    } catch (horizonError) {
+      // If both fail, proceed with existing account - prepareTransaction will handle it
+      console.warn(
+        '[Soroban] Failed to refresh account before prepareTransaction:',
+        {
+          rpcError:
+            rpcError instanceof Error ? rpcError.message : String(rpcError),
+          horizonError:
+            horizonError instanceof Error
+              ? horizonError.message
+              : String(horizonError),
+        }
+      );
+    }
+  }
+
+  // Rebuild transaction with fresh account to ensure correct sequence number
+  transaction = new TransactionBuilder(account, {
+    fee: baseFee,
+    networkPassphrase: passphrase || Networks.TESTNET,
+  })
+    .addOperation(contractCall)
+    .setTimeout(30)
+    .build();
+
+  // Prepare the transaction (this will update sequence numbers and fees if needed)
   const preparedTransaction = await rpc.prepareTransaction(transaction);
 
   // Sign the transaction using the wallet kit
@@ -501,28 +454,51 @@ export const invokeContract = async (
   const sendResponse = await rpc.sendTransaction(signedTx);
 
   if (sendResponse.status === 'ERROR') {
-    throw new Error(
-      `Transaction failed: ${sendResponse.errorResult?.toString()}`
-    );
+    let errorMessage = 'Unknown error';
+    if (sendResponse.errorResult) {
+      if (typeof sendResponse.errorResult === 'string') {
+        errorMessage = sendResponse.errorResult;
+      } else if (sendResponse.errorResult instanceof Error) {
+        errorMessage = sendResponse.errorResult.message;
+      } else {
+        try {
+          errorMessage = JSON.stringify(sendResponse.errorResult, null, 2);
+        } catch {
+          errorMessage = String(sendResponse.errorResult);
+        }
+      }
+    }
+    throw new Error(`Transaction failed: ${errorMessage}`);
   }
 
-  // Poll for transaction confirmation (wait until SUCCESS or FAILED)
-  const getTxResponse = await pollTransactionConfirmation(
-    rpc,
-    sendResponse.hash
-  );
+  // Wait for the transaction to complete
+  const getTxResponse = await rpc.getTransaction(sendResponse.hash);
 
   if (getTxResponse.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
-    throw new Error(
-      `Transaction failed: ${getTxResponse.resultXdr?.toString()}`
-    );
-  }
-
-  if (getTxResponse.status !== SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
-    throw new Error(
-      `Transaction did not succeed. Status: ${getTxResponse.status}. ` +
-        `Transaction hash: ${sendResponse.hash}`
-    );
+    let errorMessage = 'Transaction failed';
+    if (getTxResponse.resultXdr) {
+      if (typeof getTxResponse.resultXdr === 'string') {
+        errorMessage = getTxResponse.resultXdr;
+      } else {
+        try {
+          errorMessage = JSON.stringify(getTxResponse.resultXdr, null, 2);
+        } catch {
+          errorMessage = String(getTxResponse.resultXdr);
+        }
+      }
+    }
+    if (getTxResponse.resultMetaXdr) {
+      try {
+        const metaStr =
+          typeof getTxResponse.resultMetaXdr === 'string'
+            ? getTxResponse.resultMetaXdr
+            : JSON.stringify(getTxResponse.resultMetaXdr, null, 2);
+        errorMessage += `\nTransaction metadata: ${metaStr}`;
+      } catch {
+        // Ignore metadata parsing errors
+      }
+    }
+    throw new Error(`Transaction failed: ${errorMessage}`);
   }
 
   return sendResponse.hash;
@@ -531,20 +507,32 @@ export const invokeContract = async (
 /**
  * Invoke a contract function that sends XLM to a recipient
  * This is a convenience wrapper for common payment contract patterns
- * Supports both new signature (no amount - sends fixed 0.1 XLM) and old signature (with amount)
  * @param contractId - The contract address or ID
  * @param recipientAddress - Address to send XLM to
- * @param amount - Amount in XLM (optional, ignored for new contract signature)
+ * @param amount - Amount in XLM (will be converted to stroops: 1 XLM = 10,000,000 stroops)
  * @param signerAddress - Address of the account signing the transaction
  * @param customNetworkPassphrase - Network passphrase for transaction building
  */
 export const invokePaymentContract = async (
   contractId: string,
   recipientAddress: string,
-  amount?: number,
-  signerAddress?: string,
+  amount: number | undefined,
+  signerAddress: string,
   customNetworkPassphrase?: string
 ): Promise<string> => {
+  // Validate amount if provided, or use default of 0.1 XLM for claim points
+  const effectiveAmount = amount !== undefined ? amount : 0.1;
+
+  if (isNaN(effectiveAmount) || effectiveAmount <= 0) {
+    throw new Error(
+      `Invalid amount: ${effectiveAmount}. Amount must be a positive number.`
+    );
+  }
+
+  // Convert XLM to stroops (1 XLM = 10,000,000 stroops)
+  // Default to 0.1 XLM (1,000,000 stroops) if amount is undefined (for claim points)
+  const stroops = BigInt(Math.floor(effectiveAmount * 10_000_000));
+
   // Validate recipient address
   if (!isValidAddress(recipientAddress)) {
     throw new Error(`Invalid recipient address: ${recipientAddress}`);
@@ -557,59 +545,71 @@ export const invokePaymentContract = async (
 
   for (const functionName of functionNames) {
     try {
-      // Try new signature first (no amount parameter - sends fixed 0.1 XLM)
-      try {
-        return await invokeContract(
-          contractId,
-          functionName,
-          [recipientAddress],
-          signerAddress || recipientAddress,
-          customNetworkPassphrase
-        );
-      } catch (newSigError) {
-        const newSigErrorMsg =
-          newSigError instanceof Error
-            ? newSigError.message
-            : String(newSigError);
+      // First try with amount parameter (newer contract version)
+      return await invokeContract(
+        contractId,
+        functionName,
+        [recipientAddress, stroops],
+        signerAddress,
+        customNetworkPassphrase
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
-        // Check if it's a "wrong number of arguments" or parameter mismatch error
-        // This includes: MismatchingParameterLen, UnexpectedSize, wrong number, etc.
-        const isWrongArgs =
-          newSigErrorMsg.toLowerCase().includes('mismatchingparameterlen') ||
-          newSigErrorMsg.toLowerCase().includes('unexpectedsize') ||
-          newSigErrorMsg.toLowerCase().includes('wrong number') ||
-          newSigErrorMsg
-            .toLowerCase()
-            .includes('invalid number of arguments') ||
-          (newSigErrorMsg.toLowerCase().includes('expected') &&
-            newSigErrorMsg.toLowerCase().includes('arguments')) ||
-          newSigErrorMsg
-            .toLowerCase()
-            .includes('func(mismatchingparameterlen)');
+      // Check if this is a parameter mismatch error (contract might only accept recipient)
+      const isParameterMismatch =
+        errorMessage.includes('MismatchingParameterLen') ||
+        errorMessage.includes('UnexpectedSize') ||
+        (errorMessage.includes('parameter') &&
+          errorMessage.includes('mismatch'));
 
-        if (isWrongArgs) {
-          // Try old signature with amount parameter (for backward compatibility)
-          // Use provided amount or default to 0.1 XLM (matching the new contract's fixed amount)
-          const amountToUse = amount !== undefined ? amount : 0.1;
-          const stroops = BigInt(Math.floor(amountToUse * 10_000_000));
+      // If it's a parameter mismatch, try calling without amount (older contract version)
+      if (isParameterMismatch) {
+        try {
           console.log(
-            `[invokePaymentContract] New signature failed with parameter mismatch, trying old signature with ${amountToUse} XLM`
+            `Function ${functionName} doesn't accept amount parameter, trying with recipient only...`
           );
           return await invokeContract(
             contractId,
             functionName,
-            [recipientAddress, stroops],
-            signerAddress || recipientAddress,
+            [recipientAddress],
+            signerAddress,
             customNetworkPassphrase
           );
-        }
+        } catch (retryError) {
+          const retryErrorMessage =
+            retryError instanceof Error
+              ? retryError.message
+              : String(retryError);
+          errors.push(
+            `${functionName} (with amount): ${errorMessage}; ${functionName} (without amount): ${retryErrorMessage}`
+          );
 
-        // If it's not a wrong args error, throw it
-        throw newSigError;
+          // Check if this is a "function not found" error
+          const isFunctionNotFound =
+            retryErrorMessage.toLowerCase().includes('not found') ||
+            retryErrorMessage.toLowerCase().includes('unknown function') ||
+            retryErrorMessage
+              .toLowerCase()
+              .includes('function does not exist') ||
+            retryErrorMessage.toLowerCase().includes('invalid function');
+
+          // If function doesn't exist, try next function
+          if (isFunctionNotFound) {
+            console.log(`Function ${functionName} not found, trying next...`);
+            continue;
+          }
+
+          // Otherwise, throw the retry error
+          throw new Error(
+            `Error invoking ${functionName}: ${retryErrorMessage}. ` +
+              `Tried with amount parameter (got: ${errorMessage}) and without amount parameter. ` +
+              `This might indicate the contract doesn't exist, isn't deployed, or has a different function signature.`
+          );
+        }
       }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+
       errors.push(`${functionName}: ${errorMessage}`);
 
       // Check if this is a "function not found" or "unknown function" error
@@ -623,50 +623,6 @@ export const invokePaymentContract = async (
       if (isFunctionNotFound) {
         console.log(`Function ${functionName} not found, trying next...`);
         continue;
-      }
-
-      // Check if it's a storage/initialization error
-      const isStorageError =
-        errorMessage.toLowerCase().includes('storage') ||
-        errorMessage.toLowerCase().includes('missingvalue') ||
-        errorMessage.toLowerCase().includes('non-existing value') ||
-        errorMessage.toLowerCase().includes('not initialized');
-
-      // Check if it's an insufficient balance error (UnreachableCodeReached often means panic from balance check)
-      const isBalanceError =
-        errorMessage.toLowerCase().includes('unreachablecodereached') ||
-        errorMessage.toLowerCase().includes('insufficient balance') ||
-        (errorMessage.toLowerCase().includes('balance') &&
-          errorMessage.toLowerCase().includes('0'));
-
-      if (isStorageError) {
-        const networkName = customNetworkPassphrase?.includes('Public')
-          ? 'MAINNET'
-          : customNetworkPassphrase?.includes('Test')
-            ? 'TESTNET'
-            : 'UNKNOWN';
-        throw new Error(
-          `Contract not initialized on ${networkName}. ` +
-            `The contract must be initialized with its constructor (__constructor) after deployment. ` +
-            `For the simple_payment contract, you need to call: ` +
-            `soroban contract invoke --id <CONTRACT_ID> --network ${networkName.toLowerCase()} --source <YOUR_KEY> -- --constructor --native_asset_address <XLM_CONTRACT_ADDRESS> ` +
-            `Error: ${errorMessage}`
-        );
-      }
-
-      if (isBalanceError) {
-        const networkName = customNetworkPassphrase?.includes('Public')
-          ? 'MAINNET'
-          : customNetworkPassphrase?.includes('Test')
-            ? 'TESTNET'
-            : 'UNKNOWN';
-        throw new Error(
-          `Contract has insufficient XLM balance on ${networkName}. ` +
-            `The contract needs at least 0.1 XLM (1,000,000 stroops) to send rewards. ` +
-            `Please fund the contract address ${contractId} with XLM before using it. ` +
-            `You can send XLM to the contract using any Stellar wallet or the Stellar Laboratory. ` +
-            `Error: ${errorMessage}`
-        );
       }
 
       // If it's a different error (like simulation error, auth error, etc.), throw it immediately
@@ -689,21 +645,18 @@ export const invokePaymentContract = async (
 /**
  * Read a value from a contract (view function)
  * Note: For view functions, we can use a dummy account since we're only simulating
- * @param contractId - The contract address or ID
- * @param functionName - Name of the function to call
- * @param args - Array of arguments to pass to the function
- * @param customNetworkPassphrase - Optional network passphrase to use (defaults to app config)
  */
 export const readContract = async (
   contractId: string,
   functionName: string,
-  args: any[],
-  customNetworkPassphrase?: string
+  args: any[]
 ): Promise<any> => {
-  const passphrase = customNetworkPassphrase || networkPassphrase;
+  // Ensure we're using testnet configuration
+  const passphrase = networkPassphrase || Networks.TESTNET;
   const rpc = getSorobanRpc(passphrase);
   const contract = getContract(contractId);
-  const effectiveHorizonUrl = getHorizonUrlForPassphrase(passphrase);
+  const effectiveHorizonUrl =
+    horizonUrl || 'https://horizon-testnet.stellar.org';
 
   // Build a simulation transaction (no signing needed for view functions)
   // Use Horizon to get a real account (more reliable than RPC getAccount)
@@ -746,7 +699,7 @@ export const readContract = async (
         network: networkName,
         networkPassphrase: passphrase.substring(0, 30) + '...',
         horizonUrl: effectiveHorizonUrl,
-        rpcUrl: getRpcUrlForPassphrase(passphrase),
+        rpcUrl: rpcUrl,
         account: account.accountId || account.account?.accountId(),
       }
     );
@@ -762,8 +715,14 @@ export const readContract = async (
     })
   );
 
+  // Use higher fees for mainnet Soroban transactions
+  const isMainnet =
+    passphrase.includes('Public') ||
+    passphrase.includes('Public Global Stellar Network');
+  const baseFee = isMainnet ? '100000' : '100'; // 0.01 XLM for mainnet, 0.00001 XLM for testnet
+
   const transaction = new TransactionBuilder(account as any, {
-    fee: getTransactionFee(passphrase),
+    fee: baseFee,
     networkPassphrase: passphrase,
   })
     .addOperation(contractCall)
@@ -780,7 +739,7 @@ export const readContract = async (
     const errorMsg =
       `Simulation error for function "${functionName}" on ${networkName}: ${errorDetails}. ` +
       `This might indicate the function doesn't exist, has wrong arguments, or the contract isn't deployed on ${networkName}. ` +
-      `Contract: ${contractId}, Network: ${networkName}, RPC: ${getRpcUrlForPassphrase(passphrase)}, Horizon: ${effectiveHorizonUrl}`;
+      `Contract: ${contractId}, Network: ${networkName}, RPC: ${rpcUrl}, Horizon: ${effectiveHorizonUrl}`;
     if (process.env.NODE_ENV === 'development') {
       console.error('[readContract] Simulation error:', errorMsg);
     }
@@ -791,7 +750,7 @@ export const readContract = async (
     const errorMsg =
       `Simulation returned no result for function "${functionName}" on ${networkName}. ` +
       `The contract might not exist or the function signature might be incorrect. ` +
-      `Contract: ${contractId}, Network: ${networkName}, RPC: ${getRpcUrlForPassphrase(passphrase)}`;
+      `Contract: ${contractId}, Network: ${networkName}, RPC: ${rpcUrl}`;
     if (process.env.NODE_ENV === 'development') {
       console.error('[readContract] No simulation result:', errorMsg);
     }
@@ -860,7 +819,7 @@ export const invokeNFTContract = async (
 };
 
 /**
- * Mint an NFT to a recipient address with a payment of 1 XLM
+ * Mint an NFT to a recipient address with a payment of 0.1 XLM
  * @param contractId - The NFT contract address or ID
  * @param recipientAddress - Address to receive the minted NFT
  * @param signerAddress - Address of the account signing the transaction (any user can mint)
@@ -880,12 +839,21 @@ export const mintNFT = async (
   const passphrase = customNetworkPassphrase || networkPassphrase;
   const rpc = getSorobanRpc(passphrase);
   const contract = getContract(contractId);
-  const horizonUrlForNetwork = getHorizonUrlForPassphrase(passphrase);
+
+  // Determine the correct Horizon URL based on network passphrase
+  const networkName = passphrase.includes('Test')
+    ? 'TESTNET'
+    : passphrase.includes('Public')
+      ? 'MAINNET'
+      : passphrase.includes('Future')
+        ? 'FUTURENET'
+        : 'TESTNET';
+  const effectiveHorizonUrl = getHorizonUrlForNetwork(networkName);
 
   // Get the current account to build the transaction
   let account;
   try {
-    const horizonServer = new Horizon.Server(horizonUrlForNetwork);
+    const horizonServer = new Horizon.Server(effectiveHorizonUrl);
     account = await horizonServer.loadAccount(signerAddress);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -904,7 +872,7 @@ export const mintNFT = async (
           `The account must be funded before it can invoke contracts. ` +
           `On testnet/futurenet, you can fund it using Friendbot: ` +
           `curl "https://friendbot.stellar.org/?addr=${signerAddress}" ` +
-          `Current network: ${networkName}, Horizon: ${horizonUrlForNetwork}, RPC: ${getRpcUrlForPassphrase(passphrase)}`
+          `Current network: ${networkName}, Horizon: ${horizonUrl}, RPC: ${rpcUrl}`
       );
     }
     throw error;
@@ -914,12 +882,20 @@ export const mintNFT = async (
   const contractCall = contract.call('mint', addressToScVal(recipientAddress));
 
   // Note: Payment is now handled within the contract itself.
-  // The contract's mint function automatically transfers 1 XLM from the recipient to the contract.
+  // The contract's mint function automatically transfers 0.1 XLM from the recipient to the contract.
   // The recipient address must authorize the transaction (sign it) for the payment to work.
+
+  // Use higher fees for mainnet Soroban transactions
+  // Mainnet typically requires 100,000+ stroops (0.01+ XLM) for Soroban contract invocations
+  // Testnet can use lower fees (100 stroops = 0.00001 XLM)
+  const isMainnet =
+    passphrase.includes('Public') ||
+    passphrase.includes('Public Global Stellar Network');
+  const baseFee = isMainnet ? '100000' : '100'; // 0.01 XLM for mainnet, 0.00001 XLM for testnet
 
   // Build transaction with contract call
   const transaction = new TransactionBuilder(account, {
-    fee: getTransactionFee(passphrase),
+    fee: baseFee,
     networkPassphrase: passphrase || Networks.TESTNET,
   })
     .addOperation(contractCall)
@@ -933,30 +909,6 @@ export const mintNFT = async (
     const errorDetails = simulation.error
       ? JSON.stringify(simulation.error, null, 2)
       : 'Unknown simulation error';
-    const errorMessage = String(errorDetails);
-
-    // Check if it's a storage/initialization error
-    const isStorageError =
-      errorMessage.toLowerCase().includes('storage') ||
-      errorMessage.toLowerCase().includes('missingvalue') ||
-      errorMessage.toLowerCase().includes('non-existing value') ||
-      errorMessage.toLowerCase().includes('not initialized');
-
-    if (isStorageError) {
-      const networkName = passphrase.includes('Public')
-        ? 'MAINNET'
-        : passphrase.includes('Test')
-          ? 'TESTNET'
-          : 'UNKNOWN';
-      throw new Error(
-        `NFT contract not initialized on ${networkName}. ` +
-          `The contract must be initialized with its constructor (__constructor) after deployment. ` +
-          `For the nft_collection contract, you need to call: ` +
-          `soroban contract invoke --id <CONTRACT_ID> --network ${networkName.toLowerCase()} --source <YOUR_KEY> -- --constructor --owner <OWNER_ADDRESS> --native_asset_address <XLM_CONTRACT_ADDRESS> --max_supply <MAX_SUPPLY> ` +
-          `Error: ${errorMessage}`
-      );
-    }
-
     throw new Error(
       `Simulation error for mint function: ${errorDetails}. ` +
         `This might indicate the function doesn't exist, has wrong arguments, or the contract isn't deployed.`
@@ -1069,28 +1021,51 @@ export const mintNFT = async (
   const sendResponse = await rpc.sendTransaction(signedTx);
 
   if (sendResponse.status === 'ERROR') {
-    throw new Error(
-      `Transaction failed: ${sendResponse.errorResult?.toString()}`
-    );
+    let errorMessage = 'Unknown error';
+    if (sendResponse.errorResult) {
+      if (typeof sendResponse.errorResult === 'string') {
+        errorMessage = sendResponse.errorResult;
+      } else if (sendResponse.errorResult instanceof Error) {
+        errorMessage = sendResponse.errorResult.message;
+      } else {
+        try {
+          errorMessage = JSON.stringify(sendResponse.errorResult, null, 2);
+        } catch {
+          errorMessage = String(sendResponse.errorResult);
+        }
+      }
+    }
+    throw new Error(`Transaction failed: ${errorMessage}`);
   }
 
-  // Poll for transaction confirmation (wait until SUCCESS or FAILED)
-  const getTxResponse = await pollTransactionConfirmation(
-    rpc,
-    sendResponse.hash
-  );
+  // Wait for the transaction to complete
+  const getTxResponse = await rpc.getTransaction(sendResponse.hash);
 
   if (getTxResponse.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
-    throw new Error(
-      `Transaction failed: ${getTxResponse.resultXdr?.toString()}`
-    );
-  }
-
-  if (getTxResponse.status !== SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
-    throw new Error(
-      `Transaction did not succeed. Status: ${getTxResponse.status}. ` +
-        `Transaction hash: ${sendResponse.hash}`
-    );
+    let errorMessage = 'Transaction failed';
+    if (getTxResponse.resultXdr) {
+      if (typeof getTxResponse.resultXdr === 'string') {
+        errorMessage = getTxResponse.resultXdr;
+      } else {
+        try {
+          errorMessage = JSON.stringify(getTxResponse.resultXdr, null, 2);
+        } catch {
+          errorMessage = String(getTxResponse.resultXdr);
+        }
+      }
+    }
+    if (getTxResponse.resultMetaXdr) {
+      try {
+        const metaStr =
+          typeof getTxResponse.resultMetaXdr === 'string'
+            ? getTxResponse.resultMetaXdr
+            : JSON.stringify(getTxResponse.resultMetaXdr, null, 2);
+        errorMessage += `\nTransaction metadata: ${metaStr}`;
+      } catch {
+        // Ignore metadata parsing errors
+      }
+    }
+    throw new Error(`Transaction failed: ${errorMessage}`);
   }
 
   return sendResponse.hash;

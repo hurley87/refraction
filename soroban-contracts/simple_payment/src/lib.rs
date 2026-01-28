@@ -6,91 +6,152 @@ pub struct SimplePayment;
 
 #[contractimpl]
 impl SimplePayment {
-    /// Constructor to initialize the payment contract
+
+    /// Send XLM (native Stellar asset) from the contract to a recipient
     /// 
     /// # Arguments
-    /// * `native_asset_address` - The XLM native asset contract address for your network
-    /// 
-    /// # Note
-    /// Stores the native asset address in contract storage for use by the send functions.
-    /// 
-    /// To get the XLM contract address for your network:
-    /// ```bash
-    /// soroban contract id asset --asset native --network <network>
-    /// ```
-    pub fn __constructor(e: &Env, native_asset_address: Address) {
-        // Store the native asset address in contract storage
-        // Note: Instance storage entries have TTL and may expire unless extended
-        let native_asset_key = String::from_str(e, "native_asset");
-        e.storage().instance().set(&native_asset_key, &native_asset_address);
-    }
-
-    /// Get the XLM native asset contract address from storage
-    /// 
-    /// Returns the native asset address that was set during contract initialization.
-    fn get_native_asset_address(env: &Env) -> Address {
-        let storage_key = String::from_str(env, "native_asset");
-        env.storage()
-            .instance()
-            .get(&storage_key)
-            .expect("Native asset address not initialized")
-    }
-
-    /// Send 0.1 XLM (1,000,000 stroops) from the contract to a recipient
-    /// 
-    /// # Arguments
-    /// * `recipient` - The Stellar address to send 0.1 XLM to
+    /// * `recipient` - The Stellar address to send XLM to
+    /// * `amount` - The amount in stroops (1 XLM = 10,000,000 stroops)
     /// 
     /// # Returns
     /// Returns true on success
     /// 
     /// # Note
-    /// Anyone can call this function. This function transfers 0.1 XLM (the native Stellar asset) 
-    /// from the contract's balance to the recipient. The contract must have at least 0.1 XLM balance before calling this function.
+    /// Anyone can call this function. This function transfers XLM (the native Stellar asset) 
+    /// from the contract's balance to the recipient. The contract must have XLM balance before calling this function.
     /// 
     /// The XLM native asset contract address is network-specific and can be obtained using:
     /// `soroban contract id asset --asset native --network <network>`
-    pub fn send(env: Env, recipient: Address) -> bool {
-        // Fixed amount: 0.1 XLM = 1,000,000 stroops
-        const AMOUNT: i128 = 1_000_000;
-        
+    pub fn send(env: Env, recipient: Address, amount: i128) -> bool {
         // Validate recipient address is not the contract itself
         let contract_address = env.current_contract_address();
         if recipient == contract_address {
             panic!("Cannot send to contract address");
         }
         
+        // Validate amount is positive
+        if amount <= 0 {
+            panic!("Amount must be positive, got: {}", amount);
+        }
+        
         // Get the native asset contract address
         // The native asset (XLM) contract address is network-specific.
-        // You can get it using: soroban contract id asset --asset native --network <network>
+        // You can get it using: soroban lab token id --asset native --network <network>
         let native_asset_address = Self::get_native_asset_address(&env);
         let native_token = token::Client::new(&env, &native_asset_address);
         let contract_address = env.current_contract_address();
         
         // Check contract balance before transfer
         let contract_balance = native_token.balance(&contract_address);
-        if contract_balance < AMOUNT {
-            panic!("Insufficient balance: contract has {} stroops ({} XLM) but needs {} stroops (0.1 XLM)", 
-                   contract_balance, contract_balance / 10_000_000, AMOUNT);
+        if contract_balance == 0 {
+            panic!("Contract has no XLM balance. The contract must be funded with XLM before it can send to recipients.");
+        }
+        if amount > contract_balance {
+            panic!("Insufficient balance: requested {} stroops but contract has {} stroops ({} XLM)", amount, contract_balance, contract_balance / 10_000_000);
         }
         
-        // Transfer 0.1 XLM from the contract to the recipient
-        native_token.transfer(&contract_address, &recipient, &AMOUNT);
+        // Transfer XLM from the contract to the recipient
+        native_token.transfer(&contract_address, &recipient, &amount);
         
         true
     }
     
+    /// Alternative: Send XLM with explicit XLM contract address parameter
+    /// 
+    /// This version allows you to pass the XLM native asset contract address,
+    /// making it work across different networks without hardcoding the address.
+    /// 
+    /// # Arguments
+    /// * `native_asset_address` - The XLM native asset contract address for your network
+    /// * `recipient` - The Stellar address to send XLM to
+    /// * `amount` - The amount in stroops (1 XLM = 10,000,000 stroops)
+    /// 
+    /// # Returns
+    /// Returns true on success
+    /// 
+    /// # Note
+    /// Anyone can call this function.
+    /// 
+    /// # Example
+    /// Get the XLM contract address first:
+    /// ```bash
+    /// soroban contract id asset --asset native --network futurenet
+    /// ```
+    /// Then pass that address when calling this function.
+    pub fn send_with_native_address(
+        env: Env,
+        native_asset_address: Address,
+        recipient: Address,
+        amount: i128,
+    ) -> bool {
+        // Validate recipient address is not the contract itself
+        let contract_address = env.current_contract_address();
+        if recipient == contract_address {
+            panic!("Cannot send to contract address");
+        }
+        
+        // Validate native_asset_address is not the contract itself
+        if native_asset_address == contract_address {
+            panic!("Native asset address cannot be the contract address");
+        }
+        
+        // Validate amount is positive
+        if amount <= 0 {
+            panic!("Amount must be positive, got: {}", amount);
+        }
+        
+        let native_token = token::Client::new(&env, &native_asset_address);
+        let contract_address = env.current_contract_address();
+        
+        // Check contract balance before transfer
+        let contract_balance = native_token.balance(&contract_address);
+        if contract_balance == 0 {
+            panic!("Contract has no XLM balance. The contract must be funded with XLM before it can send to recipients.");
+        }
+        if amount > contract_balance {
+            panic!("Insufficient balance: requested {} stroops but contract has {} stroops ({} XLM)", amount, contract_balance, contract_balance / 10_000_000);
+        }
+        
+        native_token.transfer(&contract_address, &recipient, &amount);
+        
+        true
+    }
+    
+    /// Get the XLM native asset contract address
+    /// 
+    /// In Soroban, XLM (the native Stellar asset) has a contract address that is network-specific.
+    /// You can get the XLM contract address using: `soroban contract id asset --asset native --network <network>`
+    /// 
+    /// **IMPORTANT:** Replace the placeholder address below with the actual XLM contract address
+    /// for your target network. The address below is for Testnet - update it for your network.
+    /// 
+    /// For production use, consider using `send_with_native_address()` instead,
+    /// which allows passing the XLM contract address as a parameter, making your contract
+    /// work across different networks without code changes.
+    fn get_native_asset_address(env: &Env) -> Address {
+        // TODO: Replace this with the actual XLM native asset contract address for your target network.
+        // Get it using: soroban contract id asset --asset native --network <network>
+        // 
+        // Example commands:
+        // - Testnet: soroban contract id asset --asset native --network testnet
+        // - Futurenet: soroban contract id asset --asset native --network futurenet
+        // - Mainnet: soroban contract id asset --asset native --network mainnet
+        // 
+        // Current address below is for Testnet (update for your network):
+        let native_asset_str = String::from_str(env, "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC");
+        Address::from_string(&native_asset_str)
+    }
 
     /// Alternative function name: transfer
     /// Same functionality as send()
-    pub fn transfer(env: Env, recipient: Address) -> bool {
-        Self::send(env, recipient)
+    pub fn transfer(env: Env, recipient: Address, amount: i128) -> bool {
+        Self::send(env, recipient, amount)
     }
 
     /// Alternative function name: pay
     /// Same functionality as send()
-    pub fn pay(env: Env, recipient: Address) -> bool {
-        Self::send(env, recipient)
+    pub fn pay(env: Env, recipient: Address, amount: i128) -> bool {
+        Self::send(env, recipient, amount)
     }
 }
 

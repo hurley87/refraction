@@ -1,78 +1,21 @@
-import storage from './storage';
+import storage from "./storage";
 import {
   ISupportedWallet,
   StellarWalletsKit,
   WalletNetwork,
   sep43Modules,
-  type ModuleInterface,
-} from '@creit.tech/stellar-wallets-kit';
-import {
-  WalletConnectModule,
-  WalletConnectAllowedMethods,
-} from '@creit.tech/stellar-wallets-kit/modules/walletconnect.module';
-import { Horizon } from '@stellar/stellar-sdk';
-import {
-  networkPassphrase,
-  getHorizonUrlForNetwork,
-  stellarNetwork,
-} from './network';
-
-/**
- * Build the modules array including WalletConnect if configured
- */
-const buildModules = (): ModuleInterface[] => {
-  const modules = [...sep43Modules()];
-
-  // Add WalletConnect if project ID is configured
-  const walletConnectProjectId =
-    process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
-  if (walletConnectProjectId) {
-    const walletConnectModule = new WalletConnectModule({
-      projectId: walletConnectProjectId,
-      name: process.env.NEXT_PUBLIC_APP_NAME || 'Refraction',
-      description:
-        process.env.NEXT_PUBLIC_APP_DESCRIPTION || 'Refraction Stellar Wallet',
-      url:
-        process.env.NEXT_PUBLIC_APP_URL || typeof window !== 'undefined'
-          ? window.location.origin
-          : '',
-      icons: process.env.NEXT_PUBLIC_APP_ICONS
-        ? process.env.NEXT_PUBLIC_APP_ICONS.split(',').map((icon) =>
-            icon.trim()
-          )
-        : [
-            typeof window !== 'undefined'
-              ? `${window.location.origin}/favicon.ico`
-              : '',
-          ],
-      method: WalletConnectAllowedMethods.SIGN,
-      network: networkPassphrase as WalletNetwork,
-      onSessionDeleted: (sessionId: string) => {
-        console.log('[Stellar] WalletConnect session deleted:', sessionId);
-        // Clear storage if the deleted session was the active one
-        const currentWalletId = storage.getItem('walletId');
-        if (currentWalletId === 'wallet_connect') {
-          storage.setItem('walletId', '');
-          storage.setItem('walletAddress', '');
-          storage.setItem('walletNetwork', '');
-          storage.setItem('networkPassphrase', '');
-        }
-      },
-    });
-    modules.push(walletConnectModule);
-  }
-
-  return modules;
-};
+} from "@creit.tech/stellar-wallets-kit";
+import { Horizon } from "@stellar/stellar-sdk";
+import { networkPassphrase, getHorizonUrlForNetwork } from "./network";
 
 const kit: StellarWalletsKit = new StellarWalletsKit({
   network: networkPassphrase as WalletNetwork,
-  modules: buildModules(),
+  modules: sep43Modules(),
 });
 
 export const connectWallet = async () => {
   await kit.openModal({
-    modalTitle: 'Connect to your wallet',
+    modalTitle: "Connect to your wallet",
     onWalletSelected: (option: ISupportedWallet) => {
       const selectedId = option.id;
       kit.setWallet(selectedId);
@@ -83,38 +26,23 @@ export const connectWallet = async () => {
         // Once `getAddress` returns successfully, we know they actually
         // connected the selected wallet, and we set our localStorage
         if (address.address) {
-          storage.setItem('walletId', selectedId);
-          storage.setItem('walletAddress', address.address);
+          storage.setItem("walletId", selectedId);
+          storage.setItem("walletAddress", address.address);
         } else {
-          storage.setItem('walletId', '');
-          storage.setItem('walletAddress', '');
+          storage.setItem("walletId", "");
+          storage.setItem("walletAddress", "");
         }
       });
-      // Handle network detection for wallets that support it
-      if (
-        selectedId === 'freighter' ||
-        selectedId === 'hot-wallet' ||
-        selectedId === 'wallet_connect'
-      ) {
-        void kit
-          .getNetwork()
-          .then((network) => {
-            if (network.network && network.networkPassphrase) {
-              storage.setItem('walletNetwork', network.network);
-              storage.setItem('networkPassphrase', network.networkPassphrase);
-            } else {
-              storage.setItem('walletNetwork', '');
-              storage.setItem('networkPassphrase', '');
-            }
-          })
-          .catch((error) => {
-            console.error('[Stellar] Error getting network:', error);
-            // For WalletConnect, fallback to app's network config
-            if (selectedId === 'wallet_connect') {
-              storage.setItem('walletNetwork', stellarNetwork);
-              storage.setItem('networkPassphrase', networkPassphrase);
-            }
-          });
+      if (selectedId == "freighter" || selectedId == "hot-wallet") {
+        void kit.getNetwork().then((network) => {
+          if (network.network && network.networkPassphrase) {
+            storage.setItem("walletNetwork", network.network);
+            storage.setItem("networkPassphrase", network.networkPassphrase);
+          } else {
+            storage.setItem("walletNetwork", "");
+            storage.setItem("networkPassphrase", "");
+          }
+        });
       }
     },
   });
@@ -122,7 +50,7 @@ export const connectWallet = async () => {
 
 export const disconnectWallet = async () => {
   await kit.disconnect();
-  storage.removeItem('walletId');
+  storage.removeItem("walletId");
 };
 
 /**
@@ -132,23 +60,15 @@ export const disconnectWallet = async () => {
  * The wallet provider's polling mechanism will detect when the user switches
  * networks in their wallet extension.
  */
-export const switchNetwork = async (
-  network: 'PUBLIC' | 'TESTNET' | 'FUTURENET'
-): Promise<void> => {
-  const walletId = storage.getItem('walletId');
+export const switchNetwork = async (network: "PUBLIC" | "TESTNET" | "FUTURENET"): Promise<void> => {
+  const walletId = storage.getItem("walletId");
   if (!walletId) {
-    throw new Error('No wallet connected');
+    throw new Error("No wallet connected");
   }
 
-  // Only Freighter, Hot-wallet, and WalletConnect support network detection
-  if (
-    walletId !== 'freighter' &&
-    walletId !== 'hot-wallet' &&
-    walletId !== 'wallet_connect'
-  ) {
-    throw new Error(
-      `Network switching not supported for wallet: ${walletId}. Please switch networks in your wallet extension.`
-    );
+  // Only Freighter and Hot-wallet support network detection
+  if (walletId !== "freighter" && walletId !== "hot-wallet") {
+    throw new Error(`Network switching not supported for wallet: ${walletId}. Please switch networks in your wallet extension.`);
   }
 
   // Set the wallet first
@@ -157,152 +77,92 @@ export const switchNetwork = async (
   // Get the current network from the wallet
   const networkInfo = await kit.getNetwork();
   if (networkInfo.network && networkInfo.networkPassphrase) {
-    storage.setItem('walletNetwork', networkInfo.network);
-    storage.setItem('networkPassphrase', networkInfo.networkPassphrase);
-
+    storage.setItem("walletNetwork", networkInfo.network);
+    storage.setItem("networkPassphrase", networkInfo.networkPassphrase);
+    
     // Check if the wallet's network matches what we requested
     const walletNetworkUpper = networkInfo.network.toUpperCase();
     const requestedNetworkUpper = network.toUpperCase();
-
+    
     // For PUBLIC network, check if it's "MAINNET" as well
-    const isPublicNetwork =
-      walletNetworkUpper === 'PUBLIC' || walletNetworkUpper === 'MAINNET';
-    const requestingPublic = requestedNetworkUpper === 'PUBLIC';
-
+    const isPublicNetwork = walletNetworkUpper === "PUBLIC" || walletNetworkUpper === "MAINNET";
+    const requestingPublic = requestedNetworkUpper === "PUBLIC";
+    
     if (!isPublicNetwork && requestingPublic) {
-      throw new Error(
-        `Please switch your ${walletId} wallet to Mainnet (Public Network) in your wallet extension.`
-      );
-    } else if (
-      walletNetworkUpper !== requestedNetworkUpper &&
-      !requestingPublic
-    ) {
-      const networkName =
-        requestedNetworkUpper === 'TESTNET' ? 'Testnet' : requestedNetworkUpper;
-      throw new Error(
-        `Please switch your ${walletId} wallet to ${networkName} in your wallet extension.`
-      );
+      throw new Error(`Please switch your ${walletId} wallet to Mainnet (Public Network) in your wallet extension.`);
+    } else if (walletNetworkUpper !== requestedNetworkUpper && !requestingPublic) {
+      const networkName = requestedNetworkUpper === "TESTNET" ? "Testnet" : requestedNetworkUpper;
+      throw new Error(`Please switch your ${walletId} wallet to ${networkName} in your wallet extension.`);
     }
-
-    console.log('[Stellar] Network updated:', networkInfo.network);
+    
+    console.log("[Stellar] Network updated:", networkInfo.network);
   } else {
-    throw new Error('Could not get network information from wallet');
+    throw new Error("Could not get network information from wallet");
   }
 };
 
 // Cache Horizon servers by network to avoid recreating them
 const horizonServers: Map<string, Horizon.Server> = new Map();
 
-const getHorizonServer = (networkName?: string, networkPassphrase?: string) => {
-  // If network name is not recognized, try to derive it from passphrase
-  let effectiveNetworkName = networkName;
-
-  // Check if the network name matches expected values
-  const normalizedNetworkName = networkName?.toUpperCase();
-  const isRecognizedNetwork =
-    normalizedNetworkName === 'PUBLIC' ||
-    normalizedNetworkName === 'MAINNET' ||
-    normalizedNetworkName === 'TESTNET' ||
-    normalizedNetworkName === 'FUTURENET' ||
-    normalizedNetworkName === 'LOCAL' ||
-    normalizedNetworkName === 'STANDALONE';
-
-  // If network name is not recognized or not provided, use passphrase to determine network
-  if (!isRecognizedNetwork && networkPassphrase) {
-    if (networkPassphrase.includes('Public')) {
-      effectiveNetworkName = 'PUBLIC';
-    } else if (
-      networkPassphrase.includes('Test') &&
-      !networkPassphrase.includes('Future')
-    ) {
-      effectiveNetworkName = 'TESTNET';
-    } else if (networkPassphrase.includes('Future')) {
-      effectiveNetworkName = 'FUTURENET';
-    }
-  }
-
-  const url = getHorizonUrlForNetwork(effectiveNetworkName);
-  const normalizedNetwork = effectiveNetworkName?.toUpperCase() || 'TESTNET';
-  const isLocal =
-    normalizedNetwork === 'LOCAL' || normalizedNetwork === 'STANDALONE';
-
+const getHorizonServer = (networkName?: string) => {
+  const url = getHorizonUrlForNetwork(networkName);
+  const normalizedNetwork = networkName?.toUpperCase() || "TESTNET";
+  const isLocal = normalizedNetwork === "LOCAL" || normalizedNetwork === "STANDALONE";
+  
   if (!horizonServers.has(url)) {
     const server = new Horizon.Server(url, {
       allowHttp: isLocal,
     });
     horizonServers.set(url, server);
-    console.log(
-      '[Stellar] Horizon server initialized:',
-      url,
-      'Network:',
-      normalizedNetwork,
-      'Original networkName:',
-      networkName,
-      'Using passphrase:',
-      !!networkPassphrase
-    );
+    console.log("[Stellar] Horizon server initialized:", url, "Network:", normalizedNetwork);
   }
-
+  
   return horizonServers.get(url)!;
 };
 
-const formatter = new Intl.NumberFormat('en-US', {
+const formatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 7,
 });
 
-export type MappedBalances = Record<
-  string,
-  Horizon.HorizonApi.BalanceLine & { formattedBalance?: string }
->;
+export type MappedBalances = Record<string, Horizon.HorizonApi.BalanceLine & { formattedBalance?: string }>;
 
 export type FetchBalancesResult = {
   balances: MappedBalances;
   accountExists: boolean;
 };
 
-export const fetchBalances = async (
-  address: string,
-  networkName?: string,
-  networkPassphrase?: string
-): Promise<FetchBalancesResult> => {
+export const fetchBalances = async (address: string, networkName?: string): Promise<FetchBalancesResult> => {
   try {
-    const server = getHorizonServer(networkName, networkPassphrase);
-    console.log(
-      '[Stellar] Fetching balances for address:',
-      address,
-      'on network:',
-      networkName || 'default',
-      'passphrase provided:',
-      !!networkPassphrase
-    );
+    const server = getHorizonServer(networkName);
+    console.log("[Stellar] Fetching balances for address:", address, "on network:", networkName || "default");
     const account = await server.accounts().accountId(address).call();
-    console.log('[Stellar] Account data received:', {
+    console.log("[Stellar] Account data received:", {
       balances: account.balances.length,
       accountId: account.account_id,
     });
-
+    
     const mapped = account.balances.reduce((acc, b) => {
       const balanceNum = Number(b.balance);
       const formattedBalance = formatter.format(balanceNum);
       const key =
-        b.asset_type === 'native'
-          ? 'xlm'
-          : b.asset_type === 'liquidity_pool_shares'
+        b.asset_type === "native"
+          ? "xlm"
+          : b.asset_type === "liquidity_pool_shares"
             ? b.liquidity_pool_id
             : `${b.asset_code}:${b.asset_issuer}`;
-
+      
       // Create a new object with the formatted balance, preserving original
       acc[key] = {
         ...b,
         formattedBalance,
       };
-
-      console.log('[Stellar] Balance:', key, '=', formattedBalance, 'XLM');
+      
+      console.log("[Stellar] Balance:", key, "=", formattedBalance, "XLM");
       return acc;
     }, {} as MappedBalances);
-
-    console.log('[Stellar] Mapped balances:', Object.keys(mapped));
+    
+    console.log("[Stellar] Mapped balances:", Object.keys(mapped));
     return { balances: mapped, accountExists: true };
   } catch (err) {
     // `not found` is sort of expected, indicating an unfunded wallet, which
@@ -310,21 +170,16 @@ export const fetchBalances = async (
     // If the error does NOT match 'not found', log the error.
     if (err instanceof Error) {
       if (err.message.match(/not found/i)) {
-        console.log(
-          '[Stellar] Account not found (unfunded) on network:',
-          networkName || 'default',
-          'Address:',
-          address
-        );
+        console.log("[Stellar] Account not found (unfunded) on network:", networkName || "default", "Address:", address);
         // Return empty balances and mark account as not existing
         return { balances: {}, accountExists: false };
       } else {
-        console.error('[Stellar] Error fetching balances:', err.message, err);
+        console.error("[Stellar] Error fetching balances:", err.message, err);
         // For other errors, we don't know if account exists, so return true to allow retry
         return { balances: {}, accountExists: true };
       }
     } else {
-      console.error('[Stellar] Unknown error fetching balances:', err);
+      console.error("[Stellar] Unknown error fetching balances:", err);
       return { balances: {}, accountExists: true };
     }
   }
