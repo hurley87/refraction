@@ -541,7 +541,8 @@ export const invokeContract = async (
           // Fetch fresh account
           try {
             account = await rpc.getAccount(signerAddress);
-          } catch (rpcError) {
+          } catch {
+            // Fallback to Horizon if RPC fails
             try {
               const horizonServer = new Horizon.Server(effectiveHorizonUrl);
               account = await horizonServer.loadAccount(signerAddress);
@@ -1321,7 +1322,8 @@ export const mintNFT = async (
           // Fetch fresh account
           try {
             account = await rpc.getAccount(signerAddress);
-          } catch (rpcError) {
+          } catch {
+            // Fallback to Horizon if RPC fails
             try {
               const horizonServer = new Horizon.Server(effectiveHorizonUrl);
               account = await horizonServer.loadAccount(signerAddress);
