@@ -283,43 +283,87 @@ export const invokeContract = async (
     );
   }
 
-  // Fetch fresh account right before preparing to ensure correct sequence number
-  // This prevents txBadSeq errors that can occur if the account sequence changed
-  // Use RPC for more up-to-date sequence numbers
-  try {
-    account = await rpc.getAccount(signerAddress);
-  } catch (rpcError) {
-    // Fallback to Horizon if RPC fails
+  // Retry logic for txBadSeq errors - fetch fresh account and rebuild transaction
+  const MAX_RETRIES = 3;
+  let preparedTransaction;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      const horizonServer = new Horizon.Server(effectiveHorizonUrl);
-      account = await horizonServer.loadAccount(signerAddress);
-    } catch (horizonError) {
-      // If both fail, proceed with existing account - prepareTransaction will handle it
-      console.warn(
-        '[Soroban] Failed to refresh account before prepareTransaction:',
-        {
-          rpcError:
-            rpcError instanceof Error ? rpcError.message : String(rpcError),
-          horizonError:
-            horizonError instanceof Error
-              ? horizonError.message
-              : String(horizonError),
+      // Fetch fresh account right before preparing to ensure correct sequence number
+      // This prevents txBadSeq errors that can occur if the account sequence changed
+      // Use RPC for more up-to-date sequence numbers
+      try {
+        account = await rpc.getAccount(signerAddress);
+      } catch (rpcError) {
+        // Fallback to Horizon if RPC fails
+        try {
+          const horizonServer = new Horizon.Server(effectiveHorizonUrl);
+          account = await horizonServer.loadAccount(signerAddress);
+        } catch (horizonError) {
+          // If both fail, proceed with existing account - prepareTransaction will handle it
+          console.warn(
+            '[Soroban] Failed to refresh account before prepareTransaction:',
+            {
+              rpcError:
+                rpcError instanceof Error ? rpcError.message : String(rpcError),
+              horizonError:
+                horizonError instanceof Error
+                  ? horizonError.message
+                  : String(horizonError),
+            }
+          );
         }
-      );
+      }
+
+      // Rebuild transaction with fresh account to ensure correct sequence number
+      transaction = new TransactionBuilder(account, {
+        fee: baseFee,
+        networkPassphrase: passphrase || Networks.TESTNET,
+      })
+        .addOperation(contractCall)
+        .setTimeout(30)
+        .build();
+
+      // Prepare the transaction (this will update sequence numbers and fees if needed)
+      preparedTransaction = await rpc.prepareTransaction(transaction);
+
+      // If we get here, preparation succeeded
+      break;
+    } catch (prepareError) {
+      const errorMessage =
+        prepareError instanceof Error
+          ? prepareError.message
+          : String(prepareError);
+      lastError =
+        prepareError instanceof Error
+          ? prepareError
+          : new Error(String(prepareError));
+
+      // Check if it's a sequence number error
+      if (
+        errorMessage.includes('txBadSeq') ||
+        errorMessage.includes('bad sequence') ||
+        errorMessage.includes('sequence')
+      ) {
+        if (attempt < MAX_RETRIES - 1) {
+          // Wait a bit before retrying (exponential backoff)
+          const delayMs = Math.min(100 * Math.pow(2, attempt), 500);
+          console.warn(
+            `[Soroban] Sequence number error on attempt ${attempt + 1}/${MAX_RETRIES}, retrying in ${delayMs}ms...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          continue;
+        }
+      }
+      // If it's not a sequence error or we've exhausted retries, throw
+      throw lastError;
     }
   }
 
-  // Rebuild transaction with fresh account to ensure correct sequence number
-  transaction = new TransactionBuilder(account, {
-    fee: baseFee,
-    networkPassphrase: passphrase || Networks.TESTNET,
-  })
-    .addOperation(contractCall)
-    .setTimeout(30)
-    .build();
-
-  // Prepare the transaction (this will update sequence numbers and fees if needed)
-  const preparedTransaction = await rpc.prepareTransaction(transaction);
+  if (!preparedTransaction) {
+    throw lastError || new Error('Failed to prepare transaction after retries');
+  }
 
   // Sign the transaction using the wallet kit
   // The wallet kit's signTransaction expects the XDR string and options
@@ -450,25 +494,162 @@ export const invokeContract = async (
     }
   }
 
-  // Send the transaction
-  const sendResponse = await rpc.sendTransaction(signedTx);
+  // Send the transaction with retry logic for txBadSeq errors
+  let sendResponse;
+  const SEND_MAX_RETRIES = 3;
+  let sendLastError: Error | null = null;
 
-  if (sendResponse.status === 'ERROR') {
-    let errorMessage = 'Unknown error';
-    if (sendResponse.errorResult) {
-      if (typeof sendResponse.errorResult === 'string') {
-        errorMessage = sendResponse.errorResult;
-      } else if (sendResponse.errorResult instanceof Error) {
-        errorMessage = sendResponse.errorResult.message;
-      } else {
-        try {
-          errorMessage = JSON.stringify(sendResponse.errorResult, null, 2);
-        } catch {
-          errorMessage = String(sendResponse.errorResult);
+  for (let sendAttempt = 0; sendAttempt < SEND_MAX_RETRIES; sendAttempt++) {
+    try {
+      sendResponse = await rpc.sendTransaction(signedTx);
+
+      if (sendResponse.status === 'ERROR') {
+        let errorMessage = 'Unknown error';
+        if (sendResponse.errorResult) {
+          if (typeof sendResponse.errorResult === 'string') {
+            errorMessage = sendResponse.errorResult;
+          } else if (sendResponse.errorResult instanceof Error) {
+            errorMessage = sendResponse.errorResult.message;
+          } else {
+            try {
+              errorMessage = JSON.stringify(sendResponse.errorResult, null, 2);
+            } catch {
+              errorMessage = String(sendResponse.errorResult);
+            }
+          }
         }
+
+        // Check if it's a sequence number error
+        const isSeqError =
+          errorMessage.includes('txBadSeq') ||
+          errorMessage.includes('bad sequence') ||
+          errorMessage.includes('sequence') ||
+          (typeof sendResponse.errorResult === 'object' &&
+            sendResponse.errorResult !== null &&
+            JSON.stringify(sendResponse.errorResult).includes('txBadSeq'));
+
+        if (isSeqError && sendAttempt < SEND_MAX_RETRIES - 1) {
+          // Fetch fresh account and rebuild transaction
+          console.warn(
+            `[Soroban] Sequence number error on send attempt ${sendAttempt + 1}/${SEND_MAX_RETRIES}, refreshing account and retrying...`
+          );
+
+          // Wait a bit before retrying (exponential backoff)
+          const delayMs = Math.min(200 * Math.pow(2, sendAttempt), 1000);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+          // Fetch fresh account
+          try {
+            account = await rpc.getAccount(signerAddress);
+          } catch (rpcError) {
+            try {
+              const horizonServer = new Horizon.Server(effectiveHorizonUrl);
+              account = await horizonServer.loadAccount(signerAddress);
+            } catch (horizonError) {
+              throw new Error(
+                `Failed to refresh account for retry: ${horizonError instanceof Error ? horizonError.message : String(horizonError)}`
+              );
+            }
+          }
+
+          // Rebuild transaction with fresh account
+          transaction = new TransactionBuilder(account, {
+            fee: baseFee,
+            networkPassphrase: passphrase || Networks.TESTNET,
+          })
+            .addOperation(contractCall)
+            .setTimeout(30)
+            .build();
+
+          // Re-prepare transaction
+          preparedTransaction = await rpc.prepareTransaction(transaction);
+
+          // Re-sign transaction
+          const reSignedResult = await wallet.signTransaction(
+            preparedTransaction.toXDR(),
+            {
+              networkPassphrase: passphrase || Networks.TESTNET,
+              address: signerAddress,
+            }
+          );
+
+          // Parse re-signed transaction
+          let reSignedXdrString: string;
+          if (typeof reSignedResult === 'string') {
+            reSignedXdrString = reSignedResult;
+          } else if (reSignedResult && typeof reSignedResult === 'object') {
+            if (
+              'signedTxXdr' in reSignedResult &&
+              typeof reSignedResult.signedTxXdr === 'string'
+            ) {
+              reSignedXdrString = reSignedResult.signedTxXdr;
+            } else if (
+              'xdr' in reSignedResult &&
+              typeof reSignedResult.xdr === 'string'
+            ) {
+              reSignedXdrString = reSignedResult.xdr;
+            } else if (
+              'signedXdr' in reSignedResult &&
+              typeof reSignedResult.signedXdr === 'string'
+            ) {
+              reSignedXdrString = reSignedResult.signedXdr;
+            } else if (
+              'toXDR' in reSignedResult &&
+              typeof reSignedResult.toXDR === 'function'
+            ) {
+              reSignedXdrString = reSignedResult.toXDR();
+            } else {
+              throw new Error(
+                'Wallet returned unexpected format from signTransaction on retry'
+              );
+            }
+          } else {
+            throw new Error(
+              'Wallet signTransaction returned unexpected type on retry'
+            );
+          }
+
+          signedTx = TransactionBuilder.fromXDR(
+            reSignedXdrString,
+            passphrase || Networks.TESTNET
+          );
+
+          // Continue to next iteration to retry sending
+          continue;
+        }
+
+        // If not a sequence error or we've exhausted retries, throw
+        throw new Error(`Transaction failed: ${errorMessage}`);
       }
+
+      // If we get here, send succeeded
+      break;
+    } catch (sendError) {
+      const errorMessage =
+        sendError instanceof Error ? sendError.message : String(sendError);
+      sendLastError =
+        sendError instanceof Error ? sendError : new Error(String(sendError));
+
+      // Check if it's a sequence number error that wasn't caught above
+      const isSeqError =
+        errorMessage.includes('txBadSeq') ||
+        errorMessage.includes('bad sequence') ||
+        errorMessage.includes('sequence');
+
+      if (isSeqError && sendAttempt < SEND_MAX_RETRIES - 1) {
+        // This will be handled in the next iteration
+        continue;
+      }
+
+      // If not a sequence error or we've exhausted retries, throw
+      throw sendLastError;
     }
-    throw new Error(`Transaction failed: ${errorMessage}`);
+  }
+
+  if (!sendResponse) {
+    throw (
+      sendLastError || new Error('Failed to send transaction after retries')
+    );
   }
 
   // Wait for the transaction to complete
@@ -894,7 +1075,7 @@ export const mintNFT = async (
   const baseFee = isMainnet ? '100000' : '100'; // 0.01 XLM for mainnet, 0.00001 XLM for testnet
 
   // Build transaction with contract call
-  const transaction = new TransactionBuilder(account, {
+  let transaction = new TransactionBuilder(account, {
     fee: baseFee,
     networkPassphrase: passphrase || Networks.TESTNET,
   })
@@ -922,8 +1103,84 @@ export const mintNFT = async (
     );
   }
 
-  // Prepare the transaction
-  const preparedTransaction = await rpc.prepareTransaction(transaction);
+  // Retry logic for txBadSeq errors - fetch fresh account and rebuild transaction
+  const MAX_RETRIES = 3;
+  let preparedTransaction;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      // Fetch fresh account right before preparing to ensure correct sequence number
+      try {
+        account = await rpc.getAccount(signerAddress);
+      } catch (rpcError) {
+        // Fallback to Horizon if RPC fails
+        try {
+          const horizonServer = new Horizon.Server(effectiveHorizonUrl);
+          account = await horizonServer.loadAccount(signerAddress);
+        } catch (horizonError) {
+          console.warn(
+            '[Soroban] Failed to refresh account before prepareTransaction (mintNFT):',
+            {
+              rpcError:
+                rpcError instanceof Error ? rpcError.message : String(rpcError),
+              horizonError:
+                horizonError instanceof Error
+                  ? horizonError.message
+                  : String(horizonError),
+            }
+          );
+        }
+      }
+
+      // Rebuild transaction with fresh account
+      transaction = new TransactionBuilder(account, {
+        fee: baseFee,
+        networkPassphrase: passphrase || Networks.TESTNET,
+      })
+        .addOperation(contractCall)
+        .setTimeout(30)
+        .build();
+
+      // Prepare the transaction
+      preparedTransaction = await rpc.prepareTransaction(transaction);
+
+      // If we get here, preparation succeeded
+      break;
+    } catch (prepareError) {
+      const errorMessage =
+        prepareError instanceof Error
+          ? prepareError.message
+          : String(prepareError);
+      lastError =
+        prepareError instanceof Error
+          ? prepareError
+          : new Error(String(prepareError));
+
+      // Check if it's a sequence number error
+      if (
+        errorMessage.includes('txBadSeq') ||
+        errorMessage.includes('bad sequence') ||
+        errorMessage.includes('sequence')
+      ) {
+        if (attempt < MAX_RETRIES - 1) {
+          // Wait a bit before retrying (exponential backoff)
+          const delayMs = Math.min(100 * Math.pow(2, attempt), 500);
+          console.warn(
+            `[Soroban] Sequence number error on prepare attempt ${attempt + 1}/${MAX_RETRIES} (mintNFT), retrying in ${delayMs}ms...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          continue;
+        }
+      }
+      // If it's not a sequence error or we've exhausted retries, throw
+      throw lastError;
+    }
+  }
+
+  if (!preparedTransaction) {
+    throw lastError || new Error('Failed to prepare transaction after retries');
+  }
 
   // Sign the transaction using the wallet kit
   const signedTransactionResult = await wallet.signTransaction(
@@ -1017,25 +1274,163 @@ export const mintNFT = async (
     }
   }
 
-  // Send the transaction
-  const sendResponse = await rpc.sendTransaction(signedTx);
+  // Send the transaction with retry logic for txBadSeq errors
+  let sendResponse;
+  const SEND_MAX_RETRIES = 3;
+  let sendLastError: Error | null = null;
 
-  if (sendResponse.status === 'ERROR') {
-    let errorMessage = 'Unknown error';
-    if (sendResponse.errorResult) {
-      if (typeof sendResponse.errorResult === 'string') {
-        errorMessage = sendResponse.errorResult;
-      } else if (sendResponse.errorResult instanceof Error) {
-        errorMessage = sendResponse.errorResult.message;
-      } else {
-        try {
-          errorMessage = JSON.stringify(sendResponse.errorResult, null, 2);
-        } catch {
-          errorMessage = String(sendResponse.errorResult);
+  for (let sendAttempt = 0; sendAttempt < SEND_MAX_RETRIES; sendAttempt++) {
+    try {
+      sendResponse = await rpc.sendTransaction(signedTx);
+
+      if (sendResponse.status === 'ERROR') {
+        let errorMessage = 'Unknown error';
+        if (sendResponse.errorResult) {
+          if (typeof sendResponse.errorResult === 'string') {
+            errorMessage = sendResponse.errorResult;
+          } else if (sendResponse.errorResult instanceof Error) {
+            errorMessage = sendResponse.errorResult.message;
+          } else {
+            try {
+              errorMessage = JSON.stringify(sendResponse.errorResult, null, 2);
+            } catch {
+              errorMessage = String(sendResponse.errorResult);
+            }
+          }
         }
+
+        // Check if it's a sequence number error
+        const isSeqError =
+          errorMessage.includes('txBadSeq') ||
+          errorMessage.includes('bad sequence') ||
+          errorMessage.includes('sequence') ||
+          (typeof sendResponse.errorResult === 'object' &&
+            sendResponse.errorResult !== null &&
+            JSON.stringify(sendResponse.errorResult).includes('txBadSeq'));
+
+        if (isSeqError && sendAttempt < SEND_MAX_RETRIES - 1) {
+          // Fetch fresh account and rebuild transaction
+          console.warn(
+            `[Soroban] Sequence number error on send attempt ${sendAttempt + 1}/${SEND_MAX_RETRIES} (mintNFT), refreshing account and retrying...`
+          );
+
+          // Wait a bit before retrying (exponential backoff)
+          const delayMs = Math.min(200 * Math.pow(2, sendAttempt), 1000);
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+          // Fetch fresh account
+          try {
+            account = await rpc.getAccount(signerAddress);
+          } catch (rpcError) {
+            try {
+              const horizonServer = new Horizon.Server(effectiveHorizonUrl);
+              account = await horizonServer.loadAccount(signerAddress);
+            } catch (horizonError) {
+              throw new Error(
+                `Failed to refresh account for retry: ${horizonError instanceof Error ? horizonError.message : String(horizonError)}`
+              );
+            }
+          }
+
+          // Rebuild transaction with fresh account
+          transaction = new TransactionBuilder(account, {
+            fee: baseFee,
+            networkPassphrase: passphrase || Networks.TESTNET,
+          })
+            .addOperation(contractCall)
+            .setTimeout(30)
+            .build();
+
+          // Re-prepare transaction
+          const rePreparedTransaction =
+            await rpc.prepareTransaction(transaction);
+
+          // Re-sign transaction
+          const reSignedResult = await wallet.signTransaction(
+            rePreparedTransaction.toXDR(),
+            {
+              networkPassphrase: passphrase || Networks.TESTNET,
+              address: signerAddress,
+            }
+          );
+
+          // Parse re-signed transaction
+          let reSignedXdrString: string;
+          if (typeof reSignedResult === 'string') {
+            reSignedXdrString = reSignedResult;
+          } else if (reSignedResult && typeof reSignedResult === 'object') {
+            if (
+              'signedTxXdr' in reSignedResult &&
+              typeof reSignedResult.signedTxXdr === 'string'
+            ) {
+              reSignedXdrString = reSignedResult.signedTxXdr;
+            } else if (
+              'xdr' in reSignedResult &&
+              typeof reSignedResult.xdr === 'string'
+            ) {
+              reSignedXdrString = reSignedResult.xdr;
+            } else if (
+              'signedXdr' in reSignedResult &&
+              typeof reSignedResult.signedXdr === 'string'
+            ) {
+              reSignedXdrString = reSignedResult.signedXdr;
+            } else if (
+              'toXDR' in reSignedResult &&
+              typeof reSignedResult.toXDR === 'function'
+            ) {
+              reSignedXdrString = reSignedResult.toXDR();
+            } else {
+              throw new Error(
+                'Wallet returned unexpected format from signTransaction on retry'
+              );
+            }
+          } else {
+            throw new Error(
+              'Wallet signTransaction returned unexpected type on retry'
+            );
+          }
+
+          signedTx = TransactionBuilder.fromXDR(
+            reSignedXdrString,
+            passphrase || Networks.TESTNET
+          );
+
+          // Continue to next iteration to retry sending
+          continue;
+        }
+
+        // If not a sequence error or we've exhausted retries, throw
+        throw new Error(`Transaction failed: ${errorMessage}`);
       }
+
+      // If we get here, send succeeded
+      break;
+    } catch (sendError) {
+      const errorMessage =
+        sendError instanceof Error ? sendError.message : String(sendError);
+      sendLastError =
+        sendError instanceof Error ? sendError : new Error(String(sendError));
+
+      // Check if it's a sequence number error that wasn't caught above
+      const isSeqError =
+        errorMessage.includes('txBadSeq') ||
+        errorMessage.includes('bad sequence') ||
+        errorMessage.includes('sequence');
+
+      if (isSeqError && sendAttempt < SEND_MAX_RETRIES - 1) {
+        // This will be handled in the next iteration
+        continue;
+      }
+
+      // If not a sequence error or we've exhausted retries, throw
+      throw sendLastError;
     }
-    throw new Error(`Transaction failed: ${errorMessage}`);
+  }
+
+  if (!sendResponse) {
+    throw (
+      sendLastError || new Error('Failed to send transaction after retries')
+    );
   }
 
   // Wait for the transaction to complete
