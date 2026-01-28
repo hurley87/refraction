@@ -24,8 +24,14 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { address, networkPassphrase, accountExists, balances, isPending } =
-    useWallet();
+  const {
+    address,
+    network,
+    networkPassphrase,
+    accountExists,
+    balances,
+    isPending,
+  } = useWallet();
   const { addNotification } = useNotification();
   // Get contract address based on wallet's network (not app config)
   const contractAddress = getSimplePaymentContractAddress(networkPassphrase);
@@ -67,6 +73,19 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
       const errorMsg = 'Invalid recipient address format';
       toast.error(errorMsg);
       onError?.(errorMsg);
+      return;
+    }
+
+    if (!networkPassphrase) {
+      const errorMsg =
+        'Network information not available. Please reconnect your wallet.';
+      toast.error(errorMsg);
+      onError?.(errorMsg);
+      console.error('[ClaimPoints] networkPassphrase is undefined:', {
+        address,
+        network,
+        networkPassphrase: networkPassphrase,
+      });
       return;
     }
 

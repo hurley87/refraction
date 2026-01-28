@@ -10,7 +10,7 @@ const ContentSecurityPolicy = `
   object-src 'self' data: blob:;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.mapbox.com https://*.mapbox.com;
   font-src 'self' https://fonts.gstatic.com;
-  frame-src https://*.privy.io;
+  frame-src https://*.privy.io https://verify.walletconnect.org https://*.walletconnect.org https://verify.walletconnect.com https://*.walletconnect.com;
   worker-src 'self' blob:;
   child-src 'self' blob:;
 `;

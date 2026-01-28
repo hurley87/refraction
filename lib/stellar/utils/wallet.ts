@@ -18,22 +18,30 @@ const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 // Build modules array - include WalletConnect if project ID is configured
 const modules = [...sep43Modules()];
 
-if (walletConnectProjectId) {
-  // Determine current network for WalletConnect
-  // Check environment variable first, then fall back to passphrase check
-  const envNetwork = process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toUpperCase();
-  const currentNetwork =
-    envNetwork === 'PUBLIC' || envNetwork === 'MAINNET'
-      ? WalletNetwork.PUBLIC
-      : envNetwork === 'FUTURENET'
-        ? WalletNetwork.FUTURENET
-        : networkPassphrase.includes('Public') ||
-            networkPassphrase.includes('Public Global Stellar Network')
-          ? WalletNetwork.PUBLIC
-          : networkPassphrase.includes('Future')
-            ? WalletNetwork.FUTURENET
-            : WalletNetwork.TESTNET;
+// Determine network for both WalletConnect module and StellarWalletsKit
+// They must use the same network to avoid chainId mismatches
+const wcNetworkEnv =
+  process.env.NEXT_PUBLIC_WALLETCONNECT_NETWORK?.toUpperCase();
+const envNetwork = process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toUpperCase();
 
+// Use explicit WalletConnect network if set
+// If not set, we'll default to PUBLIC (mainnet) to support both networks
+// WalletConnect will adapt to the user's actual network when they connect
+// IMPORTANT: This network must match what we use to initialize the StellarWalletsKit
+// Note: WalletConnect module initialization network is just a hint - the actual network
+// is determined when the user connects and we detect it from their wallet address
+const currentNetwork =
+  wcNetworkEnv === 'PUBLIC' || wcNetworkEnv === 'MAINNET'
+    ? WalletNetwork.PUBLIC
+    : wcNetworkEnv === 'FUTURENET'
+      ? WalletNetwork.FUTURENET
+      : wcNetworkEnv === 'TESTNET'
+        ? WalletNetwork.TESTNET
+        : // Default to PUBLIC to support both networks (WalletConnect will adapt)
+          // Users can connect on either network and we'll detect and adapt
+          WalletNetwork.PUBLIC;
+
+if (walletConnectProjectId) {
   // Get app metadata from environment or use defaults
   const appName = process.env.NEXT_PUBLIC_APP_NAME || 'IRL';
   const appDescription =
@@ -59,8 +67,21 @@ if (walletConnectProjectId) {
   );
 }
 
+// Initialize kit network to match WalletConnect module initialization
+// This ensures consistency between kit network and WalletConnect module network
+// Both should use the same network to avoid chainId mismatches
+const kitNetwork = walletConnectProjectId
+  ? // If WalletConnect is enabled, use the same network as WalletConnect module
+    currentNetwork
+  : // If WalletConnect is not enabled, use network from environment
+    envNetwork === 'PUBLIC' || envNetwork === 'MAINNET'
+    ? WalletNetwork.PUBLIC
+    : envNetwork === 'FUTURENET'
+      ? WalletNetwork.FUTURENET
+      : WalletNetwork.TESTNET;
+
 const kit: StellarWalletsKit = new StellarWalletsKit({
-  network: networkPassphrase as WalletNetwork,
+  network: kitNetwork,
   modules,
 });
 
@@ -85,12 +106,8 @@ export const connectWallet = async () => {
               storage.setItem('walletAddress', address.address);
 
               // Fetch network for wallets that support network detection
-              // WalletConnect also supports network detection
-              if (
-                selectedId === 'freighter' ||
-                selectedId === 'hot-wallet' ||
-                selectedId === 'wallet_connect'
-              ) {
+              // NOTE: WalletConnect does NOT support getNetwork(), so skip it
+              if (selectedId === 'freighter' || selectedId === 'hot-wallet') {
                 try {
                   const network = await kit.getNetwork();
                   if (network.network && network.networkPassphrase) {
@@ -110,25 +127,77 @@ export const connectWallet = async () => {
                   );
                   // Don't fail the connection if network fetch fails
                 }
-              }
-
-              // Resolve after successful connection and state update
-              // Add a small delay to ensure WalletConnect state is fully established
-              // Also dispatch a custom event to trigger immediate wallet state refresh
-              setTimeout(() => {
-                // Dispatch a custom event to trigger wallet provider to refresh state
-                if (typeof window !== 'undefined') {
-                  window.dispatchEvent(
-                    new CustomEvent('walletConnected', {
-                      detail: {
-                        walletId: selectedId,
-                        address: address.address,
-                      },
-                    })
+              } else if (selectedId === 'wallet_connect') {
+                // WalletConnect doesn't support getNetwork()
+                // Detect network by checking which Horizon server the address exists on
+                console.log(
+                  '[Stellar] WalletConnect connected - detecting network from wallet address...'
+                );
+                try {
+                  const detectedNetwork = await detectWalletNetwork(
+                    address.address
+                  );
+                  if (detectedNetwork) {
+                    console.log(
+                      '[Stellar] WalletConnect network detected:',
+                      detectedNetwork.network
+                    );
+                    storage.setItem('walletNetwork', detectedNetwork.network);
+                    storage.setItem(
+                      'networkPassphrase',
+                      detectedNetwork.networkPassphrase
+                    );
+                  } else {
+                    // Account not found on either network (unfunded)
+                    // Default to PUBLIC (mainnet) since WalletConnect is initialized with PUBLIC
+                    // This ensures users connecting on mainnet get the correct network
+                    console.log(
+                      '[Stellar] WalletConnect: Account unfunded, defaulting to PUBLIC (mainnet)'
+                    );
+                    storage.setItem('walletNetwork', 'PUBLIC');
+                    storage.setItem(
+                      'networkPassphrase',
+                      'Public Global Stellar Network ; September 2015'
+                    );
+                  }
+                } catch (detectError) {
+                  console.warn(
+                    '[Stellar] Failed to detect WalletConnect network:',
+                    detectError
+                  );
+                  // Default to PUBLIC (mainnet) on error since WalletConnect is initialized with PUBLIC
+                  storage.setItem('walletNetwork', 'PUBLIC');
+                  storage.setItem(
+                    'networkPassphrase',
+                    'Public Global Stellar Network ; September 2015'
                   );
                 }
+              }
+
+              // For WalletConnect, ensure state is immediately available
+              console.log('[Stellar] Wallet connected successfully:', {
+                walletId: selectedId,
+                address: address.address,
+              });
+
+              // Dispatch a custom event to trigger wallet provider to refresh state
+              // Do this immediately, not in setTimeout, so the provider can start updating
+              if (typeof window !== 'undefined') {
+                console.log('[Stellar] Dispatching walletConnected event');
+                window.dispatchEvent(
+                  new CustomEvent('walletConnected', {
+                    detail: {
+                      walletId: selectedId,
+                      address: address.address,
+                    },
+                  })
+                );
+              }
+
+              // Resolve after a small delay to ensure WalletConnect state is fully established
+              setTimeout(() => {
                 resolve();
-              }, 500);
+              }, 300);
             } else {
               storage.setItem('walletId', '');
               storage.setItem('walletAddress', '');
@@ -148,8 +217,24 @@ export const connectWallet = async () => {
 };
 
 export const disconnectWallet = async () => {
-  await kit.disconnect();
+  try {
+    await kit.disconnect();
+  } catch (error) {
+    console.warn('[Stellar] Error disconnecting from kit:', error);
+    // Continue with cleanup even if kit.disconnect() fails
+  }
+
+  // Clear all wallet-related storage
   storage.removeItem('walletId');
+  storage.removeItem('walletAddress');
+  storage.removeItem('walletNetwork');
+  storage.removeItem('networkPassphrase');
+
+  // Dispatch a custom event to trigger wallet provider to update state immediately
+  if (typeof window !== 'undefined') {
+    console.log('[Stellar] Dispatching walletDisconnected event');
+    window.dispatchEvent(new CustomEvent('walletDisconnected'));
+  }
 };
 
 /**
@@ -167,12 +252,36 @@ export const switchNetwork = async (
     throw new Error('No wallet connected');
   }
 
-  // Freighter, Hot-wallet, and WalletConnect support network detection
-  if (
-    walletId !== 'freighter' &&
-    walletId !== 'hot-wallet' &&
-    walletId !== 'wallet_connect'
-  ) {
+  // WalletConnect doesn't support getNetwork(), so handle it separately
+  if (walletId === 'wallet_connect') {
+    const networkPassphrase =
+      network === 'PUBLIC'
+        ? 'Public Global Stellar Network ; September 2015'
+        : network === 'FUTURENET'
+          ? 'Test SDF Future Network ; October 2022'
+          : 'Test SDF Network ; September 2015';
+
+    storage.setItem('walletNetwork', network);
+    storage.setItem('networkPassphrase', networkPassphrase);
+
+    // Dispatch event to trigger wallet provider refresh
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('walletNetworkChanged', {
+          detail: { network, networkPassphrase },
+        })
+      );
+    }
+
+    console.log(
+      '[Stellar] Network preference updated for WalletConnect:',
+      network
+    );
+    return;
+  }
+
+  // Freighter and Hot-wallet support network detection via getNetwork()
+  if (walletId !== 'freighter' && walletId !== 'hot-wallet') {
     throw new Error(
       `Network switching not supported for wallet: ${walletId}. Please switch networks in your wallet extension.`
     );
@@ -255,6 +364,87 @@ export type MappedBalances = Record<
 export type FetchBalancesResult = {
   balances: MappedBalances;
   accountExists: boolean;
+};
+
+/**
+ * Detect which Stellar network a wallet address exists on
+ * Checks both testnet and mainnet Horizon servers
+ */
+/**
+ * Convert network passphrase to WalletConnect chainId format
+ * @param networkPassphrase - The Stellar network passphrase
+ * @returns WalletConnect chainId (e.g., "stellar:testnet" or "stellar:mainnet")
+ */
+export const getWalletConnectChainId = (networkPassphrase?: string): string => {
+  if (!networkPassphrase) {
+    return 'stellar:testnet'; // Default to testnet
+  }
+
+  if (networkPassphrase.includes('Test')) {
+    return 'stellar:testnet';
+  } else if (networkPassphrase.includes('Public')) {
+    return 'stellar:mainnet';
+  } else if (networkPassphrase.includes('Future')) {
+    return 'stellar:futurenet';
+  }
+
+  return 'stellar:testnet'; // Default fallback
+};
+
+/**
+ * Detect which Stellar network a wallet address exists on
+ * Checks both testnet and mainnet Horizon servers
+ */
+export const detectWalletNetwork = async (
+  address: string
+): Promise<{ network: string; networkPassphrase: string } | null> => {
+  const { Horizon } = await import('@stellar/stellar-sdk');
+
+  // Check both networks in parallel to see which one the account exists on
+  // Note: An account can exist on both networks, so we check both
+  const testnetServer = new Horizon.Server(
+    'https://horizon-testnet.stellar.org'
+  );
+  const mainnetServer = new Horizon.Server('https://horizon.stellar.org');
+
+  const [testnetResult, mainnetResult] = await Promise.allSettled([
+    testnetServer.accounts().accountId(address).call(),
+    mainnetServer.accounts().accountId(address).call(),
+  ]);
+
+  const testnetExists = testnetResult.status === 'fulfilled';
+  const mainnetExists = mainnetResult.status === 'fulfilled';
+
+  console.log('[Stellar] Network detection results:', {
+    address,
+    testnetExists,
+    mainnetExists,
+  });
+
+  // If account exists on both networks, prefer mainnet (PUBLIC) since WalletConnect
+  // is initialized with PUBLIC by default. This ensures users connecting on mainnet
+  // get the correct network even if their account exists on both networks.
+  // If only one exists, use that one
+  if (mainnetExists) {
+    console.log('[Stellar] Wallet detected on MAINNET:', address);
+    return {
+      network: 'PUBLIC',
+      networkPassphrase: 'Public Global Stellar Network ; September 2015',
+    };
+  } else if (testnetExists) {
+    console.log('[Stellar] Wallet detected on TESTNET:', address);
+    return {
+      network: 'TESTNET',
+      networkPassphrase: 'Test SDF Network ; September 2015',
+    };
+  } else {
+    // Account not found on either network (unfunded)
+    console.log(
+      '[Stellar] Wallet not found on either network (unfunded):',
+      address
+    );
+    return null;
+  }
 };
 
 export const fetchBalances = async (

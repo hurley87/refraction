@@ -9,7 +9,7 @@ import {
   useState,
   useTransition,
 } from 'react';
-import { wallet } from '../utils/wallet';
+import { wallet, detectWalletNetwork } from '../utils/wallet';
 import storage from '../utils/storage';
 import { fetchBalances } from '../utils/wallet';
 import type { MappedBalances } from '../utils/wallet';
@@ -144,7 +144,11 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       // Use the wallet's network if available, otherwise fall back to app config
       const networkToUse = network || undefined;
-      console.log('[Stellar] Fetching balances for', fetchKey);
+      console.log('[Stellar] Fetching balances for', fetchKey, {
+        address,
+        network: networkToUse,
+        walletNetwork: network,
+      });
       const result = await fetchBalances(address, networkToUse);
 
       // Update account existence state (both state and ref)
@@ -327,13 +331,45 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
         // For wallets that support network detection, always fetch both address and network
         // This allows us to detect network changes even if address is already known
-        const addressPromise = wallet.getAddress();
-        const networkPromise = shouldCheckNetwork
-          ? wallet.getNetwork()
-          : Promise.resolve({
+        // For WalletConnect, use storage address as fallback if getAddress fails
+        // NOTE: WalletConnect does NOT support getNetwork(), so we always use storage values
+        let addressPromise = wallet.getAddress();
+        if (isWalletConnect && walletAddr) {
+          // Wrap in a catch to fallback to storage address if getAddress fails
+          addressPromise = addressPromise.catch((error) => {
+            console.warn(
+              '[Stellar] WalletConnect getAddress failed, using storage address:',
+              error
+            );
+            return { address: walletAddr };
+          });
+        }
+
+        // WalletConnect does not support getNetwork(), so always use storage values
+        const networkPromise = isWalletConnect
+          ? Promise.resolve({
               network: walletNetwork || undefined,
               networkPassphrase: passphrase || undefined,
-            });
+            })
+          : shouldCheckNetwork
+            ? wallet.getNetwork().catch((error) => {
+                // For other wallets, if getNetwork fails, try to use storage values
+                if (walletNetwork && passphrase) {
+                  console.warn(
+                    '[Stellar] getNetwork failed, using storage network:',
+                    error
+                  );
+                  return {
+                    network: walletNetwork,
+                    networkPassphrase: passphrase,
+                  };
+                }
+                throw error;
+              })
+            : Promise.resolve({
+                network: walletNetwork || undefined,
+                networkPassphrase: passphrase || undefined,
+              });
 
         const [a, n] = await Promise.all([addressPromise, networkPromise]);
 
@@ -346,13 +382,27 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (!a.address) {
           // For WalletConnect, if address is empty but we have it in storage,
-          // it might be a timing issue - don't disconnect immediately
+          // use the storage address and set state immediately
           if (isWalletConnect && walletAddr) {
             console.warn(
               '[Stellar] WalletConnect returned empty address but storage has address. ' +
-                'This might be a timing issue. Retrying...'
+                'Using storage address and setting state immediately.'
             );
-            // Don't disconnect - let the next poll attempt to fetch the address
+            // Use storage address and network
+            const storageNetwork = walletNetwork || undefined;
+            const storagePassphrase = passphrase || undefined;
+
+            // Set state immediately using storage values
+            setAddress(walletAddr);
+            if (storageNetwork) {
+              setNetwork(storageNetwork);
+            }
+            if (storagePassphrase) {
+              setNetworkPassphrase(storagePassphrase);
+            }
+            if (!hasInitializedRef.current) {
+              hasInitializedRef.current = true;
+            }
             popupLock.current = false;
             return;
           }
@@ -362,32 +412,147 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Always update storage with the latest network from wallet
         // This ensures we have the correct network even if it was changed in the extension
-        if (n.network && n.networkPassphrase) {
-          storage.setItem('walletNetwork', n.network);
-          storage.setItem('networkPassphrase', n.networkPassphrase);
+        // For WalletConnect, if network is missing, use app config or storage values
+        let effectiveNetwork = n.network;
+        let effectivePassphrase = n.networkPassphrase;
+
+        if (isWalletConnect && !effectiveNetwork) {
+          // WalletConnect doesn't support getNetwork(), so detect network from wallet address
+          if (walletNetwork) {
+            console.log(
+              '[Stellar] WalletConnect: Using network from storage:',
+              walletNetwork
+            );
+            effectiveNetwork = walletNetwork;
+            effectivePassphrase = passphrase || undefined;
+          } else if (a.address) {
+            // Detect network by checking which Horizon server the address exists on
+            console.log(
+              '[Stellar] WalletConnect: Detecting network from wallet address...'
+            );
+            try {
+              const detectedNetwork = await detectWalletNetwork(a.address);
+              if (detectedNetwork) {
+                console.log(
+                  '[Stellar] WalletConnect network detected:',
+                  detectedNetwork.network
+                );
+                effectiveNetwork = detectedNetwork.network;
+                effectivePassphrase = detectedNetwork.networkPassphrase;
+                // Save to storage
+                storage.setItem('walletNetwork', detectedNetwork.network);
+                storage.setItem(
+                  'networkPassphrase',
+                  detectedNetwork.networkPassphrase
+                );
+              } else {
+                // Account not found on either network (unfunded)
+                // Default to PUBLIC (mainnet) since WalletConnect is initialized with PUBLIC
+                console.log(
+                  '[Stellar] WalletConnect: Account unfunded, defaulting to PUBLIC (mainnet)'
+                );
+                effectiveNetwork = 'PUBLIC';
+                effectivePassphrase =
+                  'Public Global Stellar Network ; September 2015';
+                storage.setItem('walletNetwork', 'PUBLIC');
+                storage.setItem('networkPassphrase', effectivePassphrase);
+              }
+            } catch (detectError) {
+              console.warn(
+                '[Stellar] Failed to detect WalletConnect network:',
+                detectError
+              );
+              // Default to PUBLIC (mainnet) on error since WalletConnect is initialized with PUBLIC
+              effectiveNetwork = 'PUBLIC';
+              effectivePassphrase =
+                'Public Global Stellar Network ; September 2015';
+              storage.setItem('walletNetwork', 'PUBLIC');
+              storage.setItem('networkPassphrase', effectivePassphrase);
+            }
+          } else {
+            // No address yet, can't detect network - default to PUBLIC (mainnet)
+            // since WalletConnect is initialized with PUBLIC
+            console.log(
+              '[Stellar] WalletConnect: No address yet, defaulting to PUBLIC (mainnet)'
+            );
+            effectiveNetwork = 'PUBLIC';
+            effectivePassphrase =
+              'Public Global Stellar Network ; September 2015';
+            storage.setItem('walletNetwork', 'PUBLIC');
+            storage.setItem('networkPassphrase', effectivePassphrase);
+          }
+        }
+
+        if (effectiveNetwork && effectivePassphrase) {
+          storage.setItem('walletNetwork', effectiveNetwork);
+          storage.setItem('networkPassphrase', effectivePassphrase);
         }
 
         // Normalize network names for comparison (handle case differences)
         const normalizedCurrentNetwork = network?.toUpperCase();
-        const normalizedNewNetwork = n.network?.toUpperCase();
+        const normalizedNewNetwork = effectiveNetwork?.toUpperCase();
+
+        // CRITICAL: For WalletConnect, ALWAYS set state when we have address and network
+        // This ensures the UI updates immediately after connection and network detection
+        if (isWalletConnect && a.address && effectiveNetwork) {
+          // Ensure passphrase is set - use detected or fallback to testnet
+          const finalPassphrase =
+            effectivePassphrase ||
+            (effectiveNetwork === 'TESTNET'
+              ? 'Test SDF Network ; September 2015'
+              : effectiveNetwork === 'PUBLIC'
+                ? 'Public Global Stellar Network ; September 2015'
+                : 'Test SDF Network ; September 2015');
+
+          console.log(
+            '[Stellar] WalletConnect: Setting state with detected network:',
+            {
+              address: a.address,
+              network: effectiveNetwork,
+              passphrase: finalPassphrase?.substring(0, 30) + '...',
+              currentAddress: address,
+              currentNetwork: network,
+              networkChanged: normalizedCurrentNetwork !== normalizedNewNetwork,
+            }
+          );
+          storage.setItem('walletAddress', a.address);
+          storage.setItem('walletNetwork', effectiveNetwork);
+          storage.setItem('networkPassphrase', finalPassphrase);
+          setAddress(a.address);
+          setNetwork(effectiveNetwork);
+          setNetworkPassphrase(finalPassphrase);
+          if (!hasInitializedRef.current) {
+            hasInitializedRef.current = true;
+          }
+          // Reset fetch tracking to ensure balances are fetched with correct network
+          lastFetchedNetwork.current = undefined;
+          lastFetchedAddress.current = undefined;
+          setAccountExists(true);
+          accountExistsRef.current = true;
+          return; // State is set, let balance fetch happen via useEffect
+        }
 
         // If we don't have a network set yet, always set it (even if address matches)
         // This handles the case where we restored address from storage but network wasn't available
+        // For WalletConnect, always ensure state is set if we have an address
         if (
           network === undefined ||
-          normalizedCurrentNetwork !== normalizedNewNetwork
+          normalizedCurrentNetwork !== normalizedNewNetwork ||
+          (isWalletConnect && address === undefined)
         ) {
           console.log('[Stellar] Setting or updating network:', {
             currentNetwork: network,
-            newNetwork: n.network,
+            newNetwork: effectiveNetwork,
             normalizedCurrent: normalizedCurrentNetwork,
             normalizedNew: normalizedNewNetwork,
             addressMatches: address === a.address,
+            isWalletConnect,
+            addressUndefined: address === undefined,
           });
           storage.setItem('walletAddress', a.address);
           setAddress(a.address);
-          setNetwork(n.network);
-          setNetworkPassphrase(n.networkPassphrase);
+          setNetwork(effectiveNetwork);
+          setNetworkPassphrase(effectivePassphrase);
 
           // If this is the first time setting values, mark as initialized
           if (!hasInitializedRef.current) {
@@ -408,13 +573,43 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
         // If values are already set and match exactly, don't do anything
         // This prevents unnecessary state updates during polling
-        if (
+        // BUT: For WalletConnect or when state isn't initialized, always ensure state is set
+        const valuesMatch =
           address === a.address &&
           normalizedCurrentNetwork === normalizedNewNetwork &&
           networkPassphrase === n.networkPassphrase &&
           address !== undefined &&
-          network !== undefined
-        ) {
+          network !== undefined;
+
+        // For WalletConnect or uninitialized state, always set state even if values match
+        // This handles cases where connection succeeded but React state wasn't properly initialized
+        if (valuesMatch && (isWalletConnect || !hasInitializedRef.current)) {
+          console.log(
+            `[Stellar] ${isWalletConnect ? 'WalletConnect' : 'Uninitialized'}: Values match but ensuring state is set`,
+            {
+              address: a.address,
+              network: n.network,
+              currentAddress: address,
+              currentNetwork: network,
+            }
+          );
+          // Always set state to ensure React state is synchronized
+          setAddress(a.address);
+          setNetwork(n.network);
+          setNetworkPassphrase(n.networkPassphrase);
+          // Update storage to ensure consistency
+          storage.setItem('walletAddress', a.address);
+          if (n.network && n.networkPassphrase) {
+            storage.setItem('walletNetwork', n.network);
+            storage.setItem('networkPassphrase', n.networkPassphrase);
+          }
+          if (!hasInitializedRef.current) {
+            hasInitializedRef.current = true;
+          }
+          return; // State is now set, let balance fetch happen
+        }
+
+        if (valuesMatch) {
           return; // No change, skip update
         }
 
@@ -533,17 +728,73 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     // Listen for wallet connection events to trigger immediate state refresh
-    const handleWalletConnected = () => {
+    const handleWalletConnected = (event: Event) => {
+      const customEvent = event as CustomEvent;
       console.log(
-        '[Stellar] Wallet connected event received, refreshing state...'
+        '[Stellar] Wallet connected event received:',
+        customEvent.detail
       );
+      console.log('[Stellar] Immediately refreshing wallet state...');
+
+      // Force immediate state update by clearing lock and updating
       startTransition(async () => {
+        // Clear popup lock to ensure we can update
+        popupLock.current = false;
+        // Small delay to ensure storage is written
+        await new Promise((resolve) => setTimeout(resolve, 100));
         await updateCurrentWalletState();
+      });
+    };
+
+    // Listen for wallet disconnection events to immediately clear state
+    const handleWalletDisconnected = () => {
+      console.log('[Stellar] Wallet disconnected event received');
+      console.log('[Stellar] Immediately clearing wallet state...');
+
+      // Force immediate state clear
+      startTransition(() => {
+        popupLock.current = false;
+        nullify();
+      });
+    };
+
+    const handleWalletNetworkChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        network: string;
+        networkPassphrase: string;
+      }>;
+      console.log(
+        '[Stellar] Wallet network changed event received:',
+        customEvent.detail
+      );
+
+      // Update state immediately
+      startTransition(() => {
+        if (
+          customEvent.detail.network &&
+          customEvent.detail.networkPassphrase
+        ) {
+          setNetwork(customEvent.detail.network);
+          setNetworkPassphrase(customEvent.detail.networkPassphrase);
+          // Reset fetch tracking to force balance refresh
+          lastFetchedNetwork.current = undefined;
+          lastFetchedAddress.current = undefined;
+          console.log(
+            '[Stellar] Network state updated:',
+            customEvent.detail.network
+          );
+        }
       });
     };
 
     if (typeof window !== 'undefined') {
       window.addEventListener('walletConnected', handleWalletConnected);
+      window.addEventListener('walletDisconnected', handleWalletDisconnected);
+      window.addEventListener(
+        'walletNetworkChanged',
+        handleWalletNetworkChanged
+      );
+      console.log('[Stellar] Wallet event listeners registered');
     }
 
     // Get the wallet address when the component is mounted for the first time
@@ -562,6 +813,14 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       if (timer) clearTimeout(timer);
       if (typeof window !== 'undefined') {
         window.removeEventListener('walletConnected', handleWalletConnected);
+        window.removeEventListener(
+          'walletDisconnected',
+          handleWalletDisconnected
+        );
+        window.removeEventListener(
+          'walletNetworkChanged',
+          handleWalletNetworkChanged
+        );
       }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- it SHOULD only run once per component mount
