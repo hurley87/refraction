@@ -43,14 +43,24 @@ export async function POST(request: NextRequest) {
 
     // Determine RPC URL based on network parameter or fallback to app config
     let rpcUrl: string;
-    if (networkParam === 'mainnet') {
+    if (networkParam === 'mainnet' || networkParam === 'PUBLIC') {
+      // Use gateway.fm for mainnet as it's more reliable
       rpcUrl = 'https://soroban-rpc.mainnet.stellar.gateway.fm';
+    } else if (networkParam === 'testnet' || networkParam === 'TESTNET') {
+      // Use gateway.fm for testnet as it's more reliable
+      rpcUrl = 'https://soroban-rpc.testnet.stellar.gateway.fm';
     } else if (networkParam === 'futurenet') {
       rpcUrl = 'https://rpc-futurenet.stellar.org';
     } else {
-      // Default to testnet or use app config
-      const { rpcUrl: configRpcUrl } = getStellarNetworkConfig();
-      rpcUrl = configRpcUrl;
+      // Default to app config (which handles PUBLIC/MAINNET/TESTNET)
+      const { rpcUrl: configRpcUrl, stellarNetwork } =
+        getStellarNetworkConfig();
+      // If config says PUBLIC but no network param, use gateway.fm
+      if (stellarNetwork === 'PUBLIC') {
+        rpcUrl = 'https://soroban-rpc.mainnet.stellar.gateway.fm';
+      } else {
+        rpcUrl = configRpcUrl;
+      }
     }
 
     console.log('[Soroban RPC Proxy] Forwarding request to:', rpcUrl);
