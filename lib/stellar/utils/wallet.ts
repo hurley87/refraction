@@ -10,7 +10,7 @@ import {
   WalletConnectAllowedMethods,
 } from '@creit.tech/stellar-wallets-kit/modules/walletconnect.module';
 import { Horizon } from '@stellar/stellar-sdk';
-import { networkPassphrase, getHorizonUrlForNetwork } from './network';
+import {  getHorizonUrlForNetwork } from './network';
 
 // Get WalletConnect project ID from environment
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
