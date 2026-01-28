@@ -1,6 +1,6 @@
-import { notFound } from "next/navigation";
-import { getActiveCheckpointById } from "@/lib/db/checkpoints";
-import UnifiedCheckpoint from "@/components/checkpoint/unified-checkpoint";
+import { notFound } from 'next/navigation';
+import { getActiveCheckpointById } from '@/lib/db/checkpoints';
+import UnifiedCheckpoint from '@/components/checkpoint/unified-checkpoint';
 
 interface CheckpointPageProps {
   params: { id: string };
@@ -14,7 +14,7 @@ export default async function CheckpointPage({ params }: CheckpointPageProps) {
   }
 
   return (
-    <div className="flex flex-col w-full justify-center font-sans">
+    <div className="h-full w-full font-sans">
       <UnifiedCheckpoint checkpoint={checkpoint} />
     </div>
   );
