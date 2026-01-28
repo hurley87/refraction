@@ -20,11 +20,19 @@ const modules = [...sep43Modules()];
 
 if (walletConnectProjectId) {
   // Determine current network for WalletConnect
-  const currentNetwork = networkPassphrase.includes('Public')
-    ? WalletNetwork.PUBLIC
-    : networkPassphrase.includes('Future')
-      ? WalletNetwork.FUTURENET
-      : WalletNetwork.TESTNET;
+  // Check environment variable first, then fall back to passphrase check
+  const envNetwork = process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toUpperCase();
+  const currentNetwork =
+    envNetwork === 'PUBLIC' || envNetwork === 'MAINNET'
+      ? WalletNetwork.PUBLIC
+      : envNetwork === 'FUTURENET'
+        ? WalletNetwork.FUTURENET
+        : networkPassphrase.includes('Public') ||
+            networkPassphrase.includes('Public Global Stellar Network')
+          ? WalletNetwork.PUBLIC
+          : networkPassphrase.includes('Future')
+            ? WalletNetwork.FUTURENET
+            : WalletNetwork.TESTNET;
 
   // Get app metadata from environment or use defaults
   const appName = process.env.NEXT_PUBLIC_APP_NAME || 'IRL';
@@ -57,43 +65,85 @@ const kit: StellarWalletsKit = new StellarWalletsKit({
 });
 
 export const connectWallet = async () => {
-  await kit.openModal({
-    modalTitle: 'Connect to your wallet',
-    onWalletSelected: (option: ISupportedWallet) => {
-      const selectedId = option.id;
-      kit.setWallet(selectedId);
+  return new Promise<void>((resolve, reject) => {
+    kit
+      .openModal({
+        modalTitle: 'Connect to your wallet',
+        onWalletSelected: async (option: ISupportedWallet) => {
+          const selectedId = option.id;
+          kit.setWallet(selectedId);
 
-      // Now open selected wallet's login flow by calling `getAddress` --
-      // Yes, it's strange that a getter has a side effect of opening a modal
-      void kit.getAddress().then((address) => {
-        // Once `getAddress` returns successfully, we know they actually
-        // connected the selected wallet, and we set our localStorage
-        if (address.address) {
-          storage.setItem('walletId', selectedId);
-          storage.setItem('walletAddress', address.address);
-        } else {
-          storage.setItem('walletId', '');
-          storage.setItem('walletAddress', '');
-        }
-      });
-      // Fetch network for wallets that support network detection
-      // WalletConnect also supports network detection
-      if (
-        selectedId === 'freighter' ||
-        selectedId === 'hot-wallet' ||
-        selectedId === 'wallet_connect'
-      ) {
-        void kit.getNetwork().then((network) => {
-          if (network.network && network.networkPassphrase) {
-            storage.setItem('walletNetwork', network.network);
-            storage.setItem('networkPassphrase', network.networkPassphrase);
-          } else {
-            storage.setItem('walletNetwork', '');
-            storage.setItem('networkPassphrase', '');
+          try {
+            // Now open selected wallet's login flow by calling `getAddress` --
+            // Yes, it's strange that a getter has a side effect of opening a modal
+            const address = await kit.getAddress();
+
+            // Once `getAddress` returns successfully, we know they actually
+            // connected the selected wallet, and we set our localStorage
+            if (address.address) {
+              storage.setItem('walletId', selectedId);
+              storage.setItem('walletAddress', address.address);
+
+              // Fetch network for wallets that support network detection
+              // WalletConnect also supports network detection
+              if (
+                selectedId === 'freighter' ||
+                selectedId === 'hot-wallet' ||
+                selectedId === 'wallet_connect'
+              ) {
+                try {
+                  const network = await kit.getNetwork();
+                  if (network.network && network.networkPassphrase) {
+                    storage.setItem('walletNetwork', network.network);
+                    storage.setItem(
+                      'networkPassphrase',
+                      network.networkPassphrase
+                    );
+                  } else {
+                    storage.setItem('walletNetwork', '');
+                    storage.setItem('networkPassphrase', '');
+                  }
+                } catch (networkError) {
+                  console.warn(
+                    '[Stellar] Failed to fetch network after connection:',
+                    networkError
+                  );
+                  // Don't fail the connection if network fetch fails
+                }
+              }
+
+              // Resolve after successful connection and state update
+              // Add a small delay to ensure WalletConnect state is fully established
+              // Also dispatch a custom event to trigger immediate wallet state refresh
+              setTimeout(() => {
+                // Dispatch a custom event to trigger wallet provider to refresh state
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(
+                    new CustomEvent('walletConnected', {
+                      detail: {
+                        walletId: selectedId,
+                        address: address.address,
+                      },
+                    })
+                  );
+                }
+                resolve();
+              }, 500);
+            } else {
+              storage.setItem('walletId', '');
+              storage.setItem('walletAddress', '');
+              reject(new Error('No address returned from wallet'));
+            }
+          } catch (error) {
+            storage.setItem('walletId', '');
+            storage.setItem('walletAddress', '');
+            reject(error);
           }
-        });
-      }
-    },
+        },
+      })
+      .catch((error) => {
+        reject(error);
+      });
   });
 };
 

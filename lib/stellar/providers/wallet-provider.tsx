@@ -294,7 +294,12 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     if (!walletId) {
       nullify();
     } else {
-      if (popupLock.current) return;
+      // For WalletConnect, allow state updates even if popupLock is set
+      // This ensures we can detect connections that happen asynchronously
+      const isWalletConnect = walletId === 'wallet_connect';
+      if (popupLock.current && !isWalletConnect) {
+        return;
+      }
       // If our storage item is there, then we try to get the user's address &
       // network from their wallet. Note: `getAddress` MAY open their wallet
       // extension, depending on which wallet they select!
@@ -336,9 +341,21 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
           address: a.address,
           network: n.network,
           networkPassphrase: n.networkPassphrase,
+          walletId,
         });
 
         if (!a.address) {
+          // For WalletConnect, if address is empty but we have it in storage,
+          // it might be a timing issue - don't disconnect immediately
+          if (isWalletConnect && walletAddr) {
+            console.warn(
+              '[Stellar] WalletConnect returned empty address but storage has address. ' +
+                'This might be a timing issue. Retrying...'
+            );
+            // Don't disconnect - let the next poll attempt to fetch the address
+            popupLock.current = false;
+            return;
+          }
           storage.setItem('walletId', '');
           return;
         }
@@ -471,12 +488,29 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
           hasInitializedRef.current = true;
         }
       } catch (e) {
-        // If `getNetwork` or `getAddress` throw errors... sign the user out???
+        // For WalletConnect, errors might be temporary (connection still establishing)
+        // Don't immediately disconnect if we have address in storage
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        const isConnectionError =
+          errorMessage.includes('not connected') ||
+          errorMessage.includes('connection') ||
+          errorMessage.includes('timeout') ||
+          errorMessage.includes('pending');
+
+        if (isWalletConnect && walletAddr && isConnectionError) {
+          console.warn(
+            '[Stellar] WalletConnect connection error (might be temporary):',
+            errorMessage,
+            'Keeping connection state, will retry on next poll'
+          );
+          // Don't disconnect - let the next poll attempt to reconnect
+          popupLock.current = false;
+          return;
+        }
+
+        // For other wallets or non-connection errors, disconnect
+        console.error('[Stellar] Wallet state check error:', e);
         nullify();
-        // then log the error (instead of throwing) so we have visibility
-        // into the error while working on Scaffold Stellar but we do not
-        // crash the app process
-        console.error(e);
       } finally {
         popupLock.current = false;
       }
@@ -498,6 +532,20 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
+    // Listen for wallet connection events to trigger immediate state refresh
+    const handleWalletConnected = () => {
+      console.log(
+        '[Stellar] Wallet connected event received, refreshing state...'
+      );
+      startTransition(async () => {
+        await updateCurrentWalletState();
+      });
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('walletConnected', handleWalletConnected);
+    }
+
     // Get the wallet address when the component is mounted for the first time
     startTransition(async () => {
       await updateCurrentWalletState();
@@ -512,6 +560,9 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       isMounted = false;
       if (timer) clearTimeout(timer);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('walletConnected', handleWalletConnected);
+      }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- it SHOULD only run once per component mount
 
