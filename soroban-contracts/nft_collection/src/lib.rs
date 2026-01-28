@@ -103,7 +103,7 @@ impl NonFungibleTokenContract {
     /// Returns the token ID of the newly minted NFT (sequential, starting from 1)
     /// 
     /// # Note
-    /// Any user can mint NFTs. The function automatically transfers 1 XLM (10,000,000 stroops)
+    /// Any user can mint NFTs. The function automatically transfers 0.1 XLM (1,000,000 stroops)
     /// from the recipient (`to`) to the contract as payment. The recipient must have sufficient XLM balance
     /// and must authorize the transaction (sign it).
     /// 
@@ -138,7 +138,7 @@ impl NonFungibleTokenContract {
         to.require_auth();
         
         // Transfer 0.1 XLM (1,000,000 stroops) from the recipient to the contract as payment
-        let mint_cost: i128 = 1_000_000; // 1 XLM in stroops
+        let mint_cost: i128 = 1_000_000; // 0.1 XLM in stroops
         
         // Check recipient balance before attempting transfer
         let recipient_balance = native_token.balance(&to);

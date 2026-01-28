@@ -16,7 +16,7 @@ interface MintNFTProps {
 }
 
 const MintNFT: React.FC<MintNFTProps> = ({
-  ctaLabel = 'Mint NFT (1 XLM)',
+  ctaLabel = 'Mint NFT (0.1 XLM)',
   onPending,
   onSuccess,
   onError,
@@ -129,7 +129,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
   return (
     <div className="space-y-4">
       <p className="body-medium text-[#7D7D7D] font-grotesk">
-        Purchase your event ticket as an NFT. Cost: 1 XLM per ticket.
+        Purchase your event ticket as an NFT. Cost: 0.1 XLM per ticket.
       </p>
 
       {needsFunding && isOnTestnet && (
