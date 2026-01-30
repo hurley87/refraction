@@ -11,12 +11,16 @@ import FundAccountButton from './fund-account-button';
 interface MintNFTProps {
   ctaLabel?: string;
   onPending?: () => void;
-  onSuccess?: (txHash: string) => void;
+  onSuccess?: (result: {
+    txHash: string;
+    tokenId: number;
+    contractId: string;
+  }) => void;
   onError?: (error: string) => void;
 }
 
 const MintNFT: React.FC<MintNFTProps> = ({
-  ctaLabel = 'Mint NFT (0.1 XLM)',
+  ctaLabel = 'Mint NFT (0.01 XLM)',
   onPending,
   onSuccess,
   onError,
@@ -41,10 +45,10 @@ const MintNFT: React.FC<MintNFTProps> = ({
     (!accountExists && !hasBalance) || (accountExists && !hasBalance);
 
   // Calculate minimum balance needed for minting
-  // 0.1 XLM payment + fee + minimum balance that must remain after transfer
+  // 0.01 XLM payment + fee + minimum balance that must remain after transfer
   // The native token contract enforces a minimum balance (typically 1 XLM for mainnet)
   const isOnMainnet = networkPassphrase?.includes('Public');
-  const mintCost = 0.1;
+  const mintCost = 0.01;
   const estimatedFee = isOnMainnet ? 0.01 : 0.00001;
   const minBalanceAfterTransfer = isOnMainnet ? 1.0 : 0.5; // Minimum balance that must remain (enforced by native token contract)
   const minBalanceRequired = mintCost + estimatedFee + minBalanceAfterTransfer;
@@ -96,7 +100,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
     if (!hasEnoughBalance) {
       const errorMsg =
         `Insufficient balance. You need at least ${minBalanceRequired.toFixed(2)} XLM to mint (you have ${balanceNum.toFixed(2)} XLM). ` +
-        `This covers the 0.1 XLM payment, transaction fees, and the minimum balance (${minBalanceAfterTransfer.toFixed(1)} XLM) that must remain as required by the native token contract.`;
+        `This covers the 0.01 XLM payment, transaction fees, and the minimum balance (${minBalanceAfterTransfer.toFixed(1)} XLM) that must remain as required by the native token contract.`;
       toast.error(errorMsg, { duration: 6000 });
       onError?.(errorMsg);
       return;
@@ -108,17 +112,18 @@ const MintNFT: React.FC<MintNFTProps> = ({
     try {
       // Mint NFT to the connected wallet address
       // The contract requires the recipient to authorize the transaction (sign it)
-      // because the contract transfers 1 XLM from the recipient to the contract as payment.
+      // because the contract transfers 0.01 XLM from the recipient to the contract as payment.
       // The recipient is always the connected wallet (they're paying for their own mint).
-      const txHash = await mintNFT(
+      const result = await mintNFT(
         contractAddress,
         address, // Recipient is always the connected wallet
         address, // Signer is always the connected wallet
         networkPassphrase
       );
 
-      toast.success(`NFT minted successfully! Transaction hash: ${txHash}`);
-      onSuccess?.(txHash);
+      const successMessage = `NFT minted successfully!\n\nTransaction Hash: ${result.txHash}\nContract ID: ${result.contractId}\nToken ID: ${result.tokenId}\n\nUse these details to add the NFT to Freighter collectibles.`;
+      toast.success(successMessage, { duration: 10000 });
+      onSuccess?.(result);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
@@ -169,7 +174,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
   return (
     <div className="space-y-4">
       <p className="body-medium text-[#7D7D7D] font-grotesk">
-        Purchase your event ticket as an NFT. Cost: 0.1 XLM per ticket.
+        Purchase your event ticket as an NFT. Cost: 0.01 XLM per ticket.
       </p>
 
       {needsFunding && isOnTestnet && (
@@ -210,7 +215,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
             {minBalanceRequired.toFixed(2)} XLM to mint an NFT.
           </p>
           <p className="text-xs text-yellow-700">
-            This covers the 0.1 XLM payment, transaction fees (~
+            This covers the 0.01 XLM payment, transaction fees (~
             {estimatedFee.toFixed(5)} XLM), and the minimum balance that must
             remain ({minBalanceAfterTransfer.toFixed(1)} XLM) as required by the
             native token contract.
