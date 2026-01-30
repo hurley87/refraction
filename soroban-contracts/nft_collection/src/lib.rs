@@ -1,9 +1,12 @@
 #![no_std]
 use soroban_sdk::{contract, contractimpl, token, Address, Env, String};
 use stellar_access::ownable::{self as ownable, Ownable};
+use stellar_contract_utils::pausable::{self as pausable, Pausable};
+use stellar_macros::{only_owner, when_not_paused};
 use stellar_tokens::non_fungible::{
-    burnable::NonFungibleBurnable, Base, NonFungibleToken,
-};
+    Base, burnable::NonFungibleBurnable, enumerable::{NonFungibleEnumerable, Enumerable},
+    ContractOverrides, NonFungibleToken,
+};  
 
 #[contract]
 pub struct NonFungibleTokenContract;
@@ -26,10 +29,10 @@ impl NonFungibleTokenContract {
     /// soroban contract id asset --asset native --network <network>
     /// ```
     pub fn __constructor(e: &Env, owner: Address, native_asset_address: Address, max_supply: u32) {
-        // Set token metadata
+        // Set token metadata (use HTTPS gateway for IPFS - many wallets/explorers expect https://)
         Base::set_metadata(
             e,
-            String::from_str(e, "ipfs://bafkreigyr5cezc5v7eug4nad7jolyvvp3szwm2oh3njxbeqxozj66zbwdm"),
+            String::from_str(e, "https://gateway.pinata.cloud/ipfs/bafkreifdsya4dc3cgv7dwfq4az76apqkomgqlivxwbmjertxzvn2jsjc5q"),
             String::from_str(e, "IRL Test Collection"),
             String::from_str(e, "IRL001"),
         );
@@ -103,7 +106,7 @@ impl NonFungibleTokenContract {
     /// Returns the token ID of the newly minted NFT (sequential, starting from 1)
     /// 
     /// # Note
-    /// Any user can mint NFTs. The function automatically transfers 0.1 XLM (1,000,000 stroops)
+    /// Any user can mint NFTs. The function automatically transfers 0.01 XLM (100,000 stroops)
     /// from the recipient (`to`) to the contract as payment. The recipient must have sufficient XLM balance
     /// and must authorize the transaction (sign it).
     /// 
@@ -137,21 +140,19 @@ impl NonFungibleTokenContract {
         // authorizes the transaction, which provides some protection against malicious contracts.
         to.require_auth();
         
-        // Transfer 0.1 XLM (1,000,000 stroops) from the recipient to the contract as payment
-        let mint_cost: i128 = 1_000_000; // 0.1 XLM in stroops
-        
-        // Check recipient balance before attempting transfer
-        let recipient_balance = native_token.balance(&to);
-        if mint_cost > recipient_balance {
-            panic!("Insufficient balance: recipient has {} but needs {}", recipient_balance, mint_cost);
-        }
+        // Transfer 0.01 XLM (100,000 stroops) from the recipient to the contract as payment
+        // Note: We do not check balance here. native_token.balance(&to) queries the SAC balance,
+        // which can be 0 for Stellar accounts (G...) that haven't interacted with the SAC yet,
+        // even when the account has native XLM. The transfer() call will fail with a proper
+        // error if the account has insufficient balance.
+        let mint_cost: i128 = 100_000; // 0.01 XLM in stroops
         
         // Transfer payment first (checks-effects-interactions pattern)
         native_token.transfer(&to, &contract_address, &mint_cost);
         
         // Mint the NFT to the recipient
         // If this fails, the entire transaction reverts, including the payment transfer
-        let token_id = Base::sequential_mint(&env, &to);
+        let token_id = Enumerable::sequential_mint(&env, &to);
         
         // Increment supply counter after successful mint
         Self::increment_supply(&env);
@@ -204,16 +205,68 @@ impl NonFungibleTokenContract {
     }
 }
 
-#[contractimpl]
+#[contractimpl(contracttrait)]
 impl NonFungibleToken for NonFungibleTokenContract {
-    type ContractType = Base;
+    type ContractType = Enumerable;
+
+
+    #[when_not_paused]
+    fn transfer(e: &Env, from: Address, to: Address, token_id: u32) {
+        Self::ContractType::transfer(e, &from, &to, token_id);
+    }
+
+    #[when_not_paused]
+    fn transfer_from(e: &Env, spender: Address, from: Address, to: Address, token_id: u32) {
+        Self::ContractType::transfer_from(e, &spender, &from, &to, token_id);
+    }
+
+    #[when_not_paused]
+    fn balance(e: &Env, owner: Address) -> u32 {
+        Self::ContractType::balance(e, &owner)
+    }
+
+    #[when_not_paused]
+    fn owner_of(e: &Env, token_id: u32) -> Address {
+        Self::ContractType::owner_of(e, token_id)
+    }
 }
 
-#[contractimpl]
-impl NonFungibleBurnable for NonFungibleTokenContract {}
+#[contractimpl(contracttrait)]
+impl NonFungibleBurnable for NonFungibleTokenContract {
+    #[when_not_paused]
+    fn burn(e: &Env, from: Address, token_id: u32) {
+        Self::ContractType::burn(e, &from, token_id);
+    }
+
+    #[when_not_paused]
+    fn burn_from(e: &Env, spender: Address, from: Address, token_id: u32) {
+        Self::ContractType::burn_from(e, &spender, &from, token_id);
+    }
+}
+
+#[contractimpl(contracttrait)]
+impl NonFungibleEnumerable for NonFungibleTokenContract {}
+
+
+#[contractimpl(contracttrait)]
+impl Ownable for NonFungibleTokenContract {}
 
 #[contractimpl]
-impl Ownable for NonFungibleTokenContract {}
+impl Pausable for NonFungibleTokenContract {
+    fn paused(e: &Env) -> bool {
+        pausable::paused(e)
+    }
+
+    #[only_owner]
+    fn pause(e: &Env, _caller: Address) {
+        pausable::pause(e);
+    }
+
+    #[only_owner]
+    fn unpause(e: &Env, _caller: Address) {
+        pausable::unpause(e);
+    }
+}
 
 #[cfg(test)]
 mod test;

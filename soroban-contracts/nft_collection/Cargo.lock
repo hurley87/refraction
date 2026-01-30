@@ -856,6 +856,7 @@ dependencies = [
  "openssl",
  "soroban-sdk",
  "stellar-access",
+ "stellar-contract-utils",
  "stellar-macros",
  "stellar-tokens",
 ]
