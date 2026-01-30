@@ -1121,19 +1121,19 @@ export const invokeNFTContract = async (
 };
 
 /**
- * Mint an NFT to a recipient address with a payment of 0.1 XLM
+ * Mint an NFT to a recipient address with a payment of 0.01 XLM
  * @param contractId - The NFT contract address or ID
  * @param recipientAddress - Address to receive the minted NFT
  * @param signerAddress - Address of the account signing the transaction (any user can mint)
  * @param customNetworkPassphrase - Network passphrase for transaction building
- * @returns Transaction hash
+ * @returns Object containing transaction hash, token ID, and contract ID
  */
 export const mintNFT = async (
   contractId: string,
   recipientAddress: string,
   signerAddress: string,
   customNetworkPassphrase?: string
-): Promise<string> => {
+): Promise<{ txHash: string; tokenId: number; contractId: string }> => {
   if (!isValidAddress(recipientAddress)) {
     throw new Error(`Invalid recipient address: ${recipientAddress}`);
   }
@@ -1207,7 +1207,7 @@ export const mintNFT = async (
   const contractCall = contract.call('mint', addressToScVal(recipientAddress));
 
   // Note: Payment is now handled within the contract itself.
-  // The contract's mint function automatically transfers 0.1 XLM from the recipient to the contract.
+  // The contract's mint function automatically transfers 0.01 XLM from the recipient to the contract.
   // The recipient address must authorize the transaction (sign it) for the payment to work.
 
   // Use higher fees for mainnet Soroban transactions
@@ -1228,12 +1228,12 @@ export const mintNFT = async (
     .build();
 
   // Check account balance before simulating
-  // The mint requires 0.1 XLM payment + transaction fees + minimum reserve
+  // The mint requires 0.01 XLM payment + transaction fees + minimum reserve
   // The native token contract enforces a minimum balance (typically 1 XLM for basic accounts)
   // On mainnet: fee is ~0.01 XLM, minimum reserve is typically 1 XLM (enforced by native token contract)
   // On testnet: fee is ~0.00001 XLM, minimum reserve is typically 0.5 XLM
   const accountBalanceXlm = parseFloat(account.balances[0]?.balance || '0');
-  const mintCostXlm = 0.1; // Payment to contract
+  const mintCostXlm = 0.01; // Payment to contract
   const estimatedFeeXlm = isMainnet ? 0.01 : 0.00001;
   // The native token contract requires maintaining a minimum balance after transfer
   // Based on the error, it appears the contract enforces ~1 XLM minimum
@@ -1246,7 +1246,7 @@ export const mintNFT = async (
     throw new Error(
       `Insufficient balance to mint NFT. ` +
         `You have ${accountBalanceXlm.toFixed(2)} XLM, but need at least ${requiredBalanceXlm.toFixed(2)} XLM ` +
-        `(0.1 XLM payment + ${estimatedFeeXlm.toFixed(5)} XLM fee + ${minBalanceAfterTransferXlm.toFixed(1)} XLM minimum balance that must remain). ` +
+        `(0.01 XLM payment + ${estimatedFeeXlm.toFixed(5)} XLM fee + ${minBalanceAfterTransferXlm.toFixed(1)} XLM minimum balance that must remain). ` +
         `The native token contract requires maintaining a minimum balance after the transfer. Please add more XLM to your account.`
     );
   }
@@ -1267,11 +1267,11 @@ export const mintNFT = async (
       // Extract balance values from error if possible
       const balanceMatch = errorDetails.match(/10000000.*?9000000/);
       if (balanceMatch) {
-        // Account has 10 XLM, after transfer would have 9 XLM, but contract requires minimum
+        // Account has 10 XLM, after transfer would have 9.99 XLM, but contract requires minimum
         // The native token contract requires maintaining a minimum balance (typically 1 XLM)
-        helpfulMessage = ` Your account balance is too low. You have 10 XLM, but after paying 0.1 XLM, your balance would be 9 XLM, which is below the minimum required by the native token contract. Please ensure you have at least ${requiredBalanceXlm.toFixed(2)} XLM in your account (0.1 XLM payment + fees + ${minBalanceAfterTransferXlm.toFixed(1)} XLM minimum balance).`;
+        helpfulMessage = ` Your account balance is too low. You have 10 XLM, but after paying 0.01 XLM, your balance would be 9.99 XLM, which is below the minimum required by the native token contract. Please ensure you have at least ${requiredBalanceXlm.toFixed(2)} XLM in your account (0.01 XLM payment + fees + ${minBalanceAfterTransferXlm.toFixed(1)} XLM minimum balance).`;
       } else {
-        helpfulMessage = ` Your account balance is too low. After paying 0.1 XLM for the NFT, your account would fall below the minimum required balance enforced by the native token contract. Please ensure you have at least ${requiredBalanceXlm.toFixed(2)} XLM in your account.`;
+        helpfulMessage = ` Your account balance is too low. After paying 0.01 XLM for the NFT, your account would fall below the minimum required balance enforced by the native token contract. Please ensure you have at least ${requiredBalanceXlm.toFixed(2)} XLM in your account.`;
       }
     } else if (errorDetails.includes('Insufficient balance')) {
       helpfulMessage = ` Your account doesn't have enough XLM to complete this transaction. Please add more XLM to your account.`;
@@ -1795,7 +1795,29 @@ export const mintNFT = async (
     throw new Error(`Transaction failed: ${errorMessage}`);
   }
 
-  return sendResponse.hash;
+  // Extract token ID from the simulation result
+  // The mint function returns a u32 (token ID)
+  // We use the simulation result since it's more reliable than parsing resultXdr
+  let tokenId: number = 0;
+  try {
+    if (simulation.result && !SorobanRpc.Api.isSimulationError(simulation)) {
+      const nativeValue = scValToNative(simulation.result.retval);
+      tokenId =
+        typeof nativeValue === 'number' ? nativeValue : Number(nativeValue);
+    }
+  } catch (error) {
+    console.warn(
+      '[Soroban] Failed to extract token ID from mint simulation:',
+      error
+    );
+    // Token ID extraction failed, but transaction succeeded - continue with 0
+  }
+
+  return {
+    txHash: sendResponse.hash,
+    tokenId,
+    contractId,
+  };
 };
 
 /**

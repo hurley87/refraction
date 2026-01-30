@@ -11,10 +11,11 @@ import { TransactionStatus } from './transaction-status';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
 import NetworkPill from './network-pill';
 
-
 function StellarWalletPageContent() {
   const { network } = useWallet();
   const [ticketTxHash, setTicketTxHash] = useState<string | null>(null);
+  const [ticketTokenId, setTicketTokenId] = useState<number | null>(null);
+  const [ticketContractId, setTicketContractId] = useState<string | null>(null);
   const [rewardTxHash, setRewardTxHash] = useState<string | null>(null);
   const [ticketStatus, setTicketStatus] = useState<
     'idle' | 'pending' | 'success' | 'error'
@@ -89,19 +90,25 @@ function StellarWalletPageContent() {
               </div>
 
               <MintNFT
-                ctaLabel="Buy Ticket"
+                ctaLabel="Buy Ticket (0.01 XLM)"
                 onPending={() => {
                   setTicketStatus('pending');
                   setTicketTxHash(null);
+                  setTicketTokenId(null);
+                  setTicketContractId(null);
                   setTicketError(null);
                 }}
-                onSuccess={(txHash) => {
+                onSuccess={(result) => {
                   setTicketStatus('success');
-                  setTicketTxHash(txHash);
+                  setTicketTxHash(result.txHash);
+                  setTicketTokenId(result.tokenId);
+                  setTicketContractId(result.contractId);
                 }}
                 onError={(errorMsg) => {
                   setTicketStatus('error');
                   setTicketTxHash(null);
+                  setTicketTokenId(null);
+                  setTicketContractId(null);
                   setTicketError(errorMsg);
                 }}
               />
@@ -112,6 +119,8 @@ function StellarWalletPageContent() {
                 error={ticketError}
                 successMessage="Ticket purchased successfully!"
                 network={network}
+                tokenId={ticketTokenId}
+                contractId={ticketContractId}
               />
             </div>
           </div>

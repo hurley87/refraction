@@ -10,6 +10,8 @@ interface TransactionStatusProps {
   successMessage: string;
   pendingMessage?: string;
   network?: string;
+  tokenId?: number | null;
+  contractId?: string | null;
 }
 
 export function TransactionStatus({
@@ -19,6 +21,8 @@ export function TransactionStatus({
   successMessage,
   pendingMessage = 'Confirm transaction in your wallet...',
   network,
+  tokenId,
+  contractId,
 }: TransactionStatusProps) {
   // Determine explorer URL based on network
   const getExplorerUrl = (hash: string): string => {
@@ -55,41 +59,110 @@ export function TransactionStatus({
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-green-800 mb-1">
+            <p className="text-sm font-medium text-green-800 mb-2">
               {successMessage}
             </p>
-            <div className="flex items-center gap-2">
-              <Link
-                href={getExplorerUrl(txHash)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-green-700 break-all font-mono hover:underline"
-                title="View transaction on Stellar Explorer"
-              >
-                {txHash}
-              </Link>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(txHash);
-                  toast.success('Transaction hash copied!');
-                }}
-                className="flex-shrink-0 p-1 hover:bg-green-100 rounded transition-colors"
-                title="Copy transaction hash"
-              >
-                <svg
-                  className="w-4 h-4 text-green-700"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-green-700 min-w-[80px]">
+                  Transaction:
+                </span>
+                <Link
+                  href={getExplorerUrl(txHash)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-green-700 break-all font-mono hover:underline flex-1"
+                  title="View transaction on Stellar Explorer"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                  />
-                </svg>
-              </button>
+                  {txHash}
+                </Link>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(txHash);
+                    toast.success('Transaction hash copied!');
+                  }}
+                  className="flex-shrink-0 p-1 hover:bg-green-100 rounded transition-colors"
+                  title="Copy transaction hash"
+                >
+                  <svg
+                    className="w-4 h-4 text-green-700"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                  </svg>
+                </button>
+              </div>
+              {contractId && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-green-700 min-w-[80px]">
+                    Contract ID:
+                  </span>
+                  <span className="text-xs text-green-700 break-all font-mono flex-1">
+                    {contractId}
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(contractId);
+                      toast.success('Contract ID copied!');
+                    }}
+                    className="flex-shrink-0 p-1 hover:bg-green-100 rounded transition-colors"
+                    title="Copy contract ID"
+                  >
+                    <svg
+                      className="w-4 h-4 text-green-700"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              )}
+              {tokenId !== null && tokenId !== undefined && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-green-700 min-w-[80px]">
+                    Token ID:
+                  </span>
+                  <span className="text-xs text-green-700 font-mono flex-1">
+                    {tokenId}
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(String(tokenId));
+                      toast.success('Token ID copied!');
+                    }}
+                    className="flex-shrink-0 p-1 hover:bg-green-100 rounded transition-colors"
+                    title="Copy token ID"
+                  >
+                    <svg
+                      className="w-4 h-4 text-green-700"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
