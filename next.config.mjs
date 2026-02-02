@@ -36,6 +36,14 @@ const nextConfig = {
         hostname: "gateway.pinata.cloud",
         pathname: "/ipfs/**",
       },
+      {
+        protocol: "https",
+        hostname: "dice-media.imgix.net",
+      },
+      {
+        protocol: "https",
+        hostname: "dice-media-test.imgix.net",
+      },
     ],
   },
   webpack: (config, { isServer }) => {

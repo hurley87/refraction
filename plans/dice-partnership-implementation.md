@@ -2,7 +2,7 @@
 
 ## Goals
 
-- **Discovery**: browse/curate events via DICE **Collections** + broader **event listing API** access (not only "refractions events").
+- **Discovery**: browse/curate events via DICE **Collections** + broader **event listing API** access
 - **IRL check-ins at events/venues**: map DICE events to IRL locations/checkpoints, with clear curation + visibility controls.
 - **Ticket proof**: verify ticket ownership during check-in.
 - **Promotions**: support discounts/promos with attribution (ideally automated promo-code generation).
@@ -22,27 +22,9 @@ DICE's **Ticket Holders API (THAPI)** has been confirmed to support these techni
 ## Operation requirements
 
 - **Ticketing → IRL rewards**: IRL will build against DICE APIs to ingest ticket data and award points.
-- **Account linking**: email as the primary key, with edge cases (e.g., Sign in with Apple) handled during implementation.
+- **Account linking**: email as the primary key
 - **Event discovery**: curated discovery can be supported via DICE Collections and/or the event listing API.
 - **Promos**: supported short term via bulk promo code exports, with potential API automation longer term.
-
-## Data contracts (what we must define before awarding points)
-
-### Identity linking (IRL user ↔ DICE fan)
-
-- **Primary keys (aligned)**: email
-- **Normalization requirements**:
-  - email should be stored lowercased + trimmed
-- **Storage shape (proposal)**:
-  - `players.dice_linked_email`
-  - `players.dice_linked_at` (timestamp)
-
-### Event mapping (DICE event ↔ IRL location/checkpoint)
-
-- `locations.dice_event_id` (string)
-- `locations.dice_venue_id` (optional, if DICE exposes a venue id)
-- `locations.dice_start_time` / `locations.dice_end_time` (or map to existing fields if IRL already stores event times)
-- Visibility + curation remain controlled by IRL (`locations.is_visible`, category/tagging, etc.)
 
 ## THAPI Integration Details
 
@@ -169,7 +151,6 @@ Acceptance criteria:
 
 - `GET /api/dice/events` returns stable pagination + deterministic ordering.
 - Rate limit errors surface as a user-friendly message and are observable in server logs.
-- No partner credentials are exposed to the browser (validated via network inspection).
 
 ### Phase 2 — IRL curation + optional DB sync (1 week)
 
