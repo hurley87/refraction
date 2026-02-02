@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import { MapPin, ChevronRight } from "lucide-react";
-import { toast } from "sonner";
+import Image from 'next/image';
+import { MapPin, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from '@/components/ui/tooltip';
 
 interface MapCardProps {
   name: string;
@@ -45,10 +45,10 @@ export default function MapCard({
     navigator.clipboard
       .writeText(shareUrl)
       .then(() => {
-        toast.success("Link copied to clipboard");
+        toast.success('Link copied to clipboard');
       })
       .catch(() => {
-        toast.error("Failed to copy link");
+        toast.error('Failed to copy link');
       });
   };
   return (
@@ -89,12 +89,12 @@ export default function MapCard({
       )}
 
       {/* Card Content */}
-      <div className={`flex flex-col gap-2.5 ${imageUrl ? "p-3" : "p-3.5"}`}>
+      <div className={`flex flex-col gap-2.5 ${imageUrl ? 'p-3' : 'p-3.5'}`}>
         {/* Location Info */}
         <div className="flex flex-col gap-1">
           {/* Description */}
           <p className="font-inktrap text-[13px] leading-snug text-[#1a1a1a] line-clamp-2">
-            {description || address}
+            {address || description}
           </p>
 
           {/* Address */}
@@ -115,7 +115,7 @@ export default function MapCard({
             className="flex-1 bg-[#1a1a1a] cursor-pointer flex items-center justify-center gap-1.5 h-8 px-3 rounded-full hover:bg-black transition-colors disabled:opacity-50"
           >
             <span className="font-inktrap text-[10px] text-white tracking-[0.3px] uppercase">
-              {isLoading ? "..." : isExisting ? "Check In" : "Create"}
+              {isLoading ? '...' : isExisting ? 'Check In' : 'Create'}
             </span>
             <ChevronRight className="w-3.5 h-3.5 text-white" />
           </button>

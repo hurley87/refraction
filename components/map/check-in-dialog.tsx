@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 
 interface MarkerData {
   latitude: number;
@@ -51,7 +51,7 @@ function getCheckinDisplayName(entry: LocationCheckinPreview) {
   if (entry.walletAddress && entry.walletAddress.length > 8) {
     return `${entry.walletAddress.slice(0, 6)}...${entry.walletAddress.slice(-4)}`;
   }
-  return "Explorer";
+  return 'Explorer';
 }
 
 function getCheckinInitial(entry: LocationCheckinPreview) {
@@ -61,20 +61,20 @@ function getCheckinInitial(entry: LocationCheckinPreview) {
   if (entry.walletAddress && entry.walletAddress.length > 2) {
     return entry.walletAddress.slice(2, 3).toUpperCase();
   }
-  return "+";
+  return '+';
 }
 
 function formatCheckinTimestamp(timestamp?: string | null) {
-  if (!timestamp) return "Moments ago";
+  if (!timestamp) return 'Moments ago';
   const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return "Recently";
+  if (Number.isNaN(date.getTime())) return 'Recently';
   try {
     return date.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
+      month: 'short',
+      day: 'numeric',
     });
   } catch {
-    return "Recently";
+    return 'Recently';
   }
 }
 
@@ -99,10 +99,10 @@ export default function CheckInDialog({
     navigator.clipboard
       .writeText(shareUrl)
       .then(() => {
-        toast.success("Link copied to clipboard");
+        toast.success('Link copied to clipboard');
       })
       .catch(() => {
-        toast.error("Failed to copy link");
+        toast.error('Failed to copy link');
       });
   };
 
@@ -192,7 +192,7 @@ export default function CheckInDialog({
           )}
 
           <div
-            className={`flex-1 relative ${checkInSuccess ? "overflow-hidden" : "overflow-y-auto"}`}
+            className={`flex-1 relative ${checkInSuccess ? 'overflow-hidden' : 'overflow-y-auto'}`}
           >
             {!checkInSuccess ? (
               <>
@@ -230,10 +230,10 @@ export default function CheckInDialog({
                     )}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-inktrap text-[13px] leading-tight tracking-[-0.3px] text-[#1a1a1a] line-clamp-1">
-                        {checkInTarget?.name || "Selected Location"}
+                        {checkInTarget?.display_name || 'Selected Location'}
                       </h3>
                       <p className="font-inktrap text-[10px] uppercase tracking-[0.3px] text-[#999] mt-0.5 line-clamp-1">
-                        {checkInTarget?.display_name}
+                        {checkInTarget?.name}
                       </p>
                     </div>
                   </div>
@@ -268,7 +268,7 @@ export default function CheckInDialog({
                           <span className="text-[10px] font-inktrap text-[#999]">
                             {locationCheckins.length > 0
                               ? `+${Math.max(locationCheckins.length - 2, 0)}`
-                              : "Be first"}
+                              : 'Be first'}
                           </span>
                         </div>
                       </div>
@@ -353,16 +353,16 @@ export default function CheckInDialog({
                 className="relative flex flex-col items-center justify-center min-h-[400px] w-full overflow-hidden"
                 style={{
                   backgroundImage: "url('/city-bg.jpg')",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  backgroundRepeat: "no-repeat",
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
                 }}
               >
                 <div className="relative z-10 flex flex-col items-center gap-7 px-4 py-16 w-full h-full justify-center">
                   {/* Location Marker Icon */}
                   <div
                     className="relative shrink-0"
-                    style={{ width: "46px", height: "66px" }}
+                    style={{ width: '46px', height: '66px' }}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -423,10 +423,10 @@ export default function CheckInDialog({
                       <div
                         className="absolute bg-[#ededed] rounded-full shadow-[0px_0px_16px_0px_rgba(255,255,255,0.7)]"
                         style={{
-                          width: "30px",
-                          height: "30px",
-                          top: "0px",
-                          left: "10px",
+                          width: '30px',
+                          height: '30px',
+                          top: '0px',
+                          left: '10px',
                         }}
                       >
                         <img
@@ -491,7 +491,7 @@ export default function CheckInDialog({
                             </svg>
                           </div>
                           <p className="text-[11px] text-white uppercase tracking-[0.44px] font-medium">
-                            {checkInTarget?.name || "Location"}
+                            {checkInTarget?.name || 'Location'}
                           </p>
                         </div>
                       </div>
@@ -516,11 +516,13 @@ export default function CheckInDialog({
                 </button>
                 <button
                   onClick={onCheckIn}
-                  disabled={isCheckingIn || !checkInTarget || !checkInComment.trim()}
+                  disabled={
+                    isCheckingIn || !checkInTarget || !checkInComment.trim()
+                  }
                   className="bg-[#1a1a1a] hover:bg-black text-white rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex items-center justify-center transition-colors disabled:opacity-50 flex-1"
                   type="button"
                 >
-                  {isCheckingIn ? "..." : "Check In"}
+                  {isCheckingIn ? '...' : 'Check In'}
                 </button>
               </div>
             </div>
