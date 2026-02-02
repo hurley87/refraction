@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "claudekit-hooks run check-todos" },
+          { "type": "command", "command": "claudekit-hooks run self-review" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "claudekit-hooks run lint-changed" },
+          {
+            "type": "command",
+            "command": "claudekit-hooks run check-comment-replacement"
+          },
+          {
+            "type": "command",
+            "command": "claudekit-hooks run check-unused-parameters"
+          }
+        ]
+      }
+    ]
+  }
+}
