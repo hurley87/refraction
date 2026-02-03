@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
 import { useNotification } from '@/lib/stellar/hooks/use-notification';
 import {
-  invokePaymentContract,
   isValidAddress,
   isValidContractAddress,
 } from '@/lib/stellar/utils/soroban';
@@ -93,14 +92,24 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
     onPending?.();
 
     try {
-      // Use payment contract helper (no amount parameter - contract sends fixed 0.1 XLM)
-      const txHash = await invokePaymentContract(
-        contractAddress,
-        recipientAddress,
-        undefined, // No amount - contract sends fixed 0.1 XLM
-        address!,
-        networkPassphrase
-      );
+      const res = await fetch('/api/claim-points', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: recipientAddress,
+          networkPassphrase: networkPassphrase ?? undefined,
+        }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error ?? 'Claim failed');
+      }
+
+      const txHash = data.data?.txHash;
+      if (!txHash) {
+        throw new Error('No transaction hash returned');
+      }
 
       toast.success(`Points claimed successfully! Transaction hash: ${txHash}`);
       addNotification(`Points claimed successfully: ${txHash}`, 'success');
@@ -109,7 +118,6 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
 
-      // Provide helpful message for account not found errors
       if (
         errorMessage.includes('Account not found') ||
         errorMessage.includes('not found')
@@ -123,16 +131,16 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
           'error'
         );
       } else if (
-        errorMessage.includes('insufficient XLM balance') ||
-        errorMessage.includes('UnreachableCodeReached') ||
-        errorMessage.includes('needs at least 0.1 XLM')
+        errorMessage.includes('insufficient') ||
+        errorMessage.includes('no balance') ||
+        errorMessage.includes('Contract has no balance')
       ) {
         toast.error(
-          `The payment contract has insufficient XLM balance. The contract must be funded with at least 0.1 XLM before rewards can be claimed. Please fund the contract address: ${contractAddress}`,
+          `The payment contract has insufficient token balance. It must hold the claim-points token before rewards can be sent. Contract: ${contractAddress}`,
           { duration: 10000 }
         );
         addNotification(
-          `Contract needs funding: ${contractAddress} requires at least 0.1 XLM`,
+          `Contract needs funding with the claim-points token: ${contractAddress}`,
           'error'
         );
       } else {
