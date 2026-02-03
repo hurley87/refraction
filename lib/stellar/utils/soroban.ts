@@ -15,6 +15,7 @@ import {
   rpcUrl,
   horizonUrl,
   getHorizonUrlForNetwork,
+  getRpcUrlForNetwork,
 } from './network';
 import { wallet } from './wallet';
 import { WalletNetwork } from '@creit.tech/stellar-wallets-kit';
@@ -50,8 +51,12 @@ export const getSorobanRpc = (
     const origin = window.location.origin;
     effectiveRpcUrl = `${origin}/api/soroban-rpc?network=${networkName}`;
   } else {
-    // Use direct RPC URL on server
-    effectiveRpcUrl = rpcUrl;
+    // On server: use RPC URL for the same network as the passphrase so simulation
+    // hits the correct ledger (e.g. testnet when user wallet is on testnet)
+    effectiveRpcUrl =
+      customNetworkPassphrase !== undefined
+        ? getRpcUrlForNetwork(networkName)
+        : rpcUrl;
   }
 
   // Log network configuration for debugging (only in development)
@@ -790,6 +795,16 @@ export const invokeContract = async (
 
   return sendResponse.hash;
 };
+
+/** Decimals for the claim-points custom token (1 token = 10^7 smallest units). */
+export const CLAIM_POINTS_TOKEN_DECIMALS = 7;
+
+/**
+ * Convert display amount (tokens) to smallest units for the claim-points token.
+ * @param displayAmount - Amount in display units (e.g. 100 for "100 tokens")
+ */
+export const toTokenSmallestUnits = (displayAmount: number): bigint =>
+  BigInt(Math.floor(displayAmount * 10 ** CLAIM_POINTS_TOKEN_DECIMALS));
 
 /**
  * Invoke a contract function that sends XLM to a recipient
