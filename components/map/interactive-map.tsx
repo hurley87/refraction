@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/mapbox';
 import LocationSearch from '@/components/shared/location-search';
+import { deriveDisplayNameAndAddress } from '@/lib/utils/location-autofill';
 import { usePrivy } from '@privy-io/react-auth';
 import { toast } from 'sonner';
 import MapNav from '@/components/map/mapnav';
@@ -511,12 +512,28 @@ export default function InteractiveMap({
         const data = await response.json();
         if (data.features && data.features.length > 0) {
           const feature = data.features[0];
+          // Determine if this is a POI or address based on feature properties
+          const isPOI =
+            feature.properties?.category === 'poi' ||
+            feature.properties?.poi ||
+            feature.place_type?.includes('poi');
+          const spotName = isPOI ? feature.text || '' : '';
+          const fullAddress = feature.place_name || '';
+
+          // For POIs, strip the POI name prefix from the address if present
+          let address = fullAddress;
+          if (isPOI && spotName && fullAddress.startsWith(`${spotName}, `)) {
+            address = fullAddress.slice(`${spotName}, `.length);
+          } else if (!isPOI) {
+            address = fullAddress;
+          }
+
           const newMarker: MarkerData = {
             latitude,
             longitude,
             place_id: feature.id || `temp-${Date.now()}`,
-            display_name: feature.place_name || 'Unknown Location',
-            name: feature.text || 'New Location',
+            display_name: spotName || '', // Spot name (empty for addresses)
+            name: address || 'Unknown Location', // Address
           };
           const duplicateMarker = findExistingMarker(newMarker.place_id);
           if (duplicateMarker) {
@@ -530,8 +547,8 @@ export default function InteractiveMap({
 
           setSelectedMarker(newMarker);
           setFormData({
-            name: newMarker.name,
-            address: newMarker.display_name,
+            name: newMarker.display_name, // Spot name (can be empty for addresses)
+            address: newMarker.name, // Address
             description: '',
             locationImage: null,
             checkInComment: '',
@@ -547,14 +564,14 @@ export default function InteractiveMap({
         latitude,
         longitude,
         place_id: `temp-${Date.now()}`,
-        display_name: `Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`,
-        name: 'New Location',
+        display_name: '', // No spot name for fallback case
+        name: `Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`, // Use coordinates as address
       };
 
       setSelectedMarker(newMarker);
       setFormData({
-        name: newMarker.name,
-        address: newMarker.display_name,
+        name: newMarker.display_name, // Spot name (empty)
+        address: newMarker.name, // Address (coordinates)
         description: '',
         locationImage: null,
         checkInComment: '',
@@ -570,8 +587,10 @@ export default function InteractiveMap({
     id: string;
     name?: string;
     placeFormatted?: string;
+    featureType?: string;
   }) => {
-    const { longitude, latitude, id, name, placeFormatted } = picked;
+    const { longitude, latitude, id, name, placeFormatted, featureType } =
+      picked;
     const newViewState = { longitude, latitude, zoom: 15 };
     setViewState(newViewState);
 
@@ -633,12 +652,17 @@ export default function InteractiveMap({
       setSearchedLocation(null); // Clear searched location if marker found
     } else {
       // Create a temporary location from search
+      const { displayName, address } = deriveDisplayNameAndAddress({
+        name,
+        placeFormatted,
+        featureType,
+      });
       const searchLocation: SearchLocationData = {
         latitude,
         longitude,
         place_id: id,
-        display_name: placeFormatted || name || 'Unknown Location',
-        name: name || 'Unknown Location',
+        display_name: displayName || 'Unknown Location',
+        name: address || 'Unknown Location',
         placeFormatted: placeFormatted,
       };
       setSearchedLocation(searchLocation);
@@ -851,8 +875,8 @@ export default function InteractiveMap({
 
     setSelectedMarker(newMarker);
     setFormData({
-      name: searchedLocation.name,
-      address: searchedLocation.display_name,
+      name: searchedLocation.display_name, // display_name is the spot name
+      address: searchedLocation.name, // name is the address
       description: '',
       locationImage: null,
       checkInComment: '',
@@ -933,8 +957,8 @@ export default function InteractiveMap({
         },
         body: JSON.stringify({
           place_id: selectedMarker.place_id,
-          display_name: formData.address || selectedMarker.display_name,
-          name: formData.name,
+          display_name: formData.name || selectedMarker.display_name, // formData.name is the spot name
+          name: formData.address || selectedMarker.name, // formData.address is the address
           description: formData.description,
           lat: selectedMarker.latitude.toString(),
           lon: selectedMarker.longitude.toString(),
@@ -1444,8 +1468,8 @@ export default function InteractiveMap({
             className="z-50 [&>button]:hidden"
           >
             <MapCard
-              name={searchedLocation.name}
-              address={searchedLocation.display_name}
+              name={searchedLocation.display_name}
+              address={searchedLocation.name}
               isExisting={false}
               onAction={handleInitiateLocationCreation}
               onClose={() => setSearchedLocation(null)}

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Input } from '@/components/ui/input';
 
 type Suggestion = {
   id?: string;
@@ -30,6 +30,7 @@ export interface LocationSearchProps {
     id: string;
     name?: string;
     placeFormatted?: string;
+    featureType?: string;
   }) => void;
   className?: string;
 }
@@ -42,17 +43,17 @@ function useDebounced<T extends (...args: any[]) => void>(fn: T, ms: number) {
       if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
       timeoutRef.current = window.setTimeout(() => fn(...args), ms);
     },
-    [fn, ms],
+    [fn, ms]
   );
 }
 
 export default function LocationSearch({
-  placeholder = "Search location",
+  placeholder = 'Search location',
   proximity,
   onSelect,
   className,
 }: LocationSearchProps) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number>(-1);
@@ -73,7 +74,7 @@ export default function LocationSearch({
   const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
   const proximityParam = useMemo(() => {
-    if (!proximity) return "";
+    if (!proximity) return '';
     return `&proximity=${proximity.longitude},${proximity.latitude}`;
   }, [proximity]);
 
@@ -87,10 +88,10 @@ export default function LocationSearch({
       try {
         const token = ensureSessionToken();
         const url = `https://api.mapbox.com/search/searchbox/v1/suggest?q=${encodeURIComponent(
-          q,
+          q
         )}&limit=8${proximityParam}&session_token=${token}&access_token=${accessToken}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error("Suggest failed");
+        if (!res.ok) throw new Error('Suggest failed');
         const json = await res.json();
         const list: Suggestion[] = Array.isArray(json?.suggestions)
           ? json.suggestions
@@ -104,7 +105,7 @@ export default function LocationSearch({
         setIsOpen(false);
       }
     },
-    [accessToken, proximityParam],
+    [accessToken, proximityParam]
   );
 
   const debouncedSuggest = useDebounced(performSuggest, 250);
@@ -118,8 +119,8 @@ export default function LocationSearch({
       if (inputRef.current && inputRef.current.contains(target as Node)) return;
       setIsOpen(false);
     }
-    window.addEventListener("mousedown", handleClickOutside);
-    return () => window.removeEventListener("mousedown", handleClickOutside);
+    window.addEventListener('mousedown', handleClickOutside);
+    return () => window.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
   const handleRetrieve = useCallback(
@@ -130,12 +131,12 @@ export default function LocationSearch({
       try {
         const token = ensureSessionToken();
         const base = `https://api.mapbox.com/search/searchbox/v1`;
-        const isCategory = s.feature_type === "category";
+        const isCategory = s.feature_type === 'category';
         const url = isCategory
           ? `${base}/category/${encodeURIComponent(mapboxId)}?limit=1${proximityParam}&session_token=${token}&access_token=${accessToken}`
           : `${base}/retrieve/${encodeURIComponent(mapboxId)}?session_token=${token}&access_token=${accessToken}`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error("Retrieve failed");
+        if (!res.ok) throw new Error('Retrieve failed');
         const json: RetrievedFeature = await res.json();
         const feat = json.features?.[0];
         const coords = feat?.geometry?.coordinates;
@@ -148,32 +149,33 @@ export default function LocationSearch({
           id: mapboxId,
           name: s.name,
           placeFormatted: s.place_formatted,
+          featureType: s.feature_type,
         });
         setIsOpen(false);
         setSuggestions([]);
-        setQuery(s.place_formatted || s.name || "");
+        setQuery(s.place_formatted || s.name || '');
         inputRef.current?.blur();
       } catch {
         // swallow
       }
     },
-    [accessToken, onSelect, proximityParam],
+    [accessToken, onSelect, proximityParam]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!isOpen) return;
-    if (e.key === "ArrowDown") {
+    if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActiveIndex((i) => Math.min(i + 1, suggestions.length - 1));
-    } else if (e.key === "ArrowUp") {
+    } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setActiveIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Enter") {
+    } else if (e.key === 'Enter') {
       e.preventDefault();
       if (activeIndex >= 0 && activeIndex < suggestions.length) {
         void handleRetrieve(suggestions[activeIndex]);
       }
-    } else if (e.key === "Escape") {
+    } else if (e.key === 'Escape') {
       setIsOpen(false);
     }
   };
@@ -245,7 +247,7 @@ export default function LocationSearch({
           <button
             onClick={() => {
               setShowSearch(false);
-              setQuery("");
+              setQuery('');
               setSuggestions([]);
               setIsOpen(false);
               setActiveIndex(-1);
@@ -285,7 +287,7 @@ export default function LocationSearch({
                     role="option"
                     aria-selected={isActive}
                     className={`flex flex-col gap-1 px-4 py-3 cursor-pointer ${
-                      isActive ? "bg-[#f5f5f5]" : "hover:bg-[#f5f5f5]"
+                      isActive ? 'bg-[#f5f5f5]' : 'hover:bg-[#f5f5f5]'
                     }`}
                     onMouseEnter={() => setActiveIndex(idx)}
                     onMouseDown={(e) => {
@@ -295,7 +297,7 @@ export default function LocationSearch({
                     onClick={() => void handleRetrieve(s)}
                   >
                     <p className="font-medium text-[#313131] text-sm">
-                      {s.name || s.place_formatted || "Unnamed"}
+                      {s.name || s.place_formatted || 'Unnamed'}
                     </p>
                     {s.place_formatted && (
                       <p className="text-[#7d7d7d] text-xs truncate">

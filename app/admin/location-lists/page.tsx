@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   useState,
@@ -7,43 +7,44 @@ import {
   useMemo,
   useRef,
   type FormEvent,
-} from "react";
-import { usePrivy } from "@privy-io/react-auth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { z } from "zod";
-import { Loader2, Map, Trash2, XCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+} from 'react';
+import { usePrivy } from '@privy-io/react-auth';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { z } from 'zod';
+import { Loader2, Map, Trash2, XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import LocationSearch from "@/components/shared/location-search";
+} from '@/components/ui/select';
+import LocationSearch from '@/components/shared/location-search';
+import { deriveDisplayNameAndAddress } from '@/lib/utils/location-autofill';
 import type {
   LocationListWithCount,
   LocationListLocation,
   LocationOption,
-} from "@/lib/types";
+} from '@/lib/types';
 
-const LISTS_KEY = ["admin-location-lists"] as const;
-const LIST_LOCATIONS_KEY = (listId: string) => ["admin-location-list", listId];
-const LOCATION_OPTIONS_KEY = ["admin-location-options"] as const;
+const LISTS_KEY = ['admin-location-lists'] as const;
+const LIST_LOCATIONS_KEY = (listId: string) => ['admin-location-list', listId];
+const LOCATION_OPTIONS_KEY = ['admin-location-options'] as const;
 
 const hexColorRegex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 const blackButtonClasses =
-  "bg-black text-white hover:bg-black/80 focus-visible:ring-black/80";
+  'bg-black text-white hover:bg-black/80 focus-visible:ring-black/80';
 
 const createListSchema = z.object({
   title: z.string().min(3),
@@ -65,42 +66,42 @@ const assignmentSchema = z.object({
 
 const editLocationSchema = z
   .object({
-    placeId: z.string().min(3, "Place ID is required"),
-    displayName: z.string().min(3, "Display name is required"),
-    name: z.string().min(3, "Name is required"),
+    placeId: z.string().min(3, 'Place ID is required'),
+    displayName: z.string().min(3, 'Display name is required'),
+    name: z.string().min(3, 'Name is required'),
     description: z.string().max(500).optional(),
     latitude: z
       .string()
-      .min(1, "Latitude is required")
+      .min(1, 'Latitude is required')
       .pipe(
         z.coerce.number().refine((value) => value >= -90 && value <= 90, {
-          message: "Latitude must be between -90 and 90",
-        }),
+          message: 'Latitude must be between -90 and 90',
+        })
       ),
     longitude: z
       .string()
-      .min(1, "Longitude is required")
+      .min(1, 'Longitude is required')
       .pipe(
         z.coerce.number().refine((value) => value >= -180 && value <= 180, {
-          message: "Longitude must be between -180 and 180",
-        }),
+          message: 'Longitude must be between -180 and 180',
+        })
       ),
     walletAddress: z.string().optional(),
     username: z.string().optional(),
-    locationType: z.enum(["location", "event"]).default("location"),
+    locationType: z.enum(['location', 'event']).default('location'),
     eventUrl: z
-      .union([z.string().url("Event URL must be a valid URL"), z.literal("")])
+      .union([z.string().url('Event URL must be a valid URL'), z.literal('')])
       .optional()
-      .transform((val) => (val === "" ? undefined : val)),
+      .transform((val) => (val === '' ? undefined : val)),
   })
   .refine(
     (data) =>
-      data.locationType !== "event" ||
+      data.locationType !== 'event' ||
       (data.eventUrl && data.eventUrl.length > 0),
     {
-      message: "Event URL is required for event locations",
-      path: ["eventUrl"],
-    },
+      message: 'Event URL is required for event locations',
+      path: ['eventUrl'],
+    }
   );
 
 type NewLocationFormState = {
@@ -113,7 +114,7 @@ type NewLocationFormState = {
   walletAddress: string;
   username: string;
   locationImageFile: File | null;
-  locationType: "location" | "event";
+  locationType: 'location' | 'event';
   eventUrl: string;
 };
 
@@ -128,7 +129,7 @@ type EditLocationFormState = {
   username: string;
   currentImageUrl: string;
   locationImageFile: File | null;
-  locationType: "location" | "event";
+  locationType: 'location' | 'event';
   eventUrl: string;
 };
 
@@ -155,42 +156,42 @@ type EditLocationVariables = {
 
 const createLocationSchema = z
   .object({
-    placeId: z.string().min(3, "Place ID is required"),
-    displayName: z.string().min(3, "Display name is required"),
-    name: z.string().min(3, "Name is required"),
+    placeId: z.string().min(3, 'Place ID is required'),
+    displayName: z.string().min(3, 'Display name is required'),
+    name: z.string().min(3, 'Name is required'),
     description: z.string().max(500).optional(),
     latitude: z
       .string()
-      .min(1, "Latitude is required")
+      .min(1, 'Latitude is required')
       .pipe(
         z.coerce.number().refine((value) => value >= -90 && value <= 90, {
-          message: "Latitude must be between -90 and 90",
-        }),
+          message: 'Latitude must be between -90 and 90',
+        })
       ),
     longitude: z
       .string()
-      .min(1, "Longitude is required")
+      .min(1, 'Longitude is required')
       .pipe(
         z.coerce.number().refine((value) => value >= -180 && value <= 180, {
-          message: "Longitude must be between -180 and 180",
-        }),
+          message: 'Longitude must be between -180 and 180',
+        })
       ),
-    walletAddress: z.string().min(4, "Wallet address is required"),
+    walletAddress: z.string().min(4, 'Wallet address is required'),
     username: z.string().optional(),
-    locationType: z.enum(["location", "event"]).default("location"),
+    locationType: z.enum(['location', 'event']).default('location'),
     eventUrl: z
-      .union([z.string().url("Event URL must be a valid URL"), z.literal("")])
+      .union([z.string().url('Event URL must be a valid URL'), z.literal('')])
       .optional()
-      .transform((val) => (val === "" ? undefined : val)),
+      .transform((val) => (val === '' ? undefined : val)),
   })
   .refine(
     (data) =>
-      data.locationType !== "event" ||
+      data.locationType !== 'event' ||
       (data.eventUrl && data.eventUrl.length > 0),
     {
-      message: "Event URL is required for event locations",
-      path: ["eventUrl"],
-    },
+      message: 'Event URL is required for event locations',
+      path: ['eventUrl'],
+    }
   );
 
 export default function AdminLocationListsPage() {
@@ -200,55 +201,55 @@ export default function AdminLocationListsPage() {
   const [adminLoading, setAdminLoading] = useState(true);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({
-    title: "",
-    description: "",
-    accentColor: "#111827",
+    title: '',
+    description: '',
+    accentColor: '#111827',
     isActive: true,
   });
   const [editForm, setEditForm] = useState({
-    title: "",
-    description: "",
-    accentColor: "#111827",
+    title: '',
+    description: '',
+    accentColor: '#111827',
     isActive: true,
   });
-  const [locationSearch, setLocationSearch] = useState("");
+  const [locationSearch, setLocationSearch] = useState('');
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(
-    null,
+    null
   );
   const [removalTarget, setRemovalTarget] = useState<number | null>(null);
   const [newLocationForm, setNewLocationForm] = useState<NewLocationFormState>({
-    placeId: "",
-    displayName: "",
-    name: "",
-    description: "",
-    latitude: "",
-    longitude: "",
-    walletAddress: "",
-    username: "",
+    placeId: '',
+    displayName: '',
+    name: '',
+    description: '',
+    latitude: '',
+    longitude: '',
+    walletAddress: '',
+    username: '',
     locationImageFile: null,
-    locationType: "location",
-    eventUrl: "",
+    locationType: 'location',
+    eventUrl: '',
   });
   const [fileInputKey, setFileInputKey] = useState(0);
   const [editingLocation, setEditingLocation] =
     useState<LocationListLocation | null>(null);
   const [editingLocationId, setEditingLocationId] = useState<number | null>(
-    null,
+    null
   );
   const [editLocationForm, setEditLocationForm] =
     useState<EditLocationFormState>({
-      placeId: "",
-      displayName: "",
-      name: "",
-      description: "",
-      latitude: "",
-      longitude: "",
-      walletAddress: "",
-      username: "",
-      currentImageUrl: "",
+      placeId: '',
+      displayName: '',
+      name: '',
+      description: '',
+      latitude: '',
+      longitude: '',
+      walletAddress: '',
+      username: '',
+      currentImageUrl: '',
       locationImageFile: null,
-      locationType: "location",
-      eventUrl: "",
+      locationType: 'location',
+      eventUrl: '',
     });
   const [editFileInputKey, setEditFileInputKey] = useState(0);
   const [showCreateLocationDialog, setShowCreateLocationDialog] =
@@ -256,15 +257,15 @@ export default function AdminLocationListsPage() {
   const lastUserValuesRef = useRef<{
     walletAddress: string;
     email: string;
-  }>({ walletAddress: "", email: "" });
+  }>({ walletAddress: '', email: '' });
 
   const checkAdminStatus = useCallback(async () => {
     if (!user?.email?.address) return false;
 
     try {
-      const response = await fetch("/api/admin/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email.address }),
       });
       const responseData = await response.json();
@@ -272,7 +273,7 @@ export default function AdminLocationListsPage() {
       const data = responseData.data || responseData;
       return data.isAdmin;
     } catch (error) {
-      console.error("Error checking admin status", error);
+      console.error('Error checking admin status', error);
       return false;
     }
   }, [user?.email?.address]);
@@ -293,8 +294,8 @@ export default function AdminLocationListsPage() {
   }, [user, checkAdminStatus]);
 
   useEffect(() => {
-    const userWalletAddress = user?.wallet?.address || "";
-    const userEmail = user?.email?.address || "";
+    const userWalletAddress = user?.wallet?.address || '';
+    const userEmail = user?.email?.address || '';
 
     const prevUserWallet = lastUserValuesRef.current.walletAddress;
     const prevUserEmail = lastUserValuesRef.current.email;
@@ -309,16 +310,16 @@ export default function AdminLocationListsPage() {
     // 2. Going from empty to non-empty (login after logout) - either wallet OR email
     // 3. Going from non-empty to empty (logout) - either wallet OR email
     const userContextChanged =
-      (prevUserWallet !== "" &&
-        userWalletAddress !== "" &&
+      (prevUserWallet !== '' &&
+        userWalletAddress !== '' &&
         userWalletAddress !== prevUserWallet) ||
-      (prevUserEmail !== "" &&
-        userEmail !== "" &&
+      (prevUserEmail !== '' &&
+        userEmail !== '' &&
         userEmail !== prevUserEmail) ||
-      (prevUserWallet === "" && userWalletAddress !== "") ||
-      (prevUserEmail === "" && userEmail !== "") ||
-      (prevUserWallet !== "" && userWalletAddress === "") ||
-      (prevUserEmail !== "" && userEmail === "");
+      (prevUserWallet === '' && userWalletAddress !== '') ||
+      (prevUserEmail === '' && userEmail !== '') ||
+      (prevUserWallet !== '' && userWalletAddress === '') ||
+      (prevUserEmail !== '' && userEmail === '');
 
     // Update ref with current user values
     lastUserValuesRef.current = {
@@ -357,18 +358,18 @@ export default function AdminLocationListsPage() {
     });
   }, [user?.wallet?.address, user?.email?.address]);
 
-  const adminEmail = user?.email?.address || "";
+  const adminEmail = user?.email?.address || '';
 
   const { data: lists = [], isLoading: listsLoading } = useQuery<
     LocationListWithCount[]
   >({
     queryKey: LISTS_KEY,
     queryFn: async () => {
-      const response = await fetch("/api/admin/location-lists", {
-        headers: { "x-user-email": adminEmail },
+      const response = await fetch('/api/admin/location-lists', {
+        headers: { 'x-user-email': adminEmail },
       });
       if (!response.ok) {
-        throw new Error("Failed to fetch location lists");
+        throw new Error('Failed to fetch location lists');
       }
       const responseData = await response.json();
       // Unwrap the apiSuccess wrapper
@@ -383,13 +384,13 @@ export default function AdminLocationListsPage() {
       queryKey: LOCATION_OPTIONS_KEY,
       queryFn: async () => {
         const response = await fetch(
-          "/api/admin/location-lists/location-options",
+          '/api/admin/location-lists/location-options',
           {
-            headers: { "x-user-email": adminEmail },
-          },
+            headers: { 'x-user-email': adminEmail },
+          }
         );
         if (!response.ok) {
-          throw new Error("Failed to fetch location options");
+          throw new Error('Failed to fetch location options');
         }
         const responseData = await response.json();
         // Unwrap the apiSuccess wrapper
@@ -401,7 +402,7 @@ export default function AdminLocationListsPage() {
 
   const selectedList = useMemo(
     () => lists.find((list) => list.id === selectedListId) ?? null,
-    [lists, selectedListId],
+    [lists, selectedListId]
   );
 
   useEffect(() => {
@@ -414,8 +415,8 @@ export default function AdminLocationListsPage() {
     if (selectedList) {
       setEditForm({
         title: selectedList.title,
-        description: selectedList.description ?? "",
-        accentColor: selectedList.accent_color || "#111827",
+        description: selectedList.description ?? '',
+        accentColor: selectedList.accent_color || '#111827',
         isActive: selectedList.is_active,
       });
     }
@@ -423,7 +424,7 @@ export default function AdminLocationListsPage() {
 
   const listLocationsKey = selectedListId
     ? LIST_LOCATIONS_KEY(selectedListId)
-    : (["admin-location-list", "idle"] as const);
+    : (['admin-location-list', 'idle'] as const);
 
   const { data: listLocations = [], isLoading: listLocationsLoading } =
     useQuery<LocationListLocation[]>({
@@ -432,11 +433,11 @@ export default function AdminLocationListsPage() {
         const response = await fetch(
           `/api/admin/location-lists/${selectedListId}/locations`,
           {
-            headers: { "x-user-email": adminEmail },
-          },
+            headers: { 'x-user-email': adminEmail },
+          }
         );
         if (!response.ok) {
-          throw new Error("Failed to fetch list locations");
+          throw new Error('Failed to fetch list locations');
         }
         const responseData = await response.json();
         // Unwrap the apiSuccess wrapper
@@ -448,18 +449,18 @@ export default function AdminLocationListsPage() {
 
   const createListMutation = useMutation({
     mutationFn: async (payload: z.infer<typeof createListSchema>) => {
-      const response = await fetch("/api/admin/location-lists", {
-        method: "POST",
+      const response = await fetch('/api/admin/location-lists', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "x-user-email": adminEmail,
+          'Content-Type': 'application/json',
+          'x-user-email': adminEmail,
         },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}));
-        throw new Error(errorBody.error || "Failed to create list");
+        throw new Error(errorBody.error || 'Failed to create list');
       }
 
       return response.json();
@@ -467,18 +468,18 @@ export default function AdminLocationListsPage() {
     onSuccess: (data: { list?: { id?: string } }) => {
       queryClient.invalidateQueries({ queryKey: LISTS_KEY });
       setCreateForm({
-        title: "",
-        description: "",
-        accentColor: "#111827",
+        title: '',
+        description: '',
+        accentColor: '#111827',
         isActive: true,
       });
       if (data?.list?.id) {
         setSelectedListId(data.list.id);
       }
-      toast.success("List created");
+      toast.success('List created');
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Unable to create list");
+      toast.error(error.message || 'Unable to create list');
     },
   });
 
@@ -491,17 +492,17 @@ export default function AdminLocationListsPage() {
       payload: z.infer<typeof updateListSchema>;
     }) => {
       const response = await fetch(`/api/admin/location-lists/${listId}`, {
-        method: "PUT",
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
-          "x-user-email": adminEmail,
+          'Content-Type': 'application/json',
+          'x-user-email': adminEmail,
         },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}));
-        throw new Error(errorBody.error || "Failed to update list");
+        throw new Error(errorBody.error || 'Failed to update list');
       }
 
       return response.json();
@@ -513,10 +514,10 @@ export default function AdminLocationListsPage() {
         });
       }
       queryClient.invalidateQueries({ queryKey: LISTS_KEY });
-      toast.success("List updated");
+      toast.success('List updated');
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Unable to update list");
+      toast.error(error.message || 'Unable to update list');
     },
   });
 
@@ -531,18 +532,18 @@ export default function AdminLocationListsPage() {
       const response = await fetch(
         `/api/admin/location-lists/${listId}/locations`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
-            "x-user-email": adminEmail,
+            'Content-Type': 'application/json',
+            'x-user-email': adminEmail,
           },
           body: JSON.stringify({ locationId }),
-        },
+        }
       );
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}));
-        throw new Error(errorBody.error || "Failed to add location");
+        throw new Error(errorBody.error || 'Failed to add location');
       }
 
       return response.json();
@@ -555,10 +556,10 @@ export default function AdminLocationListsPage() {
         queryClient.invalidateQueries({ queryKey: LISTS_KEY });
       }
       setSelectedLocationId(null);
-      toast.success("Location added to list");
+      toast.success('Location added to list');
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Unable to add location");
+      toast.error(error.message || 'Unable to add location');
     },
   });
 
@@ -573,16 +574,16 @@ export default function AdminLocationListsPage() {
       const response = await fetch(
         `/api/admin/location-lists/${listId}/locations?locationId=${locationId}`,
         {
-          method: "DELETE",
+          method: 'DELETE',
           headers: {
-            "x-user-email": adminEmail,
+            'x-user-email': adminEmail,
           },
-        },
+        }
       );
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}));
-        throw new Error(errorBody.error || "Failed to remove location");
+        throw new Error(errorBody.error || 'Failed to remove location');
       }
 
       return response.json();
@@ -597,10 +598,10 @@ export default function AdminLocationListsPage() {
         });
         queryClient.invalidateQueries({ queryKey: LISTS_KEY });
       }
-      toast.success("Location removed");
+      toast.success('Location removed');
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Unable to remove location");
+      toast.error(error.message || 'Unable to remove location');
     },
     onSettled: () => {
       setRemovalTarget(null);
@@ -610,10 +611,10 @@ export default function AdminLocationListsPage() {
   const deleteListMutation = useMutation({
     mutationFn: async (listId: string) => {
       const response = await fetch(`/api/admin/location-lists/${listId}`, {
-        method: "DELETE",
-        headers: { "x-user-email": adminEmail },
+        method: 'DELETE',
+        headers: { 'x-user-email': adminEmail },
       });
-      if (!response.ok) throw new Error("Failed to delete list");
+      if (!response.ok) throw new Error('Failed to delete list');
       return response.json();
     },
     onSuccess: (_data, deletedListId) => {
@@ -621,10 +622,10 @@ export default function AdminLocationListsPage() {
       if (selectedListId === deletedListId) {
         setSelectedListId(null);
       }
-      toast.success("List deleted");
+      toast.success('List deleted');
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Unable to delete list");
+      toast.error(error.message || 'Unable to delete list');
     },
   });
 
@@ -647,16 +648,16 @@ export default function AdminLocationListsPage() {
       eventUrl,
     }: CreateLocationVariables) => {
       const uploadForm = new FormData();
-      uploadForm.append("file", imageFile);
+      uploadForm.append('file', imageFile);
 
-      const uploadResponse = await fetch("/api/upload", {
-        method: "POST",
+      const uploadResponse = await fetch('/api/upload', {
+        method: 'POST',
         body: uploadForm,
       });
 
       if (!uploadResponse.ok) {
         const errorBody = await uploadResponse.json().catch(() => ({}));
-        throw new Error(errorBody.error || "Failed to upload image");
+        throw new Error(errorBody.error || 'Failed to upload image');
       }
 
       const uploadResponseData = await uploadResponse.json();
@@ -665,14 +666,14 @@ export default function AdminLocationListsPage() {
       const imageUrl = uploadData.imageUrl || uploadData.url;
 
       if (!imageUrl) {
-        throw new Error("Upload succeeded but no image URL was returned");
+        throw new Error('Upload succeeded but no image URL was returned');
       }
 
-      const response = await fetch("/api/locations", {
-        method: "POST",
+      const response = await fetch('/api/locations', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "x-user-email": user?.email?.address || "",
+          'Content-Type': 'application/json',
+          'x-user-email': user?.email?.address || '',
         },
         body: JSON.stringify({
           place_id: placeId,
@@ -681,7 +682,7 @@ export default function AdminLocationListsPage() {
           description: description?.trim() || null,
           lat: latitude.toString(),
           lon: longitude.toString(),
-          type: type || "location",
+          type: type || 'location',
           eventUrl: eventUrl?.trim() || null,
           walletAddress,
           username,
@@ -691,26 +692,26 @@ export default function AdminLocationListsPage() {
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}));
-        throw new Error(errorBody.error || "Failed to create location");
+        throw new Error(errorBody.error || 'Failed to create location');
       }
 
       return response.json();
     },
     onSuccess: (data: { location?: { id?: number } }, variables) => {
       queryClient.invalidateQueries({ queryKey: LOCATION_OPTIONS_KEY });
-      toast.success("Location created");
+      toast.success('Location created');
       setNewLocationForm((prev) => ({
-        placeId: "",
-        displayName: "",
-        name: "",
-        description: "",
-        latitude: "",
-        longitude: "",
+        placeId: '',
+        displayName: '',
+        name: '',
+        description: '',
+        latitude: '',
+        longitude: '',
         walletAddress: prev.walletAddress,
         username: prev.username,
         locationImageFile: null,
-        locationType: "location",
-        eventUrl: "",
+        locationType: 'location',
+        eventUrl: '',
       }));
       setFileInputKey((prev) => prev + 1);
       setLocationSearch(variables.displayName);
@@ -721,7 +722,7 @@ export default function AdminLocationListsPage() {
       }
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Unable to create location");
+      toast.error(error.message || 'Unable to create location');
     },
   });
 
@@ -734,29 +735,29 @@ export default function AdminLocationListsPage() {
       let imageUrl = currentImageUrl;
       if (imageFile) {
         const uploadForm = new FormData();
-        uploadForm.append("file", imageFile);
+        uploadForm.append('file', imageFile);
 
-        const uploadResponse = await fetch("/api/upload", {
-          method: "POST",
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
           body: uploadForm,
         });
 
         if (!uploadResponse.ok) {
           const errorBody = await uploadResponse.json().catch(() => ({}));
-          throw new Error(errorBody.error || "Failed to upload image");
+          throw new Error(errorBody.error || 'Failed to upload image');
         }
 
         const uploadResponseData = await uploadResponse.json();
         // Unwrap the apiSuccess wrapper
         const uploadData = uploadResponseData.data || uploadResponseData;
-        imageUrl = uploadData.imageUrl || uploadData.url || "";
+        imageUrl = uploadData.imageUrl || uploadData.url || '';
       }
 
       const response = await fetch(`/api/admin/locations/${locationId}`, {
-        method: "PATCH",
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
-          "x-user-email": adminEmail,
+          'Content-Type': 'application/json',
+          'x-user-email': adminEmail,
         },
         body: JSON.stringify({
           placeId: payload.placeId,
@@ -768,26 +769,26 @@ export default function AdminLocationListsPage() {
           walletAddress: payload.walletAddress?.trim() || null,
           username: payload.username?.trim() || null,
           imageUrl: imageUrl || null,
-          type: payload.locationType || "location",
+          type: payload.locationType || 'location',
           eventUrl: payload.eventUrl?.trim() || null,
         }),
       });
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}));
-        throw new Error(errorBody.error || "Failed to update location");
+        throw new Error(errorBody.error || 'Failed to update location');
       }
 
       return response.json();
     },
     onSuccess: () => {
-      toast.success("Location updated");
+      toast.success('Location updated');
       queryClient.invalidateQueries({ queryKey: listLocationsKey });
       queryClient.invalidateQueries({ queryKey: LOCATION_OPTIONS_KEY });
       resetEditLocationForm();
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Unable to update location");
+      toast.error(error.message || 'Unable to update location');
     },
   });
 
@@ -796,8 +797,8 @@ export default function AdminLocationListsPage() {
     if (!normalized) return locationOptions;
 
     return locationOptions.filter((option) => {
-      const display = option.display_name?.toLowerCase() || "";
-      const name = option.name?.toLowerCase() || "";
+      const display = option.display_name?.toLowerCase() || '';
+      const name = option.name?.toLowerCase() || '';
       return display.includes(normalized) || name.includes(normalized);
     });
   }, [locationOptions, locationSearch]);
@@ -806,7 +807,7 @@ export default function AdminLocationListsPage() {
     event.preventDefault();
     const parsed = createListSchema.safeParse(createForm);
     if (!parsed.success) {
-      toast.error("Please complete the form correctly");
+      toast.error('Please complete the form correctly');
       return;
     }
     createListMutation.mutate(parsed.data);
@@ -826,7 +827,7 @@ export default function AdminLocationListsPage() {
       locationId: selectedLocationId,
     });
     if (!parsed.success) {
-      toast.error("Select a location first");
+      toast.error('Select a location first');
       return;
     }
 
@@ -843,18 +844,24 @@ export default function AdminLocationListsPage() {
       id: string;
       name?: string;
       placeFormatted?: string;
+      featureType?: string;
     }) => {
+      const { displayName, address } = deriveDisplayNameAndAddress({
+        name: picked.name,
+        placeFormatted: picked.placeFormatted,
+        featureType: picked.featureType,
+      });
       setNewLocationForm((prev) => ({
         ...prev,
         placeId: picked.id || prev.placeId,
-        displayName: picked.placeFormatted || picked.name || prev.displayName,
-        name: picked.name || picked.placeFormatted || prev.name,
+        displayName: displayName || prev.displayName,
+        name: address || prev.name,
         latitude: picked.latitude?.toString() ?? prev.latitude,
         longitude: picked.longitude?.toString() ?? prev.longitude,
       }));
-      toast.info("Loaded details from search—review and tweak if needed.");
+      toast.info('Loaded details from search—review and tweak if needed.');
     },
-    [],
+    []
   );
 
   const handleCreateLocation = (event: FormEvent<HTMLFormElement>) => {
@@ -874,18 +881,18 @@ export default function AdminLocationListsPage() {
 
     if (!parsed.success) {
       const firstError = parsed.error.errors[0]?.message;
-      toast.error(firstError || "Please complete the location form");
+      toast.error(firstError || 'Please complete the location form');
       return;
     }
 
     if (!newLocationForm.locationImageFile) {
-      toast.error("Please upload an image for this location");
+      toast.error('Please upload an image for this location');
       return;
     }
 
     createLocationMutation.mutate({
       ...parsed.data,
-      type: parsed.data.locationType || "location",
+      type: parsed.data.locationType || 'location',
       imageFile: newLocationForm.locationImageFile,
     });
   };
@@ -897,15 +904,15 @@ export default function AdminLocationListsPage() {
       placeId: entry.location.place_id,
       displayName: entry.location.display_name,
       name: entry.location.name,
-      description: entry.location.description ?? "",
-      latitude: entry.location.latitude?.toString() ?? "",
-      longitude: entry.location.longitude?.toString() ?? "",
-      walletAddress: entry.location.creator_wallet_address ?? "",
-      username: entry.location.creator_username ?? "",
-      currentImageUrl: entry.location.coin_image_url ?? "",
+      description: entry.location.description ?? '',
+      latitude: entry.location.latitude?.toString() ?? '',
+      longitude: entry.location.longitude?.toString() ?? '',
+      walletAddress: entry.location.creator_wallet_address ?? '',
+      username: entry.location.creator_username ?? '',
+      currentImageUrl: entry.location.coin_image_url ?? '',
       locationImageFile: null,
-      locationType: (entry.location.type as "location" | "event") || "location",
-      eventUrl: entry.location.event_url ?? "",
+      locationType: (entry.location.type as 'location' | 'event') || 'location',
+      eventUrl: entry.location.event_url ?? '',
     });
     setEditFileInputKey((prev) => prev + 1);
   };
@@ -914,18 +921,18 @@ export default function AdminLocationListsPage() {
     setEditingLocation(null);
     setEditingLocationId(null);
     setEditLocationForm({
-      placeId: "",
-      displayName: "",
-      name: "",
-      description: "",
-      latitude: "",
-      longitude: "",
-      walletAddress: "",
-      username: "",
-      currentImageUrl: "",
+      placeId: '',
+      displayName: '',
+      name: '',
+      description: '',
+      latitude: '',
+      longitude: '',
+      walletAddress: '',
+      username: '',
+      currentImageUrl: '',
       locationImageFile: null,
-      locationType: "location",
-      eventUrl: "",
+      locationType: 'location',
+      eventUrl: '',
     });
     setEditFileInputKey((prev) => prev + 1);
   };
@@ -949,7 +956,7 @@ export default function AdminLocationListsPage() {
 
     if (!parsed.success) {
       const firstError = parsed.error.errors[0]?.message;
-      toast.error(firstError || "Please check the fields and try again.");
+      toast.error(firstError || 'Please check the fields and try again.');
       return;
     }
 
@@ -968,18 +975,24 @@ export default function AdminLocationListsPage() {
       id: string;
       name?: string;
       placeFormatted?: string;
+      featureType?: string;
     }) => {
+      const { displayName, address } = deriveDisplayNameAndAddress({
+        name: picked.name,
+        placeFormatted: picked.placeFormatted,
+        featureType: picked.featureType,
+      });
       setEditLocationForm((prev) => ({
         ...prev,
         placeId: picked.id || prev.placeId,
-        displayName: picked.placeFormatted || picked.name || prev.displayName,
-        name: picked.name || picked.placeFormatted || prev.name,
+        displayName: displayName || prev.displayName,
+        name: address || prev.name,
         latitude: picked.latitude?.toString() ?? prev.latitude,
         longitude: picked.longitude?.toString() ?? prev.longitude,
       }));
-      toast.info("Loaded details from search. Review and save to apply.");
+      toast.info('Loaded details from search. Review and save to apply.');
     },
-    [],
+    []
   );
 
   if (adminLoading) {
@@ -1146,8 +1159,8 @@ export default function AdminLocationListsPage() {
                       onClick={() => setSelectedListId(list.id)}
                       className={`cursor-pointer rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${
                         selectedListId === list.id
-                          ? "border-black bg-black text-white"
-                          : "border-gray-200 bg-gray-50"
+                          ? 'border-black bg-black text-white'
+                          : 'border-gray-200 bg-gray-50'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-3">
@@ -1158,8 +1171,8 @@ export default function AdminLocationListsPage() {
                           <p
                             className={`text-xs ${
                               selectedListId === list.id
-                                ? "text-white/70"
-                                : "text-gray-500"
+                                ? 'text-white/70'
+                                : 'text-gray-500'
                             }`}
                           >
                             {list.slug}
@@ -1169,7 +1182,7 @@ export default function AdminLocationListsPage() {
                           <div
                             className="h-3 w-3 rounded-full"
                             style={{
-                              backgroundColor: list.accent_color || "#111827",
+                              backgroundColor: list.accent_color || '#111827',
                             }}
                           />
                           <button
@@ -1178,7 +1191,7 @@ export default function AdminLocationListsPage() {
                               e.stopPropagation();
                               if (
                                 confirm(
-                                  `Delete "${list.title}"? This cannot be undone.`,
+                                  `Delete "${list.title}"? This cannot be undone.`
                                 )
                               ) {
                                 deleteListMutation.mutate(list.id);
@@ -1186,8 +1199,8 @@ export default function AdminLocationListsPage() {
                             }}
                             className={`rounded p-1 transition hover:bg-red-500 hover:text-white ${
                               selectedListId === list.id
-                                ? "text-white/70"
-                                : "text-gray-400"
+                                ? 'text-white/70'
+                                : 'text-gray-400'
                             }`}
                             disabled={deleteListMutation.isPending}
                           >
@@ -1221,7 +1234,7 @@ export default function AdminLocationListsPage() {
                     {selectedList.title}
                   </h2>
                   <p className="text-sm text-gray-500">
-                    {selectedList.location_count} locations · slug{" "}
+                    {selectedList.location_count} locations · slug{' '}
                     {selectedList.slug}
                   </p>
                 </header>
@@ -1358,8 +1371,8 @@ export default function AdminLocationListsPage() {
                       <SelectValue
                         placeholder={
                           locationOptionsLoading
-                            ? "Loading options..."
-                            : "Choose a location"
+                            ? 'Loading options...'
+                            : 'Choose a location'
                         }
                       />
                     </SelectTrigger>
@@ -1428,8 +1441,8 @@ export default function AdminLocationListsPage() {
                           className={`space-y-3 rounded-2xl border p-3 transition-colors ${
                             editingLocationId ===
                             (item.location.id ?? item.location_id)
-                              ? "border-black bg-gray-50 ring-1 ring-black"
-                              : "border-gray-200"
+                              ? 'border-black bg-gray-50 ring-1 ring-black'
+                              : 'border-gray-200'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-3">
@@ -1486,12 +1499,12 @@ export default function AdminLocationListsPage() {
                       <p className="font-semibold">
                         {editingLocation
                           ? `Editing ${editingLocation.location.display_name}`
-                          : "Edit location"}
+                          : 'Edit location'}
                       </p>
                       <p className="text-sm text-gray-500">
                         {editingLocation
-                          ? "Adjust the fields and save to update the location."
-                          : "Select a location above to edit its details."}
+                          ? 'Adjust the fields and save to update the location.'
+                          : 'Select a location above to edit its details.'}
                       </p>
                     </div>
                     {editingLocation && (
@@ -1566,7 +1579,7 @@ export default function AdminLocationListsPage() {
                           onValueChange={(value) =>
                             setEditLocationForm((prev) => ({
                               ...prev,
-                              locationType: value as "location" | "event",
+                              locationType: value as 'location' | 'event',
                             }))
                           }
                         >
@@ -1580,7 +1593,7 @@ export default function AdminLocationListsPage() {
                         </Select>
                       </div>
 
-                      {editLocationForm.locationType === "event" && (
+                      {editLocationForm.locationType === 'event' && (
                         <div className="space-y-1">
                           <Label>Event URL</Label>
                           <Input
@@ -1810,7 +1823,7 @@ export default function AdminLocationListsPage() {
                 onValueChange={(value) =>
                   setNewLocationForm((prev) => ({
                     ...prev,
-                    locationType: value as "location" | "event",
+                    locationType: value as 'location' | 'event',
                   }))
                 }
               >
@@ -1824,7 +1837,7 @@ export default function AdminLocationListsPage() {
               </Select>
             </div>
 
-            {newLocationForm.locationType === "event" && (
+            {newLocationForm.locationType === 'event' && (
               <div className="space-y-1">
                 <Label htmlFor="new-event-url">Event URL</Label>
                 <Input
