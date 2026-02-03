@@ -27,13 +27,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate location data
-    const { place_id, display_name, name, lat, lon, type, context } =
+    const { place_id, display_name, name, address, lat, lon, type, context } =
       locationData;
 
     const sanitizedPlaceId = sanitizeString(place_id);
     const sanitizedDisplayName = sanitizeString(display_name);
     const sanitizedName =
       sanitizeString(name) ?? sanitizedDisplayName ?? sanitizeString(place_id);
+    const sanitizedAddress = sanitizeString(address) ?? sanitizedName; // Fallback to name if address not provided
     const sanitizedType = sanitizeString(type);
     const sanitizedContext =
       sanitizeString(context) ??
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
       place_id: sanitizedPlaceId,
       display_name: sanitizedDisplayName,
       name: sanitizedName,
+      address: sanitizedAddress,
       latitude: parsedLat,
       longitude: parsedLon,
       points_value: 100, // Each location is worth 100 points

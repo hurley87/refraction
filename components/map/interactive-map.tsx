@@ -21,6 +21,7 @@ interface MarkerData {
   place_id: string;
   display_name: string;
   name: string;
+  address?: string | null;
   description?: string | null;
   creator_wallet_address?: string | null;
   creator_username?: string | null;
@@ -326,6 +327,7 @@ export default function InteractiveMap({
             place_id: loc.place_id,
             display_name: loc.display_name,
             name: loc.name,
+            address: loc.address ?? loc.name, // Fallback to name if address not set
             description: loc.description ?? null,
             creator_wallet_address: loc.creator_wallet_address ?? null,
             creator_username: loc.creator_username ?? null,
@@ -533,7 +535,8 @@ export default function InteractiveMap({
             longitude,
             place_id: feature.id || `temp-${Date.now()}`,
             display_name: spotName || '', // Spot name (empty for addresses)
-            name: address || 'Unknown Location', // Address
+            name: spotName || address || 'Unknown Location', // Venue name (fallback to address)
+            address: address || 'Unknown Location', // Street address
           };
           const duplicateMarker = findExistingMarker(newMarker.place_id);
           if (duplicateMarker) {
@@ -560,12 +563,14 @@ export default function InteractiveMap({
     } catch (error) {
       console.error('Reverse geocoding failed:', error);
       // Still allow creating even if reverse geocoding fails
+      const fallbackAddress = `Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
       const newMarker: MarkerData = {
         latitude,
         longitude,
         place_id: `temp-${Date.now()}`,
         display_name: '', // No spot name for fallback case
-        name: `Location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`, // Use coordinates as address
+        name: fallbackAddress, // Use coordinates as name
+        address: fallbackAddress, // Use coordinates as address
       };
 
       setSelectedMarker(newMarker);
@@ -958,7 +963,10 @@ export default function InteractiveMap({
         body: JSON.stringify({
           place_id: selectedMarker.place_id,
           display_name: formData.name || selectedMarker.display_name, // formData.name is the spot name
-          name: formData.address || selectedMarker.name, // formData.address is the address
+          name:
+            formData.name || selectedMarker.display_name || selectedMarker.name, // Venue name
+          address:
+            formData.address || selectedMarker.address || selectedMarker.name, // Street address
           description: formData.description,
           lat: selectedMarker.latitude.toString(),
           lon: selectedMarker.longitude.toString(),
@@ -1022,6 +1030,7 @@ export default function InteractiveMap({
                   place_id: existingLocation.place_id,
                   display_name: existingLocation.display_name,
                   name: existingLocation.name,
+                  address: existingLocation.address ?? existingLocation.name,
                   description: existingLocation.description ?? null,
                   creator_wallet_address:
                     existingLocation.creator_wallet_address ?? null,
@@ -1045,6 +1054,7 @@ export default function InteractiveMap({
               place_id: selectedMarker.place_id,
               name: result.location.name,
               display_name: result.location.display_name,
+              address: result.location.address ?? result.location.name,
               description: result.location.description ?? null,
               creator_wallet_address:
                 result.location.creator_wallet_address ?? null,
@@ -1440,8 +1450,8 @@ export default function InteractiveMap({
             className="z-50 [&>button]:hidden"
           >
             <MapCard
-              name={popupInfo.name}
-              address={popupInfo.display_name}
+              name={popupInfo.display_name || popupInfo.name}
+              address={popupInfo.address || popupInfo.name}
               description={popupInfo.description}
               isExisting={true}
               onAction={() => handleStartCheckIn(popupInfo)}
@@ -1656,10 +1666,12 @@ export default function InteractiveMap({
                       )}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-inktrap text-[13px] leading-tight tracking-[-0.3px] text-[#1a1a1a] line-clamp-1">
-                          {checkInTarget?.display_name || 'Selected Location'}
+                          {checkInTarget?.display_name ||
+                            checkInTarget?.name ||
+                            'Selected Location'}
                         </h3>
                         <p className="font-inktrap text-[10px] uppercase tracking-[0.3px] text-[#999] mt-0.5 line-clamp-1">
-                          {checkInTarget?.name}
+                          {checkInTarget?.address || checkInTarget?.name}
                         </p>
                       </div>
                     </div>

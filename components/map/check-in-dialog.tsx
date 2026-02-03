@@ -10,6 +10,7 @@ interface MarkerData {
   place_id: string;
   display_name: string;
   name: string;
+  address?: string | null;
   description?: string | null;
   creator_wallet_address?: string | null;
   creator_username?: string | null;
@@ -230,10 +231,12 @@ export default function CheckInDialog({
                     )}
                     <div className="flex-1 min-w-0">
                       <h3 className="font-inktrap text-[13px] leading-tight tracking-[-0.3px] text-[#1a1a1a] line-clamp-1">
-                        {checkInTarget?.display_name || 'Selected Location'}
+                        {checkInTarget?.display_name ||
+                          checkInTarget?.name ||
+                          'Selected Location'}
                       </h3>
                       <p className="font-inktrap text-[10px] uppercase tracking-[0.3px] text-[#999] mt-0.5 line-clamp-1">
-                        {checkInTarget?.name}
+                        {checkInTarget?.address || checkInTarget?.name}
                       </p>
                     </div>
                   </div>

@@ -6,6 +6,7 @@ const LOCATION_COLUMNS = `
   id,
   name,
   display_name,
+  address,
   description,
   latitude,
   longitude,
@@ -88,7 +89,7 @@ export const listLocationsByWallet = async (walletAddress: string) => {
     .select(
       `
       locations (
-        id, name, display_name, latitude, longitude, place_id, points_value, type, context, created_at
+        id, name, display_name, address, latitude, longitude, place_id, points_value, type, context, created_at
       )
     `
     )
@@ -108,6 +109,7 @@ export const updateLocationById = async (
       Location,
       | 'name'
       | 'display_name'
+      | 'address'
       | 'place_id'
       | 'latitude'
       | 'longitude'
@@ -142,7 +144,7 @@ export const listLocationOptions = async (
 ): Promise<LocationOption[]> => {
   let query = supabase
     .from('locations')
-    .select('id, name, display_name, latitude, longitude, place_id')
+    .select('id, name, display_name, address, latitude, longitude, place_id')
     .order('created_at', { ascending: false })
     .limit(limit);
 

@@ -1,12 +1,13 @@
-import { NextRequest } from "next/server";
-import { z } from "zod";
-import { checkAdminPermission } from "@/lib/db/admin";
-import { updateLocationById } from "@/lib/db/locations";
-import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { checkAdminPermission } from '@/lib/db/admin';
+import { updateLocationById } from '@/lib/db/locations';
+import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 
 const updateLocationSchema = z.object({
   name: z.string().min(1).optional(),
   displayName: z.string().min(1).optional(),
+  address: z.string().max(500).nullable().optional(),
   description: z.string().max(500).nullable().optional(),
   placeId: z.string().min(1).optional(),
   latitude: z.number().optional(),
@@ -21,17 +22,17 @@ const updateLocationSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { locationId: string } },
+  { params }: { params: { locationId: string } }
 ) {
   try {
-    const adminEmail = request.headers.get("x-user-email") || undefined;
+    const adminEmail = request.headers.get('x-user-email') || undefined;
     if (!checkAdminPermission(adminEmail)) {
-      return apiError("Unauthorized", 403);
+      return apiError('Unauthorized', 403);
     }
 
     const locationId = Number(params.locationId);
     if (Number.isNaN(locationId) || locationId <= 0) {
-      return apiError("Invalid location id", 400);
+      return apiError('Invalid location id', 400);
     }
 
     const json = await request.json();
@@ -47,6 +48,8 @@ export async function PATCH(
     if (payload.name !== undefined) updates.name = payload.name.trim();
     if (payload.displayName !== undefined)
       updates.display_name = payload.displayName.trim();
+    if (payload.address !== undefined)
+      updates.address = payload.address?.trim() || null;
     if (payload.description !== undefined)
       updates.description = payload.description?.trim() || null;
     if (payload.placeId !== undefined)
@@ -65,13 +68,13 @@ export async function PATCH(
     if (payload.isVisible !== undefined) updates.is_visible = payload.isVisible;
 
     if (Object.keys(updates).length === 0) {
-      return apiError("No update fields provided", 400);
+      return apiError('No update fields provided', 400);
     }
 
     const location = await updateLocationById(locationId, updates);
     return apiSuccess({ location });
   } catch (error) {
-    console.error("Failed to update location", error);
-    return apiError("Failed to update location", 500);
+    console.error('Failed to update location', error);
+    return apiError('Failed to update location', 500);
   }
 }

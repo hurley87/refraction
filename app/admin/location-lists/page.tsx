@@ -108,6 +108,7 @@ type NewLocationFormState = {
   placeId: string;
   displayName: string;
   name: string;
+  address: string;
   description: string;
   latitude: string;
   longitude: string;
@@ -122,6 +123,7 @@ type EditLocationFormState = {
   placeId: string;
   displayName: string;
   name: string;
+  address: string;
   description: string;
   latitude: string;
   longitude: string;
@@ -137,6 +139,7 @@ type CreateLocationVariables = {
   placeId: string;
   displayName: string;
   name: string;
+  address: string;
   description?: string;
   latitude: number;
   longitude: number;
@@ -221,6 +224,7 @@ export default function AdminLocationListsPage() {
     placeId: '',
     displayName: '',
     name: '',
+    address: '',
     description: '',
     latitude: '',
     longitude: '',
@@ -241,6 +245,7 @@ export default function AdminLocationListsPage() {
       placeId: '',
       displayName: '',
       name: '',
+      address: '',
       description: '',
       latitude: '',
       longitude: '',
@@ -638,6 +643,7 @@ export default function AdminLocationListsPage() {
       placeId,
       displayName,
       name,
+      address,
       description,
       latitude,
       longitude,
@@ -679,6 +685,7 @@ export default function AdminLocationListsPage() {
           place_id: placeId,
           display_name: displayName,
           name,
+          address: address || name, // Use address if provided, fallback to name
           description: description?.trim() || null,
           lat: latitude.toString(),
           lon: longitude.toString(),
@@ -704,6 +711,7 @@ export default function AdminLocationListsPage() {
         placeId: '',
         displayName: '',
         name: '',
+        address: '',
         description: '',
         latitude: '',
         longitude: '',
@@ -763,6 +771,7 @@ export default function AdminLocationListsPage() {
           placeId: payload.placeId,
           displayName: payload.displayName,
           name: payload.name,
+          address: editLocationForm.address || payload.name, // Use form address or fallback to name
           description: payload.description?.trim() || null,
           latitude: payload.latitude,
           longitude: payload.longitude,
@@ -855,7 +864,8 @@ export default function AdminLocationListsPage() {
         ...prev,
         placeId: picked.id || prev.placeId,
         displayName: displayName || prev.displayName,
-        name: address || prev.name,
+        name: displayName || prev.name, // Venue name
+        address: address || prev.address, // Street address
         latitude: picked.latitude?.toString() ?? prev.latitude,
         longitude: picked.longitude?.toString() ?? prev.longitude,
       }));
@@ -892,6 +902,7 @@ export default function AdminLocationListsPage() {
 
     createLocationMutation.mutate({
       ...parsed.data,
+      address: newLocationForm.address || parsed.data.name, // Use form address or fallback to name
       type: parsed.data.locationType || 'location',
       imageFile: newLocationForm.locationImageFile,
     });
@@ -904,6 +915,7 @@ export default function AdminLocationListsPage() {
       placeId: entry.location.place_id,
       displayName: entry.location.display_name,
       name: entry.location.name,
+      address: entry.location.address ?? entry.location.name,
       description: entry.location.description ?? '',
       latitude: entry.location.latitude?.toString() ?? '',
       longitude: entry.location.longitude?.toString() ?? '',
@@ -924,6 +936,7 @@ export default function AdminLocationListsPage() {
       placeId: '',
       displayName: '',
       name: '',
+      address: '',
       description: '',
       latitude: '',
       longitude: '',
@@ -986,7 +999,8 @@ export default function AdminLocationListsPage() {
         ...prev,
         placeId: picked.id || prev.placeId,
         displayName: displayName || prev.displayName,
-        name: address || prev.name,
+        name: displayName || prev.name, // Venue name
+        address: address || prev.address, // Street address
         latitude: picked.latitude?.toString() ?? prev.latitude,
         longitude: picked.longitude?.toString() ?? prev.longitude,
       }));
@@ -1544,7 +1558,7 @@ export default function AdminLocationListsPage() {
                       </div>
 
                       <div className="space-y-1">
-                        <Label>Address</Label>
+                        <Label>Name</Label>
                         <Input
                           value={editLocationForm.name}
                           onChange={(event) =>
@@ -1554,6 +1568,20 @@ export default function AdminLocationListsPage() {
                             }))
                           }
                           required
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label>Address</Label>
+                        <Input
+                          value={editLocationForm.address}
+                          onChange={(event) =>
+                            setEditLocationForm((prev) => ({
+                              ...prev,
+                              address: event.target.value,
+                            }))
+                          }
+                          placeholder="Street address"
                         />
                       </div>
 
@@ -1786,7 +1814,7 @@ export default function AdminLocationListsPage() {
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="new-name">Address</Label>
+              <Label htmlFor="new-name">Name</Label>
               <Input
                 id="new-name"
                 value={newLocationForm.name}
@@ -1797,6 +1825,21 @@ export default function AdminLocationListsPage() {
                   }))
                 }
                 required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="new-address">Address</Label>
+              <Input
+                id="new-address"
+                value={newLocationForm.address}
+                onChange={(event) =>
+                  setNewLocationForm((prev) => ({
+                    ...prev,
+                    address: event.target.value,
+                  }))
+                }
+                placeholder="Street address"
               />
             </div>
 

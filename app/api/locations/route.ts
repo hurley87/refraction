@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('locations')
       .select(
-        'id, name, display_name, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible'
+        'id, name, display_name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible'
       )
       .not('coin_image_url', 'is', null);
 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         .select(
           `
           locations!inner (
-            id, name, display_name, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible
+            id, name, display_name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible
           )
         `
         )
@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
       place_id,
       display_name,
       name,
+      address,
       description,
       lat,
       lon,
@@ -143,6 +144,9 @@ export async function POST(request: NextRequest) {
     const sanitizedPlaceId = sanitizeVarchar(place_id);
     const sanitizedDisplayName = sanitizeVarchar(display_name);
     const sanitizedName = sanitizeVarchar(name);
+    const sanitizedAddress = address
+      ? sanitizeOptionalVarchar(address)
+      : sanitizedName; // Fallback to name if address not provided
     const sanitizedDescription = sanitizeOptionalVarchar(description);
     const sanitizedType =
       typeof type === 'string' && type.trim()
@@ -215,6 +219,7 @@ export async function POST(request: NextRequest) {
       place_id: sanitizedPlaceId,
       display_name: sanitizedDisplayName,
       name: sanitizedName,
+      address: sanitizedAddress,
       description: sanitizedDescription,
       latitude: parseFloat(lat),
       longitude: parseFloat(lon),

@@ -23,6 +23,7 @@ export type Location = {
   id?: number;
   name: string;
   display_name: string;
+  address?: string | null;
   description?: string | null;
   latitude: number;
   longitude: number;
@@ -106,7 +107,7 @@ export type LocationListLocation = {
  */
 export type LocationOption = Pick<
   Location,
-  "id" | "name" | "display_name" | "latitude" | "longitude" | "place_id"
+  'id' | 'name' | 'display_name' | 'latitude' | 'longitude' | 'place_id'
 >;
 
 /**
