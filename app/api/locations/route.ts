@@ -3,8 +3,8 @@ import { supabase } from '@/lib/db/client';
 import { trackLocationCreated, trackPointsEarned } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { checkAdminPermission } from '@/lib/db/admin';
-import { MAX_LOCATIONS_PER_DAY, SUPABASE_ERROR_CODES } from '@/lib/constants';
-import { getUtcDayBounds } from '@/lib/utils/date';
+import { MAX_LOCATIONS_PER_WEEK, SUPABASE_ERROR_CODES } from '@/lib/constants';
+import { getUtcWeekBounds } from '@/lib/utils/date';
 import {
   sanitizeVarchar,
   sanitizeOptionalVarchar,
@@ -182,8 +182,8 @@ export async function POST(request: NextRequest) {
       return apiError('Location already exists for this place_id', 409);
     }
 
-    // Check if user has already created a location today
-    const { startIso, endIso } = getUtcDayBounds();
+    // Check if user has already created too many locations this week
+    const { startIso, endIso } = getUtcWeekBounds();
     const { data: existingLocations, error: checkError } = await supabase
       .from('locations')
       .select('id')
@@ -198,10 +198,10 @@ export async function POST(request: NextRequest) {
 
     if (
       existingLocations &&
-      existingLocations.length >= MAX_LOCATIONS_PER_DAY
+      existingLocations.length >= MAX_LOCATIONS_PER_WEEK
     ) {
       return apiError(
-        'You can only add 30 locations per day. Come back tomorrow!',
+        `You can only add ${MAX_LOCATIONS_PER_WEEK} locations per week. Come back next week!`,
         429
       );
     }

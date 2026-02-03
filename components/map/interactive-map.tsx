@@ -951,7 +951,7 @@ export default function InteractiveMap({
         if (response.status === 429) {
           toast.error(
             result.error ||
-              'You can only add 30 locations per day. Come back tomorrow!'
+              'You can only add 300 locations per week. Come back next week!'
           );
           handleCloseLocationForm();
           return;
