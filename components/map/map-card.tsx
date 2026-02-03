@@ -30,7 +30,6 @@ interface MapCardProps {
 export default function MapCard({
   name,
   address,
-  description,
   isExisting = false,
   onAction,
   onClose,
