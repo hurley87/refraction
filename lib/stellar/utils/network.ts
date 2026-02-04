@@ -73,6 +73,32 @@ export const getStellarNetworkConfig = () => {
 };
 
 /**
+ * Get Soroban RPC URL for a given network name (testnet, mainnet, futurenet, etc.)
+ */
+export const getRpcUrlForNetwork = (
+  networkName: string | undefined
+): string => {
+  if (!networkName) {
+    return getStellarNetworkConfig().rpcUrl;
+  }
+  const normalizedNet = networkName.toUpperCase();
+  switch (normalizedNet) {
+    case 'PUBLIC':
+    case 'MAINNET':
+      return 'https://soroban-rpc.mainnet.stellar.gateway.fm';
+    case 'TESTNET':
+      return 'https://soroban-rpc.testnet.stellar.gateway.fm';
+    case 'FUTURENET':
+      return 'https://rpc-futurenet.stellar.org';
+    case 'LOCAL':
+    case 'STANDALONE':
+      return 'http://localhost:8000/soroban/rpc';
+    default:
+      return 'https://soroban-rpc.testnet.stellar.gateway.fm';
+  }
+};
+
+/**
  * Get Horizon URL for a given network name
  */
 export const getHorizonUrlForNetwork = (
@@ -167,5 +193,35 @@ export const getSimplePaymentContractAddress = (
     return (
       process.env.NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_TESTNET || ''
     );
+  }
+};
+
+/**
+ * Get the claim-points (rewards) token contract address for the given network.
+ * The simple payment contract sends this token via send_token(token_address, recipient, amount).
+ * @param networkPassphrase - Optional network passphrase. If provided, uses wallet's network.
+ * @returns The claim-points token contract address, or empty string if not configured
+ */
+export const getClaimPointsTokenAddress = (
+  networkPassphrase?: string
+): string => {
+  let isMainnet = false;
+
+  if (networkPassphrase) {
+    isMainnet =
+      networkPassphrase.includes('Public') ||
+      networkPassphrase.includes('Public Global Stellar Network');
+  } else {
+    const network =
+      stellarNetwork || process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'TESTNET';
+    const normalizedNetwork = network.toUpperCase();
+    isMainnet =
+      normalizedNetwork === 'PUBLIC' || normalizedNetwork === 'MAINNET';
+  }
+
+  if (isMainnet) {
+    return process.env.NEXT_PUBLIC_CLAIM_POINTS_CONTRACT_ADDRESS_MAINNET || '';
+  } else {
+    return process.env.NEXT_PUBLIC_CLAIM_POINTS_CONTRACT_ADDRESS_TESTNET || '';
   }
 };

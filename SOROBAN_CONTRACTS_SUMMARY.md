@@ -4,38 +4,29 @@
 
 ### Purpose
 
-A lightweight Soroban smart contract that enables sending XLM (native Stellar asset) from the contract's balance to recipients. Used for distributing rewards or payments.
+A minimal Soroban smart contract that sends **custom fungible tokens** from the contract to a recipient. The contract must already hold the token; anyone can call `send_token` to forward it. Used for distributing arbitrary tokens (e.g. XLM or custom assets).
 
 ### Key Functions
 
-**`send(recipient, amount)` / `transfer()` / `pay()`**
+**`send_token(token_address, recipient, amount)`**
 
-- Transfers XLM from the contract to a recipient address
-- Amount is specified in stroops (1 XLM = 10,000,000 stroops)
-- Validates that the recipient is not the contract itself
-- Validates that the amount is positive
-- Checks that the contract has sufficient balance before transferring
+- Sends a fungible token from the contract to a recipient
+- `token_address`: The token contract address (e.g. from `soroban contract id asset --asset native --network <network>` for XLM, or any custom token)
+- `recipient`: Stellar address to receive the tokens
+- `amount`: Amount in the token’s smallest units (e.g. stroops for XLM)
+- Validates recipient ≠ contract, token_address ≠ contract, amount > 0, and sufficient balance
 - Anyone can call this function
-
-**`send_with_native_address(native_asset_address, recipient, amount)`**
-
-- Same functionality as `send()`, but accepts the XLM native asset contract address as a parameter
-- Allows the contract to work across different networks (testnet, mainnet, futurenet) without code changes
-- The XLM contract address is network-specific and can be obtained using:
-  ```bash
-  soroban contract id asset --asset native --network <network>
-  ```
 
 ### Key Features
 
-- **Open Access**: Anyone can trigger payments from the contract
-- **Balance Validation**: Checks contract balance before attempting transfers
-- **Network Flexibility**: Supports explicit native asset address for cross-network compatibility
-- **Security**: Prevents self-transfers and validates all inputs
+- **Custom tokens only**: Single function `send_token`; pass any fungible token by address
+- **Open access**: Anyone can trigger a send from the contract
+- **Balance validation**: Checks contract balance before transferring
+- **No constructor**: Deploy and then fund the contract with the token(s) you want to send
 
 ### Usage
 
-The contract must be funded with XLM before it can send to recipients. Once funded, users can call `send()` or `send_with_native_address()` to distribute XLM from the contract's balance.
+Fund the contract with the token (transfer the token to the contract’s address). Then call `send_token(token_address, recipient, amount)` to send that token to a recipient.
 
 ---
 

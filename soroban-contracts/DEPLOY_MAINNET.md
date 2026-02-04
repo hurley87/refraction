@@ -5,7 +5,6 @@ This guide walks you through deploying the NFT Collection and Simple Payment con
 ## Prerequisites
 
 1. **Funded Mainnet Account**: You need a Stellar account with XLM on mainnet
-
    - Minimum balance: ~2-3 XLM for deployment fees
    - You can buy XLM from exchanges or use a Stellar wallet
 
@@ -103,7 +102,6 @@ soroban contract build
    **Note:** The `--fee 100000` sets the transaction fee to 100,000 stroops (0.01 XLM). If you still get "TxInsufficientFee" errors, try increasing it to `--fee 500000` (0.05 XLM) or higher.
 
    **Replace:**
-
    - `YOUR_SECRET_KEY` - Your Stellar account secret key (starts with 'S')
    - `YOUR_STELLAR_ADDRESS` - Your Stellar account address (starts with 'G', 56 characters)
    - `MAINNET_XLM_CONTRACT_ADDRESS` - The address from Step 1 (starts with 'C')
@@ -119,33 +117,29 @@ soroban contract build
 
 ## Step 4: Deploy Simple Payment Contract
 
+The Simple Payment contract sends custom fungible tokens from the contract to a recipient via `send_token(token_address, recipient, amount)`. It has no constructor.
+
 1. Navigate to the simple payment directory:
 
    ```bash
    cd soroban-contracts/simple_payment
    ```
 
-2. Deploy the contract (the constructor will be called automatically during deployment):
+2. Deploy the contract:
 
    ```bash
    soroban contract deploy \
      --wasm target/wasm32v1-none/release/simple_payment.wasm \
      --source YOUR_SECRET_KEY \
      --network mainnet \
-     --fee 500000 \
-     -- --native_asset_address MAINNET_XLM_CONTRACT_ADDRESS
+     --fee 500000
    ```
 
-   **Note:** The `--fee 100000` sets the transaction fee to 100,000 stroops (0.01 XLM). If you still get "TxInsufficientFee" errors, try increasing it to `--fee 500000` (0.05 XLM) or higher.
+   **Note:** The `--fee 500000` sets the transaction fee. If you get "TxInsufficientFee" errors, try increasing it.
 
-   **Replace:**
+   **Replace:** `YOUR_SECRET_KEY` - Your Stellar account secret key (starts with 'S')
 
-   - `YOUR_SECRET_KEY` - Your Stellar account secret key (starts with 'S')
-   - `MAINNET_XLM_CONTRACT_ADDRESS` - The address from Step 1 (starts with 'C')
-   - The `--` separator is required before constructor arguments
-   - The constructor is automatically called during deployment, so you don't need a separate initialization step
-
-3. **Save the contract ID** that is returned - you'll need it for your frontend configuration.
+3. **Save the contract ID** that is returned - you'll need it for your frontend configuration. Fund the contract with the token(s) you want to send, then invoke `send_token(token_address, recipient, amount)`.
 
    Example output:
 
