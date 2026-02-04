@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   }
 
   const signerSecret =
-    //process.env.REWARDS_TOKEN_OWNER_SECRET_KEY ||
+    process.env.REWARDS_TOKEN_OWNER_SECRET_KEY ||
     process.env.SERVER_WALLET_PRIVATE_KEY;
   if (!signerSecret) {
     return apiError(
