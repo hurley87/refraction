@@ -1,27 +1,26 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from 'react';
 import {
   // MapPin, CheckCircle2,
   ChevronDown,
   ChevronUp,
-} from "lucide-react";
-import type { LocationListWithCount, Location } from "@/lib/types";
+} from 'lucide-react';
+import type { LocationListWithCount, Location } from '@/lib/types';
 
 export type DrawerLocationSummary = Pick<
   Location,
-  | "id"
-  | "name"
-  | "display_name"
-  | "description"
-  | "place_id"
-  | "latitude"
-  | "longitude"
-  | "context"
-  | "type"
-  | "points_value"
-  | "coin_image_url"
-  | "event_url"
+  | 'id'
+  | 'name'
+  | 'description'
+  | 'place_id'
+  | 'latitude'
+  | 'longitude'
+  | 'context'
+  | 'type'
+  | 'points_value'
+  | 'coin_image_url'
+  | 'event_url'
 >;
 
 type DrawerList = LocationListWithCount & {
@@ -57,16 +56,13 @@ interface LocationListsDrawerProps {
  */
 const isLocationInBounds = (
   location: DrawerLocationSummary,
-  bounds: MapBounds,
+  bounds: MapBounds
 ): boolean => {
   if (
-    typeof location.latitude !== "number" ||
-    typeof location.longitude !== "number"
+    typeof location.latitude !== 'number' ||
+    typeof location.longitude !== 'number'
   ) {
-    console.log(
-      "[Filter] Location missing coordinates:",
-      location.name || location.display_name,
-    );
+    console.log('[Filter] Location missing coordinates:', location.name);
     return false;
   }
 
@@ -76,10 +72,11 @@ const isLocationInBounds = (
   // Check latitude bounds
   const latInBounds = latitude >= south && latitude <= north;
   if (!latInBounds) {
-    console.log(
-      `[Filter] Location "${location.name || location.display_name}" FAILED latitude check:`,
-      { locationLat: latitude, boundsSouth: south, boundsNorth: north },
-    );
+    console.log(`[Filter] Location "${location.name}" FAILED latitude check:`, {
+      locationLat: latitude,
+      boundsSouth: south,
+      boundsNorth: north,
+    });
     return false;
   }
 
@@ -96,16 +93,17 @@ const isLocationInBounds = (
 
   if (!lonInBounds) {
     console.log(
-      `[Filter] Location "${location.name || location.display_name}" FAILED longitude check:`,
-      { locationLon: longitude, boundsWest: west, boundsEast: east },
+      `[Filter] Location "${location.name}" FAILED longitude check:`,
+      { locationLon: longitude, boundsWest: west, boundsEast: east }
     );
     return false;
   }
 
-  console.log(
-    `[Filter] Location "${location.name || location.display_name}" PASSED:`,
-    { lat: latitude, lon: longitude, bounds },
-  );
+  console.log(`[Filter] Location "${location.name}" PASSED:`, {
+    lat: latitude,
+    lon: longitude,
+    bounds,
+  });
   return true;
 };
 
@@ -117,7 +115,7 @@ const isLocationInBounds = (
 const getEffectiveBounds = (
   mapBounds: MapBounds | null | undefined,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _userLocation: UserLocation | null | undefined, // Not used for filtering, kept for API compatibility
+  _userLocation: UserLocation | null | undefined // Not used for filtering, kept for API compatibility
 ): MapBounds | null => {
   // Priority 1: Use map bounds (what's visible in the viewport)
   if (mapBounds) {
@@ -159,18 +157,18 @@ export default function LocationListsDrawer({
       setIsLoadingLists(true);
       try {
         const response = await fetch(
-          "/api/location-lists?includeLocations=true",
-          { signal: controller.signal },
+          '/api/location-lists?includeLocations=true',
+          { signal: controller.signal }
         );
-        if (!response.ok) throw new Error("Failed to load lists");
+        if (!response.ok) throw new Error('Failed to load lists');
         const responseData = await response.json();
         // Unwrap the apiSuccess wrapper
         const data = responseData.data || responseData;
         const fetchedLists: DrawerList[] = data.lists || [];
         setLists(fetchedLists);
       } catch (error) {
-        if ((error as Error).name !== "AbortError") {
-          console.error("Failed to load location lists", error);
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Failed to load location lists', error);
         }
       } finally {
         setIsLoadingLists(false);
@@ -182,19 +180,19 @@ export default function LocationListsDrawer({
 
   // Filter locations based on map bounds
   const filteredLists = useMemo(() => {
-    console.log("[Filter] Starting filter with mapBounds:", mapBounds);
+    console.log('[Filter] Starting filter with mapBounds:', mapBounds);
     const effectiveBounds = getEffectiveBounds(mapBounds, userLocation);
-    console.log("[Filter] Effective bounds:", effectiveBounds);
+    console.log('[Filter] Effective bounds:', effectiveBounds);
 
     if (!effectiveBounds) {
       // If no bounds available, return all lists (shouldn't happen due to fallback)
-      console.log("[Filter] No effective bounds, returning all lists");
+      console.log('[Filter] No effective bounds, returning all lists');
       return lists;
     }
 
     console.log(
       `[Filter] Filtering ${lists.length} lists with bounds:`,
-      effectiveBounds,
+      effectiveBounds
     );
 
     const filtered = lists
@@ -205,15 +203,15 @@ export default function LocationListsDrawer({
 
         const totalLocations = list.locations.length;
         console.log(
-          `[Filter] Filtering list "${list.title}" with ${totalLocations} locations`,
+          `[Filter] Filtering list "${list.title}" with ${totalLocations} locations`
         );
 
         const filteredLocations = list.locations.filter((location) =>
-          isLocationInBounds(location, effectiveBounds),
+          isLocationInBounds(location, effectiveBounds)
         );
 
         console.log(
-          `[Filter] List "${list.title}": ${filteredLocations.length}/${totalLocations} locations passed filter`,
+          `[Filter] List "${list.title}": ${filteredLocations.length}/${totalLocations} locations passed filter`
         );
 
         return {
@@ -228,15 +226,15 @@ export default function LocationListsDrawer({
 
     const totalFiltered = filtered.reduce(
       (sum, list) => sum + (list.locations?.length || 0),
-      0,
+      0
     );
     const totalOriginal = lists.reduce(
       (sum, list) => sum + (list.locations?.length || 0),
-      0,
+      0
     );
 
     console.log(
-      `[Filter] Filtering complete. ${totalFiltered}/${totalOriginal} locations passed filter`,
+      `[Filter] Filtering complete. ${totalFiltered}/${totalOriginal} locations passed filter`
     );
 
     if (totalFiltered === 0 && totalOriginal > 0) {
@@ -244,7 +242,7 @@ export default function LocationListsDrawer({
         `[Filter] ⚠️ All ${totalOriginal} locations were filtered out!`,
         `This means no locations in the lists match the current map viewport bounds.`,
         `Bounds:`,
-        effectiveBounds,
+        effectiveBounds
       );
     }
 
@@ -299,7 +297,7 @@ export default function LocationListsDrawer({
   const hasVisibleLocations = useMemo(() => {
     if (isLoadingLists) return true; // Show drawer while loading
     return filteredLists.some(
-      (list) => list.locations && list.locations.length > 0,
+      (list) => list.locations && list.locations.length > 0
     );
   }, [filteredLists, isLoadingLists]);
 
@@ -316,7 +314,7 @@ export default function LocationListsDrawer({
           onClick={() => setIsExpanded((prev) => !prev)}
           className="group flex w-full items-center justify-center py-2"
           aria-label={
-            isExpanded ? "Collapse lists drawer" : "Expand lists drawer"
+            isExpanded ? 'Collapse lists drawer' : 'Expand lists drawer'
           }
         >
           <span className="h-[3px] w-8 rounded-full bg-black/10 transition-colors group-hover:bg-black/20" />
@@ -338,7 +336,7 @@ export default function LocationListsDrawer({
               onClick={() => setIsExpanded((prev) => !prev)}
               className="flex items-center gap-1.5 rounded-full bg-black/[0.04] px-3 py-1.5 text-[10px] font-inktrap uppercase tracking-[1px] text-[#1a1a1a] transition-all hover:bg-black/[0.08] active:scale-95"
             >
-              {isExpanded ? "Hide" : "View"}
+              {isExpanded ? 'Hide' : 'View'}
               {isExpanded ? (
                 <ChevronDown className="h-2.5 w-2.5" />
               ) : (
@@ -351,8 +349,8 @@ export default function LocationListsDrawer({
           <div
             className={`grid transition-all duration-300 ease-out ${
               isExpanded
-                ? "mt-3 grid-rows-[1fr] opacity-100"
-                : "grid-rows-[0fr] opacity-0"
+                ? 'mt-3 grid-rows-[1fr] opacity-100'
+                : 'grid-rows-[0fr] opacity-0'
             }`}
           >
             <div className="overflow-hidden">
@@ -385,7 +383,7 @@ export default function LocationListsDrawer({
                           <span className="text-[10px] font-anonymous text-[#999]">
                             {visibleCount > 0
                               ? `${visibleCount} spots`
-                              : "No spots"}
+                              : 'No spots'}
                           </span>
                         </div>
                         {list.locations && list.locations.length > 0 ? (
@@ -412,7 +410,7 @@ export default function LocationListsDrawer({
                                 </div>
                                 <div className="mt-1.5 px-0.5">
                                   <p className="text-xs font-inktrap text-[#1a1a1a] truncate leading-tight">
-                                    {location.display_name}
+                                    {location.name}
                                   </p>
                                   <p className="text-[9px] font-anonymous text-[#888] truncate mt-0.5">
                                     {location.description || location.name}

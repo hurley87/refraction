@@ -63,7 +63,6 @@ describe('Location Checkin API Route', () => {
   const validWallet = '0x1234567890abcdef1234567890abcdef12345678';
   const validLocationData = {
     place_id: 'test-place-123',
-    display_name: 'Test Venue',
     name: 'Test Venue Name',
     lat: 40.7128,
     lon: -74.006,
@@ -81,7 +80,6 @@ describe('Location Checkin API Route', () => {
   const mockLocation: Location = {
     id: 1,
     place_id: 'test-place-123',
-    display_name: 'Test Venue',
     name: 'Test Venue Name',
     latitude: 40.7128,
     longitude: -74.006,

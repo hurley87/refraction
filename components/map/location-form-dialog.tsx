@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface LocationFormData {
   name: string;
@@ -16,7 +16,6 @@ interface MarkerData {
   latitude: number;
   longitude: number;
   place_id: string;
-  display_name: string;
   name: string;
   description?: string | null;
   creator_wallet_address?: string | null;
@@ -26,7 +25,7 @@ interface MarkerData {
   event_url?: string | null;
 }
 
-type FormStep = "business-details" | "success";
+type FormStep = 'business-details' | 'success';
 
 interface LocationFormDialogProps {
   open: boolean;
@@ -64,7 +63,7 @@ export default function LocationFormDialog({
       <DialogContent className="w-full max-w-[340px] p-0 bg-transparent border-none shadow-none [&>button]:hidden">
         <div className="bg-white rounded-2xl overflow-hidden max-h-[85vh] flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
           {/* Header */}
-          {formStep !== "success" && (
+          {formStep !== 'success' && (
             <div className="bg-white flex items-center justify-between px-3 py-2.5 border-b border-[#f0f0f0]">
               <div className="flex items-center gap-2">
                 <button
@@ -97,7 +96,7 @@ export default function LocationFormDialog({
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto">
             {/* Step 1: Business Details */}
-            {formStep === "business-details" && (
+            {formStep === 'business-details' && (
               <div className="p-3">
                 <div className="flex flex-col gap-3">
                   {/* Name Field */}
@@ -250,14 +249,14 @@ export default function LocationFormDialog({
             )}
 
             {/* Step 2: Success Screen */}
-            {formStep === "success" && (
+            {formStep === 'success' && (
               <div
                 className="relative flex flex-col items-center justify-center min-h-[320px] w-full overflow-hidden"
                 style={{
                   backgroundImage: "url('/city-bg.jpg')",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  backgroundRepeat: "no-repeat",
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
                 }}
               >
                 <div className="relative z-10 flex flex-col items-center gap-5 px-4 py-10 w-full h-full justify-center">
@@ -299,7 +298,8 @@ export default function LocationFormDialog({
                   {/* Pending Approval Message */}
                   <div className="flex flex-col items-center gap-2 mt-2">
                     <p className="text-[11px] text-white/90 text-center leading-relaxed px-4">
-                      Your location is pending review and will appear on the map once approved by an admin.
+                      Your location is pending review and will appear on the map
+                      once approved by an admin.
                     </p>
                   </div>
 
@@ -325,7 +325,7 @@ export default function LocationFormDialog({
                       />
                     </svg>
                     <p className="text-[10px] text-white uppercase tracking-[0.3px] font-medium">
-                      {formData.name || selectedMarker?.name || "Location"}
+                      {formData.name || selectedMarker?.name || 'Location'}
                     </p>
                   </div>
                 </div>
@@ -334,14 +334,14 @@ export default function LocationFormDialog({
           </div>
 
           {/* Footer */}
-          {formStep !== "success" ? (
+          {formStep !== 'success' ? (
             <div className="p-3 pt-0">
               <button
                 onClick={onSubmit}
                 disabled={isCreatingLocation}
                 className="bg-[#1a1a1a] hover:bg-black text-white rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex items-center justify-center transition-colors disabled:opacity-50 w-full"
               >
-                {isCreatingLocation ? "Creating..." : "Create Location"}
+                {isCreatingLocation ? 'Creating...' : 'Create Location'}
               </button>
             </div>
           ) : (

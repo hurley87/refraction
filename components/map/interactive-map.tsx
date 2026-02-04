@@ -19,7 +19,6 @@ interface MarkerData {
   latitude: number;
   longitude: number;
   place_id: string;
-  display_name: string;
   name: string;
   address?: string | null;
   description?: string | null;
@@ -54,7 +53,6 @@ interface SearchLocationData {
   latitude: number;
   longitude: number;
   place_id: string;
-  display_name: string;
   name: string;
   placeFormatted?: string;
 }
@@ -325,7 +323,6 @@ export default function InteractiveMap({
             latitude: loc.latitude,
             longitude: loc.longitude,
             place_id: loc.place_id,
-            display_name: loc.display_name,
             name: loc.name,
             address: loc.address ?? loc.name, // Fallback to name if address not set
             description: loc.description ?? null,
@@ -534,7 +531,6 @@ export default function InteractiveMap({
             latitude,
             longitude,
             place_id: feature.id || `temp-${Date.now()}`,
-            display_name: spotName || '', // Spot name (empty for addresses)
             name: spotName || address || 'Unknown Location', // Venue name (fallback to address)
             address: address || 'Unknown Location', // Street address
           };
@@ -550,8 +546,8 @@ export default function InteractiveMap({
 
           setSelectedMarker(newMarker);
           setFormData({
-            name: newMarker.display_name, // Spot name (can be empty for addresses)
-            address: newMarker.name, // Address
+            name: newMarker.name, // Venue name
+            address: newMarker.address || newMarker.name, // Address
             description: '',
             locationImage: null,
             checkInComment: '',
@@ -568,15 +564,14 @@ export default function InteractiveMap({
         latitude,
         longitude,
         place_id: `temp-${Date.now()}`,
-        display_name: '', // No spot name for fallback case
         name: fallbackAddress, // Use coordinates as name
         address: fallbackAddress, // Use coordinates as address
       };
 
       setSelectedMarker(newMarker);
       setFormData({
-        name: newMarker.display_name, // Spot name (empty)
-        address: newMarker.name, // Address (coordinates)
+        name: newMarker.name, // Venue name (coordinates)
+        address: newMarker.address || newMarker.name, // Address (coordinates)
         description: '',
         locationImage: null,
         checkInComment: '',
@@ -666,8 +661,7 @@ export default function InteractiveMap({
         latitude,
         longitude,
         place_id: id,
-        display_name: displayName || 'Unknown Location',
-        name: address || 'Unknown Location',
+        name: displayName || address || 'Unknown Location',
         placeFormatted: placeFormatted,
       };
       setSearchedLocation(searchLocation);
@@ -800,7 +794,6 @@ export default function InteractiveMap({
           username: userUsername,
           locationData: {
             place_id: checkInTarget.place_id,
-            display_name: checkInTarget.display_name,
             name: checkInTarget.name,
             lat: checkInTarget.latitude.toString(),
             lon: checkInTarget.longitude.toString(),
@@ -874,14 +867,13 @@ export default function InteractiveMap({
       latitude: searchedLocation.latitude,
       longitude: searchedLocation.longitude,
       place_id: searchedLocation.place_id,
-      display_name: searchedLocation.display_name,
       name: searchedLocation.name,
     };
 
     setSelectedMarker(newMarker);
     setFormData({
-      name: searchedLocation.display_name, // display_name is the spot name
-      address: searchedLocation.name, // name is the address
+      name: searchedLocation.name, // Venue name
+      address: searchedLocation.placeFormatted || searchedLocation.name, // Address
       description: '',
       locationImage: null,
       checkInComment: '',
@@ -962,9 +954,7 @@ export default function InteractiveMap({
         },
         body: JSON.stringify({
           place_id: selectedMarker.place_id,
-          display_name: formData.name || selectedMarker.display_name, // formData.name is the spot name
-          name:
-            formData.name || selectedMarker.display_name || selectedMarker.name, // Venue name
+          name: formData.name || selectedMarker.name, // Venue name
           address:
             formData.address || selectedMarker.address || selectedMarker.name, // Street address
           description: formData.description,
@@ -1028,7 +1018,6 @@ export default function InteractiveMap({
                   longitude:
                     existingLocation.longitude ?? selectedMarker.longitude,
                   place_id: existingLocation.place_id,
-                  display_name: existingLocation.display_name,
                   name: existingLocation.name,
                   address: existingLocation.address ?? existingLocation.name,
                   description: existingLocation.description ?? null,
@@ -1053,7 +1042,6 @@ export default function InteractiveMap({
               longitude: result.location.longitude ?? selectedMarker.longitude,
               place_id: selectedMarker.place_id,
               name: result.location.name,
-              display_name: result.location.display_name,
               address: result.location.address ?? result.location.name,
               description: result.location.description ?? null,
               creator_wallet_address:
@@ -1157,7 +1145,6 @@ export default function InteractiveMap({
           (location.id !== undefined
             ? `list-${location.id}`
             : `list-${Date.now()}`),
-        display_name: location.display_name || location.context || '',
         name: location.name,
         imageUrl: location.coin_image_url ?? null,
         creator_wallet_address: null,
@@ -1450,7 +1437,7 @@ export default function InteractiveMap({
             className="z-50 [&>button]:hidden"
           >
             <MapCard
-              name={popupInfo.display_name || popupInfo.name}
+              name={popupInfo.name}
               address={popupInfo.address || popupInfo.name}
               description={popupInfo.description}
               isExisting={true}
@@ -1478,8 +1465,8 @@ export default function InteractiveMap({
             className="z-50 [&>button]:hidden"
           >
             <MapCard
-              name={searchedLocation.display_name}
-              address={searchedLocation.name}
+              name={searchedLocation.name}
+              address={searchedLocation.placeFormatted || searchedLocation.name}
               isExisting={false}
               onAction={handleInitiateLocationCreation}
               onClose={() => setSearchedLocation(null)}
@@ -1666,9 +1653,7 @@ export default function InteractiveMap({
                       )}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-inktrap text-[13px] leading-tight tracking-[-0.3px] text-[#1a1a1a] line-clamp-1">
-                          {checkInTarget?.display_name ||
-                            checkInTarget?.name ||
-                            'Selected Location'}
+                          {checkInTarget?.name || 'Selected Location'}
                         </h3>
                         <p className="font-inktrap text-[10px] uppercase tracking-[0.3px] text-[#999] mt-0.5 line-clamp-1">
                           {checkInTarget?.address || checkInTarget?.name}

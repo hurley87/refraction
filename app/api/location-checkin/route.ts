@@ -27,13 +27,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate location data
-    const { place_id, display_name, name, address, lat, lon, type, context } =
-      locationData;
+    const { place_id, name, address, lat, lon, type, context } = locationData;
 
     const sanitizedPlaceId = sanitizeString(place_id);
-    const sanitizedDisplayName = sanitizeString(display_name);
-    const sanitizedName =
-      sanitizeString(name) ?? sanitizedDisplayName ?? sanitizeString(place_id);
+    const sanitizedName = sanitizeString(name) ?? sanitizeString(place_id);
     const sanitizedAddress = sanitizeString(address) ?? sanitizedName; // Fallback to name if address not provided
     const sanitizedType = sanitizeString(type);
     const sanitizedContext =
@@ -64,7 +61,6 @@ export async function POST(request: NextRequest) {
 
     if (
       !sanitizedPlaceId ||
-      !sanitizedDisplayName ||
       !sanitizedName ||
       Number.isNaN(parsedLat) ||
       Number.isNaN(parsedLon) ||
@@ -89,7 +85,6 @@ export async function POST(request: NextRequest) {
     // Create or get location
     const locationInfo: Omit<Location, 'id' | 'created_at'> = {
       place_id: sanitizedPlaceId,
-      display_name: sanitizedDisplayName,
       name: sanitizedName,
       address: sanitizedAddress,
       latitude: parsedLat,
@@ -164,7 +159,7 @@ export async function POST(request: NextRequest) {
     trackCheckinCompleted(distinctId, {
       location_id: location.id!,
       city,
-      venue: location.display_name,
+      venue: location.name,
       points: location.points_value,
       checkin_type: 'location',
     });
@@ -172,7 +167,7 @@ export async function POST(request: NextRequest) {
     trackPointsEarned(distinctId, {
       activity_type: 'daily_checkin',
       amount: location.points_value,
-      description: `Location check-in: ${location.display_name}`,
+      description: `Location check-in: ${location.name}`,
     });
 
     return apiSuccess(

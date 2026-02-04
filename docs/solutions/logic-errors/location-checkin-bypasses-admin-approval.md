@@ -29,6 +29,7 @@ The codebase has **two distinct code paths that create locations**:
 2. **Implicit**: `POST /api/location-checkin` → `createOrGetLocation()` - location auto-created during check-in (**missing `is_visible: false`**)
 
 When the admin visibility feature was added, only path #1 was updated. Path #2 was missed because:
+
 - The feature description focused on explicit location creation
 - The check-in endpoint's implicit location creation wasn't recognized as a dependency
 - No automated tests covered the "check-in creates new location" scenario
@@ -39,14 +40,13 @@ Added `is_visible: false` to the `locationInfo` object in the check-in endpoint:
 
 ```typescript
 // app/api/location-checkin/route.ts (line ~117)
-const locationInfo: Omit<Location, "id" | "created_at"> = {
+const locationInfo: Omit<Location, 'id' | 'created_at'> = {
   place_id: sanitizedPlaceId,
-  display_name: sanitizedDisplayName,
   name: sanitizedName,
   latitude: parsedLat,
   longitude: parsedLon,
   points_value: 100,
-  type: sanitizedType || "location",
+  type: sanitizedType || 'location',
   context: sanitizedContext,
   is_visible: false, // ADD THIS - requires admin approval
 };
@@ -67,7 +67,7 @@ Consider centralizing location creation logic:
 ```typescript
 // lib/db/locations.ts
 export const createLocationForApproval = async (
-  locationData: Omit<Location, "id" | "created_at" | "is_visible">,
+  locationData: Omit<Location, 'id' | 'created_at' | 'is_visible'>
 ) => {
   return createOrGetLocation({
     ...locationData,
@@ -79,8 +79,8 @@ export const createLocationForApproval = async (
 ## Testing
 
 ```typescript
-describe("location-checkin", () => {
-  it("creates hidden location requiring approval", async () => {
+describe('location-checkin', () => {
+  it('creates hidden location requiring approval', async () => {
     const res = await POST(checkInRequest);
     const { location } = await res.json();
     expect(location.is_visible).toBe(false);

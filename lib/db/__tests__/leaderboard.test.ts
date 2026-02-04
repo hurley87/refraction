@@ -322,7 +322,6 @@ describe('Leaderboard Database Module', () => {
           created_at: '2024-01-01T10:00:00Z',
           locations: {
             name: 'Location 1',
-            display_name: 'Display 1',
             latitude: 0,
             longitude: 0,
           },
@@ -334,7 +333,6 @@ describe('Leaderboard Database Module', () => {
           created_at: '2024-01-02T10:00:00Z',
           locations: {
             name: 'Location 2',
-            display_name: 'Display 2',
             latitude: 0,
             longitude: 0,
           },

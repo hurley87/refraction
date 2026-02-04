@@ -184,7 +184,6 @@ export const getPlayerStats = async (playerId: number) => {
       *,
       locations (
         name,
-        display_name,
         latitude,
         longitude
       )

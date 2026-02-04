@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('locations')
       .select(
-        'id, name, display_name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible'
+        'id, name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible'
       )
       .not('coin_image_url', 'is', null);
 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         .select(
           `
           locations!inner (
-            id, name, display_name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible
+            id, name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible
           )
         `
         )
@@ -103,7 +103,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       place_id,
-      display_name,
       name,
       address,
       description,
@@ -120,8 +119,6 @@ export async function POST(request: NextRequest) {
     if (
       typeof place_id !== 'string' ||
       !place_id.trim() ||
-      typeof display_name !== 'string' ||
-      !display_name.trim() ||
       typeof name !== 'string' ||
       !name.trim() ||
       !lat ||
@@ -142,7 +139,6 @@ export async function POST(request: NextRequest) {
     }
 
     const sanitizedPlaceId = sanitizeVarchar(place_id);
-    const sanitizedDisplayName = sanitizeVarchar(display_name);
     const sanitizedName = sanitizeVarchar(name);
     const sanitizedAddress = address
       ? sanitizeOptionalVarchar(address)
@@ -169,7 +165,7 @@ export async function POST(request: NextRequest) {
       await supabase
         .from('locations')
         .select(
-          'id, name, display_name, creator_wallet_address, creator_username, coin_image_url, latitude, longitude'
+          'id, name, creator_wallet_address, creator_username, coin_image_url, latitude, longitude'
         )
         .eq('place_id', sanitizedPlaceId)
         .maybeSingle();
@@ -217,7 +213,6 @@ export async function POST(request: NextRequest) {
     // Insert the new location (visible for admins, hidden for regular users)
     const locationInsertPayload = {
       place_id: sanitizedPlaceId,
-      display_name: sanitizedDisplayName,
       name: sanitizedName,
       address: sanitizedAddress,
       description: sanitizedDescription,
@@ -273,7 +268,7 @@ export async function POST(request: NextRequest) {
       // Don't fail the location creation if points fail
     }
 
-    // Extract city from context if available, or try to parse from display_name
+    // Extract city from context if available
     let city: string | undefined;
     let country: string | undefined;
     try {

@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { usePrivy } from "@privy-io/react-auth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import type { Location } from "@/lib/types";
+import { useState, useEffect, useCallback } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import type { Location } from '@/lib/types';
 
-const LOCATIONS_KEY = ["admin-locations"] as const;
+const LOCATIONS_KEY = ['admin-locations'] as const;
 
 export default function AdminLocationsPage() {
   const { user, login } = usePrivy();
@@ -24,9 +24,9 @@ export default function AdminLocationsPage() {
     if (!user?.email?.address) return false;
 
     try {
-      const response = await fetch("/api/admin/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email.address }),
       });
       const responseData = await response.json();
@@ -34,7 +34,7 @@ export default function AdminLocationsPage() {
       const data = responseData.data || responseData;
       return data.isAdmin;
     } catch (error) {
-      console.error("Error checking admin status", error);
+      console.error('Error checking admin status', error);
       return false;
     }
   }, [user?.email?.address]);
@@ -56,12 +56,12 @@ export default function AdminLocationsPage() {
 
   // Fetch all locations (including hidden) using admin endpoint
   const { data: allLocations = [], isLoading: locationsLoading } = useQuery({
-    queryKey: [...LOCATIONS_KEY, "all"],
+    queryKey: [...LOCATIONS_KEY, 'all'],
     queryFn: async () => {
       const res = await fetch(`/api/locations?includeHidden=true`, {
-        headers: { "x-user-email": user?.email?.address || "" },
+        headers: { 'x-user-email': user?.email?.address || '' },
       });
-      if (!res.ok) throw new Error("Failed to fetch locations");
+      if (!res.ok) throw new Error('Failed to fetch locations');
       const responseData = await res.json();
       // Unwrap the apiSuccess wrapper
       const json = responseData.data || responseData;
@@ -100,22 +100,22 @@ export default function AdminLocationsPage() {
       isVisible: boolean;
     }) => {
       const res = await fetch(`/api/admin/locations/${id}`, {
-        method: "PATCH",
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
-          "x-user-email": user?.email?.address || "",
+          'Content-Type': 'application/json',
+          'x-user-email': user?.email?.address || '',
         },
         body: JSON.stringify({ isVisible }),
       });
-      if (!res.ok) throw new Error("Failed to update visibility");
+      if (!res.ok) throw new Error('Failed to update visibility');
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [...LOCATIONS_KEY, "all"] });
-      toast.success("Visibility updated");
+      queryClient.invalidateQueries({ queryKey: [...LOCATIONS_KEY, 'all'] });
+      toast.success('Visibility updated');
     },
     onError: () => {
-      toast.error("Failed to update visibility");
+      toast.error('Failed to update visibility');
     },
   });
 
@@ -172,8 +172,8 @@ export default function AdminLocationsPage() {
 
           <div className="text-sm text-gray-500">
             {sortedLocations.length} location
-            {sortedLocations.length !== 1 ? "s" : ""}{" "}
-            {showApproved ? "total" : "pending approval"}
+            {sortedLocations.length !== 1 ? 's' : ''}{' '}
+            {showApproved ? 'total' : 'pending approval'}
           </div>
         </div>
 
@@ -185,8 +185,8 @@ export default function AdminLocationsPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
             <p className="text-gray-500">
               {showApproved
-                ? "No locations found."
-                : "No locations pending approval."}
+                ? 'No locations found.'
+                : 'No locations pending approval.'}
             </p>
           </div>
         ) : (
@@ -226,9 +226,6 @@ export default function AdminLocationsPage() {
                           )}
                           <div>
                             <div className="font-medium text-gray-900">
-                              {location.display_name}
-                            </div>
-                            <div className="text-sm text-gray-500">
                               {location.name}
                             </div>
                           </div>
@@ -237,12 +234,12 @@ export default function AdminLocationsPage() {
                       <td className="px-4 py-3 text-sm text-gray-600">
                         <span
                           className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                            location.type === "event"
-                              ? "bg-purple-100 text-purple-700"
-                              : "bg-blue-100 text-blue-700"
+                            location.type === 'event'
+                              ? 'bg-purple-100 text-purple-700'
+                              : 'bg-blue-100 text-blue-700'
                           }`}
                         >
-                          {location.type || "location"}
+                          {location.type || 'location'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
@@ -255,7 +252,7 @@ export default function AdminLocationsPage() {
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {location.created_at
                           ? new Date(location.created_at).toLocaleDateString()
-                          : "-"}
+                          : '-'}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <Switch

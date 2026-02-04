@@ -23,7 +23,6 @@ describe('Locations Database Module', () => {
   const sampleLocation: Location = {
     id: 1,
     name: 'Test Venue',
-    display_name: 'Test Venue Display',
     latitude: 40.7128,
     longitude: -74.006,
     place_id: 'test-place-123',
@@ -35,7 +34,6 @@ describe('Locations Database Module', () => {
   const sampleLocationOption: LocationOption = {
     id: 1,
     name: 'Test Venue',
-    display_name: 'Test Venue Display',
     latitude: 40.7128,
     longitude: -74.006,
     place_id: 'test-place-123',
@@ -60,7 +58,6 @@ describe('Locations Database Module', () => {
 
       const locationData = {
         name: 'Test Venue',
-        display_name: 'Test Venue Display',
         latitude: 40.7128,
         longitude: -74.006,
         place_id: 'test-place-123',
@@ -102,7 +99,6 @@ describe('Locations Database Module', () => {
 
       const locationData = {
         name: 'Test Venue',
-        display_name: 'Test Venue Display',
         latitude: 40.7128,
         longitude: -74.006,
         place_id: 'new-place-456',
@@ -144,7 +140,6 @@ describe('Locations Database Module', () => {
 
       const locationData = {
         name: 'Test Venue',
-        display_name: 'Test Venue Display',
         latitude: 40.7128,
         longitude: -74.006,
         place_id: 'fail-place',
@@ -350,7 +345,7 @@ describe('Locations Database Module', () => {
     it('should apply search filter with ilike', async () => {
       const filteredOptions = [sampleLocationOption];
 
-      const mockOrFn = vi
+      const mockIlikeFn = vi
         .fn()
         .mockResolvedValue({ data: filteredOptions, error: null });
 
@@ -358,7 +353,7 @@ describe('Locations Database Module', () => {
         select: vi.fn(() => ({
           order: vi.fn(() => ({
             limit: vi.fn(() => ({
-              or: mockOrFn,
+              ilike: mockIlikeFn,
             })),
           })),
         })),
@@ -367,19 +362,17 @@ describe('Locations Database Module', () => {
       const result = await listLocationOptions('Test');
 
       expect(result).toEqual(filteredOptions);
-      expect(mockOrFn).toHaveBeenCalledWith(
-        'display_name.ilike.%Test%,name.ilike.%Test%'
-      );
+      expect(mockIlikeFn).toHaveBeenCalledWith('name', '%Test%');
     });
 
     it('should sanitize special characters in search (% and _)', async () => {
-      const mockOrFn = vi.fn().mockResolvedValue({ data: [], error: null });
+      const mockIlikeFn = vi.fn().mockResolvedValue({ data: [], error: null });
 
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
           order: vi.fn(() => ({
             limit: vi.fn(() => ({
-              or: mockOrFn,
+              ilike: mockIlikeFn,
             })),
           })),
         })),
@@ -388,19 +381,17 @@ describe('Locations Database Module', () => {
       await listLocationOptions('test%_special');
 
       // % and _ should be escaped to prevent SQL injection
-      expect(mockOrFn).toHaveBeenCalledWith(
-        'display_name.ilike.%test\\%\\_special%,name.ilike.%test\\%\\_special%'
-      );
+      expect(mockIlikeFn).toHaveBeenCalledWith('name', '%test\\%\\_special%');
     });
 
     it('should trim whitespace from search term', async () => {
-      const mockOrFn = vi.fn().mockResolvedValue({ data: [], error: null });
+      const mockIlikeFn = vi.fn().mockResolvedValue({ data: [], error: null });
 
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
           order: vi.fn(() => ({
             limit: vi.fn(() => ({
-              or: mockOrFn,
+              ilike: mockIlikeFn,
             })),
           })),
         })),
@@ -408,9 +399,7 @@ describe('Locations Database Module', () => {
 
       await listLocationOptions('  test  ');
 
-      expect(mockOrFn).toHaveBeenCalledWith(
-        'display_name.ilike.%test%,name.ilike.%test%'
-      );
+      expect(mockIlikeFn).toHaveBeenCalledWith('name', '%test%');
     });
 
     it('should not apply filter for empty search string', async () => {

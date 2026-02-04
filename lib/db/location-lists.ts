@@ -7,7 +7,7 @@ import type {
 } from '../types';
 
 const locationSelection =
-  'id, name, display_name, latitude, longitude, place_id, points_value, type, event_url, context, coin_address, coin_symbol, coin_name, coin_image_url, creator_wallet_address, creator_username';
+  'id, name, latitude, longitude, place_id, points_value, type, event_url, context, coin_address, coin_symbol, coin_name, coin_image_url, creator_wallet_address, creator_username';
 
 type LocationListInput = {
   title: string;

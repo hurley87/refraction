@@ -15,7 +15,6 @@ export const longitudeSchema = z.number().min(-180).max(180);
  */
 export const createLocationSchema = z.object({
   name: z.string().min(1).max(200),
-  display_name: z.string().min(1).max(200),
   address: z.string().max(500).nullable().optional(),
   description: z.string().max(1000).nullable().optional(),
   latitude: latitudeSchema,
@@ -39,7 +38,6 @@ export const createLocationSchema = z.object({
  */
 export const updateLocationSchema = z.object({
   name: z.string().min(1).max(200).optional(),
-  display_name: z.string().min(1).max(200).optional(),
   address: z.string().max(500).nullable().optional(),
   place_id: z.string().min(1).optional(),
   latitude: latitudeSchema.optional(),

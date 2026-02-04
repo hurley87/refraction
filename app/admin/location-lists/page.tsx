@@ -67,7 +67,6 @@ const assignmentSchema = z.object({
 const editLocationSchema = z
   .object({
     placeId: z.string().min(3, 'Place ID is required'),
-    displayName: z.string().min(3, 'Display name is required'),
     name: z.string().min(3, 'Name is required'),
     description: z.string().max(500).optional(),
     latitude: z
@@ -106,7 +105,6 @@ const editLocationSchema = z
 
 type NewLocationFormState = {
   placeId: string;
-  displayName: string;
   name: string;
   address: string;
   description: string;
@@ -121,7 +119,6 @@ type NewLocationFormState = {
 
 type EditLocationFormState = {
   placeId: string;
-  displayName: string;
   name: string;
   address: string;
   description: string;
@@ -137,7 +134,6 @@ type EditLocationFormState = {
 
 type CreateLocationVariables = {
   placeId: string;
-  displayName: string;
   name: string;
   address: string;
   description?: string;
@@ -160,7 +156,6 @@ type EditLocationVariables = {
 const createLocationSchema = z
   .object({
     placeId: z.string().min(3, 'Place ID is required'),
-    displayName: z.string().min(3, 'Display name is required'),
     name: z.string().min(3, 'Name is required'),
     description: z.string().max(500).optional(),
     latitude: z
@@ -222,7 +217,6 @@ export default function AdminLocationListsPage() {
   const [removalTarget, setRemovalTarget] = useState<number | null>(null);
   const [newLocationForm, setNewLocationForm] = useState<NewLocationFormState>({
     placeId: '',
-    displayName: '',
     name: '',
     address: '',
     description: '',
@@ -243,7 +237,6 @@ export default function AdminLocationListsPage() {
   const [editLocationForm, setEditLocationForm] =
     useState<EditLocationFormState>({
       placeId: '',
-      displayName: '',
       name: '',
       address: '',
       description: '',
@@ -641,7 +634,6 @@ export default function AdminLocationListsPage() {
   >({
     mutationFn: async ({
       placeId,
-      displayName,
       name,
       address,
       description,
@@ -683,7 +675,6 @@ export default function AdminLocationListsPage() {
         },
         body: JSON.stringify({
           place_id: placeId,
-          display_name: displayName,
           name,
           address: address || name, // Use address if provided, fallback to name
           description: description?.trim() || null,
@@ -709,7 +700,6 @@ export default function AdminLocationListsPage() {
       toast.success('Location created');
       setNewLocationForm((prev) => ({
         placeId: '',
-        displayName: '',
         name: '',
         address: '',
         description: '',
@@ -722,7 +712,7 @@ export default function AdminLocationListsPage() {
         eventUrl: '',
       }));
       setFileInputKey((prev) => prev + 1);
-      setLocationSearch(variables.displayName);
+      setLocationSearch(variables.name);
       setShowCreateLocationDialog(false);
 
       if (data?.location?.id) {
@@ -769,7 +759,6 @@ export default function AdminLocationListsPage() {
         },
         body: JSON.stringify({
           placeId: payload.placeId,
-          displayName: payload.displayName,
           name: payload.name,
           address: editLocationForm.address || payload.name, // Use form address or fallback to name
           description: payload.description?.trim() || null,
@@ -806,9 +795,8 @@ export default function AdminLocationListsPage() {
     if (!normalized) return locationOptions;
 
     return locationOptions.filter((option) => {
-      const display = option.display_name?.toLowerCase() || '';
       const name = option.name?.toLowerCase() || '';
-      return display.includes(normalized) || name.includes(normalized);
+      return name.includes(normalized);
     });
   }, [locationOptions, locationSearch]);
 
@@ -863,7 +851,6 @@ export default function AdminLocationListsPage() {
       setNewLocationForm((prev) => ({
         ...prev,
         placeId: picked.id || prev.placeId,
-        displayName: displayName || prev.displayName,
         name: displayName || prev.name, // Venue name
         address: address || prev.address, // Street address
         latitude: picked.latitude?.toString() ?? prev.latitude,
@@ -878,7 +865,6 @@ export default function AdminLocationListsPage() {
     event.preventDefault();
     const parsed = createLocationSchema.safeParse({
       placeId: newLocationForm.placeId,
-      displayName: newLocationForm.displayName,
       name: newLocationForm.name,
       description: newLocationForm.description,
       latitude: newLocationForm.latitude,
@@ -913,7 +899,6 @@ export default function AdminLocationListsPage() {
     setEditingLocationId(entry.location.id ?? entry.location_id);
     setEditLocationForm({
       placeId: entry.location.place_id,
-      displayName: entry.location.display_name,
       name: entry.location.name,
       address: entry.location.address ?? entry.location.name,
       description: entry.location.description ?? '',
@@ -934,7 +919,6 @@ export default function AdminLocationListsPage() {
     setEditingLocationId(null);
     setEditLocationForm({
       placeId: '',
-      displayName: '',
       name: '',
       address: '',
       description: '',
@@ -956,7 +940,6 @@ export default function AdminLocationListsPage() {
 
     const parsed = editLocationSchema.safeParse({
       placeId: editLocationForm.placeId,
-      displayName: editLocationForm.displayName,
       name: editLocationForm.name,
       description: editLocationForm.description,
       latitude: editLocationForm.latitude,
@@ -998,7 +981,6 @@ export default function AdminLocationListsPage() {
       setEditLocationForm((prev) => ({
         ...prev,
         placeId: picked.id || prev.placeId,
-        displayName: displayName || prev.displayName,
         name: displayName || prev.name, // Venue name
         address: address || prev.address, // Street address
         latitude: picked.latitude?.toString() ?? prev.latitude,
@@ -1404,9 +1386,6 @@ export default function AdminLocationListsPage() {
                           <SelectItem key={option.id} value={String(option.id)}>
                             <div>
                               <p className="text-sm font-medium">
-                                {option.display_name}
-                              </p>
-                              <p className="text-xs text-gray-500">
                                 {option.name}
                               </p>
                             </div>
@@ -1462,9 +1441,6 @@ export default function AdminLocationListsPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <p className="font-semibold">
-                                {item.location.display_name}
-                              </p>
-                              <p className="text-xs text-gray-500">
                                 {item.location.name}
                               </p>
                             </div>
@@ -1512,7 +1488,7 @@ export default function AdminLocationListsPage() {
                     <div>
                       <p className="font-semibold">
                         {editingLocation
-                          ? `Editing ${editingLocation.location.display_name}`
+                          ? `Editing ${editingLocation.location.name}`
                           : 'Edit location'}
                       </p>
                       <p className="text-sm text-gray-500">
@@ -1540,20 +1516,6 @@ export default function AdminLocationListsPage() {
                           value={editLocationForm.placeId}
                           disabled
                           className="bg-gray-100 text-gray-500"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label>Display name</Label>
-                        <Input
-                          value={editLocationForm.displayName}
-                          onChange={(event) =>
-                            setEditLocationForm((prev) => ({
-                              ...prev,
-                              displayName: event.target.value,
-                            }))
-                          }
-                          required
                         />
                       </div>
 
@@ -1715,7 +1677,7 @@ export default function AdminLocationListsPage() {
                         {editLocationForm.currentImageUrl && (
                           <img
                             src={editLocationForm.currentImageUrl}
-                            alt={editLocationForm.displayName}
+                            alt={editLocationForm.name}
                             className="h-32 w-full rounded-2xl object-cover"
                           />
                         )}
@@ -1794,21 +1756,6 @@ export default function AdminLocationListsPage() {
                   }))
                 }
                 placeholder="mapbox.places.123"
-                required
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="new-display-name">Display name</Label>
-              <Input
-                id="new-display-name"
-                value={newLocationForm.displayName}
-                onChange={(event) =>
-                  setNewLocationForm((prev) => ({
-                    ...prev,
-                    displayName: event.target.value,
-                  }))
-                }
                 required
               />
             </div>

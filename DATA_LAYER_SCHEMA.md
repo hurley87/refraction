@@ -98,7 +98,7 @@ graph TD
 **Usage**:
 
 ```typescript
-import { supabase } from "@/lib/db/client";
+import { supabase } from '@/lib/db/client';
 ```
 
 ---
@@ -123,9 +123,9 @@ import { supabase } from "@/lib/db/client";
 **Example**:
 
 ```typescript
-import { getPlayerByWallet, updatePlayerPoints } from "@/lib/db/players";
+import { getPlayerByWallet, updatePlayerPoints } from '@/lib/db/players';
 
-const player = await getPlayerByWallet("0x...");
+const player = await getPlayerByWallet('0x...');
 await updatePlayerPoints(player.id, 100);
 ```
 
@@ -148,18 +148,17 @@ await updatePlayerPoints(player.id, 100);
 **Example**:
 
 ```typescript
-import { createOrGetLocation, listLocationOptions } from "@/lib/db/locations";
+import { createOrGetLocation, listLocationOptions } from '@/lib/db/locations';
 
 const location = await createOrGetLocation({
-  name: "Coffee Shop",
-  display_name: "Coffee Shop",
+  name: 'Coffee Shop',
   latitude: 40.7128,
   longitude: -74.006,
-  place_id: "ChIJ...",
+  place_id: 'ChIJ...',
   points_value: 10,
 });
 
-const options = await listLocationOptions("coffee", 10);
+const options = await listLocationOptions('coffee', 10);
 ```
 
 ---
@@ -183,12 +182,12 @@ const options = await listLocationOptions("coffee", 10);
 **Example**:
 
 ```typescript
-import { createLocationList, addLocationToList } from "@/lib/db/location-lists";
+import { createLocationList, addLocationToList } from '@/lib/db/location-lists';
 
 const list = await createLocationList({
-  title: "NYC Coffee Shops",
-  slug: "nyc-coffee-shops",
-  description: "Best coffee in NYC",
+  title: 'NYC Coffee Shops',
+  slug: 'nyc-coffee-shops',
+  description: 'Best coffee in NYC',
 });
 
 await addLocationToList(list.id, locationId);
@@ -213,7 +212,7 @@ await addLocationToList(list.id, locationId);
 import {
   createLocationCheckin,
   checkUserLocationCheckin,
-} from "@/lib/db/checkins";
+} from '@/lib/db/checkins';
 
 const existing = await checkUserLocationCheckin(playerId, locationId);
 if (!existing) {
@@ -241,7 +240,7 @@ if (!existing) {
 **Example**:
 
 ```typescript
-import { getLeaderboard, getPlayerStats } from "@/lib/db/leaderboard";
+import { getLeaderboard, getPlayerStats } from '@/lib/db/leaderboard';
 
 const top50 = await getLeaderboard(50, 0);
 const stats = await getPlayerStats(playerId);
@@ -273,7 +272,7 @@ const stats = await getPlayerStats(playerId);
 **Example**:
 
 ```typescript
-import { redeemPerk, getAvailablePerksForUser } from "@/lib/db/perks";
+import { redeemPerk, getAvailablePerksForUser } from '@/lib/db/perks';
 
 const available = await getAvailablePerksForUser(walletAddress);
 const redemption = await redeemPerk(perkId, walletAddress);
@@ -296,7 +295,7 @@ const redemption = await redeemPerk(perkId, walletAddress);
 **Example**:
 
 ```typescript
-import { getTierForPoints } from "@/lib/db/tiers";
+import { getTierForPoints } from '@/lib/db/tiers';
 
 const tier = await getTierForPoints(player.total_points);
 ```
@@ -319,17 +318,17 @@ const tier = await getTierForPoints(player.total_points);
 **Example**:
 
 ```typescript
-import { updateUserProfile, awardProfileFieldPoints } from "@/lib/db/profiles";
+import { updateUserProfile, awardProfileFieldPoints } from '@/lib/db/profiles';
 
 await updateUserProfile(walletAddress, {
-  username: "newusername",
-  twitter_handle: "@handle",
+  username: 'newusername',
+  twitter_handle: '@handle',
 });
 
 await awardProfileFieldPoints(
   walletAddress,
-  "profile_field_twitter",
-  "@handle",
+  'profile_field_twitter',
+  '@handle'
 );
 ```
 
@@ -349,7 +348,7 @@ await awardProfileFieldPoints(
 **Example**:
 
 ```typescript
-import { checkAdminPermission } from "@/lib/db/admin";
+import { checkAdminPermission } from '@/lib/db/admin';
 
 if (checkAdminPermission(user.email)) {
   // Admin-only code
@@ -391,8 +390,8 @@ Validation schemas are located in `lib/schemas/`:
 **Usage Example**:
 
 ```typescript
-import { createPlayerSchema } from "@/lib/schemas/player";
-import { createLocationSchema } from "@/lib/schemas/location";
+import { createPlayerSchema } from '@/lib/schemas/player';
+import { createLocationSchema } from '@/lib/schemas/location';
 
 // In API route
 const validated = createPlayerSchema.parse(requestBody);
@@ -408,14 +407,14 @@ All existing imports from `@/lib/supabase` will continue to work due to backward
 **Old (still works)**:
 
 ```typescript
-import { getPlayerByWallet, createPerk } from "@/lib/supabase";
+import { getPlayerByWallet, createPerk } from '@/lib/supabase';
 ```
 
 **New (recommended)**:
 
 ```typescript
-import { getPlayerByWallet } from "@/lib/db/players";
-import { createPerk } from "@/lib/db/perks";
+import { getPlayerByWallet } from '@/lib/db/players';
+import { createPerk } from '@/lib/db/perks';
 ```
 
 ### Benefits of Direct Imports
@@ -442,7 +441,7 @@ try {
   const player = await getPlayerByWallet(address);
 } catch (error) {
   // Handle error
-  console.error("Failed to get player:", error);
+  console.error('Failed to get player:', error);
 }
 ```
 
@@ -455,10 +454,10 @@ Common error codes:
 Each module can be tested independently:
 
 ```typescript
-import { getPlayerByWallet } from "@/lib/db/players";
+import { getPlayerByWallet } from '@/lib/db/players';
 
 // Mock supabase client
-jest.mock("@/lib/db/client", () => ({
+jest.mock('@/lib/db/client', () => ({
   supabase: mockSupabase,
 }));
 ```

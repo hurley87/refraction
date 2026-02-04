@@ -6,7 +6,6 @@ import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 
 const updateLocationSchema = z.object({
   name: z.string().min(1).optional(),
-  displayName: z.string().min(1).optional(),
   address: z.string().max(500).nullable().optional(),
   description: z.string().max(500).nullable().optional(),
   placeId: z.string().min(1).optional(),
@@ -46,8 +45,6 @@ export async function PATCH(
     const updates: Record<string, unknown> = {};
 
     if (payload.name !== undefined) updates.name = payload.name.trim();
-    if (payload.displayName !== undefined)
-      updates.display_name = payload.displayName.trim();
     if (payload.address !== undefined)
       updates.address = payload.address?.trim() || null;
     if (payload.description !== undefined)
