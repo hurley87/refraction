@@ -1,4 +1,5 @@
 import { WalletNetwork } from '@creit.tech/stellar-wallets-kit';
+import { STELLAR_CONTRACT_ADDRESSES } from '@/lib/stellar/contract-addresses';
 
 /**
  * Get Stellar network configuration from environment variables
@@ -131,21 +132,17 @@ export const { stellarNetwork, networkPassphrase, rpcUrl, horizonUrl } =
   getStellarNetworkConfig();
 
 /**
- * Get NFT contract address from environment variable based on network
- * @param networkPassphrase - Optional network passphrase from wallet. If provided, uses wallet's network instead of app config.
- * @returns The NFT contract address, or empty string if not configured
+ * Get NFT contract address based on network. Uses lib/stellar/contract-addresses.ts;
+ * env vars override when set.
  */
 export const getNFTContractAddress = (networkPassphrase?: string): string => {
-  // Determine network from wallet's passphrase if provided, otherwise use app config
   let isMainnet = false;
 
   if (networkPassphrase) {
-    // Check wallet's network from passphrase
     isMainnet =
       networkPassphrase.includes('Public') ||
       networkPassphrase.includes('Public Global Stellar Network');
   } else {
-    // Fall back to app config
     const network =
       stellarNetwork || process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'TESTNET';
     const normalizedNetwork = network.toUpperCase();
@@ -154,30 +151,32 @@ export const getNFTContractAddress = (networkPassphrase?: string): string => {
   }
 
   if (isMainnet) {
-    return process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_MAINNET || '';
+    return (
+      process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_MAINNET ||
+      STELLAR_CONTRACT_ADDRESSES.nft.mainnet
+    );
   } else {
-    return process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_TESTNET || '';
+    return (
+      process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_TESTNET ||
+      STELLAR_CONTRACT_ADDRESSES.nft.testnet
+    );
   }
 };
 
 /**
- * Get Simple Payment contract address from environment variable based on network
- * @param networkPassphrase - Optional network passphrase from wallet. If provided, uses wallet's network instead of app config.
- * @returns The Simple Payment contract address, or empty string if not configured
+ * Get Simple Payment contract address based on network. Uses lib/stellar/contract-addresses.ts;
+ * env vars override when set.
  */
 export const getSimplePaymentContractAddress = (
   networkPassphrase?: string
 ): string => {
-  // Determine network from wallet's passphrase if provided, otherwise use app config
   let isMainnet = false;
 
   if (networkPassphrase) {
-    // Check wallet's network from passphrase
     isMainnet =
       networkPassphrase.includes('Public') ||
       networkPassphrase.includes('Public Global Stellar Network');
   } else {
-    // Fall back to app config
     const network =
       stellarNetwork || process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'TESTNET';
     const normalizedNetwork = network.toUpperCase();
@@ -187,22 +186,22 @@ export const getSimplePaymentContractAddress = (
 
   if (isMainnet) {
     return (
-      process.env.NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_MAINNET || ''
+      process.env.NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_MAINNET ||
+      STELLAR_CONTRACT_ADDRESSES.simplePayment.mainnet
     );
   } else {
     return (
-      process.env.NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_TESTNET || ''
+      process.env.NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_TESTNET ||
+      STELLAR_CONTRACT_ADDRESSES.simplePayment.testnet
     );
   }
 };
 
 /**
- * Get the claim-points (rewards) token contract address for the given network.
- * The simple payment contract sends this token via send_token(token_address, recipient, amount).
- * @param networkPassphrase - Optional network passphrase. If provided, uses wallet's network.
- * @returns The claim-points token contract address, or empty string if not configured
+ * Get the fungible token contract address for the given network. Uses lib/stellar/contract-addresses.ts;
+ * env vars override when set.
  */
-export const getClaimPointsTokenAddress = (
+export const getFungibleTokenContractAddress = (
   networkPassphrase?: string
 ): string => {
   let isMainnet = false;
@@ -220,8 +219,14 @@ export const getClaimPointsTokenAddress = (
   }
 
   if (isMainnet) {
-    return process.env.NEXT_PUBLIC_CLAIM_POINTS_CONTRACT_ADDRESS_MAINNET || '';
+    return (
+      process.env.NEXT_PUBLIC_FUNGIBLE_TOKEN_CONTRACT_ADDRESS_MAINNET ||
+      STELLAR_CONTRACT_ADDRESSES.fungibleToken.mainnet
+    );
   } else {
-    return process.env.NEXT_PUBLIC_CLAIM_POINTS_CONTRACT_ADDRESS_TESTNET || '';
+    return (
+      process.env.NEXT_PUBLIC_FUNGIBLE_TOKEN_CONTRACT_ADDRESS_TESTNET ||
+      STELLAR_CONTRACT_ADDRESSES.fungibleToken.testnet
+    );
   }
 };

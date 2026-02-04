@@ -136,11 +136,11 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
         errorMessage.includes('Contract has no balance')
       ) {
         toast.error(
-          `The payment contract has insufficient token balance. It must hold the claim-points token before rewards can be sent. Contract: ${contractAddress}`,
+          `The payment contract has insufficient token balance. It must hold the fungible token before rewards can be sent. Contract: ${contractAddress}`,
           { duration: 10000 }
         );
         addNotification(
-          `Contract needs funding with the claim-points token: ${contractAddress}`,
+          `Contract needs funding with the fungible token: ${contractAddress}`,
           'error'
         );
       } else {

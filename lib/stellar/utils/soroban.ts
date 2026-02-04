@@ -796,15 +796,15 @@ export const invokeContract = async (
   return sendResponse.hash;
 };
 
-/** Decimals for the claim-points custom token (1 token = 10^7 smallest units). */
-export const CLAIM_POINTS_TOKEN_DECIMALS = 7;
+/** Decimals for the fungible token (1 token = 10^7 smallest units). */
+export const FUNGIBLE_TOKEN_DECIMALS = 7;
 
 /**
- * Convert display amount (tokens) to smallest units for the claim-points token.
+ * Convert display amount (tokens) to smallest units for the fungible token.
  * @param displayAmount - Amount in display units (e.g. 100 for "100 tokens")
  */
 export const toTokenSmallestUnits = (displayAmount: number): bigint =>
-  BigInt(Math.floor(displayAmount * 10 ** CLAIM_POINTS_TOKEN_DECIMALS));
+  BigInt(Math.floor(displayAmount * 10 ** FUNGIBLE_TOKEN_DECIMALS));
 
 /**
  * Invoke a contract function that sends XLM to a recipient
@@ -837,7 +837,7 @@ export const invokePaymentContract = async (
         ? 'MAINNET'
         : 'UNKNOWN',
   });
-  // Validate amount if provided, or use default of 0.1 XLM for claim points
+  // Validate amount if provided, or use default of 0.1 XLM for fungible-token claim
   const effectiveAmount = amount !== undefined ? amount : 0.1;
 
   if (isNaN(effectiveAmount) || effectiveAmount <= 0) {
@@ -847,7 +847,7 @@ export const invokePaymentContract = async (
   }
 
   // Convert XLM to stroops (1 XLM = 10,000,000 stroops)
-  // Default to 0.1 XLM (1,000,000 stroops) if amount is undefined (for claim points)
+  // Default to 0.1 XLM (1,000,000 stroops) if amount is undefined (for fungible-token claim)
   const stroops = BigInt(Math.floor(effectiveAmount * 10_000_000));
 
   // Validate recipient address
