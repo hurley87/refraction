@@ -69,14 +69,20 @@ export async function POST(request: NextRequest) {
   }
 
   if (!claimPointsTokenAddress) {
+    const isMainnet =
+      passphrase.includes('Public') ||
+      passphrase.includes('Public Global Stellar Network');
+    const envVar = isMainnet
+      ? 'NEXT_PUBLIC_CLAIM_POINTS_CONTRACT_ADDRESS_MAINNET'
+      : 'NEXT_PUBLIC_CLAIM_POINTS_CONTRACT_ADDRESS_TESTNET';
     return apiError(
-      'Claim-points token contract not configured for this network',
+      `Claim-points token contract not configured for this network. Set ${envVar} in your environment (e.g. Vercel) to the deployed token contract ID.`,
       500
     );
   }
 
   const signerSecret =
-    process.env.REWARDS_TOKEN_OWNER_SECRET_KEY ||
+    //process.env.REWARDS_TOKEN_OWNER_SECRET_KEY ||
     process.env.SERVER_WALLET_PRIVATE_KEY;
   if (!signerSecret) {
     return apiError(
