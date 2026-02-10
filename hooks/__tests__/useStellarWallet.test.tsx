@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useStellarWallet } from '../useStellarWallet'
 
 // Mock Privy
+const mockGetAccessToken = vi.fn().mockResolvedValue('mock-access-token')
 const mockUsePrivy = vi.fn()
 vi.mock('@privy-io/react-auth', () => ({
   usePrivy: () => mockUsePrivy(),
@@ -30,7 +31,7 @@ describe('useStellarWallet', () => {
 
   describe('Initial State', () => {
     it('should not fetch when user is not logged in', () => {
-      mockUsePrivy.mockReturnValue({ user: null })
+      mockUsePrivy.mockReturnValue({ user: null, getAccessToken: mockGetAccessToken })
 
       const { result } = renderHook(() => useStellarWallet(), {
         wrapper: createWrapper(),
@@ -43,14 +44,13 @@ describe('useStellarWallet', () => {
     })
 
     it('should fetch wallet when user is logged in', async () => {
-      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' } })
+      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' }, getAccessToken: mockGetAccessToken })
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           success: true,
-          address: 'STELLAR_ADDRESS_123',
-          walletId: 'wallet-id-123',
+          data: { address: 'STELLAR_ADDRESS_123', walletId: 'wallet-id-123' },
         }),
       } as Response)
 
@@ -66,12 +66,13 @@ describe('useStellarWallet', () => {
       expect(result.current.walletId).toBe('wallet-id-123')
       expect(result.current.isConnected).toBe(true)
       expect(global.fetch).toHaveBeenCalledWith(
-        '/api/stellar-wallet?privyUserId=privy-user-123'
+        '/api/stellar-wallet?privyUserId=privy-user-123',
+        { headers: { Authorization: 'Bearer mock-access-token' } }
       )
     })
 
     it('should return null address when wallet does not exist', async () => {
-      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' } })
+      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' }, getAccessToken: mockGetAccessToken })
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
@@ -95,7 +96,7 @@ describe('useStellarWallet', () => {
 
   describe('Connect (Create Wallet)', () => {
     it('should create a new wallet when connect is called', async () => {
-      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' } })
+      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' }, getAccessToken: mockGetAccessToken })
 
       // Initial fetch - no wallet
       vi.mocked(global.fetch).mockResolvedValueOnce({
@@ -116,8 +117,7 @@ describe('useStellarWallet', () => {
         ok: true,
         json: async () => ({
           success: true,
-          address: 'NEW_STELLAR_ADDRESS',
-          walletId: 'new-wallet-id',
+          data: { address: 'NEW_STELLAR_ADDRESS', walletId: 'new-wallet-id' },
         }),
       } as Response)
 
@@ -136,13 +136,16 @@ describe('useStellarWallet', () => {
 
       expect(global.fetch).toHaveBeenLastCalledWith('/api/stellar-wallet', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer mock-access-token',
+        },
         body: JSON.stringify({ privyUserId: 'privy-user-123' }),
       })
     })
 
     it('should throw error when connect is called without logged in user', async () => {
-      mockUsePrivy.mockReturnValue({ user: null })
+      mockUsePrivy.mockReturnValue({ user: null, getAccessToken: mockGetAccessToken })
 
       const { result } = renderHook(() => useStellarWallet(), {
         wrapper: createWrapper(),
@@ -152,7 +155,7 @@ describe('useStellarWallet', () => {
     })
 
     it('should handle wallet creation error', async () => {
-      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' } })
+      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' }, getAccessToken: mockGetAccessToken })
 
       // Initial fetch
       vi.mocked(global.fetch).mockResolvedValueOnce({
@@ -185,14 +188,13 @@ describe('useStellarWallet', () => {
 
   describe('Disconnect', () => {
     it('should clear wallet data when disconnect is called', async () => {
-      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' } })
+      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' }, getAccessToken: mockGetAccessToken })
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           success: true,
-          address: 'STELLAR_ADDRESS_123',
-          walletId: 'wallet-id-123',
+          data: { address: 'STELLAR_ADDRESS_123', walletId: 'wallet-id-123' },
         }),
       } as Response)
 
@@ -217,7 +219,7 @@ describe('useStellarWallet', () => {
 
   describe('Loading States', () => {
     it('should show isLoading while fetching initial wallet data', async () => {
-      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' } })
+      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' }, getAccessToken: mockGetAccessToken })
 
       let resolveFetch: (value: Response) => void
       vi.mocked(global.fetch).mockReturnValueOnce(
@@ -238,8 +240,7 @@ describe('useStellarWallet', () => {
         ok: true,
         json: async () => ({
           success: true,
-          address: 'STELLAR_ADDRESS',
-          walletId: 'wallet-id',
+          data: { address: 'STELLAR_ADDRESS', walletId: 'wallet-id' },
         }),
       } as Response)
 
@@ -251,7 +252,7 @@ describe('useStellarWallet', () => {
     })
 
     it('should return isConnecting state', async () => {
-      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' } })
+      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' }, getAccessToken: mockGetAccessToken })
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
@@ -273,7 +274,7 @@ describe('useStellarWallet', () => {
 
   describe('Error Handling', () => {
     it('should handle fetch rejection gracefully', async () => {
-      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' } })
+      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' }, getAccessToken: mockGetAccessToken })
 
       vi.mocked(global.fetch).mockRejectedValueOnce(new Error('Network error'))
 
@@ -291,7 +292,7 @@ describe('useStellarWallet', () => {
     })
 
     it('should throw error when mutation fails', async () => {
-      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' } })
+      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' }, getAccessToken: mockGetAccessToken })
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
@@ -318,14 +319,13 @@ describe('useStellarWallet', () => {
     })
 
     it('should return null error when no errors exist', async () => {
-      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' } })
+      mockUsePrivy.mockReturnValue({ user: { id: 'privy-user-123' }, getAccessToken: mockGetAccessToken })
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           success: true,
-          address: 'STELLAR_ADDRESS',
-          walletId: 'wallet-id',
+          data: { address: 'STELLAR_ADDRESS', walletId: 'wallet-id' },
         }),
       } as Response)
 

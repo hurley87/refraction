@@ -5,6 +5,7 @@ type PlayerLookupField =
   | 'wallet_address'
   | 'solana_wallet_address'
   | 'stellar_wallet_address'
+  | 'aptos_wallet_address'
   | 'email';
 
 // Select only the columns we need for Player type
@@ -14,6 +15,8 @@ const PLAYER_COLUMNS = `
   solana_wallet_address,
   stellar_wallet_address,
   stellar_wallet_id,
+  aptos_wallet_address,
+  aptos_wallet_id,
   email,
   username,
   total_points,
@@ -104,6 +107,13 @@ export const getPlayerByStellarWallet = async (
 };
 
 /**
+ * Get player by Aptos wallet address
+ */
+export const getPlayerByAptosWallet = async (aptosWalletAddress: string) => {
+  return getPlayerByField('aptos_wallet_address', aptosWalletAddress);
+};
+
+/**
  * Get player by email address
  */
 export const getPlayerByEmail = async (email: string) => {
@@ -115,7 +125,10 @@ export const getPlayerByEmail = async (email: string) => {
  * Links by email if the player already exists (from other chain checkins).
  */
 async function createOrUpdatePlayerForChain(
-  walletField: 'solana_wallet_address' | 'stellar_wallet_address',
+  walletField:
+    | 'solana_wallet_address'
+    | 'stellar_wallet_address'
+    | 'aptos_wallet_address',
   walletAddress: string,
   email?: string,
   additionalFields?: Record<string, string>
@@ -225,6 +238,26 @@ export const createOrUpdatePlayerForStellar = async (
   return createOrUpdatePlayerForChain(
     'stellar_wallet_address',
     stellarWalletAddress,
+    email,
+    additionalFields
+  );
+};
+
+/**
+ * Create or update a player for Aptos checkins.
+ * Links by email if the player already exists (from EVM, Solana, or Stellar checkins).
+ */
+export const createOrUpdatePlayerForAptos = async (
+  aptosWalletAddress: string,
+  email?: string,
+  aptosWalletId?: string
+) => {
+  const additionalFields = aptosWalletId
+    ? { aptos_wallet_id: aptosWalletId }
+    : undefined;
+  return createOrUpdatePlayerForChain(
+    'aptos_wallet_address',
+    aptosWalletAddress,
     email,
     additionalFields
   );

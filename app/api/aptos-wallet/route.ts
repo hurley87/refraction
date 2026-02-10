@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server';
 import {
-  createOrUpdatePlayerForStellar,
+  createOrUpdatePlayerForAptos,
   getPlayerByEmail,
 } from '@/lib/db/players';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { getPrivyClient, verifyCallerIdentity } from '@/lib/api/privy';
 
 /**
- * GET - Get Stellar wallet for a user
+ * GET - Get Aptos wallet for a user
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -28,18 +28,18 @@ export async function GET(req: NextRequest) {
     // Get user's wallets from Privy
     const user = await privy.getUser(privyUserId);
 
-    // Find Stellar wallet in linked accounts (for Tier 1 wallets)
-    const stellarWallet = user.linkedAccounts?.find(
+    // Find Aptos wallet in linked accounts (for Tier 1 wallets)
+    const aptosWallet = user.linkedAccounts?.find(
       (account) =>
         account.type === 'wallet' &&
         'chainType' in account &&
-        account.chainType === 'stellar'
+        (account as { chainType: string }).chainType === 'aptos'
     );
 
-    if (stellarWallet && 'address' in stellarWallet) {
+    if (aptosWallet && 'address' in aptosWallet) {
       return apiSuccess({
-        address: stellarWallet.address,
-        walletId: 'id' in stellarWallet ? stellarWallet.id : undefined,
+        address: aptosWallet.address,
+        walletId: 'id' in aptosWallet ? aptosWallet.id : undefined,
       });
     }
 
@@ -47,17 +47,17 @@ export async function GET(req: NextRequest) {
     const email = user.email?.address;
     if (email) {
       const player = await getPlayerByEmail(email);
-      if (player?.stellar_wallet_address) {
+      if (player?.aptos_wallet_address) {
         return apiSuccess({
-          address: player.stellar_wallet_address,
-          walletId: player.stellar_wallet_id ?? undefined,
+          address: player.aptos_wallet_address,
+          walletId: player.aptos_wallet_id ?? undefined,
         });
       }
     }
 
     return apiSuccess({ address: null });
   } catch (error) {
-    console.error('Error fetching Stellar wallet:', error);
+    console.error('Error fetching Aptos wallet:', error);
     return apiError(
       error instanceof Error ? error.message : 'Failed to fetch wallet',
       500
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * POST - Create Stellar wallet for a user
+ * POST - Create Aptos wallet for a user
  */
 export async function POST(req: NextRequest) {
   const { privyUserId } = await req.json();
@@ -83,60 +83,58 @@ export async function POST(req: NextRequest) {
   try {
     const privy = getPrivyClient();
 
-    // Check if user already has a Stellar wallet
+    // Check if user already has an Aptos wallet
     const user = await privy.getUser(privyUserId);
-    const existingStellarWallet = user.linkedAccounts?.find(
+    const existingAptosWallet = user.linkedAccounts?.find(
       (account) =>
         account.type === 'wallet' &&
         'chainType' in account &&
-        account.chainType === 'stellar'
+        (account as { chainType: string }).chainType === 'aptos'
     );
 
-    if (existingStellarWallet && 'address' in existingStellarWallet) {
+    if (existingAptosWallet && 'address' in existingAptosWallet) {
       // Ensure wallet is saved to database (in case it wasn't previously)
       const email = user.email?.address ?? undefined;
       const walletId =
-        'id' in existingStellarWallet ? existingStellarWallet.id : undefined;
-      await createOrUpdatePlayerForStellar(
-        existingStellarWallet.address,
+        'id' in existingAptosWallet ? existingAptosWallet.id : undefined;
+      await createOrUpdatePlayerForAptos(
+        existingAptosWallet.address,
         email,
         walletId ?? undefined
       );
 
       return apiSuccess(
         {
-          address: existingStellarWallet.address,
+          address: existingAptosWallet.address,
           walletId:
-            'id' in existingStellarWallet
-              ? existingStellarWallet.id
-              : undefined,
+            'id' in existingAptosWallet ? existingAptosWallet.id : undefined,
         },
-        'Stellar wallet already exists'
+        'Aptos wallet already exists'
       );
     }
 
-    // Create a new Stellar wallet (Tier 2 - server-managed)
-    // Note: Stellar wallets are created server-side without direct user ownership
+    // Create a new Aptos wallet (Tier 2 - server-managed)
+    // Note: Aptos wallets are created server-side without direct user ownership
     // The wallet address is stored in our database linked to the user
     const wallet = await privy.walletApi.create({
-      chainType: 'stellar',
+      chainType: 'aptos' as any, // Privy SDK types may not include 'aptos' yet, but API supports it
     });
 
     // Get user's email for account linking
     const email = user.email?.address ?? undefined;
 
     // Save to database (creates player or links wallet to existing player by email)
-    await createOrUpdatePlayerForStellar(wallet.address, email, wallet.id);
+    await createOrUpdatePlayerForAptos(wallet.address, email, wallet.id);
 
     return apiSuccess(
       {
         address: wallet.address,
         walletId: wallet.id,
       },
-      'Stellar wallet created successfully'
+      'Aptos wallet created successfully'
     );
   } catch (error) {
-    console.error('Error creating Stellar wallet:', error);
+    console.error('Error creating Aptos wallet:', error);
     return apiError(
       error instanceof Error ? error.message : 'Failed to create wallet',
       500

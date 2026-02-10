@@ -7,6 +7,7 @@ vi.mock('@/lib/db/players', () => ({
   createOrUpdatePlayer: vi.fn(),
   createOrUpdatePlayerForSolana: vi.fn(),
   createOrUpdatePlayerForStellar: vi.fn(),
+  createOrUpdatePlayerForAptos: vi.fn(),
   updatePlayerPoints: vi.fn(),
 }));
 
@@ -37,6 +38,7 @@ import {
   createOrUpdatePlayer,
   createOrUpdatePlayerForSolana,
   createOrUpdatePlayerForStellar,
+  createOrUpdatePlayerForAptos,
   updatePlayerPoints,
 } from '@/lib/db/players';
 import { trackCheckinCompleted, trackPointsEarned } from '@/lib/analytics';
@@ -651,6 +653,95 @@ describe('Checkin API Route', () => {
       const request = createMockRequest({
         chain: 'stellar',
         walletAddress: validStellarAddress,
+        checkpoint: 'checkpoint-abc',
+      });
+
+      const response = await POST(request);
+      const json = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(json.success).toBe(true);
+    });
+
+    it('should support Aptos chain checkin', async () => {
+      // Valid Aptos address: 0x followed by 64 hex characters
+      const validAptosAddress =
+        '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+      const mockPlayer = {
+        id: '123',
+        aptos_wallet_address: validAptosAddress,
+        total_points: 0,
+      };
+
+      vi.mocked(createOrUpdatePlayerForAptos).mockResolvedValueOnce(mockPlayer);
+      vi.mocked(updatePlayerPoints).mockResolvedValueOnce({
+        ...mockPlayer,
+        total_points: 100,
+      });
+
+      createMockSupabaseChain({
+        selectCount: 0,
+        insertData: { id: 'activity-123' },
+        sumData: [{ points_earned: 100 }],
+      });
+
+      const request = createMockRequest({
+        chain: 'aptos',
+        walletAddress: validAptosAddress,
+        checkpoint: 'checkpoint-abc',
+      });
+
+      const response = await POST(request);
+      const json = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(json.success).toBe(true);
+      expect(createOrUpdatePlayerForAptos).toHaveBeenCalledWith(
+        validAptosAddress,
+        undefined
+      );
+    });
+
+    it('should reject invalid Aptos wallet address format', async () => {
+      const request = createMockRequest({
+        chain: 'aptos',
+        walletAddress: 'invalid-aptos-address',
+        checkpoint: 'checkpoint-abc',
+      });
+
+      const response = await POST(request);
+      const json = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(json.success).toBe(false);
+      expect(json.error).toContain('Invalid Aptos wallet address');
+    });
+
+    it('should accept valid Aptos wallet address with aptos chain', async () => {
+      // Valid Aptos address: 0x followed by 64 hex characters
+      const validAptosAddress =
+        '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+      const mockPlayer = {
+        id: '123',
+        aptos_wallet_address: validAptosAddress,
+        total_points: 0,
+      };
+
+      vi.mocked(createOrUpdatePlayerForAptos).mockResolvedValueOnce(mockPlayer);
+      vi.mocked(updatePlayerPoints).mockResolvedValueOnce({
+        ...mockPlayer,
+        total_points: 100,
+      });
+
+      createMockSupabaseChain({
+        selectCount: 0,
+        insertData: { id: 'activity-123' },
+        sumData: [{ points_earned: 100 }],
+      });
+
+      const request = createMockRequest({
+        chain: 'aptos',
+        walletAddress: validAptosAddress,
         checkpoint: 'checkpoint-abc',
       });
 

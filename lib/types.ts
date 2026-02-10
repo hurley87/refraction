@@ -1,7 +1,7 @@
 // Shared types safe for both client and server. Do NOT import server clients here.
 
 /**
- * User account with multi-chain wallet support (EVM, Solana, Stellar)
+ * User account with multi-chain wallet support (EVM, Solana, Stellar, Aptos)
  */
 export type Player = {
   id?: number;
@@ -9,6 +9,8 @@ export type Player = {
   solana_wallet_address?: string;
   stellar_wallet_address?: string;
   stellar_wallet_id?: string;
+  aptos_wallet_address?: string;
+  aptos_wallet_id?: string;
   email?: string;
   username?: string;
   total_points: number;
@@ -202,9 +204,9 @@ export type Notification = {
 
 /**
  * Unified checkpoint for /c/[id] URLs
- * Supports multiple chain types (EVM, Solana, Stellar)
+ * Supports multiple chain types (EVM, Solana, Stellar, Aptos)
  */
-export type ChainType = 'evm' | 'solana' | 'stellar';
+export type ChainType = 'evm' | 'solana' | 'stellar' | 'aptos';
 
 export type Checkpoint = {
   id: string;

@@ -1,11 +1,11 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 /**
  * Validates EVM wallet address format (0x followed by 40 hex characters)
  */
 export const walletAddressSchema = z
   .string()
-  .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid EVM wallet address");
+  .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid EVM wallet address');
 
 /**
  * Validates Solana wallet address format (base58, 32-44 characters)
@@ -14,14 +14,21 @@ export const solanaWalletAddressSchema = z
   .string()
   .min(32)
   .max(44)
-  .regex(/^[1-9A-HJ-NP-Za-km-z]+$/, "Invalid Solana wallet address");
+  .regex(/^[1-9A-HJ-NP-Za-km-z]+$/, 'Invalid Solana wallet address');
 
 /**
  * Validates Stellar wallet address format (G followed by 55 base32 characters)
  */
 export const stellarWalletAddressSchema = z
   .string()
-  .regex(/^G[A-Z0-9]{55}$/, "Invalid Stellar wallet address");
+  .regex(/^G[A-Z0-9]{55}$/, 'Invalid Stellar wallet address');
+
+/**
+ * Validates Aptos wallet address format (0x followed by 64 hex characters)
+ */
+export const aptosWalletAddressSchema = z
+  .string()
+  .regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid Aptos wallet address');
 
 /**
  * Schema for creating or updating a player
@@ -31,6 +38,8 @@ export const createPlayerSchema = z.object({
   solana_wallet_address: solanaWalletAddressSchema.optional(),
   stellar_wallet_address: stellarWalletAddressSchema.optional(),
   stellar_wallet_id: z.string().optional(),
+  aptos_wallet_address: aptosWalletAddressSchema.optional(),
+  aptos_wallet_id: z.string().optional(),
   email: z.string().email().optional(),
   username: z.string().min(3).max(30).optional(),
   total_points: z.number().int().min(0).default(0),
@@ -59,4 +68,3 @@ export const awardProfileFieldPointsSchema = z.object({
   fieldType: z.string().min(1),
   fieldValue: z.string().min(1),
 });
-

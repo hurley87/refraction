@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useStellarWallet } from '@/hooks/useStellarWallet';
+import { useAptosWallet } from '@/hooks/useAptosWallet';
 import type { Checkpoint } from '@/lib/types';
 
 interface UnifiedCheckpointProps {
@@ -24,6 +25,13 @@ export default function UnifiedCheckpoint({
     isLoading: isStellarLoading,
     error: stellarError,
   } = useStellarWallet();
+  const {
+    address: aptosAddress,
+    connect: connectAptos,
+    isConnecting: isAptosConnecting,
+    isLoading: isAptosLoading,
+    error: aptosError,
+  } = useAptosWallet();
 
   const [isCreatingWallet, setIsCreatingWallet] = useState(false);
 
@@ -45,6 +53,8 @@ export default function UnifiedCheckpoint({
       }
       case 'stellar':
         return stellarAddress;
+      case 'aptos':
+        return aptosAddress;
       default:
         return undefined;
     }
@@ -90,6 +100,15 @@ export default function UnifiedCheckpoint({
       await connectStellar();
     } catch (error) {
       console.error('Failed to connect Stellar wallet:', error);
+    }
+  };
+
+  // Handle connecting Aptos wallet
+  const handleConnectAptosWallet = async () => {
+    try {
+      await connectAptos();
+    } catch (error) {
+      console.error('Failed to connect Aptos wallet:', error);
     }
   };
 
@@ -176,7 +195,9 @@ export default function UnifiedCheckpoint({
 
   // Loading state while waiting for Privy or wallet fetch
   const isLoading =
-    !user || (checkpoint.chain_type === 'stellar' && isStellarLoading);
+    !user ||
+    (checkpoint.chain_type === 'stellar' && isStellarLoading) ||
+    (checkpoint.chain_type === 'aptos' && isAptosLoading);
 
   if (isLoading) {
     return (
@@ -196,14 +217,18 @@ export default function UnifiedCheckpoint({
         ? isCreatingWallet
         : checkpoint.chain_type === 'stellar'
           ? isStellarConnecting
-          : false;
+          : checkpoint.chain_type === 'aptos'
+            ? isAptosConnecting
+            : false;
 
     const handleCreateWallet =
       checkpoint.chain_type === 'solana'
         ? handleCreateSolanaWallet
         : checkpoint.chain_type === 'stellar'
           ? handleConnectStellarWallet
-          : undefined;
+          : checkpoint.chain_type === 'aptos'
+            ? handleConnectAptosWallet
+            : undefined;
 
     if (checkpoint.chain_type === 'evm') {
       // EVM wallet should be available from Privy login
@@ -239,6 +264,9 @@ export default function UnifiedCheckpoint({
           </p>
           {checkpoint.chain_type === 'stellar' && stellarError && (
             <p className="text-red-600 text-sm">{stellarError}</p>
+          )}
+          {checkpoint.chain_type === 'aptos' && aptosError && (
+            <p className="text-red-600 text-sm">{aptosError}</p>
           )}
           <Button
             onClick={handleCreateWallet}

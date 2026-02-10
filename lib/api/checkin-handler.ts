@@ -9,7 +9,7 @@ import type { Player } from '@/lib/types';
 /**
  * Chain type for checkin operations
  */
-export type CheckinChain = 'evm' | 'solana' | 'stellar';
+export type CheckinChain = 'evm' | 'solana' | 'stellar' | 'aptos';
 
 /**
  * Input for processing a checkin
@@ -71,6 +71,8 @@ function getActivityFilter(chain: CheckinChain): string {
       return 'metadata->>solana_wallet';
     case 'stellar':
       return 'metadata->>stellar_wallet';
+    case 'aptos':
+      return 'metadata->>aptos_wallet';
   }
 }
 
@@ -99,6 +101,13 @@ function buildActivityMetadata(input: CheckinInput): Record<string, unknown> {
         stellar_wallet: chainWalletAddress,
         player_id: player.id,
       };
+    case 'aptos':
+      return {
+        ...base,
+        chain: 'aptos',
+        aptos_wallet: chainWalletAddress,
+        player_id: player.id,
+      };
   }
 }
 
@@ -113,6 +122,8 @@ function getChainDisplayName(chain: CheckinChain): string {
       return 'Solana ';
     case 'stellar':
       return 'Stellar ';
+    case 'aptos':
+      return 'Aptos ';
   }
 }
 

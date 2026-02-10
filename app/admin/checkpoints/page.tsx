@@ -1,27 +1,27 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import type { Checkpoint, ChainType } from "@/lib/types";
-import { usePrivy } from "@privy-io/react-auth";
+} from '@/components/ui/select';
+import type { Checkpoint, ChainType } from '@/lib/types';
+import { usePrivy } from '@privy-io/react-auth';
 
 export default function AdminCheckpointsPage() {
   const { user, login } = usePrivy();
@@ -31,9 +31,9 @@ export default function AdminCheckpointsPage() {
     if (!user?.email?.address) return false;
 
     try {
-      const response = await fetch("/api/admin/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: user.email.address }),
       });
       const responseData = await response.json();
@@ -41,13 +41,13 @@ export default function AdminCheckpointsPage() {
       const data = responseData.data || responseData;
       return data.isAdmin;
     } catch (error) {
-      console.error("Error checking admin status:", error);
+      console.error('Error checking admin status:', error);
       return false;
     }
   }, [user?.email?.address]);
 
   const [editingCheckpoint, setEditingCheckpoint] = useState<Checkpoint | null>(
-    null,
+    null
   );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<{
@@ -57,15 +57,15 @@ export default function AdminCheckpointsPage() {
     points_value: number;
     is_active: boolean;
   }>({
-    name: "",
-    description: "",
-    chain_type: "evm",
+    name: '',
+    description: '',
+    chain_type: 'evm',
     points_value: 100,
     is_active: true,
   });
   const [partnerImageFile, setPartnerImageFile] = useState<File | null>(null);
   const [partnerImagePreview, setPartnerImagePreview] = useState<string | null>(
-    null,
+    null
   );
 
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -89,14 +89,14 @@ export default function AdminCheckpointsPage() {
   const { data: checkpoints = [], isLoading: checkpointsLoading } = useQuery<
     Checkpoint[]
   >({
-    queryKey: ["admin-checkpoints"],
+    queryKey: ['admin-checkpoints'],
     queryFn: async () => {
-      const response = await fetch("/api/admin/checkpoints", {
+      const response = await fetch('/api/admin/checkpoints', {
         headers: {
-          "x-user-email": user?.email?.address || "",
+          'x-user-email': user?.email?.address || '',
         },
       });
-      if (!response.ok) throw new Error("Failed to fetch checkpoints");
+      if (!response.ok) throw new Error('Failed to fetch checkpoints');
       const responseData = await response.json();
       // Unwrap the apiSuccess wrapper
       const data = responseData.data || responseData;
@@ -111,45 +111,45 @@ export default function AdminCheckpointsPage() {
       checkpointData,
       imageFile,
     }: {
-      checkpointData: Omit<Checkpoint, "id" | "created_at" | "updated_at">;
+      checkpointData: Omit<Checkpoint, 'id' | 'created_at' | 'updated_at'>;
       imageFile?: File | null;
     }) => {
       // If image file is provided, use FormData; otherwise use JSON
       if (imageFile) {
         const formData = new FormData();
-        formData.append("name", checkpointData.name);
-        formData.append("description", checkpointData.description || "");
-        formData.append("chain_type", checkpointData.chain_type);
-        formData.append("points_value", String(checkpointData.points_value));
-        formData.append("is_active", String(checkpointData.is_active));
-        formData.append("partner_image", imageFile);
+        formData.append('name', checkpointData.name);
+        formData.append('description', checkpointData.description || '');
+        formData.append('chain_type', checkpointData.chain_type);
+        formData.append('points_value', String(checkpointData.points_value));
+        formData.append('is_active', String(checkpointData.is_active));
+        formData.append('partner_image', imageFile);
 
-        const response = await fetch("/api/admin/checkpoints", {
-          method: "POST",
+        const response = await fetch('/api/admin/checkpoints', {
+          method: 'POST',
           headers: {
-            "x-user-email": user?.email?.address || "",
+            'x-user-email': user?.email?.address || '',
           },
           body: formData,
         });
         if (!response.ok) {
           const errorData = await response.json().catch(() => null);
-          throw new Error(errorData?.error || "Failed to create checkpoint");
+          throw new Error(errorData?.error || 'Failed to create checkpoint');
         }
         const responseData = await response.json();
         // Unwrap the apiSuccess wrapper
         return responseData.data || responseData;
       } else {
-        const response = await fetch("/api/admin/checkpoints", {
-          method: "POST",
+        const response = await fetch('/api/admin/checkpoints', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
-            "x-user-email": user?.email?.address || "",
+            'Content-Type': 'application/json',
+            'x-user-email': user?.email?.address || '',
           },
           body: JSON.stringify(checkpointData),
         });
         if (!response.ok) {
           const errorData = await response.json().catch(() => null);
-          throw new Error(errorData?.error || "Failed to create checkpoint");
+          throw new Error(errorData?.error || 'Failed to create checkpoint');
         }
         const responseData = await response.json();
         // Unwrap the apiSuccess wrapper
@@ -157,7 +157,7 @@ export default function AdminCheckpointsPage() {
       }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-checkpoints"] });
+      queryClient.invalidateQueries({ queryKey: ['admin-checkpoints'] });
       toast.success(
         <div>
           <p>Checkpoint created!</p>
@@ -168,22 +168,22 @@ export default function AdminCheckpointsPage() {
             className="mt-2"
             onClick={() => {
               navigator.clipboard.writeText(
-                `${window.location.origin}${data.url}`,
+                `${window.location.origin}${data.url}`
               );
-              toast.success("URL copied to clipboard!");
+              toast.success('URL copied to clipboard!');
             }}
           >
             Copy URL
           </Button>
         </div>,
-        { duration: 10000 },
+        { duration: 10000 }
       );
       handleCloseDialog();
     },
     onError: (error) => {
-      console.error("Error creating checkpoint:", error);
+      console.error('Error creating checkpoint:', error);
       const errorMessage =
-        error instanceof Error ? error.message : "Failed to create checkpoint";
+        error instanceof Error ? error.message : 'Failed to create checkpoint';
       toast.error(errorMessage);
     },
   });
@@ -198,16 +198,16 @@ export default function AdminCheckpointsPage() {
       updates: Partial<Checkpoint>;
     }) => {
       const response = await fetch(`/api/admin/checkpoints/${id}`, {
-        method: "PATCH",
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
-          "x-user-email": user?.email?.address || "",
+          'Content-Type': 'application/json',
+          'x-user-email': user?.email?.address || '',
         },
         body: JSON.stringify(updates),
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || "Failed to update checkpoint");
+        throw new Error(errorData?.error || 'Failed to update checkpoint');
       }
       const responseData = await response.json();
       // Unwrap the apiSuccess wrapper
@@ -215,13 +215,13 @@ export default function AdminCheckpointsPage() {
       return data.checkpoint;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-checkpoints"] });
-      toast.success("Checkpoint updated successfully");
+      queryClient.invalidateQueries({ queryKey: ['admin-checkpoints'] });
+      toast.success('Checkpoint updated successfully');
       handleCloseDialog();
     },
     onError: (error) => {
-      console.error("Error updating checkpoint:", error);
-      toast.error("Failed to update checkpoint");
+      console.error('Error updating checkpoint:', error);
+      toast.error('Failed to update checkpoint');
     },
   });
 
@@ -229,23 +229,23 @@ export default function AdminCheckpointsPage() {
   const deleteCheckpointMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/admin/checkpoints/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: {
-          "x-user-email": user?.email?.address || "",
+          'x-user-email': user?.email?.address || '',
         },
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || "Failed to delete checkpoint");
+        throw new Error(errorData?.error || 'Failed to delete checkpoint');
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-checkpoints"] });
-      toast.success("Checkpoint deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ['admin-checkpoints'] });
+      toast.success('Checkpoint deleted successfully');
     },
     onError: (error) => {
-      console.error("Error deleting checkpoint:", error);
-      toast.error("Failed to delete checkpoint");
+      console.error('Error deleting checkpoint:', error);
+      toast.error('Failed to delete checkpoint');
     },
   });
 
@@ -269,7 +269,7 @@ export default function AdminCheckpointsPage() {
     setEditingCheckpoint(checkpoint);
     setFormData({
       name: checkpoint.name,
-      description: checkpoint.description || "",
+      description: checkpoint.description || '',
       chain_type: checkpoint.chain_type,
       points_value: checkpoint.points_value,
       is_active: checkpoint.is_active,
@@ -280,21 +280,21 @@ export default function AdminCheckpointsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this checkpoint?")) return;
+    if (!confirm('Are you sure you want to delete this checkpoint?')) return;
     deleteCheckpointMutation.mutate(id);
   };
 
   const handleCopyUrl = (id: string) => {
     const url = `${window.location.origin}/c/${id}`;
     navigator.clipboard.writeText(url);
-    toast.success("URL copied to clipboard!");
+    toast.success('URL copied to clipboard!');
   };
 
   const resetForm = () => {
     setFormData({
-      name: "",
-      description: "",
-      chain_type: "evm",
+      name: '',
+      description: '',
+      chain_type: 'evm',
       points_value: 100,
       is_active: true,
     });
@@ -316,12 +316,14 @@ export default function AdminCheckpointsPage() {
 
   const chainTypeLabel = (chainType: ChainType) => {
     switch (chainType) {
-      case "evm":
-        return "EVM (Base)";
-      case "solana":
-        return "Solana";
-      case "stellar":
-        return "Stellar";
+      case 'evm':
+        return 'EVM (Base)';
+      case 'solana':
+        return 'Solana';
+      case 'stellar':
+        return 'Stellar';
+      case 'aptos':
+        return 'Aptos';
       default:
         return chainType;
     }
@@ -369,8 +371,8 @@ export default function AdminCheckpointsPage() {
             <DialogHeader>
               <DialogTitle>
                 {editingCheckpoint
-                  ? "Edit Checkpoint"
-                  : "Create New Checkpoint"}
+                  ? 'Edit Checkpoint'
+                  : 'Create New Checkpoint'}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -415,6 +417,7 @@ export default function AdminCheckpointsPage() {
                     <SelectItem value="evm">EVM (Base)</SelectItem>
                     <SelectItem value="solana">Solana</SelectItem>
                     <SelectItem value="stellar">Stellar</SelectItem>
+                    <SelectItem value="aptos">Aptos</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500 mt-1">
@@ -497,10 +500,10 @@ export default function AdminCheckpointsPage() {
                 </Button>
                 <Button type="submit" disabled={isLoading}>
                   {isLoading
-                    ? "Saving..."
+                    ? 'Saving...'
                     : editingCheckpoint
-                      ? "Update"
-                      : "Create"}
+                      ? 'Update'
+                      : 'Create'}
                 </Button>
               </div>
             </form>
@@ -524,11 +527,11 @@ export default function AdminCheckpointsPage() {
                     <span
                       className={`px-2 py-1 text-xs rounded-full ${
                         checkpoint.is_active
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
                       }`}
                     >
-                      {checkpoint.is_active ? "Active" : "Inactive"}
+                      {checkpoint.is_active ? 'Active' : 'Inactive'}
                     </span>
                     <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
                       {chainTypeLabel(checkpoint.chain_type)}
@@ -542,16 +545,16 @@ export default function AdminCheckpointsPage() {
                   <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
                     <div>Points: {checkpoint.points_value}</div>
                     <div>
-                      URL:{" "}
+                      URL:{' '}
                       <span className="font-mono text-blue-600">
                         /c/{checkpoint.id}
                       </span>
                     </div>
                     <div>
-                      Created:{" "}
+                      Created:{' '}
                       {checkpoint.created_at
                         ? new Date(checkpoint.created_at).toLocaleDateString()
-                        : "N/A"}
+                        : 'N/A'}
                     </div>
                     {checkpoint.created_by && (
                       <div>Created by: {checkpoint.created_by}</div>

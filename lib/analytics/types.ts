@@ -10,7 +10,7 @@ export interface AnalyticsEvent {
 export interface UserProperties {
   $email?: string;
   $name?: string;
-  wallet_type?: 'EVM' | 'Solana' | 'Stellar';
+  wallet_type?: 'EVM' | 'Solana' | 'Stellar' | 'Aptos';
   tier?: string;
   total_points?: number;
   first_action_at?: string;
@@ -18,6 +18,7 @@ export interface UserProperties {
   wallet_address?: string;
   solana_wallet_address?: string;
   stellar_wallet_address?: string;
+  aptos_wallet_address?: string;
   privy_user_id?: string;
 }
 
@@ -29,7 +30,7 @@ export interface CheckinEventProperties {
   checkpoint?: string;
   checkpoint_id?: string;
   checkin_type: 'location' | 'checkpoint';
-  chain?: 'evm' | 'solana' | 'stellar';
+  chain?: 'evm' | 'solana' | 'stellar' | 'aptos';
 }
 
 export interface RewardEventProperties {
@@ -53,7 +54,7 @@ export interface PointsEarnedProperties {
   amount: number;
   cohort?: 'new' | 'returning' | 'power';
   description?: string;
-  chain?: 'evm' | 'solana' | 'stellar';
+  chain?: 'evm' | 'solana' | 'stellar' | 'aptos';
   checkpoint_id?: string;
 }
 
@@ -65,7 +66,7 @@ export interface TierChangedProperties {
 }
 
 export interface AccountCreatedProperties {
-  wallet_type: 'EVM' | 'Solana' | 'Stellar';
+  wallet_type: 'EVM' | 'Solana' | 'Stellar' | 'Aptos';
   has_email: boolean;
   wallet_address: string;
 }

@@ -8,6 +8,8 @@ const PLAYER_COLUMNS = `
   solana_wallet_address,
   stellar_wallet_address,
   stellar_wallet_id,
+  aptos_wallet_address,
+  aptos_wallet_id,
   email,
   username,
   total_points,

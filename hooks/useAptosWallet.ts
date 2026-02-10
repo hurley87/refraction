@@ -1,19 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 
-interface StellarWalletResponse {
+interface AptosWalletResponse {
   success: boolean;
   address?: string;
   walletId?: string;
   error?: string;
 }
 
-async function fetchStellarWallet(
+async function fetchAptosWallet(
   privyUserId: string,
   accessToken: string
-): Promise<StellarWalletResponse> {
+): Promise<AptosWalletResponse> {
   const response = await fetch(
-    `/api/stellar-wallet?privyUserId=${encodeURIComponent(privyUserId)}`,
+    `/api/aptos-wallet?privyUserId=${encodeURIComponent(privyUserId)}`,
     {
       headers: { Authorization: `Bearer ${accessToken}` },
     }
@@ -28,14 +28,14 @@ async function fetchStellarWallet(
   };
 }
 
-async function createStellarWallet({
+async function createAptosWallet({
   privyUserId,
   accessToken,
 }: {
   privyUserId: string;
   accessToken: string;
-}): Promise<StellarWalletResponse> {
-  const response = await fetch('/api/stellar-wallet', {
+}): Promise<AptosWalletResponse> {
+  const response = await fetch('/api/aptos-wallet', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -47,7 +47,7 @@ async function createStellarWallet({
   const json = await response.json();
 
   if (!response.ok || !json.success) {
-    throw new Error(json.error || 'Failed to create Stellar wallet');
+    throw new Error(json.error || 'Failed to create Aptos wallet');
   }
 
   // Unwrap the nested data from apiSuccess wrapper
@@ -58,7 +58,7 @@ async function createStellarWallet({
   };
 }
 
-export const useStellarWallet = () => {
+export const useAptosWallet = () => {
   const { user, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
 
@@ -68,11 +68,11 @@ export const useStellarWallet = () => {
     isLoading,
     error: queryError,
   } = useQuery({
-    queryKey: ['stellarWallet', user?.id],
+    queryKey: ['aptosWallet', user?.id],
     queryFn: async () => {
       const token = await getAccessToken();
       if (!token) throw new Error('Not authenticated');
-      return fetchStellarWallet(user!.id, token);
+      return fetchAptosWallet(user!.id, token);
     },
     enabled: !!user?.id,
     staleTime: 60_000, // 1 minute
@@ -84,16 +84,16 @@ export const useStellarWallet = () => {
     isPending: isConnecting,
     error: mutationError,
   } = useMutation({
-    mutationFn: createStellarWallet,
+    mutationFn: createAptosWallet,
     onSuccess: (data) => {
       // Invalidate and refetch wallet query
-      queryClient.setQueryData(['stellarWallet', user?.id], data);
+      queryClient.setQueryData(['aptosWallet', user?.id], data);
     },
   });
 
   const disconnect = () => {
     // Clear cache when disconnecting
-    queryClient.setQueryData(['stellarWallet', user?.id], {
+    queryClient.setQueryData(['aptosWallet', user?.id], {
       success: false,
     });
   };

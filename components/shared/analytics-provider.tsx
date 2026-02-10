@@ -89,7 +89,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
     if (!walletAddress) return;
 
     // Determine wallet type
-    let walletType: 'EVM' | 'Solana' | 'Stellar' = 'EVM';
+    let walletType: 'EVM' | 'Solana' | 'Stellar' | 'Aptos' = 'EVM';
     if (user.linkedAccounts) {
       const solanaAccount = user.linkedAccounts.find(
         (acc) =>
@@ -103,8 +103,15 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
           'chainType' in acc &&
           acc.chainType === 'stellar'
       );
+      const aptosAccount = user.linkedAccounts.find(
+        (acc) =>
+          acc.type === 'wallet' &&
+          'chainType' in acc &&
+          (acc as { chainType: string }).chainType === 'aptos'
+      );
       if (solanaAccount) walletType = 'Solana';
       if (stellarAccount) walletType = 'Stellar';
+      if (aptosAccount) walletType = 'Aptos';
     }
 
     // Get tier information

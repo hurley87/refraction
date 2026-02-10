@@ -1,11 +1,11 @@
 -- Unified checkpoints table for /c/[id] URLs
--- Supports EVM, Solana, and Stellar wallet types
+-- Supports EVM, Solana, Stellar, and Aptos wallet types
 
 CREATE TABLE IF NOT EXISTS checkpoints (
     id VARCHAR(12) PRIMARY KEY,  -- Short nanoid for URL-friendly IDs (e.g., /c/abc123xyz)
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    chain_type VARCHAR(20) NOT NULL CHECK (chain_type IN ('evm', 'solana', 'stellar')),
+    chain_type VARCHAR(20) NOT NULL CHECK (chain_type IN ('evm', 'solana', 'stellar', 'aptos')),
     points_value INTEGER NOT NULL DEFAULT 100,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_by VARCHAR(255),  -- Admin email who created it

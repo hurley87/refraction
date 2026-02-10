@@ -21,6 +21,10 @@ ON players(solana_wallet_address);
 CREATE INDEX IF NOT EXISTS idx_players_stellar_wallet 
 ON players(stellar_wallet_address);
 
+-- Index for Aptos wallet lookups
+CREATE INDEX IF NOT EXISTS idx_players_aptos_wallet 
+ON players(aptos_wallet_address);
+
 -- Index for email lookups (used for account linking)
 CREATE INDEX IF NOT EXISTS idx_players_email 
 ON players(email);
