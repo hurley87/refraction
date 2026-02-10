@@ -555,10 +555,10 @@ describe('UnifiedCheckpoint', () => {
       render(<UnifiedCheckpoint checkpoint={mockEvmCheckpoint} />);
 
       await waitFor(() => {
-        expect(screen.getByText("YOU'RE IN")).toBeInTheDocument();
-        expect(screen.getByText('YOU EARNED')).toBeInTheDocument();
+        expect(screen.getByText(/You're In/i)).toBeInTheDocument();
+        expect(screen.getByText(/You earned/i)).toBeInTheDocument();
         expect(screen.getByText('100')).toBeInTheDocument();
-        expect(screen.getByText('PTS')).toBeInTheDocument();
+        expect(screen.getByText(/pts/i)).toBeInTheDocument();
       });
     });
 
@@ -584,7 +584,7 @@ describe('UnifiedCheckpoint', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /go to the irl map/i })
+          screen.getByRole('button', { name: /explore the irl map/i })
         ).toBeInTheDocument();
       });
     });
@@ -612,12 +612,12 @@ describe('UnifiedCheckpoint', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('button', { name: /go to the irl map/i })
+          screen.getByRole('button', { name: /explore the irl map/i })
         ).toBeInTheDocument();
       });
 
       await user.click(
-        screen.getByRole('button', { name: /go to the irl map/i })
+        screen.getByRole('button', { name: /explore the irl map/i })
       );
 
       expect(mockPush).toHaveBeenCalledWith('/interactive-map');
@@ -650,7 +650,7 @@ describe('UnifiedCheckpoint', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('img', { name: 'Partner' })
+          screen.getByRole('img', { name: 'Test Checkpoint' })
         ).toBeInTheDocument();
       });
     });

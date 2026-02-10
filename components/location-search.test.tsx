@@ -339,6 +339,7 @@ describe('LocationSearch', () => {
               mapbox_id: 'mapbox-1',
               name: 'New York',
               place_formatted: 'New York, NY, USA',
+              feature_type: 'place',
             },
           ],
         }),
