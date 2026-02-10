@@ -17,18 +17,18 @@ import {
 } from '@/lib/stellar/utils/soroban';
 import {
   getSimplePaymentContractAddress,
-  getClaimPointsTokenAddress,
+  getFungibleTokenContractAddress,
   getHorizonUrlForNetwork,
 } from '@/lib/stellar/utils/network';
 
 /** Amount of custom tokens the simple payment sends per claim (100 tokens). */
-const CLAIM_POINTS_AMOUNT_TOKENS = 100;
+const FUNGIBLE_TOKEN_AMOUNT_TOKENS = 100;
 
 /**
  * POST /api/claim-points
  * Claims reward tokens by having the backend invoke the simple payment contract's
- * send_token(claim_points_token_address, recipient, amount). The simple payment
- * contract must hold the claim-points token; this API sends that token to the user.
+ * send_token(fungible_token_address, recipient, amount). The simple payment
+ * contract must hold the fungible token; this API sends that token to the user.
  * Body: { walletAddress: string, networkPassphrase?: string }
  * Returns: { success: true, data: { txHash: string } }
  */
@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
   }
 
   const walletAddress = body.walletAddress?.trim();
-  const networkPassphrase = body.networkPassphrase?.trim();
 
   if (!walletAddress) {
     return apiError('walletAddress is required', 400);
@@ -51,15 +50,16 @@ export async function POST(request: NextRequest) {
     return apiError('Invalid wallet address', 400);
   }
 
+  // Use app-configured network so contract addresses and tx match deployment (e.g. irl.energy testnet).
+  // Ignore wallet passphrase from body to avoid mainnet contract lookup when app is set to TESTNET.
+  const appNetwork = process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toUpperCase();
   const passphrase =
-    networkPassphrase ||
-    (process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'PUBLIC' ||
-    process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'MAINNET'
+    appNetwork === 'PUBLIC' || appNetwork === 'MAINNET'
       ? Networks.PUBLIC
-      : Networks.TESTNET);
+      : Networks.TESTNET;
 
   const simplePaymentAddress = getSimplePaymentContractAddress(passphrase);
-  const claimPointsTokenAddress = getClaimPointsTokenAddress(passphrase);
+  const fungibleTokenAddress = getFungibleTokenContractAddress(passphrase);
 
   if (!simplePaymentAddress) {
     return apiError(
@@ -68,21 +68,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!claimPointsTokenAddress) {
+  if (!fungibleTokenAddress) {
     const isMainnet =
       passphrase.includes('Public') ||
       passphrase.includes('Public Global Stellar Network');
     const envVar = isMainnet
-      ? 'NEXT_PUBLIC_CLAIM_POINTS_CONTRACT_ADDRESS_MAINNET'
-      : 'NEXT_PUBLIC_CLAIM_POINTS_CONTRACT_ADDRESS_TESTNET';
+      ? 'NEXT_PUBLIC_FUNGIBLE_TOKEN_CONTRACT_ADDRESS_MAINNET'
+      : 'NEXT_PUBLIC_FUNGIBLE_TOKEN_CONTRACT_ADDRESS_TESTNET';
     return apiError(
-      `Claim-points token contract not configured for this network. Set ${envVar} in your environment (e.g. Vercel) to the deployed token contract ID.`,
+      `Fungible token contract not configured for this network. Set ${envVar} in your environment (e.g. Vercel) to the deployed token contract ID.`,
       500
     );
   }
 
   const signerSecret =
-    //process.env.REWARDS_TOKEN_OWNER_SECRET_KEY ||
+    process.env.REWARDS_TOKEN_OWNER_SECRET_KEY ||
     process.env.SERVER_WALLET_PRIVATE_KEY;
   if (!signerSecret) {
     return apiError(
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const amountSmallest = toTokenSmallestUnits(CLAIM_POINTS_AMOUNT_TOKENS);
+  const amountSmallest = toTokenSmallestUnits(FUNGIBLE_TOKEN_AMOUNT_TOKENS);
 
   try {
     const keypair = Keypair.fromSecret(signerSecret);
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     const contract = getContract(simplePaymentAddress);
     const contractCall = contract.call(
       'send_token',
-      addressToScVal(claimPointsTokenAddress),
+      addressToScVal(fungibleTokenAddress),
       addressToScVal(walletAddress),
       nativeToScVal(amountSmallest, { type: 'i128' })
     );
