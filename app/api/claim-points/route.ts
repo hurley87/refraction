@@ -7,7 +7,7 @@ import {
   rpc as SorobanRpc,
   Horizon,
 } from '@stellar/stellar-sdk';
-import { apiSuccess, apiError } from '@/lib/api/response';
+import { apiError } from '@/lib/api/response';
 import { NextResponse } from 'next/server';
 import {
   getSorobanRpc,
@@ -187,10 +187,19 @@ export async function POST(request: NextRequest) {
       `[claim-points] [${requestId}] Transaction built, simulating...`
     );
     const simulation = await rpc.simulateTransaction(transaction);
+    const isSimulationSuccess = SorobanRpc.Api.isSimulationSuccess(simulation);
+    const isSimulationError = SorobanRpc.Api.isSimulationError(simulation);
     console.log(`[claim-points] [${requestId}] Simulation result:`, {
-      isError: SorobanRpc.Api.isSimulationError(simulation),
-      isSuccess: SorobanRpc.Api.isSimulationSuccess(simulation),
-      cost: simulation.cost,
+      isError: isSimulationError,
+      isSuccess: isSimulationSuccess,
+      hasResult:
+        isSimulationSuccess && 'result' in simulation
+          ? !!simulation.result
+          : false,
+      minResourceFee:
+        isSimulationSuccess && 'minResourceFee' in simulation
+          ? simulation.minResourceFee
+          : undefined,
     });
     if (SorobanRpc.Api.isSimulationError(simulation)) {
       const errorDetails = simulation.error
