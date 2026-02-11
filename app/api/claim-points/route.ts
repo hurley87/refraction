@@ -69,14 +69,8 @@ export async function POST(request: NextRequest) {
   }
 
   if (!fungibleTokenAddress) {
-    const isMainnet =
-      passphrase.includes('Public') ||
-      passphrase.includes('Public Global Stellar Network');
-    const envVar = isMainnet
-      ? 'NEXT_PUBLIC_FUNGIBLE_TOKEN_CONTRACT_ADDRESS_MAINNET'
-      : 'NEXT_PUBLIC_FUNGIBLE_TOKEN_CONTRACT_ADDRESS_TESTNET';
     return apiError(
-      `Fungible token contract not configured for this network. Set ${envVar} in your environment (e.g. Vercel) to the deployed token contract ID.`,
+      'Fungible token contract not configured for this network. Update lib/stellar/contract-addresses.ts with the deployed token contract ID.',
       500
     );
   }

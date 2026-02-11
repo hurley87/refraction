@@ -1,8 +1,7 @@
 /**
  * Stellar / Soroban contract addresses per network.
- * These are public and safe to commit. Update this file when you deploy new contracts;
- * no need to change Vercel (or other) env vars.
- * Env vars with the same names still override these values when set.
+ * These are public and safe to commit. Update this file when you deploy new contracts.
+ * This is the single source of truth for contract addresses.
  */
 
 export const STELLAR_CONTRACT_ADDRESSES = {
