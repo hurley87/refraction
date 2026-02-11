@@ -1242,27 +1242,49 @@ export const mintNFT = async (
     .setTimeout(30)
     .build();
 
-  // Check account balance before simulating
-  // The mint requires 0.01 XLM payment + transaction fees + minimum reserve
-  // The native token contract enforces a minimum balance (typically 1 XLM for basic accounts)
-  // On mainnet: fee is ~0.01 XLM, minimum reserve is typically 1 XLM (enforced by native token contract)
-  // On testnet: fee is ~0.00001 XLM, minimum reserve is typically 0.5 XLM
-  const accountBalanceXlm = parseFloat(account.balances[0]?.balance || '0');
+  // Check account balance before simulating (use native XLM balance explicitly;
+  // balances[0] may not be native if the account has other assets first)
+  const nativeBalanceLine = account.balances.find(
+    (b: { asset_type?: string }) => b.asset_type === 'native'
+  );
+  const accountBalanceXlm = parseFloat(
+    nativeBalanceLine?.balance ?? (account.balances[0]?.balance || '0')
+  );
   const mintCostXlm = 0.01; // Payment to contract
   const estimatedFeeXlm = isMainnet ? 0.01 : 0.00001;
   // The native token contract requires maintaining a minimum balance after transfer
-  // Based on the error, it appears the contract enforces ~1 XLM minimum
-  // We need: payment + fee + minimum balance that must remain after transfer
-  const minBalanceAfterTransferXlm = isMainnet ? 1.0 : 0.5; // Minimum balance that must remain
+  const minBalanceAfterTransferXlm = isMainnet ? 1.0 : 0.5;
   const requiredBalanceXlm =
     mintCostXlm + estimatedFeeXlm + minBalanceAfterTransferXlm;
 
   if (accountBalanceXlm < requiredBalanceXlm) {
+    // If balance is 0 here but the wallet UI shows a balance, we may be querying the wrong network (mainnet vs testnet)
+    let hint = '';
+    if (accountBalanceXlm === 0) {
+      try {
+        const altNetworkName =
+          networkName === 'MAINNET' ? 'TESTNET' : 'MAINNET';
+        const altHorizonUrl = getHorizonUrlForNetwork(altNetworkName);
+        const altServer = new Horizon.Server(altHorizonUrl);
+        const altAccount = await altServer.loadAccount(signerAddress);
+        const altNative = altAccount.balances.find(
+          (b: { asset_type?: string }) => b.asset_type === 'native'
+        );
+        const altBalance = parseFloat(altNative?.balance || '0');
+        if (altBalance >= requiredBalanceXlm) {
+          hint =
+            ` Your wallet has ${altBalance.toFixed(2)} XLM on ${altNetworkName} but the app is using ${networkName} for this request. ` +
+            `Ensure your wallet network matches the app (or reconnect your wallet so the app detects the correct network).`;
+        }
+      } catch {
+        // Ignore; hint stays empty
+      }
+    }
     throw new Error(
       `Insufficient balance to mint NFT. ` +
         `You have ${accountBalanceXlm.toFixed(2)} XLM, but need at least ${requiredBalanceXlm.toFixed(2)} XLM ` +
         `(0.01 XLM payment + ${estimatedFeeXlm.toFixed(5)} XLM fee + ${minBalanceAfterTransferXlm.toFixed(1)} XLM minimum balance that must remain). ` +
-        `The native token contract requires maintaining a minimum balance after the transfer. Please add more XLM to your account.`
+        `The native token contract requires maintaining a minimum balance after the transfer. Please add more XLM to your account.${hint}`
     );
   }
 

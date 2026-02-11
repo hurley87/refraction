@@ -133,6 +133,20 @@ export async function POST(request: NextRequest) {
       const errorDetails = simulation.error
         ? JSON.stringify(simulation.error, null, 2)
         : 'Unknown simulation error';
+      const detailsStr =
+        typeof simulation.error === 'string'
+          ? simulation.error
+          : JSON.stringify(simulation.error);
+      if (
+        detailsStr.includes('Storage') &&
+        detailsStr.includes('MissingValue') &&
+        detailsStr.includes('balance')
+      ) {
+        return apiError(
+          `Simple payment contract has no IRL token balance. Transfer IRL tokens from the token owner to the simple payment contract (${simplePaymentAddress}) so claims can be paid. See soroban-contracts/DEPLOY_MAINNET.md or irl_token/README.md for how to fund it.`,
+          400
+        );
+      }
       return apiError(`Simulation failed: ${errorDetails}`, 400);
     }
 
