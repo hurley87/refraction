@@ -91,6 +91,12 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
     setIsLoading(true);
     onPending?.();
 
+    console.log('[ClaimPoints] Starting claim request:', {
+      recipientAddress,
+      contractAddress,
+      networkPassphrase: networkPassphrase?.substring(0, 30) + '...',
+    });
+
     try {
       const res = await fetch('/api/claim-points', {
         method: 'POST',
@@ -100,23 +106,66 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
           networkPassphrase: networkPassphrase ?? undefined,
         }),
       });
+
+      console.log(
+        '[ClaimPoints] API response status:',
+        res.status,
+        res.statusText
+      );
+
       const data = await res.json();
+      console.log('[ClaimPoints] API response data:', {
+        success: data.success,
+        hasTxHash: !!data.data?.txHash,
+        txHash: data.data?.txHash,
+        error: data.error,
+        message: data.message,
+        debug: data.debug, // Log debug info from API
+      });
+
+      // Log debug info separately for visibility
+      if (data.debug) {
+        console.log('[ClaimPoints] API debug info:', data.debug);
+      }
 
       if (!data.success) {
-        throw new Error(data.error ?? 'Claim failed');
+        console.error('[ClaimPoints] API returned error:', {
+          error: data.error,
+          debug: data.debug,
+          fullResponse: data,
+        });
+        // Include debug info in error message if available
+        const errorMsg = data.debug
+          ? `${data.error ?? 'Claim failed'}\n\nDebug info: ${JSON.stringify(data.debug, null, 2)}`
+          : (data.error ?? 'Claim failed');
+        throw new Error(errorMsg);
       }
 
       const txHash = data.data?.txHash;
       if (!txHash) {
-        throw new Error('No transaction hash returned');
+        console.error('[ClaimPoints] No transaction hash in response:', {
+          data,
+          debug: data.debug,
+        });
+        const errorMsg = data.debug
+          ? `No transaction hash returned. Debug: ${JSON.stringify(data.debug, null, 2)}`
+          : 'No transaction hash returned';
+        throw new Error(errorMsg);
       }
 
+      console.log('[ClaimPoints] Success! Transaction hash:', txHash);
       toast.success(`Points claimed successfully! Transaction hash: ${txHash}`);
       addNotification(`Points claimed successfully: ${txHash}`, 'success');
       onSuccess?.(txHash);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
+
+      console.error('[ClaimPoints] Error caught:', {
+        error,
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
 
       if (
         errorMessage.includes('Account not found') ||
