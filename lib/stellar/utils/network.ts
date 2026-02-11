@@ -132,8 +132,7 @@ export const { stellarNetwork, networkPassphrase, rpcUrl, horizonUrl } =
   getStellarNetworkConfig();
 
 /**
- * Get NFT contract address based on network. Uses lib/stellar/contract-addresses.ts;
- * env vars override when set.
+ * Get NFT contract address based on network. Uses lib/stellar/contract-addresses.ts.
  */
 export const getNFTContractAddress = (networkPassphrase?: string): string => {
   let isMainnet = false;
@@ -150,22 +149,13 @@ export const getNFTContractAddress = (networkPassphrase?: string): string => {
       normalizedNetwork === 'PUBLIC' || normalizedNetwork === 'MAINNET';
   }
 
-  if (isMainnet) {
-    return (
-      process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_MAINNET ||
-      STELLAR_CONTRACT_ADDRESSES.nft.mainnet
-    );
-  } else {
-    return (
-      process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_TESTNET ||
-      STELLAR_CONTRACT_ADDRESSES.nft.testnet
-    );
-  }
+  return isMainnet
+    ? STELLAR_CONTRACT_ADDRESSES.nft.mainnet
+    : STELLAR_CONTRACT_ADDRESSES.nft.testnet;
 };
 
 /**
- * Get Simple Payment contract address based on network. Uses lib/stellar/contract-addresses.ts;
- * env vars override when set.
+ * Get Simple Payment contract address based on network. Uses lib/stellar/contract-addresses.ts.
  */
 export const getSimplePaymentContractAddress = (
   networkPassphrase?: string
@@ -184,22 +174,13 @@ export const getSimplePaymentContractAddress = (
       normalizedNetwork === 'PUBLIC' || normalizedNetwork === 'MAINNET';
   }
 
-  if (isMainnet) {
-    return (
-      process.env.NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_MAINNET ||
-      STELLAR_CONTRACT_ADDRESSES.simplePayment.mainnet
-    );
-  } else {
-    return (
-      process.env.NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_TESTNET ||
-      STELLAR_CONTRACT_ADDRESSES.simplePayment.testnet
-    );
-  }
+  return isMainnet
+    ? STELLAR_CONTRACT_ADDRESSES.simplePayment.mainnet
+    : STELLAR_CONTRACT_ADDRESSES.simplePayment.testnet;
 };
 
 /**
- * Get the fungible token contract address for the given network. Uses lib/stellar/contract-addresses.ts;
- * env vars override when set.
+ * Get the fungible token contract address for the given network. Uses lib/stellar/contract-addresses.ts.
  */
 export const getFungibleTokenContractAddress = (
   networkPassphrase?: string
@@ -218,15 +199,7 @@ export const getFungibleTokenContractAddress = (
       normalizedNetwork === 'PUBLIC' || normalizedNetwork === 'MAINNET';
   }
 
-  if (isMainnet) {
-    return (
-      process.env.NEXT_PUBLIC_FUNGIBLE_TOKEN_CONTRACT_ADDRESS_MAINNET ||
-      STELLAR_CONTRACT_ADDRESSES.fungibleToken.mainnet
-    );
-  } else {
-    return (
-      process.env.NEXT_PUBLIC_FUNGIBLE_TOKEN_CONTRACT_ADDRESS_TESTNET ||
-      STELLAR_CONTRACT_ADDRESSES.fungibleToken.testnet
-    );
-  }
+  return isMainnet
+    ? STELLAR_CONTRACT_ADDRESSES.fungibleToken.mainnet
+    : STELLAR_CONTRACT_ADDRESSES.fungibleToken.testnet;
 };

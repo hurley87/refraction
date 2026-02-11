@@ -39,7 +39,7 @@ const TestSendContract: React.FC = () => {
     // Validate contract address exists
     if (!contractAddress) {
       toast.error(
-        'Contract address not configured. Please set NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS environment variable.'
+        'Contract address not configured. Please update lib/stellar/contract-addresses.ts with the deployed simple payment contract ID.'
       );
       return;
     }
@@ -50,7 +50,7 @@ const TestSendContract: React.FC = () => {
         `Invalid contract address format: "${contractAddress}". ` +
           "Contract addresses must start with 'C' and be 56 characters long, " +
           "or be a valid Stellar address starting with 'G'. " +
-          'Please check your NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS environment variable.'
+          'Please check lib/stellar/contract-addresses.ts.'
       );
       return;
     }

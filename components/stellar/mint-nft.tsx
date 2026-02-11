@@ -77,7 +77,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
 
     if (!contractAddress) {
       const errorMsg =
-        'NFT contract address not configured. Please set NEXT_PUBLIC_NFT_CONTRACT_ADDRESS environment variable.';
+        'NFT contract address not configured. Please update lib/stellar/contract-addresses.ts with the deployed NFT contract ID.';
       toast.error(errorMsg);
       onError?.(errorMsg);
       return;
@@ -164,8 +164,8 @@ const MintNFT: React.FC<MintNFTProps> = ({
     return (
       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
         <p className="text-sm text-yellow-800">
-          NFT contract address not configured. Please set
-          NEXT_PUBLIC_NFT_CONTRACT_ADDRESS environment variable.
+          NFT contract address not configured. Please update
+          lib/stellar/contract-addresses.ts with the deployed NFT contract ID.
         </p>
       </div>
     );
