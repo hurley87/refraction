@@ -165,7 +165,7 @@ DEPLOY_CMD="soroban contract deploy \
     --wasm ${WASM_PATH} \
     --source \"${SECRET_KEY}\" \
     --network ${NETWORK} \
-    --fee ${FEE} \
+    --inclusion-fee ${FEE} \
     -- \
     --owner \"${OWNER_ADDRESS}\" \
     --native_asset_address \"${XLM_ADDRESS}\" \

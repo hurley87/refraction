@@ -1,12 +1,17 @@
 # Deploying Contracts to Stellar Mainnet
 
-This guide walks you through deploying the NFT Collection and Simple Payment contracts to Stellar Mainnet.
+This guide walks you through deploying the NFT Collection, Simple Payment, and IRL Token contracts to Stellar Mainnet.
 
 ## Prerequisites
 
 1. **Funded Mainnet Account**: You need a Stellar account with XLM on mainnet
-   - Minimum balance: ~2-3 XLM for deployment fees
+   - Recommended: at least **5–10 XLM** (contract install + fees + reserves). If you see **TxInsufficientBalance**, add more XLM to the account.
    - You can buy XLM from exchanges or use a Stellar wallet
+   - **Verify mainnet balance** (the deployer is the account from your secret key; mainnet and testnet are separate):
+     ```bash
+     curl -s "https://horizon.stellar.org/accounts/YOUR_PUBLIC_KEY"
+     ```
+     Replace `YOUR_PUBLIC_KEY` with your account address (starts with `G`). Check the `balances` array for native XLM. A 404 means the account does not exist on mainnet yet.
 
 2. **Soroban CLI Installed**: Make sure you have the latest version
 
@@ -22,7 +27,7 @@ This guide walks you through deploying the NFT Collection and Simple Payment con
 
    ```bash
    soroban network ls
-   soroban network info mainnet
+   soroban network info --network mainnet
    ```
 
    If mainnet is not configured or has an invalid RPC URL, configure it:
@@ -45,8 +50,10 @@ This guide walks you through deploying the NFT Collection and Simple Payment con
    Verify the configuration:
 
    ```bash
-   soroban network health mainnet
+   soroban network health --network mainnet
    ```
+
+   **If you see "Invalid URL Bring Your Own" or a docs URL:** mainnet is using a placeholder. Remove and re-add it with the commands under "Or update existing mainnet configuration" above.
 
 ## Step 1: Get Mainnet XLM Native Asset Address
 
@@ -64,9 +71,9 @@ Example output (this is the actual mainnet address):
 CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
 ```
 
-## Step 2: Build Both Contracts
+## Step 2: Build Contracts
 
-Build both contracts before deploying:
+Build all contracts before deploying:
 
 ```bash
 # Build NFT Collection
@@ -75,6 +82,10 @@ soroban contract build
 
 # Build Simple Payment
 cd ../simple_payment
+soroban contract build
+
+# Build IRL Token (fungible token for claim-points)
+cd ../irl_token
 soroban contract build
 ```
 
@@ -93,13 +104,13 @@ soroban contract build
      --wasm target/wasm32v1-none/release/nft_collection.wasm \
      --source YOUR_SECRET_KEY \
      --network mainnet \
-     --fee 100000 \
+     --inclusion-fee 100000 \
      -- --owner YOUR_STELLAR_ADDRESS \
         --native_asset_address MAINNET_XLM_CONTRACT_ADDRESS \
         --max_supply 10000
    ```
 
-   **Note:** The `--fee 100000` sets the transaction fee to 100,000 stroops (0.01 XLM). If you still get "TxInsufficientFee" errors, try increasing it to `--fee 500000` (0.05 XLM) or higher.
+   **Note:** The `--inclusion-fee 100000` sets the transaction fee to 100,000 stroops (0.01 XLM). If you get **TxInsufficientFee**, try a higher fee (e.g. `--inclusion-fee 500000`). If you get **TxInsufficientBalance**, your account needs more XLM—fund it with at least 5–10 XLM and try again.
 
    **Replace:**
    - `YOUR_SECRET_KEY` - Your Stellar account secret key (starts with 'S')
@@ -132,10 +143,10 @@ The Simple Payment contract sends custom fungible tokens from the contract to a 
      --wasm target/wasm32v1-none/release/simple_payment.wasm \
      --source YOUR_SECRET_KEY \
      --network mainnet \
-     --fee 500000
+     --inclusion-fee 500000
    ```
 
-   **Note:** The `--fee 500000` sets the transaction fee. If you get "TxInsufficientFee" errors, try increasing it.
+   **Note:** The `--inclusion-fee 500000` sets the transaction fee. If you get "TxInsufficientFee" errors, try increasing it.
 
    **Replace:** `YOUR_SECRET_KEY` - Your Stellar account secret key (starts with 'S')
 
@@ -146,6 +157,29 @@ The Simple Payment contract sends custom fungible tokens from the contract to a 
    ```
    Contract deployed with ID: CB37RE5GRAHX5PBSGXAAFXV5D6LS5NXNMWQKEJPGSR7PYGSNBXV6NRPA
    ```
+
+## Step 4b: Deploy IRL Token (optional, for claim-points)
+
+The IRL token is a fungible token (name/symbol **IRL**, 7 decimals, initial supply 1,000,000) used as the claim-points reward token. Deploy it if you use the claim-points feature.
+
+1. From the repo root:
+
+   ```bash
+   cd soroban-contracts/irl_token
+   soroban contract deploy \
+     --wasm target/wasm32v1-none/release/irl_token.wasm \
+     --source YOUR_SECRET_KEY \
+     --network mainnet \
+     --inclusion-fee 100000 \
+     -- \
+     --owner YOUR_STELLAR_ADDRESS
+   ```
+
+2. Save the returned **contract ID** and set `NEXT_PUBLIC_CLAIM_POINTS_CONTRACT_ADDRESS_MAINNET` to it in your frontend/env.
+
+3. Fund the **simple payment** contract with IRL tokens (transfer from the owner to the simple payment contract address) so the claim-points API can send tokens to users.
+
+See `soroban-contracts/irl_token/README.md` for testnet and more details.
 
 ## Step 5: Update Frontend Configuration
 
@@ -226,26 +260,35 @@ soroban contract invoke \
 
 ## Troubleshooting
 
-### "Insufficient balance" error
+### "TxInsufficientBalance" / "Insufficient balance" error
 
-- Make sure your account has enough XLM (minimum ~2-3 XLM for deployment)
+- **Mainnet vs testnet**: The account that **pays** for the deploy is the one from `--source` (your secret key). Stellar mainnet and testnet are separate ledgers—the same address can have 20 XLM on testnet and 0 on mainnet. If you only ever funded this account on testnet, it has no balance on mainnet. Check balance on **mainnet** (e.g. [stellar.expert](https://stellar.expert) or [Stellar Laboratory](https://laboratory.stellar.org) and switch the network to **Public** / mainnet), then send XLM to that address on mainnet if needed.
+- Make sure your **deployer** account (the one in `--source`) has enough XLM on the network you're deploying to (minimum ~2–3 XLM for deployment; 5–10+ XLM recommended).
+- **Balance is correct on Horizon but deploy still fails?** The Soroban CLI uses the **Soroban RPC** (not Horizon) for simulation and submission. A bad or stale RPC can see the wrong account state. Check which RPC you're using: `soroban network info --network mainnet`. Try switching to a known-good mainnet RPC (see "Configure Mainnet RPC URL" in Prerequisites). If you get **DNS errors** (e.g. "failed to lookup address information"), the RPC hostname is wrong or unreachable—re-add mainnet with a working URL such as `https://soroban-rpc.mainnet.stellar.gateway.fm` or `https://rpc.lightsail.network`.
+- **Still TxInsufficientBalance?** The network may require more than your visible balance (inclusion fee + resource fee + reserves for new ledger entries). Run the deploy with `--cost` (see "TxInsufficientFee" section below) to see the total cost the RPC reports; your account balance must exceed that. Try adding more XLM (e.g. 30–50) to the deployer account, or try the other mainnet RPC (gateway.fm vs lightsail) in case one has different state.
 
 ### "TxInsufficientFee" error
 
 - The default transaction fee (100 stroops = 0.00001 XLM) is too low for mainnet deployments
-- Add `--fee` flag to your deploy command with a higher fee:
+- Add `--inclusion-fee` flag to your deploy command with a higher fee:
   ```bash
-  --fee 100000  # 0.01 XLM (recommended starting point)
+  --inclusion-fee 100000  # 0.01 XLM (recommended starting point)
   ```
 - If that's still insufficient, try:
   ```bash
-  --fee 500000  # 0.05 XLM
-  --fee 1000000 # 0.1 XLM
+  --inclusion-fee 500000  # 0.05 XLM
+  --inclusion-fee 1000000 # 0.1 XLM
   ```
 - Fee is specified in stroops (1 XLM = 10,000,000 stroops)
-- You can also check the recommended fee by using `--cost` flag:
+- You can also check the recommended fee by using the `--cost` flag (run from the contract directory, e.g. `soroban-contracts/nft_collection`):
   ```bash
-  soroban contract deploy --cost --wasm ... --network mainnet
+  soroban contract deploy --cost \
+    --wasm target/wasm32v1-none/release/nft_collection.wasm \
+    --source YOUR_SECRET_KEY \
+    --network mainnet \
+    -- --owner GDTKS7AVS2IKVGQY2NG44Z5M33A5PTCE26XPUTRL22TYBYWOJFIJMBHT \
+       --native_asset_address CAS3J7GYLGXMF6TDJBBYYSE3HQ6BBSMLNUQ34T6TZMYMW2EVH34XOWMA \
+       --max_supply 10000
   ```
 
 ### "Contract not found" error
