@@ -64,11 +64,12 @@ export async function POST(request: NextRequest) {
     return apiError('Invalid wallet address', 400);
   }
 
-  // Use app-configured network so contract addresses and tx match deployment (e.g. irl.energy testnet).
-  // Ignore wallet passphrase from body to avoid mainnet contract lookup when app is set to TESTNET.
+  // Use wallet's network when provided (so mainnet wallet → mainnet contracts).
+  // Fall back to app env only when client doesn't send networkPassphrase.
   const appNetwork = process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toUpperCase();
-  const passphrase =
-    appNetwork === 'PUBLIC' || appNetwork === 'MAINNET'
+  const passphrase = body.networkPassphrase?.trim()
+    ? body.networkPassphrase.trim()
+    : appNetwork === 'PUBLIC' || appNetwork === 'MAINNET'
       ? Networks.PUBLIC
       : Networks.TESTNET;
   const isMainnet =
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
 
   console.log(`[claim-points] [${requestId}] Network config:`, {
     appNetwork,
+    usedWalletPassphrase: !!body.networkPassphrase?.trim(),
     passphrase: passphrase.substring(0, 20) + '...',
     isMainnet,
   });
