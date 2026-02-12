@@ -22,6 +22,11 @@ const securityHeaders = [
   },
 ];
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -52,10 +57,15 @@ const nextConfig = {
     config.resolve.alias.encoding = false;
 
     // Resolve noble package conflicts using dynamic imports
+    // Force @walletconnect/universal-provider to root node_modules (Privy's nested copy can be incomplete)
     config.resolve.alias = {
       ...config.resolve.alias,
       "@noble/curves": "@noble/curves",
       "@noble/hashes": "@noble/hashes",
+      "@walletconnect/universal-provider": path.resolve(
+        __dirname,
+        "node_modules/@walletconnect/universal-provider"
+      ),
     };
 
     // Optimize webpack for better dependency resolution

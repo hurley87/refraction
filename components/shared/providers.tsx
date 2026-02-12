@@ -32,6 +32,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             defaultChain: base,
             embeddedWallets: {
               createOnLogin: 'all-users',
+              ethereum: {
+                createOnLogin: 'all-users',
+              },
               solana: {
                 createOnLogin: 'all-users',
               },
