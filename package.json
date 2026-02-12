@@ -13,6 +13,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
+    "@walletconnect/universal-provider": "^2.21.7",
     "@campnetwork/sdk": "^1.2.15",
     "@creit.tech/stellar-wallets-kit": "^1.9.5",
     "@pinata/sdk": "^2.1.0",
