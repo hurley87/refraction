@@ -85,14 +85,19 @@ function StellarWalletPageContent() {
             <button
               type="button"
               onClick={() => setBridgeExpanded((v) => !v)}
-              className="w-full flex flex-col items-center gap-1 py-4 px-4 text-[#313131] font-grotesk hover:bg-gray-50/80 transition-colors"
+              className="w-full flex items-center justify-between gap-2 py-4 px-4 text-[#313131] font-grotesk hover:bg-gray-50/80 transition-colors"
               aria-expanded={bridgeExpanded}
             >
-              <span className="title2 text-[#313131] font-grotesk">
-                Bridge to Stellar
-              </span>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-[#FFE600] flex items-center justify-center">
+                  <span className="text-[#131313] font-bold text-sm">1</span>
+                </div>
+                <h2 className="title2 text-[#313131] font-grotesk">
+                  Bridge to Stellar
+                </h2>
+              </div>
               <ChevronDown
-                className={`h-5 w-5 text-[#313131] transition-transform ${bridgeExpanded ? 'rotate-180' : ''}`}
+                className={`h-5 w-5 shrink-0 text-[#313131] transition-transform ${bridgeExpanded ? 'rotate-180' : ''}`}
                 aria-hidden
               />
             </button>
@@ -106,12 +111,12 @@ function StellarWalletPageContent() {
             )}
           </div>
 
-          {/* Step 1: Buy Ticket */}
+          {/* Step 2: Buy Ticket */}
           <div className="bg-white rounded-[26px] p-4">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-[#FFE600] flex items-center justify-center">
-                  <span className="text-[#131313] font-bold text-sm">1</span>
+                  <span className="text-[#131313] font-bold text-sm">2</span>
                 </div>
                 <h2 className="title2 text-[#313131] font-grotesk">
                   Buy Ticket
@@ -154,12 +159,12 @@ function StellarWalletPageContent() {
             </div>
           </div>
 
-          {/* Step 2: Claim Points */}
+          {/* Step 3: Claim Points */}
           <div className="bg-white rounded-[26px] p-4">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-[#FFE600] flex items-center justify-center">
-                  <span className="text-[#131313] font-bold text-sm">2</span>
+                  <span className="text-[#131313] font-bold text-sm">3</span>
                 </div>
                 <h2 className="title2 text-[#313131] font-grotesk">
                   Claim Points

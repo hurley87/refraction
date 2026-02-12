@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useStellarWallet } from '@/hooks/useStellarWallet';
-import { usePrivy } from '@privy-io/react-auth';
 import {
   Select,
   SelectContent,
@@ -17,6 +16,10 @@ const SLIPPAGE_BPS = 100; // 1%
 
 /** Chain slug used by Llama.fi chain icons CDN */
 const CHAIN_ICON_SLUG: Record<string, string> = {
+  btc: 'bitcoin',
+  bitcoin: 'bitcoin',
+  sol: 'solana',
+  solana: 'solana',
   eth: 'ethereum',
   ethereum: 'ethereum',
   bera: 'berachain',
@@ -37,6 +40,10 @@ const CHAIN_ICON_SIZE = 20;
 
 /** Human-readable chain name for display */
 const CHAIN_DISPLAY_NAME: Record<string, string> = {
+  btc: 'Bitcoin',
+  bitcoin: 'Bitcoin',
+  sol: 'Solana',
+  solana: 'Solana',
   eth: 'Ethereum',
   ethereum: 'Ethereum',
   bera: 'Berachain',
@@ -52,6 +59,35 @@ const CHAIN_DISPLAY_NAME: Record<string, string> = {
   pol: 'Polygon',
   polygon: 'Polygon',
 };
+
+/** Refund field copy by chain (manual entry only). */
+function getRefundFieldConfig(blockchain: string): {
+  label: string;
+  placeholder: string;
+  help: string;
+} {
+  const chain = blockchain.toLowerCase();
+  const name = getChainDisplayName(blockchain);
+  if (chain === 'btc' || chain === 'bitcoin') {
+    return {
+      label: `Refund address (${name})`,
+      placeholder: 'bc1... or 1... or 3...',
+      help: `If the swap fails, funds are returned here. Enter a valid Bitcoin address (Legacy, P2SH, Bech32, or Taproot).`,
+    };
+  }
+  if (chain === 'sol' || chain === 'solana') {
+    return {
+      label: `Refund address (${name})`,
+      placeholder: 'Your Solana wallet address (base58)',
+      help: `If the swap fails, funds are returned here. Enter a valid Solana address.`,
+    };
+  }
+  return {
+    label: `Refund address (${name})`,
+    placeholder: '0x...',
+    help: `If the swap fails, funds are returned here. Must be a valid address on ${name}.`,
+  };
+}
 
 function getChainDisplayName(blockchain: string): string {
   const key = blockchain.toLowerCase();
@@ -112,7 +148,6 @@ export function NearIntentsBridgeWidget({
   stellarNetworkOverride,
 }: NearIntentsBridgeWidgetProps = {}) {
   const { address: stellarAddressFromPrivy, isLoading } = useStellarWallet();
-  const { user } = usePrivy();
   const stellarAddress = stellarAddressOverride ?? stellarAddressFromPrivy;
   const stellarNetwork =
     stellarNetworkOverride ??
@@ -133,13 +168,6 @@ export function NearIntentsBridgeWidget({
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [refundAddress, setRefundAddress] = useState('');
-
-  const evmAddress = user?.wallet?.address;
-
-  // Pre-fill refund address when user has connected EVM wallet (only when field is empty)
-  useEffect(() => {
-    if (evmAddress && !refundAddress.trim()) setRefundAddress(evmAddress);
-  }, [evmAddress]);
 
   const loadTokens = useCallback(async () => {
     setLoadingTokens(true);
@@ -166,27 +194,37 @@ export function NearIntentsBridgeWidget({
     loadTokens();
   }, [loadTokens]);
 
-  // Refund address must be on the origin chain. We support EVM source chains and use manual or connected refund address.
-  const EVM_CHAINS = new Set([
+  // Clear refund address when source chain/token changes (address format is chain-specific).
+  const sourceAssetId = sourceToken?.assetId ?? null;
+  useEffect(() => {
+    setRefundAddress('');
+  }, [sourceAssetId]);
+
+  // Source chains: EVM + Bitcoin + Solana (refund address is manual, chain-aware).
+  const SOURCE_CHAINS = new Set([
+    'btc',
+    'bitcoin',
+    'sol',
+    'solana',
     'eth',
+    'ethereum',
     'bera',
     'base',
     'gnosis',
     'arb',
+    'arbitrum',
     'bsc',
     'avax',
-    'op',
-    'pol',
-    'arbitrum',
     'avalanche',
+    'op',
     'optimism',
+    'pol',
     'polygon',
-    'ethereum',
   ]);
   const sourceTokens = tokens.filter((t) => {
     const chain = t.blockchain.toLowerCase();
     if (chain === 'stellar') return false;
-    return EVM_CHAINS.has(chain);
+    return SOURCE_CHAINS.has(chain);
   });
   const sortedSourceTokens = useMemo(
     () =>
@@ -200,7 +238,7 @@ export function NearIntentsBridgeWidget({
   const stellarTokens = tokens.filter(
     (t) => t.blockchain.toLowerCase() === 'stellar'
   );
-  const effectiveRefundAddress = (refundAddress?.trim() || evmAddress) ?? '';
+  const effectiveRefundAddress = refundAddress?.trim() ?? '';
 
   const requestQuote = useCallback(async () => {
     if (
@@ -324,9 +362,6 @@ export function NearIntentsBridgeWidget({
             <span className="font-medium text-[#313131]">
               Stellar {isTestnet ? 'Testnet' : 'Mainnet'}
             </span>
-            . The bridge uses this network for your recipient address. NEAR
-            Intents 1Click API may operate on mainnet only—if you are on
-            testnet, confirm with the provider where bridged funds will arrive.
           </p>
         </div>
 
@@ -338,13 +373,14 @@ export function NearIntentsBridgeWidget({
           <div className="flex flex-col gap-4">
             <div>
               <label className="mb-1 block body-medium text-[#313131] font-grotesk">
-                From (source chain)
+                From (Source Chain)
               </label>
               <Select
                 value={sourceToken?.assetId ?? ''}
                 onValueChange={(value) => {
                   const t = sourceTokens.find((x) => x.assetId === value);
                   setSourceToken(t ?? null);
+                  setRefundAddress('');
                   setQuote(null);
                 }}
               >
@@ -362,7 +398,7 @@ export function NearIntentsBridgeWidget({
                   )}
                 </SelectTrigger>
                 <SelectContent>
-                  {sortedSourceTokens.slice(0, 50).map((t) => (
+                  {sortedSourceTokens.map((t) => (
                     <SelectItem key={t.assetId} value={t.assetId}>
                       <span className="flex items-center gap-3">
                         <ChainIcon blockchain={t.blockchain} />
@@ -419,11 +455,17 @@ export function NearIntentsBridgeWidget({
 
             <div>
               <label className="mb-1 block body-medium text-[#313131] font-grotesk">
-                Refund address (on source chain)
+                {sourceToken
+                  ? getRefundFieldConfig(sourceToken.blockchain).label
+                  : 'Refund address (source chain)'}
               </label>
               <input
                 type="text"
-                placeholder="0x... (EVM address for failed swaps)"
+                placeholder={
+                  sourceToken
+                    ? getRefundFieldConfig(sourceToken.blockchain).placeholder
+                    : 'Select source chain first'
+                }
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-mono text-[#313131] placeholder:text-gray-400 font-grotesk focus:border-[#313131] focus:outline-none focus:ring-1 focus:ring-[#313131]"
                 value={refundAddress}
                 onChange={(e) => {
@@ -432,8 +474,9 @@ export function NearIntentsBridgeWidget({
                 }}
               />
               <p className="mt-1 body-medium text-[#7D7D7D] font-grotesk text-sm">
-                If the swap fails, funds are returned here. Must be a valid
-                address on the source chain (e.g. Ethereum 0x...).
+                {sourceToken
+                  ? getRefundFieldConfig(sourceToken.blockchain).help
+                  : 'If the swap fails, funds are returned to this address. Select a source token to see chain-specific format.'}
               </p>
             </div>
 
