@@ -174,7 +174,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
   return (
     <div className="space-y-4">
       <p className="body-medium text-[#7D7D7D] font-grotesk">
-        Purchase your event ticket as an NFT. Cost: 0.01 XLM per ticket.
+        Purchase your event ticket. 
       </p>
 
       {needsFunding && isOnTestnet && (

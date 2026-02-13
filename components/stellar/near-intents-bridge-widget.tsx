@@ -350,9 +350,7 @@ export function NearIntentsBridgeWidget({
     <div className="bg-white rounded-[26px] p-4">
       <div className="flex flex-col gap-4">
         <div>
-          <h2 className="title2 text-[#313131] font-grotesk">
-            Bridge to Stellar
-          </h2>
+     
           <p className="mt-2 body-medium text-[#7D7D7D] font-grotesk">
             Swap from 100+ chains into XLM or USDC on Stellar. Powered by NEAR
             Intents.
