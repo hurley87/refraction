@@ -1,20 +1,28 @@
 export {
   fetchEvent,
   fetchEvents,
+  fetchEventTicketHolders,
   DiceApiError,
   type FetchEventsOptions,
   type FetchEventsResult,
-} from "./client";
+  type FetchEventTicketHoldersResult,
+} from './client';
 export {
   diceEventSchema,
   diceVenueSchema,
   diceImageSchema,
   diceTicketTypeSchema,
+  diceTicketHolderSchema,
+  diceTicketSchema,
+  diceEventTicketsResponseSchema,
   diceGraphQLResponseSchema,
   diceEventsGraphQLResponseSchema,
   type DiceEvent,
   type DiceVenue,
   type DiceImage,
   type DiceTicketType,
+  type DiceTicketHolder,
+  type DiceTicket,
+  type DiceEventTicketsResponse,
   type DiceGraphQLResponse,
-} from "./schemas";
+} from './schemas';

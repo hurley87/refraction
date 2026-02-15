@@ -121,6 +121,23 @@ export const getPlayerByEmail = async (email: string) => {
 };
 
 /**
+ * Get multiple players by email addresses in a single query.
+ * Returns only players that match — callers should diff against
+ * the input list to find unmatched emails.
+ */
+export const getPlayersByEmails = async (
+  emails: string[]
+): Promise<Player[]> => {
+  if (emails.length === 0) return [];
+  const { data, error } = await supabase
+    .from('players')
+    .select(PLAYER_COLUMNS)
+    .in('email', emails);
+  if (error) throw error;
+  return data ?? [];
+};
+
+/**
  * Generic helper to create or update a player for alternative chain checkins.
  * Links by email if the player already exists (from other chain checkins).
  */
