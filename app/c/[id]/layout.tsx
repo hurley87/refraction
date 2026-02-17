@@ -13,9 +13,9 @@ export default function CheckpointLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="h-dvh overflow-hidden">
+    <div className="min-h-dvh overflow-y-auto">
       <div
-        className="flex flex-col h-full"
+        className="flex flex-col min-h-full"
         style={{
           background: "url('/bg-funky.png') no-repeat center center fixed",
           backgroundSize: 'cover',
