@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 
 const CHECKPOINT_PATH = '/c/6a1f26acf2';
 
-export default function DenverPage() {
+export default function Checkpoint1Page() {
   const { ready, authenticated, login } = usePrivy();
   const router = useRouter();
 
