@@ -288,7 +288,7 @@ export default function UnifiedCheckpoint({
   }
 
   return (
-    <div className="flex flex-col w-full h-full justify-center font-sans">
+    <div className="flex min-h-dvh w-full flex-col justify-center font-sans">
       {checkinError && (
         <div className="flex flex-col items-center justify-center text-center w-full h-full font-grotesk px-6">
           <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-lg space-y-4">

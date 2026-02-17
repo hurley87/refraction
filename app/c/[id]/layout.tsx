@@ -15,7 +15,7 @@ export default function CheckpointLayout({
   return (
     <div className="min-h-dvh overflow-y-auto">
       <div
-        className="flex flex-col min-h-full"
+        className="flex min-h-dvh flex-col"
         style={{
           background: "url('/bg-funky.png') no-repeat center center fixed",
           backgroundSize: 'cover',
@@ -24,7 +24,7 @@ export default function CheckpointLayout({
         }}
       >
         <AuthWrapper requireUsername requireEmail>
-          {children}
+          <div className="min-h-dvh w-full">{children}</div>
         </AuthWrapper>
       </div>
       <Toaster />
