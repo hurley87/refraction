@@ -431,7 +431,7 @@ export default function UnifiedCheckpoint({
         </div>
       )}
       {!checkinStatus && !checkinError && (
-        <div className="flex items-center justify-center text-center w-full h-full font-inktrap text-2xl text-black">
+        <div className="flex min-h-dvh w-full flex-col items-center justify-center text-center font-inktrap text-2xl text-black">
           <div>{isCheckingIn ? 'Checking in...' : 'Loading...'}</div>
         </div>
       )}
