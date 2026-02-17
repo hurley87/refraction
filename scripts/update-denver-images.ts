@@ -53,7 +53,7 @@ function buildSlugToFileMap(dirPath: string): Map<string, string> {
     }
     byBasename.get(basename)!.push(file);
   }
-  for (const [basename, filenames] of byBasename) {
+  for (const [basename, filenames] of Array.from(byBasename.entries())) {
     const sorted = filenames.sort(
       (a, b) =>
         EXTENSION_ORDER.indexOf(path.extname(a).toLowerCase()) -
@@ -78,7 +78,7 @@ function findFilenameForLocation(
   if (slugToFile.has(locationSlug)) return slugToFile.get(locationSlug)!;
   let best: string | null = null;
   let bestLen = 0;
-  for (const [fileSlug, filename] of slugToFile) {
+  for (const [fileSlug, filename] of Array.from(slugToFile.entries())) {
     if (locationSlug.startsWith(fileSlug) && fileSlug.length > bestLen) {
       best = filename;
       bestLen = fileSlug.length;
