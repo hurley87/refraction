@@ -98,15 +98,7 @@ const nextConfig = {
       },
     ];
   },
-  async redirects() {
-    return [
-      {
-        source: "/checkpoints/:id",
-        destination: "/stellar-checkins/:id",
-        permanent: true,
-      },
-    ];
-  },
+ 
 };
 
 export default nextConfig;
