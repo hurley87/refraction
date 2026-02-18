@@ -285,7 +285,7 @@ export default function AuthWrapper({
         <div className="flex flex-col items-start py-8 gap-8 flex-1 max-w-md mx-auto">
           <div className="relative w-full max-w-md flex items-center justify-center my-4 mx-auto">
             <h1 className="flex items-center justify-center text-4xl md:text-5xl font-bold uppercase tracking-tight text-center font-inktrap z-10 my-6">
-              Welcome to IRL
+              Welcome to ETHDenver Vibez Lounge
             </h1>
           </div>
 
@@ -295,7 +295,7 @@ export default function AuthWrapper({
                 onClick={login}
                 className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
               >
-                <span>Check-in</span>
+                <span>Check in to Earn Points on IRL</span>
                 <Image
                   src="/home/arrow-right.svg"
                   alt="arrow-right"
