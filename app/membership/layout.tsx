@@ -1,13 +1,13 @@
-import type { Metadata } from "next";
-import { Toaster } from "@/components/ui/toaster";
-import Image from "next/image";
-import Link from "next/link";
-import AuthWrapper from "@/components/auth/auth-wrapper";
-import Header from "@/components/ikaro-header";
+import type { Metadata } from 'next';
+import { Toaster } from '@/components/ui/toaster';
+import Image from 'next/image';
+import Link from 'next/link';
+import AuthWrapper from '@/components/auth/auth-wrapper';
+import Header from '@/components/ikaro-header';
 
 export const metadata: Metadata = {
-  title: "$IRL",
-  description: "$IRL is your key to unlocking a new way to experience culture",
+  title: 'IRL',
+  description: 'IRL is your key to unlocking a new way to experience culture',
 };
 
 export default function RootLayout({
@@ -22,11 +22,11 @@ export default function RootLayout({
       >
         <div className="flex justify-between items-center px-2 lg:px-4">
           <Link href="/">
-            <Image 
-              src="/images/ikaro/irl-logo.png" 
-              alt="IRL" 
-              width={40} 
-              height={40} 
+            <Image
+              src="/images/ikaro/irl-logo.png"
+              alt="IRL"
+              width={40}
+              height={40}
               className="w-10 h-10"
             />
           </Link>

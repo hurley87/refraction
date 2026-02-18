@@ -43,13 +43,13 @@ export default function DenverPage() {
       <div className="relative z-10 flex flex-1 flex-col items-center justify-between w-full max-w-md mx-auto pt-6 pb-10">
         {/* Title: Welcome to / High Fidelity IRL */}
         <header className="text-center shrink-0">
-          <p className="font-inktrap text-black text-base sm:text-lg tracking-tight mb-1">
+          <p className="font-powerr font-light text-base sm:text-lg tracking-tight mb-1">
             Welcome to
           </p>
-          <h1 className="font-inktrap font-bold text-black text-3xl sm:text-4xl md:text-5xl tracking-tight uppercase leading-tight">
+          <h1 className="font-powerr font-bold text-black text-3xl sm:text-4xl md:text-5xl tracking-tight  leading-tight">
             High Fidelity IRL
           </h1>
-          <h2 className="font-inktrap text-black text-base sm:text-lg tracking-tight mb-1">
+          <h2 className="font-powerr font-normal text-black text-base sm:text-lg tracking-tight mb-1">
             ESP Hi-Fi · ETHDenver 2026
           </h2>
         </header>
@@ -94,7 +94,7 @@ export default function DenverPage() {
 
         {/* Powered By */}
         <div className="flex flex-col items-center gap-2 w-full shrink-0">
-          <p className="font-inktrap text-black text-xs uppercase tracking-widest">
+          <p className="font-powerr font-bold text-black text-medium uppercase tracking-widest">
             Powered by
           </p>
           <div className="flex flex-nowrap items-center justify-center gap-4 sm:gap-6">
