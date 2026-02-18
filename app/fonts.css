@@ -28,25 +28,27 @@
 
 @font-face {
   font-family: 'ABC-Monument-Bold';
-  src: url('/fonts/ABCMonumentGroteskSemi-Mono-Bold-Trial.otf') format('opentype');
+  src: url('/fonts/ABCMonumentGroteskSemi-Mono-Bold-Trial.otf')
+    format('opentype');
   font-weight: normal;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'ABC-Monument-Grotesk';
-  src: url('/fonts/ABCMonumentGroteskSemi-Mono-Regular-Trial.otf') format('opentype');
+  src: url('/fonts/ABCMonumentGroteskSemi-Mono-Regular-Trial.otf')
+    format('opentype');
   font-weight: normal;
   font-style: normal;
 }
 
 @font-face {
   font-family: 'ABC Monument Grotesk Semi-Mono Unlicensed Trial';
-  src: url('/fonts/ABCMonumentGroteskSemi-Mono-Regular-Trial.otf') format('opentype');
+  src: url('/fonts/ABCMonumentGroteskSemi-Mono-Regular-Trial.otf')
+    format('opentype');
   font-weight: normal;
   font-style: normal;
 }
-
 
 @font-face {
   font-family: 'Pleasure';
@@ -59,7 +61,6 @@
   src: url('/fonts/Pleasure-Variable-Trial.ttf') format('truetype');
   font-weight: normal;
 }
-
 
 @font-face {
   font-family: 'Ledger';
@@ -74,3 +75,66 @@
   font-style: normal;
 }
 
+/* Powerr Font Family */
+@font-face {
+  font-family: 'Powerr';
+  src: url('/fonts/PowerrThin-2OXy8.ttf') format('truetype');
+  font-weight: 100;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Powerr';
+  src: url('/fonts/PowerrExtraLight-8MWBD.ttf') format('truetype');
+  font-weight: 200;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Powerr';
+  src: url('/fonts/PowerrLight-Yz8wj.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Powerr';
+  src: url('/fonts/PowerrRegular-MVzle.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Powerr';
+  src: url('/fonts/PowerrMedium-rgVwO.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Powerr';
+  src: url('/fonts/PowerrSemiBold-K75eo.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Powerr';
+  src: url('/fonts/PowerrBold-Rpz8M.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Powerr';
+  src: url('/fonts/PowerrExtraBold-BWymV.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Powerr';
+  src: url('/fonts/PowerrBlack-1GLyL.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+}

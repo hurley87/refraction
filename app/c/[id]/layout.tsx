@@ -3,8 +3,8 @@ import { Toaster } from '@/components/ui/toaster';
 import AuthWrapper from '@/components/auth/auth-wrapper';
 
 export const metadata: Metadata = {
-  title: '$IRL',
-  description: '$IRL is your key to unlocking a new way to experience culture',
+  title: 'IRL',
+  description: 'IRL is your key to unlocking a new way to experience culture',
 };
 
 export default function CheckpointLayout({
