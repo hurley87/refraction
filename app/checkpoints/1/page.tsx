@@ -1,5 +1,8 @@
 import { redirect } from 'next/navigation';
 
+// Evaluate redirect on every request (no cache) so time-based logic is correct
+export const dynamic = 'force-dynamic';
+
 export default function Checkpoint1Redirect() {
   const now = new Date();
 
