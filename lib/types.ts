@@ -188,6 +188,34 @@ export type UserProfile = {
   updated_at?: string;
 };
 
+/**
+ * Item that users can spend points on (points are deducted)
+ */
+export type SpendItem = {
+  id?: string;
+  name: string;
+  description?: string | null;
+  image_url?: string | null;
+  points_cost: number;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+/**
+ * Record of a user spending points on an item
+ */
+export type SpendRedemption = {
+  id?: string;
+  spend_item_id: string;
+  user_wallet_address: string;
+  points_spent: number;
+  is_fulfilled: boolean;
+  created_at?: string;
+  fulfilled_at?: string | null;
+  spend_items?: SpendItem;
+};
+
 // Legacy types for number assignment system
 export type NumberAssignment = {
   id: number;
