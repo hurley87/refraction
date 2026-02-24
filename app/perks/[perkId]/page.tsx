@@ -1,12 +1,11 @@
-"use client";
+'use client';
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
-import { toast } from "sonner";
-import Link from "next/link";
-import { usePrivy } from "@privy-io/react-auth";
-import Header from "@/components/layout/header";
-import { Button } from "@/components/ui/button";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useParams } from 'next/navigation';
+import { toast } from 'sonner';
+import Link from 'next/link';
+import { usePrivy } from '@privy-io/react-auth';
+import Header from '@/components/layout/header';
 import {
   ArrowLeft,
   Tag,
@@ -16,17 +15,14 @@ import {
   CheckCircle,
   XCircle,
   Copy,
-} from "lucide-react";
-import { useState, useEffect } from "react";
-import {
-  useAvailableCodesCount,
-  useUserRedemptions,
-} from "@/hooks/usePerks";
-import { useCurrentPlayer } from "@/hooks/usePlayer";
-import { useAnalytics } from "@/hooks/useAnalytics";
-import { ANALYTICS_EVENTS } from "@/lib/analytics";
-import { apiClient } from "@/lib/api/client";
-import type { Perk } from "@/lib/types";
+} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useAvailableCodesCount, useUserRedemptions } from '@/hooks/usePerks';
+import { useCurrentPlayer } from '@/hooks/usePlayer';
+import { useAnalytics } from '@/hooks/useAnalytics';
+import { ANALYTICS_EVENTS } from '@/lib/analytics';
+import { apiClient } from '@/lib/api/client';
+import type { Perk } from '@/lib/types';
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {
@@ -34,28 +30,28 @@ const getTimeLeft = (endDate: string) => {
   const end = new Date(endDate);
   const diffMs = end.getTime() - now.getTime();
 
-  if (diffMs <= 0) return { expired: true, text: "Expired" };
+  if (diffMs <= 0) return { expired: true, text: 'Expired' };
 
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor(
-    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
   );
   const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
   if (diffDays > 0) {
     return {
       expired: false,
-      text: `${diffDays} day${diffDays !== 1 ? "s" : ""} left`,
+      text: `${diffDays} day${diffDays !== 1 ? 's' : ''} left`,
     };
   } else if (diffHours > 0) {
     return {
       expired: false,
-      text: `${diffHours} hour${diffHours !== 1 ? "s" : ""} left`,
+      text: `${diffHours} hour${diffHours !== 1 ? 's' : ''} left`,
     };
   } else if (diffMinutes > 0) {
     return { expired: false, text: `${diffMinutes} min left` };
   } else {
-    return { expired: false, text: "Less than 1 min left" };
+    return { expired: false, text: 'Less than 1 min left' };
   }
 };
 
@@ -100,7 +96,7 @@ export default function PerkDetailPage() {
     isLoading: perkLoading,
     error,
   } = useQuery<Perk>({
-    queryKey: ["perk", perkId],
+    queryKey: ['perk', perkId],
     queryFn: async () => {
       return apiClient<{ perk: Perk }>(`/api/perks/${perkId}`).then(
         (data) => data.perk
@@ -132,16 +128,16 @@ export default function PerkDetailPage() {
   // Redeem perk mutation
   const redeemPerkMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/perks/redeem", {
-        method: "POST",
+      const response = await fetch('/api/perks/redeem', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ perkId, walletAddress: address }),
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to redeem perk");
+        throw new Error(errorData.error || 'Failed to redeem perk');
       }
       const responseData = await response.json();
       // Unwrap the apiSuccess wrapper
@@ -150,97 +146,19 @@ export default function PerkDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["user-redemptions", address],
+        queryKey: ['user-redemptions', address],
       });
-      queryClient.invalidateQueries({ queryKey: ["user-stats", address] });
-      queryClient.invalidateQueries({ queryKey: ["available-codes", perkId] });
+      queryClient.invalidateQueries({ queryKey: ['user-stats', address] });
+      queryClient.invalidateQueries({ queryKey: ['available-codes', perkId] });
       toast.success(
-        "Perk redeemed successfully! Your discount code is now available below.",
+        'Perk redeemed successfully! Your discount code is now available below.'
       );
     },
     onError: (error: any) => {
-      console.error("Error redeeming perk:", error);
-      toast.error(error.message || "Failed to redeem perk");
+      console.error('Error redeeming perk:', error);
+      toast.error(error.message || 'Failed to redeem perk');
     },
   });
-
-  if (error || !perk) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-2xl font-bold mb-4">Perk Not Found</h1>
-        <p className="text-gray-600 mb-4">
-          The perk you&apos;re looking for doesn&apos;t exist.
-        </p>
-        <Link href="/perks">
-          <Button>Back to Perks</Button>
-        </Link>
-      </div>
-    );
-  }
-
-  const userPoints = player?.total_points || 0;
-  const canAfford = userPoints >= perk.points_threshold;
-  const hasRedeemed = userRedemptions.some(
-    (redemption: any) => redemption.perk_id === perkId,
-  );
-  const isExpired = perk.end_date && new Date(perk.end_date) < new Date();
-  const isExpiringSoon =
-    perk.end_date &&
-    new Date(perk.end_date) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  const noCodesAvailable = availableCodesCount === 0;
-
-  // Get the user's discount code if they've redeemed this perk
-  const userRedemption = userRedemptions.find(
-    (redemption: any) => redemption.perk_id === perkId,
-  );
-  const userDiscountCode = userRedemption?.perk_discount_codes?.code;
-
-  const handleRedeem = () => {
-    if (!address) {
-      toast.error("Please connect your wallet to redeem perks");
-      return;
-    }
-
-    if (isExpired) {
-      toast.error("This perk has expired");
-      return;
-    }
-
-    if (!canAfford) {
-      toast.error("Insufficient points to redeem this perk");
-      return;
-    }
-
-    if (hasRedeemed) {
-      toast.error("You have already redeemed this perk");
-      return;
-    }
-
-    redeemPerkMutation.mutate();
-  };
-
-  const handleCopyCode = async () => {
-    if (!userDiscountCode) return;
-
-    try {
-      await navigator.clipboard.writeText(userDiscountCode);
-      toast.success("Discount code copied to clipboard!");
-    } catch {
-      // Fallback for older browsers
-      const textArea = document.createElement("textarea");
-      textArea.value = userDiscountCode;
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      try {
-        document.execCommand("copy");
-        toast.success("Discount code copied to clipboard!");
-      } catch {
-        toast.error("Failed to copy code. Please copy manually.");
-      }
-      document.body.removeChild(textArea);
-    }
-  };
 
   // removed unused getStatusBadge helper
 
@@ -249,7 +167,7 @@ export default function PerkDetailPage() {
       <div
         style={{
           background:
-            "linear-gradient(0deg, #61BFD1 0%, #1BA351 33.66%, #FFE600 62.5%, #EE91B7 100%)",
+            'linear-gradient(0deg, #61BFD1 0%, #1BA351 33.66%, #FFE600 62.5%, #EE91B7 100%)',
         }}
         className="min-h-screen p-4 pb-0 font-grotesk"
       >
@@ -257,7 +175,7 @@ export default function PerkDetailPage() {
           <Header />
 
           {/* Back Button */}
-          <div className="px-0 pt-8 mb-4">
+          <div className="px-0 pt-16 mb-4">
             <div className="bg-white rounded-2xl p-4">
               <div className="flex items-center">
                 <div className="w-4 h-4 bg-gray-200 rounded mr-1 animate-pulse"></div>
@@ -329,13 +247,13 @@ export default function PerkDetailPage() {
       <div
         style={{
           background:
-            "linear-gradient(0deg, #61BFD1 0%, #1BA351 33.66%, #FFE600 62.5%, #EE91B7 100%)",
+            'linear-gradient(0deg, #61BFD1 0%, #1BA351 33.66%, #FFE600 62.5%, #EE91B7 100%)',
         }}
         className="min-h-screen p-4 pb-0 font-grotesk"
       >
         <div className="min-h-screen max-w-lg mx-auto">
           <Header />
-          <div className="px-0 pt-8 space-y-4">
+          <div className="px-0 pt-16 space-y-4">
             <div className="bg-white rounded-2xl p-4">
               <Link href="/perks">
                 <button className="flex items-center text-sm font-inktrap text-gray-600 mb-4">
@@ -357,11 +275,75 @@ export default function PerkDetailPage() {
     );
   }
 
+  const userPoints = player?.total_points || 0;
+  const canAfford = userPoints >= perk.points_threshold;
+  const hasRedeemed = userRedemptions.some(
+    (redemption: any) => redemption.perk_id === perkId
+  );
+  const isExpired = perk.end_date && new Date(perk.end_date) < new Date();
+  const isExpiringSoon =
+    perk.end_date &&
+    new Date(perk.end_date) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const noCodesAvailable = availableCodesCount === 0;
+
+  // Get the user's discount code if they've redeemed this perk
+  const userRedemption = userRedemptions.find(
+    (redemption: any) => redemption.perk_id === perkId
+  );
+  const userDiscountCode = userRedemption?.perk_discount_codes?.code;
+
+  const handleRedeem = () => {
+    if (!address) {
+      toast.error('Please connect your wallet to redeem perks');
+      return;
+    }
+
+    if (isExpired) {
+      toast.error('This perk has expired');
+      return;
+    }
+
+    if (!canAfford) {
+      toast.error('Insufficient points to redeem this perk');
+      return;
+    }
+
+    if (hasRedeemed) {
+      toast.error('You have already redeemed this perk');
+      return;
+    }
+
+    redeemPerkMutation.mutate();
+  };
+
+  const handleCopyCode = async () => {
+    if (!userDiscountCode) return;
+
+    try {
+      await navigator.clipboard.writeText(userDiscountCode);
+      toast.success('Discount code copied to clipboard!');
+    } catch {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = userDiscountCode;
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        toast.success('Discount code copied to clipboard!');
+      } catch {
+        toast.error('Failed to copy code. Please copy manually.');
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
   return (
     <div
       style={{
         background:
-          "linear-gradient(0deg, #61BFD1 0%, #1BA351 33.66%, #FFE600 62.5%, #EE91B7 100%)",
+          'linear-gradient(0deg, #61BFD1 0%, #1BA351 33.66%, #FFE600 62.5%, #EE91B7 100%)',
       }}
       className="min-h-screen p-4 pb-0 font-grotesk"
     >
@@ -370,7 +352,7 @@ export default function PerkDetailPage() {
         <Header />
 
         {/* Back Button */}
-        <div className="px-0 pt-8 mb-4">
+        <div className="px-0 pt-16 mb-4">
           <div className="bg-white rounded-2xl p-4">
             <Link href="/perks">
               <button className="flex items-center text-sm font-inktrap text-gray-600">
@@ -448,10 +430,10 @@ export default function PerkDetailPage() {
                     endDate={perk.end_date}
                     className={`font-inktrap ${
                       isExpired
-                        ? "text-red-600"
+                        ? 'text-red-600'
                         : isExpiringSoon
-                          ? "text-orange-600"
-                          : "text-gray-600"
+                          ? 'text-orange-600'
+                          : 'text-gray-600'
                     }`}
                   />
                 </div>
@@ -475,7 +457,7 @@ export default function PerkDetailPage() {
                 <div className="flex items-center text-xs text-gray-600">
                   <Tag className="w-3 h-3 mr-2" />
                   <span
-                    className={`font-inktrap ${noCodesAvailable ? "text-red-600" : ""}`}
+                    className={`font-inktrap ${noCodesAvailable ? 'text-red-600' : ''}`}
                   >
                     {availableCodesCount} discount codes remaining
                   </span>
@@ -502,8 +484,8 @@ export default function PerkDetailPage() {
                   </div>
                   {!canAfford && !hasRedeemed && (
                     <p className="text-xs text-red-600 font-inktrap mt-1">
-                      Need{" "}
-                      {(perk.points_threshold - userPoints).toLocaleString()}{" "}
+                      Need{' '}
+                      {(perk.points_threshold - userPoints).toLocaleString()}{' '}
                       more points
                     </p>
                   )}
@@ -523,12 +505,12 @@ export default function PerkDetailPage() {
               </p>
               <div className="bg-green-50 border-2 border-green-200 p-4 rounded-2xl">
                 <div className="flex items-center justify-center gap-2 mb-3">
-                  <div className="text-2xl font-mono font-bold text-green-800">
+                  <div className="text-sm sm:text-base font-mono font-bold text-green-800 break-all min-w-0">
                     {userDiscountCode}
                   </div>
                   <button
                     onClick={handleCopyCode}
-                    className="flex items-center gap-1 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg transition-colors font-inktrap text-xs font-medium"
+                    className="flex items-center gap-1 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg transition-colors font-inktrap text-xs font-medium shrink-0"
                   >
                     <Copy className="w-3 h-3" />
                     Copy
@@ -593,15 +575,15 @@ export default function PerkDetailPage() {
                 disabled={!canAfford || redeemPerkMutation.isPending}
                 className={`w-full py-3 rounded-full font-inktrap font-medium text-sm transition-colors ${
                   canAfford && !redeemPerkMutation.isPending
-                    ? "bg-black text-white hover:bg-gray-800"
-                    : "bg-gray-100 text-gray-500"
+                    ? 'bg-black text-white hover:bg-gray-800'
+                    : 'bg-gray-100 text-gray-500'
                 }`}
               >
                 {redeemPerkMutation.isPending
-                  ? "Redeeming..."
+                  ? 'Redeeming...'
                   : canAfford
                     ? `Redeem`
-                    : "Insufficient Points"}
+                    : 'Insufficient Points'}
               </button>
             )}
           </div>
