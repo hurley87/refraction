@@ -1031,6 +1031,18 @@ export default function AdminPerksPage() {
                     >
                       Manage Codes
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const url = `${window.location.origin}/perks/${perk.id}`;
+                        navigator.clipboard.writeText(url).then(() => {
+                          toast.success("Link copied to clipboard");
+                        });
+                      }}
+                    >
+                      Copy Link
+                    </Button>
                   </div>
                 </div>
               </div>
