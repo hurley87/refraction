@@ -100,6 +100,7 @@ export default function AdminPerksPage() {
       type: "",
       end_date: "",
       is_active: true,
+      is_unlisted: false,
       thumbnail_url: "",
       hero_image: "",
     });
@@ -368,6 +369,7 @@ export default function AdminPerksPage() {
         end_date: perk.end_date ?? "",
         thumbnail_url: perk.thumbnail_url ?? "",
         hero_image: perk.hero_image ?? "",
+        is_unlisted: perk.is_unlisted ?? false,
       });
       setThumbnailPreview(perk.thumbnail_url || null);
       setThumbnailFile(null);
@@ -392,6 +394,7 @@ export default function AdminPerksPage() {
         type: "",
         end_date: "",
         is_active: true,
+        is_unlisted: false,
         thumbnail_url: "",
         hero_image: "",
       });
@@ -753,7 +756,24 @@ export default function AdminPerksPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="tier">Tier</Label>
+                  <Label htmlFor="points_threshold">Points Threshold</Label>
+                  <Input
+                    id="points_threshold"
+                    type="number"
+                    min={0}
+                    value={formData.points_threshold ?? 0}
+                    onChange={(e) =>
+                      setFormData({ ...formData, points_threshold: parseInt(e.target.value) || 0 })
+                    }
+                    required
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Enter any point value, or use a tier shortcut below.
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="tier">Tier Shortcut</Label>
                   <Select
                     value={selectedTierId}
                     onValueChange={(value) => {
@@ -773,7 +793,7 @@ export default function AdminPerksPage() {
                             ? "Loading tiers..."
                             : tiers.length === 0
                               ? "No tiers available"
-                              : "Select tier"
+                              : "Select tier to auto-fill points"
                         }
                       />
                     </SelectTrigger>
@@ -848,17 +868,35 @@ export default function AdminPerksPage() {
                   />
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={formData.is_active}
-                    onChange={(e) =>
-                      setFormData({ ...formData, is_active: e.target.checked })
-                    }
-                  />
-                  <Label htmlFor="is_active">Active</Label>
+                <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="is_active"
+                      checked={formData.is_active}
+                      onChange={(e) =>
+                        setFormData({ ...formData, is_active: e.target.checked })
+                      }
+                    />
+                    <Label htmlFor="is_active">Active</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="is_unlisted"
+                      checked={formData.is_unlisted ?? false}
+                      onChange={(e) =>
+                        setFormData({ ...formData, is_unlisted: e.target.checked })
+                      }
+                    />
+                    <Label htmlFor="is_unlisted">Unlisted</Label>
+                  </div>
                 </div>
+                {formData.is_unlisted && (
+                  <p className="text-xs text-amber-600">
+                    This perk will not appear on the rewards page but will be accessible via direct link.
+                  </p>
+                )}
 
                 </form>
               </div>
@@ -914,6 +952,11 @@ export default function AdminPerksPage() {
                       >
                         {perk.is_active ? "Active" : "Inactive"}
                       </span>
+                      {perk.is_unlisted && (
+                        <span className="px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded-full">
+                          Unlisted
+                        </span>
+                      )}
                       <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
                         {perk.type.replace("-", " ")}
                       </span>

@@ -15,6 +15,7 @@ const PERK_COLUMNS = `
   created_at,
   updated_at,
   is_active,
+  is_unlisted,
   thumbnail_url,
   hero_image
 `;
@@ -86,6 +87,7 @@ export const getAllPerks = async (activeOnly: boolean = true) => {
   if (activeOnly) {
     query = query
       .eq('is_active', true)
+      .eq('is_unlisted', false)
       .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`);
   }
 
@@ -129,6 +131,7 @@ export const getAvailablePerksForUser = async (walletAddress: string) => {
     `
     )
     .eq('is_active', true)
+    .eq('is_unlisted', false)
     .lte('points_threshold', userPoints)
     .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`);
 

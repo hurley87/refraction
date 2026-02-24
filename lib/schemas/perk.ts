@@ -13,6 +13,7 @@ export const createPerkSchema = z.object({
   type: z.string().min(1),
   end_date: z.string().datetime().nullable().optional(),
   is_active: z.boolean().default(true),
+  is_unlisted: z.boolean().default(false),
   thumbnail_url: z.string().url().optional(),
   hero_image: z.string().url().optional(),
 });
@@ -29,6 +30,7 @@ export const updatePerkSchema = z.object({
   type: z.string().min(1).optional(),
   end_date: z.string().datetime().nullable().optional(),
   is_active: z.boolean().optional(),
+  is_unlisted: z.boolean().optional(),
   thumbnail_url: z.string().url().optional(),
   hero_image: z.string().url().optional(),
 });

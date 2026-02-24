@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     if (activeOnly) {
       query = query
         .eq("is_active", true)
+        .eq("is_unlisted", false)
         .or(`end_date.is.null,end_date.gte.${new Date().toISOString()}`);
     }
 

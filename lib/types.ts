@@ -126,6 +126,7 @@ export type Perk = {
   created_at?: string;
   updated_at?: string;
   is_active?: boolean;
+  is_unlisted?: boolean;
   thumbnail_url?: string;
   hero_image?: string;
 };
