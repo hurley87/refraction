@@ -8,10 +8,10 @@ const mockOr = vi.fn<any>()
 const mockLte = vi.fn<any>(() => ({ or: mockOr }))
 const mockEq = vi.fn<any>(() => ({
   single: mockSingle,
-  eq: vi.fn(() => ({ single: mockSingle, limit: mockLimit })),
+  eq: vi.fn(() => ({ single: mockSingle, limit: mockLimit, lte: mockLte, or: mockOr })),
   select: vi.fn(() => ({ single: mockSingle })),
   lte: mockLte,
-  or: mockOr, // Add or to eq chain for getAllPerks
+  or: mockOr,
 }))
 const mockOrder = vi.fn<any>(() => ({
   eq: mockEq,

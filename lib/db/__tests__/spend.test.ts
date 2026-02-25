@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockUpdatePlayerPoints, mockSingle, mockFrom } = vi.hoisted(() => {
+const { mockUpdatePlayerPoints, mockSingle, mockEq, mockFrom } = vi.hoisted(() => {
   const single = vi.fn();
   const eq = vi.fn(() => ({ single }));
   const select = vi.fn(() => ({ eq }));

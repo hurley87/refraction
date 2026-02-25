@@ -3,7 +3,8 @@ import { NextRequest } from 'next/server'
 
 // Mock the supabase client with a chainable query builder
 const mockOr = vi.fn()
-const mockEqActive = vi.fn(() => ({ or: mockOr }))
+const mockEqUnlisted = vi.fn(() => ({ or: mockOr }))
+const mockEqActive = vi.fn(() => ({ eq: mockEqUnlisted }))
 const mockOrder = vi.fn(() => ({ eq: mockEqActive }))
 const mockSelectQuery = vi.fn(() => ({ order: mockOrder }))
 const mockSingle = vi.fn()
@@ -51,7 +52,8 @@ describe('Perks API Route', () => {
     })
     mockSelectQuery.mockReturnValue({ order: mockOrder })
     mockOrder.mockReturnValue({ eq: mockEqActive })
-    mockEqActive.mockReturnValue({ or: mockOr })
+    mockEqActive.mockReturnValue({ eq: mockEqUnlisted })
+    mockEqUnlisted.mockReturnValue({ or: mockOr })
     mockInsert.mockReturnValue({ select: mockSelectInsert })
     mockSelectInsert.mockReturnValue({ single: mockSingle })
   })
