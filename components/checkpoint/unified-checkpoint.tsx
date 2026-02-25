@@ -201,8 +201,20 @@ export default function UnifiedCheckpoint({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center text-center w-full h-full font-inktrap text-2xl text-black">
-        Loading ...
+      <div className="flex flex-col items-center justify-center text-center w-full min-h-dvh font-grotesk px-6">
+        <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-lg space-y-4">
+          <h1 className="text-3xl font-inktrap text-black uppercase">
+            {checkpoint.name}
+          </h1>
+          {checkpoint.description && (
+            <p className="text-gray-600 text-base font-grotesk">
+              {checkpoint.description}
+            </p>
+          )}
+          <p className="text-gray-500 text-sm font-grotesk">
+            Sign in to check in
+          </p>
+        </div>
       </div>
     );
   }
