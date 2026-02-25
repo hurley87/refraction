@@ -1,12 +1,18 @@
-"use client";
+'use client';
 
-import { useParams } from "next/navigation";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { useSpendItem, useSpendPoints } from "@/hooks/useSpend";
-import { useCurrentPlayer } from "@/hooks/usePlayer";
-import { usePrivy } from "@privy-io/react-auth";
+import { useParams } from 'next/navigation';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import {
+  useSpendItem,
+  useSpendPoints,
+  useVerifySpendRedemption,
+  useUserSpendRedemptions,
+} from '@/hooks/useSpend';
+import { useCurrentPlayer } from '@/hooks/usePlayer';
+import { usePrivy } from '@privy-io/react-auth';
+import type { SpendRedemption } from '@/lib/types';
 
 export default function SpendItemPage() {
   const { id } = useParams<{ id: string }>();
@@ -15,19 +21,44 @@ export default function SpendItemPage() {
 
   const { data: item, isLoading: itemLoading } = useSpendItem(id);
   const { data: player } = useCurrentPlayer();
-  const spendMutation = useSpendPoints();
+  const { data: redemptions = [] } = useUserSpendRedemptions(walletAddress);
+  const createMutation = useSpendPoints();
+  const verifyMutation = useVerifySpendRedemption();
 
   const currentPoints = player?.total_points ?? 0;
-  const canAfford = item ? currentPoints >= item.points_cost : false;
+  const forThisItem = (r: SpendRedemption) => r.spend_item_id === id;
+  const pending = redemptions
+    .filter(forThisItem)
+    .filter((r) => !r.is_fulfilled);
+  const verified = redemptions
+    .filter(forThisItem)
+    .filter((r) => r.is_fulfilled);
 
-  const handleSpend = () => {
+  const handleGetTicket = () => {
     if (!walletAddress || !id) return;
-    spendMutation.mutate(
+    createMutation.mutate(
       { spendItemId: id, walletAddress },
       {
-        onSuccess: () => toast.success("Points spent successfully!"),
+        onSuccess: () =>
+          toast.success('Drink ticket created. Verify at the bar to use it.'),
         onError: (error) => {
-          const msg = error instanceof Error ? error.message : "Failed to spend points";
+          const msg =
+            error instanceof Error ? error.message : 'Failed to create ticket';
+          toast.error(msg);
+        },
+      }
+    );
+  };
+
+  const handleVerify = (redemptionId: string) => {
+    if (!walletAddress) return;
+    verifyMutation.mutate(
+      { redemptionId, walletAddress },
+      {
+        onSuccess: () => toast.success('Verified. Points deducted.'),
+        onError: (error) => {
+          const msg =
+            error instanceof Error ? error.message : 'Failed to verify';
           toast.error(msg);
         },
       }
@@ -89,20 +120,74 @@ export default function SpendItemPage() {
 
       {!user ? (
         <Button className="w-full" onClick={login}>
-          Login to Spend Points
+          Login to Get Drink Ticket
         </Button>
       ) : (
-        <Button
-          className="w-full"
-          onClick={handleSpend}
-          disabled={!canAfford || spendMutation.isPending}
-        >
-          {spendMutation.isPending
-            ? "Spending..."
-            : !canAfford
-              ? "Insufficient Points"
-              : `Spend ${item.points_cost.toLocaleString()} Points`}
-        </Button>
+        <>
+          <Button
+            className="w-full mb-6"
+            onClick={handleGetTicket}
+            disabled={createMutation.isPending}
+          >
+            {createMutation.isPending ? 'Creating...' : 'Get Drink Ticket'}
+          </Button>
+
+          {pending.length > 0 && (
+            <div className="mb-4">
+              <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                Pending – verify at the bar
+              </h2>
+              <ul className="space-y-2">
+                {pending.map((r) => (
+                  <li
+                    key={r.id}
+                    className="flex items-center justify-between gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg"
+                  >
+                    <span className="text-sm">
+                      {r.points_spent} points – not yet verified
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() => handleVerify(r.id!)}
+                      disabled={
+                        verifyMutation.isPending ||
+                        currentPoints < r.points_spent
+                      }
+                    >
+                      {verifyMutation.isPending
+                        ? 'Verifying...'
+                        : 'Verify at bar'}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {verified.length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-gray-700 mb-2">
+                Verified
+              </h2>
+              <ul className="space-y-2">
+                {verified.map((r) => (
+                  <li
+                    key={r.id}
+                    className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-gray-600"
+                  >
+                    <span>
+                      {r.points_spent} points
+                      {r.fulfilled_at
+                        ? ` · ${new Date(r.fulfilled_at).toLocaleDateString()}`
+                        : ''}
+                    </span>
+                    <span className="font-medium text-green-700">Verified</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -25,3 +25,7 @@ export const spendPointsSchema = z.object({
 export const fulfillRedemptionSchema = z.object({
   redemptionId: z.string().uuid('Invalid redemption ID'),
 });
+
+export const verifyRedemptionSchema = z.object({
+  walletAddress: walletAddressSchema,
+});

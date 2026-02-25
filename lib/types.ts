@@ -204,7 +204,9 @@ export type SpendItem = {
 };
 
 /**
- * Record of a user spending points on an item
+ * Record of a user spending points on an item.
+ * Pending: is_fulfilled false, points not deducted until user verifies.
+ * Verified: is_fulfilled true, points deducted at verification time.
  */
 export type SpendRedemption = {
   id?: string;
@@ -214,6 +216,7 @@ export type SpendRedemption = {
   is_fulfilled: boolean;
   created_at?: string;
   fulfilled_at?: string | null;
+  verified_by?: string | null;
   spend_items?: SpendItem;
 };
 

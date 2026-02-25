@@ -31,15 +31,51 @@ export function useSpendItem(id?: string) {
 }
 
 /**
- * Hook to spend points on an item
+ * Hook to create a pending redemption (no point deduction). User verifies later to deduct points.
  */
 export function useSpendPoints() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ spendItemId, walletAddress }: { spendItemId: string; walletAddress: string }) => {
+    mutationFn: async ({
+      spendItemId,
+      walletAddress,
+    }: {
+      spendItemId: string;
+      walletAddress: string;
+    }) => {
       const data = await apiClient<{ redemption: SpendRedemption }>(
         `/api/spend/${spendItemId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletAddress }),
+        }
+      );
+      return data.redemption;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-spend-redemptions'] });
+    },
+  });
+}
+
+/**
+ * Hook to verify a pending redemption (deducts points and marks fulfilled).
+ */
+export function useVerifySpendRedemption() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      redemptionId,
+      walletAddress,
+    }: {
+      redemptionId: string;
+      walletAddress: string;
+    }) => {
+      const data = await apiClient<{ redemption: SpendRedemption }>(
+        `/api/spend/redemptions/${redemptionId}/verify`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

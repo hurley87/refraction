@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getSpendItemById, spendPoints } from '@/lib/db/spend';
+import { getSpendItemById, createPendingSpendRedemption } from '@/lib/db/spend';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { spendPointsSchema } from '@/lib/schemas/spend';
 import { ZodError } from 'zod';
@@ -21,7 +21,7 @@ export async function GET(
   }
 }
 
-// POST /api/spend/[id] - Spend points on an item
+// POST /api/spend/[id] - Create a pending redemption (no deduction). User verifies later to deduct points.
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -34,14 +34,21 @@ export async function POST(
       walletAddress: body.walletAddress,
     });
 
-    const redemption = await spendPoints(validated.spendItemId, validated.walletAddress);
-    return apiSuccess({ redemption }, 'Points spent successfully');
+    const redemption = await createPendingSpendRedemption(
+      validated.spendItemId,
+      validated.walletAddress
+    );
+    return apiSuccess(
+      { redemption },
+      'Redemption created. Verify at the bar to use it.'
+    );
   } catch (error) {
     if (error instanceof ZodError) {
       return apiValidationError(error);
     }
-    const message = error instanceof Error ? error.message : 'Failed to spend points';
-    console.error('Error spending points:', error);
+    const message =
+      error instanceof Error ? error.message : 'Failed to create redemption';
+    console.error('Error creating spend redemption:', error);
     return apiError(message, 400);
   }
 }
