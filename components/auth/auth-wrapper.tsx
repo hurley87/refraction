@@ -1,25 +1,43 @@
-"use client";
+'use client';
 
-import { usePrivy } from "@privy-io/react-auth";
-import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
-import Image from "next/image";
+import { usePrivy } from '@privy-io/react-auth';
+import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 interface AuthWrapperProps {
   children: React.ReactNode;
   requireUsername?: boolean;
   requireEmail?: boolean;
-  unauthenticatedUI?: "default" | "map-onboarding" | "minimal";
+  unauthenticatedUI?: 'default' | 'map-onboarding' | 'minimal';
+  /** Optional checkpoint/location name shown on auth gates (e.g. /c/[id]) */
+  authContextName?: string | null;
+  /** Optional checkpoint/location description shown on auth gates */
+  authContextDescription?: string | null;
 }
+
+const DEFAULT_AUTH_TITLE = 'Welcome to ETHDenver Vibez Lounge';
+const DEFAULT_EMAIL_HEADING = 'Link your email for updates';
+const DEFAULT_USERNAME_HEADING = 'Choose your username to start earning points';
 
 export default function AuthWrapper({
   children,
   requireUsername = false,
   requireEmail = false,
-  unauthenticatedUI = "default",
+  unauthenticatedUI = 'default',
+  authContextName,
+  authContextDescription,
 }: AuthWrapperProps) {
+  const title = authContextName?.trim() || DEFAULT_AUTH_TITLE;
+  const description = authContextDescription?.trim() || null;
+  const emailHeading = authContextName?.trim()
+    ? `Link your email for updates at ${authContextName.trim()}`
+    : DEFAULT_EMAIL_HEADING;
+  const usernameHeading = authContextName?.trim()
+    ? `Choose your username to check in at ${authContextName.trim()}`
+    : DEFAULT_USERNAME_HEADING;
   const { user, ready, linkEmail, login } = usePrivy();
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState('');
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
   const [needsUsername, setNeedsUsername] = useState(false);
 
@@ -30,7 +48,7 @@ export default function AuthWrapper({
     const checkPlayerData = async () => {
       try {
         const response = await fetch(
-          `/api/player?walletAddress=${encodeURIComponent(walletAddress)}`,
+          `/api/player?walletAddress=${encodeURIComponent(walletAddress)}`
         );
 
         if (response.ok) {
@@ -45,7 +63,7 @@ export default function AuthWrapper({
           setNeedsUsername(true);
         }
       } catch (error) {
-        console.error("Error checking player data:", error);
+        console.error('Error checking player data:', error);
         setNeedsUsername(true);
       }
     };
@@ -59,14 +77,14 @@ export default function AuthWrapper({
     const walletAddress = user.wallet.address;
     setIsCreatingPlayer(true);
     try {
-      const response = await fetch("/api/player", {
-        method: "POST",
+      const response = await fetch('/api/player', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           walletAddress,
-          email: user.email?.address || "",
+          email: user.email?.address || '',
           username: username.trim(),
         }),
       });
@@ -76,10 +94,10 @@ export default function AuthWrapper({
       if (responseData.success) {
         setNeedsUsername(false);
       } else {
-        console.error("Failed to create player:", responseData.error);
+        console.error('Failed to create player:', responseData.error);
       }
     } catch (error) {
-      console.error("Error creating player:", error);
+      console.error('Error creating player:', error);
     } finally {
       setIsCreatingPlayer(false);
     }
@@ -99,9 +117,7 @@ export default function AuthWrapper({
     return (
       <div className="flex items-center justify-center w-full min-h-dvh px-4">
         <div className="w-full max-w-md text-center">
-          <p className="text-xl font-inktrap mb-6">
-            Link your email for updates
-          </p>
+          <p className="text-xl font-inktrap mb-6">{emailHeading}</p>
           <Button
             className="w-full bg-white text-black rounded-full hover:bg-white/90 text-base font-inktrap py-6 flex items-center justify-center px-6"
             onClick={linkEmail}
@@ -119,9 +135,7 @@ export default function AuthWrapper({
     return (
       <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto min-h-dvh px-4 py-8">
         <div className="flex flex-col gap-6">
-          <p className="text-lg font-inktrap text-center">
-            Choose your username to start earning points
-          </p>
+          <p className="text-lg font-inktrap text-center">{usernameHeading}</p>
 
           <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/30">
             <p className="text-sm mb-3 font-inktrap uppercase">
@@ -143,7 +157,7 @@ export default function AuthWrapper({
             onClick={handleCreatePlayer}
             disabled={!username.trim() || isCreatingPlayer}
           >
-            {isCreatingPlayer ? "CREATING PLAYER..." : "START EARNING"}
+            {isCreatingPlayer ? 'CREATING PLAYER...' : 'START EARNING'}
             {!isCreatingPlayer && (
               <svg
                 className="w-4 h-4 ml-2"
@@ -167,19 +181,19 @@ export default function AuthWrapper({
 
   // Unauthenticated UI
   if (ready && !user) {
-    if (unauthenticatedUI === "minimal") {
+    if (unauthenticatedUI === 'minimal') {
       return <>{children}</>;
     }
 
-    if (unauthenticatedUI === "map-onboarding") {
+    if (unauthenticatedUI === 'map-onboarding') {
       return (
         <div
           className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 overflow-hidden"
           style={{
             backgroundImage: "url('/bg-green.png')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
           }}
         >
           <div className="w-full max-w-md mx-auto flex flex-col items-center justify-between h-fit py-6 sm:py-8 gap-6">
@@ -197,11 +211,11 @@ export default function AuthWrapper({
                 <p
                   className="text-white text-center whitespace-nowrap"
                   style={{
-                    textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
-                    fontSize: "25px",
+                    textShadow: '0 0 16px rgba(255, 255, 255, 0.70)',
+                    fontSize: '25px',
                     fontWeight: 500,
-                    lineHeight: "28px",
-                    letterSpacing: "-0.5px",
+                    lineHeight: '28px',
+                    letterSpacing: '-0.5px',
                   }}
                 />
               </div>
@@ -262,7 +276,8 @@ export default function AuthWrapper({
             </div>
 
             <p className="text-white text-[14px] sm:text-[16px] leading-[20px] sm:leading-[22px] tracking-[-0.36px] sm:tracking-[-0.48px] text-left w-full px-2">
-              You&apos;ve got great taste. Share your favorite spots around the world and get rewarded when people check them out.
+              You&apos;ve got great taste. Share your favorite spots around the
+              world and get rewarded when people check them out.
             </p>
 
             <button
@@ -283,10 +298,15 @@ export default function AuthWrapper({
     return (
       <div className="font-grotesk flex flex-col max-w-xl mx-auto">
         <div className="flex flex-col items-start py-8 gap-8 flex-1 max-w-md mx-auto">
-          <div className="relative w-full max-w-md flex items-center justify-center my-4 mx-auto">
-            <h1 className="flex items-center justify-center text-4xl md:text-5xl font-bold uppercase tracking-tight text-center font-inktrap z-10 my-6">
-              Welcome to ETHDenver Vibez Lounge
+          <div className="relative w-full max-w-md flex flex-col items-center justify-center my-4 mx-auto gap-3">
+            <h1 className="flex items-center justify-center text-4xl md:text-5xl font-bold uppercase tracking-tight text-center font-inktrap z-10 my-6 break-words line-clamp-4">
+              {title}
             </h1>
+            {description && (
+              <p className="text-center font-inktrap text-base md:text-lg opacity-90 max-w-md line-clamp-3">
+                {description}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-1 w-full">
@@ -320,7 +340,7 @@ export default function AuthWrapper({
   }
 
   // Authenticated - render children
-  if (unauthenticatedUI === "map-onboarding") {
+  if (unauthenticatedUI === 'map-onboarding') {
     return <div className="h-screen w-full relative">{children}</div>;
   }
 
