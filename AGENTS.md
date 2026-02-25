@@ -100,3 +100,33 @@ You carefully provide accurate, factual, thoughtful answers, and are a genius at
 ---
 
 Thank you for helping make this project better! 🚀
+
+## Cursor Cloud specific instructions
+
+### Service overview
+
+This is a single Next.js 14 application (no Docker, no local database). All data services are external SaaS:
+
+- **Supabase** (PostgreSQL + Storage) — primary database
+- **Privy** — authentication (email login + embedded wallets)
+- **Mapbox** — interactive maps
+- **Mixpanel** — analytics (gracefully degrades if missing)
+
+### Running the app
+
+- `yarn dev` starts the dev server at `http://localhost:3000`
+- The `.env.local` file must be created from environment secrets before starting. Key mappings:
+  - `NEXT_PUBLIC_SUPABASE_URL` ← `SUPABASE_URL` env var
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY` ← `SUPABASE_SERVICE_ROLE_KEY` env var (no separate anon key is provisioned)
+  - `BASE_RPC_URL` ← `NEXT_PUBLIC_BASE_RPC` env var
+- The `canvas` native module fails to build during `yarn install` — this is expected and harmless (aliased to `false` in `next.config.mjs`).
+
+### Testing
+
+- Tests use **Vitest** (not Jest, despite what `CLAUDE.md` says). Run with `yarn test` or `yarn test --run` for CI mode.
+- 40 test files with ~730 tests. 7 pre-existing failures in `lib/db/__tests__/perks.test.ts` and `app/api/perks/__tests__/route.test.ts` related to incomplete Supabase mock chains.
+- Test setup lives in `src/__tests__/setup.ts` (MSW server, Supabase/Privy/Mapbox mocks).
+
+### Linting
+
+- `yarn lint` runs Next.js ESLint. Only warnings (no errors) about `<img>` vs `<Image />` usage.
