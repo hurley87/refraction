@@ -93,7 +93,7 @@ describe('UnifiedCheckpoint', () => {
 
       render(<UnifiedCheckpoint checkpoint={mockEvmCheckpoint} />);
 
-      expect(screen.getByText('Loading ...')).toBeInTheDocument();
+      expect(screen.getByText('Sign in to check in')).toBeInTheDocument();
     });
 
     it('should show loading when Stellar wallet is loading', () => {
@@ -113,7 +113,7 @@ describe('UnifiedCheckpoint', () => {
 
       render(<UnifiedCheckpoint checkpoint={mockStellarCheckpoint} />);
 
-      expect(screen.getByText('Loading ...')).toBeInTheDocument();
+      expect(screen.getByText('Sign in to check in')).toBeInTheDocument();
     });
 
     it('should show loading when Aptos wallet is loading', () => {
@@ -133,7 +133,7 @@ describe('UnifiedCheckpoint', () => {
 
       render(<UnifiedCheckpoint checkpoint={mockAptosCheckpoint} />);
 
-      expect(screen.getByText('Loading ...')).toBeInTheDocument();
+      expect(screen.getByText('Sign in to check in')).toBeInTheDocument();
     });
   });
 
