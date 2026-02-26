@@ -36,6 +36,7 @@ export default async function CheckpointLayout({
           requireEmail
           authContextName={checkpoint?.name}
           authContextDescription={checkpoint?.description ?? undefined}
+          authContextLoginCtaText={checkpoint?.login_cta_text ?? undefined}
         >
           <div className="min-h-dvh w-full">{children}</div>
         </AuthWrapper>

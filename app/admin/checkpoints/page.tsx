@@ -53,12 +53,14 @@ export default function AdminCheckpointsPage() {
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
+    login_cta_text: string;
     chain_type: ChainType;
     points_value: number;
     is_active: boolean;
   }>({
     name: '',
     description: '',
+    login_cta_text: '',
     chain_type: 'evm',
     points_value: 100,
     is_active: true,
@@ -119,6 +121,10 @@ export default function AdminCheckpointsPage() {
         const formData = new FormData();
         formData.append('name', checkpointData.name);
         formData.append('description', checkpointData.description || '');
+        formData.append(
+          'login_cta_text',
+          checkpointData.login_cta_text?.trim() || ''
+        );
         formData.append('chain_type', checkpointData.chain_type);
         formData.append('points_value', String(checkpointData.points_value));
         formData.append('is_active', String(checkpointData.is_active));
@@ -252,14 +258,16 @@ export default function AdminCheckpointsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const loginCtaText = formData.login_cta_text.trim() || null;
+
     if (editingCheckpoint) {
       updateCheckpointMutation.mutate({
         id: editingCheckpoint.id,
-        updates: formData,
+        updates: { ...formData, login_cta_text: loginCtaText },
       });
     } else {
       createCheckpointMutation.mutate({
-        checkpointData: formData,
+        checkpointData: { ...formData, login_cta_text: loginCtaText },
         imageFile: partnerImageFile,
       });
     }
@@ -270,6 +278,7 @@ export default function AdminCheckpointsPage() {
     setFormData({
       name: checkpoint.name,
       description: checkpoint.description || '',
+      login_cta_text: checkpoint.login_cta_text ?? '',
       chain_type: checkpoint.chain_type,
       points_value: checkpoint.points_value,
       is_active: checkpoint.is_active,
@@ -294,6 +303,7 @@ export default function AdminCheckpointsPage() {
     setFormData({
       name: '',
       description: '',
+      login_cta_text: '',
       chain_type: 'evm',
       points_value: 100,
       is_active: true,
@@ -400,6 +410,24 @@ export default function AdminCheckpointsPage() {
                   }
                   placeholder="Optional description for this checkpoint"
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="login_cta_text">
+                  Login CTA text (Optional)
+                </Label>
+                <Input
+                  id="login_cta_text"
+                  value={formData.login_cta_text}
+                  onChange={(e) =>
+                    setFormData({ ...formData, login_cta_text: e.target.value })
+                  }
+                  placeholder="e.g., Get Started"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Button text when user is not logged in; leave blank for
+                  default.
+                </p>
               </div>
 
               <div>

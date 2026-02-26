@@ -6,6 +6,7 @@ const CHECKPOINT_COLUMNS = `
   id,
   name,
   description,
+  login_cta_text,
   chain_type,
   points_value,
   is_active,

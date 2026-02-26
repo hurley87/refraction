@@ -526,6 +526,7 @@ describe('API Schemas', () => {
       const validRequest = {
         name: 'Test Checkpoint',
         description: 'A test checkpoint',
+        login_cta_text: 'Get Started',
         chain_type: 'solana',
         points_value: 500,
         is_active: false,
@@ -533,6 +534,38 @@ describe('API Schemas', () => {
       };
       const result = createCheckpointRequestSchema.safeParse(validRequest);
       expect(result.success).toBe(true);
+    });
+
+    it('should accept login_cta_text (string, null, or omit)', () => {
+      expect(
+        createCheckpointRequestSchema.safeParse({
+          name: 'Test',
+          chain_type: 'evm',
+          login_cta_text: 'Check in here',
+        }).success
+      ).toBe(true);
+      expect(
+        createCheckpointRequestSchema.safeParse({
+          name: 'Test',
+          chain_type: 'evm',
+          login_cta_text: null,
+        }).success
+      ).toBe(true);
+      expect(
+        createCheckpointRequestSchema.safeParse({
+          name: 'Test',
+          chain_type: 'evm',
+        }).success
+      ).toBe(true);
+    });
+
+    it('should reject login_cta_text over 120 characters', () => {
+      const result = createCheckpointRequestSchema.safeParse({
+        name: 'Test',
+        chain_type: 'evm',
+        login_cta_text: 'a'.repeat(121),
+      });
+      expect(result.success).toBe(false);
     });
 
     it('should reject empty name', () => {
@@ -621,6 +654,26 @@ describe('API Schemas', () => {
         is_active: false,
       });
       expect(result.success).toBe(true);
+    });
+
+    it('should accept login_cta_text (string or null)', () => {
+      expect(
+        updateCheckpointRequestSchema.safeParse({
+          login_cta_text: 'Join Now',
+        }).success
+      ).toBe(true);
+      expect(
+        updateCheckpointRequestSchema.safeParse({
+          login_cta_text: null,
+        }).success
+      ).toBe(true);
+    });
+
+    it('should reject login_cta_text over 120 characters', () => {
+      const result = updateCheckpointRequestSchema.safeParse({
+        login_cta_text: 'a'.repeat(121),
+      });
+      expect(result.success).toBe(false);
     });
 
     it('should reject invalid values when provided', () => {

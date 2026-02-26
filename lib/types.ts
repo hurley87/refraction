@@ -244,6 +244,7 @@ export type Checkpoint = {
   id: string;
   name: string;
   description?: string | null;
+  login_cta_text?: string | null;
   chain_type: ChainType;
   points_value: number;
   is_active: boolean;

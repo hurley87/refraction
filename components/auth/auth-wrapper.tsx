@@ -14,9 +14,13 @@ interface AuthWrapperProps {
   authContextName?: string | null;
   /** Optional checkpoint/location description shown on auth gates */
   authContextDescription?: string | null;
+  /** Optional custom login CTA button label (e.g. /c/[id]); leave blank for default */
+  authContextLoginCtaText?: string | null;
 }
 
 const DEFAULT_AUTH_TITLE = 'Welcome to ETHDenver Vibez Lounge';
+const DEFAULT_LOGIN_CTA = 'Check in to Earn Points on IRL';
+const MINIMAL_LOGIN_CTA = 'Get Started';
 const DEFAULT_EMAIL_HEADING = 'Link your email for updates';
 const DEFAULT_USERNAME_HEADING = 'Choose your username to start earning points';
 
@@ -27,9 +31,13 @@ export default function AuthWrapper({
   unauthenticatedUI = 'default',
   authContextName,
   authContextDescription,
+  authContextLoginCtaText,
 }: AuthWrapperProps) {
   const title = authContextName?.trim() || DEFAULT_AUTH_TITLE;
   const description = authContextDescription?.trim() || null;
+  const loginCtaText =
+    authContextLoginCtaText?.trim() ||
+    (unauthenticatedUI === 'minimal' ? MINIMAL_LOGIN_CTA : DEFAULT_LOGIN_CTA);
   const emailHeading = authContextName?.trim()
     ? `Link your email for updates at ${authContextName.trim()}`
     : DEFAULT_EMAIL_HEADING;
@@ -285,7 +293,7 @@ export default function AuthWrapper({
               className="bg-white flex h-12 items-center justify-between px-4 py-2 rounded-full w-full cursor-pointer hover:bg-gray-100 transition-colors"
             >
               <span className="font-pleasure font-medium text-[16px] leading-[16px] text-[#313131] tracking-[-1.28px]">
-                Get Started
+                {loginCtaText}
               </span>
               <img src="/arrow-right.svg" alt="" className="w-6 h-6" />
             </button>
@@ -315,7 +323,7 @@ export default function AuthWrapper({
                 onClick={login}
                 className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
               >
-                <span>Check in to Earn Points on IRL</span>
+                <span>{loginCtaText}</span>
                 <Image
                   src="/home/arrow-right.svg"
                   alt="arrow-right"

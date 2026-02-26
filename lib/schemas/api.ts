@@ -190,6 +190,7 @@ export const unifiedCheckinRequestSchema = z
 export const createCheckpointRequestSchema = z.object({
   name: z.string().min(1).max(255),
   description: z.string().max(1000).optional(),
+  login_cta_text: z.string().max(120).optional().nullable(),
   chain_type: chainTypeSchema,
   points_value: z.coerce.number().int().min(1).max(10000).default(100),
   is_active: z.boolean().default(true),
@@ -202,6 +203,7 @@ export const createCheckpointRequestSchema = z.object({
 export const updateCheckpointRequestSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   description: z.string().max(1000).optional().nullable(),
+  login_cta_text: z.string().max(120).optional().nullable(),
   chain_type: chainTypeSchema.optional(),
   points_value: z.coerce.number().int().min(1).max(10000).optional(),
   is_active: z.boolean().optional(),
