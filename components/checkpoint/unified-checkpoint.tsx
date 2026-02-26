@@ -328,7 +328,7 @@ export default function UnifiedCheckpoint({
       {checkinStatus && !checkinError && (
         <div className="h-full flex flex-col justify-center pt-8 sm:pt-12">
           {/* Main Content */}
-          <div className="flex flex-col px-4 sm:px-6 pb-4 max-w-lg mx-auto w-full">
+          <div className="flex flex-col px-6 pb-4 max-w-lg mx-auto w-full">
             {/* Event Header */}
             <div className="text-center mb-4 sm:mb-6">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold uppercase tracking-tight font-inktrap text-black">
