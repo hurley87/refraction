@@ -311,7 +311,7 @@ export default function AuthWrapper({
               {title}
             </h1>
             {description && (
-              <p className="text-center text-base md:text-lg opacity-90 max-w-md line-clamp-3">
+              <p className="text-center text-base md:text-lg opacity-90 max-w-md">
                 {description}
               </p>
             )}

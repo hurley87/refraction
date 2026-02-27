@@ -23,7 +23,7 @@ export default async function CheckpointLayout({
   return (
     <div className="min-h-dvh overflow-y-auto">
       <div
-        className="flex min-h-dvh flex-col"
+        className="flex min-h-dvh flex-col p-4"
         style={{
           background: "url('/bg-funky.png') no-repeat center center fixed",
           backgroundSize: 'cover',
