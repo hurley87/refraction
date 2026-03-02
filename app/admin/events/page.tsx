@@ -141,7 +141,10 @@ function RewardTicketHoldersDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent
+        className="max-w-md"
+        overlayClassName="bg-black/40 backdrop-blur-[2px]"
+      >
         <DialogHeader>
           <DialogTitle>Reward ticket holders</DialogTitle>
           <DialogDescription>
