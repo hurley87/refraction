@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { supabase } from '@/lib/db/client';
 import { checkAdminPermission } from '@/lib/db/admin';
 import { getPlayersByEmails, updatePlayerPoints } from '@/lib/db/players';
-import { fetchEvent, fetchEventTicketHolders } from '@/lib/dice/client';
+import { fetchEventTicketHolders } from '@/lib/dice/client';
 import { apiSuccess, apiError } from '@/lib/api/response';
 
 const rewardBodySchema = z.object({
@@ -17,7 +17,7 @@ const rewardBodySchema = z.object({
 /**
  * POST /api/admin/dice/reward-ticket-holders
  * Awards points to all matched ticket holders for a DICE event.
- * Enforces: event must be over, only once per event.
+ * Enforces: only once per event (idempotent via dice_event_rewards unique constraint).
  */
 export async function POST(request: NextRequest) {
   try {
@@ -40,22 +40,6 @@ export async function POST(request: NextRequest) {
     }
 
     const { eventId, pointsPerHolder } = parsed.data;
-
-    const event = await fetchEvent(eventId);
-    const eventEnd = event.endDatetime
-      ? new Date(event.endDatetime)
-      : event.startDatetime
-        ? new Date(
-            new Date(event.startDatetime).getTime() + 24 * 60 * 60 * 1000
-          )
-        : null;
-
-    if (!eventEnd || eventEnd.getTime() > Date.now()) {
-      return apiError(
-        'Event has not ended yet. Points can only be awarded after the event is over.',
-        400
-      );
-    }
 
     const { holders, eventName } = await fetchEventTicketHolders(eventId);
 
@@ -82,10 +66,7 @@ export async function POST(request: NextRequest) {
 
     if (lockError) {
       if (lockError.code === '23505') {
-        return apiError(
-          'Points for this event have already been awarded',
-          409
-        );
+        return apiError('Points for this event have already been awarded', 409);
       }
       return apiError('Failed to initialize reward record', 500);
     }
@@ -94,9 +75,7 @@ export async function POST(request: NextRequest) {
     const emailList = Array.from(uniqueEmails);
     const players = await getPlayersByEmails(emailList);
     const playerByEmail = new Map(
-      players
-        .filter((p) => p.email)
-        .map((p) => [p.email!.toLowerCase(), p])
+      players.filter((p) => p.email).map((p) => [p.email!.toLowerCase(), p])
     );
 
     const unmatchedEmails: string[] = [];

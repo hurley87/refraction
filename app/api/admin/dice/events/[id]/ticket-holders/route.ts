@@ -32,15 +32,7 @@ export async function GET(
 
     const alreadyRewarded = !!existingReward;
 
-    const { holders, eventName, endDatetime, startDatetime } =
-      await fetchEventTicketHolders(eventId);
-
-    const eventEnd = endDatetime
-      ? new Date(endDatetime)
-      : startDatetime
-        ? new Date(new Date(startDatetime).getTime() + 24 * 60 * 60 * 1000)
-        : null;
-    const eventEnded = !!eventEnd && eventEnd.getTime() <= Date.now();
+    const { holders, eventName } = await fetchEventTicketHolders(eventId);
 
     const uniqueEmails = new Set<string>();
     for (const h of holders) {
@@ -57,7 +49,6 @@ export async function GET(
       uniqueEmails: uniqueEmails.size,
       matchedPlayers,
       alreadyRewarded,
-      eventEnded,
       eventName,
     });
   } catch (error) {
