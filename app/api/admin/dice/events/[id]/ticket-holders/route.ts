@@ -41,13 +41,22 @@ export async function GET(
     }
 
     // Batch-fetch all players in a single query instead of N+1 loop
-    const players = await getPlayersByEmails(Array.from(uniqueEmails));
-    const matchedPlayers = players.filter((p) => p.id).length;
+    const emailList = Array.from(uniqueEmails);
+    const players = await getPlayersByEmails(emailList);
+    const playerByEmail = new Map(
+      players.filter((p) => p.email).map((p) => [p.email!.toLowerCase(), p])
+    );
+
+    const matchedEmails: string[] = [];
+    for (const email of emailList) {
+      if (playerByEmail.has(email)) matchedEmails.push(email);
+    }
 
     return apiSuccess({
       totalHolders: holders.length,
       uniqueEmails: uniqueEmails.size,
-      matchedPlayers,
+      matchedPlayers: matchedEmails.length,
+      matchedEmails,
       alreadyRewarded,
       eventName,
     });

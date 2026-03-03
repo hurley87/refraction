@@ -37,6 +37,7 @@ interface TicketHoldersPreview {
   totalHolders: number;
   uniqueEmails: number;
   matchedPlayers: number;
+  matchedEmails?: string[];
   alreadyRewarded: boolean;
   eventName: string;
 }
@@ -46,6 +47,7 @@ interface RewardResult {
   uniqueEmails: number;
   matchedPlayers: number;
   unmatchedEmails: string[];
+  awardedEmails?: string[];
   totalPointsAwarded: number;
   eventName: string;
 }
@@ -180,8 +182,24 @@ function RewardTicketHoldersDialog({
         {!previewLoading && !previewError && preview && (
           <>
             {preview.alreadyRewarded ? (
-              <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-3 text-sm text-amber-800">
-                Points for this event have already been awarded.
+              <div className="space-y-2">
+                <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-3 text-sm text-amber-800">
+                  Points for this event have already been awarded.
+                </div>
+                {preview.matchedEmails && preview.matchedEmails.length > 0 && (
+                  <div>
+                    <p className="text-sm text-gray-600 font-medium mb-1">
+                      Awarded to ({preview.matchedEmails.length}):
+                    </p>
+                    <ul className="max-h-40 overflow-y-auto text-xs text-gray-600 list-disc list-inside break-all rounded border border-gray-200 bg-gray-50 px-2 py-1.5">
+                      {[...preview.matchedEmails]
+                        .sort((a, b) => a.localeCompare(b))
+                        .map((email) => (
+                          <li key={email}>{email}</li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             ) : result ? (
               <div className="space-y-2 text-sm">
@@ -195,6 +213,23 @@ function RewardTicketHoldersDialog({
                     {result.unmatchedEmails.length} ticket holder(s) not found
                     in app (no account with matching email).
                   </p>
+                )}
+                {result.awardedEmails && result.awardedEmails.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-gray-600 font-medium mb-1">
+                      Awarded to:
+                    </p>
+                    <ul
+                      className="max-h-32 overflow-y-auto text-xs text-gray-600 list-disc list-inside break-all rounded border border-gray-200 bg-gray-50 px-2 py-1.5"
+                      aria-label="Emails that received points"
+                    >
+                      {[...result.awardedEmails]
+                        .sort((a, b) => a.localeCompare(b))
+                        .map((email) => (
+                          <li key={email}>{email}</li>
+                        ))}
+                    </ul>
+                  </div>
                 )}
               </div>
             ) : (

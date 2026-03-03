@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     );
 
     const unmatchedEmails: string[] = [];
+    const awardedEmails: string[] = [];
     let matchedPlayers = 0;
     let totalPointsAwarded = 0;
 
@@ -141,6 +142,7 @@ export async function POST(request: NextRequest) {
         await updatePlayerPoints(playerId, pointsPerHolder);
         matchedPlayers += 1;
         totalPointsAwarded += pointsPerHolder;
+        awardedEmails.push(email);
       } catch (err) {
         console.error(`Failed to award points to player ${playerId}:`, err);
         unmatchedEmails.push(email);
@@ -167,6 +169,7 @@ export async function POST(request: NextRequest) {
       uniqueEmails: uniqueEmails.size,
       matchedPlayers,
       unmatchedEmails,
+      awardedEmails,
       totalPointsAwarded,
       eventName,
     });
