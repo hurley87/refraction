@@ -7,6 +7,20 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Build-time placeholders so route module imports don't fail in CI.
+      SUPABASE_URL: https://example.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      NEXT_PUBLIC_PRIVY_APP_ID: ci-placeholder-privy-app-id
+      PRIVY_APP_SECRET: ci-placeholder-privy-secret
+      NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: ci-placeholder-mapbox-token
+      NEXT_PUBLIC_MIXPANEL_TOKEN: ci-placeholder-mixpanel-token
+      MIXPANEL_TOKEN: ci-placeholder-mixpanel-token
+      MIXPANEL_SECRET: ci-placeholder-mixpanel-secret
+      SERVER_WALLET_PRIVATE_KEY: 0x1111111111111111111111111111111111111111111111111111111111111111
+      BASE_RPC_URL: https://example-rpc.invalid
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
