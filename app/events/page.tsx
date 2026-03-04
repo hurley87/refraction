@@ -10,7 +10,7 @@ import MapNav from "@/components/map/mapnav";
 const { futureEvents } = eventsData;
 
 export default function EventsPage() {
-  const [sortBy, setSortBy] = useState();
+  const [sortBy, setSortBy] = useState("date");
   const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
