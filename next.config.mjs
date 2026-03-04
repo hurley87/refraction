@@ -49,6 +49,11 @@ const nextConfig = {
         protocol: "https",
         hostname: "dice-media-test.imgix.net",
       },
+      {
+        protocol: "https",
+        hostname: "drive.google.com",
+        pathname: "/uc**",
+      },
     ],
   },
   webpack: (config, { isServer }) => {

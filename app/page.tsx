@@ -1,21 +1,46 @@
-import dynamic from "next/dynamic";
-import Header from "@/components/layout/header";
-import Hero from "@/components/home/hero";
+import dynamic from 'next/dynamic';
+import Header from '@/components/layout/header';
+import Hero from '@/components/home/hero';
 
 // Lazy load below-the-fold components for better initial load performance
-const MapSection = dynamic(() => import("@/components/map/map-section"), {
+const MapSection = dynamic(() => import('@/components/map/map-section'), {
   ssr: true,
 });
-const Partners = dynamic(() => import("@/components/partners/partners"), {
+const WhatYouGetSection = dynamic(
+  () => import('@/components/home/what-you-get-section'),
+  { ssr: true }
+);
+const CheckInsFundCultureSection = dynamic(
+  () => import('@/components/home/check-ins-fund-culture-section'),
+  { ssr: true }
+);
+/* const CityGuidesCarouselSection = dynamic(
+  () => import('@/components/home/city-guides-carousel-section'),
+  { ssr: true }
+);
+const IRLTourSection = dynamic(
+  () => import('@/components/home/irl-tour-section'),
+  { ssr: true }
+);
+const CityGuidesCoverSection = dynamic(
+  () => import('@/components/home/city-guides-cover-section'),
+  { ssr: true }
+);
+const GetInvolvedSection = dynamic(
+  () => import('@/components/home/get-involved-section'),
+  { ssr: true }
+);
+ */
+const Partners = dynamic(() => import('@/components/partners/partners'), {
   ssr: true,
 });
-const ArtistCTA = dynamic(() => import("@/components/home/artist-cta"), {
+const ArtistCTA = dynamic(() => import('@/components/home/artist-cta'), {
   ssr: true,
 });
-const FooterHero = dynamic(() => import("@/components/layout/footer-hero"), {
+const FooterHero = dynamic(() => import('@/components/layout/footer-hero'), {
   ssr: true,
 });
-const Footer = dynamic(() => import("@/components/layout/footer"), {
+const Footer = dynamic(() => import('@/components/layout/footer'), {
   ssr: true,
 });
 
@@ -26,33 +51,62 @@ export default function Home() {
       <Header />
 
       <div className="overflow-hidden rounded-t-3xl">
+        {/* Hero Section with WebGL Background - Full viewport */}
+        <div className="relative h-screen w-screen">
+          <Hero />
+        </div>
+        {/* Map Section with GSAP Scroll Transitions */}
+        <div className="pt-0 pb-16 md:py-24" data-section="map">
+          <MapSection />
+        </div>
 
-      {/* Hero Section with WebGL Background - Full viewport */}
-      <div className="relative h-screen w-screen">
-        <Hero />
-      </div>
-      {/* Map Section with GSAP Scroll Transitions */}
-      <div className="pt-0 pb-16 md:py-24" data-section="map">
-        <MapSection />
-      </div>
+        {/* What You Get Section */}
+        <div className="py-0">
+          <WhatYouGetSection />
+        </div>
 
-      {/* Partners Section */}
-      <div className="py-16 md:py-24">
-        <Partners />
-      </div>
+        {/* Check-Ins Fund Culture Section */}
+        <div className="py-0">
+          <CheckInsFundCultureSection />
+        </div>
 
-      {/* Artist CTA Section */}
-      <div className="py-16 md:py-24">
-        <ArtistCTA />
-      </div>
+        {/* City Guides Carousel Section */}
+        {/* <div className="py-0">
+          <CityGuidesCarouselSection />
+        </div> */}
 
-      {/* Footer Hero Section with WebGL Background */}
-      <div className="py-16 md:py-24">
-        <FooterHero />
-      </div>
+        {/* IRL Tour Section */}
+        {/* <div className="py-0">
+          <IRLTourSection />
+        </div>
+ */}
+        {/* City Guides Cover Section */}
+      {/*   <div className="py-0">
+          <CityGuidesCoverSection />
+        </div> */}
 
-      {/* Footer */}
-      <Footer />
+        {/* Get Involved Section */}
+       {/*  <div className="py-0">
+          <GetInvolvedSection />
+        </div> */}
+
+        {/* Partners Section */}
+        <div className="py-16 md:py-24">
+          <Partners />
+        </div>
+
+        {/* Artist CTA Section */}
+        <div className="py-16 md:py-24">
+          <ArtistCTA />
+        </div>
+
+        {/* Footer Hero Section with WebGL Background */}
+        <div className="py-16 md:py-24">
+          <FooterHero />
+        </div>
+
+        {/* Footer */}
+        <Footer />
       </div>
     </div>
   );
