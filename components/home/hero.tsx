@@ -80,7 +80,7 @@ export default function Hero() {
             }}
           >
             From listening bars to late-night diners, the people shaping the
-            scene show you where to go. Check in. Earn points. Fund the culture.
+            scene show you where to go. Check in. Earn points. Fund culture.
           </p>
         </div>
 
