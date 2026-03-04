@@ -100,3 +100,34 @@ You carefully provide accurate, factual, thoughtful answers, and are a genius at
 ---
 
 Thank you for helping make this project better! 🚀
+
+## Cursor Cloud specific instructions
+
+### Services
+
+This is a single-process Next.js 14 app. The only local service is the Next.js dev server (`yarn dev` on port 3000). All other dependencies (Supabase, Privy, Mapbox, Mixpanel, blockchain RPCs) are external SaaS — no Docker or local databases required.
+
+### Running the app
+
+- `yarn dev` — starts the dev server at http://localhost:3000
+- The app requires a `.env.local` file. Copy `.env.local.example` to `.env.local` for placeholder values. The dev server starts and renders pages even without valid API keys, though features depending on Supabase/Privy will not function without real credentials.
+
+### Testing
+
+- The test runner is **Vitest** (not Jest, despite some docs referencing Jest). Run with `yarn test` (single run) or `yarn test:watch`.
+- Tests use `happy-dom` environment and are configured in `vitest.config.ts`.
+- The `@` path alias resolves to the project root (not `src/`).
+
+### Linting
+
+- `yarn lint` runs Next.js ESLint. Existing warnings about `<img>` vs `<Image />` are known and non-blocking.
+
+### Package manager
+
+- **Yarn 1.22.22** (specified in `packageManager` field). Always use `yarn`, not npm/pnpm.
+
+### Gotchas
+
+- The optional `canvas` native module fails to build on some systems — this is safe to ignore (`info This module is OPTIONAL`).
+- The actual directory structure uses top-level `app/`, `components/`, `lib/`, `hooks/` — not under `src/` as some docs suggest.
+- `CLAUDE.md` references Jest commands but the project actually uses Vitest. Use `yarn test` for all test operations.
