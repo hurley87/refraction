@@ -13,7 +13,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: "ci-placeholder-service-role-key"
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "ci-placeholder-anon-key"
-      NEXT_PUBLIC_PRIVY_APP_ID: "ci-placeholder-privy-app-id"
+      NEXT_PUBLIC_PRIVY_APP_ID: "aaaaaaaaaaaaaaaaaaaaaaaaa"
       PRIVY_APP_SECRET: "ci-placeholder-privy-secret"
       NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN: "ci-placeholder-mapbox-token"
       NEXT_PUBLIC_MIXPANEL_TOKEN: "ci-placeholder-mixpanel-token"
