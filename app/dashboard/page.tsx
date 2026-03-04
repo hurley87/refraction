@@ -102,7 +102,7 @@ export default function DashboardPage() {
                     className="w-4 h-4"
                   />
                   <div className="body-small font-grotesk text-[#EDEDED] uppercase tracking-wide">
-                    Your Points
+                    Points
                   </div>
                 </div>
                 <div className="flex justify-end">
@@ -174,7 +174,7 @@ export default function DashboardPage() {
                   className="w-4 h-4"
                 />
                 <div className="body-small font-grotesk text-[#7D7D7D] uppercase tracking-wide">
-                  Your Rank
+                  Rank
                 </div>
               </div>
               <div className="flex justify-end">
