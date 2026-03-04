@@ -10,10 +10,10 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "prepare": "husky"
   },
   "dependencies": {
-    "@walletconnect/universal-provider": "^2.21.7",
     "@campnetwork/sdk": "^1.2.15",
     "@creit.tech/stellar-wallets-kit": "^1.9.5",
     "@pinata/sdk": "^2.1.0",
@@ -42,6 +42,7 @@
     "@supabase/supabase-js": "^2.48.1",
     "@syndicateio/syndicate-node": "^1.0.1",
     "@tanstack/react-query": "^5.66.9",
+    "@walletconnect/universal-provider": "^2.21.7",
     "airtable": "^0.12.2",
     "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.0",
@@ -89,6 +90,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.14",
     "happy-dom": "^20.1.0",
+    "husky": "^9.1.7",
     "msw": "^2.12.7",
     "postcss": "^8",
     "prettier": "^3.8.0",
