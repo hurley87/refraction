@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 
 /**
  * Artist CTA component - Call to action for artists to join IRL
@@ -23,13 +23,15 @@ export default function ArtistCTA() {
   // Even rows: starts left, moves to center as you scroll (converges)
   // Use calc to center element (-50% of element width) then offset by viewport width
   // On desktop (scrollProgress = 1), strips should span full width (no transform offset)
-  const leftToRightTransform = scrollProgress === 1 
-    ? "translateX(-50%)" 
-    : `translateX(calc(-50% + ${-25 + scrollProgress * 25}vw))`;
+  const leftToRightTransform =
+    scrollProgress === 1
+      ? 'translateX(-50%)'
+      : `translateX(calc(-50% + ${-25 + scrollProgress * 25}vw))`;
   // Odd rows: starts right, moves to center as you scroll (converges)
-  const rightToLeftTransform = scrollProgress === 1
-    ? "translateX(-50%)"
-    : `translateX(calc(-50% + ${25 - scrollProgress * 25}vw))`;
+  const rightToLeftTransform =
+    scrollProgress === 1
+      ? 'translateX(-50%)'
+      : `translateX(calc(-50% + ${25 - scrollProgress * 25}vw))`;
 
   return (
     <section
@@ -38,8 +40,8 @@ export default function ArtistCTA() {
     >
       <div className="relative z-10 flex flex-col items-center justify-center px-4 py-20 md:py-16">
         {/* Content container */}
-         {/* Header and heading above animated strips */}
-      
+        {/* Header and heading above animated strips */}
+
         <div className="flex flex-col gap-6 items-center text-center max-w-[900px] w-full">
           {/* Small header */}
           <p className="font-grotesk text-[13px] leading-[20px] text-white tracking-[-0.26px] uppercase pt-6">
@@ -53,7 +55,6 @@ export default function ArtistCTA() {
           </div>
         </div>
       </div>
-     
 
       {/* Animated artist name strips */}
       <div className="absolute top-[500px] md:top-[600px] left-0 w-full z-0 pointer-events-none md:space-y-6 overflow-visible">
@@ -68,9 +69,9 @@ export default function ArtistCTA() {
               key={`artist-row-${imageNumber}`}
               className="transition-transform duration-100 ease-out md:w-full md:left-0"
               style={{
-                transform: scrollProgress === 1 ? "none" : transform,
-                position: "relative",
-                left: scrollProgress === 1 ? "0" : "50%",
+                transform: scrollProgress === 1 ? 'none' : transform,
+                position: 'relative',
+                left: scrollProgress === 1 ? '0' : '50%',
               }}
             >
               <img
@@ -138,8 +139,6 @@ export default function ArtistCTA() {
           </button>
         </Link>
       </div>
-
-      
     </section>
   );
 }

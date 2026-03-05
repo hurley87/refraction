@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import dynamic from "next/dynamic";
-import { useState, useEffect, useRef } from "react";
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import { useState, useEffect, useRef } from 'react';
 
 // Lazy load WebGLRenderer with dynamic import - only loads when component mounts
-const WebGLRenderer = dynamic(() => import("@/components/webgl-renderer"), {
+const WebGLRenderer = dynamic(() => import('@/components/webgl-renderer'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-950" />
@@ -32,14 +32,14 @@ export default function FooterHero() {
           if (entry.isIntersecting) {
             setShouldLoadWebGL(true);
             // Lazy load the JSON data only when needed
-            import("@/public/footer-webgl.json").then((module) => {
+            import('@/public/footer-webgl.json').then((module) => {
               setWebglData(module.default);
             });
             observer.disconnect();
           }
         });
       },
-      { rootMargin: "200px" }, // Start loading 200px before it enters viewport
+      { rootMargin: '200px' } // Start loading 200px before it enters viewport
     );
 
     observer.observe(section);
@@ -73,20 +73,20 @@ export default function FooterHero() {
           <div className="flex flex-col gap-4 items-center w-full">
             <h1
               className="font-pleasure display2 font-medium text-[50px] leading-[40px] tracking-[-2.34px] mb-0 text-center"
-              style={{ 
-                color: "var(--UI-White, #FFF)",
-                textAlign: "center",
-                textShadow: "0 0 24px rgba(255, 255, 255, 0.54)"
+              style={{
+                color: 'var(--UI-White, #FFF)',
+                textAlign: 'center',
+                textShadow: '0 0 24px rgba(255, 255, 255, 0.54)',
               }}
             >
               Support Culture
             </h1>
             <div
               className="font-pleasure display2 font-bold text-[61px] leading-[64px] tracking-[-4.88px] uppercase mb-0 text-center"
-              style={{ 
-                color: "var(--UI-White, #FFF)",
-                textAlign: "center",
-                textShadow: "0 0 24px rgba(255, 255, 255, 0.54)"
+              style={{
+                color: 'var(--UI-White, #FFF)',
+                textAlign: 'center',
+                textShadow: '0 0 24px rgba(255, 255, 255, 0.54)',
               }}
             >
               Earn Rewards
