@@ -1,29 +1,29 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState } from 'react';
+import Image from 'next/image';
 
 export default function Footer() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<
-    "idle" | "success" | "error" | "already-subscribed"
-  >("idle");
-  const [message, setMessage] = useState("");
+    'idle' | 'success' | 'error' | 'already-subscribed'
+  >('idle');
+  const [message, setMessage] = useState('');
 
   const handleNewsletterSubmit = async (
-    e: React.FormEvent<HTMLFormElement>,
+    e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setSubmitStatus("idle");
-    setMessage("");
+    setSubmitStatus('idle');
+    setMessage('');
 
     try {
-      const response = await fetch("/api/newsletter", {
-        method: "POST",
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email }),
       });
@@ -32,22 +32,22 @@ export default function Footer() {
         const responseData = await response.json();
 
         if (responseData.alreadySubscribed) {
-          setSubmitStatus("already-subscribed");
-          setMessage("You are already subscribed!");
+          setSubmitStatus('already-subscribed');
+          setMessage('You are already subscribed!');
         } else {
-          setSubmitStatus("success");
-          setMessage("Thanks for subscribing!");
+          setSubmitStatus('success');
+          setMessage('Thanks for subscribing!');
         }
-        setEmail("");
+        setEmail('');
       } else {
         const errorData = await response.json();
-        setSubmitStatus("error");
-        setMessage(errorData.error || "Failed to subscribe. Please try again.");
+        setSubmitStatus('error');
+        setMessage(errorData.error || 'Failed to subscribe. Please try again.');
       }
     } catch (error) {
-      console.error("Newsletter error:", error);
-      setSubmitStatus("error");
-      setMessage("Network error. Please try again.");
+      console.error('Newsletter error:', error);
+      setSubmitStatus('error');
+      setMessage('Network error. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -149,12 +149,7 @@ export default function Footer() {
         className="flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-white/10"
         aria-label="Join us on Telegram"
       >
-        <Image
-          src="/Telegram.png"
-          alt="Telegram"
-          width={48}
-          height={48}
-        />
+        <Image src="/Telegram.png" alt="Telegram" width={48} height={48} />
       </a>
     </div>
   );
@@ -222,13 +217,13 @@ export default function Footer() {
               </div>
 
               {/* Status messages */}
-              {submitStatus === "success" && (
+              {submitStatus === 'success' && (
                 <p className="text-xs text-green-400">{message}</p>
               )}
-              {submitStatus === "already-subscribed" && (
+              {submitStatus === 'already-subscribed' && (
                 <p className="text-xs text-blue-400">{message}</p>
               )}
-              {submitStatus === "error" && (
+              {submitStatus === 'error' && (
                 <p className="text-xs text-red-400">{message}</p>
               )}
             </form>
@@ -291,13 +286,13 @@ export default function Footer() {
                 )}
               </button>
               {/* Status messages */}
-              {submitStatus === "success" && (
+              {submitStatus === 'success' && (
                 <p className="text-xs text-green-400 ml-2">{message}</p>
               )}
-              {submitStatus === "already-subscribed" && (
+              {submitStatus === 'already-subscribed' && (
                 <p className="text-xs text-blue-400 ml-2">{message}</p>
               )}
-              {submitStatus === "error" && (
+              {submitStatus === 'error' && (
                 <p className="text-xs text-red-400 ml-2">{message}</p>
               )}
             </form>

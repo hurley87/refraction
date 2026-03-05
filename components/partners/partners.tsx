@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { memo } from "react";
+import Image from 'next/image';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import { memo } from 'react';
 
 /**
  * Partner type definition
@@ -18,20 +18,20 @@ type Partner = {
  */
 const partners: Partner[] = [
   {
-    name: "Resident Advisor",
-    logo: "/partner_logos/Resident Advisor white logo.svg",
+    name: 'Resident Advisor',
+    logo: '/partner_logos/Resident Advisor white logo.svg',
   },
-  { name: "Aptos", logo: "/partner_logos/Aptos_Primary_WHT.svg" },
-  { name: "Polygon", logo: "/partner_logos/Polygon Primary light.svg" },
-  { name: "Reown", logo: "/partner_logos/reown-logo-negative.svg" },
-  { name: "Zora", logo: "/partner_logos/Zora Logo White.svg" },
-  { name: "Livepeer", logo: "/partner_logos/Livepeer white logo.svg" },
-  { name: "Near", logo: "/partner_logos/Near white logo.svg" },
-  { name: "LUKSO", logo: "/partner_logos/LUKSO_logo white.svg" },
-  { name: "OpenSea", logo: "/partner_logos/Opensea white logo.svg" },
-  { name: "Galxe", logo: "/partner_logos/Galxe_Logo_Wordmark_White.svg" },
-  { name: "Mutek", logo: "/partner_logos/Mutek white logo.svg" },
-  { name: "FWB", logo: "/partner_logos/FWB-Lettermark.svg" },
+  { name: 'Aptos', logo: '/partner_logos/Aptos_Primary_WHT.svg' },
+  { name: 'Polygon', logo: '/partner_logos/Polygon Primary light.svg' },
+  { name: 'Reown', logo: '/partner_logos/reown-logo-negative.svg' },
+  { name: 'Zora', logo: '/partner_logos/Zora Logo White.svg' },
+  { name: 'Livepeer', logo: '/partner_logos/Livepeer white logo.svg' },
+  { name: 'Near', logo: '/partner_logos/Near white logo.svg' },
+  { name: 'LUKSO', logo: '/partner_logos/LUKSO_logo white.svg' },
+  { name: 'OpenSea', logo: '/partner_logos/Opensea white logo.svg' },
+  { name: 'Galxe', logo: '/partner_logos/Galxe_Logo_Wordmark_White.svg' },
+  { name: 'Mutek', logo: '/partner_logos/Mutek white logo.svg' },
+  { name: 'FWB', logo: '/partner_logos/FWB-Lettermark.svg' },
 ];
 
 /**
@@ -40,23 +40,25 @@ const partners: Partner[] = [
  */
 const MarqueeRow = memo(function MarqueeRow({
   partners,
-  direction = "left",
-  className = "",
+  direction = 'left',
+  className = '',
 }: {
   partners: Partner[];
-  direction?: "left" | "right";
+  direction?: 'left' | 'right';
   className?: string;
 }) {
   return (
-    <div className={`relative overflow-hidden w-full h-20 md:h-16 mb-6 ${className}`}>
+    <div
+      className={`relative overflow-hidden w-full h-20 md:h-16 mb-6 ${className}`}
+    >
       <div
         className={`flex items-center gap-8 md:gap-12 absolute whitespace-nowrap [will-change:transform] ${
-          direction === "left" ? "animate-marquee" : "animate-marquee-reverse"
+          direction === 'left' ? 'animate-marquee' : 'animate-marquee-reverse'
         }`}
         style={{
           // Force GPU acceleration
-          transform: "translateZ(0)",
-          backfaceVisibility: "hidden",
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
         }}
       >
         {/* Duplicate the array 3 times for seamless loop */}
@@ -72,7 +74,7 @@ const MarqueeRow = memo(function MarqueeRow({
               height={80}
               loading="lazy"
               className="max-w-[140px] md:max-w-[120px] max-h-[70px] md:max-h-[64px] object-contain opacity-80 md:opacity-70"
-              unoptimized={partner.logo.endsWith(".svg")}
+              unoptimized={partner.logo.endsWith('.svg')}
             />
           </div>
         ))}
@@ -98,7 +100,11 @@ export default function Partners() {
         {/* Marquee Rows */}
         <div className="mb-12">
           <MarqueeRow partners={partners} direction="right" />
-          <MarqueeRow partners={partners} direction="left" className="md:hidden" />
+          <MarqueeRow
+            partners={partners}
+            direction="left"
+            className="md:hidden"
+          />
         </div>
 
         {/* Call to Action Buttons */}

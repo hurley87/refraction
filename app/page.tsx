@@ -14,10 +14,11 @@ const CheckInsFundCultureSection = dynamic(
   () => import('@/components/home/check-ins-fund-culture-section'),
   { ssr: true }
 );
-/* const CityGuidesCarouselSection = dynamic(
+ const CityGuidesCarouselSection = dynamic(
   () => import('@/components/home/city-guides-carousel-section'),
   { ssr: true }
 );
+/*
 const IRLTourSection = dynamic(
   () => import('@/components/home/irl-tour-section'),
   { ssr: true }
@@ -71,9 +72,9 @@ export default function Home() {
         </div>
 
         {/* City Guides Carousel Section */}
-        {/* <div className="py-0">
+        { <div className="py-0">
           <CityGuidesCarouselSection />
-        </div> */}
+        </div> }
 
         {/* IRL Tour Section */}
         {/* <div className="py-0">
