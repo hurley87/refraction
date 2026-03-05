@@ -182,7 +182,7 @@ export default function MapSection() {
       {/* Pinned section: three steps (mobile). Desktop: three columns below header */}
       <div
         ref={containerRef}
-        className="relative h-screen md:min-h-0 md:h-auto md:flex md:flex-col md:gap-0 pt-6 md:pt-[53px] md:pb-0 w-full overflow-hidden md:overflow-visible md:px-[171px] md:pr-[217px]"
+        className="relative h-screen md:min-h-0 md:h-auto md:flex md:flex-col md:gap-0 pt-6 md:pt-[53px] md:pb-0 w-full overflow-y-hidden overflow-x-visible md:overflow-visible md:px-[171px] md:pr-[217px]"
       >
         <div className="relative flex-1 flex flex-col md:flex-row md:flex-initial md:gap-4 md:justify-center md:items-stretch w-full min-h-0 md:h-auto md:max-w-7xl md:mx-auto">
           {/* Section 1: Discover and Check In */}
@@ -235,9 +235,9 @@ export default function MapSection() {
           {/* Section 2: Earn Points & Save */}
           <div
             ref={section2Ref}
-            className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-start bg-[#313131] md:flex-1 md:min-w-0 md:flex md:flex-col md:gap-0 md:items-stretch"
+            className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-start bg-[#313131] w-[100vw] left-1/2 -translate-x-1/2 md:left-0 md:translate-x-0 md:w-auto md:flex-1 md:min-w-0 md:flex md:flex-col md:gap-0 md:items-stretch"
           >
-            {/* Top row - Image: height 456px, aspect-ratio 1/1, align-self stretch */}
+            {/* Top row - Image: full width of section (100vw on mobile) */}
             <div className="relative w-full h-[55vh] flex-shrink-0 flex items-center justify-center md:h-[456px] md:aspect-square md:self-stretch md:flex-none">
               <div className="relative w-full h-full overflow-hidden rounded-b-[17px] md:rounded-none">
                 <Image
@@ -282,10 +282,10 @@ export default function MapSection() {
           {/* Section 3: Unlock Exclusive Rewards */}
           <div
             ref={section3Ref}
-            className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-start bg-[#313131] md:flex-1 md:min-w-0 md:flex md:flex-col md:gap-0 md:items-stretch"
+            className="absolute md:relative inset-0 md:inset-auto flex flex-col items-center justify-start bg-[#313131] w-[100vw] left-1/2 -translate-x-1/2 md:left-0 md:translate-x-0 md:w-auto md:flex-1 md:min-w-0 md:flex md:flex-col md:gap-0 md:items-stretch"
           >
-            {/* Top row - Image: height 456px, aspect-ratio 1/1, align-self stretch */}
-            <div className="relative w-full h-[55vh] flex-shrink-0 flex items-center justify-center md:h-[456px] md:aspect-square md:self-stretch md:flex-none px-[49px] md:px-0">
+            {/* Top row - Image: full width of section (100vw on mobile) */}
+            <div className="relative w-full h-[55vh] flex-shrink-0 flex items-center justify-center md:h-[456px] md:aspect-square md:self-stretch md:flex-none md:px-0">
               <div className="relative w-full h-full overflow-hidden rounded-b-[17px] md:rounded-none">
                 <Image
                   src="/homepage/earn-spend.png?v=2"
