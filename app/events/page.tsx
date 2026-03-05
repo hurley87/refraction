@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   Calendar,
@@ -36,7 +37,6 @@ interface PublicEvent {
   start: Date | null;
   poster: string | null;
   location: string;
-  mapUrl: string | null;
   ticketsUrl: string;
 }
 
@@ -62,17 +62,7 @@ const getLocation = (venue: DiceVenue | undefined): string => {
   return cityCountry || venue.name || "Location TBA";
 };
 
-const getMapUrl = (venue: DiceVenue | undefined): string | null => {
-  if (!venue) return null;
-  if (typeof venue.latitude === "number" && typeof venue.longitude === "number") {
-    return `https://www.google.com/maps/search/?api=1&query=${venue.latitude},${venue.longitude}`;
-  }
-  const venueQuery = [venue.name, venue.city, venue.country]
-    .filter(Boolean)
-    .join(", ");
-  if (!venueQuery) return null;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venueQuery)}`;
-};
+const EVENTS_MAP_HREF = "/interactive-map";
 
 const getTicketsUrl = (eventName: string): string =>
   `https://dice.fm/search?q=${encodeURIComponent(eventName)}`;
@@ -104,7 +94,6 @@ const toPublicEvent = (event: DiceEvent): PublicEvent => {
     start: parseEventDate(event.startDatetime),
     poster: getPoster(event.images),
     location: getLocation(primaryVenue),
-    mapUrl: getMapUrl(primaryVenue),
     ticketsUrl: getTicketsUrl(event.name),
   };
 };
@@ -246,20 +235,12 @@ export default function EventsPage() {
                         {nextEvent.location}
                       </span>
                     </div>
-                    {nextEvent.mapUrl ? (
-                      <a
-                        href={nextEvent.mapUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-full bg-white px-3 py-2 text-[11px] uppercase tracking-wide text-black transition-colors hover:bg-white/80"
-                      >
-                        Map
-                      </a>
-                    ) : (
-                      <span className="rounded-full bg-black/10 px-3 py-2 text-[11px] uppercase tracking-wide text-black/50">
-                        Map
-                      </span>
-                    )}
+                    <Link
+                      href={EVENTS_MAP_HREF}
+                      className="rounded-full bg-white px-3 py-2 text-[11px] uppercase tracking-wide text-black transition-colors hover:bg-white/80"
+                    >
+                      Map
+                    </Link>
                   </div>
 
                   <a
@@ -339,20 +320,12 @@ export default function EventsPage() {
                           {event.location}
                         </span>
                       </div>
-                      {event.mapUrl ? (
-                        <a
-                          href={event.mapUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-full bg-neutral-100 px-3 py-2 text-[11px] uppercase tracking-wide text-[#4C4C4C] transition-colors hover:bg-neutral-200"
-                        >
-                          Map
-                        </a>
-                      ) : (
-                        <span className="rounded-full bg-neutral-100 px-3 py-2 text-[11px] uppercase tracking-wide text-[#9A9A9A]">
-                          Map
-                        </span>
-                      )}
+                      <Link
+                        href={EVENTS_MAP_HREF}
+                        className="rounded-full bg-neutral-100 px-3 py-2 text-[11px] uppercase tracking-wide text-[#4C4C4C] transition-colors hover:bg-neutral-200"
+                      >
+                        Map
+                      </Link>
                     </div>
 
                     <a
@@ -422,20 +395,12 @@ export default function EventsPage() {
                           {event.location}
                         </span>
                       </div>
-                      {event.mapUrl ? (
-                        <a
-                          href={event.mapUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-full bg-neutral-100 px-3 py-2 text-[11px] uppercase tracking-wide text-[#4C4C4C] transition-colors hover:bg-neutral-200"
-                        >
-                          Map
-                        </a>
-                      ) : (
-                        <span className="rounded-full bg-neutral-100 px-3 py-2 text-[11px] uppercase tracking-wide text-[#9A9A9A]">
-                          Map
-                        </span>
-                      )}
+                      <Link
+                        href={EVENTS_MAP_HREF}
+                        className="rounded-full bg-neutral-100 px-3 py-2 text-[11px] uppercase tracking-wide text-[#4C4C4C] transition-colors hover:bg-neutral-200"
+                      >
+                        Map
+                      </Link>
                     </div>
                   </article>
                 ))}
