@@ -18,20 +18,22 @@ const CheckInsFundCultureSection = dynamic(
   () => import('@/components/home/city-guides-carousel-section'),
   { ssr: true }
 );
-/*
+
 const IRLTourSection = dynamic(
   () => import('@/components/home/irl-tour-section'),
   { ssr: true }
 );
+/*
 const CityGuidesCoverSection = dynamic(
   () => import('@/components/home/city-guides-cover-section'),
   { ssr: true }
 );
+*/
 const GetInvolvedSection = dynamic(
   () => import('@/components/home/get-involved-section'),
   { ssr: true }
 );
- */
+ 
 const Partners = dynamic(() => import('@/components/partners/partners'), {
   ssr: true,
 });
@@ -77,19 +79,18 @@ export default function Home() {
         </div> }
 
         {/* IRL Tour Section */}
-        {/* <div className="py-0">
+        { <div className="py-0">
           <IRLTourSection />
-        </div>
- */}
+        </div> }
         {/* City Guides Cover Section */}
       {/*   <div className="py-0">
           <CityGuidesCoverSection />
         </div> */}
 
         {/* Get Involved Section */}
-       {/*  <div className="py-0">
+       {  <div className="py-0">
           <GetInvolvedSection />
-        </div> */}
+        </div> }
 
         {/* Partners Section */}
         <div className="py-16 md:py-24">

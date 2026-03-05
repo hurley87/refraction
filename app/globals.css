@@ -199,6 +199,19 @@
   }
 }
 
+/* City Guides section: desktop background (avoids hydration mismatch from inline style) */
+@media (min-width: 768px) {
+  .city-guides-section-desktop-bg {
+    width: 1728px;
+    height: 1117px;
+    aspect-ratio: 181/117 !important;
+    background:
+      linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.35) 100%),
+      url('/homepage/featured-cities.jpg') lightgray -0.211px -35px / 100.024%
+        103.133% no-repeat !important;
+  }
+}
+
 /* Hide scrollbar globally */
 * {
   scrollbar-width: none; /* Firefox */
