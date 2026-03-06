@@ -68,6 +68,7 @@ function TabLine({
   return (
     <button
       type="button"
+      role="tab"
       onClick={onClick}
       aria-label={ariaLabel}
       aria-selected={active}

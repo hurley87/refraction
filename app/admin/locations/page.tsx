@@ -8,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import type { Location } from '@/lib/types';
+import Image from 'next/image';
 
 const LOCATIONS_KEY = ['admin-locations'] as const;
 
@@ -218,10 +219,13 @@ export default function AdminLocationsPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           {location.coin_image_url && (
-                            <img
+                            <Image
                               src={location.coin_image_url}
                               alt=""
+                              width={40}
+                              height={40}
                               className="h-10 w-10 rounded-lg object-cover"
+                              unoptimized
                             />
                           )}
                           <div>

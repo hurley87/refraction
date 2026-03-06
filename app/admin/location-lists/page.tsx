@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import LocationSearch from '@/components/shared/location-search';
+import Image from 'next/image';
 import { deriveDisplayNameAndAddress } from '@/lib/utils/location-autofill';
 import type {
   LocationListWithCount,
@@ -1675,11 +1676,15 @@ export default function AdminLocationListsPage() {
                       <div className="space-y-1">
                         <Label>Location image</Label>
                         {editLocationForm.currentImageUrl && (
-                          <img
-                            src={editLocationForm.currentImageUrl}
-                            alt={editLocationForm.name}
-                            className="h-32 w-full rounded-2xl object-cover"
-                          />
+                          <div className="relative h-32 w-full">
+                            <Image
+                              src={editLocationForm.currentImageUrl}
+                              alt={editLocationForm.name}
+                              fill
+                              className="rounded-2xl object-cover"
+                              unoptimized
+                            />
+                          </div>
                         )}
                         <Input
                           key={editFileInputKey}

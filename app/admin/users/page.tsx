@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { usePrivy } from "@privy-io/react-auth";
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { usePrivy } from '@privy-io/react-auth';
 import {
   ArrowUpDown,
   Search,
@@ -16,16 +16,16 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 // Force dynamic rendering to avoid build-time pre-rendering issues
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 interface UserStats {
   id: number;
@@ -40,7 +40,7 @@ interface UploadResult {
   email: string;
   points: number;
   reason: string;
-  status: "success" | "failed" | "user_not_found";
+  status: 'success' | 'failed' | 'user_not_found';
   error?: string;
   wallet_address?: string;
 }
@@ -80,8 +80,8 @@ interface PendingPointsSummary {
   oldest_pending: string;
 }
 
-type SortField = "email" | "wallet_address" | "total_points" | "created_at";
-type SortDirection = "asc" | "desc";
+type SortField = 'email' | 'wallet_address' | 'total_points' | 'created_at';
+type SortDirection = 'asc' | 'desc';
 
 interface PaginationInfo {
   page: number;
@@ -96,15 +96,15 @@ export default function AdminUsersPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState<SortField>("total_points");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<SortField>('total_points');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [uploadResults, setUploadResults] = useState<UploadResult[] | null>(
-    null,
+    null
   );
   const [uploadSummary, setUploadSummary] = useState<UploadSummary | null>(
-    null,
+    null
   );
   const [showUploadHistory, setShowUploadHistory] = useState(false);
   const [showPendingPoints, setShowPendingPoints] = useState(false);
@@ -116,11 +116,11 @@ export default function AdminUsersPage() {
     if (!user?.email?.address) return false;
 
     try {
-      const response = await fetch("/api/admin/users", {
-        method: "POST",
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "x-user-email": user.email.address,
+          'Content-Type': 'application/json',
+          'x-user-email': user.email.address,
         },
         body: JSON.stringify({ email: user.email.address }),
       });
@@ -129,7 +129,7 @@ export default function AdminUsersPage() {
       const data = responseData.data || responseData;
       return data.isAdmin;
     } catch (error) {
-      console.error("Error checking admin status:", error);
+      console.error('Error checking admin status:', error);
       return false;
     }
   }, [user?.email?.address]);
@@ -151,17 +151,17 @@ export default function AdminUsersPage() {
 
   // Fetch paginated users
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ["admin-users", currentPage, itemsPerPage],
+    queryKey: ['admin-users', currentPage, itemsPerPage],
     queryFn: async () => {
       const response = await fetch(
         `/api/admin/users?page=${currentPage}&limit=${itemsPerPage}`,
         {
           headers: {
-            "x-user-email": user?.email?.address || "",
+            'x-user-email': user?.email?.address || '',
           },
-        },
+        }
       );
-      if (!response.ok) throw new Error("Failed to fetch users");
+      if (!response.ok) throw new Error('Failed to fetch users');
       const responseData = await response.json();
       // Unwrap the apiSuccess wrapper
       const data = responseData.data || responseData;
@@ -173,8 +173,8 @@ export default function AdminUsersPage() {
     enabled: !!isAdmin,
   });
 
-  const users = usersData?.users || [];
-  const pagination = usersData?.pagination || {
+  const users = useMemo(() => usersData?.users ?? [], [usersData?.users]);
+  const pagination = usersData?.pagination ?? {
     page: 1,
     limit: itemsPerPage,
     total: 0,
@@ -183,14 +183,14 @@ export default function AdminUsersPage() {
 
   // Fetch upload history
   const { data: uploadHistory = [] } = useQuery({
-    queryKey: ["upload-history"],
+    queryKey: ['upload-history'],
     queryFn: async () => {
-      const response = await fetch("/api/admin/points-upload", {
+      const response = await fetch('/api/admin/points-upload', {
         headers: {
-          "x-user-email": user?.email?.address || "",
+          'x-user-email': user?.email?.address || '',
         },
       });
-      if (!response.ok) throw new Error("Failed to fetch upload history");
+      if (!response.ok) throw new Error('Failed to fetch upload history');
       const responseData = await response.json();
       // Unwrap the apiSuccess wrapper
       const data = responseData.data || responseData;
@@ -201,14 +201,14 @@ export default function AdminUsersPage() {
 
   // Fetch pending points
   const { data: pendingPointsData } = useQuery({
-    queryKey: ["pending-points"],
+    queryKey: ['pending-points'],
     queryFn: async () => {
-      const response = await fetch("/api/admin/pending-points", {
+      const response = await fetch('/api/admin/pending-points', {
         headers: {
-          "x-user-email": user?.email?.address || "",
+          'x-user-email': user?.email?.address || '',
         },
       });
-      if (!response.ok) throw new Error("Failed to fetch pending points");
+      if (!response.ok) throw new Error('Failed to fetch pending points');
       const responseData = await response.json();
       // Unwrap the apiSuccess wrapper
       const data = responseData.data || responseData;
@@ -224,19 +224,19 @@ export default function AdminUsersPage() {
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append('file', file);
 
-      const response = await fetch("/api/admin/points-upload", {
-        method: "POST",
+      const response = await fetch('/api/admin/points-upload', {
+        method: 'POST',
         headers: {
-          "x-user-email": user?.email?.address || "",
+          'x-user-email': user?.email?.address || '',
         },
         body: formData,
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to upload CSV");
+        throw new Error(error.error || 'Failed to upload CSV');
       }
 
       const responseData = await response.json();
@@ -247,14 +247,14 @@ export default function AdminUsersPage() {
       setUploadResults(data.results);
       setUploadSummary(data.summary);
       setIsUploadDialogOpen(true);
-      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      queryClient.invalidateQueries({ queryKey: ["upload-history"] });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['upload-history'] });
       toast.success(
-        `Successfully processed ${data.summary.successful} of ${data.summary.total} records`,
+        `Successfully processed ${data.summary.successful} of ${data.summary.total} records`
       );
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to upload CSV");
+      toast.error(error.message || 'Failed to upload CSV');
     },
   });
 
@@ -263,7 +263,7 @@ export default function AdminUsersPage() {
     if (searchQuery.trim() && currentPage !== 1) {
       setCurrentPage(1);
     }
-  }, [searchQuery]);
+  }, [searchQuery, currentPage]);
 
   // Filter and sort users (client-side filtering on current page)
   const filteredAndSortedUsers = useMemo(() => {
@@ -276,7 +276,7 @@ export default function AdminUsersPage() {
         (user) =>
           user.email?.toLowerCase().includes(query) ||
           user.wallet_address?.toLowerCase().includes(query) ||
-          user.username?.toLowerCase().includes(query),
+          user.username?.toLowerCase().includes(query)
       );
     }
 
@@ -286,16 +286,16 @@ export default function AdminUsersPage() {
       let bValue = b[sortField];
 
       // Handle null/undefined values
-      if (aValue === null || aValue === undefined) aValue = "";
-      if (bValue === null || bValue === undefined) bValue = "";
+      if (aValue === null || aValue === undefined) aValue = '';
+      if (bValue === null || bValue === undefined) bValue = '';
 
       // Convert to strings for comparison if needed
-      if (typeof aValue === "string") {
+      if (typeof aValue === 'string') {
         aValue = aValue.toLowerCase();
         bValue = (bValue as string).toLowerCase();
       }
 
-      if (sortDirection === "asc") {
+      if (sortDirection === 'asc') {
         return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
       } else {
         return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
@@ -310,7 +310,7 @@ export default function AdminUsersPage() {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
       setCurrentPage(newPage);
       // Scroll to top of table
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -322,27 +322,27 @@ export default function AdminUsersPage() {
   // Handle column header click for sorting
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
-      setSortDirection("desc");
+      setSortDirection('desc');
     }
   };
 
   // Export to CSV - fetches all users
   const exportToCSV = async () => {
     try {
-      toast.info("Fetching all users for export...");
+      toast.info('Fetching all users for export...');
 
       // Fetch all users (using max limit of 1000)
       const response = await fetch(`/api/admin/users?page=1&limit=1000`, {
         headers: {
-          "x-user-email": user?.email?.address || "",
+          'x-user-email': user?.email?.address || '',
         },
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch users for export");
+        throw new Error('Failed to fetch users for export');
       }
 
       const responseData = await response.json();
@@ -358,7 +358,7 @@ export default function AdminUsersPage() {
           (user) =>
             user.email?.toLowerCase().includes(query) ||
             user.wallet_address?.toLowerCase().includes(query) ||
-            user.username?.toLowerCase().includes(query),
+            user.username?.toLowerCase().includes(query)
         );
       }
 
@@ -367,15 +367,15 @@ export default function AdminUsersPage() {
         let aValue = a[sortField];
         let bValue = b[sortField];
 
-        if (aValue === null || aValue === undefined) aValue = "";
-        if (bValue === null || bValue === undefined) bValue = "";
+        if (aValue === null || aValue === undefined) aValue = '';
+        if (bValue === null || bValue === undefined) bValue = '';
 
-        if (typeof aValue === "string") {
+        if (typeof aValue === 'string') {
           aValue = aValue.toLowerCase();
           bValue = (bValue as string).toLowerCase();
         }
 
-        if (sortDirection === "asc") {
+        if (sortDirection === 'asc') {
           return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
         } else {
           return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
@@ -383,44 +383,44 @@ export default function AdminUsersPage() {
       });
 
       const headers = [
-        "Email",
-        "Wallet Address",
-        "Username",
-        "Points",
-        "Created At",
+        'Email',
+        'Wallet Address',
+        'Username',
+        'Points',
+        'Created At',
       ];
       const rows = sorted.map((user) => [
-        user.email || "",
-        user.wallet_address || "",
-        user.username || "",
+        user.email || '',
+        user.wallet_address || '',
+        user.username || '',
         user.total_points,
         new Date(user.created_at).toLocaleString(),
       ]);
 
       const csvContent = [
-        headers.join(","),
+        headers.join(','),
         ...rows.map((row) =>
-          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
+          row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
         ),
-      ].join("\n");
+      ].join('\n');
 
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const link = document.createElement("a");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      link.setAttribute("href", url);
+      link.setAttribute('href', url);
       link.setAttribute(
-        "download",
-        `users-export-${new Date().toISOString().split("T")[0]}.csv`,
+        'download',
+        `users-export-${new Date().toISOString().split('T')[0]}.csv`
       );
-      link.style.visibility = "hidden";
+      link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast.success(`Exported ${sorted.length} users to CSV`);
     } catch (error) {
-      console.error("Export error:", error);
-      toast.error("Failed to export users");
+      console.error('Export error:', error);
+      toast.error('Failed to export users');
     }
   };
 
@@ -428,10 +428,10 @@ export default function AdminUsersPage() {
   const copyToClipboard = async (address: string) => {
     try {
       await navigator.clipboard.writeText(address);
-      toast.success("Wallet address copied to clipboard!");
+      toast.success('Wallet address copied to clipboard!');
     } catch (error) {
-      console.error("Failed to copy:", error);
-      toast.error("Failed to copy wallet address");
+      console.error('Failed to copy:', error);
+      toast.error('Failed to copy wallet address');
     }
   };
 
@@ -440,8 +440,8 @@ export default function AdminUsersPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith(".csv")) {
-      toast.error("Please upload a CSV file");
+    if (!file.name.endsWith('.csv')) {
+      toast.error('Please upload a CSV file');
       return;
     }
 
@@ -449,19 +449,19 @@ export default function AdminUsersPage() {
 
     // Reset input
     if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      fileInputRef.current.value = '';
     }
   };
 
   // Download CSV template
   const downloadTemplate = () => {
     const template =
-      "email,reason,points\nuser@example.com,Bonus for event participation,100\nuser2@example.com,Campaign reward,50";
-    const blob = new Blob([template], { type: "text/csv" });
+      'email,reason,points\nuser@example.com,Bonus for event participation,100\nuser2@example.com,Campaign reward,50';
+    const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
-    link.download = "points-upload-template.csv";
+    link.download = 'points-upload-template.csv';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -475,7 +475,7 @@ export default function AdminUsersPage() {
     }
     return (
       <ArrowUpDown
-        className={`w-4 h-4 ml-1 ${sortDirection === "desc" ? "rotate-180" : ""}`}
+        className={`w-4 h-4 ml-1 ${sortDirection === 'desc' ? 'rotate-180' : ''}`}
       />
     );
   };
@@ -519,7 +519,7 @@ export default function AdminUsersPage() {
               disabled={uploadMutation.isPending}
             >
               <Upload className="w-4 h-4" />
-              {uploadMutation.isPending ? "Uploading..." : "Upload Points CSV"}
+              {uploadMutation.isPending ? 'Uploading...' : 'Upload Points CSV'}
             </Button>
             <Button
               onClick={downloadTemplate}
@@ -588,8 +588,8 @@ export default function AdminUsersPage() {
       ) : filteredAndSortedUsers.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           {searchQuery
-            ? "No users found matching your search."
-            : "No users found."}
+            ? 'No users found matching your search.'
+            : 'No users found.'}
         </div>
       ) : (
         <div className="bg-white border rounded-lg overflow-hidden">
@@ -599,7 +599,7 @@ export default function AdminUsersPage() {
                 <tr>
                   <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSort("email")}
+                    onClick={() => handleSort('email')}
                   >
                     <div className="flex items-center">
                       Email
@@ -608,7 +608,7 @@ export default function AdminUsersPage() {
                   </th>
                   <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSort("wallet_address")}
+                    onClick={() => handleSort('wallet_address')}
                   >
                     <div className="flex items-center">
                       Wallet Address
@@ -620,7 +620,7 @@ export default function AdminUsersPage() {
                   </th>
                   <th
                     className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSort("total_points")}
+                    onClick={() => handleSort('total_points')}
                   >
                     <div className="flex items-center justify-end">
                       Points
@@ -629,7 +629,7 @@ export default function AdminUsersPage() {
                   </th>
                   <th
                     className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSort("created_at")}
+                    onClick={() => handleSort('created_at')}
                   >
                     <div className="flex items-center justify-end">
                       Joined
@@ -654,7 +654,7 @@ export default function AdminUsersPage() {
                       >
                         {user.wallet_address
                           ? `${user.wallet_address.slice(0, 6)}...${user.wallet_address.slice(-4)}`
-                          : "-"}
+                          : '-'}
                       </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -683,20 +683,20 @@ export default function AdminUsersPage() {
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               {/* Results info */}
               <div className="text-sm text-gray-700">
-                Showing{" "}
+                Showing{' '}
                 <span className="font-medium">
                   {filteredAndSortedUsers.length > 0
                     ? (currentPage - 1) * itemsPerPage + 1
                     : 0}
                 </span>
-                {" - "}
+                {' - '}
                 <span className="font-medium">
                   {Math.min(
                     (currentPage - 1) * itemsPerPage +
                       filteredAndSortedUsers.length,
-                    pagination.total,
+                    pagination.total
                   )}
-                </span>{" "}
+                </span>{' '}
                 of <span className="font-medium">{pagination.total}</span> users
                 {searchQuery.trim() && (
                   <span className="text-gray-500 ml-2">
@@ -772,7 +772,7 @@ export default function AdminUsersPage() {
                           <Button
                             key={pageNum}
                             variant={
-                              currentPage === pageNum ? "default" : "outline"
+                              currentPage === pageNum ? 'default' : 'outline'
                             }
                             size="sm"
                             onClick={() => handlePageChange(pageNum)}
@@ -781,7 +781,7 @@ export default function AdminUsersPage() {
                             {pageNum}
                           </Button>
                         );
-                      },
+                      }
                     )}
                   </div>
 
@@ -808,7 +808,7 @@ export default function AdminUsersPage() {
 
                 {/* Page info */}
                 <div className="text-sm text-gray-700">
-                  Page <span className="font-medium">{currentPage}</span> of{" "}
+                  Page <span className="font-medium">{currentPage}</span> of{' '}
                   <span className="font-medium">{pagination.totalPages}</span>
                 </div>
               </div>
@@ -882,13 +882,13 @@ export default function AdminUsersPage() {
                         {uploadResults.map((result, index) => (
                           <tr key={index} className="hover:bg-gray-50">
                             <td className="px-3 py-2">
-                              {result.status === "success" && (
+                              {result.status === 'success' && (
                                 <CheckCircle2 className="w-4 h-4 text-green-600" />
                               )}
-                              {result.status === "user_not_found" && (
+                              {result.status === 'user_not_found' && (
                                 <AlertCircle className="w-4 h-4 text-orange-600" />
                               )}
-                              {result.status === "failed" && (
+                              {result.status === 'failed' && (
                                 <XCircle className="w-4 h-4 text-red-600" />
                               )}
                             </td>
@@ -900,7 +900,7 @@ export default function AdminUsersPage() {
                               {result.points}
                             </td>
                             <td className="px-3 py-2 text-xs text-gray-600">
-                              {result.error || "Success"}
+                              {result.error || 'Success'}
                             </td>
                           </tr>
                         ))}
@@ -933,7 +933,7 @@ export default function AdminUsersPage() {
             onClick={() => setShowPendingPoints(!showPendingPoints)}
             variant="outline"
           >
-            {showPendingPoints ? "Hide Pending" : "Show Pending"}
+            {showPendingPoints ? 'Hide Pending' : 'Show Pending'}
           </Button>
         </div>
 
@@ -958,7 +958,7 @@ export default function AdminUsersPage() {
                     <div className="text-2xl font-bold text-purple-900">
                       {pendingPointsData.summary.reduce(
                         (sum, s) => sum + s.pending_count,
-                        0,
+                        0
                       )}
                     </div>
                   </div>
@@ -1043,7 +1043,7 @@ export default function AdminUsersPage() {
             onClick={() => setShowUploadHistory(!showUploadHistory)}
             variant="outline"
           >
-            {showUploadHistory ? "Hide History" : "Show History"}
+            {showUploadHistory ? 'Hide History' : 'Show History'}
           </Button>
         </div>
 
@@ -1094,11 +1094,11 @@ export default function AdminUsersPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <span
                             className={`px-2 py-1 text-xs rounded-full ${
-                              upload.status === "success"
-                                ? "bg-green-100 text-green-800"
-                                : upload.status === "user_not_found"
-                                  ? "bg-orange-100 text-orange-800"
-                                  : "bg-red-100 text-red-800"
+                              upload.status === 'success'
+                                ? 'bg-green-100 text-green-800'
+                                : upload.status === 'user_not_found'
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : 'bg-red-100 text-red-800'
                             }`}
                           >
                             {upload.status}
