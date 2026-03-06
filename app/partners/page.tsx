@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
+import React, { useState } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 
-import LogoLoop from "@/components/partners/logo-loop";
-import CircularGallery from "@/components/partners/circular-gallery";
-import Footer from "@/components/layout/footer";
-import MembersSection from "@/components/home/members-section";
+import LogoLoop from '@/components/partners/logo-loop';
+import CircularGallery from '@/components/partners/circular-gallery';
+import Footer from '@/components/layout/footer';
+import MembersSection from '@/components/home/members-section';
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from "@/components/ui/carousel";
+} from '@/components/ui/carousel';
 
 // Custom Header Component for Partnerships Page
 const PartnershipsHeader = () => {
@@ -22,12 +22,13 @@ const PartnershipsHeader = () => {
     <div className="flex justify-between items-center w-full">
       {/* IRL Logo - Left Side */}
       <Link href="/">
-        <div className="w-[40px] h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center">
-          <img
+        <div className="w-[40px] h-[40px] bg-[#313131] rounded-full px-2 flex items-center justify-center relative">
+          <Image
             src="/home/IRL.png"
             alt="IRL"
-            className="w-full h-auto"
-            style={{ width: "40", height: "40" }}
+            width={40}
+            height={40}
+            className="w-full h-auto object-contain"
           />
         </div>
       </Link>
@@ -37,12 +38,12 @@ const PartnershipsHeader = () => {
         <button
           className="text-white font-bold transition-colors"
           style={{
-            display: "flex",
-            padding: "8px 12px",
-            alignItems: "center",
-            gap: "8px",
-            borderRadius: "100px",
-            background: "rgba(255, 255, 255, 0.25)",
+            display: 'flex',
+            padding: '8px 12px',
+            alignItems: 'center',
+            gap: '8px',
+            borderRadius: '100px',
+            background: 'rgba(255, 255, 255, 0.25)',
           }}
         >
           <span className="body-small font-groteks uppercase">Sign Up</span>
@@ -55,44 +56,44 @@ const PartnershipsHeader = () => {
 const carouselData = [
   {
     poster:
-      "/case-studies/public-records/RESET at Public Records with Refraction and Reown 9.jpg",
-    title: "IRL x Public Records",
-    date: "JUN 26 2025",
-    location: "NEW YORK, NY",
-    descriptionTitle: "Enter, Explore, Earn",
+      '/case-studies/public-records/RESET at Public Records with Refraction and Reown 9.jpg',
+    title: 'IRL x Public Records',
+    date: 'JUN 26 2025',
+    location: 'NEW YORK, NY',
+    descriptionTitle: 'Enter, Explore, Earn',
     description:
-      "RESET at Public Records showed how IRL connects culture to participation. Guests checked in via IRL for entry and a welcome drink, then earned points by scanning artworks placed throughout the venue — all while artists like Ash Lauryn, INVT, and Kristine Barilli soundtracked the night.",
+      'RESET at Public Records showed how IRL connects culture to participation. Guests checked in via IRL for entry and a welcome drink, then earned points by scanning artworks placed throughout the venue — all while artists like Ash Lauryn, INVT, and Kristine Barilli soundtracked the night.',
     stats: [
       {
-        value: "1K+",
-        label: "RSVPs",
+        value: '1K+',
+        label: 'RSVPs',
       },
       {
-        value: "70%",
-        label: "Attendance",
+        value: '70%',
+        label: 'Attendance',
       },
       {
-        value: "250",
-        label: "Complimentary Drinks",
+        value: '250',
+        label: 'Complimentary Drinks',
       },
     ],
   },
   {
-    poster: "/partnerships/case-studies/mutek.png",
-    title: "IRL X Mutek Village Numérique",
-    date: "AUG 19-25 2025",
-    location: "MONTREAL, QC",
-    descriptionTitle: "Mapping Art Into Movement",
+    poster: '/partnerships/case-studies/mutek.png',
+    title: 'IRL X Mutek Village Numérique',
+    date: 'AUG 19-25 2025',
+    location: 'MONTREAL, QC',
+    descriptionTitle: 'Mapping Art Into Movement',
     description:
-      "At MUTEK&apos;s Village Numérique, IRL transformed a city-wide digital art circuit into an interactive scavenger hunt. Audiences checked in at five installation sites using the IRL web app, collecting points toward cultural rewards and a chance to win a MUTEK 2026 passport. Featured works included pieces by Iregular, Ubisoft, Victor Drouin Trempe, Danny Perreault, Fig 55, and more.",
+      'At MUTEK&apos;s Village Numérique, IRL transformed a city-wide digital art circuit into an interactive scavenger hunt. Audiences checked in at five installation sites using the IRL web app, collecting points toward cultural rewards and a chance to win a MUTEK 2026 passport. Featured works included pieces by Iregular, Ubisoft, Victor Drouin Trempe, Danny Perreault, Fig 55, and more.',
     stats: [
       {
-        value: "47K",
-        label: "Reach To Festival Attendees",
+        value: '47K',
+        label: 'Reach To Festival Attendees',
       },
       {
-        value: "50+",
-        label: "IRL Check-Ins",
+        value: '50+',
+        label: 'IRL Check-Ins',
       },
     ],
   },
@@ -104,111 +105,111 @@ const EventModal = ({ event, isOpen, onClose }) => {
 
   // Event images for circular gallery - populated from case study folders
   const getEventImages = () => {
-    if (event.title.includes("Public Records")) {
+    if (event.title.includes('Public Records')) {
       return [
         {
           image:
-            "/case-studies/public-records/RESET at Public Records with Refraction and Reown 2.jpg",
+            '/case-studies/public-records/RESET at Public Records with Refraction and Reown 2.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/public-records/RESET at Public Records with Refraction and Reown 3.jpg",
+            '/case-studies/public-records/RESET at Public Records with Refraction and Reown 3.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/public-records/RESET at Public Records with Refraction and Reown 4.jpg",
+            '/case-studies/public-records/RESET at Public Records with Refraction and Reown 4.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/public-records/RESET at Public Records with Refraction and Reown 5.jpg",
+            '/case-studies/public-records/RESET at Public Records with Refraction and Reown 5.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/public-records/RESET at Public Records with Refraction and Reown 6.jpg",
+            '/case-studies/public-records/RESET at Public Records with Refraction and Reown 6.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/public-records/RESET at Public Records with Refraction and Reown 7.jpg",
+            '/case-studies/public-records/RESET at Public Records with Refraction and Reown 7.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/public-records/RESET at Public Records with Refraction and Reown 8.jpg",
+            '/case-studies/public-records/RESET at Public Records with Refraction and Reown 8.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/public-records/RESET at Public Records with Refraction and Reown 9.jpg",
+            '/case-studies/public-records/RESET at Public Records with Refraction and Reown 9.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/public-records/RESET at Public Records with Refraction and Reown 10.jpg",
+            '/case-studies/public-records/RESET at Public Records with Refraction and Reown 10.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-185.jpg",
+            '/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-185.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-232.jpg",
+            '/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-232.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-244.jpg",
+            '/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-244.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-265.jpg",
+            '/case-studies/public-records/©FILIPA_AURÉLIO_REFRACTION - RESET @ PUBLIC RECORDS (FINAL)-265.jpg',
           text: event.title,
         },
       ];
-    } else if (event.title.includes("Mutek")) {
+    } else if (event.title.includes('Mutek')) {
       return [
         {
-          image: "/case-studies/mutek-montreal/1S1A0218.jpg",
+          image: '/case-studies/mutek-montreal/1S1A0218.jpg',
           text: event.title,
         },
         {
-          image: "/case-studies/mutek-montreal/1S1A8722.jpg",
+          image: '/case-studies/mutek-montreal/1S1A8722.jpg',
           text: event.title,
         },
         {
-          image: "/case-studies/mutek-montreal/1S1A9751.jpg",
-          text: event.title,
-        },
-        {
-          image:
-            "/case-studies/mutek-montreal/Astronomical water par Martin Messier _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi.jpg",
+          image: '/case-studies/mutek-montreal/1S1A9751.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/mutek-montreal/Photomode cadrer le jeu présenté par Ubisoft _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi (1).jpg",
+            '/case-studies/mutek-montreal/Astronomical water par Martin Messier _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/mutek-montreal/Photomode cadrer le jeu présenté par Ubisoft _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi.jpg",
+            '/case-studies/mutek-montreal/Photomode cadrer le jeu présenté par Ubisoft _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi (1).jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/mutek-montreal/Programmation spéciale par Iregular _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi.jpg",
+            '/case-studies/mutek-montreal/Photomode cadrer le jeu présenté par Ubisoft _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi.jpg',
           text: event.title,
         },
         {
           image:
-            "/case-studies/mutek-montreal/TETRA par Ottomata _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi.jpg",
+            '/case-studies/mutek-montreal/Programmation spéciale par Iregular _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi.jpg',
+          text: event.title,
+        },
+        {
+          image:
+            '/case-studies/mutek-montreal/TETRA par Ottomata _ Village Numérique 2025 présenté par MUTEK et Xn Québec © Tannaz Shirazi.jpg',
           text: event.title,
         },
       ];
@@ -229,16 +230,16 @@ const EventModal = ({ event, isOpen, onClose }) => {
         {/* Container 1: Header with Close Button */}
         <div
           style={{
-            display: "flex",
-            padding: "16px",
-            justifyContent: "space-between",
-            alignItems: "center",
-            alignSelf: "stretch",
-            borderRadius: "24px",
+            display: 'flex',
+            padding: '16px',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            alignSelf: 'stretch',
+            borderRadius: '24px',
             background:
-              "linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)",
-            boxShadow: "0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)",
-            backdropFilter: "blur(13.101491928100586px)",
+              'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+            boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+            backdropFilter: 'blur(13.101491928100586px)',
           }}
         >
           <span className="text-white title5 font-abc-monument-regular">
@@ -265,7 +266,7 @@ const EventModal = ({ event, isOpen, onClose }) => {
         </div>
 
         {/* Container 2: Event Images Circular Gallery */}
-        <div style={{ height: "400px" }}>
+        <div style={{ height: '400px' }}>
           <CircularGallery
             items={eventImages}
             bend={0}
@@ -280,17 +281,17 @@ const EventModal = ({ event, isOpen, onClose }) => {
         {/* Container 3: Title, Date and Location */}
         <div
           style={{
-            display: "flex",
-            padding: "16px",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: "8px",
-            alignSelf: "stretch",
-            borderRadius: "26px",
+            display: 'flex',
+            padding: '16px',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '8px',
+            alignSelf: 'stretch',
+            borderRadius: '26px',
             background:
-              "linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)",
-            boxShadow: "0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)",
-            backdropFilter: "blur(13.101491928100586px)",
+              'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+            boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+            backdropFilter: 'blur(13.101491928100586px)',
           }}
         >
           {/* Row 1: Title */}
@@ -302,13 +303,13 @@ const EventModal = ({ event, isOpen, onClose }) => {
           <div className="flex w-full gap-2">
             <div
               style={{
-                display: "flex",
-                padding: "4px 8px",
-                alignItems: "center",
-                gap: "8px",
-                alignSelf: "stretch",
-                borderRadius: "1000px",
-                border: "1px solid #EDEDED",
+                display: 'flex',
+                padding: '4px 8px',
+                alignItems: 'center',
+                gap: '8px',
+                alignSelf: 'stretch',
+                borderRadius: '1000px',
+                border: '1px solid #EDEDED',
               }}
             >
               <svg
@@ -342,13 +343,13 @@ const EventModal = ({ event, isOpen, onClose }) => {
             </div>
             <div
               style={{
-                display: "flex",
-                padding: "4px 8px",
-                alignItems: "center",
-                gap: "8px",
-                alignSelf: "stretch",
-                borderRadius: "1000px",
-                border: "1px solid #EDEDED",
+                display: 'flex',
+                padding: '4px 8px',
+                alignItems: 'center',
+                gap: '8px',
+                alignSelf: 'stretch',
+                borderRadius: '1000px',
+                border: '1px solid #EDEDED',
               }}
             >
               <svg
@@ -384,17 +385,17 @@ const EventModal = ({ event, isOpen, onClose }) => {
         {/* Container 4: Description Title and Description */}
         <div
           style={{
-            display: "flex",
-            padding: "16px",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: "8px",
-            alignSelf: "stretch",
-            borderRadius: "26px",
+            display: 'flex',
+            padding: '16px',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: '8px',
+            alignSelf: 'stretch',
+            borderRadius: '26px',
             background:
-              "linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)",
-            boxShadow: "0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)",
-            backdropFilter: "blur(13.101491928100586px)",
+              'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+            boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+            backdropFilter: 'blur(13.101491928100586px)',
           }}
         >
           {/* Row 1: Description Title */}
@@ -414,17 +415,17 @@ const EventModal = ({ event, isOpen, onClose }) => {
             <div
               key={index}
               style={{
-                display: "flex",
-                padding: "16px",
-                flexDirection: "column",
-                alignItems: "flex-start",
-                gap: "8px",
-                alignSelf: "stretch",
-                borderRadius: "26px",
+                display: 'flex',
+                padding: '16px',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: '8px',
+                alignSelf: 'stretch',
+                borderRadius: '26px',
                 background:
-                  "linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)",
-                boxShadow: "0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)",
-                backdropFilter: "blur(13.101491928100586px)",
+                  'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+                boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+                backdropFilter: 'blur(13.101491928100586px)',
               }}
             >
               <div className="flex w-full gap-4">
@@ -482,17 +483,18 @@ const HowItWorksSection = () => {
       },
       {
         threshold: 0.1,
-        rootMargin: "0px 0px -50px 0px",
-      },
+        rootMargin: '0px 0px -50px 0px',
+      }
     );
 
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
+    const section = sectionRef.current;
+    if (section) {
+      observer.observe(section);
     }
 
     return () => {
-      if (sectionRef.current) {
-        observer.unobserve(sectionRef.current);
+      if (section) {
+        observer.unobserve(section);
       }
     };
   }, []);
@@ -501,7 +503,7 @@ const HowItWorksSection = () => {
     <div
       ref={sectionRef}
       className={`bg-[#131313] rounded-2xl p-6 mb-4 max-w-lg mx-auto transition-all duration-1000 ease-out overflow-hidden ${
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
     >
       <h2 className=" text-white font-pleasure text-center mb-6">
@@ -527,7 +529,7 @@ const HowItWorksSection = () => {
             <div className="text-white title1 font-pleasure mb-1 sm:mb-2">
               DISCOVER
             </div>
-            <div style={{ height: "15px" }} />
+            <div style={{ height: '15px' }} />
             <div className="text-white title4 font-grotesk">
               Users discover events and venues through the IRL platform,
               exploring curated cultural experiences.
@@ -564,7 +566,7 @@ const HowItWorksSection = () => {
             <div className="text-white title1 font-pleasure mb-1 sm:mb-2">
               ENGAGE
             </div>
-            <div style={{ height: "15px" }} />
+            <div style={{ height: '15px' }} />
             <div className="text-white title4 font-grotesk">
               Attendees check in at events, participate in activities, and earn
               IRL points for their engagement.
@@ -610,7 +612,7 @@ const HowItWorksSection = () => {
             <div className="text-white title1 font-pleasure mb-1 sm:mb-2">
               REWARD
             </div>
-            <div style={{ height: "15px" }} />
+            <div style={{ height: '15px' }} />
             <div className="text-white title4 font-grotesk">
               Points earned can be redeemed for exclusive rewards, creating a
               seamless cultural rewards ecosystem.
@@ -655,10 +657,10 @@ const HowItWorksSection = () => {
 const BenefitsContainer = ({
   leftText,
   rightText,
-  leftFont = "font-inktrap",
-  rightFont = "font-abc-monument-regular",
-  leftSize = "display1",
-  rightSize = "title3",
+  leftFont = 'font-inktrap',
+  rightFont = 'font-abc-monument-regular',
+  leftSize = 'display1',
+  rightSize = 'title3',
   description,
 }) => {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -674,17 +676,18 @@ const BenefitsContainer = ({
       },
       {
         threshold: 0.1,
-        rootMargin: "0px 0px -50px 0px",
-      },
+        rootMargin: '0px 0px -50px 0px',
+      }
     );
 
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
+    const container = containerRef.current;
+    if (container) {
+      observer.observe(container);
     }
 
     return () => {
-      if (containerRef.current) {
-        observer.unobserve(containerRef.current);
+      if (container) {
+        observer.unobserve(container);
       }
     };
   }, []);
@@ -693,20 +696,20 @@ const BenefitsContainer = ({
     <div
       ref={containerRef}
       className={`mb-2 mx-auto transition-all duration-1000 ease-out w-full max-w-sm sm:max-w-md lg:max-w-lg ${
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
       style={{
-        display: "flex",
-        padding: "40px 24px 24px 24px",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: "10.89px",
-        borderRadius: "17.696px",
-        border: "0.681px solid rgba(255, 255, 255, 0.15)",
+        display: 'flex',
+        padding: '40px 24px 24px 24px',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '10.89px',
+        borderRadius: '17.696px',
+        border: '0.681px solid rgba(255, 255, 255, 0.15)',
         background:
-          "linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)",
-        boxShadow: "0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)",
-        backdropFilter: "blur(13.101491928100586px)",
+          'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+        boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+        backdropFilter: 'blur(13.101491928100586px)',
       }}
     >
       {/* Row 1: Two columns */}
@@ -749,193 +752,193 @@ export default function PartnershipsPage() {
 
   const imageLogos = [
     {
-      src: "/partner_logos/Allships logo white.svg",
-      alt: "Allships",
-      href: "https://allships.com",
+      src: '/partner_logos/Allships logo white.svg',
+      alt: 'Allships',
+      href: 'https://allships.com',
     },
     {
-      src: "/partner_logos/Aptos_Primary_WHT.svg",
-      alt: "Aptos",
-      href: "https://aptoslabs.com",
+      src: '/partner_logos/Aptos_Primary_WHT.svg',
+      alt: 'Aptos',
+      href: 'https://aptoslabs.com',
     },
     {
-      src: "/partner_logos/Base_lockup_white.svg",
-      alt: "Base",
-      href: "https://base.org",
+      src: '/partner_logos/Base_lockup_white.svg',
+      alt: 'Base',
+      href: 'https://base.org',
     },
     {
-      src: "/partner_logos/FWB-Lettermark.svg",
-      alt: "FWB",
-      href: "https://fwb.help",
+      src: '/partner_logos/FWB-Lettermark.svg',
+      alt: 'FWB',
+      href: 'https://fwb.help',
     },
     {
-      src: "/partner_logos/Galxe_Logo_Wordmark_White.svg",
-      alt: "Galxe",
-      href: "https://galxe.com",
+      src: '/partner_logos/Galxe_Logo_Wordmark_White.svg',
+      alt: 'Galxe',
+      href: 'https://galxe.com',
     },
     {
-      src: "/partner_logos/Livepeer white logo.svg",
-      alt: "Livepeer",
-      href: "https://livepeer.org",
+      src: '/partner_logos/Livepeer white logo.svg',
+      alt: 'Livepeer',
+      href: 'https://livepeer.org',
     },
     {
-      src: "/partner_logos/LUKSO_logo white.svg",
-      alt: "Lukso",
-      href: "https://lukso.network",
+      src: '/partner_logos/LUKSO_logo white.svg',
+      alt: 'Lukso',
+      href: 'https://lukso.network',
     },
     {
-      src: "/partner_logos/Mutek white logo.svg",
-      alt: "Mutek",
-      href: "https://mutek.org",
+      src: '/partner_logos/Mutek white logo.svg',
+      alt: 'Mutek',
+      href: 'https://mutek.org',
     },
     {
-      src: "/partner_logos/Near white logo.svg",
-      alt: "Near",
-      href: "https://near.org",
+      src: '/partner_logos/Near white logo.svg',
+      alt: 'Near',
+      href: 'https://near.org',
     },
     {
-      src: "/partner_logos/objkt_logo_white.svg",
-      alt: "Objkt",
-      href: "https://objkt.com",
+      src: '/partner_logos/objkt_logo_white.svg',
+      alt: 'Objkt',
+      href: 'https://objkt.com',
     },
     {
-      src: "/partner_logos/Opensea white logo.svg",
-      alt: "OpenSea",
-      href: "https://opensea.io",
+      src: '/partner_logos/Opensea white logo.svg',
+      alt: 'OpenSea',
+      href: 'https://opensea.io',
     },
     {
-      src: "/partner_logos/Polygon Primary light.svg",
-      alt: "Polygon",
-      href: "https://polygon.technology",
+      src: '/partner_logos/Polygon Primary light.svg',
+      alt: 'Polygon',
+      href: 'https://polygon.technology',
     },
     {
-      src: "/partner_logos/Public Records white logo.svg",
-      alt: "Public Records",
-      href: "https://publicrecords.nyc",
+      src: '/partner_logos/Public Records white logo.svg',
+      alt: 'Public Records',
+      href: 'https://publicrecords.nyc',
     },
     {
-      src: "/partner_logos/Rainbow Discoclub white logo.svg",
-      alt: "Rainbow Discoclub",
-      href: "https://rainbowdiscoclub.com",
+      src: '/partner_logos/Rainbow Discoclub white logo.svg',
+      alt: 'Rainbow Discoclub',
+      href: 'https://rainbowdiscoclub.com',
     },
     {
-      src: "/partner_logos/Rarible-logo.svg",
-      alt: "Rarible",
-      href: "https://rarible.com",
+      src: '/partner_logos/Rarible-logo.svg',
+      alt: 'Rarible',
+      href: 'https://rarible.com',
     },
     {
-      src: "/partner_logos/reown-logo-negative.svg",
-      alt: "Reown",
-      href: "https://reown.com",
+      src: '/partner_logos/reown-logo-negative.svg',
+      alt: 'Reown',
+      href: 'https://reown.com',
     },
     {
-      src: "/partner_logos/Resident Advisor white logo.svg",
-      alt: "Resident Advisor",
-      href: "https://residentadvisor.net",
+      src: '/partner_logos/Resident Advisor white logo.svg',
+      alt: 'Resident Advisor',
+      href: 'https://residentadvisor.net',
     },
     {
-      src: "/partner_logos/rhizome logo.svg",
-      alt: "Rhizome",
-      href: "https://rhizome.org",
+      src: '/partner_logos/rhizome logo.svg',
+      alt: 'Rhizome',
+      href: 'https://rhizome.org',
     },
     {
-      src: "/partner_logos/Rodeo white logo.svg",
-      alt: "Rodeo",
-      href: "https://rodeo.com",
+      src: '/partner_logos/Rodeo white logo.svg',
+      alt: 'Rodeo',
+      href: 'https://rodeo.com',
     },
     {
-      src: "/partner_logos/rug-radio-seeklogo white.svg",
-      alt: "Rug Radio",
-      href: "https://rug.fm",
+      src: '/partner_logos/rug-radio-seeklogo white.svg',
+      alt: 'Rug Radio',
+      href: 'https://rug.fm',
     },
     {
-      src: "/partner_logos/Serpentine white logo..svg",
-      alt: "Serpentine",
-      href: "https://serpentinegalleries.org",
+      src: '/partner_logos/Serpentine white logo..svg',
+      alt: 'Serpentine',
+      href: 'https://serpentinegalleries.org',
     },
     {
-      src: "/partner_logos/Standard Time white logo.svg",
-      alt: "Standard Time",
-      href: "https://standardtime.io",
+      src: '/partner_logos/Standard Time white logo.svg',
+      alt: 'Standard Time',
+      href: 'https://standardtime.io',
     },
     {
-      src: "/partner_logos/syndicate logo white.svg",
-      alt: "Syndicate",
-      href: "https://syndicate.io",
+      src: '/partner_logos/syndicate logo white.svg',
+      alt: 'Syndicate',
+      href: 'https://syndicate.io',
     },
     {
-      src: "/partner_logos/The Lot Radio white logo.svg",
-      alt: "The Lot Radio",
-      href: "https://thelotradio.com",
+      src: '/partner_logos/The Lot Radio white logo.svg',
+      alt: 'The Lot Radio',
+      href: 'https://thelotradio.com',
     },
     {
-      src: "/partner_logos/towns logo black.svg",
-      alt: "Towns",
-      href: "https://towns.com",
+      src: '/partner_logos/towns logo black.svg',
+      alt: 'Towns',
+      href: 'https://towns.com',
     },
     {
-      src: "/partner_logos/walletconnect white.svg",
-      alt: "WalletConnect",
-      href: "https://walletconnect.com",
+      src: '/partner_logos/walletconnect white.svg',
+      alt: 'WalletConnect',
+      href: 'https://walletconnect.com',
     },
     {
-      src: "/partner_logos/Zora Logo White.svg",
-      alt: "Zora",
-      href: "https://zora.co",
+      src: '/partner_logos/Zora Logo White.svg',
+      alt: 'Zora',
+      href: 'https://zora.co',
     },
   ];
 
   // Benefits data array
   const benefitsData = [
     {
-      leftText: "40,000",
-      rightText: "Cultural Innovators",
-      leftFont: "font-inktrap",
-      rightFont: "font-abc-monument-regular",
-      leftSize: "display1",
-      rightSize: "title3",
+      leftText: '40,000',
+      rightText: 'Cultural Innovators',
+      leftFont: 'font-inktrap',
+      rightFont: 'font-abc-monument-regular',
+      leftSize: 'display1',
+      rightSize: 'title3',
       description:
-        "Reach a global community of curated culture-makers. 40000+ cultural innovators discover new projects and venues through IRL.",
+        'Reach a global community of curated culture-makers. 40000+ cultural innovators discover new projects and venues through IRL.',
     },
     {
-      leftText: "Offer Rewards That",
-      rightText: "TRAVEL",
-      leftFont: "font-abc-monument-regular",
-      rightFont: "font-inktrap",
-      leftSize: "title3",
-      rightSize: "display2",
+      leftText: 'Offer Rewards That',
+      rightText: 'TRAVEL',
+      leftFont: 'font-abc-monument-regular',
+      rightFont: 'font-inktrap',
+      leftSize: 'title3',
+      rightSize: 'display2',
       description:
-        "Rewards earned at a Refraction art exhibition in NYC can be redeemed at a festival in Tokyo.",
+        'Rewards earned at a Refraction art exhibition in NYC can be redeemed at a festival in Tokyo.',
     },
     {
-      leftText: "Shared",
-      rightText: "CUSTOMER ACQUISITION",
-      leftFont: "font-abc-monument-regular",
-      rightFont: "font-inktrap",
-      leftSize: "title3",
-      rightSize: "title6",
+      leftText: 'Shared',
+      rightText: 'CUSTOMER ACQUISITION',
+      leftFont: 'font-abc-monument-regular',
+      rightFont: 'font-inktrap',
+      leftSize: 'title3',
+      rightSize: 'title6',
       description:
-        "Lower marketing costs by plugging into a culturally-aligned discovery network.",
+        'Lower marketing costs by plugging into a culturally-aligned discovery network.',
     },
     {
-      leftText: "Gain",
-      rightText: "OWNER SHIP",
-      leftFont: "font-abc-monument-regular",
-      rightFont: "font-inktrap",
-      leftSize: "title3",
-      rightSize: "display2",
+      leftText: 'Gain',
+      rightText: 'OWNER SHIP',
+      leftFont: 'font-abc-monument-regular',
+      rightFont: 'font-inktrap',
+      leftSize: 'title3',
+      rightSize: 'display2',
       description:
-        "Partners receive equity through tokens as the network grows.",
+        'Partners receive equity through tokens as the network grows.',
     },
     {
-      leftText: "No",
-      rightText: "SETUP COSTS",
-      leftFont: "font-abc-monument-regular",
-      rightFont: "font-inktrap",
-      leftSize: "title3",
-      rightSize: "display2",
+      leftText: 'No',
+      rightText: 'SETUP COSTS',
+      leftFont: 'font-abc-monument-regular',
+      rightFont: 'font-inktrap',
+      leftSize: 'title3',
+      rightSize: 'display2',
       description:
-        "Partners receive equity through tokens as the network grows.",
+        'Partners receive equity through tokens as the network grows.',
     },
 
     // Add 3 more benefit objects here
@@ -950,16 +953,16 @@ export default function PartnershipsPage() {
           <div
             className="absolute top-4 left-4 right-4 z-20"
             style={{
-              display: "flex",
-              padding: "8px 16px 8px 8px",
-              justifyContent: "space-between",
-              alignItems: "center",
-              alignSelf: "stretch",
-              borderRadius: "24px",
+              display: 'flex',
+              padding: '8px 16px 8px 8px',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              alignSelf: 'stretch',
+              borderRadius: '24px',
               background:
-                "linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)",
-              boxShadow: "0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)",
-              backdropFilter: "blur(13.101491928100586px)",
+                'linear-gradient(160deg, rgba(255, 255, 255, 0.24) 31.3%, rgba(255, 255, 255, 0.70) 100.83%)',
+              boxShadow: '0 2.722px 10.89px 0 rgba(0, 0, 0, 0.25)',
+              backdropFilter: 'blur(13.101491928100586px)',
             }}
           >
             <PartnershipsHeader />
@@ -973,10 +976,10 @@ export default function PartnershipsPage() {
             preload="auto"
             className="absolute inset-0 w-full h-full object-cover"
             style={{
-              WebkitTransform: "translateZ(0)",
-              transform: "translateZ(0)",
-              WebkitBackfaceVisibility: "hidden",
-              backfaceVisibility: "hidden",
+              WebkitTransform: 'translateZ(0)',
+              transform: 'translateZ(0)',
+              WebkitBackfaceVisibility: 'hidden',
+              backfaceVisibility: 'hidden',
             }}
           >
             <source src="/partnerships/partnerships-1.mp4" type="video/mp4" />
@@ -990,7 +993,7 @@ export default function PartnershipsPage() {
                 <h3>TURN</h3>
 
                 <span
-                  style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}
+                  style={{ textShadow: '0 0 16px rgba(255, 255, 255, 0.70)' }}
                 >
                   AUDIENCES
                 </span>
@@ -998,7 +1001,7 @@ export default function PartnershipsPage() {
                 <h3>INTO</h3>
 
                 <span
-                  style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}
+                  style={{ textShadow: '0 0 16px rgba(255, 255, 255, 0.70)' }}
                 >
                   CUSTOMERS
                 </span>
@@ -1013,7 +1016,7 @@ export default function PartnershipsPage() {
               <Link href="/contact-us">
                 <button
                   className="bg-white hover:bg-gray-100 text-black font-bold rounded-full transition-colors flex items-center justify-between px-4"
-                  style={{ width: "260px", height: "48px" }}
+                  style={{ width: '260px', height: '48px' }}
                 >
                   <h4 className="font-pleasure">Request an Invite</h4>
                   <Image
@@ -1029,9 +1032,9 @@ export default function PartnershipsPage() {
                 <button
                   className="hover:opacity-80 text-white font-bold rounded-full transition-colors flex items-center justify-between px-4"
                   style={{
-                    backgroundColor: "#313131",
-                    width: "260px",
-                    height: "48px",
+                    backgroundColor: '#313131',
+                    width: '260px',
+                    height: '48px',
                   }}
                 >
                   <h4 className="font-pleasure">Contact us</h4>
@@ -1049,7 +1052,7 @@ export default function PartnershipsPage() {
             {/* Powered By Section */}
             <div
               className="text-white font-inktrap flex justify-between items-center mt-8 mx-auto"
-              style={{ width: "260px" }}
+              style={{ width: '260px' }}
             >
               <h4 className="">POWERED BY</h4>
               <div className="flex justify-end">
@@ -1068,7 +1071,7 @@ export default function PartnershipsPage() {
         {/* Support Text Section */}
         <div
           className="bg-[#131313] rounded-2xl p-4 mb-4 mx-auto"
-          style={{ width: "345px" }}
+          style={{ width: '345px' }}
         >
           <p className="text-white title3 items-center text-center ">
             Built by Refraction, the trusted cultural collective behind the
@@ -1078,7 +1081,7 @@ export default function PartnershipsPage() {
           </p>
         </div>
 
-        <div style={{ height: "200px" }} />
+        <div style={{ height: '200px' }} />
 
         {/* Section 1: Partnerships */}
         <div className="bg-[#131313] rounded-2xl p-6 mb-4">
@@ -1092,7 +1095,7 @@ export default function PartnershipsPage() {
           <div className="font-bold title5 text-white font-pleasure text-center">
             <h2
               className="font-pleasure"
-              style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}
+              style={{ textShadow: '0 0 16px rgba(255, 255, 255, 0.70)' }}
             >
               Trusted by 200+ Global Partners
             </h2>
@@ -1113,40 +1116,40 @@ export default function PartnershipsPage() {
             {...{
               logos: imageLogos,
               speed: 50,
-              direction: "left",
+              direction: 'left',
               logoHeight: 48,
               gap: 40,
               pauseOnHover: true,
               scaleOnHover: true,
               fadeOut: true,
-              fadeOutColor: "#131313",
-              ariaLabel: "Technology partners",
+              fadeOutColor: '#131313',
+              ariaLabel: 'Technology partners',
             }}
           />
           <LogoLoop
             {...{
               logos: imageLogos,
               speed: 50,
-              direction: "right",
+              direction: 'right',
               logoHeight: 48,
               gap: 40,
               pauseOnHover: true,
               scaleOnHover: true,
               fadeOut: true,
-              fadeOutColor: "#131313",
-              ariaLabel: "Technology partners",
+              fadeOutColor: '#131313',
+              ariaLabel: 'Technology partners',
             }}
           />
         </div>
       </div>
-      <div style={{ height: "200px" }} />
+      <div style={{ height: '200px' }} />
 
       {/* Benefits Section Title */}
       <div className="bg-[#131313] rounded-2xl p-6 mb-4 max-w-lg mx-auto">
         <div className="font-bold text-white text-center">
           <h2
             className="font-pleasure"
-            style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}
+            style={{ textShadow: '0 0 16px rgba(255, 255, 255, 0.70)' }}
           >
             Why Partners
             <br /> Join IRL
@@ -1165,10 +1168,10 @@ export default function PartnershipsPage() {
           preload="auto"
           className="absolute inset-0 w-full h-full object-cover"
           style={{
-            WebkitTransform: "translateZ(0)",
-            transform: "translateZ(0)",
-            WebkitBackfaceVisibility: "hidden",
-            backfaceVisibility: "hidden",
+            WebkitTransform: 'translateZ(0)',
+            transform: 'translateZ(0)',
+            WebkitBackfaceVisibility: 'hidden',
+            backfaceVisibility: 'hidden',
           }}
         >
           <source src="/partnerships/partnerships-2.mp4" type="video/mp4" />
@@ -1192,7 +1195,7 @@ export default function PartnershipsPage() {
           ))}
         </div>
       </div>
-      <div style={{ height: "200px" }} />
+      <div style={{ height: '200px' }} />
       {/* How IRL Works Section */}
       <HowItWorksSection />
 
@@ -1206,7 +1209,7 @@ export default function PartnershipsPage() {
           <Carousel
             className="w-full max-w-sm"
             opts={{
-              align: "start",
+              align: 'start',
               loop: true,
             }}
           >
@@ -1216,23 +1219,23 @@ export default function PartnershipsPage() {
                   <div
                     className="relative overflow-hidden"
                     style={{
-                      display: "flex",
-                      width: "325px",
-                      height: "541px",
-                      padding: "24px",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      gap: "12px",
-                      borderRadius: "26px",
-                      border: "1px solid rgba(255, 255, 255, 0.25)",
+                      display: 'flex',
+                      width: '325px',
+                      height: '541px',
+                      padding: '24px',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      gap: '12px',
+                      borderRadius: '26px',
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
                       background:
-                        "linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.45) 100%)",
+                        'linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.45) 100%)',
                     }}
                   >
                     {/* Row 1: Event Poster */}
                     <div
                       className="rounded-lg overflow-hidden"
-                      style={{ width: "277px", height: "345px" }}
+                      style={{ width: '277px', height: '345px' }}
                     >
                       <Image
                         src={event.poster}
@@ -1288,12 +1291,12 @@ export default function PartnershipsPage() {
         onClose={closeModal}
       />
 
-      <div style={{ height: "200px" }} />
+      <div style={{ height: '200px' }} />
 
       {/* Next Steps Section */}
       <div
         className="relative rounded-2xl overflow-hidden mb-4 max-w-lg mx-auto"
-        style={{ height: "836px" }}
+        style={{ height: '836px' }}
       >
         {/* Video Background */}
         <video
@@ -1304,10 +1307,10 @@ export default function PartnershipsPage() {
           preload="auto"
           className="absolute inset-0 w-full h-full object-cover"
           style={{
-            WebkitTransform: "translateZ(0)",
-            transform: "translateZ(0)",
-            WebkitBackfaceVisibility: "hidden",
-            backfaceVisibility: "hidden",
+            WebkitTransform: 'translateZ(0)',
+            transform: 'translateZ(0)',
+            WebkitBackfaceVisibility: 'hidden',
+            backfaceVisibility: 'hidden',
           }}
         >
           <source src="/partnerships/next-steps.mp4" type="video/mp4" />
@@ -1320,7 +1323,7 @@ export default function PartnershipsPage() {
             {/* Row 1: Title */}
             <div
               className="display1 text-white font-inktrap"
-              style={{ textShadow: "0 0 16px rgba(255, 255, 255, 0.70)" }}
+              style={{ textShadow: '0 0 16px rgba(255, 255, 255, 0.70)' }}
             >
               NEXT
               <br /> STEPS
@@ -1339,13 +1342,13 @@ export default function PartnershipsPage() {
                 <button
                   className="bg-white hover:bg-gray-100 text-black font-bold rounded-full transition-colors"
                   style={{
-                    width: "260px",
-                    display: "flex",
-                    height: "48px",
-                    padding: "8px 16px",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    alignSelf: "stretch",
+                    width: '260px',
+                    display: 'flex',
+                    height: '48px',
+                    padding: '8px 16px',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    alignSelf: 'stretch',
                   }}
                 >
                   <span className="font-pleasure">Let&apos;s Talk</span>
@@ -1363,7 +1366,7 @@ export default function PartnershipsPage() {
         </div>
       </div>
 
-      <div style={{ height: "100px" }} />
+      <div style={{ height: '100px' }} />
       {/* Members Section */}
       <MembersSection variant="centered" />
 

@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import type { Checkpoint, ChainType } from '@/lib/types';
 import { usePrivy } from '@privy-io/react-auth';
+import Image from 'next/image';
 
 export default function AdminCheckpointsPage() {
   const { user, login } = usePrivy();
@@ -507,12 +508,14 @@ export default function AdminCheckpointsPage() {
                   className="w-full p-2 border rounded-md"
                 />
                 {partnerImagePreview && (
-                  <div className="mt-2">
+                  <div className="mt-2 relative w-full max-w-xs h-32">
                     <p className="text-xs text-gray-500 mb-1">Preview:</p>
-                    <img
+                    <Image
                       src={partnerImagePreview}
                       alt="Partner image preview"
-                      className="max-w-xs max-h-32 object-contain border rounded"
+                      fill
+                      className="object-contain border rounded"
+                      unoptimized
                     />
                   </div>
                 )}
