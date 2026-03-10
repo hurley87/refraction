@@ -331,64 +331,53 @@ export const redeemSpendItemOnce = async (
   spendItemId: string,
   walletAddress: string
 ) => {
-  const item = await getSpendItemById(spendItemId);
-  if (!item?.is_active) {
-    throw new Error('This item is no longer available');
+  const { data: rpcData, error: rpcError } = await supabase.rpc(
+    'redeem_spend_item_once_atomic',
+    {
+      p_spend_item_id: spendItemId,
+      p_wallet_address: walletAddress,
+    }
+  );
+
+  if (rpcError) {
+    const rpcMessage = rpcError.message ?? '';
+    const knownError = [
+      'You already redeemed this item',
+      'Insufficient points',
+      'Player not found',
+      'This item is no longer available',
+    ].find((message) => rpcMessage.includes(message));
+
+    if (knownError) {
+      throw new Error(knownError);
+    }
+    throw rpcError;
+  }
+
+  const rpcResult = (Array.isArray(rpcData) ? rpcData[0] : rpcData) as
+    | { redemption_id?: string }
+    | null;
+
+  if (!rpcResult?.redemption_id) {
+    throw new Error('Failed to redeem');
+  }
+
+  const { data: redemption, error: redemptionError } = await supabase
+    .from('spend_redemptions')
+    .select(`${SPEND_REDEMPTION_COLUMNS}, spend_items (${SPEND_ITEM_COLUMNS})`)
+    .eq('id', rpcResult.redemption_id)
+    .single();
+
+  if (redemptionError || !redemption) {
+    throw redemptionError ?? new Error('Failed to redeem');
   }
 
   const player = await getPlayerByWallet(walletAddress);
-  if (!player?.id) {
+  if (!player) {
     throw new Error('Player not found');
   }
 
-  const existingRedemption = await getLatestSpendRedemptionForUser(
-    spendItemId,
-    walletAddress
-  );
-  if (existingRedemption) {
-    throw new Error('You already redeemed this item');
-  }
-
-  if ((player.total_points ?? 0) < item.points_cost) {
-    throw new Error('Insufficient points');
-  }
-
-  const updatedPlayer = await updatePlayerPoints(player.id, -item.points_cost);
-  if (updatedPlayer.total_points < 0) {
-    await updatePlayerPoints(player.id, item.points_cost);
-    throw new Error('Insufficient points');
-  }
-
-  const { data: redemption, error: insertError } = await supabase
-    .from('spend_redemptions')
-    .insert({
-      spend_item_id: spendItemId,
-      user_wallet_address: walletAddress,
-      points_spent: item.points_cost,
-      is_fulfilled: true,
-      fulfilled_at: new Date().toISOString(),
-      verified_by: 'user',
-    })
-    .select(`${SPEND_REDEMPTION_COLUMNS}, spend_items (${SPEND_ITEM_COLUMNS})`)
-    .single();
-
-  if (insertError) {
-    try {
-      await updatePlayerPoints(player.id, item.points_cost);
-    } catch (compensateError) {
-      console.error(
-        'CRITICAL: Failed to compensate points after redemption insert failure',
-        compensateError
-      );
-    }
-
-    if (insertError.code === '23505') {
-      throw new Error('You already redeemed this item');
-    }
-    throw insertError;
-  }
-
-  return { redemption, player: updatedPlayer };
+  return { redemption, player };
 };
 
 /**

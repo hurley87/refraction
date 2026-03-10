@@ -14,6 +14,54 @@ interface RouteParams {
   params: { id: string };
 }
 
+type SupportedImageMimeType = 'image/png' | 'image/jpeg' | 'image/webp';
+
+const IMAGE_EXTENSION_BY_MIME: Record<SupportedImageMimeType, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+};
+
+const detectImageMimeType = (
+  bytes: Uint8Array
+): SupportedImageMimeType | null => {
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  const isPng =
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a;
+  if (isPng) return 'image/png';
+
+  // JPEG: FF D8 FF
+  const isJpeg =
+    bytes.length >= 3 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes[2] === 0xff;
+  if (isJpeg) return 'image/jpeg';
+
+  // WebP: "RIFF"...."WEBP"
+  const isWebp =
+    bytes.length >= 12 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46 &&
+    bytes[8] === 0x57 &&
+    bytes[9] === 0x45 &&
+    bytes[10] === 0x42 &&
+    bytes[11] === 0x50;
+  if (isWebp) return 'image/webp';
+
+  return null;
+};
+
 // GET /api/admin/checkpoints/[id] - Get a checkpoint by ID
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -80,32 +128,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
 
       if (file && file.size > 0) {
-        const allowedTypes = [
-          'image/png',
-          'image/jpeg',
-          'image/jpg',
-          'image/webp',
-        ];
-        if (!allowedTypes.includes(file.type)) {
+        const maxSize = 5 * 1024 * 1024;
+        if (file.size > maxSize) {
+          return apiError('File size exceeds 5MB limit.', 400);
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+        const detectedMimeType = detectImageMimeType(new Uint8Array(arrayBuffer));
+        if (!detectedMimeType) {
           return apiError(
             'Invalid file type. Only PNG, JPEG, and WebP images are allowed.',
             400
           );
         }
 
-        const maxSize = 5 * 1024 * 1024;
-        if (file.size > maxSize) {
-          return apiError('File size exceeds 5MB limit.', 400);
-        }
-
-        const fileExt = file.name.split('.').pop() || 'jpg';
+        const fileExt = IMAGE_EXTENSION_BY_MIME[detectedMimeType];
         const filePath = `checkpoint-partners/${params.id}.${fileExt}`;
-
-        const arrayBuffer = await file.arrayBuffer();
         const { error: uploadError } = await supabase.storage
           .from('images')
           .upload(filePath, arrayBuffer, {
-            contentType: file.type,
+            contentType: detectedMimeType,
             upsert: true,
           });
 

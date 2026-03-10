@@ -202,4 +202,33 @@ describe('checkpoint spend route', () => {
     expect(payload.error).toBe('Unauthorized');
     expect(redeemSpendItemOnce).not.toHaveBeenCalled();
   });
+
+  it('POST returns generic 500 for unexpected redeem errors', async () => {
+    vi.mocked(getActiveCheckpointById).mockResolvedValue({
+      id: checkpointId,
+      checkpoint_mode: 'spend',
+      chain_type: 'evm',
+    } as any);
+    vi.mocked(getSpendItemByCheckpointId).mockResolvedValue({
+      id: 'item-1',
+      is_active: true,
+    } as any);
+    vi.mocked(redeemSpendItemOnce).mockRejectedValue(
+      new Error('Database constraint xyz leaked')
+    );
+
+    const request = new NextRequest(
+      `http://localhost:3000/api/checkpoints/${checkpointId}/spend`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ walletAddress }),
+      }
+    );
+
+    const response = await POST(request, { params: { id: checkpointId } });
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload.error).toBe('Failed to redeem');
+  });
 });
