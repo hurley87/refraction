@@ -106,6 +106,7 @@ export const diceEventSchema = z.object({
   endDatetime: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   state: z.string().nullable().optional(),
+  hidden: z.boolean().nullable().optional(),
   venues: z.array(diceVenueSchema).nullable().optional(),
   images: z.array(diceImageSchema).nullable().optional(),
   ticketTypes: z.array(diceTicketTypeSchema).nullable().optional(),

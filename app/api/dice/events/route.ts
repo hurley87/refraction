@@ -16,7 +16,12 @@ export async function GET(request: NextRequest) {
       after: after || undefined,
     });
 
-    return apiSuccess(result);
+    const visibleEvents = {
+      ...result,
+      events: result.events.filter((event) => event.hidden !== true),
+    };
+
+    return apiSuccess(visibleEvents);
   } catch (error) {
     console.error("GET /api/dice/events error:", error);
 
