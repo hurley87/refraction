@@ -18,7 +18,12 @@ export async function GET(request: NextRequest) {
 
     const visibleEvents = {
       ...result,
-      events: result.events.filter((event) => event.hidden !== true),
+      events: result.events.filter(
+        (event) =>
+          event.hidden !== true &&
+          event.state !== "DRAFT" &&
+          event.state !== "CANCELLED"
+      ),
     };
 
     return apiSuccess(visibleEvents);
