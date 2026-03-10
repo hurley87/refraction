@@ -26,7 +26,7 @@ interface SpendCheckpointProps {
 }
 
 export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
   const walletAddress = user?.wallet?.address;
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -39,7 +39,19 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
       const search = walletAddress
         ? `?walletAddress=${encodeURIComponent(walletAddress)}`
         : '';
-      const response = await fetch(`/api/checkpoints/${checkpoint.id}/spend${search}`);
+      const headers: HeadersInit = {};
+      if (walletAddress) {
+        const token = await getAccessToken();
+        if (!token) {
+          throw new Error('Please log in to view redemption status.');
+        }
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        `/api/checkpoints/${checkpoint.id}/spend${search}`,
+        { headers }
+      );
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         throw new Error(errorData?.error || 'Failed to load spend checkpoint');
@@ -54,9 +66,16 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
       if (!walletAddress) {
         throw new Error('Please log in to redeem this item.');
       }
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error('Please log in to redeem this item.');
+      }
       const response = await fetch(`/api/checkpoints/${checkpoint.id}/spend`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ walletAddress }),
       });
       const responseData = await response.json().catch(() => null);

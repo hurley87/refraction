@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, apiValidationError } from '@/lib/api/response';
 import { walletAddressSchema } from '@/lib/schemas/player';
+import { verifyWalletOwnership } from '@/lib/api/privy';
 import { getActiveCheckpointById } from '@/lib/db/checkpoints';
 import {
   getSpendItemByCheckpointId,
@@ -38,6 +39,11 @@ export async function GET(
       return apiValidationError(walletResult.error);
     }
 
+    const auth = await verifyWalletOwnership(request, walletResult.data);
+    if (!auth.authorized) {
+      return apiError(auth.error ?? 'Unauthorized', 401);
+    }
+
     const redemption = await getUserRedemptionForSpendItem(
       spendItem.id!,
       walletResult.data
@@ -69,6 +75,14 @@ export async function POST(
     const validationResult = redeemSpendCheckpointSchema.safeParse(body);
     if (!validationResult.success) {
       return apiValidationError(validationResult.error);
+    }
+
+    const auth = await verifyWalletOwnership(
+      request,
+      validationResult.data.walletAddress
+    );
+    if (!auth.authorized) {
+      return apiError(auth.error ?? 'Unauthorized', 401);
     }
 
     const result = await redeemSpendItemOnce(

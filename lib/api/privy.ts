@@ -47,3 +47,39 @@ export async function verifyCallerIdentity(
     return { authorized: false, error: 'Invalid or expired token' };
   }
 }
+
+/**
+ * Verify the caller is authenticated with Privy and owns the provided wallet.
+ */
+export async function verifyWalletOwnership(
+  req: NextRequest,
+  walletAddress: string
+): Promise<{ authorized: boolean; error?: string; userId?: string }> {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return { authorized: false, error: 'Missing authorization token' };
+  }
+
+  const token = authHeader.slice(7);
+  try {
+    const privy = getPrivyClient();
+    const verifiedClaims = await privy.verifyAuthToken(token);
+    const user = await privy.getUser(verifiedClaims.userId);
+    const normalizedRequestedWallet = walletAddress.toLowerCase();
+
+    const ownsWallet = user.linkedAccounts?.some((account) => {
+      if (account.type !== 'wallet' || !('address' in account)) {
+        return false;
+      }
+      return account.address.toLowerCase() === normalizedRequestedWallet;
+    });
+
+    if (!ownsWallet) {
+      return { authorized: false, error: 'Unauthorized' };
+    }
+
+    return { authorized: true, userId: verifiedClaims.userId };
+  } catch {
+    return { authorized: false, error: 'Invalid or expired token' };
+  }
+}
