@@ -11,48 +11,64 @@ const CITIES = [
     slug: 'mexico-city',
     location: 'Downtown, Mexico City',
     guideUrl: 'https://refraction.substack.com/city/mexico-city',
+    latitude: 19.4326,
+    longitude: -99.1332,
   },
   {
     name: 'London',
     slug: 'london',
     location: 'Shoreditch, London',
     guideUrl: 'https://refraction.substack.com/city/london',
+    latitude: 51.5074,
+    longitude: -0.1278,
   },
   {
     name: 'Hong Kong',
     slug: 'hong-kong',
     location: 'Central, Hong Kong',
     guideUrl: 'https://refraction.substack.com/city/hong-kong',
+    latitude: 22.3193,
+    longitude: 114.1694,
   },
   {
     name: 'New York',
     slug: 'new-york',
     location: 'Brooklyn, New York',
     guideUrl: 'https://refraction.substack.com/city/new-york',
+    latitude: 40.7128,
+    longitude: -74.006,
   },
   {
     name: 'Montreal',
     slug: 'montreal',
     location: 'Plateau, Montreal',
     guideUrl: 'https://refraction.substack.com/city/montreal',
+    latitude: 45.5017,
+    longitude: -73.5673,
   },
   {
     name: 'Tokyo',
     slug: 'tokyo',
     location: 'Shibuya, Tokyo',
     guideUrl: 'https://refraction.substack.com/city/tokyo',
+    latitude: 35.6762,
+    longitude: 139.6503,
   },
   {
     name: 'Berlin',
     slug: 'berlin',
     location: 'Kreuzberg, Berlin',
     guideUrl: 'https://refraction.substack.com/city/berlin',
+    latitude: 52.52,
+    longitude: 13.405,
   },
   {
     name: 'Lisbon',
     slug: 'lisbon',
     location: 'Alfama, Lisbon',
     guideUrl: 'https://refraction.substack.com/city/lisbon',
+    latitude: 38.7223,
+    longitude: -9.1393,
   },
 ];
 
@@ -227,7 +243,7 @@ export default function CityGuidesCarouselSection() {
 
           {/* Explored button */}
           <Link
-            href="/interactive-map"
+            href={`/interactive-map?lat=${selectedCity.latitude}&lng=${selectedCity.longitude}`}
             className="flex flex-1 min-w-0 self-stretch justify-center items-center gap-2.5 py-5 px-6 rounded-full transition-colors hover:opacity-90"
             style={{
               background: 'rgba(253, 255, 255, 0.15)',
