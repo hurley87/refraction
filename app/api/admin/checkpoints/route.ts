@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { listAllCheckpoints, createCheckpoint } from '@/lib/db/checkpoints';
+import { syncSpendItemForCheckpoint } from '@/lib/db/spend';
 import { createCheckpointRequestSchema } from '@/lib/schemas/api';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
@@ -44,6 +45,8 @@ export async function POST(request: NextRequest) {
       const description = formData.get('description') as string | null;
       const login_cta_text = formData.get('login_cta_text') as string | null;
       const chain_type = formData.get('chain_type') as string;
+      const checkpoint_mode =
+        (formData.get('checkpoint_mode') as string | null) || 'checkin';
       const points_value = formData.get('points_value');
       const is_active = formData.get('is_active');
 
@@ -53,6 +56,7 @@ export async function POST(request: NextRequest) {
         description: description || undefined,
         login_cta_text: login_cta_text?.trim() || null,
         chain_type,
+        checkpoint_mode,
         points_value: points_value ? Number(points_value) : 100,
         is_active: is_active === 'true' || String(is_active) === 'true',
       };
@@ -62,6 +66,13 @@ export async function POST(request: NextRequest) {
 
       if (!validationResult.success) {
         return apiValidationError(validationResult.error);
+      }
+
+      if (
+        validationResult.data.checkpoint_mode === 'spend' &&
+        validationResult.data.chain_type !== 'evm'
+      ) {
+        return apiError('Spend checkpoints currently require EVM wallets.', 400);
       }
 
       // Generate checkpoint ID first (needed for storage path)
@@ -126,6 +137,8 @@ export async function POST(request: NextRequest) {
         checkpointId
       );
 
+      await syncSpendItemForCheckpoint(checkpoint);
+
       const checkpointUrl = `/c/${checkpoint.id}`;
 
       return apiSuccess(
@@ -141,10 +154,19 @@ export async function POST(request: NextRequest) {
         return apiValidationError(validationResult.error);
       }
 
+      if (
+        validationResult.data.checkpoint_mode === 'spend' &&
+        validationResult.data.chain_type !== 'evm'
+      ) {
+        return apiError('Spend checkpoints currently require EVM wallets.', 400);
+      }
+
       const checkpoint = await createCheckpoint({
         ...validationResult.data,
         created_by: adminEmail,
       });
+
+      await syncSpendItemForCheckpoint(checkpoint);
 
       const checkpointUrl = `/c/${checkpoint.id}`;
 
@@ -155,6 +177,11 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Error creating checkpoint:', error);
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to create checkpoint';
+    if (errorMessage.includes('checkpoint_mode')) {
+      return apiError(errorMessage, 400);
+    }
     return apiError('Failed to create checkpoint', 500);
   }
 }

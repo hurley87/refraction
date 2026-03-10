@@ -7,13 +7,14 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useStellarWallet } from '@/hooks/useStellarWallet';
 import { useAptosWallet } from '@/hooks/useAptosWallet';
+import SpendCheckpoint from '@/components/checkpoint/spend-checkpoint';
 import type { Checkpoint } from '@/lib/types';
 
 interface UnifiedCheckpointProps {
   checkpoint: Checkpoint;
 }
 
-export default function UnifiedCheckpoint({
+function CheckinCheckpoint({
   checkpoint,
 }: UnifiedCheckpointProps) {
   const { user } = usePrivy();
@@ -449,4 +450,12 @@ export default function UnifiedCheckpoint({
       )}
     </div>
   );
+}
+
+export default function UnifiedCheckpoint({ checkpoint }: UnifiedCheckpointProps) {
+  if (checkpoint.checkpoint_mode === 'spend') {
+    return <SpendCheckpoint checkpoint={checkpoint} />;
+  }
+
+  return <CheckinCheckpoint checkpoint={checkpoint} />;
 }

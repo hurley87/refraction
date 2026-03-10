@@ -1,9 +1,10 @@
 -- Spend Items: Items users can spend points on (points are deducted)
--- Unlike perks, spend items allow multiple redemptions and deduct points
+-- For checkpoint-linked spend flow, each user can redeem once per item.
 
 -- Spend items table
 CREATE TABLE IF NOT EXISTS spend_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  checkpoint_id VARCHAR(12) REFERENCES checkpoints(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
   image_url TEXT,
@@ -26,9 +27,11 @@ CREATE TABLE IF NOT EXISTS spend_redemptions (
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_spend_items_is_active ON spend_items(is_active);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_spend_items_checkpoint_id_unique ON spend_items(checkpoint_id) WHERE checkpoint_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_spend_redemptions_wallet ON spend_redemptions(user_wallet_address);
 CREATE INDEX IF NOT EXISTS idx_spend_redemptions_item ON spend_redemptions(spend_item_id);
 CREATE INDEX IF NOT EXISTS idx_spend_redemptions_fulfilled ON spend_redemptions(is_fulfilled);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_spend_redemptions_item_wallet_unique ON spend_redemptions(spend_item_id, user_wallet_address);
 
 -- Enable RLS
 ALTER TABLE spend_items ENABLE ROW LEVEL SECURITY;

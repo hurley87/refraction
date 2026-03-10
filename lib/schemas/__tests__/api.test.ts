@@ -517,6 +517,7 @@ describe('API Schemas', () => {
       const result = createCheckpointRequestSchema.safeParse(validRequest);
       expect(result.success).toBe(true);
       if (result.success) {
+        expect(result.data.checkpoint_mode).toBe('checkin'); // default
         expect(result.data.points_value).toBe(100); // default
         expect(result.data.is_active).toBe(true); // default
       }
@@ -527,6 +528,7 @@ describe('API Schemas', () => {
         name: 'Test Checkpoint',
         description: 'A test checkpoint',
         login_cta_text: 'Get Started',
+        checkpoint_mode: 'spend',
         chain_type: 'solana',
         points_value: 500,
         is_active: false,

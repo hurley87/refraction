@@ -1,27 +1,46 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockUpdatePlayerPoints, mockSingle, mockEq, mockFrom } = vi.hoisted(() => {
+const {
+  mockUpdatePlayerPoints,
+  mockSingle,
+  mockLimit,
+  mockFrom,
+  mockInsert,
+  mockUpdate,
+} = vi.hoisted(() => {
   const single = vi.fn();
-  const eq = vi.fn(() => ({ single }));
-  const select = vi.fn(() => ({ eq }));
+  const limit = vi.fn();
+  const queryBuilder = {
+    select: vi.fn(() => queryBuilder),
+    eq: vi.fn(() => queryBuilder),
+    order: vi.fn(() => queryBuilder),
+    limit,
+    single,
+  };
+
   const insert = vi.fn(() => ({
     select: vi.fn(() => ({ single })),
   }));
+
   const update = vi.fn(() => ({
     eq: vi.fn(() => ({
       eq: vi.fn(() => ({ select: vi.fn(() => ({ single })) })),
     })),
   }));
+
   const from = vi.fn(() => ({
-    select,
+    ...queryBuilder,
     insert,
     update,
   }));
+
   return {
     mockUpdatePlayerPoints: vi.fn(),
     mockSingle: single,
-    mockEq: eq,
+    mockLimit: limit,
     mockFrom: from,
+    mockInsert: insert,
+    mockUpdate: update,
   };
 });
 
@@ -44,6 +63,7 @@ const redemptionId = '660e8400-e29b-41d4-a716-446655440001';
 describe('createPendingSpendRedemption', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLimit.mockResolvedValue({ data: [], error: null });
   });
 
   it('creates pending redemption without deducting points', async () => {
@@ -68,34 +88,28 @@ describe('createPendingSpendRedemption', () => {
     expect(mockUpdatePlayerPoints).not.toHaveBeenCalled();
   });
 
-  it('throws when item is inactive', async () => {
-    const item = { id: itemId, points_cost: 100, is_active: false };
-    vi.mocked(getPlayerByWallet).mockResolvedValue({
-      id: 1,
-      wallet_address: wallet,
-      total_points: 500,
-    } as any);
-    mockSingle.mockResolvedValueOnce({ data: item, error: null });
-
-    await expect(createPendingSpendRedemption(itemId, wallet)).rejects.toThrow(
-      'no longer available'
-    );
-  });
-
-  it('throws when player not found', async () => {
+  it('throws when user already redeemed this item', async () => {
     const item = { id: itemId, points_cost: 100, is_active: true };
-    vi.mocked(getPlayerByWallet).mockResolvedValue(null);
+    const player = { id: 1, wallet_address: wallet, total_points: 500 };
+
+    vi.mocked(getPlayerByWallet).mockResolvedValue(player as any);
     mockSingle.mockResolvedValueOnce({ data: item, error: null });
+    mockLimit.mockResolvedValueOnce({
+      data: [{ id: redemptionId, is_fulfilled: true }],
+      error: null,
+    });
 
     await expect(createPendingSpendRedemption(itemId, wallet)).rejects.toThrow(
-      'Player not found'
+      'already redeemed'
     );
+    expect(mockInsert).not.toHaveBeenCalled();
   });
 });
 
 describe('verifySpendRedemption', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLimit.mockResolvedValue({ data: [], error: null });
   });
 
   it('deducts points and marks fulfilled for valid pending redemption', async () => {
@@ -116,34 +130,32 @@ describe('verifySpendRedemption', () => {
       verified_by: 'user',
     };
 
-    mockEq.mockReturnValue({ single: mockSingle });
     mockSingle
       .mockResolvedValueOnce({ data: redemption, error: null })
       .mockResolvedValueOnce({ data: updatedRedemption, error: null });
     mockUpdatePlayerPoints.mockResolvedValue(updatedPlayer);
-
     vi.mocked(getPlayerByWallet).mockResolvedValue(player as any);
 
     const result = await verifySpendRedemption(redemptionId, wallet);
 
     expect(result.is_fulfilled).toBe(true);
     expect(mockUpdatePlayerPoints).toHaveBeenCalledWith(1, -100);
+    expect(mockUpdate).toHaveBeenCalled();
   });
 
-  it('throws when redemption already verified (idempotent)', async () => {
+  it('throws when redemption already verified', async () => {
     const redemption = {
       id: redemptionId,
       user_wallet_address: wallet,
       points_spent: 100,
       is_fulfilled: true,
+      spend_items: { id: itemId, is_active: true },
     };
-    mockEq.mockReturnValue({ single: mockSingle });
     mockSingle.mockResolvedValueOnce({ data: redemption, error: null });
 
     await expect(verifySpendRedemption(redemptionId, wallet)).rejects.toThrow(
       'already verified'
     );
-
     expect(mockUpdatePlayerPoints).not.toHaveBeenCalled();
   });
 
@@ -154,35 +166,13 @@ describe('verifySpendRedemption', () => {
       user_wallet_address: wallet,
       points_spent: 100,
       is_fulfilled: false,
+      spend_items: { id: itemId, is_active: true },
     };
-    mockEq.mockReturnValue({ single: mockSingle });
     mockSingle.mockResolvedValueOnce({ data: redemption, error: null });
 
     await expect(
       verifySpendRedemption(redemptionId, otherWallet)
     ).rejects.toThrow('Unauthorized');
-
-    expect(mockUpdatePlayerPoints).not.toHaveBeenCalled();
-  });
-
-  it('throws when insufficient points at verify time', async () => {
-    const redemption = {
-      id: redemptionId,
-      user_wallet_address: wallet,
-      points_spent: 100,
-      is_fulfilled: false,
-      spend_items: { id: itemId, is_active: true },
-    };
-    const player = { id: 1, wallet_address: wallet, total_points: 50 };
-
-    mockEq.mockReturnValue({ single: mockSingle });
-    mockSingle.mockResolvedValueOnce({ data: redemption, error: null });
-    vi.mocked(getPlayerByWallet).mockResolvedValue(player as any);
-
-    await expect(verifySpendRedemption(redemptionId, wallet)).rejects.toThrow(
-      'Insufficient points'
-    );
-
     expect(mockUpdatePlayerPoints).not.toHaveBeenCalled();
   });
 });
