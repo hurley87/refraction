@@ -5,6 +5,7 @@ const {
   mockSingle,
   mockLimit,
   mockFrom,
+  mockRpc,
   mockInsert,
   mockUpdate,
 } = vi.hoisted(() => {
@@ -39,13 +40,17 @@ const {
     mockSingle: single,
     mockLimit: limit,
     mockFrom: from,
+    mockRpc: vi.fn(),
     mockInsert: insert,
     mockUpdate: update,
   };
 });
 
 vi.mock('@/lib/db/client', () => ({
-  supabase: { from: (...args: unknown[]) => mockFrom(...args) },
+  supabase: {
+    from: (...args: unknown[]) => mockFrom(...args),
+    rpc: (...args: unknown[]) => mockRpc(...args),
+  },
 }));
 
 vi.mock('@/lib/db/players', () => ({
@@ -53,7 +58,11 @@ vi.mock('@/lib/db/players', () => ({
   updatePlayerPoints: mockUpdatePlayerPoints,
 }));
 
-import { createPendingSpendRedemption, verifySpendRedemption } from '../spend';
+import {
+  createPendingSpendRedemption,
+  redeemSpendItemOnce,
+  verifySpendRedemption,
+} from '../spend';
 import { getPlayerByWallet } from '../players';
 
 const wallet = '0x1234567890abcdef1234567890abcdef12345678';
@@ -174,5 +183,50 @@ describe('verifySpendRedemption', () => {
       verifySpendRedemption(redemptionId, otherWallet)
     ).rejects.toThrow('Unauthorized');
     expect(mockUpdatePlayerPoints).not.toHaveBeenCalled();
+  });
+});
+
+describe('redeemSpendItemOnce', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('redeems via atomic RPC and returns redemption + player', async () => {
+    const redemption = {
+      id: redemptionId,
+      spend_item_id: itemId,
+      user_wallet_address: wallet,
+      points_spent: 100,
+      is_fulfilled: true,
+      spend_items: { id: itemId, is_active: true },
+    };
+    const player = { id: 1, wallet_address: wallet, total_points: 100 };
+
+    mockRpc.mockResolvedValue({
+      data: [{ redemption_id: redemptionId, player_id: 1, player_total_points: 100 }],
+      error: null,
+    });
+    mockSingle.mockResolvedValueOnce({ data: redemption, error: null });
+    vi.mocked(getPlayerByWallet).mockResolvedValue(player as any);
+
+    const result = await redeemSpendItemOnce(itemId, wallet);
+
+    expect(mockRpc).toHaveBeenCalledWith('redeem_spend_item_once_atomic', {
+      p_spend_item_id: itemId,
+      p_wallet_address: wallet,
+    });
+    expect(result.redemption).toEqual(redemption);
+    expect(result.player).toEqual(player);
+  });
+
+  it('maps known RPC errors to user-friendly errors', async () => {
+    mockRpc.mockResolvedValue({
+      data: null,
+      error: { message: 'Insufficient points', code: 'P0001' },
+    });
+
+    await expect(redeemSpendItemOnce(itemId, wallet)).rejects.toThrow(
+      'Insufficient points'
+    );
   });
 });

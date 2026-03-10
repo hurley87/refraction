@@ -110,6 +110,6 @@ export async function POST(
     ) {
       return apiError(message, 400);
     }
-    return apiError(message, 500);
+    return apiError('Failed to redeem', 500);
   }
 }
