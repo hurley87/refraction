@@ -3,18 +3,26 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
-// Cover images - Download from Drive and save to public/homepage/city-guides-covers/
-// 1: https://drive.google.com/file/d/1i1HEJVS2H9xizsdcUMDWbZ4T1GzNsDGM/view?usp=sharing
-// 2: https://drive.google.com/file/d/1Wuh6qM7tx6JyrSbeCfjCJbxHq3cZjxR9/view?usp=sharing
-// 3: https://drive.google.com/file/d/1YykG6f9XKRevY48rtLVqaAANhawNUvwd/view?usp=sharing
+
 const COVER_IMAGES = [
-        {
-          src: '/homepage/city-guides-covers/denver-guide.png',
-          alt: 'City guide cover',
-          name: 'Denver',
-          url: 'https://substack.com/@refractiondao/p-188382099',
-        },
-   
+  {
+    src: '/homepage/city-guides-covers/denver-guide.png',
+    alt: 'City guide cover',
+    name: 'Denver City Guide',
+    url: 'https://substack.com/@refractiondao/p-188382099',
+  },
+  {
+    src: '/homepage/city-guides-covers/jiminal.png',
+    alt: 'City guide cover',
+    name: "Jiminal's Guide to Amsterdam",
+    url: 'https://substack.com/@refractiondao/p-189246596',
+  },
+  {
+    src: '/homepage/city-guides-covers/meniac.png',
+    alt: 'City guide cover',
+    name: "Meniac's Map to Amsterdam",
+    url: 'https://substack.com/@refractiondao/p-189245087',
+  },
 ];
 
 // Update with actual Refraction Substack URL
@@ -133,7 +141,7 @@ export default function CityGuidesCoverSection() {
                     letterSpacing: '-0.25px',
                   }}
                 >
-                  {img.name} City Guide
+                  {img.name}
                 </span>
                 <Link
                   href={img.url}
