@@ -194,6 +194,7 @@ export type UserProfile = {
  */
 export type SpendItem = {
   id?: string;
+  checkpoint_id?: string | null;
   name: string;
   description?: string | null;
   image_url?: string | null;
@@ -239,6 +240,7 @@ export type Notification = {
  * Supports multiple chain types (EVM, Solana, Stellar, Aptos)
  */
 export type ChainType = 'evm' | 'solana' | 'stellar' | 'aptos';
+export type CheckpointMode = 'checkin' | 'spend';
 
 export type Checkpoint = {
   id: string;
@@ -246,6 +248,7 @@ export type Checkpoint = {
   description?: string | null;
   login_cta_text?: string | null;
   chain_type: ChainType;
+  checkpoint_mode: CheckpointMode;
   points_value: number;
   is_active: boolean;
   created_by?: string | null;

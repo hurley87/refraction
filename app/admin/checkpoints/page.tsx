@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Checkpoint, ChainType } from '@/lib/types';
+import type { Checkpoint, ChainType, CheckpointMode } from '@/lib/types';
 import { usePrivy } from '@privy-io/react-auth';
 import Image from 'next/image';
 
@@ -56,6 +56,7 @@ export default function AdminCheckpointsPage() {
     description: string;
     login_cta_text: string;
     chain_type: ChainType;
+    checkpoint_mode: CheckpointMode;
     points_value: number;
     is_active: boolean;
   }>({
@@ -63,6 +64,7 @@ export default function AdminCheckpointsPage() {
     description: '',
     login_cta_text: '',
     chain_type: 'evm',
+    checkpoint_mode: 'checkin',
     points_value: 100,
     is_active: true,
   });
@@ -127,6 +129,7 @@ export default function AdminCheckpointsPage() {
           checkpointData.login_cta_text?.trim() || ''
         );
         formData.append('chain_type', checkpointData.chain_type);
+        formData.append('checkpoint_mode', checkpointData.checkpoint_mode);
         formData.append('points_value', String(checkpointData.points_value));
         formData.append('is_active', String(checkpointData.is_active));
         formData.append('partner_image', imageFile);
@@ -200,18 +203,41 @@ export default function AdminCheckpointsPage() {
     mutationFn: async ({
       id,
       updates,
+      imageFile,
     }: {
       id: string;
       updates: Partial<Checkpoint>;
+      imageFile?: File | null;
     }) => {
-      const response = await fetch(`/api/admin/checkpoints/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-user-email': user?.email?.address || '',
-        },
-        body: JSON.stringify(updates),
-      });
+      const hasImageUpload = !!imageFile;
+      let response: Response;
+
+      if (hasImageUpload) {
+        const formDataToSend = new FormData();
+        Object.entries(updates).forEach(([key, value]) => {
+          if (value === undefined) return;
+          formDataToSend.append(key, value === null ? '' : String(value));
+        });
+        formDataToSend.append('partner_image', imageFile!);
+
+        response = await fetch(`/api/admin/checkpoints/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'x-user-email': user?.email?.address || '',
+          },
+          body: formDataToSend,
+        });
+      } else {
+        response = await fetch(`/api/admin/checkpoints/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-email': user?.email?.address || '',
+          },
+          body: JSON.stringify(updates),
+        });
+      }
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         throw new Error(errorData?.error || 'Failed to update checkpoint');
@@ -259,28 +285,41 @@ export default function AdminCheckpointsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const normalizedChainType =
+      formData.checkpoint_mode === 'spend' ? 'evm' : formData.chain_type;
     const loginCtaText = formData.login_cta_text.trim() || null;
 
     if (editingCheckpoint) {
       updateCheckpointMutation.mutate({
         id: editingCheckpoint.id,
-        updates: { ...formData, login_cta_text: loginCtaText },
+        updates: {
+          ...formData,
+          chain_type: normalizedChainType,
+          login_cta_text: loginCtaText,
+        },
+        imageFile: partnerImageFile,
       });
     } else {
       createCheckpointMutation.mutate({
-        checkpointData: { ...formData, login_cta_text: loginCtaText },
+        checkpointData: {
+          ...formData,
+          chain_type: normalizedChainType,
+          login_cta_text: loginCtaText,
+        },
         imageFile: partnerImageFile,
       });
     }
   };
 
   const handleEdit = (checkpoint: Checkpoint) => {
+    const checkpointMode = checkpoint.checkpoint_mode || 'checkin';
     setEditingCheckpoint(checkpoint);
     setFormData({
       name: checkpoint.name,
       description: checkpoint.description || '',
       login_cta_text: checkpoint.login_cta_text ?? '',
-      chain_type: checkpoint.chain_type,
+      chain_type: checkpointMode === 'spend' ? 'evm' : checkpoint.chain_type,
+      checkpoint_mode: checkpointMode,
       points_value: checkpoint.points_value,
       is_active: checkpoint.is_active,
     });
@@ -306,6 +345,7 @@ export default function AdminCheckpointsPage() {
       description: '',
       login_cta_text: '',
       chain_type: 'evm',
+      checkpoint_mode: 'checkin',
       points_value: 100,
       is_active: true,
     });
@@ -369,6 +409,7 @@ export default function AdminCheckpointsPage() {
     createCheckpointMutation.isPending ||
     updateCheckpointMutation.isPending ||
     deleteCheckpointMutation.isPending;
+  const isSpendMode = formData.checkpoint_mode === 'spend';
 
   return (
     <div className="container mx-auto p-6 bg-white relative min-h-screen z-40">
@@ -414,6 +455,28 @@ export default function AdminCheckpointsPage() {
               </div>
 
               <div>
+                <Label htmlFor="checkpoint_mode">Checkpoint Type</Label>
+                <Select
+                  value={formData.checkpoint_mode}
+                  onValueChange={(value: CheckpointMode) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      checkpoint_mode: value,
+                      chain_type: value === 'spend' ? 'evm' : prev.chain_type,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select checkpoint type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="checkin">Check-in (earn points)</SelectItem>
+                    <SelectItem value="spend">Spend (redeem points)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
                 <Label htmlFor="login_cta_text">
                   Login CTA text (Optional)
                 </Label>
@@ -438,6 +501,7 @@ export default function AdminCheckpointsPage() {
                   onValueChange={(value: ChainType) =>
                     setFormData({ ...formData, chain_type: value })
                   }
+                  disabled={isSpendMode}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select wallet type" />
@@ -450,12 +514,16 @@ export default function AdminCheckpointsPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Users will need this wallet type to check in
+                  {isSpendMode
+                    ? 'Spend checkpoints currently use EVM wallets.'
+                    : 'Users will need this wallet type to check in.'}
                 </p>
               </div>
 
               <div>
-                <Label htmlFor="points_value">Points Value</Label>
+                <Label htmlFor="points_value">
+                  {isSpendMode ? 'Points Cost' : 'Points Value'}
+                </Label>
                 <Input
                   id="points_value"
                   type="number"
@@ -469,6 +537,11 @@ export default function AdminCheckpointsPage() {
                     })
                   }
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  {isSpendMode
+                    ? 'This is how many points are deducted when redeemed.'
+                    : 'This is the point reward for a successful check-in.'}
+                </p>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -557,6 +630,17 @@ export default function AdminCheckpointsPage() {
                     <h3 className="text-lg font-semibold">{checkpoint.name}</h3>
                     <span
                       className={`px-2 py-1 text-xs rounded-full ${
+                        checkpoint.checkpoint_mode === 'spend'
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-sky-100 text-sky-800'
+                      }`}
+                    >
+                      {checkpoint.checkpoint_mode === 'spend'
+                        ? 'Spend'
+                        : 'Check-in'}
+                    </span>
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full ${
                         checkpoint.is_active
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
@@ -574,7 +658,11 @@ export default function AdminCheckpointsPage() {
                     </p>
                   )}
                   <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
-                    <div>Points: {checkpoint.points_value}</div>
+                    <div>
+                      {checkpoint.checkpoint_mode === 'spend'
+                        ? `Cost: ${checkpoint.points_value}`
+                        : `Points: ${checkpoint.points_value}`}
+                    </div>
                     <div>
                       URL:{' '}
                       <span className="font-mono text-blue-600">

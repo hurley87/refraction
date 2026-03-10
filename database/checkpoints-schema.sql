@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS checkpoints (
     name VARCHAR(255) NOT NULL,
     description TEXT,
     chain_type VARCHAR(20) NOT NULL CHECK (chain_type IN ('evm', 'solana', 'stellar', 'aptos')),
+    checkpoint_mode VARCHAR(20) NOT NULL DEFAULT 'checkin' CHECK (checkpoint_mode IN ('checkin', 'spend')),
     points_value INTEGER NOT NULL DEFAULT 100,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_by VARCHAR(255),  -- Admin email who created it

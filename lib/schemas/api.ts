@@ -116,6 +116,7 @@ export const locationCommentsQuerySchema = z.object({
  * Schema for checkpoint chain types
  */
 export const chainTypeSchema = z.enum(['evm', 'solana', 'stellar', 'aptos']);
+export const checkpointModeSchema = z.enum(['checkin', 'spend']);
 
 /**
  * Schema for unified checkin API POST request (supports all chains)
@@ -192,6 +193,7 @@ export const createCheckpointRequestSchema = z.object({
   description: z.string().max(1000).optional(),
   login_cta_text: z.string().max(120).optional().nullable(),
   chain_type: chainTypeSchema,
+  checkpoint_mode: checkpointModeSchema.default('checkin'),
   points_value: z.coerce.number().int().min(1).max(10000).default(100),
   is_active: z.boolean().default(true),
   partner_image_url: z.string().url().optional().nullable(),
@@ -205,6 +207,7 @@ export const updateCheckpointRequestSchema = z.object({
   description: z.string().max(1000).optional().nullable(),
   login_cta_text: z.string().max(120).optional().nullable(),
   chain_type: chainTypeSchema.optional(),
+  checkpoint_mode: checkpointModeSchema.optional(),
   points_value: z.coerce.number().int().min(1).max(10000).optional(),
   is_active: z.boolean().optional(),
   partner_image_url: z.string().url().optional().nullable(),

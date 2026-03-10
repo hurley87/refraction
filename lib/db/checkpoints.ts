@@ -8,6 +8,7 @@ const CHECKPOINT_COLUMNS = `
   description,
   login_cta_text,
   chain_type,
+  checkpoint_mode,
   points_value,
   is_active,
   created_by,
@@ -15,6 +16,38 @@ const CHECKPOINT_COLUMNS = `
   created_at,
   updated_at
 `;
+
+const CHECKPOINT_COLUMNS_LEGACY = `
+  id,
+  name,
+  description,
+  login_cta_text,
+  chain_type,
+  points_value,
+  is_active,
+  created_by,
+  partner_image_url,
+  created_at,
+  updated_at
+`;
+
+const hasMissingCheckpointModeColumn = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false;
+  const maybeError = error as { code?: string; message?: string };
+  return (
+    (maybeError.code === 'PGRST204' || maybeError.code === '42703') &&
+    typeof maybeError.message === 'string' &&
+    maybeError.message.includes('checkpoint_mode')
+  );
+};
+
+const normalizeCheckpoint = (checkpoint: any): Checkpoint => ({
+  ...checkpoint,
+  checkpoint_mode: checkpoint?.checkpoint_mode || 'checkin',
+});
+
+const normalizeCheckpoints = (checkpoints: any[] | null | undefined) =>
+  (checkpoints || []).map(normalizeCheckpoint);
 
 /**
  * Generate a short, URL-friendly ID for checkpoints
@@ -35,15 +68,33 @@ export const createCheckpoint = async (
   id?: string
 ): Promise<Checkpoint> => {
   const checkpointId = id || generateCheckpointId();
+  const payload = { ...checkpoint, id: checkpointId };
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('checkpoints')
-    .insert({ ...checkpoint, id: checkpointId })
+    .insert(payload)
     .select(CHECKPOINT_COLUMNS)
     .single();
 
+  if (hasMissingCheckpointModeColumn(error)) {
+    if (checkpoint.checkpoint_mode === 'spend') {
+      throw new Error(
+        'Database schema is missing checkpoint_mode. Apply checkpoint migrations before creating spend checkpoints.'
+      );
+    }
+    const legacyPayload = { ...payload } as Record<string, unknown>;
+    delete legacyPayload.checkpoint_mode;
+    const fallbackResult = await supabase
+      .from('checkpoints')
+      .insert(legacyPayload)
+      .select(CHECKPOINT_COLUMNS_LEGACY)
+      .single();
+    data = fallbackResult.data as any;
+    error = fallbackResult.error;
+  }
+
   if (error) throw error;
-  return data;
+  return normalizeCheckpoint(data);
 };
 
 /**
@@ -52,14 +103,24 @@ export const createCheckpoint = async (
 export const getCheckpointById = async (
   id: string
 ): Promise<Checkpoint | null> => {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('checkpoints')
     .select(CHECKPOINT_COLUMNS)
     .eq('id', id)
     .single();
 
+  if (hasMissingCheckpointModeColumn(error)) {
+    const fallbackResult = await supabase
+      .from('checkpoints')
+      .select(CHECKPOINT_COLUMNS_LEGACY)
+      .eq('id', id)
+      .single();
+    data = fallbackResult.data as any;
+    error = fallbackResult.error;
+  }
+
   if (error && error.code !== 'PGRST116') throw error;
-  return data;
+  return data ? normalizeCheckpoint(data) : null;
 };
 
 /**
@@ -68,42 +129,72 @@ export const getCheckpointById = async (
 export const getActiveCheckpointById = async (
   id: string
 ): Promise<Checkpoint | null> => {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('checkpoints')
     .select(CHECKPOINT_COLUMNS)
     .eq('id', id)
     .eq('is_active', true)
     .single();
 
+  if (hasMissingCheckpointModeColumn(error)) {
+    const fallbackResult = await supabase
+      .from('checkpoints')
+      .select(CHECKPOINT_COLUMNS_LEGACY)
+      .eq('id', id)
+      .eq('is_active', true)
+      .single();
+    data = fallbackResult.data as any;
+    error = fallbackResult.error;
+  }
+
   if (error && error.code !== 'PGRST116') throw error;
-  return data;
+  return data ? normalizeCheckpoint(data) : null;
 };
 
 /**
  * List all checkpoints (admin)
  */
 export const listAllCheckpoints = async (): Promise<Checkpoint[]> => {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('checkpoints')
     .select(CHECKPOINT_COLUMNS)
     .order('created_at', { ascending: false });
 
+  if (hasMissingCheckpointModeColumn(error)) {
+    const fallbackResult = await supabase
+      .from('checkpoints')
+      .select(CHECKPOINT_COLUMNS_LEGACY)
+      .order('created_at', { ascending: false });
+    data = fallbackResult.data as any;
+    error = fallbackResult.error;
+  }
+
   if (error) throw error;
-  return data || [];
+  return normalizeCheckpoints(data);
 };
 
 /**
  * List active checkpoints only
  */
 export const listActiveCheckpoints = async (): Promise<Checkpoint[]> => {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('checkpoints')
     .select(CHECKPOINT_COLUMNS)
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
+  if (hasMissingCheckpointModeColumn(error)) {
+    const fallbackResult = await supabase
+      .from('checkpoints')
+      .select(CHECKPOINT_COLUMNS_LEGACY)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+    data = fallbackResult.data as any;
+    error = fallbackResult.error;
+  }
+
   if (error) throw error;
-  return data || [];
+  return normalizeCheckpoints(data);
 };
 
 /**
@@ -113,15 +204,33 @@ export const updateCheckpoint = async (
   id: string,
   updates: Partial<Omit<Checkpoint, 'id' | 'created_at'>>
 ): Promise<Checkpoint> => {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('checkpoints')
     .update(updates)
     .eq('id', id)
     .select(CHECKPOINT_COLUMNS)
     .single();
 
+  if (hasMissingCheckpointModeColumn(error)) {
+    if (updates.checkpoint_mode === 'spend') {
+      throw new Error(
+        'Database schema is missing checkpoint_mode. Apply checkpoint migrations before setting spend mode.'
+      );
+    }
+    const legacyUpdates = { ...updates } as Record<string, unknown>;
+    delete legacyUpdates.checkpoint_mode;
+    const fallbackResult = await supabase
+      .from('checkpoints')
+      .update(legacyUpdates)
+      .eq('id', id)
+      .select(CHECKPOINT_COLUMNS_LEGACY)
+      .single();
+    data = fallbackResult.data as any;
+    error = fallbackResult.error;
+  }
+
   if (error) throw error;
-  return data;
+  return normalizeCheckpoint(data);
 };
 
 /**
@@ -149,13 +258,24 @@ export const toggleCheckpointActive = async (
 export const getCheckpointsByChainType = async (
   chainType: ChainType
 ): Promise<Checkpoint[]> => {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('checkpoints')
     .select(CHECKPOINT_COLUMNS)
     .eq('chain_type', chainType)
     .eq('is_active', true)
     .order('created_at', { ascending: false });
 
+  if (hasMissingCheckpointModeColumn(error)) {
+    const fallbackResult = await supabase
+      .from('checkpoints')
+      .select(CHECKPOINT_COLUMNS_LEGACY)
+      .eq('chain_type', chainType)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+    data = fallbackResult.data as any;
+    error = fallbackResult.error;
+  }
+
   if (error) throw error;
-  return data || [];
+  return normalizeCheckpoints(data);
 };

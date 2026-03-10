@@ -1,9 +1,10 @@
 import { supabase } from './client';
-import type { SpendItem } from '../types';
+import type { Checkpoint, SpendItem } from '../types';
 import { getPlayerByWallet, updatePlayerPoints } from './players';
 
 const SPEND_ITEM_COLUMNS = `
   id,
+  checkpoint_id,
   name,
   description,
   image_url,
@@ -99,6 +100,84 @@ export const getSpendItemById = async (id: string) => {
 };
 
 /**
+ * Get a spend item linked to a checkpoint
+ */
+export const getSpendItemByCheckpointId = async (checkpointId: string) => {
+  const { data, error } = await supabase
+    .from('spend_items')
+    .select(SPEND_ITEM_COLUMNS)
+    .eq('checkpoint_id', checkpointId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null;
+    }
+    throw error;
+  }
+
+  return data;
+};
+
+/**
+ * Ensure spend item state matches a checkpoint.
+ * - spend checkpoint => create/update linked spend item
+ * - checkin checkpoint => delete linked spend item if it exists
+ */
+export const syncSpendItemForCheckpoint = async (
+  checkpoint: Pick<
+    Checkpoint,
+    | 'id'
+    | 'name'
+    | 'description'
+    | 'points_value'
+    | 'is_active'
+    | 'partner_image_url'
+    | 'checkpoint_mode'
+  >
+) => {
+  const existing = await getSpendItemByCheckpointId(checkpoint.id);
+
+  if (checkpoint.checkpoint_mode !== 'spend') {
+    if (existing?.id) {
+      await deleteSpendItem(existing.id);
+    }
+    return null;
+  }
+
+  const payload = {
+    checkpoint_id: checkpoint.id,
+    name: checkpoint.name,
+    description: checkpoint.description || null,
+    image_url: checkpoint.partner_image_url || null,
+    points_cost: checkpoint.points_value,
+    is_active: checkpoint.is_active,
+  };
+
+  if (existing?.id) {
+    return updateSpendItem(existing.id, payload);
+  }
+
+  return createSpendItem(payload);
+};
+
+const getLatestSpendRedemptionForUser = async (
+  spendItemId: string,
+  walletAddress: string
+) => {
+  const { data, error } = await supabase
+    .from('spend_redemptions')
+    .select(SPEND_REDEMPTION_COLUMNS)
+    .eq('spend_item_id', spendItemId)
+    .eq('user_wallet_address', walletAddress)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error) throw error;
+  return data?.[0] ?? null;
+};
+
+/**
  * Create a pending redemption (no point deduction). User must call verifySpendRedemption
  * to deduct points and mark verified. Pending redemptions have no expiry.
  */
@@ -114,6 +193,14 @@ export const createPendingSpendRedemption = async (
   const player = await getPlayerByWallet(walletAddress);
   if (!player) {
     throw new Error('Player not found');
+  }
+
+  const existingRedemption = await getLatestSpendRedemptionForUser(
+    spendItemId,
+    walletAddress
+  );
+  if (existingRedemption) {
+    throw new Error('You already redeemed this item');
   }
 
   const { data, error } = await supabase
@@ -216,6 +303,92 @@ export const verifySpendRedemption = async (
     throw updateError;
   }
   return updated;
+};
+
+/**
+ * Get a user's redemption for a spend item (if any)
+ */
+export const getUserRedemptionForSpendItem = async (
+  spendItemId: string,
+  walletAddress: string
+) => {
+  const { data, error } = await supabase
+    .from('spend_redemptions')
+    .select(`${SPEND_REDEMPTION_COLUMNS}, spend_items (${SPEND_ITEM_COLUMNS})`)
+    .eq('spend_item_id', spendItemId)
+    .eq('user_wallet_address', walletAddress)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (error) throw error;
+  return data?.[0] ?? null;
+};
+
+/**
+ * Redeem once: deduct points and create a fulfilled redemption in one flow.
+ */
+export const redeemSpendItemOnce = async (
+  spendItemId: string,
+  walletAddress: string
+) => {
+  const item = await getSpendItemById(spendItemId);
+  if (!item?.is_active) {
+    throw new Error('This item is no longer available');
+  }
+
+  const player = await getPlayerByWallet(walletAddress);
+  if (!player?.id) {
+    throw new Error('Player not found');
+  }
+
+  const existingRedemption = await getLatestSpendRedemptionForUser(
+    spendItemId,
+    walletAddress
+  );
+  if (existingRedemption) {
+    throw new Error('You already redeemed this item');
+  }
+
+  if ((player.total_points ?? 0) < item.points_cost) {
+    throw new Error('Insufficient points');
+  }
+
+  const updatedPlayer = await updatePlayerPoints(player.id, -item.points_cost);
+  if (updatedPlayer.total_points < 0) {
+    await updatePlayerPoints(player.id, item.points_cost);
+    throw new Error('Insufficient points');
+  }
+
+  const { data: redemption, error: insertError } = await supabase
+    .from('spend_redemptions')
+    .insert({
+      spend_item_id: spendItemId,
+      user_wallet_address: walletAddress,
+      points_spent: item.points_cost,
+      is_fulfilled: true,
+      fulfilled_at: new Date().toISOString(),
+      verified_by: 'user',
+    })
+    .select(`${SPEND_REDEMPTION_COLUMNS}, spend_items (${SPEND_ITEM_COLUMNS})`)
+    .single();
+
+  if (insertError) {
+    try {
+      await updatePlayerPoints(player.id, item.points_cost);
+    } catch (compensateError) {
+      console.error(
+        'CRITICAL: Failed to compensate points after redemption insert failure',
+        compensateError
+      );
+    }
+
+    if (insertError.code === '23505') {
+      throw new Error('You already redeemed this item');
+    }
+    throw insertError;
+  }
+
+  return { redemption, player: updatedPlayer };
 };
 
 /**
