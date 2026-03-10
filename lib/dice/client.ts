@@ -22,6 +22,7 @@ query GetEvents($first: Int, $after: String) {
           endDatetime
           description
           state
+          hidden
           venues {
             name
             city
@@ -55,6 +56,7 @@ query GetEvent($eventId: ID!) {
       endDatetime
       description
       state
+      hidden
       venues {
         name
         city
