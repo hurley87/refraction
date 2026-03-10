@@ -104,19 +104,23 @@ function formatCheckinTimestamp(timestamp?: string | null) {
 
 interface InteractiveMapProps {
   initialPlaceId?: string | null;
+  initialLatitude?: number;
+  initialLongitude?: number;
 }
 
 export default function InteractiveMap({
   initialPlaceId,
+  initialLatitude,
+  initialLongitude,
 }: InteractiveMapProps) {
   const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
   const [userUsername, setUserUsername] = useState<string | null>(null);
 
   const [viewState, setViewState] = useState({
-    longitude: -73.9442,
-    latitude: 40.7081,
-    zoom: 8,
+    longitude: initialLongitude ?? -73.9442,
+    latitude: initialLatitude ?? 40.7081,
+    zoom: initialLatitude != null && initialLongitude != null ? 12 : 8,
   });
 
   const [markers, setMarkers] = useState<MarkerData[]>([]);
@@ -172,8 +176,13 @@ export default function InteractiveMap({
   const [, setLocationInstructionShows] = useState(0);
 
   // Center map on user's current location once on mount (with fallback)
+  // Skip geolocation if the map was opened with explicit city coordinates.
   useEffect(() => {
     if (hasSetInitialLocationRef.current) return;
+    if (initialLatitude != null && initialLongitude != null) {
+      hasSetInitialLocationRef.current = true;
+      return;
+    }
     if (typeof window === 'undefined' || !('geolocation' in navigator)) return;
 
     navigator.geolocation.getCurrentPosition(
@@ -193,7 +202,7 @@ export default function InteractiveMap({
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
-  }, []);
+  }, [initialLatitude, initialLongitude]);
 
   // Keep wallet address ref in sync
   useEffect(() => {
