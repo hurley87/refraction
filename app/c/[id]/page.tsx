@@ -14,7 +14,7 @@ export default async function CheckpointPage({ params }: CheckpointPageProps) {
   }
 
   return (
-    <div className="min-h-dvh w-full font-sans px-6 py-4 sm:py-0">
+    <div className="min-h-dvh w-full font-sans">
       <UnifiedCheckpoint checkpoint={checkpoint} />
     </div>
   );

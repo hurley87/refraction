@@ -111,8 +111,10 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
 
   if (isLoading || !spendItem) {
     return (
-      <div className="flex min-h-dvh items-center justify-center px-6 py-10">
-        <div className="text-sm text-black/70">Loading redemption...</div>
+      <div className="flex min-h-dvh items-center justify-center px-4 py-10">
+        <div className="rounded-3xl bg-white px-8 py-10 text-center shadow-sm">
+          <div className="text-sm text-black/50">Loading redemption...</div>
+        </div>
       </div>
     );
   }
@@ -121,12 +123,8 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
   const canAfford = currentPoints >= spendItem.points_cost;
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col px-4 py-5 font-grotesk text-[#17181A] sm:px-6">
-      <h1 className="text-center text-[36px] font-medium tracking-[-1.2px] font-pleasure">
-        {hasRedeemed ? 'Success!' : 'Confirm Your Purchase'}
-      </h1>
-
-      <div className="mt-4 overflow-hidden rounded-[22px] border border-black/10 bg-white shadow-sm">
+    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col items-center justify-center px-4 py-8 font-grotesk sm:px-6">
+      <div className="w-full overflow-hidden rounded-3xl bg-white shadow-xl">
         {checkpoint.partner_image_url && (
           <Image
             src={checkpoint.partner_image_url}
@@ -136,114 +134,121 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
             className="h-auto w-full object-cover"
           />
         )}
-      </div>
 
-      <div className="mt-5 text-center">
-        <h2 className="text-[42px] leading-none tracking-[-1.4px] font-pleasure">
-          {checkpoint.name}
-        </h2>
-        {checkpoint.description && (
-          <p className="mt-2 text-sm text-black/65">{checkpoint.description}</p>
-        )}
-      </div>
+        <div className="px-5 pb-7 pt-6 sm:px-7">
+          <h1 className="text-center text-[32px] font-medium tracking-[-1px] font-pleasure text-[#17181A]">
+            {hasRedeemed ? 'Success!' : 'Confirm Your Purchase'}
+          </h1>
 
-      {!hasRedeemed ? (
-        <>
-          <div className="mt-7 space-y-4 border-y border-black/10 py-5">
-            <div className="flex items-end justify-between gap-4">
-              <span className="title5 text-black/35">YOU SEND</span>
-              <span className="title4">
-                {spendItem.points_cost.toLocaleString()} <span className="text-black/40">PTS</span>
-              </span>
-            </div>
-            <div className="flex items-end justify-between gap-4">
-              <span className="title5 text-black/35">YOU RECEIVE</span>
-              <span className="title4 text-right">{checkpoint.name}</span>
-            </div>
+          <div className="mt-4 text-center">
+            <h2 className="text-[28px] leading-tight tracking-[-0.8px] font-pleasure text-[#17181A] sm:text-[34px]">
+              {checkpoint.name}
+            </h2>
+            {checkpoint.description && (
+              <p className="mt-1.5 text-sm text-black/50">{checkpoint.description}</p>
+            )}
           </div>
 
-          <div className="mt-6 rounded-[22px] border border-black/15 bg-white p-4">
-            <div className="mb-3 flex items-center justify-between gap-4">
-              <span className="title5 text-black/45">YOUR ACCOUNT</span>
-              <span className="rounded-full border border-black/25 px-3 py-1 text-sm font-mono uppercase">
-                {user?.email?.address || 'Not logged in'}
-              </span>
-            </div>
-            <div className="flex items-end justify-between gap-4">
-              <span className="title5 text-black/45">CURRENT POINTS</span>
-              <div className="text-right">
-                <div className="title4">
-                  {currentPoints.toLocaleString()}{' '}
-                  <span className="text-black/40">PTS</span>
+          {!hasRedeemed ? (
+            <>
+              <div className="mt-6 space-y-3.5 border-t border-black/8 pt-5">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-xs font-medium uppercase tracking-wider text-black/40">You send</span>
+                  <span className="text-[15px] font-medium text-[#17181A]">
+                    {spendItem.points_cost.toLocaleString()} <span className="text-black/35">PTS</span>
+                  </span>
                 </div>
-                <div className="text-sm font-semibold text-[#FF4A2E]">
-                  -{spendItem.points_cost.toLocaleString()}
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-xs font-medium uppercase tracking-wider text-black/40">You receive</span>
+                  <span className="text-[15px] font-medium text-right text-[#17181A]">{checkpoint.name}</span>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {submitError && (
-            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {submitError}
-            </p>
-          )}
+              <div className="mt-5 rounded-2xl bg-[#F7F7F8] p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-xs font-medium uppercase tracking-wider text-black/40">Your account</span>
+                  <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-black/70">
+                    {user?.email?.address || 'Not logged in'}
+                  </span>
+                </div>
+                <div className="mt-3.5 flex items-center justify-between gap-4">
+                  <span className="text-xs font-medium uppercase tracking-wider text-black/40">Current points</span>
+                  <div className="text-right">
+                    <span className="text-[15px] font-medium text-[#17181A]">
+                      {currentPoints.toLocaleString()} <span className="text-black/35">PTS</span>
+                    </span>
+                    <div className="mt-0.5 text-xs font-semibold text-[#FF4A2E]">
+                      -{spendItem.points_cost.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          {!user ? (
-            <Button
-              onClick={login}
-              className="mt-7 h-14 rounded-full bg-[#2A2D34] text-lg font-medium hover:bg-[#1f2228]"
-            >
-              {checkpoint.login_cta_text?.trim() || 'Login to Redeem'}
-            </Button>
+              {submitError && (
+                <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {submitError}
+                </p>
+              )}
+
+              {!user ? (
+                <Button
+                  onClick={login}
+                  className="mt-6 h-[52px] w-full rounded-2xl bg-[#17181A] text-base font-medium text-white hover:bg-[#2A2D34] transition-colors"
+                >
+                  {checkpoint.login_cta_text?.trim() || 'Login to Redeem'}
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => redeemMutation.mutate()}
+                  disabled={redeemMutation.isPending || !canAfford}
+                  className="mt-6 h-[52px] w-full rounded-2xl bg-[#17181A] text-base font-medium text-white hover:bg-[#2A2D34] transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {redeemMutation.isPending
+                    ? 'Redeeming...'
+                    : canAfford
+                      ? 'Confirm Purchase'
+                      : 'Not Enough Points'}
+                </Button>
+              )}
+
+              {user && canAfford && (
+                <p className="mt-3 text-center text-xs text-black/40">
+                  Balance after purchase: {pointsAfterRedeem.toLocaleString()} PTS
+                </p>
+              )}
+            </>
           ) : (
-            <Button
-              onClick={() => redeemMutation.mutate()}
-              disabled={redeemMutation.isPending || !canAfford}
-              className="mt-7 h-14 rounded-full bg-[#2A2D34] text-lg font-medium hover:bg-[#1f2228] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {redeemMutation.isPending
-                ? 'Redeeming...'
-                : canAfford
-                  ? 'Confirm Purchase'
-                  : 'Not Enough Points'}
-            </Button>
+            <>
+              <div className="mt-1 text-center">
+                <span className="text-xs font-medium uppercase tracking-wider text-black/40">You received</span>
+              </div>
+
+              <div className="mt-5 space-y-3.5 border-t border-black/8 pt-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium uppercase tracking-wider text-black/40">You spent</span>
+                  <span className="text-[15px] font-medium text-[#17181A]">
+                    {spendItem.points_cost.toLocaleString()} <span className="text-black/35">PTS</span>
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium uppercase tracking-wider text-black/40">Points balance</span>
+                  <span className="text-[15px] font-medium text-[#17181A]">
+                    {currentPoints.toLocaleString()} <span className="text-black/35">PTS</span>
+                  </span>
+                </div>
+              </div>
+
+              <p className="mt-5 text-center text-sm text-black/50">
+                This redemption is complete. Show this confirmation at pickup.
+              </p>
+
+              <div className="mt-6 flex h-[52px] w-full items-center justify-center rounded-2xl border border-black/10 bg-[#F7F7F8] text-base font-medium text-black/50">
+                Redeemed
+              </div>
+            </>
           )}
-        </>
-      ) : (
-        <>
-          <p className="mt-2 text-center title5 text-black/40">YOU RECEIVED</p>
-          <div className="mt-6 space-y-3 border-y border-black/10 py-5">
-            <div className="flex items-center justify-between">
-              <span className="title5 text-black/40">YOU SPENT</span>
-              <span className="title4">
-                {spendItem.points_cost.toLocaleString()} <span className="text-black/40">PTS</span>
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="title5 text-black/40">YOUR POINTS BALANCE</span>
-              <span className="title4">{currentPoints.toLocaleString()}</span>
-            </div>
-          </div>
-
-          <p className="mt-5 text-center text-base text-black/75">
-            This redemption is complete. Show this confirmation at pickup.
-          </p>
-
-          <Button
-            disabled
-            className="mt-7 h-14 cursor-default rounded-full border border-black/20 bg-white text-lg text-black hover:bg-white"
-          >
-            Redeemed!
-          </Button>
-        </>
-      )}
-
-      {!hasRedeemed && user && canAfford && (
-        <p className="mt-3 text-center text-xs text-black/45">
-          Balance after purchase: {pointsAfterRedeem.toLocaleString()} PTS
-        </p>
-      )}
+        </div>
+      </div>
     </div>
   );
 }
