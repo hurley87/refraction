@@ -14,18 +14,7 @@ const COVER_IMAGES = [
           name: 'Denver',
           url: 'https://substack.com/@refractiondao/p-188382099',
         },
-        {
-          src: '/homepage/city-guides-covers/denver-guide.png',
-          alt: 'City guide cover',
-          name: 'Denver',
-          url: 'https://substack.com/@refractiondao/p-188382099',
-        },
-        {
-          src: '/homepage/city-guides-covers/denver-guide.png',
-          alt: 'City guide cover',
-          name: 'Denver',
-          url: 'https://substack.com/@refractiondao/p-188382099',
-        },
+   
 ];
 
 // Update with actual Refraction Substack URL

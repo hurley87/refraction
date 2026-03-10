@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -72,24 +72,9 @@ const CITIES = [
   },
 ];
 
-function TabLine({
-  active,
-  onClick,
-  ariaLabel,
-}: {
-  active: boolean;
-  onClick: () => void;
-  ariaLabel: string;
-}) {
+function TabLine({ active }: { active: boolean }) {
   return (
-    <button
-      type="button"
-      role="tab"
-      onClick={onClick}
-      aria-label={ariaLabel}
-      aria-selected={active}
-      className="flex-1 min-w-0 h-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded-full flex justify-center"
-    >
+    <div className="flex-1 min-w-0 h-0.5 flex justify-center" aria-hidden>
       <svg
         width="76"
         height="2"
@@ -97,7 +82,6 @@ function TabLine({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="w-full h-0.5 block"
-        aria-hidden
       >
         <path
           d="M75.2346 0V2H0V0H75.2346Z"
@@ -105,7 +89,7 @@ function TabLine({
           opacity={active ? 1 : 0.4}
         />
       </svg>
-    </button>
+    </div>
   );
 }
 
@@ -135,6 +119,14 @@ const TAB_CITIES = CITIES.slice(0, 5); // First 5 cities for the 5 tab lines
 
 export default function CityGuidesCarouselSection() {
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+
+  // Auto-rotate every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSelectedTabIndex((prev) => (prev + 1) % TAB_CITIES.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const selectedCity = TAB_CITIES[selectedTabIndex];
 
@@ -199,15 +191,10 @@ export default function CityGuidesCarouselSection() {
             backdropFilter: 'blur(28px)',
           }}
         >
-          {/* Tab navigation: full width edge to edge */}
+          {/* Tab indicators: show current city in rotation (non-interactive) */}
           <div className="flex justify-stretch items-center flex-shrink-0 w-[calc(100%+48px)] min-w-0 gap-0 -mx-6">
             {TAB_CITIES.map((city, index) => (
-              <TabLine
-                key={city.slug}
-                active={selectedTabIndex === index}
-                onClick={() => setSelectedTabIndex(index)}
-                ariaLabel={`View ${city.name}`}
-              />
+              <TabLine key={city.slug} active={selectedTabIndex === index} />
             ))}
           </div>
 

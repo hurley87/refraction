@@ -19,10 +19,10 @@ export default function CheckInsFundCultureSection() {
             className="shrink-0"
           />
           <h2
-            className="title5  text-white text-center"
-            style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
+            className="text-[#FFF] font-['ABC_Monument_Grotesk_Unlicensed_Trial',_sans-serif] text-[13px] font-medium leading-4 tracking-[-0.39px] text-center"
+            style={{ textShadow: '0 0 26.7px #FFF' }}
           >
-            Culture as infrastructure
+            Culture As Infrastructure
           </h2>
         </div>
 
@@ -42,10 +42,10 @@ export default function CheckInsFundCultureSection() {
           {/* Column 2: Text - flex to fit, padding 24 118 48 118, bg #313131; button at bottom */}
           <div className="flex flex-col justify-between items-center md:items-start text-center md:text-left gap-6 self-stretch py-6 px-4 md:py-6 md:px-[118px] md:pb-12 md:w-[50%] md:max-w-[692px] md:flex-none md:min-w-0 bg-[#313131] md:box-border">
             <div className="flex flex-col gap-6">
-              <h3 className="  text-white font-grotesk ">
+              <h3 className="text-[#FFF] font-['ABC_Monument_Grotesk_Unlicensed_Trial',_sans-serif] text-[39px] font-medium leading-[40px] tracking-[-0.39px]">
                 Your Check-Ins Fund Culture
               </h3>
-              <p className="body-large  text-[#ffffff] font-grotesk max-w-[700px] md:max-w-none">
+              <p className="max-w-[700px] md:max-w-none text-[#FFF] font-normal text-base leading-[22px] tracking-[-0.48px] font-['ABC_Monument_Grotesk_Semi-Mono_Unlicensed_Trial',_sans-serif]">
                 Every transaction in the IRL network creates value. That value
                 flows back to venues, artists, and the community. Your check-ins
                 aren&apos;t just where you go—they&apos;re funding what happens
@@ -56,10 +56,10 @@ export default function CheckInsFundCultureSection() {
               <Link href="/interactive-map">
                 <button className="flex w-[220px] h-[52px] justify-center items-center gap-6 rounded-full bg-white cursor-pointer hover:bg-gray-100 transition-colors">
                   <span className="title3 text-[#313131] md:hidden">
-                    Check in
+                    Check In
                   </span>
                   <span className="title3 text-[#313131] hidden md:inline">
-                    Check in
+                    Check In
                   </span>
                 </button>
               </Link>
