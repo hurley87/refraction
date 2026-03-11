@@ -238,7 +238,7 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
                 </div>
               </div>
 
-              <p className="mt-5 text-center text-sm text-black/50">
+              <p className="mt-5 text-center text-lg font-medium text-black/70">
                 This redemption is complete. Show this confirmation at pickup.
               </p>
 
