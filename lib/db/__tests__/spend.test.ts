@@ -219,6 +219,41 @@ describe('redeemSpendItemOnce', () => {
     expect(result.player).toEqual(player);
   });
 
+  it('falls back to legacy redemption flow when atomic RPC is missing', async () => {
+    const item = { id: itemId, points_cost: 100, is_active: true };
+    const player = { id: 1, wallet_address: wallet, total_points: 200 };
+    const updatedPlayer = { id: 1, wallet_address: wallet, total_points: 100 };
+    const redemption = {
+      id: redemptionId,
+      spend_item_id: itemId,
+      user_wallet_address: wallet,
+      points_spent: 100,
+      is_fulfilled: true,
+      spend_items: { id: itemId, is_active: true },
+    };
+
+    mockRpc.mockResolvedValue({
+      data: null,
+      error: {
+        message:
+          'Could not find the function public.redeem_spend_item_once_atomic(p_spend_item_id, p_wallet_address)',
+        code: 'PGRST202',
+      },
+    });
+    mockSingle
+      .mockResolvedValueOnce({ data: item, error: null })
+      .mockResolvedValueOnce({ data: redemption, error: null });
+    mockUpdatePlayerPoints.mockResolvedValue(updatedPlayer);
+    vi.mocked(getPlayerByWallet).mockResolvedValue(player as any);
+
+    const result = await redeemSpendItemOnce(itemId, wallet);
+
+    expect(mockInsert).toHaveBeenCalled();
+    expect(mockUpdatePlayerPoints).toHaveBeenCalledWith(1, -100);
+    expect(result.redemption).toEqual(redemption);
+    expect(result.player).toEqual(updatedPlayer);
+  });
+
   it('maps known RPC errors to user-friendly errors', async () => {
     mockRpc.mockResolvedValue({
       data: null,

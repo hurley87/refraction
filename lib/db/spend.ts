@@ -331,6 +331,67 @@ export const redeemSpendItemOnce = async (
   spendItemId: string,
   walletAddress: string
 ) => {
+  const redeemViaLegacyFlow = async () => {
+    const item = await getSpendItemById(spendItemId);
+    if (!item?.is_active) {
+      throw new Error('This item is no longer available');
+    }
+
+    const player = await getPlayerByWallet(walletAddress);
+    if (!player?.id) {
+      throw new Error('Player not found');
+    }
+
+    const existingRedemption = await getLatestSpendRedemptionForUser(
+      spendItemId,
+      walletAddress
+    );
+    if (existingRedemption) {
+      throw new Error('You already redeemed this item');
+    }
+
+    if ((player.total_points ?? 0) < item.points_cost) {
+      throw new Error('Insufficient points');
+    }
+
+    const updatedPlayer = await updatePlayerPoints(player.id, -item.points_cost);
+    if (updatedPlayer.total_points < 0) {
+      await updatePlayerPoints(player.id, item.points_cost);
+      throw new Error('Insufficient points');
+    }
+
+    const { data: redemption, error: insertError } = await supabase
+      .from('spend_redemptions')
+      .insert({
+        spend_item_id: spendItemId,
+        user_wallet_address: walletAddress,
+        points_spent: item.points_cost,
+        is_fulfilled: true,
+        fulfilled_at: new Date().toISOString(),
+        verified_by: 'user',
+      })
+      .select(`${SPEND_REDEMPTION_COLUMNS}, spend_items (${SPEND_ITEM_COLUMNS})`)
+      .single();
+
+    if (insertError) {
+      try {
+        await updatePlayerPoints(player.id, item.points_cost);
+      } catch (compensateError) {
+        console.error(
+          'CRITICAL: Failed to compensate points after redemption insert failure',
+          compensateError
+        );
+      }
+
+      if (insertError.code === '23505') {
+        throw new Error('You already redeemed this item');
+      }
+      throw insertError;
+    }
+
+    return { redemption, player: updatedPlayer };
+  };
+
   const { data: rpcData, error: rpcError } = await supabase.rpc(
     'redeem_spend_item_once_atomic',
     {
@@ -341,6 +402,14 @@ export const redeemSpendItemOnce = async (
 
   if (rpcError) {
     const rpcMessage = rpcError.message ?? '';
+    const missingAtomicRpc =
+      rpcError.code === 'PGRST202' ||
+      rpcMessage.includes('redeem_spend_item_once_atomic');
+
+    if (missingAtomicRpc) {
+      return redeemViaLegacyFlow();
+    }
+
     const knownError = [
       'You already redeemed this item',
       'Insufficient points',
