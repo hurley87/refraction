@@ -46,10 +46,10 @@ export default function Hero() {
             Your Local Guide To What&apos;s Good Around The World
           </div>
 
-          {/* Join For Free button */}
+          {/* CTA button */}
           <Link href="/interactive-map" className="flex">
-            <button className="flex h-[52px] w-[219px] py-3 px-6 justify-center items-center gap-2.5 rounded-full bg-white hover:bg-gray-100 transition-colors cursor-pointer title3 text-[#313131] font-grotesk">
-              Join For Free
+            <button className="flex h-[52px] py-3 px-6 justify-center items-center gap-2.5 rounded-full bg-white hover:bg-gray-100 transition-colors cursor-pointer title3 text-[#313131] font-grotesk whitespace-nowrap">
+              Discover the IRL Map
             </button>
           </Link>
         </div>
