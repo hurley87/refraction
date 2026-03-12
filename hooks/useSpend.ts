@@ -40,15 +40,20 @@ export function useSpendPoints() {
     mutationFn: async ({
       spendItemId,
       walletAddress,
+      accessToken,
     }: {
       spendItemId: string;
       walletAddress: string;
+      accessToken: string;
     }) => {
       const data = await apiClient<{ redemption: SpendRedemption }>(
         `/api/spend/${spendItemId}`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({ walletAddress }),
         }
       );
@@ -70,15 +75,20 @@ export function useVerifySpendRedemption() {
     mutationFn: async ({
       redemptionId,
       walletAddress,
+      accessToken,
     }: {
       redemptionId: string;
       walletAddress: string;
+      accessToken: string;
     }) => {
       const data = await apiClient<{ redemption: SpendRedemption }>(
         `/api/spend/redemptions/${redemptionId}/verify`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({ walletAddress }),
         }
       );

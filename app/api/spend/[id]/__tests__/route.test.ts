@@ -6,8 +6,13 @@ vi.mock('@/lib/db/spend', () => ({
   createPendingSpendRedemption: vi.fn(),
 }));
 
+vi.mock('@/lib/api/privy', () => ({
+  verifyWalletOwnership: vi.fn(),
+}));
+
 import { GET, POST } from '../route';
 import { getSpendItemById, createPendingSpendRedemption } from '@/lib/db/spend';
+import { verifyWalletOwnership } from '@/lib/api/privy';
 
 const validWallet = '0x1234567890abcdef1234567890abcdef12345678';
 const validItemId = '550e8400-e29b-41d4-a716-446655440000';
@@ -29,6 +34,7 @@ function createGetRequest(itemId: string = validItemId) {
 describe('GET /api/spend/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(verifyWalletOwnership).mockResolvedValue({ authorized: true });
   });
 
   it('returns item when found', async () => {
@@ -62,6 +68,7 @@ describe('GET /api/spend/[id]', () => {
 describe('POST /api/spend/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(verifyWalletOwnership).mockResolvedValue({ authorized: true });
   });
 
   it('creates pending redemption and does not deduct points', async () => {
@@ -98,6 +105,21 @@ describe('POST /api/spend/[id]', () => {
 
     expect(res.status).toBe(400);
     expect(json.success).toBe(false);
+    expect(createPendingSpendRedemption).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when wallet auth fails', async () => {
+    vi.mocked(verifyWalletOwnership).mockResolvedValue({
+      authorized: false,
+      error: 'Unauthorized',
+    });
+
+    const req = createPostRequest({ walletAddress: validWallet });
+    const res = await POST(req, { params: { id: validItemId } });
+    const json = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(json.error).toBe('Unauthorized');
     expect(createPendingSpendRedemption).not.toHaveBeenCalled();
   });
 

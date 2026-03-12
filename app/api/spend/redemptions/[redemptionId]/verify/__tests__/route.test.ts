@@ -5,8 +5,13 @@ vi.mock('@/lib/db/spend', () => ({
   verifySpendRedemption: vi.fn(),
 }));
 
+vi.mock('@/lib/api/privy', () => ({
+  verifyWalletOwnership: vi.fn(),
+}));
+
 import { POST } from '../route';
 import { verifySpendRedemption } from '@/lib/db/spend';
+import { verifyWalletOwnership } from '@/lib/api/privy';
 
 const validWallet = '0x1234567890abcdef1234567890abcdef12345678';
 const otherWallet = '0xabcdef1234567890abcdef1234567890abcdef12';
@@ -26,6 +31,7 @@ function createRequest(body: unknown) {
 describe('POST /api/spend/redemptions/[redemptionId]/verify', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(verifyWalletOwnership).mockResolvedValue({ authorized: true });
   });
 
   it('verifies redemption and deducts points', async () => {
@@ -98,6 +104,21 @@ describe('POST /api/spend/redemptions/[redemptionId]/verify', () => {
 
     expect(res.status).toBe(400);
     expect(json.success).toBe(false);
+    expect(verifySpendRedemption).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when wallet auth fails', async () => {
+    vi.mocked(verifyWalletOwnership).mockResolvedValue({
+      authorized: false,
+      error: 'Unauthorized',
+    });
+
+    const req = createRequest({ walletAddress: validWallet });
+    const res = await POST(req, { params: { redemptionId } });
+    const json = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(json.error).toBe('Unauthorized');
     expect(verifySpendRedemption).not.toHaveBeenCalled();
   });
 });

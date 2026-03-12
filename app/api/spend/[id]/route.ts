@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getSpendItemById, createPendingSpendRedemption } from '@/lib/db/spend';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { spendPointsSchema } from '@/lib/schemas/spend';
+import { verifyWalletOwnership } from '@/lib/api/privy';
 import { ZodError } from 'zod';
 
 // GET /api/spend/[id] - Get a single spend item
@@ -33,6 +34,11 @@ export async function POST(
       spendItemId: params.id,
       walletAddress: body.walletAddress,
     });
+
+    const auth = await verifyWalletOwnership(request, validated.walletAddress);
+    if (!auth.authorized) {
+      return apiError(auth.error ?? 'Unauthorized', 401);
+    }
 
     const redemption = await createPendingSpendRedemption(
       validated.spendItemId,

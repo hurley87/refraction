@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { verifySpendRedemption } from '@/lib/db/spend';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { verifyRedemptionSchema } from '@/lib/schemas/spend';
+import { verifyWalletOwnership } from '@/lib/api/privy';
 import { ZodError } from 'zod';
 
 /**
@@ -16,6 +17,11 @@ export async function POST(
   try {
     const body = await request.json();
     const validated = verifyRedemptionSchema.parse(body);
+
+    const auth = await verifyWalletOwnership(request, validated.walletAddress);
+    if (!auth.authorized) {
+      return apiError(auth.error ?? 'Unauthorized', 401);
+    }
 
     const redemption = await verifySpendRedemption(
       params.redemptionId,

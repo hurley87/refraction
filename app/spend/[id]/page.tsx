@@ -16,7 +16,7 @@ import type { SpendRedemption } from '@/lib/types';
 
 export default function SpendItemPage() {
   const { id } = useParams<{ id: string }>();
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const walletAddress = user?.wallet?.address;
 
   const { data: item, isLoading: itemLoading } = useSpendItem(id);
@@ -34,10 +34,15 @@ export default function SpendItemPage() {
     .filter(forThisItem)
     .filter((r) => r.is_fulfilled);
 
-  const handleGetTicket = () => {
+  const handleGetTicket = async () => {
     if (!walletAddress || !id) return;
+    const token = await getAccessToken();
+    if (!token) {
+      toast.error('Please log in to continue');
+      return;
+    }
     createMutation.mutate(
-      { spendItemId: id, walletAddress },
+      { spendItemId: id, walletAddress, accessToken: token },
       {
         onSuccess: () =>
           toast.success('Drink ticket created. Verify at the bar to use it.'),
@@ -50,10 +55,15 @@ export default function SpendItemPage() {
     );
   };
 
-  const handleVerify = (redemptionId: string) => {
+  const handleVerify = async (redemptionId: string) => {
     if (!walletAddress) return;
+    const token = await getAccessToken();
+    if (!token) {
+      toast.error('Please log in to continue');
+      return;
+    }
     verifyMutation.mutate(
-      { redemptionId, walletAddress },
+      { redemptionId, walletAddress, accessToken: token },
       {
         onSuccess: () => toast.success('Verified. Points deducted.'),
         onError: (error) => {
@@ -126,7 +136,7 @@ export default function SpendItemPage() {
         <>
           <Button
             className="w-full mb-6"
-            onClick={handleGetTicket}
+            onClick={() => void handleGetTicket()}
             disabled={createMutation.isPending}
           >
             {createMutation.isPending ? 'Creating...' : 'Get Drink Ticket'}
@@ -148,7 +158,7 @@ export default function SpendItemPage() {
                     </span>
                     <Button
                       size="sm"
-                      onClick={() => handleVerify(r.id!)}
+                      onClick={() => void handleVerify(r.id!)}
                       disabled={
                         verifyMutation.isPending ||
                         currentPoints < r.points_spent
