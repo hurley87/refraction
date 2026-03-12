@@ -18,7 +18,7 @@ interface AuthWrapperProps {
   authContextLoginCtaText?: string | null;
 }
 
-const DEFAULT_AUTH_TITLE = 'Welcome to ETHDenver Vibez Lounge';
+const DEFAULT_AUTH_TITLE = 'Welcome to WalletCon';
 const DEFAULT_LOGIN_CTA = 'Check in to Earn Points on IRL';
 const MINIMAL_LOGIN_CTA = 'Get Started';
 const DEFAULT_EMAIL_HEADING = 'Link your email for updates';
