@@ -7,6 +7,7 @@ import {
   REWARD1155_ABI,
   ERC20_ABI,
 } from '@/lib/reward1155-abi';
+import { verifyWalletOwnership } from '@/lib/api/privy';
 
 // In-memory lock to prevent concurrent mints for the same user
 const mintLocks = new Map<string, Promise<any>>();
@@ -28,6 +29,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'User address is required' },
         { status: 400 }
+      );
+    }
+
+    const auth = await verifyWalletOwnership(req, userAddress);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: auth.error ?? 'Unauthorized' },
+        { status: 401 }
       );
     }
 
@@ -233,6 +242,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'User address is required' },
         { status: 400 }
+      );
+    }
+
+    const auth = await verifyWalletOwnership(req, userAddress);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: auth.error ?? 'Unauthorized' },
+        { status: 401 }
       );
     }
 

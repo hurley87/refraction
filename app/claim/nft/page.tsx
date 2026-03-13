@@ -12,7 +12,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export default function ClaimNFTPage() {
-  const { authenticated, user, ready } = usePrivy();
+  const { authenticated, user, ready, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
   const router = useRouter();
   const [claiming, setClaiming] = useState(false);
@@ -31,7 +31,14 @@ export default function ClaimNFTPage() {
     queryKey: ["claim-status", userAddress],
     queryFn: async () => {
       if (!userAddress) return null;
-      const response = await fetch(`/api/claim-nft?userAddress=${userAddress}`);
+      const token = await getAccessToken();
+      if (!token) throw new Error("Missing authorization token");
+
+      const response = await fetch(`/api/claim-nft?userAddress=${userAddress}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) throw new Error("Failed to fetch claim status");
       return response.json();
     },
@@ -56,10 +63,15 @@ export default function ClaimNFTPage() {
     mutationFn: async (address: string) => {
       if (!address) throw new Error("No wallet connected");
       if (mintOver) throw new Error("Mint is over");
+      const token = await getAccessToken();
+      if (!token) throw new Error("Missing authorization token");
 
       const response = await fetch("/api/claim-nft", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ userAddress: address }),
       });
 

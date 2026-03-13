@@ -12,7 +12,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function ClaimSuccessPage() {
-  const { authenticated, user } = usePrivy();
+  const { authenticated, user, getAccessToken } = usePrivy();
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -31,11 +31,18 @@ export default function ClaimSuccessPage() {
     queryKey: ['claim-status', userAddress],
     queryFn: async () => {
       if (!userAddress) return null;
-      const response = await fetch(`/api/claim-nft?userAddress=${userAddress}`);
+      const token = await getAccessToken();
+      if (!token) throw new Error('Missing authorization token');
+
+      const response = await fetch(`/api/claim-nft?userAddress=${userAddress}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!response.ok) throw new Error('Failed to fetch claim status');
       return response.json();
     },
-    enabled: !!userAddress,
+    enabled: !!userAddress && authenticated,
   });
 
   // Redirect if user hasn't claimed yet
