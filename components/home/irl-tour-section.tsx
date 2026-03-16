@@ -115,12 +115,12 @@ export default function IRLTourSection() {
         </div>
 
         {/* Right column: poster (on desktop); first on mobile */}
-        <div className="order-1 md:order-2 relative w-[237px] mx-auto md:mx-0 md:w-[500px] md:flex-shrink-0 aspect-[3/4] rounded-none overflow-hidden mb-12 md:mb-0">
+        <div className="order-1 md:order-2 relative w-[237px] mx-auto md:mx-0 md:w-[500px] md:flex-shrink-0 aspect-[3/4] rounded-none mb-12 md:mb-0">
           <Image
             src={POSTER_SRC}
             alt="IRL Tour poster"
             fill
-            className="object-cover"
+            className="object-contain"
             sizes="(max-width: 768px) 237px, 500px"
             priority={false}
           />
