@@ -146,7 +146,7 @@ export default function LocationListsDrawer({
 }: LocationListsDrawerProps) {
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   // const [visitedLocationIds, setVisitedLocationIds] = useState<Set<number>>(
   //   new Set(),
   // );
@@ -328,7 +328,7 @@ export default function LocationListsDrawer({
                 Explore
               </p>
               <p className="text-xs font-anonymous text-[#888]">
-                Discover spots near you
+                Discover spots nearby
               </p>
             </div>
             <button
