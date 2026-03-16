@@ -4,71 +4,42 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-// City data - Substack city guide links; location = venue/area, city (e.g. "Lagniapannet, Miami Florida")
-const CITIES = [
+const VENUES = [
   {
-    name: 'Mexico City',
-    slug: 'mexico-city',
-    location: 'Downtown, Mexico City',
-    guideUrl: 'https://refraction.substack.com/city/mexico-city',
-    latitude: 19.4326,
-    longitude: -99.1332,
+    name: 'Rasa Space',
+    neighborhood: 'Raffles Place',
+    city: 'Singapore',
+    backgroundImage: '/homepage/rasa-space.jpg',
   },
   {
-    name: 'London',
-    slug: 'london',
-    location: 'Shoreditch, London',
-    guideUrl: 'https://refraction.substack.com/city/london',
-    latitude: 51.5074,
-    longitude: -0.1278,
+    name: 'ESP Hi-Fi',
+    neighborhood: 'Santa Fe Arts District',
+    city: 'Denver',
+    backgroundImage: '/homepage/featured-cities.jpg',
   },
   {
-    name: 'Hong Kong',
-    slug: 'hong-kong',
-    location: 'Central, Hong Kong',
-    guideUrl: 'https://refraction.substack.com/city/hong-kong',
-    latitude: 22.3193,
-    longitude: 114.1694,
+    name: 'Standard Time',
+    neighborhood: 'Greater Toronto Area',
+    city: 'Toronto',
+    backgroundImage: '/homepage/featured-cities.jpg',
   },
   {
-    name: 'New York',
-    slug: 'new-york',
-    location: 'Brooklyn, New York',
-    guideUrl: 'https://refraction.substack.com/city/new-york',
-    latitude: 40.7128,
-    longitude: -74.006,
+    name: 'Doka',
+    neighborhood: 'Amsterdam-Oost',
+    city: 'Amsterdam',
+    backgroundImage: '/homepage/featured-cities.jpg',
   },
   {
-    name: 'Montreal',
-    slug: 'montreal',
-    location: 'Plateau, Montreal',
-    guideUrl: 'https://refraction.substack.com/city/montreal',
-    latitude: 45.5017,
-    longitude: -73.5673,
+    name: 'Public Records',
+    neighborhood: 'Brooklyn',
+    city: 'New York City',
+    backgroundImage: '/homepage/cities/new-york.jpg',
   },
   {
-    name: 'Tokyo',
-    slug: 'tokyo',
-    location: 'Shibuya, Tokyo',
-    guideUrl: 'https://refraction.substack.com/city/tokyo',
-    latitude: 35.6762,
-    longitude: 139.6503,
-  },
-  {
-    name: 'Berlin',
-    slug: 'berlin',
-    location: 'Kreuzberg, Berlin',
-    guideUrl: 'https://refraction.substack.com/city/berlin',
-    latitude: 52.52,
-    longitude: 13.405,
-  },
-  {
-    name: 'Lisbon',
-    slug: 'lisbon',
-    location: 'Alfama, Lisbon',
-    guideUrl: 'https://refraction.substack.com/city/lisbon',
-    latitude: 38.7223,
-    longitude: -9.1393,
+    name: 'Yu Yu',
+    neighborhood: 'Juárez',
+    city: 'Mexico City',
+    backgroundImage: '/homepage/cities/mexico-city.jpg',
   },
 ];
 
@@ -113,33 +84,40 @@ function LocationPinIcon({ className }: { className?: string }) {
 }
 
 /**
- * City Guides - Tabbed featured cities from local City Guides
+ * City Guides - Tabbed featured venues from local City Guides
  */
-const TAB_CITIES = CITIES.slice(0, 5); // First 5 cities for the 5 tab lines
-
 export default function CityGuidesCarouselSection() {
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
 
   // Auto-rotate every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setSelectedTabIndex((prev) => (prev + 1) % TAB_CITIES.length);
+      setSelectedTabIndex((prev) => (prev + 1) % VENUES.length);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const selectedCity = TAB_CITIES[selectedTabIndex];
+  const selectedVenue = VENUES[selectedTabIndex];
 
   return (
-    <section
-      className="city-guides-section-desktop-bg w-full max-w-[393px] mx-auto bg-[#131313] overflow-hidden md:max-w-[1728px] md:w-[1728px] md:h-[1117px] md:aspect-[181/117]"
-      style={{
-        background:
-          "linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.35) 100%), url('/homepage/featured-cities.jpg') lightgray -463.161px -26.697px / 335.705% 103.133% no-repeat",
-        aspectRatio: '125/271',
-      }}
-    >
-      <div className="w-full h-full px-2 pt-[129px] pb-6 flex flex-col overflow-hidden md:pt-[201px] md:pb-16 md:pl-[171px] md:pr-[217px] md:max-w-[1177px] md:mr-auto">
+    <section className="city-guides-section-desktop-bg w-full max-w-[393px] mx-auto bg-[#131313] overflow-hidden md:max-w-[1728px] md:w-[1728px] md:h-[1117px] md:aspect-[181/117] relative">
+      {/* Background images — cross-fade between venues */}
+      {VENUES.map((venue, index) => (
+        <div
+          key={venue.name}
+          aria-hidden
+          className="absolute inset-0 transition-opacity duration-700"
+          style={{
+            opacity: selectedTabIndex === index ? 1 : 0,
+            background: `linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.35) 100%), url('${venue.backgroundImage}') lightgray center / cover no-repeat`,
+          }}
+        />
+      ))}
+
+      <div
+        className="relative z-10 w-full h-full px-2 pt-[129px] pb-6 flex flex-col overflow-hidden md:pt-[201px] md:pb-16 md:pl-[171px] md:pr-[217px] md:max-w-[1177px] md:mr-auto"
+        style={{ aspectRatio: '125/271' }}
+      >
         <div className="flex items-left justify-left gap-2 mb-4">
           <Image
             src="/homepage/ellipse.svg"
@@ -179,11 +157,10 @@ export default function CityGuidesCarouselSection() {
             letterSpacing: '-0.4px',
           }}
         >
-          Mexico City. London. Hong Kong, NYC. Montreal. Ever-expanding local
-          guides in every city showing you where they go.
+          Ever-expanding local guides in every city showing you where they go.
         </p>
 
-        {/* Tabbed city content - same layout/dimensions on desktop as mobile */}
+        {/* Tabbed venue content */}
         <div
           className="flex w-[377px] max-w-full flex-col items-stretch gap-4 pt-0 pb-4 px-6 rounded-none overflow-hidden md:mt-[400px]"
           style={{
@@ -191,21 +168,16 @@ export default function CityGuidesCarouselSection() {
             backdropFilter: 'blur(28px)',
           }}
         >
-          {/* Tab indicators: show current city in rotation (non-interactive) */}
+          {/* Tab indicators: one per venue */}
           <div className="flex justify-stretch items-center flex-shrink-0 w-[calc(100%+48px)] min-w-0 gap-0 -mx-6">
-            {TAB_CITIES.map((city, index) => (
-              <TabLine key={city.slug} active={selectedTabIndex === index} />
+            {VENUES.map((venue, index) => (
+              <TabLine key={venue.name} active={selectedTabIndex === index} />
             ))}
           </div>
 
-          {/* Selected city content */}
-          <Link
-            href={selectedCity.guideUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col items-start flex-1 min-w-0"
-          >
-            {/* Row 1: section title */}
+          {/* Selected venue content */}
+          <div className="flex flex-col items-start flex-1 min-w-0">
+            {/* Row 1: venue name */}
             <span
               className="text-[#FFF] text-[25px] font-medium leading-8 tracking-[-0.25px]"
               style={{
@@ -213,32 +185,31 @@ export default function CityGuidesCarouselSection() {
                   '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
               }}
             >
-              {selectedCity.name}
+              {selectedVenue.name}
             </span>
             {/* 16px spacing */}
             <div className="h-4" aria-hidden />
-            {/* Row 2: location icon + body (title4) */}
+            {/* Row 2: location icon + neighborhood, city */}
             <div className="flex items-start gap-2">
               <span className="w-6 h-6 shrink-0 aspect-square flex items-center justify-center">
                 <LocationPinIcon />
               </span>
               <span className="title4 text-[#FFF] font-grotesk">
-                {selectedCity.location}
+                {selectedVenue.neighborhood}, {selectedVenue.city}
               </span>
             </div>
-          </Link>
+          </div>
 
-          {/* Explored button */}
+          {/* Find Spots Nearby CTA */}
           <Link
-            href={`/interactive-map?lat=${selectedCity.latitude}&lng=${selectedCity.longitude}`}
+            href="/interactive-map"
             className="flex flex-1 min-w-0 self-stretch justify-center items-center gap-2.5 py-5 px-6 rounded-full transition-colors hover:opacity-90"
             style={{
               background: 'rgba(253, 255, 255, 0.15)',
             }}
-            aria-label={`Explore ${selectedCity.name}`}
           >
             <span className="title4 text-[#313131] font-grotesk">
-              Explore {selectedCity.name}
+              Find Spots Nearby
             </span>
           </Link>
         </div>
