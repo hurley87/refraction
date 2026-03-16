@@ -284,8 +284,9 @@ export default function AuthWrapper({
             </div>
 
             <p className="text-white text-[14px] sm:text-[16px] leading-[20px] sm:leading-[22px] tracking-[-0.36px] sm:tracking-[-0.48px] text-left w-full px-2">
-              You&apos;ve got great taste. Share your favorite spots around the
-              world and get rewarded when people check them out.
+              IRL Maps are curated by locals shaping the scene. Click on a
+              location to check in and earn points for future rewards at clubs,
+              bars and galleries in your city.
             </p>
 
             <button
