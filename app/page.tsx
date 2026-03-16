@@ -63,6 +63,11 @@ export default function Home() {
           <MapSection />
         </div>
 
+        {/* City Guides Cover Section */}
+        <div className="py-0">
+          <CityGuidesCoverSection />
+        </div>
+
         {/* What You Get Section */}
         <div className="py-0">
           <WhatYouGetSection />
@@ -74,23 +79,19 @@ export default function Home() {
         </div>
 
         {/* City Guides Carousel Section */}
-        { <div className="py-0">
+        <div className="py-0">
           <CityGuidesCarouselSection />
-        </div> }
+        </div>
 
         {/* IRL Tour Section */}
-        { <div className="py-0">
+        <div className="py-0">
           <IRLTourSection />
-        </div> }
-        {/* City Guides Cover Section */}
-      {   <div className="py-0">
-          <CityGuidesCoverSection />
-        </div> }
+        </div>
 
         {/* Get Involved Section */}
-       {  <div className="py-0">
+        <div className="py-0">
           <GetInvolvedSection />
-        </div> }
+        </div>
 
         {/* Partners Section */}
         <div className="py-16 md:py-24">
