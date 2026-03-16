@@ -10,10 +10,11 @@ const WhatYouGetSection = dynamic(
   () => import('@/components/home/what-you-get-section'),
   { ssr: true }
 );
-const CheckInsFundCultureSection = dynamic(
-  () => import('@/components/home/check-ins-fund-culture-section'),
-  { ssr: true }
-);
+// Temporarily hidden — re-enable import and JSX block below to restore
+// const CheckInsFundCultureSection = dynamic(
+//   () => import('@/components/home/check-ins-fund-culture-section'),
+//   { ssr: true }
+// );
  const CityGuidesCarouselSection = dynamic(
   () => import('@/components/home/city-guides-carousel-section'),
   { ssr: true }
