@@ -41,9 +41,10 @@ const Partners = dynamic(() => import('@/components/partners/partners'), {
 const ArtistCTA = dynamic(() => import('@/components/home/artist-cta'), {
   ssr: true,
 });
-const FooterHero = dynamic(() => import('@/components/layout/footer-hero'), {
-  ssr: true,
-});
+// Temporarily hidden — re-enable import and JSX block below to restore
+// const FooterHero = dynamic(() => import('@/components/layout/footer-hero'), {
+//   ssr: true,
+// });
 const Footer = dynamic(() => import('@/components/layout/footer'), {
   ssr: true,
 });
@@ -104,10 +105,10 @@ export default function Home() {
           <ArtistCTA />
         </div>
 
-        {/* Footer Hero Section with WebGL Background */}
-        <div className="py-16 md:py-24">
+        {/* Footer Hero Section with WebGL Background — temporarily hidden, re-enable when needed */}
+        {/* <div className="py-16 md:py-24">
           <FooterHero />
-        </div>
+        </div> */}
 
         {/* Footer */}
         <Footer />
