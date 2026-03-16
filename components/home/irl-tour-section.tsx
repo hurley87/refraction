@@ -3,11 +3,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
-// Poster: Download from https://drive.google.com/file/d/1OO7axjl2A3u7msvuEHG6n7Li3YJCAfRi/view?usp=sharing
-// Save to public/homepage/irl-tour-poster.jpg
-const POSTER_SRC = '/homepage/irl-tour-latest.jpg';
-const MOBILE_BG_IMAGE = '/homepage/irl-tour-latest.jpg';
-const DESKTOP_BG_IMAGE = '/homepage/irl-tour-latest.jpg';
+const POSTER_SRC = '/homepage/irl-tour-event-flyer.png';
+const MOBILE_BG_IMAGE = '/homepage/irl-tour-event-flyer.png';
+const DESKTOP_BG_IMAGE = '/homepage/irl-tour-event-flyer.png';
 
 /**
  * IRL Tour section - Latest tour poster, Join Us Worldwide
@@ -89,17 +87,13 @@ export default function IRLTourSection() {
               fontWeight: 400,
             }}
           >
-            IRL Tour brings the community together in cities around the world.
-            Check upcoming events, get tickets, experience the network IRL.
+            The IRL Tour brings the community together in cities around the world.
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start gap-4 mb-6 md:mb-0 w-full">
-            <Link
-              href="/events"
-              className="w-full sm:w-auto min-w-0 md:flex-1 md:min-w-0"
-            >
-              <button className="flex flex-[1_0_0] self-stretch w-full md:w-full justify-center items-center gap-2.5 py-5 px-6 rounded-full cursor-pointer hover:bg-gray-100 transition-colors bg-white">
+          <div className="flex items-center justify-center mb-6 md:mb-0 w-full">
+            <Link href="/events">
+              <button className="flex justify-center items-center gap-2.5 py-5 px-10 rounded-full cursor-pointer hover:bg-gray-100 transition-colors bg-white">
                 <span
                   className="text-center"
                   style={{
@@ -113,33 +107,7 @@ export default function IRLTourSection() {
                     letterSpacing: '-0.4px',
                   }}
                 >
-                  Get Tickets
-                </span>
-              </button>
-            </Link>
-
-            <Link
-              href="/partners"
-              className="w-full sm:w-auto min-w-0 md:flex-1 md:min-w-0"
-            >
-              <button
-                className="flex flex-[1_0_0] self-stretch w-full sm:w-auto md:w-full justify-center items-center gap-2.5 py-5 px-6 rounded-full cursor-pointer hover:bg-white/10 transition-colors"
-                style={{ background: 'rgba(253, 255, 255, 0.15)' }}
-              >
-                <span
-                  className="text-center"
-                  style={{
-                    color: 'var(--White, #FDFFFF)',
-                    fontFamily:
-                      '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-                    fontSize: '20px',
-                    fontStyle: 'normal',
-                    fontWeight: 400,
-                    lineHeight: '24px',
-                    letterSpacing: '-0.4px',
-                  }}
-                >
-                  Host an Event
+                  Browse Events
                 </span>
               </button>
             </Link>
