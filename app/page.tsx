@@ -6,10 +6,10 @@ import Hero from '@/components/home/hero';
 const MapSection = dynamic(() => import('@/components/map/map-section'), {
   ssr: true,
 });
-const WhatYouGetSection = dynamic(
-  () => import('@/components/home/what-you-get-section'),
-  { ssr: true }
-);
+// const WhatYouGetSection = dynamic(
+//   () => import('@/components/home/what-you-get-section'),
+//   { ssr: true }
+// );
 const CheckInsFundCultureSection = dynamic(
   () => import('@/components/home/check-ins-fund-culture-section'),
   { ssr: true }
@@ -63,10 +63,10 @@ export default function Home() {
           <MapSection />
         </div>
 
-        {/* What You Get Section */}
-        <div className="py-0">
+        {/* What You Get Section — temporarily hidden, do not delete */}
+        {/* <div className="py-0">
           <WhatYouGetSection />
-        </div>
+        </div> */}
 
         {/* Check-Ins Fund Culture Section */}
         <div className="py-0">
