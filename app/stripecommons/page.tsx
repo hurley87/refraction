@@ -74,7 +74,7 @@ export default function StripeCommonsPage() {
             {/* Event badge – styled like hero "Welcome to IRL" */}
 
             {/* Privy logo prominent */}
-            <div className="flex flex-col items-center gap-3 space-y-4 py-10">
+            <div className="flex flex-col items-center gap-3 py-10">
               <div className="w-full max-w-[393px]">
                 <Image
                   src="/stripecommons/privy-black.png"
@@ -110,8 +110,8 @@ export default function StripeCommonsPage() {
               </p>
             </div>
 
-            {/* Artwork preview + subcopy – full width of page with same side gap */}
-            <div className="flex w-screen max-w-none flex-col items-center gap-2 relative px-4">
+            {/* Artwork preview + subcopy – full width on mobile, same as content on desktop */}
+            <div className="flex w-screen max-w-none flex-col items-center gap-2 relative px-4 md:w-full">
               <div
                 className="relative w-full aspect-square overflow-hidden rounded-2xl border border-black/10"
                 style={{
@@ -169,15 +169,15 @@ export default function StripeCommonsPage() {
                   alt="Privy"
                   width={60}
                   height={24}
-                  className="h-6 w-auto object-contain opacity-60"
+                  className="h-5 w-auto object-contain opacity-60"
                 />
                 <span className="text-black/30">·</span>
                 <Image
-                  src="/home/IRL.png"
+                  src="/IRL-SVG/$IRL_SECONDARY LOGO ICON_BLACK.svg"
                   alt="IRL"
-                  width={27}
-                  height={14}
-                  className="h-[14px] w-auto object-contain opacity-60 invert"
+                  width={30}
+                  height={24}
+                  className="h-7 w-auto object-contain opacity-60"
                 />
                 <span className="text-black/30">·</span>
                 <Image
