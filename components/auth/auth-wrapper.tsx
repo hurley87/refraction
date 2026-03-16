@@ -19,7 +19,7 @@ interface AuthWrapperProps {
 }
 
 const DEFAULT_AUTH_TITLE = 'Welcome to IRL';
-const DEFAULT_LOGIN_CTA = 'Check in to Earn Points on IRL';
+const DEFAULT_LOGIN_CTA = 'Find spots nearby →';
 const MINIMAL_LOGIN_CTA = 'Get Started';
 const DEFAULT_EMAIL_HEADING = 'Link your email for updates';
 const DEFAULT_USERNAME_HEADING = 'Choose your username to start earning points';
