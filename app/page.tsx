@@ -6,10 +6,12 @@ import Hero from '@/components/home/hero';
 const MapSection = dynamic(() => import('@/components/map/map-section'), {
   ssr: true,
 });
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const WhatYouGetSection = dynamic(
   () => import('@/components/home/what-you-get-section'),
   { ssr: true }
 );
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const CheckInsFundCultureSection = dynamic(
   () => import('@/components/home/check-ins-fund-culture-section'),
   { ssr: true }
@@ -68,15 +70,15 @@ export default function Home() {
           <CityGuidesCoverSection />
         </div>
 
-        {/* What You Get Section */}
-        <div className="py-0">
+        {/* What You Get Section - temporarily hidden */}
+        {/* <div className="py-0">
           <WhatYouGetSection />
-        </div>
+        </div> */}
 
-        {/* Check-Ins Fund Culture Section */}
-        <div className="py-0">
+        {/* Check-Ins Fund Culture Section - temporarily hidden */}
+        {/* <div className="py-0">
           <CheckInsFundCultureSection />
-        </div>
+        </div> */}
 
         {/* City Guides Carousel Section */}
         <div className="py-0">
