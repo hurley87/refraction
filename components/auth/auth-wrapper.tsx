@@ -19,7 +19,7 @@ interface AuthWrapperProps {
 }
 
 const DEFAULT_AUTH_TITLE = 'Welcome to IRL';
-const DEFAULT_LOGIN_CTA = 'Check in to Earn Points on IRL';
+const DEFAULT_LOGIN_CTA = 'Find spots nearby →';
 const MINIMAL_LOGIN_CTA = 'Get Started';
 const DEFAULT_EMAIL_HEADING = 'Link your email for updates';
 const DEFAULT_USERNAME_HEADING = 'Choose your username to start earning points';
@@ -205,52 +205,18 @@ export default function AuthWrapper({
           }}
         >
           <div className="w-full max-w-md mx-auto flex flex-col items-center justify-between h-fit py-6 sm:py-8 gap-6">
-            {/* Map Image with Overlays */}
-            <div className="rounded-[26px] overflow-hidden w-full h-[calc(100vh-320px)] max-h-[400px] min-h-[320px] flex items-center justify-center mb-4 relative">
+            {/* Map Screenshot */}
+            <div className="rounded-[26px] overflow-hidden w-full h-[calc(100vh-320px)] max-h-[400px] min-h-[320px]">
               <img
-                src="/map-green.png"
-                alt="Map view"
-                className="h-full w-full object-cover"
+                src="/map-onboarding.png"
+                alt="IRL Map showing local spots to explore and check in"
+                className="h-full w-full object-cover object-top"
                 loading="lazy"
               />
-
-              {/* Text Above Marker */}
-              <div className="absolute font-pleasure top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[calc(50%+6rem)] z-20">
-                <p
-                  className="text-white text-center whitespace-nowrap"
-                  style={{
-                    textShadow: '0 0 16px rgba(255, 255, 255, 0.70)',
-                    fontSize: '25px',
-                    fontWeight: 500,
-                    lineHeight: '28px',
-                    letterSpacing: '-0.5px',
-                  }}
-                />
-              </div>
-
-              {/* Map Marker */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-                <img
-                  src="/marker.svg"
-                  alt="Location marker"
-                  className="w-20 h-20 drop-shadow-lg"
-                />
-              </div>
-
-              {/* Text Below Marker */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 translate-y-[calc(50%+6rem)] z-20 flex flex-col gap-1 items-center">
-                <p className="text-white text-shadow-lg font-medium text-xs tracking-wider uppercase text-center">
-                  PUT IT
-                </p>
-                <h1 className="text-white text-shadow-lg font-inktrap text-4xl font-bold tracking-tight uppercase text-center whitespace-nowrap">
-                  ON THE MAP
-                </h1>
-              </div>
             </div>
 
             <p className="text-white text-[14px] sm:text-[16px] leading-[20px] sm:leading-[22px] tracking-[-0.36px] sm:tracking-[-0.48px] text-left w-full px-2">
-              You&apos;ve got great taste. Share your favorite spots around the
-              world and get rewarded when people check them out.
+              IRL Maps are curated by locals shaping the scene. Click on a location to check in and earn points for future rewards at clubs, bars and galleries in your city.
             </p>
 
             <button
