@@ -248,41 +248,6 @@ export default function AuthWrapper({
               </div>
             </div>
 
-            {/* Reward Card */}
-            <div className="bg-white/65 backdrop-blur-sm rounded-[26px] p-2 w-full flex-shrink-0">
-              <div className="rounded-[18px] p-3 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 flex items-center justify-center">
-                    <img
-                      src="/guidance.svg"
-                      alt="Guidance icon"
-                      className="w-4 h-4"
-                    />
-                  </div>
-                  <p className="text-[#4F4F4F] text-[11px] font-medium tracking-[0.44px] uppercase">
-                    YOU CAN EARN
-                  </p>
-                </div>
-
-                <div className="flex items-end gap-2 h-[67px]">
-                  <div className="flex flex-col h-[44px] justify-center w-[103px]">
-                    <div className="font-inktrap text-[61px] font-bold text-[#313131] tracking-[-4.88px] leading-[64px] uppercase">
-                      100
-                    </div>
-                  </div>
-                  <img
-                    src="/pts.svg"
-                    alt="Points"
-                    className="w-[33px] h-[18px]"
-                  />
-                </div>
-
-                <p className="text-[#4F4F4F] text-[13px] leading-[16px] tracking-[-0.39px]">
-                  towards Rewards, Competitions and Experiences
-                </p>
-              </div>
-            </div>
-
             <p className="text-white text-[14px] sm:text-[16px] leading-[20px] sm:leading-[22px] tracking-[-0.36px] sm:tracking-[-0.48px] text-left w-full px-2">
               You&apos;ve got great taste. Share your favorite spots around the
               world and get rewarded when people check them out.
