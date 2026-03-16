@@ -20,8 +20,27 @@ import {
 const ERC721_ABI_PARSED = parseAbi(ERC721_TRANSFER_ABI);
 const WAIT_FOR_RECEIPT_TIMEOUT_MS = 15_000;
 const RECEIPT_POLL_INTERVAL_MS = 1_000;
+const PENDING_CLAIM_LOCK_TTL_MS = 5 * 60 * 1000;
 
 const claimLocks = new Map<string, Promise<NextResponse>>();
+type PendingClaim = {
+  hash: `0x${string}`;
+  startedAt: number;
+};
+const pendingClaims = new Map<string, PendingClaim>();
+
+function getActivePendingClaim(address: string): PendingClaim | null {
+  const pending = pendingClaims.get(address);
+  if (!pending) return null;
+
+  const ageMs = Date.now() - pending.startedAt;
+  if (ageMs > PENDING_CLAIM_LOCK_TTL_MS) {
+    pendingClaims.delete(address);
+    return null;
+  }
+
+  return pending;
+}
 
 async function getClaimedTokenIds(): Promise<Set<number>> {
   const { data, error } = await supabase
@@ -91,6 +110,19 @@ export async function POST(req: NextRequest) {
     if (claimLocks.has(normalized)) {
       return NextResponse.json(
         { success: false, error: 'Claim already in progress' },
+        { status: 429 }
+      );
+    }
+
+    const pendingClaim = getActivePendingClaim(normalized);
+    if (pendingClaim) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Claim transaction still pending confirmation for this address. Please wait before retrying.',
+          transactionHash: pendingClaim.hash,
+        },
         { status: 429 }
       );
     }
@@ -180,35 +212,43 @@ async function performClaim(
     );
   }
 
-  const hash = await walletClient.writeContract({
-    address: STRIPE_COMMONS_NFT_ADDRESS as `0x${string}`,
-    abi: ERC721_ABI_PARSED,
-    functionName: 'transferFrom',
-    args: [
-      account.address,
-      userAddress as `0x${string}`,
-      BigInt(tokenId),
-    ],
-    account,
-  });
+  let hash: `0x${string}`;
+  let receipt: { status: string } | null;
+  try {
+    hash = await walletClient.writeContract({
+      address: STRIPE_COMMONS_NFT_ADDRESS as `0x${string}`,
+      abi: ERC721_ABI_PARSED,
+      functionName: 'transferFrom',
+      args: [
+        account.address,
+        userAddress as `0x${string}`,
+        BigInt(tokenId),
+      ],
+      account,
+    });
 
-  const receipt = await waitForReceiptWithTimeout(publicClient, hash);
+    pendingClaims.set(normalized, { hash, startedAt: Date.now() });
+    receipt = await waitForReceiptWithTimeout(publicClient, hash);
+  } catch (error) {
+    pendingClaims.delete(normalized);
+    throw error;
+  }
 
   if (!receipt) {
-    await recordClaim(normalized, tokenId, hash);
     return NextResponse.json(
       {
         success: true,
         pending: true,
         transactionHash: hash,
         tokenId,
-        pointsAwarded: STRIPE_COMMONS_POINTS,
         message:
-          'Transaction submitted – waiting for confirmation on Base.',
+          'Transaction submitted – waiting for confirmation on Base before awarding points.',
       },
       { status: 202 }
     );
   }
+
+  pendingClaims.delete(normalized);
 
   if (receipt.status !== 'success') {
     return NextResponse.json(
@@ -241,7 +281,7 @@ async function recordClaim(
     } as any);
   }
 
-  await supabase.from('points_activities').insert({
+  const { error } = await supabase.from('points_activities').insert({
     activity_type: STRIPE_COMMONS_ACTIVITY_TYPE,
     user_wallet_address: walletAddress,
     points_earned: STRIPE_COMMONS_POINTS,
@@ -254,6 +294,7 @@ async function recordClaim(
     },
     processed: true,
   });
+  if (error) throw error;
 
   if (player?.id) {
     await updatePlayerPoints(player.id, STRIPE_COMMONS_POINTS);
