@@ -68,15 +68,15 @@ export default function Home() {
           <CityGuidesCoverSection />
         </div>
 
-        {/* What You Get Section */}
-        <div className="py-0">
+        {/* What You Get Section — temporarily hidden; do not delete */}
+        {/* <div className="py-0">
           <WhatYouGetSection />
-        </div>
+        </div> */}
 
-        {/* Check-Ins Fund Culture Section */}
-        <div className="py-0">
+        {/* Check-Ins Fund Culture Section — temporarily hidden; do not delete */}
+        {/* <div className="py-0">
           <CheckInsFundCultureSection />
-        </div>
+        </div> */}
 
         {/* City Guides Carousel Section */}
         <div className="py-0">
