@@ -3,9 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
-// DEV: Link destinations to be provided by Jim/Katie - update these as needed
-const PARTNER_URL = '/partners'; // Partnerships page / form
-const COMMUNITY_URL = 'https://t.me/irlnetwork'; // Telegram - update if Discord preferred
+const CONTACT_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/contact-us`;
 const MOBILE_BG_IMAGE = '/homepage/get-involved.png';
 const DESKTOP_BG_IMAGE = '/homepage/get-involved.png';
 
@@ -52,7 +50,7 @@ export default function GetInvolvedSection() {
             </h2>
           </div>
           <h3
-            className="text-center mb-6 md:mb-0 text-[64px] leading-[64px] tracking-[-1.92px] md:text-[25px] md:leading-[32px] md:tracking-[-0.5px] md:font-pleasure md:font-medium"
+            className="text-center mb-6 md:mb-0 text-[64px] leading-[64px] tracking-[-1.92px] md:text-[64px] md:leading-[64px] md:tracking-[-1.92px] md:font-pleasure md:font-medium"
             style={{
               color: 'var(--UI-White, #FFF)',
               textShadow: '0 0 26.7px #FFF',
@@ -75,13 +73,18 @@ export default function GetInvolvedSection() {
               fontWeight: 400,
             }}
           >
-            Want to host an IRL Tour event? Add your venue to the network? Help
-            fund local culture? Join the community building this.
+            Run a venue or promote events? IRL fills your night with the right
+            people and rewards them for showing up.
           </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 w-full">
-            <Link href={PARTNER_URL} className="w-full sm:w-auto">
+            <Link
+              href={CONTACT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto"
+            >
               <button className="flex flex-[1_0_0] self-stretch w-full justify-center items-center gap-2.5 py-5 px-6 rounded-full cursor-pointer hover:bg-gray-100 transition-colors bg-white">
                 <span
                   className="text-center text-[20px] leading-[24px] tracking-[-0.4px] md:font-pleasure md:font-medium md:text-[16px] md:leading-[16px] md:tracking-[-1.28px]"
@@ -93,35 +96,7 @@ export default function GetInvolvedSection() {
                     fontWeight: 400,
                   }}
                 >
-                  Partner with IRL
-                </span>
-              </button>
-            </Link>
-            <Link
-              href={COMMUNITY_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full sm:w-auto"
-              aria-label="Join the community on Telegram"
-            >
-              <button
-                className="flex flex-[1_0_0] self-stretch w-full justify-center items-center gap-2.5 py-5 px-6 rounded-full cursor-pointer hover:bg-white/10 transition-colors "
-                style={{
-                  background: 'rgba(253, 255, 255, 0.15)',
-                  backdropFilter: 'blur(32px)',
-                }}
-              >
-                <span
-                  className="text-center text-[20px] leading-[24px] tracking-[-0.4px] md:font-pleasure md:font-medium md:text-[16px] md:leading-[16px] md:tracking-[-1.28px]"
-                  style={{
-                    color: 'var(--White, #FDFFFF)',
-                    fontFamily:
-                      '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-                    fontStyle: 'normal',
-                    fontWeight: 400,
-                  }}
-                >
-                  Join the community
+                  Contact Us
                 </span>
               </button>
             </Link>
