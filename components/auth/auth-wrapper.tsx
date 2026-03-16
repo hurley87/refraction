@@ -19,7 +19,7 @@ interface AuthWrapperProps {
 }
 
 const DEFAULT_AUTH_TITLE = 'Welcome to IRL';
-const DEFAULT_LOGIN_CTA = 'Find spots nearby →';
+const DEFAULT_LOGIN_CTA = 'Find spots nearby';
 const MINIMAL_LOGIN_CTA = 'Get Started';
 const DEFAULT_EMAIL_HEADING = 'Link your email for updates';
 const DEFAULT_USERNAME_HEADING = 'Choose your username to start earning points';
@@ -216,7 +216,9 @@ export default function AuthWrapper({
             </div>
 
             <p className="text-white text-[14px] sm:text-[16px] leading-[20px] sm:leading-[22px] tracking-[-0.36px] sm:tracking-[-0.48px] text-left w-full px-2">
-              IRL Maps are curated by locals shaping the scene. Click on a location to check in and earn points for future rewards at clubs, bars and galleries in your city.
+              IRL Maps are curated by locals shaping the scene.
+              <br />
+              Click on a location to check in and earn points for future rewards at clubs, bars and galleries in your city.
             </p>
 
             <button
