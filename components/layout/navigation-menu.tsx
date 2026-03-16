@@ -14,6 +14,8 @@ interface MenuItem {
   label: string;
   path: string;
   isActive?: boolean;
+  hidden?: boolean;
+  external?: boolean;
 }
 
 /**
@@ -33,19 +35,19 @@ export default function NavigationMenu({
   const allMenuItems: MenuItem[] = [
     { label: "Dashboard", path: "/dashboard" },
     { label: "Map", path: "/interactive-map" },
-    { label: "Challenges", path: "/challenges" },
-    { label: "Leaderboard", path: "/leaderboard" },
+    { label: "Challenges", path: "/challenges", hidden: true },
+    { label: "Leaderboard", path: "/leaderboard", hidden: true },
     { label: "Events", path: "/events" },
     { label: "Rewards", path: "/rewards" },
-    { label: "Stellar", path: "/stellar" },
-    { label: "FAQ", path: "/faq" },
+    { label: "Stellar", path: "/stellar", hidden: true },
+    { label: "FAQ", path: "/faq", hidden: true },
     { label: "Livepaper", path: "/livepaper" },
-    { label: "Become a Partner", path: "/partners" },
+    { label: "Become a Partner", path: "https://www.irl.energy/contact-us", external: true }, // pragma: allowlist secret
   ];
 
-  // Filter menu items - Dashboard only shows if user is logged in
+  // Filter menu items - Dashboard only shows if user is logged in; hidden items are not shown
   const menuItems = allMenuItems.filter(
-    (item) => item.path !== "/dashboard" || user
+    (item) => !item.hidden && (item.path !== "/dashboard" || user)
   );
 
   // Determine active item based on current pathname
@@ -54,16 +56,22 @@ export default function NavigationMenu({
       ? "/dashboard" 
       : pathname;
 
-  const handleNavigate = (path: string) => {
+  const handleNavigate = (item: MenuItem) => {
     if (pendingPath) return;
 
-    if (pathname === path) {
+    if (item.external) {
+      window.open(item.path, "_blank", "noopener,noreferrer");
       onClose();
       return;
     }
 
-    setPendingPath(path);
-    router.push(path);
+    if (pathname === item.path) {
+      onClose();
+      return;
+    }
+
+    setPendingPath(item.path);
+    router.push(item.path);
   };
 
   const handleLogout = () => {
@@ -183,7 +191,7 @@ export default function NavigationMenu({
             >
               <button
                 type="button"
-                onClick={() => handleNavigate(item.path)}
+                onClick={() => handleNavigate(item)}
                 aria-busy={isPending || undefined}
                 className={`w-full box-border flex h-[56px] items-center justify-between px-[16px] py-[19px] rounded-[23px] bg-white hover:bg-gray-50 transition-colors ${
                   pendingPath ? "opacity-70" : ""
@@ -204,7 +212,7 @@ export default function NavigationMenu({
             <button
               key={item.path}
               type="button"
-              onClick={() => handleNavigate(item.path)}
+              onClick={() => handleNavigate(item)}
               aria-busy={isPending || undefined}
               className={`absolute bg-white box-border flex h-[56px] items-center justify-between px-[16px] py-[19px] rounded-[24px] hover:bg-gray-50 transition-colors ${
                 pendingPath ? "opacity-70" : ""
