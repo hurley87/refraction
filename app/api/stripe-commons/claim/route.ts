@@ -23,12 +23,6 @@ const RECEIPT_POLL_INTERVAL_MS = 1_000;
 
 const claimLocks = new Map<string, Promise<NextResponse>>();
 
-const mockClaimedAddresses = new Map<
-  string,
-  { tokenId: number; hash: string }
->();
-let mockNextTokenId = 1;
-
 async function getClaimedTokenIds(): Promise<Set<number>> {
   const { data, error } = await supabase
     .from('points_activities')
@@ -93,25 +87,6 @@ export async function POST(req: NextRequest) {
     }
 
     const normalized = userAddress.toLowerCase();
-
-    if (process.env.MOCK_STRIPE_COMMONS_CLAIM === 'true') {
-      if (mockClaimedAddresses.has(normalized)) {
-        return NextResponse.json(
-          { success: false, error: 'You have already claimed your artwork' },
-          { status: 400 }
-        );
-      }
-      const tokenId = mockNextTokenId++;
-      const hash = `0xmock${Date.now()}${Math.random().toString(16).slice(2)}`;
-      mockClaimedAddresses.set(normalized, { tokenId, hash });
-      return NextResponse.json({
-        success: true,
-        transactionHash: hash,
-        tokenId,
-        pointsAwarded: STRIPE_COMMONS_POINTS,
-        message: 'Artwork claimed successfully! (mock)',
-      });
-    }
 
     if (claimLocks.has(normalized)) {
       return NextResponse.json(
@@ -305,20 +280,6 @@ export async function GET(req: NextRequest) {
     }
 
     const normalized = userAddress.toLowerCase();
-
-    if (process.env.MOCK_STRIPE_COMMONS_CLAIM === 'true') {
-      const mock = mockClaimedAddresses.get(normalized);
-      return NextResponse.json({
-        success: true,
-        hasClaimed: !!mock,
-        tokenId: mock?.tokenId ?? null,
-        canClaim: !mock && mockNextTokenId <= STRIPE_COMMONS_TOTAL_SUPPLY,
-        remainingTokens: Math.max(
-          0,
-          STRIPE_COMMONS_TOTAL_SUPPLY - mockNextTokenId + 1
-        ),
-      });
-    }
 
     const record = await getUserClaimRecord(normalized);
 
