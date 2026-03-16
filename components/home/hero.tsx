@@ -49,7 +49,7 @@ export default function Hero() {
           {/* CTA button */}
           <Link href="/interactive-map" className="flex">
             <button className="flex h-[52px] py-3 px-6 justify-center items-center gap-2.5 rounded-full bg-white hover:bg-gray-100 transition-colors cursor-pointer title3 text-[#313131] font-grotesk whitespace-nowrap">
-              Discover the IRL Map
+              Find Spots Nearby →
             </button>
           </Link>
         </div>
@@ -61,8 +61,7 @@ export default function Hero() {
             aria-hidden
           />
           <div className="flex min-h-[74px] w-full max-w-[574px] md:w-[574px] flex-col justify-center self-stretch text-white title3 font-grotesk">
-            From listening bars to late-night diners, the people shaping the
-            scene show you where to go. Check in. Earn points. Fund the culture.
+            From listening bars to late-night art shows, the people shaping the scene show you where to go.
           </div>
         </div>
       </div>

@@ -140,7 +140,9 @@ export const syncSpendItemForCheckpoint = async (
 
   if (checkpoint.checkpoint_mode !== 'spend') {
     if (existing?.id) {
-      await deleteSpendItem(existing.id);
+      // Preserve historical redemptions: deleting a spend item cascades into
+      // spend_redemptions and erases fulfillment/points audit history.
+      return updateSpendItem(existing.id, { is_active: false });
     }
     return null;
   }

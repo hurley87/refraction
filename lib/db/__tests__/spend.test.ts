@@ -8,6 +8,7 @@ const {
   mockRpc,
   mockInsert,
   mockUpdate,
+  mockDelete,
 } = vi.hoisted(() => {
   const single = vi.fn();
   const limit = vi.fn();
@@ -25,14 +26,20 @@ const {
 
   const update = vi.fn(() => ({
     eq: vi.fn(() => ({
+      select: vi.fn(() => ({ single })),
       eq: vi.fn(() => ({ select: vi.fn(() => ({ single })) })),
     })),
+  }));
+
+  const deleteFn = vi.fn(() => ({
+    eq: vi.fn(),
   }));
 
   const from = vi.fn(() => ({
     ...queryBuilder,
     insert,
     update,
+    delete: deleteFn,
   }));
 
   return {
@@ -43,6 +50,7 @@ const {
     mockRpc: vi.fn(),
     mockInsert: insert,
     mockUpdate: update,
+    mockDelete: deleteFn,
   };
 });
 
@@ -61,6 +69,7 @@ vi.mock('@/lib/db/players', () => ({
 import {
   createPendingSpendRedemption,
   redeemSpendItemOnce,
+  syncSpendItemForCheckpoint,
   verifySpendRedemption,
 } from '../spend';
 import { getPlayerByWallet } from '../players';
@@ -68,6 +77,44 @@ import { getPlayerByWallet } from '../players';
 const wallet = '0x1234567890abcdef1234567890abcdef12345678';
 const itemId = '550e8400-e29b-41d4-a716-446655440000';
 const redemptionId = '660e8400-e29b-41d4-a716-446655440001';
+const checkpointId = 'cp_123';
+
+describe('syncSpendItemForCheckpoint', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('deactivates linked spend item when checkpoint mode changes to checkin', async () => {
+    const existingItem = {
+      id: itemId,
+      checkpoint_id: checkpointId,
+      name: 'Drink Ticket',
+      is_active: true,
+    };
+    const deactivatedItem = {
+      ...existingItem,
+      is_active: false,
+    };
+
+    mockSingle
+      .mockResolvedValueOnce({ data: existingItem, error: null })
+      .mockResolvedValueOnce({ data: deactivatedItem, error: null });
+
+    const result = await syncSpendItemForCheckpoint({
+      id: checkpointId,
+      name: 'Drink Ticket',
+      description: 'Redeem at bar',
+      points_value: 100,
+      is_active: true,
+      partner_image_url: null,
+      checkpoint_mode: 'checkin',
+    });
+
+    expect(mockUpdate).toHaveBeenCalledWith({ is_active: false });
+    expect(mockDelete).not.toHaveBeenCalled();
+    expect(result).toEqual(deactivatedItem);
+  });
+});
 
 describe('createPendingSpendRedemption', () => {
   beforeEach(() => {

@@ -20,6 +20,28 @@ const REWARD1155_ABI_PARSED = parseAbi(REWARD1155_ABI);
 const ERC20_ABI_PARSED = parseAbi(ERC20_ABI);
 const WAIT_FOR_RECEIPT_TIMEOUT_MS = 10_000;
 const RECEIPT_POLL_INTERVAL_MS = 1_000;
+const PENDING_MINT_LOCK_TTL_MS = 5 * 60 * 1000;
+
+type PendingMint = {
+  hash: `0x${string}`;
+  startedAt: number;
+};
+
+// Keeps users from repeatedly creating new mint txs while a prior tx is still pending.
+const pendingMints = new Map<string, PendingMint>();
+
+function getActivePendingMint(address: string): PendingMint | null {
+  const pending = pendingMints.get(address);
+  if (!pending) return null;
+
+  const ageMs = Date.now() - pending.startedAt;
+  if (ageMs > PENDING_MINT_LOCK_TTL_MS) {
+    pendingMints.delete(address);
+    return null;
+  }
+
+  return pending;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -63,10 +85,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const pendingMint = getActivePendingMint(normalizedAddress);
+    if (pendingMint) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Mint transaction still pending confirmation for this address. Please wait before retrying.',
+          transactionHash: pendingMint.hash,
+        },
+        { status: 429 }
+      );
+    }
+
     // Create a lock promise for this mint operation
     const mintPromise = (async () => {
       try {
-        return await performMint(userAddress);
+        return await performMint(userAddress, normalizedAddress);
       } catch (error: any) {
         // Handle errors from performMint and return proper error response
         console.error('Error in performMint:', error);
@@ -97,7 +132,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function performMint(userAddress: string) {
+async function performMint(userAddress: string, normalizedAddress: string) {
   // Get the private key from env
   const privateKey = process.env.SERVER_PRIVATE_KEY;
   if (!privateKey) {
@@ -156,35 +191,45 @@ async function performMint(userAddress: string) {
   }
 
   // Mint the NFT for the user using mintTo function
-  const hash = await walletClient.writeContract({
-    address: REWARD1155_ADDRESS as `0x${string}`,
-    abi: REWARD1155_ABI_PARSED,
-    functionName: 'mintTo',
-    args: [userAddress as `0x${string}`],
-    account,
-  });
+  let hash: `0x${string}` | null = null;
+  try {
+    hash = await walletClient.writeContract({
+      address: REWARD1155_ADDRESS as `0x${string}`,
+      abi: REWARD1155_ABI_PARSED,
+      functionName: 'mintTo',
+      args: [userAddress as `0x${string}`],
+      account,
+    });
 
-  // Wait for transaction confirmation, but cap at Vercel timeout window
-  const receipt = await waitForReceiptWithTimeout(publicClient, hash);
+    pendingMints.set(normalizedAddress, { hash, startedAt: Date.now() });
 
-  if (!receipt) {
-    return NextResponse.json(
-      {
-        success: true,
-        pending: true,
-        transactionHash: hash,
-        message:
-          'Transaction submitted. Waiting for confirmation on Base before finalizing your claim.',
-      },
-      { status: 202 }
-    );
-  }
+    // Wait for transaction confirmation, but cap at Vercel timeout window
+    const receipt = await waitForReceiptWithTimeout(publicClient, hash);
 
-  if (receipt.status !== 'success') {
-    return NextResponse.json(
-      { success: false, error: 'Transaction failed' },
-      { status: 500 }
-    );
+    if (!receipt) {
+      return NextResponse.json(
+        {
+          success: true,
+          pending: true,
+          transactionHash: hash,
+          message:
+            'Transaction submitted. Waiting for confirmation on Base before finalizing your claim.',
+        },
+        { status: 202 }
+      );
+    }
+
+    pendingMints.delete(normalizedAddress);
+
+    if (receipt.status !== 'success') {
+      return NextResponse.json(
+        { success: false, error: 'Transaction failed' },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    pendingMints.delete(normalizedAddress);
+    throw error;
   }
 
   // Get updated balances for the user
@@ -224,7 +269,7 @@ async function performMint(userAddress: string) {
 
   return NextResponse.json({
     success: true,
-    transactionHash: hash,
+    transactionHash: hash!,
     nftBalance: nftBalance.toString(),
     tokenBalance: tokenBalance.toString(),
     rewardAmount: rewardAmount.toString(),
@@ -297,6 +342,10 @@ export async function GET(req: NextRequest) {
           functionName: 'rewardToken',
         }),
       ]);
+
+    if (hasMinted) {
+      pendingMints.delete(userAddress.toLowerCase());
+    }
 
     let tokenBalance = '0';
     if (
