@@ -49,7 +49,7 @@ export default function Hero() {
           {/* CTA button */}
           <Link href="/interactive-map" className="flex">
             <button className="flex h-[52px] py-3 px-6 justify-center items-center gap-2.5 rounded-full bg-white hover:bg-gray-100 transition-colors cursor-pointer title3 text-[#313131] font-grotesk whitespace-nowrap">
-              Discover the IRL Map
+              Find Spots Nearby →
             </button>
           </Link>
         </div>
