@@ -61,8 +61,7 @@ export default function Hero() {
             aria-hidden
           />
           <div className="flex min-h-[74px] w-full max-w-[574px] md:w-[574px] flex-col justify-center self-stretch text-white title3 font-grotesk">
-            From listening bars to late-night diners, the people shaping the
-            scene show you where to go. Check in. Earn points. Fund the culture.
+            From listening bars to late-night art shows, the people shaping the scene show you where to go.
           </div>
         </div>
       </div>
