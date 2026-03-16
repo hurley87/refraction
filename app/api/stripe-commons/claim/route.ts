@@ -348,7 +348,13 @@ export async function GET(req: NextRequest) {
 }
 
 async function waitForReceiptWithTimeout(
-  publicClient: ReturnType<typeof createPublicClient>,
+  publicClient: {
+    waitForTransactionReceipt: (args: {
+      hash: `0x${string}`;
+      timeout?: number;
+      pollingInterval?: number;
+    }) => Promise<any>;
+  },
   hash: `0x${string}`
 ) {
   try {
