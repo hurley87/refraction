@@ -194,11 +194,11 @@ export default function MapSection() {
             <div className="relative w-full h-[55vh] flex-shrink-0 flex items-center justify-center md:h-[456px] md:aspect-square md:self-stretch md:flex-none">
               <div className="relative w-full h-full overflow-hidden rounded-b-[17px] md:rounded-none">
                 <Image
-                  src="/homepage/denver-guide.png"
-                  alt="Check in map interface"
+                  src="/homepage/curated-list.jpg"
+                  alt="IRL nightlife and cultural scene"
                   width={456}
                   height={456}
-                  className="w-full h-full object-contain md:object-cover"
+                  className="w-full h-full object-cover"
                   loading="lazy"
                 />
               </div>
@@ -211,11 +211,11 @@ export default function MapSection() {
             >
               <div className="flex flex-col items-center gap-4 md:gap-3 md:items-start max-w-[361px] w-full md:max-w-none">
                 <p className="title2 text-white text-center md:text-left">
-                  Follow Local Guides
+                  Curated Lists
                 </p>
                 <p className="body-large text-[#b5b5b5] text-center md:text-left font-grotesk">
-                  Find the best places from people in the scene. Not random
-                  reviews. Not algorithms. Just locals who know.
+                  Find the best places from people in the scene. Not algorithms.
+                  Just locals who know.
                 </p>
                 <div className="mt-[16px] flex justify-center md:hidden">
                   <Image
@@ -241,11 +241,11 @@ export default function MapSection() {
             <div className="relative w-full h-[55vh] flex-shrink-0 flex items-center justify-center md:h-[456px] md:aspect-square md:self-stretch md:flex-none">
               <div className="relative w-full h-full overflow-hidden rounded-b-[17px] md:rounded-none">
                 <Image
-                  src="/homepage/check-in.png?v=3"
-                  alt="You earned 100 points"
+                  src="/homepage/check-in-hires.jpg"
+                  alt="Person checking in on phone"
                   width={456}
                   height={456}
-                  className="w-full h-full object-contain md:object-cover"
+                  className="w-full h-full object-cover"
                   loading="lazy"
                 />
               </div>
@@ -258,11 +258,10 @@ export default function MapSection() {
             >
               <div className="flex flex-col items-center gap-4 md:gap-3 md:items-start max-w-[361px] w-full md:max-w-none ">
                 <p className="title2 text-white text-center md:text-left  ">
-                  Check In
+                  Check In &amp; Earn
                 </p>
                 <p className="body-large text-[#b5b5b5] text-center md:text-left font-grotesk">
-                  Locate an IRL checkpoint, open the app and check in when you
-                  show up.
+                  Click on a location to check in and earn points.
                 </p>
                 <div className="mt-[16px] flex justify-center md:hidden">
                   <Image
@@ -305,11 +304,10 @@ export default function MapSection() {
             >
               <div className="flex flex-col items-center gap-4 md:gap-3 md:items-start max-w-[361px] w-full md:max-w-none">
                 <p className="title2  text-white text-center md:text-left">
-                  Earn and Spend
+                  Spend
                 </p>
                 <p className="body-large text-[#b5b5b5] text-center md:text-left font-grotesk">
-                  Check-ins earn IRL tokens. Use them across the network. Go out
-                  in one city, spend in another.
+                  Spend points at clubs, bars and galleries in your city.
                 </p>
 
                 {/* Mobile: button below paragraph */}
@@ -319,7 +317,7 @@ export default function MapSection() {
                 >
                   <button className="bg-white flex h-12 items-center justify-center gap-2 px-4 py-2 rounded-full w-full cursor-pointer hover:bg-gray-100 transition-colors">
                     <span className="title3 text-[#313131] ">
-                      Start Earning
+                      Get Started
                     </span>
                   </button>
                 </Link>
@@ -337,7 +335,7 @@ export default function MapSection() {
           className="inline-flex items-center justify-center"
         >
           <button className="bg-white flex h-12 items-center justify-center gap-2 px-6 py-2 rounded-full cursor-pointer hover:bg-gray-100 transition-colors">
-            <span className="title3 text-[#313131] ">Start Earning</span>
+            <span className="title3 text-[#313131] ">Get Started</span>
           </button>
         </Link>
       </div>
