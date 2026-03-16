@@ -104,10 +104,10 @@ export default function Home() {
           <ArtistCTA />
         </div>
 
-        {/* Footer Hero Section with WebGL Background */}
-        <div className="py-16 md:py-24">
+        {/* Footer Hero Section with WebGL Background — temporarily hidden, re-enable when needed */}
+        {/* <div className="py-16 md:py-24">
           <FooterHero />
-        </div>
+        </div> */}
 
         {/* Footer */}
         <Footer />
