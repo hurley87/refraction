@@ -68,10 +68,10 @@ export default function Home() {
           <WhatYouGetSection />
         </div>
 
-        {/* Check-Ins Fund Culture Section */}
-        <div className="py-0">
+        {/* Check-Ins Fund Culture Section — temporarily hidden, re-enable when needed */}
+        {/* <div className="py-0">
           <CheckInsFundCultureSection />
-        </div>
+        </div> */}
 
         {/* City Guides Carousel Section */}
         { <div className="py-0">
