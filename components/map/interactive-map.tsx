@@ -1238,7 +1238,7 @@ export default function InteractiveMap({
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-[#ededed]">
                 <h3 className="text-base font-inktrap text-[#313131] tracking-[-1.28px]">
-                  Welcome
+                  Welcome to IRL!
                 </h3>
                 <button
                   type="button"
@@ -1265,21 +1265,11 @@ export default function InteractiveMap({
               {/* Content */}
               <div className="px-4 py-4">
                 <p className="text-sm text-[#313131] leading-relaxed">
-                  You&apos;re in! Complete your first check-in to earn points.
+                  Every spot on the map is curated by people shaping the local scene.
                 </p>
                 <p className="text-sm text-[#7d7d7d] mt-2 leading-relaxed">
-                  Use the search bar or tap the map to find a place nearby.
+                  Click on a spot to check in and earn 100 points.
                 </p>
-              </div>
-              {/* Footer */}
-              <div className="px-4 pb-4">
-                <button
-                  type="button"
-                  onClick={dismissWelcomeBanner}
-                  className="w-full flex items-center justify-center rounded-full bg-[#313131] h-10 text-sm font-inktrap text-white transition-colors hover:bg-[#424242]"
-                >
-                  Start exploring
-                </button>
               </div>
             </div>
           )}
