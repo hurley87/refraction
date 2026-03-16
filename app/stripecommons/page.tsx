@@ -16,22 +16,19 @@ export default function StripeCommonsPage() {
   }, [ready, authenticated, router]);
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-[#0A0A1A]">
-      {/* Background gradient layer */}
+    <div className="relative min-h-dvh overflow-hidden bg-[#f5f0e8]">
+      {/* Background gradient layer inspired by reference image */}
       <div
         className="pointer-events-none absolute inset-0 -z-0"
         style={{
-          background:
-            'radial-gradient(ellipse at 50% 0%, #2D1B69 0%, #0A0A1A 70%)',
-        }}
-      />
-      <div
-        className="pointer-events-none absolute inset-0 z-0 opacity-60"
-        style={{
-          backgroundImage: "url('/stripe-commons/master.png')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
+          backgroundImage: `
+            linear-gradient(135deg, #f7c58a 0%, #fdf1d5 25%, #a9f5c3 50%, #7be2e0 75%, #f7c58a 100%),
+            radial-gradient(circle at 15% 20%, rgba(243, 174, 131, 0.75) 0, transparent 40%),
+            radial-gradient(circle at 85% 20%, rgba(125, 236, 190, 0.7) 0, transparent 45%),
+            radial-gradient(circle at 20% 80%, rgba(247, 203, 120, 0.75) 0, transparent 45%),
+            radial-gradient(circle at 80% 80%, rgba(120, 230, 205, 0.75) 0, transparent 45%)
+          `,
+          backgroundBlendMode: 'soft-light, normal, normal, normal, normal',
         }}
       />
 
@@ -39,32 +36,32 @@ export default function StripeCommonsPage() {
         {/* Header */}
         <header className="flex justify-center px-4 pt-4">
           <div
-            className="flex h-[53px] w-full max-w-[393px] items-center justify-between rounded-full border border-white/10 px-4 py-2"
+            className="flex h-[53px] w-full max-w-[393px] items-center justify-between rounded-full border border-black/10 px-4 py-2"
             style={{
               background:
-                'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%)',
+                'linear-gradient(180deg, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.02) 100%)',
               backdropFilter: 'blur(32px)',
             }}
           >
             <a
               href="/"
-              className="relative flex size-[40px] shrink-0 items-center justify-center rounded-full bg-white/10"
+              className="relative flex size-[40px] shrink-0 items-center justify-center rounded-full bg-black/10"
             >
               <Image
                 src="/home/IRL.png"
                 alt="IRL"
                 width={27}
                 height={14}
-                className="block"
+                className="block invert"
               />
             </a>
 
             {/* Privy badge */}
-            <div className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5">
-              <span className="text-[11px] font-medium uppercase tracking-wider text-white/60">
+            <div className="flex items-center gap-1.5 rounded-full bg-black/10 px-3 py-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-wider text-black/60">
                 Powered by
               </span>
-              <span className="text-[13px] font-bold tracking-tight text-white">
+              <span className="text-[13px] font-bold tracking-tight text-black">
                 Privy
               </span>
             </div>
@@ -72,116 +69,86 @@ export default function StripeCommonsPage() {
         </header>
 
         {/* Main */}
-        <main className="flex flex-1 flex-col items-center justify-center px-4 pb-16 pt-6">
+        <main className="flex flex-1 flex-col items-center justify-center overflow-x-hidden px-4 pb-16 pt-6">
           <div className="mx-auto flex w-full max-w-[393px] flex-col items-center gap-10 text-center">
-            {/* Event badge */}
-            <div className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 backdrop-blur-md">
-              <div className="h-2 w-2 rounded-full bg-[#6851FF] animate-pulse" />
-              <span
-                className="text-[11px] font-medium uppercase tracking-widest text-white/70"
-                style={{ fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", monospace' }}
-              >
-                March 18 · CDMX
-              </span>
-            </div>
+            {/* Event badge – styled like hero "Welcome to IRL" */}
 
             {/* Privy logo prominent */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
-                <span className="text-3xl font-bold text-[#6851FF]">P</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold tracking-tight text-white">
-                  Privy
-                </span>
-                <span className="text-lg font-light text-white/50">×</span>
-                <span className="text-lg font-bold tracking-tight text-white">
-                  IRL
-                </span>
+            <div className="flex flex-col items-center gap-3 space-y-4 py-10">
+              <div className="w-full max-w-[393px]">
+                <Image
+                  src="/stripecommons/privy-black.png"
+                  alt="Privy"
+                  width={393}
+                  height={80}
+                  className="h-auto w-full object-contain"
+                />
               </div>
             </div>
 
             {/* Hero heading */}
+
             <div className="space-y-4">
-              <h1
-                className="font-inktrap text-[42px] font-bold uppercase leading-[42px] tracking-[-3px] text-white"
-                style={{
-                  textShadow: '0 0 40px rgba(104, 81, 255, 0.3)',
-                }}
-              >
-                Stripe Commons
-              </h1>
-              <p
-                className="font-pleasure text-xl leading-7 text-white/80"
-                style={{
-                  textShadow: '0 0 16px rgba(255,255,255,0.15)',
-                  letterSpacing: '-0.5px',
-                }}
-              >
-                Welcome to Stripe Commons CDMX —{' '}
-                <span className="text-white">
-                  Claim Your Exclusive Artwork and IRL Points
+              <div className="flex items-center gap-2 self-start">
+                <Image
+                  src="/homepage/ellipse.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="shrink-0 "
+                />
+                <span className="title5 font-grotesk text-black">
+                  March 18 2026
                 </span>
+              </div>
+              <p className="hero-text self-stretch text-left text-black">
+                Welcome to Stripe Commons CDMX
+                <br />
+              </p>
+              <p className="title3 font-grotesk text-black text-center">
+                Claim Your Exclusive Artwork and IRL Points
               </p>
             </div>
 
-            {/* Artwork preview */}
-            <div
-              className="relative w-[280px] h-[280px] mx-auto overflow-hidden rounded-2xl border border-white/10"
-              style={{
-                boxShadow: '0 8px 40px rgba(104, 81, 255, 0.15)',
-              }}
-            >
-              <Image
-                src="/stripe-commons/master.png"
-                alt="Stripe Commons Artwork"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A1A]/60 to-transparent" />
-              <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1 backdrop-blur-sm">
-                <span className="text-[10px] font-medium text-white/80">
-                  Limited Edition · 150 Prints
-                </span>
+            {/* Artwork preview + subcopy – full width of page with same side gap */}
+            <div className="flex w-screen max-w-none flex-col items-center gap-2 relative px-4">
+              <div
+                className="relative w-full aspect-square overflow-hidden rounded-2xl border border-black/10"
+                style={{
+                  boxShadow: '0 8px 40px rgba(104, 81, 255, 0.15)',
+                }}
+              >
+                <Image
+                  src="/stripecommons/master.png"
+                  alt="Stripe Commons Artwork"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
               </div>
+              <p
+                className="text-center text-[11px] uppercase tracking-widest text-black/50"
+                style={{
+                  fontFamily:
+                    '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", monospace',
+                }}
+              >
+                Limited Edition · 150 Prints
+              </p>
             </div>
 
-            {/* CTA button – sign in with Privy */}
+            {/* CTA button – sign in with Privy (match homepage hero CTA) */}
             <div className="w-full space-y-3">
               <button
                 type="button"
                 onClick={login}
-                className="flex h-14 w-full items-center justify-between rounded-full px-6 py-2 font-pleasure text-white transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6851FF]"
-                style={{
-                  background:
-                    'linear-gradient(135deg, #6851FF 0%, #8B5CF6 100%)',
-                  boxShadow: '0 4px 24px rgba(104, 81, 255, 0.35)',
-                }}
+                className="flex h-[52px] w-full justify-center items-center gap-2.5 rounded-full bg-white hover:bg-gray-100 transition-colors cursor-pointer title3 text-[#313131] font-grotesk whitespace-nowrap"
               >
-                <span className="text-base font-medium tracking-tight">
-                  Sign in with Privy
-                </span>
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="opacity-80"
-                >
-                  <path
-                    d="M4 10H16M16 10L11 5M16 10L11 15"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                Sign In
               </button>
 
               <p
-                className="text-center text-[11px] uppercase tracking-widest text-white/40"
+                className="text-center text-[11px] uppercase tracking-widest text-black/50"
                 style={{
                   fontFamily:
                     '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", monospace',
@@ -193,21 +160,33 @@ export default function StripeCommonsPage() {
 
             {/* Partner logos */}
             <div className="flex flex-col items-center gap-3 pt-4">
-              <span className="text-[10px] font-medium uppercase tracking-widest text-white/30">
+              <span className="text-[10px] font-medium uppercase tracking-widest text-black/40">
                 Presented by
               </span>
               <div className="flex items-center gap-6">
-                <span className="text-sm font-bold tracking-tight text-white/50">
-                  Privy
-                </span>
-                <span className="text-white/20">·</span>
-                <span className="text-sm font-bold tracking-tight text-white/50">
-                  IRL
-                </span>
-                <span className="text-white/20">·</span>
-                <span className="text-sm font-bold tracking-tight text-white/50">
-                  Stripe
-                </span>
+                <Image
+                  src="/stripecommons/privy-nodot.png"
+                  alt="Privy"
+                  width={60}
+                  height={24}
+                  className="h-6 w-auto object-contain opacity-60"
+                />
+                <span className="text-black/30">·</span>
+                <Image
+                  src="/home/IRL.png"
+                  alt="IRL"
+                  width={27}
+                  height={14}
+                  className="h-[14px] w-auto object-contain opacity-60 invert"
+                />
+                <span className="text-black/30">·</span>
+                <Image
+                  src="/stripecommons/stripe-3.svg"
+                  alt="Stripe"
+                  width={60}
+                  height={28}
+                  className="h-6 w-auto object-contain opacity-60"
+                />
               </div>
             </div>
           </div>
