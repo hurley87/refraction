@@ -35,9 +35,9 @@ export default function ArtistCTA() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full bg-[#131313] pt-[150px] pb-[900px] md:pt-[200px] md:pb-[300px] overflow-visible min-h-[800px] md:min-h-[800px]"
+      className="relative w-full bg-[#131313] pt-[40px] pb-[900px] md:pt-[40px] md:pb-[300px] overflow-visible min-h-[800px] md:min-h-[800px]"
     >
-      <div className="relative z-10 flex flex-col items-center justify-center px-4 py-20 md:py-16">
+      <div className="relative z-10 flex flex-col items-center justify-center px-4 py-6 md:py-8">
         {/* Content container */}
         {/* Header and heading above animated strips */}
 
@@ -51,7 +51,7 @@ export default function ArtistCTA() {
       </div>
 
       {/* Animated artist name strips */}
-      <div className="absolute top-[500px] md:top-[600px] left-0 w-full z-0 pointer-events-none md:space-y-6 overflow-visible">
+      <div className="absolute top-[250px] md:top-[250px] left-0 w-full z-0 pointer-events-none md:space-y-6 overflow-visible">
         {artistImages.map((imageNumber, index) => {
           const isEvenRow = index % 2 === 0;
           const transform = isEvenRow
