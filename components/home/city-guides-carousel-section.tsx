@@ -220,7 +220,7 @@ export default function CityGuidesCarouselSection() {
               background: 'rgba(253, 255, 255, 0.15)',
             }}
           >
-            <span className="title4 text-[#313131] font-grotesk">
+            <span className="title4 text-[#FFFFFF] font-grotesk">
               Explore {selectedVenue.city}
             </span>
           </Link>

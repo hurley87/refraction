@@ -1,0 +1,42 @@
+[
+  {
+    "title": "Stripe Commons",
+    "thumbnailUrl": "/events/stripe-commons.jpeg",
+    "date": "2026-03-18T00:00:00.000Z",
+    "city": "Mexico City",
+    "mapsLink": "https://maps.app.goo.gl/MUUNsbuf0zaZN4MLN7",
+    "rsvpLink": ""
+  },
+  {
+    "title": "Digital Division with Bridge",
+    "thumbnailUrl": "/events/dd-pr.png",
+    "date": "2026-03-25T00:00:00.000Z",
+    "city": "New York City",
+    "mapsLink": "https://maps.app.goo.gl/j0s3rY5w2B2xNn5ar5",
+    "rsvpLink": "https://lu.ma/e54woo6a"
+  },
+  {
+    "title": "IRL x Breakglass Studios presents: Live From Breakglass 2026",
+    "thumbnailUrl": "/events/breakglass.jpeg",
+    "date": "2026-03-28T00:00:00.000Z",
+    "city": "Montreal",
+    "mapsLink": "",
+    "rsvpLink": "https://ra.co/events/2384595"
+  },
+  {
+    "title": "Cinq à Sept with Stellar, Hype, and WalletCon",
+    "thumbnailUrl": "/events/5a7.png",
+    "date": "2026-03-31T00:00:00.000Z",
+    "city": "Cannes",
+    "mapsLink": "https://maps.app.goo.gl/IHMgMvnSQ4GTJXPU9",
+    "rsvpLink": "https://lu.ma/vvqz0b0w"
+  },
+  {
+    "title": "Pacific Rhythm @ Park in Park",
+    "thumbnailUrl": "/events/pacificrhythm.jpeg",
+    "date": "2026-04-11T00:00:00.000Z",
+    "city": "Tokyo",
+    "mapsLink": "https://maps.app.goo.gl/cpwsCPvzyVQH6cSu9",
+    "rsvpLink": "https://ra.co/events/2379130"
+  }
+]

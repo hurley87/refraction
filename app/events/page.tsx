@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useMemo, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import {
   Calendar,
   CalendarX2,
@@ -11,16 +11,16 @@ import {
   MapPin,
   SlidersHorizontal,
   Ticket,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   Dialog,
   DialogClose,
   DialogContent,
   DialogDescription,
   DialogTitle,
-} from "@/components/ui/dialog";
-import MapNav from "@/components/map/mapnav";
-import type { DiceEvent, DiceImage, DiceVenue } from "@/lib/dice";
+} from '@/components/ui/dialog';
+import MapNav from '@/components/map/mapnav';
+import type { DiceEvent, DiceImage, DiceVenue } from '@/lib/dice';
 
 interface EventsResponse {
   events: DiceEvent[];
@@ -38,11 +38,21 @@ interface PublicEvent {
   poster: string | null;
   location: string;
   ticketsUrl: string;
+  mapsUrl?: string | null;
 }
 
-type SortBy = "date" | "title";
+interface ManualEvent {
+  title: string;
+  thumbnailUrl: string;
+  date: string;
+  city: string;
+  mapsLink: string;
+  rsvpLink: string;
+}
 
-const SECTION_TITLE_CLASS = "px-2 text-black body-small font-monument-grotesk";
+type SortBy = 'date' | 'title';
+
+const SECTION_TITLE_CLASS = 'px-2 text-black body-small font-monument-grotesk';
 
 const parseEventDate = (value: string | null | undefined): Date | null => {
   if (!value) return null;
@@ -52,25 +62,26 @@ const parseEventDate = (value: string | null | undefined): Date | null => {
 
 const getPoster = (images: DiceImage[] | null | undefined): string | null => {
   if (!images || images.length === 0) return null;
-  const preferred = images.find((image) => image.type === "SQUARE") ?? images[0];
+  const preferred =
+    images.find((image) => image.type === 'SQUARE') ?? images[0];
   return preferred?.url ?? null;
 };
 
 const getLocation = (venue: DiceVenue | undefined): string => {
-  if (!venue) return "Location TBA";
-  const cityCountry = [venue.city, venue.country].filter(Boolean).join(", ");
-  return cityCountry || venue.name || "Location TBA";
+  if (!venue) return 'Location TBA';
+  const cityCountry = [venue.city, venue.country].filter(Boolean).join(', ');
+  return cityCountry || venue.name || 'Location TBA';
 };
 
-const EVENTS_MAP_HREF = "/interactive-map";
+const EVENTS_MAP_HREF = '/interactive-map';
 
 const getTicketsUrl = (eventName: string): string =>
   `https://dice.fm/search?q=${encodeURIComponent(eventName)}`;
 
 const formatDateChip = (date: Date | null): string => {
-  if (!date) return "DATE TBA";
+  if (!date) return 'DATE TBA';
   const month = date
-    .toLocaleString("en-US", { month: "short" })
+    .toLocaleString('en-US', { month: 'short' })
     .slice(0, 3)
     .toUpperCase();
   const day = date.getDate();
@@ -95,11 +106,12 @@ const toPublicEvent = (event: DiceEvent): PublicEvent => {
     poster: getPoster(event.images),
     location: getLocation(primaryVenue),
     ticketsUrl: getTicketsUrl(event.name),
+    mapsUrl: EVENTS_MAP_HREF,
   };
 };
 
 export default function EventsPage() {
-  const [sortBy, setSortBy] = useState<SortBy>("date");
+  const [sortBy, setSortBy] = useState<SortBy>('date');
   const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
 
   const {
@@ -107,38 +119,72 @@ export default function EventsPage() {
     isLoading,
     error,
   } = useQuery<EventsResponse>({
-    queryKey: ["public-dice-events"],
+    queryKey: ['public-dice-events'],
     queryFn: async () => {
-      const response = await fetch("/api/dice/events");
+      const response = await fetch('/api/dice/events');
       const body = await response.json().catch(() => ({}));
       if (!response.ok || !body?.success) {
-        throw new Error(body?.error ?? "Failed to fetch events");
+        throw new Error(body?.error ?? 'Failed to fetch events');
       }
       return body.data;
     },
     staleTime: 5 * 60 * 1000,
   });
 
+  const {
+    data: manualEvents,
+    isLoading: manualLoading,
+    error: manualError,
+  } = useQuery<ManualEvent[]>({
+    queryKey: ['manual-events'],
+    queryFn: async () => {
+      const response = await fetch('/data/manual-events.json');
+      if (!response.ok) {
+        return [];
+      }
+      const data = (await response.json().catch(() => [])) as unknown;
+      if (!Array.isArray(data)) return [];
+      return data as ManualEvent[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const publicEvents = useMemo(() => {
-    const events = eventsData?.events ?? [];
-    return events.map(toPublicEvent);
-  }, [eventsData?.events]);
+    const diceEvents = eventsData?.events ?? [];
+    const dicePublic = diceEvents.map(toPublicEvent);
+
+    const manualPublic: PublicEvent[] =
+      manualEvents?.map((evt, index) => ({
+        id: `manual-${index}-${evt.title}`,
+        title: evt.title,
+        description: null,
+        start: parseEventDate(evt.date),
+        poster: evt.thumbnailUrl || null,
+        location: evt.city,
+        ticketsUrl: evt.rsvpLink,
+        mapsUrl: evt.mapsLink || EVENTS_MAP_HREF,
+      })) ?? [];
+
+    return [...dicePublic, ...manualPublic];
+  }, [eventsData?.events, manualEvents]);
 
   const nextEvent = useMemo(() => {
     const upcomingWithDate = publicEvents
       .filter((event) => event.start && isTodayOrFuture(event.start))
-      .sort((a, b) => (a.start!.getTime() - b.start!.getTime()));
+      .sort((a, b) => a.start!.getTime() - b.start!.getTime());
     return upcomingWithDate[0] ?? null;
   }, [publicEvents]);
 
   const remainingUpcomingEvents = useMemo(() => {
-    const upcoming = publicEvents.filter((event) => isTodayOrFuture(event.start));
+    const upcoming = publicEvents.filter((event) =>
+      isTodayOrFuture(event.start)
+    );
     const withoutNext = nextEvent
       ? upcoming.filter((event) => event.id !== nextEvent.id)
       : upcoming;
 
     return [...withoutNext].sort((a, b) => {
-      if (sortBy === "title") return a.title.localeCompare(b.title);
+      if (sortBy === 'title') return a.title.localeCompare(b.title);
       if (!a.start && !b.start) return a.title.localeCompare(b.title);
       if (!a.start) return 1;
       if (!b.start) return -1;
@@ -151,7 +197,7 @@ export default function EventsPage() {
       (event) => event.start && !isTodayOrFuture(event.start)
     );
     return [...onlyPast].sort((a, b) => {
-      if (sortBy === "title") return a.title.localeCompare(b.title);
+      if (sortBy === 'title') return a.title.localeCompare(b.title);
       return b.start!.getTime() - a.start!.getTime();
     });
   }, [publicEvents, sortBy]);
@@ -169,7 +215,7 @@ export default function EventsPage() {
         <MapNav />
 
         <div className="space-y-3 pt-3">
-          {isLoading && (
+          {(isLoading || manualLoading) && (
             <div className="flex min-h-48 flex-col items-center justify-center rounded-[26px] border border-white/30 bg-white/45 px-6 py-8 backdrop-blur-sm">
               <Loader2 className="h-8 w-8 animate-spin text-neutral-700" />
               <p className="mt-3 body-small text-neutral-700">
@@ -178,12 +224,14 @@ export default function EventsPage() {
             </div>
           )}
 
-          {error && (
+          {(error || manualError) && (
             <div className="rounded-[26px] border border-rose-200 bg-rose-50 px-4 py-5">
               <p className="body-small text-rose-700">
                 {error instanceof Error
                   ? error.message
-                  : "Unable to load events right now."}
+                  : manualError instanceof Error
+                    ? manualError.message
+                    : 'Unable to load events right now.'}
               </p>
             </div>
           )}
@@ -236,7 +284,7 @@ export default function EventsPage() {
                       </span>
                     </div>
                     <Link
-                      href={EVENTS_MAP_HREF}
+                      href={nextEvent.mapsUrl || EVENTS_MAP_HREF}
                       className="rounded-full bg-white px-3 py-2 text-[11px] uppercase tracking-wide text-black transition-colors hover:bg-white/80"
                     >
                       Map
@@ -262,11 +310,11 @@ export default function EventsPage() {
               <h2 className={SECTION_TITLE_CLASS}>UPCOMING EVENTS</h2>
               <button
                 type="button"
-                onClick={() => setSortBy(sortBy === "date" ? "title" : "date")}
+                onClick={() => setSortBy(sortBy === 'date' ? 'title' : 'date')}
                 className="flex h-10 w-full items-center justify-between rounded-full bg-white px-4 transition-colors hover:bg-neutral-50"
               >
                 <span className="body-small uppercase tracking-wide text-[#5E5E5E]">
-                  Sort by {sortBy === "date" ? "title" : "date"}
+                  Sort by {sortBy === 'date' ? 'title' : 'date'}
                 </span>
                 <SlidersHorizontal className="h-4 w-4 text-[#5E5E5E]" />
               </button>
@@ -321,7 +369,7 @@ export default function EventsPage() {
                         </span>
                       </div>
                       <Link
-                        href={EVENTS_MAP_HREF}
+                        href={event.mapsUrl || EVENTS_MAP_HREF}
                         className="rounded-full bg-neutral-100 px-3 py-2 text-[11px] uppercase tracking-wide text-[#4C4C4C] transition-colors hover:bg-neutral-200"
                       >
                         Map
@@ -334,7 +382,9 @@ export default function EventsPage() {
                       rel="noopener noreferrer"
                       className="mt-3 flex h-10 w-full items-center justify-between rounded-full bg-neutral-100 px-4 text-black transition-colors hover:bg-neutral-200"
                     >
-                      <span className="font-pleasure leading-none">Find Tickets</span>
+                      <span className="font-pleasure leading-none">
+                        Find Tickets
+                      </span>
                       <Ticket className="h-4 w-4" />
                     </a>
                   </article>
@@ -396,7 +446,7 @@ export default function EventsPage() {
                         </span>
                       </div>
                       <Link
-                        href={EVENTS_MAP_HREF}
+                        href={event.mapsUrl || EVENTS_MAP_HREF}
                         className="rounded-full bg-neutral-100 px-3 py-2 text-[11px] uppercase tracking-wide text-[#4C4C4C] transition-colors hover:bg-neutral-200"
                       >
                         Map
@@ -436,17 +486,14 @@ export default function EventsPage() {
           if (!open) setSelectedPoster(null);
         }}
       >
-        <DialogContent
-          className="h-[95vh] max-h-[95vh] w-[95vw] max-w-[95vw] border-none p-0 shadow-none [&>button]:hidden"
-          style={{ backgroundColor: "black" }}
-        >
+        <DialogContent className="h-screen w-screen max-h-screen max-w-screen sm:h-[90vh] sm:w-[90vw] sm:max-h-[90vh] sm:max-w-[90vw] border-none p-0 shadow-none [&>button]:hidden flex items-center justify-center bg-black">
           <DialogTitle className="sr-only">Event Poster</DialogTitle>
           <DialogDescription className="sr-only">
             Full-size event poster preview
           </DialogDescription>
           {selectedPoster && (
-            <div className="flex h-full flex-col">
-              <div className="mb-1 flex w-full justify-center rounded-3xl border border-[#131313]/10 bg-white px-4 py-3">
+            <div className="flex h-full w-full flex-col">
+              <div className="mb-1 flex w-full justify-center rounded-3xl border border-[#131313]/10 bg-white/80 px-4 py-3 backdrop-blur-sm">
                 <DialogClose asChild>
                   <button className="flex h-10 w-10 items-center justify-center rounded-full text-black transition-colors hover:bg-gray-100">
                     <span className="sr-only">Close</span>
@@ -461,14 +508,26 @@ export default function EventsPage() {
                 </DialogClose>
               </div>
 
-              <div className="flex flex-1 items-center justify-center overflow-auto rounded-3xl border border-[#131313]/10 bg-white p-6">
+              {/* Card with blurred poster background and sharp poster on top */}
+              <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-3xl border border-[#131313]/10">
+                {/* Blurred background inside the card */}
                 <Image
                   src={selectedPoster}
-                  alt="Event poster"
-                  width={900}
-                  height={1200}
-                  className="h-auto max-h-full w-auto max-w-full rounded-xl object-contain"
+                  alt=""
+                  fill
+                  className="object-cover blur-md opacity-40 scale-110"
                 />
+
+                {/* Foreground poster */}
+                <div className="relative flex max-h-full max-w-full items-center justify-center p-4 sm:p-6">
+                  <Image
+                    src={selectedPoster}
+                    alt="Event poster"
+                    width={900}
+                    height={1200}
+                    className="h-auto max-h-[80vh] w-auto max-w-full rounded-xl object-contain shadow-2xl"
+                  />
+                </div>
               </div>
             </div>
           )}
