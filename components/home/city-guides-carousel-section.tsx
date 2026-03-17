@@ -41,7 +41,7 @@ const VENUES = [
     name: 'Public Records',
     neighborhood: 'Brooklyn',
     city: 'New York City',
-    backgroundImage: '/homepage/cities/new-york.jpg',
+    backgroundImage: '/homepage/cities/public-records.jpg',
     mapLat: 40.7128,
     mapLng: -74.006,
   },
