@@ -10,36 +10,48 @@ const VENUES = [
     neighborhood: 'Raffles Place',
     city: 'Singapore',
     backgroundImage: '/homepage/rasa-space.jpg',
+    mapLat: 1.3521,
+    mapLng: 103.8198,
   },
   {
     name: 'ESP Hi-Fi',
     neighborhood: 'Santa Fe Arts District',
     city: 'Denver',
-    backgroundImage: '/homepage/featured-cities.jpg',
+    backgroundImage: '/homepage/cities/esp-hifi.jpg',
+    mapLat: 39.7392,
+    mapLng: -104.9903,
   },
   {
     name: 'Standard Time',
     neighborhood: 'Greater Toronto Area',
     city: 'Toronto',
-    backgroundImage: '/homepage/featured-cities.jpg',
+    backgroundImage: '/homepage/cities/standard-time.jpg',
+    mapLat: 43.6532,
+    mapLng: -79.3832,
   },
   {
     name: 'Doka',
     neighborhood: 'Amsterdam-Oost',
     city: 'Amsterdam',
-    backgroundImage: '/homepage/featured-cities.jpg',
+    backgroundImage: '/homepage/cities/doka.jpg',
+    mapLat: 52.3676,
+    mapLng: 4.9041,
   },
   {
     name: 'Public Records',
     neighborhood: 'Brooklyn',
     city: 'New York City',
     backgroundImage: '/homepage/cities/new-york.jpg',
+    mapLat: 40.7128,
+    mapLng: -74.006,
   },
   {
     name: 'Yu Yu',
     neighborhood: 'Juárez',
     city: 'Mexico City',
-    backgroundImage: '/homepage/cities/mexico-city.jpg',
+    backgroundImage: '/homepage/cities/yuyu.jpg',
+    mapLat: 19.4326,
+    mapLng: -99.1332,
   },
 ];
 
@@ -144,7 +156,7 @@ export default function CityGuidesCarouselSection() {
           30 Cities, One Network
         </h3>
         <p
-          className="text-left mx-auto mb-[200px] md:mb-0"
+          className="text-left mb-[200px] md:mb-0"
           style={{
             color: 'var(--UI-White, #FFF)',
             textShadow: '0 0 26.7px #FFF',
@@ -200,16 +212,16 @@ export default function CityGuidesCarouselSection() {
             </div>
           </div>
 
-          {/* Find Spots Nearby CTA */}
+          {/* Explore [city] CTA – links to interactive map by city name */}
           <Link
-            href="/interactive-map"
+            href={`/interactive-map?city=${encodeURIComponent(selectedVenue.city)}`}
             className="flex flex-1 min-w-0 self-stretch justify-center items-center gap-2.5 py-5 px-6 rounded-full transition-colors hover:opacity-90"
             style={{
               background: 'rgba(253, 255, 255, 0.15)',
             }}
           >
             <span className="title4 text-[#313131] font-grotesk">
-              Find Spots Nearby
+              Explore {selectedVenue.city}
             </span>
           </Link>
         </div>

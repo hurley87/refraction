@@ -175,14 +175,30 @@ export default function InteractiveMap({
   const [welcomeBannerViews, setWelcomeBannerViews] = useState(0);
   const [, setLocationInstructionShows] = useState(0);
 
+  // When initial coords are provided (e.g. from ?city= or ?lat=&lng=), center the map on them.
+  // This runs when props change (e.g. after hydration when searchParams become available).
+  useEffect(() => {
+    if (
+      initialLatitude != null &&
+      initialLongitude != null &&
+      !Number.isNaN(initialLatitude) &&
+      !Number.isNaN(initialLongitude)
+    ) {
+      hasSetInitialLocationRef.current = true;
+      setViewState((prev) => ({
+        ...prev,
+        latitude: initialLatitude,
+        longitude: initialLongitude,
+        zoom: Math.max(prev.zoom ?? 12, 12),
+      }));
+    }
+  }, [initialLatitude, initialLongitude]);
+
   // Center map on user's current location once on mount (with fallback)
-  // Skip geolocation if the map was opened with explicit city coordinates.
+  // Skip geolocation if the map was opened with explicit city/coordinates.
   useEffect(() => {
     if (hasSetInitialLocationRef.current) return;
-    if (initialLatitude != null && initialLongitude != null) {
-      hasSetInitialLocationRef.current = true;
-      return;
-    }
+    if (initialLatitude != null && initialLongitude != null) return;
     if (typeof window === 'undefined' || !('geolocation' in navigator)) return;
 
     navigator.geolocation.getCurrentPosition(
@@ -1265,7 +1281,8 @@ export default function InteractiveMap({
               {/* Content */}
               <div className="px-4 py-4">
                 <p className="text-sm text-[#313131] leading-relaxed">
-                  Every spot on the map is curated by people shaping the local scene.
+                  Every spot on the map is curated by people shaping the local
+                  scene.
                 </p>
                 <p className="text-sm text-[#7d7d7d] mt-2 leading-relaxed">
                   Click on a spot to check in and earn 100 points.
