@@ -5,6 +5,8 @@ const mockReadContract = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn();
 const mockWriteContract = vi.fn();
 const mockPointsActivitiesInsert = vi.fn();
+const mockGetPlayerByWallet = vi.fn();
+const mockCreateOrUpdatePlayer = vi.fn();
 const mockUpdatePlayerPoints = vi.fn();
 
 vi.mock('@/lib/api/privy', () => ({
@@ -56,22 +58,24 @@ vi.mock('@/lib/db/client', () => ({
 }));
 
 vi.mock('@/lib/db/players', () => ({
-  getPlayerByWallet: vi.fn(),
-  createOrUpdatePlayer: vi.fn(),
+  getPlayerByWallet: mockGetPlayerByWallet,
+  createOrUpdatePlayer: mockCreateOrUpdatePlayer,
   updatePlayerPoints: mockUpdatePlayerPoints,
 }));
 
+const custodianWallet = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const validWallet = '0x1234567890abcdef1234567890abcdef12345678';
+const secondWallet = '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
 const txHash = `0x${'a'.repeat(64)}`;
 
-function createPostRequest() {
+function createPostRequest(userAddress: string = validWallet) {
   return new NextRequest('http://localhost:3000/api/stripe-commons/claim', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: 'Bearer token',
     },
-    body: JSON.stringify({ userAddress: validWallet }),
+    body: JSON.stringify({ userAddress }),
   });
 }
 
@@ -84,15 +88,15 @@ describe('/api/stripe-commons/claim confirmation safety', () => {
     process.env.NEXT_PUBLIC_BASE_RPC = 'https://example-rpc.invalid';
 
     mockPointsActivitiesInsert.mockResolvedValue({ error: null });
+    mockGetPlayerByWallet.mockResolvedValue(null);
+    mockCreateOrUpdatePlayer.mockResolvedValue(null);
   });
 
   it('does not persist claim while transaction is still pending', async () => {
     const { verifyWalletOwnership } = await import('@/lib/api/privy');
     vi.mocked(verifyWalletOwnership).mockResolvedValue({ authorized: true });
 
-    mockReadContract.mockResolvedValue(
-      '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-    );
+    mockReadContract.mockResolvedValue(custodianWallet);
     mockWriteContract.mockResolvedValue(txHash);
     const timeoutError = new Error('timed out');
     timeoutError.name = 'WaitForTransactionReceiptTimeoutError';
@@ -116,5 +120,69 @@ describe('/api/stripe-commons/claim confirmation safety', () => {
     expect(secondJson.error).toContain('pending confirmation');
     expect(secondJson.transactionHash).toBe(txHash);
     expect(mockWriteContract).toHaveBeenCalledTimes(1);
+  });
+
+  it('recovers pending claims once confirmation arrives', async () => {
+    const { verifyWalletOwnership } = await import('@/lib/api/privy');
+    vi.mocked(verifyWalletOwnership).mockResolvedValue({ authorized: true });
+
+    mockReadContract.mockResolvedValue(custodianWallet);
+    mockWriteContract.mockResolvedValue(txHash);
+
+    const timeoutError = new Error('timed out');
+    timeoutError.name = 'WaitForTransactionReceiptTimeoutError';
+    mockWaitForTransactionReceipt
+      .mockRejectedValueOnce(timeoutError)
+      .mockResolvedValueOnce({ status: 'success' });
+
+    const { POST } = await import('../route');
+
+    const firstResponse = await POST(createPostRequest());
+    expect(firstResponse.status).toBe(202);
+
+    const secondResponse = await POST(createPostRequest());
+    const secondJson = await secondResponse.json();
+
+    expect(secondResponse.status).toBe(200);
+    expect(secondJson.recoveredPendingClaim).toBe(true);
+    expect(secondJson.transactionHash).toBe(txHash);
+    expect(mockPointsActivitiesInsert).toHaveBeenCalledTimes(1);
+    expect(mockWriteContract).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips transferred tokens missing from claim records', async () => {
+    const { verifyWalletOwnership } = await import('@/lib/api/privy');
+    vi.mocked(verifyWalletOwnership).mockResolvedValue({ authorized: true });
+
+    mockReadContract.mockImplementation(({ args }: { args: [bigint] }) => {
+      const tokenId = Number(args[0]);
+      if (tokenId === 1) {
+        return Promise.resolve('0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb');
+      }
+      return Promise.resolve(custodianWallet);
+    });
+
+    mockWriteContract.mockResolvedValue(txHash);
+    mockWaitForTransactionReceipt.mockResolvedValue({ status: 'success' });
+
+    const { POST } = await import('../route');
+
+    const response = await POST(createPostRequest(secondWallet));
+    const json = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(json.tokenId).toBe(2);
+    expect(mockWriteContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        args: [custodianWallet, secondWallet, 2n],
+      })
+    );
+    expect(mockPointsActivitiesInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          token_id: 2,
+        }),
+      })
+    );
   });
 });
