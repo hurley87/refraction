@@ -3,24 +3,36 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
-
 const COVER_IMAGES = [
-  {
-    src: '/homepage/city-guides-covers/denver-guide.png',
-    alt: 'City guide cover',
-    name: 'Denver City Guide',
-    url: 'https://substack.com/@refractiondao/p-188382099',
-  },
   {
     src: '/homepage/city-guides-covers/jiminal.png',
     alt: 'City guide cover',
-    name: "Jiminal's Guide to Amsterdam",
+    name: "Jiminal's Hangover Guide to Amsterdam",
     url: 'https://substack.com/@refractiondao/p-189246596',
   },
   {
+    src: '/homepage/city-guides-covers/danielle-guide.jpg',
+    alt: 'Danielle Paterson’s Guide to Lower Manhattan',
+    name: 'Danielle Paterson’s Guide to Lower Manhattan',
+    url: 'https://refractiondao.substack.com/p/a-freelancers-lower-manhattan-day',
+  },
+  {
+    src: '/homepage/city-guides-covers/sunshine-cdmx.png',
+    alt: 'Sunshine Vendetta’s Phone-Free Music Spots in CDMX',
+    name: 'Sunshine Vendetta’s Phone-Free Music Spots in CDMX',
+    url: 'https://refractiondao.substack.com/p/6-phone-free-music-spots-to-visit',
+  },
+  {
+    src: '/homepage/city-guides-covers/jordan-denver.jpg',
+    alt: 'Jordan Hubner’s Cultural Guide to Denver',
+    name: 'Jordan Hubner’s Cultural Guide to Denver',
+    url: 'https://refractiondao.substack.com/p/jordan-hubners-guide-to-culture-and',
+  },
+
+  {
     src: '/homepage/city-guides-covers/meniac.png',
-    alt: 'City guide cover',
-    name: "Meniac's Map to Amsterdam",
+    alt: 'Meniac’s Disco Map to Amsterdam',
+    name: "Meniac's Disco Map to Amsterdam",
     url: 'https://substack.com/@refractiondao/p-189245087',
   },
 ];
@@ -116,18 +128,25 @@ export default function CityGuidesCoverSection() {
               className="flex flex-col items-center flex-shrink-0 w-[252px] snap-center group"
               style={{ background: 'var(--Dark-Tint-100, #313131)' }}
             >
-              <div
-                className="relative h-[251px] self-stretch overflow-hidden bg-[#1a1a1a]"
-                style={{ aspectRatio: '252/251' }}
+              <Link
+                href={img.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full"
               >
-                <Image
-                  src={img.src}
-                  alt={`${img.alt} ${i + 1}`}
-                  fill
-                  className="object-cover "
-                  sizes="320px"
-                />
-              </div>
+                <div
+                  className="relative h-[251px] self-stretch overflow-hidden bg-[#1a1a1a]"
+                  style={{ aspectRatio: '252/251' }}
+                >
+                  <Image
+                    src={img.src}
+                    alt={`${img.alt} ${i + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="320px"
+                  />
+                </div>
+              </Link>
               <div className="flex flex-col items-start gap-4 md:gap-3 pt-6 pr-6 pb-6 pl-6 md:pt-6 md:pr-6 md:pb-12 md:pl-6 self-stretch border-t border-white/25 md:border-white">
                 <span
                   style={{
