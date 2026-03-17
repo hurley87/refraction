@@ -91,14 +91,14 @@ export default function Home() {
           <CityGuidesCarouselSection />
         </div>
 
-        {/* Get Involved Section */}
-        <div className="py-0">
-          <GetInvolvedSection />
-        </div>
-
         {/* Partners Section */}
         <div className="py-0">
           <Partners />
+        </div>
+
+        {/* Get Involved Section */}
+        <div className="py-0">
+          <GetInvolvedSection />
         </div>
 
         {/* Artist CTA Section */}
