@@ -104,7 +104,7 @@ export default function Home() {
         </div>
 
         {/* Artist CTA Section */}
-        <div className="py-16 md:py-24">
+        <div className="py-0">
           <ArtistCTA />
         </div>
 
