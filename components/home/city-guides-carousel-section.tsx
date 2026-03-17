@@ -15,7 +15,7 @@ const VENUES = [
     name: 'ESP Hi-Fi',
     neighborhood: 'Santa Fe Arts District',
     city: 'Denver',
-    backgroundImage: '/homepage/featured-cities.jpg',
+    backgroundImage: '/homepage/city-guides-covers/denver-guide.png',
   },
   {
     name: 'Standard Time',
@@ -77,7 +77,7 @@ function LocationPinIcon({ className }: { className?: string }) {
     >
       <path
         d="M12 20.9421C11.992 20.0405 11.7966 19.1503 11.4261 18.3275C11.0556 17.5046 10.5181 16.7668 9.84727 16.1604L7.98036 14.472C7.35646 13.9048 6.85816 13.2145 6.5172 12.4452C6.17625 11.6758 6.00011 10.8443 6 10.0035C6 6.70698 8.68655 4 12 4C15.3135 4 18 6.70626 18 10.0028C18 11.6977 17.2807 13.3305 16.0196 14.4713L14.152 16.1597C13.4812 16.7661 12.9436 17.5039 12.5732 18.3267C12.2027 19.1496 12.0073 20.0398 11.9993 20.9414L12 20.9421ZM12 20.9421V21V20.9588M12 11.9574C11.5178 11.9574 11.0553 11.7669 10.7144 11.4277C10.3734 11.0886 10.1818 10.6286 10.1818 10.1489C10.1818 9.66929 10.3734 9.20929 10.7144 8.87013C11.0553 8.53096 11.5178 8.34043 12 8.34043C12.4822 8.34043 12.9447 8.53096 13.2856 8.87013C13.6266 9.20929 13.8182 9.66929 13.8182 10.1489C13.8182 10.6286 13.6266 11.0886 13.2856 11.4277C12.9447 11.7669 12.4822 11.9574 12 11.9574Z"
-        stroke="#7D7D7D"
+        stroke="white"
       />
     </svg>
   );
@@ -144,7 +144,7 @@ export default function CityGuidesCarouselSection() {
           30 Cities, One Network
         </h3>
         <p
-          className="text-left mx-auto mb-[200px] md:mb-0"
+          className="text-left mb-4 md:mb-0"
           style={{
             color: 'var(--UI-White, #FFF)',
             textShadow: '0 0 26.7px #FFF',
@@ -162,7 +162,7 @@ export default function CityGuidesCarouselSection() {
 
         {/* Tabbed venue content */}
         <div
-          className="flex w-[377px] max-w-full flex-col items-stretch gap-4 pt-0 pb-4 px-6 rounded-none overflow-hidden md:mt-[400px]"
+          className="flex w-[377px] max-w-full flex-col items-stretch gap-4 pt-0 pb-4 px-6 rounded-none overflow-hidden mt-auto md:mt-[400px]"
           style={{
             background: 'var(--UI-White-25, rgba(255, 255, 255, 0.25))',
             backdropFilter: 'blur(28px)',
@@ -208,7 +208,7 @@ export default function CityGuidesCarouselSection() {
               background: 'rgba(253, 255, 255, 0.15)',
             }}
           >
-            <span className="title4 text-[#313131] font-grotesk">
+            <span className="title4 text-white font-grotesk">
               Find Spots Nearby
             </span>
           </Link>
