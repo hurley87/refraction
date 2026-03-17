@@ -1,6 +1,8 @@
 /**
  * Content Security Policy for the application. Allows Privy and Google Fonts
  * while restricting other sources.
+ * script-src uses 'unsafe-inline' because Next.js/React inject many inline scripts
+ * whose hashes change per build; hash allowlists would need constant updates.
  */
 const ContentSecurityPolicy = `
   default-src 'self';

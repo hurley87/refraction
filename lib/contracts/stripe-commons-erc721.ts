@@ -14,6 +14,7 @@ export const ERC721_TRANSFER_ABI = [
   'function safeTransferFrom(address from, address to, uint256 tokenId)',
   'function ownerOf(uint256 tokenId) view returns (address)',
   'function balanceOf(address owner) view returns (uint256)',
+  'function tokenURI(uint256 tokenId) view returns (string)',
 ] as const;
 
 export const STRIPE_COMMONS_TOTAL_SUPPLY = 150;

@@ -19,6 +19,7 @@ import {
 
 const ERC721_ABI_PARSED = parseAbi(ERC721_TRANSFER_ABI);
 const WAIT_FOR_RECEIPT_TIMEOUT_MS = 15_000;
+const IPFS_GATEWAY = 'https://gateway.pinata.cloud/ipfs';
 const RECEIPT_POLL_INTERVAL_MS = 1_000;
 const PENDING_CLAIM_LOCK_TTL_MS = 5 * 60 * 1000;
 
@@ -66,9 +67,12 @@ async function getNextAvailableTokenId(): Promise<number | null> {
   return null;
 }
 
-async function getUserClaimRecord(
-  walletAddress: string
-): Promise<{ claimed: boolean; tokenId?: number; txHash?: string }> {
+async function getUserClaimRecord(walletAddress: string): Promise<{
+  claimed: boolean;
+  tokenId?: number;
+  txHash?: string;
+  imageUrl?: string;
+}> {
   const { data, error } = await supabase
     .from('points_activities')
     .select('metadata')
@@ -78,13 +82,84 @@ async function getUserClaimRecord(
 
   if (error) throw error;
   if (data && data.length > 0) {
+    const metadata = data[0].metadata || {};
+    // Debug: inspect stored metadata and any image URL fields
+    console.log(
+      '[stripe-commons] claim metadata for wallet',
+      walletAddress,
+      metadata
+    );
+    const imageUrl =
+      metadata.image_url || metadata.image || metadata.token_image || null;
     return {
       claimed: true,
-      tokenId: data[0].metadata?.token_id,
-      txHash: data[0].metadata?.transaction_hash,
+      tokenId: metadata.token_id,
+      txHash: metadata.transaction_hash,
+      imageUrl: imageUrl ?? undefined,
     };
   }
   return { claimed: false };
+}
+
+/**
+ * Resolve NFT image URL from the collection contract: tokenURI(tokenId) → IPFS
+ * metadata JSON → image field. Returns a gateway URL suitable for <img> / Next Image.
+ */
+async function getTokenImageUrl(tokenId: number): Promise<string | null> {
+  const rpcUrl = process.env.NEXT_PUBLIC_BASE_RPC || process.env.BASE_RPC_URL;
+  if (!rpcUrl) {
+    console.warn('[stripe-commons] No Base RPC URL for tokenURI');
+    return null;
+  }
+
+  const publicClient = createPublicClient({
+    chain: base,
+    transport: http(rpcUrl),
+  });
+
+  let tokenUri: string;
+  try {
+    tokenUri = (await publicClient.readContract({
+      address: STRIPE_COMMONS_NFT_ADDRESS as `0x${string}`,
+      abi: ERC721_ABI_PARSED,
+      functionName: 'tokenURI',
+      args: [BigInt(tokenId)],
+    })) as string;
+  } catch (e) {
+    console.warn('[stripe-commons] tokenURI failed for tokenId', tokenId, e);
+    return null;
+  }
+
+  if (!tokenUri || typeof tokenUri !== 'string') return null;
+
+  const metadataUrl = tokenUri.startsWith('ipfs://')
+    ? `${IPFS_GATEWAY}/${tokenUri.slice(7)}`
+    : tokenUri;
+
+  let res: Response;
+  try {
+    res = await fetch(metadataUrl);
+  } catch (e) {
+    console.warn('[stripe-commons] Fetch metadata failed', metadataUrl, e);
+    return null;
+  }
+
+  if (!res.ok) return null;
+
+  let metadata: { image?: string; image_url?: string };
+  try {
+    metadata = await res.json();
+  } catch {
+    return null;
+  }
+
+  const imageRef = metadata.image ?? metadata.image_url ?? null;
+  if (!imageRef || typeof imageRef !== 'string') return null;
+
+  if (imageRef.startsWith('ipfs://')) {
+    return `${IPFS_GATEWAY}/${imageRef.slice(7)}`;
+  }
+  return imageRef;
 }
 
 export async function POST(req: NextRequest) {
@@ -219,11 +294,7 @@ async function performClaim(
       address: STRIPE_COMMONS_NFT_ADDRESS as `0x${string}`,
       abi: ERC721_ABI_PARSED,
       functionName: 'transferFrom',
-      args: [
-        account.address,
-        userAddress as `0x${string}`,
-        BigInt(tokenId),
-      ],
+      args: [account.address, userAddress as `0x${string}`, BigInt(tokenId)],
       account,
     });
 
@@ -333,11 +404,22 @@ export async function GET(req: NextRequest) {
 
     const remaining = STRIPE_COMMONS_TOTAL_SUPPLY - (count || 0);
 
+    let imageUrl: string | null = null;
+    if (record.claimed && record.tokenId != null) {
+      try {
+        imageUrl = await getTokenImageUrl(record.tokenId);
+      } catch (e) {
+        console.warn('[stripe-commons] getTokenImageUrl failed', e);
+      }
+      if (!imageUrl) imageUrl = record.imageUrl ?? null;
+    }
+
     return NextResponse.json({
       success: true,
       hasClaimed: record.claimed,
       tokenId: record.tokenId ?? null,
       txHash: record.txHash ?? null,
+      imageUrl,
       canClaim: !record.claimed && remaining > 0,
       remainingTokens: remaining,
     });
