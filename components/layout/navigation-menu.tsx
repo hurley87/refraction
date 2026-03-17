@@ -39,7 +39,7 @@ export default function NavigationMenu({
     { label: "Leaderboard", path: "/leaderboard", hidden: true },
     { label: "Events", path: "/events" },
     { label: "Rewards", path: "/rewards" },
-    { label: "Stellar", path: "/stellar", hidden: true },
+    { label: "Stellar", path: "/stellar" },
     { label: "FAQ", path: "/faq", hidden: true },
     { label: "Livepaper", path: "/livepaper" },
     { label: "Become a Partner", path: "https://www.irl.energy/contact-us", external: true }, // pragma: allowlist secret
