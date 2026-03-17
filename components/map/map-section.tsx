@@ -211,11 +211,10 @@ export default function MapSection() {
             >
               <div className="flex flex-col items-center gap-4 md:gap-3 md:items-start max-w-[361px] w-full md:max-w-none">
                 <p className="title2 text-white text-center md:text-left">
-                  Curated Lists
+                  Find Curated Lists
                 </p>
                 <p className="body-large text-[#b5b5b5] text-center md:text-left font-grotesk">
-                  Find the best places from people in the scene. Not algorithms.
-                  Just locals who know.
+                  The best spots, hand-picked by people shaping the local scene.
                 </p>
                 <div className="mt-[16px] flex justify-center md:hidden">
                   <Image
@@ -258,10 +257,10 @@ export default function MapSection() {
             >
               <div className="flex flex-col items-center gap-4 md:gap-3 md:items-start max-w-[361px] w-full md:max-w-none ">
                 <p className="title2 text-white text-center md:text-left  ">
-                  Check In &amp; Earn
+                  Check In
                 </p>
                 <p className="body-large text-[#b5b5b5] text-center md:text-left font-grotesk">
-                  Click on a location to check in and earn points.
+                  Explore the map and check in at spots across your city.
                 </p>
                 <div className="mt-[16px] flex justify-center md:hidden">
                   <Image
@@ -304,10 +303,10 @@ export default function MapSection() {
             >
               <div className="flex flex-col items-center gap-4 md:gap-3 md:items-start max-w-[361px] w-full md:max-w-none">
                 <p className="title2  text-white text-center md:text-left">
-                  Spend
+                  Earn Points
                 </p>
                 <p className="body-large text-[#b5b5b5] text-center md:text-left font-grotesk">
-                  Spend points at clubs, bars and galleries in your city.
+                  Earn points towards future rewards at clubs, bars, and galleries — your first check-in gets you started.
                 </p>
 
                 {/* Mobile: button below paragraph */}
