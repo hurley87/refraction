@@ -47,7 +47,7 @@ const MarqueeRow = memo(function MarqueeRow({
 }) {
   return (
     <div
-      className={`relative overflow-hidden w-full h-20 md:h-16 mb-6 ${className}`}
+      className={`relative overflow-hidden w-full h-20 md:h-16 mb-2 ${className}`}
     >
       <div
         className={`flex items-center gap-8 md:gap-12 absolute whitespace-nowrap [will-change:transform] ${
@@ -86,10 +86,10 @@ const MarqueeRow = memo(function MarqueeRow({
  */
 export default function Partners() {
   return (
-    <section className="w-full bg-[#131313] py-12 md:py-16">
+    <section className="w-full bg-[#131313] py-6 md:py-8">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         {/* Section Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-4">
           <p className="text-[13px] font-grotesk text-white uppercase tracking-[-0.26px] leading-5">
             Trusted By
           </p>
