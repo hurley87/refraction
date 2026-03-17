@@ -26,6 +26,7 @@ const PENDING_CLAIM_LOCK_TTL_MS = 5 * 60 * 1000;
 const claimLocks = new Map<string, Promise<NextResponse>>();
 type PendingClaim = {
   hash: `0x${string}`;
+  tokenId: number;
   startedAt: number;
 };
 const pendingClaims = new Map<string, PendingClaim>();
@@ -59,11 +60,42 @@ async function getClaimedTokenIds(): Promise<Set<number>> {
   return ids;
 }
 
-async function getNextAvailableTokenId(): Promise<number | null> {
+async function getNextTransferableTokenId(
+  publicClient: {
+    readContract: (args: {
+      address: `0x${string}`;
+      abi: readonly string[];
+      functionName: string;
+      args: [bigint];
+    }) => Promise<unknown>;
+  },
+  distributorAddress: string
+): Promise<number | null> {
   const claimed = await getClaimedTokenIds();
+  const normalizedDistributor = distributorAddress.toLowerCase();
+
   for (let id = 1; id <= STRIPE_COMMONS_TOTAL_SUPPLY; id++) {
-    if (!claimed.has(id)) return id;
+    if (claimed.has(id)) continue;
+
+    try {
+      const owner = (await publicClient.readContract({
+        address: STRIPE_COMMONS_NFT_ADDRESS as `0x${string}`,
+        abi: ERC721_ABI_PARSED,
+        functionName: 'ownerOf',
+        args: [BigInt(id)],
+      })) as string;
+
+      if (owner.toLowerCase() === normalizedDistributor) {
+        return id;
+      }
+    } catch (error) {
+      console.warn('[stripe-commons] Failed to inspect token ownership', {
+        tokenId: id,
+        error,
+      });
+    }
   }
+
   return null;
 }
 
@@ -162,6 +194,44 @@ async function getTokenImageUrl(tokenId: number): Promise<string | null> {
   return imageRef;
 }
 
+type PendingClaimResolution = 'pending' | 'confirmed' | 'failed';
+
+async function resolvePendingClaimIfSettled(
+  normalized: string,
+  pendingClaim: PendingClaim
+): Promise<PendingClaimResolution> {
+  const rpcUrl = process.env.NEXT_PUBLIC_BASE_RPC || process.env.BASE_RPC_URL;
+  if (!rpcUrl) return 'pending';
+
+  const publicClient = createPublicClient({
+    chain: base,
+    transport: http(rpcUrl),
+  });
+
+  const receipt = await waitForReceiptWithTimeout(
+    publicClient,
+    pendingClaim.hash,
+    1_500
+  );
+
+  if (!receipt) {
+    return 'pending';
+  }
+
+  pendingClaims.delete(normalized);
+
+  if (receipt.status !== 'success') {
+    return 'failed';
+  }
+
+  const existingRecord = await getUserClaimRecord(normalized);
+  if (!existingRecord.claimed) {
+    await recordClaim(normalized, pendingClaim.tokenId, pendingClaim.hash);
+  }
+
+  return 'confirmed';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { userAddress } = await req.json();
@@ -191,15 +261,37 @@ export async function POST(req: NextRequest) {
 
     const pendingClaim = getActivePendingClaim(normalized);
     if (pendingClaim) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'Claim transaction still pending confirmation for this address. Please wait before retrying.',
-          transactionHash: pendingClaim.hash,
-        },
-        { status: 429 }
+      const pendingResolution = await resolvePendingClaimIfSettled(
+        normalized,
+        pendingClaim
       );
+
+      if (pendingResolution === 'confirmed') {
+        return NextResponse.json({
+          success: true,
+          recoveredPendingClaim: true,
+          transactionHash: pendingClaim.hash,
+          tokenId: pendingClaim.tokenId,
+          pointsAwarded: STRIPE_COMMONS_POINTS,
+          message: 'Artwork claim confirmed successfully!',
+        });
+      }
+
+      if (pendingResolution === 'failed') {
+        pendingClaims.delete(normalized);
+      }
+
+      if (pendingResolution === 'pending') {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Claim transaction still pending confirmation for this address. Please wait before retrying.',
+            transactionHash: pendingClaim.hash,
+          },
+          { status: 429 }
+        );
+      }
     }
 
     const claimPromise = (async (): Promise<NextResponse> => {
@@ -240,14 +332,6 @@ async function performClaim(
     );
   }
 
-  const tokenId = await getNextAvailableTokenId();
-  if (tokenId === null) {
-    return NextResponse.json(
-      { success: false, error: 'All artwork tokens have been claimed' },
-      { status: 400 }
-    );
-  }
-
   const privateKey = process.env.SERVER_PRIVATE_KEY;
   if (!privateKey) {
     console.error('SERVER_PRIVATE_KEY not found');
@@ -270,20 +354,17 @@ async function performClaim(
     transport: http(rpcUrl),
   });
 
-  const owner = (await publicClient.readContract({
-    address: STRIPE_COMMONS_NFT_ADDRESS as `0x${string}`,
-    abi: ERC721_ABI_PARSED,
-    functionName: 'ownerOf',
-    args: [BigInt(tokenId)],
-  })) as string;
-
-  if (owner.toLowerCase() !== account.address.toLowerCase()) {
+  const tokenId = await getNextTransferableTokenId(
+    publicClient,
+    account.address
+  );
+  if (tokenId === null) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Token unavailable – it may have been transferred already',
+        error: 'All artwork tokens have been claimed',
       },
-      { status: 500 }
+      { status: 400 }
     );
   }
 
@@ -298,7 +379,7 @@ async function performClaim(
       account,
     });
 
-    pendingClaims.set(normalized, { hash, startedAt: Date.now() });
+    pendingClaims.set(normalized, { hash, tokenId, startedAt: Date.now() });
     receipt = await waitForReceiptWithTimeout(publicClient, hash);
   } catch (error) {
     pendingClaims.delete(normalized);
@@ -439,12 +520,13 @@ async function waitForReceiptWithTimeout(
       pollingInterval?: number;
     }) => Promise<any>;
   },
-  hash: `0x${string}`
+  hash: `0x${string}`,
+  timeoutMs: number = WAIT_FOR_RECEIPT_TIMEOUT_MS
 ) {
   try {
     return await publicClient.waitForTransactionReceipt({
       hash,
-      timeout: WAIT_FOR_RECEIPT_TIMEOUT_MS,
+      timeout: timeoutMs,
       pollingInterval: RECEIPT_POLL_INTERVAL_MS,
     });
   } catch (error: unknown) {
