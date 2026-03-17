@@ -64,8 +64,8 @@ async function getNextTransferableTokenId(
   publicClient: {
     readContract: (args: {
       address: `0x${string}`;
-      abi: readonly string[];
-      functionName: string;
+      abi: typeof ERC721_ABI_PARSED;
+      functionName: 'ownerOf';
       args: [bigint];
     }) => Promise<unknown>;
   },
