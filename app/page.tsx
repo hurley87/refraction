@@ -71,6 +71,13 @@ export default function Home() {
           <CityGuidesCoverSection />
         </div>
 
+        {/* IRL Tour Section */}
+        <div className="py-0">
+          <IRLTourSection />
+        </div>
+
+        {/* What You Get Section */}
+        <div className="py-0">
         {/* What You Get Section — temporarily hidden, re-enable when needed */}
         {/* <div className="py-0">
           <WhatYouGetSection />
@@ -84,11 +91,6 @@ export default function Home() {
         {/* City Guides Carousel Section */}
         <div className="py-0">
           <CityGuidesCarouselSection />
-        </div>
-
-        {/* IRL Tour Section */}
-        <div className="py-0">
-          <IRLTourSection />
         </div>
 
         {/* Get Involved Section */}
