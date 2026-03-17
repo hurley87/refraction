@@ -97,7 +97,7 @@ export default function Home() {
         </div>
 
         {/* Partners Section */}
-        <div className="py-16 md:py-24">
+        <div className="py-0">
           <Partners />
         </div>
 
