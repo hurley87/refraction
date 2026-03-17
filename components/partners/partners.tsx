@@ -86,10 +86,10 @@ const MarqueeRow = memo(function MarqueeRow({
  */
 export default function Partners() {
   return (
-    <section className="w-full bg-[#131313] py-16 md:py-20">
+    <section className="w-full bg-[#131313] py-12 md:py-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
         {/* Section Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <p className="text-[13px] font-grotesk text-white uppercase tracking-[-0.26px] leading-5">
             Trusted By
           </p>
