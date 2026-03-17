@@ -76,8 +76,6 @@ export default function Home() {
           <IRLTourSection />
         </div>
 
-        {/* What You Get Section */}
-        <div className="py-0">
         {/* What You Get Section — temporarily hidden, re-enable when needed */}
         {/* <div className="py-0">
           <WhatYouGetSection />
