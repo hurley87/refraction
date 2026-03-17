@@ -525,6 +525,18 @@ export default function PerksPage() {
 
         {/* Main Content */}
         <div className="px-0 pt-2 space-y-1">
+          {/* Rewards Intro Card */}
+          <div className="bg-white rounded-[26px] p-4 mb-1">
+            <div className="flex flex-col gap-2">
+              <h2 className="title2 text-[#313131] font-grotesk font-bold">
+                Rewards
+              </h2>
+              <p className="body-medium text-[#7D7D7D] font-grotesk">
+                Rewards are just getting started — your points will unlock perks like drinks, tickets, and more as we roll out new cities with local partners.
+              </p>
+            </div>
+          </div>
+
           {/* LATEST REWARD Section */}
           {latestReward && !perksLoading && (
             <div className="mb-1">
@@ -893,7 +905,7 @@ export default function PerksPage() {
                 aria-label="Filter rewards"
               >
                 <Image
-                  src="/events/filter.svg"
+                  src="/filter.svg"
                   alt="filter"
                   width={20}
                   height={20}
