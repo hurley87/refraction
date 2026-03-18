@@ -261,37 +261,55 @@ export async function POST(req: NextRequest) {
 
     const pendingClaim = getActivePendingClaim(normalized);
     if (pendingClaim) {
-      const pendingResolution = await resolvePendingClaimIfSettled(
-        normalized,
-        pendingClaim
-      );
+      const pendingClaimPromise = (async (): Promise<NextResponse> => {
+        try {
+          const pendingResolution = await resolvePendingClaimIfSettled(
+            normalized,
+            pendingClaim
+          );
 
-      if (pendingResolution === 'confirmed') {
-        return NextResponse.json({
-          success: true,
-          recoveredPendingClaim: true,
-          transactionHash: pendingClaim.hash,
-          tokenId: pendingClaim.tokenId,
-          pointsAwarded: STRIPE_COMMONS_POINTS,
-          message: 'Artwork claim confirmed successfully!',
-        });
-      }
+          if (pendingResolution === 'confirmed') {
+            return NextResponse.json({
+              success: true,
+              recoveredPendingClaim: true,
+              transactionHash: pendingClaim.hash,
+              tokenId: pendingClaim.tokenId,
+              pointsAwarded: STRIPE_COMMONS_POINTS,
+              message: 'Artwork claim confirmed successfully!',
+            });
+          }
 
-      if (pendingResolution === 'failed') {
-        pendingClaims.delete(normalized);
-      }
+          if (pendingResolution === 'pending') {
+            return NextResponse.json(
+              {
+                success: false,
+                error:
+                  'Claim transaction still pending confirmation for this address. Please wait before retrying.',
+                transactionHash: pendingClaim.hash,
+              },
+              { status: 429 }
+            );
+          }
 
-      if (pendingResolution === 'pending') {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              'Claim transaction still pending confirmation for this address. Please wait before retrying.',
-            transactionHash: pendingClaim.hash,
-          },
-          { status: 429 }
-        );
-      }
+          pendingClaims.delete(normalized);
+          return await performClaim(userAddress, normalized);
+        } catch (error: unknown) {
+          const msg =
+            error instanceof Error
+              ? error.message
+              : 'Failed to resolve pending claim';
+          console.error('Error resolving pending claim:', error);
+          return NextResponse.json(
+            { success: false, error: msg },
+            { status: 500 }
+          );
+        } finally {
+          claimLocks.delete(normalized);
+        }
+      })();
+
+      claimLocks.set(normalized, pendingClaimPromise);
+      return pendingClaimPromise;
     }
 
     const claimPromise = (async (): Promise<NextResponse> => {

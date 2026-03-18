@@ -68,6 +68,16 @@ const validWallet = '0x1234567890abcdef1234567890abcdef12345678';
 const secondWallet = '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
 const txHash = `0x${'a'.repeat(64)}`;
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 function createPostRequest(userAddress: string = validWallet) {
   return new NextRequest('http://localhost:3000/api/stripe-commons/claim', {
     method: 'POST',
@@ -148,6 +158,42 @@ describe('/api/stripe-commons/claim confirmation safety', () => {
     expect(secondJson.transactionHash).toBe(txHash);
     expect(mockPointsActivitiesInsert).toHaveBeenCalledTimes(1);
     expect(mockWriteContract).toHaveBeenCalledTimes(1);
+  });
+
+  it('serializes pending claim recovery to avoid duplicate point awards', async () => {
+    const { verifyWalletOwnership } = await import('@/lib/api/privy');
+    vi.mocked(verifyWalletOwnership).mockResolvedValue({ authorized: true });
+
+    mockReadContract.mockResolvedValue(custodianWallet);
+    mockWriteContract.mockResolvedValue(txHash);
+
+    const timeoutError = new Error('timed out');
+    timeoutError.name = 'WaitForTransactionReceiptTimeoutError';
+    mockWaitForTransactionReceipt.mockRejectedValueOnce(timeoutError);
+
+    const { POST } = await import('../route');
+
+    const firstResponse = await POST(createPostRequest());
+    expect(firstResponse.status).toBe(202);
+
+    const pendingReceipt = createDeferred<{ status: 'success' }>();
+    mockWaitForTransactionReceipt.mockImplementationOnce(
+      () => pendingReceipt.promise
+    );
+
+    const recoveryPromise = POST(createPostRequest());
+    await Promise.resolve();
+
+    const blockedResponse = await POST(createPostRequest());
+    const blockedJson = await blockedResponse.json();
+    expect(blockedResponse.status).toBe(429);
+    expect(blockedJson.error).toContain('Claim already in progress');
+
+    pendingReceipt.resolve({ status: 'success' });
+    const recoveredResponse = await recoveryPromise;
+    expect(recoveredResponse.status).toBe(200);
+    expect(mockPointsActivitiesInsert).toHaveBeenCalledTimes(1);
+    expect(mockUpdatePlayerPoints).toHaveBeenCalledTimes(0);
   });
 
   it('skips transferred tokens missing from claim records', async () => {
