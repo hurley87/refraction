@@ -16,7 +16,7 @@ const MapSection = dynamic(() => import('@/components/map/map-section'), {
 //   () => import('@/components/home/check-ins-fund-culture-section'),
 //   { ssr: true }
 // );
- const CityGuidesCarouselSection = dynamic(
+const CityGuidesCarouselSection = dynamic(
   () => import('@/components/home/city-guides-carousel-section'),
   { ssr: true }
 );
@@ -35,7 +35,7 @@ const GetInvolvedSection = dynamic(
   () => import('@/components/home/get-involved-section'),
   { ssr: true }
 );
- 
+
 const Partners = dynamic(() => import('@/components/partners/partners'), {
   ssr: true,
 });
@@ -56,7 +56,7 @@ export default function Home() {
       {/* Header - Fixed at top (outside overflow-hidden for Firefox compatibility) */}
       <Header />
 
-      <div className="overflow-hidden rounded-t-3xl">
+      <div className="overflow-x-hidden overflow-y-visible rounded-t-3xl">
         {/* Hero Section with WebGL Background - Full viewport */}
         <div className="relative h-screen w-screen">
           <Hero />
