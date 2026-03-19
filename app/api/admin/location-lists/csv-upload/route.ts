@@ -86,15 +86,19 @@ async function geocodeAddress(
   address: string,
   mapboxToken: string
 ): Promise<[number, number] | null> {
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxToken}&limit=1`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const data = (await res.json()) as {
-    features?: { center: [number, number] }[];
-  };
-  const center = data.features?.[0]?.center;
-  if (!center || center.length < 2) return null;
-  return [center[0], center[1]];
+  try {
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxToken}&limit=1`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      features?: { center: [number, number] }[];
+    };
+    const center = data.features?.[0]?.center;
+    if (!center || center.length < 2) return null;
+    return [center[0], center[1]];
+  } catch {
+    return null;
+  }
 }
 
 async function ensureUniqueSlug(base: string): Promise<string> {
@@ -117,12 +121,53 @@ async function ensureUniqueSlug(base: string): Promise<string> {
   throw new Error("Unable to generate unique slug");
 }
 
+function isUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value);
+}
+
+function extractDriveFileId(url: string): string | null {
+  const m = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : null;
+}
+
+/**
+ * Download an image from a URL. Handles Google Drive share links by
+ * converting them to a direct-download URL first.
+ * Returns the raw bytes and content type, or null on failure.
+ */
+async function downloadImageFromUrl(
+  imageUrl: string
+): Promise<{ buffer: ArrayBuffer; contentType: string } | null> {
+  try {
+    let targetUrl = imageUrl;
+
+    const driveId = extractDriveFileId(imageUrl);
+    if (driveId) {
+      targetUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+    }
+
+    const res = await fetch(targetUrl, { redirect: "follow" });
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get("content-type") || "image/jpeg";
+    if (contentType.includes("text/html")) return null;
+
+    const buffer = await res.arrayBuffer();
+    if (buffer.byteLength < 200) return null;
+
+    return { buffer, contentType };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Resolve an "Image Link" value from the CSV to an uploaded File.
+ * Only used for non-URL values (plain filenames).
  * Matching is case-insensitive and tries: exact filename, without extension,
  * and just the basename portion of a path.
  */
-function resolveImage(
+function resolveUploadedImage(
   imageLink: string,
   imageMap: Map<string, File>
 ): File | undefined {
@@ -234,14 +279,12 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      const imageFile = resolveImage(row.imageLink, imageMap);
-
-      if (!imageFile) {
+      if (!row.imageLink) {
         results.push({
           row: rowNum,
           name,
           status: "skipped",
-          reason: "No matching image file found",
+          reason: "No image link provided",
         });
         skipped++;
         continue;
@@ -249,14 +292,49 @@ export async function POST(request: NextRequest) {
 
       try {
         const locationSlug = slugify(name);
-        const ext = imageFile.name.split(".").pop() || "jpg";
-        const storagePath = `location-images/${listSlug}-${Date.now()}-${locationSlug}.${ext}`;
 
-        const arrayBuffer = await imageFile.arrayBuffer();
+        let imageBytes: ArrayBuffer;
+        let imageContentType: string;
+        let imageExt: string;
+
+        if (isUrl(row.imageLink)) {
+          const downloaded = await downloadImageFromUrl(row.imageLink);
+          if (!downloaded) {
+            results.push({
+              row: rowNum,
+              name,
+              status: "skipped",
+              reason: "Image URL could not be downloaded",
+            });
+            skipped++;
+            continue;
+          }
+          imageBytes = downloaded.buffer;
+          imageContentType = downloaded.contentType;
+          imageExt = imageContentType.split("/")[1]?.split(";")[0] || "jpg";
+        } else {
+          const imageFile = resolveUploadedImage(row.imageLink, imageMap);
+          if (!imageFile) {
+            results.push({
+              row: rowNum,
+              name,
+              status: "skipped",
+              reason: "No matching image file found",
+            });
+            skipped++;
+            continue;
+          }
+          imageBytes = await imageFile.arrayBuffer();
+          imageContentType = imageFile.type || "image/jpeg";
+          imageExt = imageFile.name.split(".").pop() || "jpg";
+        }
+
+        const storagePath = `location-images/${listSlug}-${Date.now()}-${locationSlug}.${imageExt}`;
+
         const { error: uploadError } = await supabase.storage
           .from("images")
-          .upload(storagePath, arrayBuffer, {
-            contentType: imageFile.type || "image/jpeg",
+          .upload(storagePath, imageBytes, {
+            contentType: imageContentType,
             cacheControl: "3600",
             upsert: false,
           });
@@ -278,8 +356,8 @@ export async function POST(request: NextRequest) {
         const coinImageUrl = urlData.publicUrl;
 
         const address = row.address || "";
-        let latitude = 0;
-        let longitude = 0;
+        let latitude: number | null = null;
+        let longitude: number | null = null;
 
         if (address) {
           const coords = await geocodeAddress(address, mapboxToken);
@@ -289,7 +367,23 @@ export async function POST(request: NextRequest) {
           await sleep(MAPBOX_RATE_LIMIT_MS);
         }
 
-        const placeId = `${listSlug}-${locationSlug}`;
+        if (latitude === null || longitude === null) {
+          results.push({
+            row: rowNum,
+            name,
+            status: "skipped",
+            reason: address
+              ? "Address could not be geocoded"
+              : "No address provided for geocoding",
+          });
+          skipped++;
+          continue;
+        }
+
+        const addressSlug = slugify(address);
+        const placeId = addressSlug
+          ? `${listSlug}-${locationSlug}-${addressSlug}`
+          : `${listSlug}-${locationSlug}-row${rowNum}`;
         const rowDescription =
           row.quote?.slice(0, DESCRIPTION_MAX_LENGTH) || null;
 

@@ -1971,8 +1971,9 @@ export default function AdminLocationListsPage() {
                       Columns: <code className="font-mono text-[11px]">Category, Location, Address, Quote, Image Link, Recommended By</code>
                     </p>
                     <p className="mt-1">
-                      The <strong>Image Link</strong> column should contain the
-                      filename of the corresponding uploaded image (e.g.{' '}
+                      The <strong>Image Link</strong> column can be an image URL
+                      (including Google Drive share links) or the filename of an
+                      uploaded image (e.g.{' '}
                       <code className="font-mono text-[11px]">cafe.jpg</code>).
                     </p>
                     <a
@@ -2103,8 +2104,8 @@ export default function AdminLocationListsPage() {
                   </p>
                 )}
                 <p className="text-xs text-gray-400">
-                  Filenames must match the &ldquo;Image Link&rdquo; column in
-                  your CSV.
+                  Optional if your CSV already has image URLs. Filenames here
+                  are matched to the &ldquo;Image Link&rdquo; column.
                 </p>
               </div>
 
