@@ -282,8 +282,8 @@ export async function POST(request: NextRequest) {
         const coinImageUrl = urlData.publicUrl;
 
         const address = row.address || "";
-        let latitude = 0;
-        let longitude = 0;
+        let latitude: number | null = null;
+        let longitude: number | null = null;
 
         if (address) {
           const coords = await geocodeAddress(address, mapboxToken);
@@ -291,6 +291,19 @@ export async function POST(request: NextRequest) {
             [longitude, latitude] = coords;
           }
           await sleep(MAPBOX_RATE_LIMIT_MS);
+        }
+
+        if (latitude === null || longitude === null) {
+          results.push({
+            row: rowNum,
+            name,
+            status: "skipped",
+            reason: address
+              ? "Address could not be geocoded"
+              : "No address provided for geocoding",
+          });
+          skipped++;
+          continue;
         }
 
         const placeId = `${listSlug}-${locationSlug}`;
