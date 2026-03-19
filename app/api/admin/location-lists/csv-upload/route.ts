@@ -306,7 +306,10 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const placeId = `${listSlug}-${locationSlug}`;
+        const addressSlug = slugify(address);
+        const placeId = addressSlug
+          ? `${listSlug}-${locationSlug}-${addressSlug}`
+          : `${listSlug}-${locationSlug}-row${rowNum}`;
         const rowDescription =
           row.quote?.slice(0, DESCRIPTION_MAX_LENGTH) || null;
 
