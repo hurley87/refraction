@@ -86,15 +86,19 @@ async function geocodeAddress(
   address: string,
   mapboxToken: string
 ): Promise<[number, number] | null> {
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxToken}&limit=1`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  const data = (await res.json()) as {
-    features?: { center: [number, number] }[];
-  };
-  const center = data.features?.[0]?.center;
-  if (!center || center.length < 2) return null;
-  return [center[0], center[1]];
+  try {
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxToken}&limit=1`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      features?: { center: [number, number] }[];
+    };
+    const center = data.features?.[0]?.center;
+    if (!center || center.length < 2) return null;
+    return [center[0], center[1]];
+  } catch {
+    return null;
+  }
 }
 
 async function ensureUniqueSlug(base: string): Promise<string> {
