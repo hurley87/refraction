@@ -150,6 +150,44 @@ describe('/api/stripe-commons/claim confirmation safety', () => {
     expect(mockWriteContract).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps confirmed pending claims locked until persistence succeeds', async () => {
+    const { verifyWalletOwnership } = await import('@/lib/api/privy');
+    vi.mocked(verifyWalletOwnership).mockResolvedValue({ authorized: true });
+
+    mockReadContract.mockResolvedValue(custodianWallet);
+    mockWriteContract.mockResolvedValue(txHash);
+
+    const timeoutError = new Error('timed out');
+    timeoutError.name = 'WaitForTransactionReceiptTimeoutError';
+    mockWaitForTransactionReceipt
+      .mockRejectedValueOnce(timeoutError)
+      .mockResolvedValue({ status: 'success' });
+
+    mockPointsActivitiesInsert
+      .mockResolvedValueOnce({ error: new Error('supabase unavailable') })
+      .mockResolvedValueOnce({ error: null });
+
+    const { POST } = await import('../route');
+
+    const firstResponse = await POST(createPostRequest());
+    expect(firstResponse.status).toBe(202);
+
+    const secondResponse = await POST(createPostRequest());
+    const secondJson = await secondResponse.json();
+    expect(secondResponse.status).toBe(429);
+    expect(secondJson.error).toContain('pending confirmation');
+    expect(secondJson.transactionHash).toBe(txHash);
+
+    const thirdResponse = await POST(createPostRequest());
+    const thirdJson = await thirdResponse.json();
+    expect(thirdResponse.status).toBe(200);
+    expect(thirdJson.recoveredPendingClaim).toBe(true);
+    expect(thirdJson.transactionHash).toBe(txHash);
+
+    expect(mockPointsActivitiesInsert).toHaveBeenCalledTimes(2);
+    expect(mockWriteContract).toHaveBeenCalledTimes(1);
+  });
+
   it('skips transferred tokens missing from claim records', async () => {
     const { verifyWalletOwnership } = await import('@/lib/api/privy');
     vi.mocked(verifyWalletOwnership).mockResolvedValue({ authorized: true });

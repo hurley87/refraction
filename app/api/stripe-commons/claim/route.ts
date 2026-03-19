@@ -218,17 +218,36 @@ async function resolvePendingClaimIfSettled(
     return 'pending';
   }
 
-  pendingClaims.delete(normalized);
-
   if (receipt.status !== 'success') {
+    pendingClaims.delete(normalized);
     return 'failed';
   }
 
   const existingRecord = await getUserClaimRecord(normalized);
   if (!existingRecord.claimed) {
-    await recordClaim(normalized, pendingClaim.tokenId, pendingClaim.hash);
+    try {
+      await recordClaim(normalized, pendingClaim.tokenId, pendingClaim.hash);
+    } catch (error) {
+      // Keep the claim locked so retries reconcile this confirmed tx
+      // instead of broadcasting a second transfer.
+      pendingClaims.set(normalized, {
+        ...pendingClaim,
+        startedAt: Date.now(),
+      });
+      console.error(
+        '[stripe-commons] Failed to persist confirmed pending claim',
+        {
+          wallet: normalized,
+          tokenId: pendingClaim.tokenId,
+          transactionHash: pendingClaim.hash,
+          error,
+        }
+      );
+      return 'pending';
+    }
   }
 
+  pendingClaims.delete(normalized);
   return 'confirmed';
 }
 
@@ -400,16 +419,24 @@ async function performClaim(
     );
   }
 
-  pendingClaims.delete(normalized);
-
   if (receipt.status !== 'success') {
+    pendingClaims.delete(normalized);
     return NextResponse.json(
       { success: false, error: 'On-chain transaction failed' },
       { status: 500 }
     );
   }
 
-  await recordClaim(normalized, tokenId, hash);
+  try {
+    await recordClaim(normalized, tokenId, hash);
+  } catch (error) {
+    // The NFT transfer already succeeded; keep this claim pending so
+    // retries finalize persistence instead of minting another transfer.
+    pendingClaims.set(normalized, { hash, tokenId, startedAt: Date.now() });
+    throw error;
+  }
+
+  pendingClaims.delete(normalized);
 
   return NextResponse.json({
     success: true,
