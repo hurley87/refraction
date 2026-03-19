@@ -12,7 +12,18 @@ import { usePrivy } from '@privy-io/react-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { Loader2, Map, Trash2, XCircle } from 'lucide-react';
+import {
+  Loader2,
+  Map,
+  Trash2,
+  XCircle,
+  Upload,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertTriangle,
+  Download,
+  Info,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -253,6 +264,31 @@ export default function AdminLocationListsPage() {
   const [editFileInputKey, setEditFileInputKey] = useState(0);
   const [showCreateLocationDialog, setShowCreateLocationDialog] =
     useState(false);
+  const [showCsvImportDialog, setShowCsvImportDialog] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvImages, setCsvImages] = useState<File[]>([]);
+  const [csvFileInputKey, setCsvFileInputKey] = useState(0);
+  const [csvImportForm, setCsvImportForm] = useState({
+    title: '',
+    description: '',
+    accentColor: '#111827',
+    isActive: true,
+  });
+
+  type ImportResult = {
+    row: number;
+    name: string;
+    status: 'created' | 'skipped' | 'failed';
+    reason?: string;
+  };
+  type CsvImportResponse = {
+    list: { id: string };
+    summary: { total: number; created: number; skipped: number; failed: number };
+    results: ImportResult[];
+  };
+  const [csvImportResults, setCsvImportResults] =
+    useState<CsvImportResponse | null>(null);
+
   const lastUserValuesRef = useRef<{
     walletAddress: string;
     email: string;
@@ -628,6 +664,39 @@ export default function AdminLocationListsPage() {
     },
   });
 
+  const csvImportMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch('/api/admin/location-lists/csv-upload', {
+        method: 'POST',
+        headers: { 'x-user-email': adminEmail },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody.error || 'Failed to import CSV');
+      }
+
+      const responseData = await response.json();
+      return responseData.data || responseData;
+    },
+    onSuccess: (data: CsvImportResponse) => {
+      queryClient.invalidateQueries({ queryKey: LISTS_KEY });
+      queryClient.invalidateQueries({ queryKey: LOCATION_OPTIONS_KEY });
+      setCsvImportResults(data);
+      const { summary } = data;
+      toast.success(
+        `Imported ${summary.created} of ${summary.total} locations`
+      );
+      if (data.list?.id) {
+        setSelectedListId(data.list.id);
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'CSV import failed');
+    },
+  });
+
   const createLocationMutation = useMutation<
     { location?: { id?: number } },
     Error,
@@ -835,6 +904,52 @@ export default function AdminLocationListsPage() {
     });
   };
 
+  const handleCsvImport = (event: FormEvent) => {
+    event.preventDefault();
+    if (!csvFile) {
+      toast.error('Please select a CSV file');
+      return;
+    }
+    if (csvImportForm.title.trim().length < 3) {
+      toast.error('Title must be at least 3 characters');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('csv', csvFile);
+    formData.append('title', csvImportForm.title);
+    formData.append('description', csvImportForm.description);
+    formData.append('accentColor', csvImportForm.accentColor);
+    formData.append('isActive', String(csvImportForm.isActive));
+    formData.append(
+      'creatorWalletAddress',
+      newLocationForm.walletAddress || user?.wallet?.address || ''
+    );
+    formData.append(
+      'creatorUsername',
+      newLocationForm.username || user?.email?.address || ''
+    );
+
+    for (const file of csvImages) {
+      formData.append('images', file);
+    }
+
+    csvImportMutation.mutate(formData);
+  };
+
+  const resetCsvImportDialog = () => {
+    setCsvFile(null);
+    setCsvImages([]);
+    setCsvFileInputKey((prev) => prev + 1);
+    setCsvImportForm({
+      title: '',
+      description: '',
+      accentColor: '#111827',
+      isActive: true,
+    });
+    setCsvImportResults(null);
+  };
+
   const handleSearchAutofill = useCallback(
     (picked: {
       longitude: number;
@@ -1014,26 +1129,36 @@ export default function AdminLocationListsPage() {
   return (
     <div className="min-h-screen bg-[#f5f5f5] px-4 py-10 font-inktrap">
       <div className="mx-auto max-w-6xl space-y-8">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-wide text-gray-500">
+            <p className="text-xs font-medium uppercase tracking-widest text-gray-400">
               Admin
             </p>
-            <h1 className="text-3xl font-semibold">Location Lists</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-3xl font-bold tracking-tight">
+              Location Lists
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
               Curate themed collections of IRL locations and control which pins
               appear in each list.
             </p>
           </div>
+          <Button
+            type="button"
+            onClick={() => setShowCsvImportDialog(true)}
+            className="flex items-center gap-2 bg-black text-white hover:bg-black/80"
+          >
+            <Upload className="h-4 w-4" />
+            Import CSV
+          </Button>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-6">
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
+            <section className="rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm">
               <div>
-                <h2 className="text-xl font-semibold">Create a new list</h2>
-                <p className="text-sm text-gray-500">
-                  Titles are public facing. Accent colors help visually group
+                <h2 className="text-lg font-semibold">Create a new list</h2>
+                <p className="mt-0.5 text-sm text-gray-500">
+                  Titles are public-facing. Accent colors help visually group
                   cards.
                 </p>
               </div>
@@ -1131,57 +1256,86 @@ export default function AdminLocationListsPage() {
               </form>
             </section>
 
-            <section className="rounded-3xl bg-white p-6 shadow-sm">
+            <section className="rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Your lists</h2>
-                <span className="text-sm text-gray-500">
-                  {lists.length} total
+                <h2 className="text-lg font-semibold">Your lists</h2>
+                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                  {lists.length}
                 </span>
               </div>
 
               {listsLoading ? (
-                <div className="mt-10 flex items-center justify-center text-gray-500">
+                <div className="mt-10 flex items-center justify-center text-gray-400">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading
-                  lists
+                  lists&hellip;
                 </div>
               ) : lists.length === 0 ? (
-                <p className="mt-6 text-sm text-gray-500">
-                  No lists yet. Create your first curated collection above.
-                </p>
+                <div className="mt-8 flex flex-col items-center gap-2 text-center">
+                  <Map className="h-8 w-8 text-gray-300" />
+                  <p className="text-sm text-gray-500">
+                    No lists yet. Create your first curated collection above or{' '}
+                    <button
+                      type="button"
+                      onClick={() => setShowCsvImportDialog(true)}
+                      className="font-medium text-black underline underline-offset-2 hover:text-black/70"
+                    >
+                      import from CSV
+                    </button>
+                    .
+                  </p>
+                </div>
               ) : (
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <div className="mt-4 space-y-3">
                   {lists.map((list) => (
                     <div
                       key={list.id}
                       onClick={() => setSelectedListId(list.id)}
-                      className={`cursor-pointer rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${
+                      className={`cursor-pointer rounded-xl border p-4 text-left transition hover:shadow-md ${
                         selectedListId === list.id
-                          ? 'border-black bg-black text-white'
-                          : 'border-gray-200 bg-gray-50'
+                          ? 'border-black bg-black text-white shadow-lg'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <h3 className="text-lg font-semibold">
-                            {list.title}
-                          </h3>
-                          <p
-                            className={`text-xs ${
-                              selectedListId === list.id
-                                ? 'text-white/70'
-                                : 'text-gray-500'
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="h-2.5 w-2.5 shrink-0 rounded-full"
+                              style={{
+                                backgroundColor:
+                                  list.accent_color || '#111827',
+                              }}
+                            />
+                            <h3 className="truncate text-sm font-semibold">
+                              {list.title}
+                            </h3>
+                          </div>
+                          {list.description && (
+                            <p
+                              className={`mt-1 line-clamp-1 text-xs ${
+                                selectedListId === list.id
+                                  ? 'text-white/60'
+                                  : 'text-gray-400'
+                              }`}
+                            >
+                              {list.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                              list.is_active
+                                ? selectedListId === list.id
+                                  ? 'bg-white/20 text-white'
+                                  : 'bg-emerald-50 text-emerald-700'
+                                : selectedListId === list.id
+                                  ? 'bg-white/10 text-white/60'
+                                  : 'bg-gray-100 text-gray-500'
                             }`}
                           >
-                            {list.slug}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="h-3 w-3 rounded-full"
-                            style={{
-                              backgroundColor: list.accent_color || '#111827',
-                            }}
-                          />
+                            {list.is_active ? 'Active' : 'Draft'}
+                          </span>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1196,18 +1350,25 @@ export default function AdminLocationListsPage() {
                             }}
                             className={`rounded p-1 transition hover:bg-red-500 hover:text-white ${
                               selectedListId === list.id
-                                ? 'text-white/70'
-                                : 'text-gray-400'
+                                ? 'text-white/50'
+                                : 'text-gray-300 hover:text-white'
                             }`}
                             disabled={deleteListMutation.isPending}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       </div>
-                      <div className="mt-4 flex items-center gap-2 text-sm">
-                        <Map className="h-4 w-4" />
-                        {list.location_count} locations
+                      <div
+                        className={`mt-3 flex items-center gap-1.5 text-xs ${
+                          selectedListId === list.id
+                            ? 'text-white/60'
+                            : 'text-gray-400'
+                        }`}
+                      >
+                        <Map className="h-3.5 w-3.5" />
+                        {list.location_count} location
+                        {list.location_count !== 1 ? 's' : ''}
                       </div>
                     </div>
                   ))}
@@ -1216,10 +1377,13 @@ export default function AdminLocationListsPage() {
             </section>
           </div>
 
-          <section className="rounded-3xl bg-white p-6 shadow-sm">
+          <section className="rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm">
             {!selectedList ? (
-              <div className="flex h-full flex-col items-center justify-center text-center text-gray-500">
-                <p>Select a list to manage assignments.</p>
+              <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 text-center text-gray-400">
+                <Map className="h-10 w-10 text-gray-200" />
+                <p className="text-sm">
+                  Select a list to manage its locations.
+                </p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -1725,6 +1889,246 @@ export default function AdminLocationListsPage() {
           </section>
         </div>
       </div>
+
+      {/* CSV Import Dialog */}
+      <Dialog
+        open={showCsvImportDialog}
+        onOpenChange={(open) => {
+          setShowCsvImportDialog(open);
+          if (!open) resetCsvImportDialog();
+        }}
+      >
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5" />
+              Import list from CSV
+            </DialogTitle>
+          </DialogHeader>
+
+          {csvImportResults ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-4">
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+                <div>
+                  <p className="text-sm font-semibold text-emerald-900">
+                    Import complete
+                  </p>
+                  <p className="text-xs text-emerald-700">
+                    {csvImportResults.summary.created} created &middot;{' '}
+                    {csvImportResults.summary.skipped} skipped &middot;{' '}
+                    {csvImportResults.summary.failed} failed
+                  </p>
+                </div>
+              </div>
+
+              <div className="max-h-60 space-y-1 overflow-y-auto rounded-xl border border-gray-100 p-3">
+                {csvImportResults.results.map((r, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2 rounded-lg px-2 py-1.5 text-xs"
+                  >
+                    {r.status === 'created' && (
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                    )}
+                    {r.status === 'skipped' && (
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    )}
+                    {r.status === 'failed' && (
+                      <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-500" />
+                    )}
+                    <div className="min-w-0">
+                      <span className="font-medium">{r.name}</span>
+                      {r.reason && (
+                        <span className="ml-1 text-gray-400">
+                          &mdash; {r.reason}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <Button
+                type="button"
+                onClick={() => {
+                  setShowCsvImportDialog(false);
+                  resetCsvImportDialog();
+                }}
+                className={`w-full ${blackButtonClasses}`}
+              >
+                Done
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleCsvImport} className="space-y-4">
+              <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+                <div className="flex items-start gap-2">
+                  <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+                  <div className="text-xs text-blue-800">
+                    <p className="font-medium">CSV format</p>
+                    <p className="mt-0.5">
+                      Columns: <code className="font-mono text-[11px]">Category, Location, Address, Quote, Image Link, Recommended By</code>
+                    </p>
+                    <p className="mt-1">
+                      The <strong>Image Link</strong> column should contain the
+                      filename of the corresponding uploaded image (e.g.{' '}
+                      <code className="font-mono text-[11px]">cafe.jpg</code>).
+                    </p>
+                    <a
+                      href="/toronto.csv"
+                      download
+                      className="mt-1.5 inline-flex items-center gap-1 font-medium text-blue-600 underline underline-offset-2"
+                    >
+                      <Download className="h-3 w-3" />
+                      Download sample CSV
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="csv-title">List title</Label>
+                <Input
+                  id="csv-title"
+                  value={csvImportForm.title}
+                  onChange={(e) =>
+                    setCsvImportForm((prev) => ({
+                      ...prev,
+                      title: e.target.value,
+                    }))
+                  }
+                  placeholder="Toronto curated spots"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="csv-description">Description</Label>
+                <Textarea
+                  id="csv-description"
+                  value={csvImportForm.description}
+                  onChange={(e) =>
+                    setCsvImportForm((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                  placeholder="A collection of must-visit spots"
+                  rows={2}
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label>Accent color</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="color"
+                      className="h-9 w-14 cursor-pointer rounded-lg border p-1"
+                      value={csvImportForm.accentColor}
+                      onChange={(e) =>
+                        setCsvImportForm((prev) => ({
+                          ...prev,
+                          accentColor: e.target.value,
+                        }))
+                      }
+                    />
+                    <Input
+                      value={csvImportForm.accentColor}
+                      onChange={(e) =>
+                        setCsvImportForm((prev) => ({
+                          ...prev,
+                          accentColor: e.target.value,
+                        }))
+                      }
+                      className="uppercase"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-xl border border-dashed border-gray-200 px-3 py-2">
+                  <input
+                    id="csv-active"
+                    type="checkbox"
+                    checked={csvImportForm.isActive}
+                    onChange={(e) =>
+                      setCsvImportForm((prev) => ({
+                        ...prev,
+                        isActive: e.target.checked,
+                      }))
+                    }
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Label htmlFor="csv-active" className="text-sm font-medium">
+                    Active list
+                  </Label>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="csv-file">CSV file</Label>
+                <Input
+                  key={`csv-${csvFileInputKey}`}
+                  id="csv-file"
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(e) => setCsvFile(e.target.files?.[0] ?? null)}
+                  required
+                />
+                {csvFile && (
+                  <p className="text-xs text-gray-500">
+                    {csvFile.name} ({Math.round(csvFile.size / 1024)} kB)
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="csv-images">Location images</Label>
+                <Input
+                  key={`img-${csvFileInputKey}`}
+                  id="csv-images"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) =>
+                    setCsvImages(
+                      e.target.files ? Array.from(e.target.files) : []
+                    )
+                  }
+                />
+                {csvImages.length > 0 && (
+                  <p className="text-xs text-gray-500">
+                    {csvImages.length} image
+                    {csvImages.length !== 1 ? 's' : ''} selected
+                  </p>
+                )}
+                <p className="text-xs text-gray-400">
+                  Filenames must match the &ldquo;Image Link&rdquo; column in
+                  your CSV.
+                </p>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={csvImportMutation.isPending}
+                className={`w-full ${blackButtonClasses}`}
+              >
+                {csvImportMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Importing&hellip;
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4" />
+                    Import locations
+                  </>
+                )}
+              </Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Create Location Dialog */}
       <Dialog
