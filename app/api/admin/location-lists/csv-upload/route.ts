@@ -3,8 +3,11 @@ import { checkAdminPermission } from "@/lib/db/admin";
 import { supabase } from "@/lib/db/client";
 import { apiSuccess, apiError } from "@/lib/api/response";
 
-const MAPBOX_RATE_LIMIT_MS = 200;
+export const maxDuration = 60;
+
+const BATCH_SIZE = 5;
 const DESCRIPTION_MAX_LENGTH = 500;
+const TYPE_MAX_LENGTH = 50;
 const POINTS_VALUE = 100;
 
 type CsvRow = {
@@ -78,10 +81,6 @@ function slugify(value: string): string {
     .replace(/^-|-$/g, "");
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 async function geocodeAddress(
   address: string,
   mapboxToken: string
@@ -121,6 +120,33 @@ async function ensureUniqueSlug(base: string): Promise<string> {
   throw new Error("Unable to generate unique slug");
 }
 
+const PLACE_ID_MAX = 50;
+
+/**
+ * Build a place_id that fits the database varchar(50) constraint.
+ * If the full slug would exceed the limit, the suffix is replaced with
+ * an 8-char hash of the original full string to preserve uniqueness.
+ */
+function buildPlaceId(
+  listSlug: string,
+  locationSlug: string,
+  addressSlug: string
+): string {
+  const full = `${listSlug}-${locationSlug}-${addressSlug}`;
+  if (full.length <= PLACE_ID_MAX) return full;
+
+  let hash = 0;
+  for (let i = 0; i < full.length; i++) {
+    hash = ((hash << 5) - hash + full.charCodeAt(i)) | 0;
+  }
+  const hashStr = Math.abs(hash).toString(36).slice(0, 8);
+  const prefix = `${listSlug}-${locationSlug}`.slice(
+    0,
+    PLACE_ID_MAX - hashStr.length - 1
+  );
+  return `${prefix}-${hashStr}`;
+}
+
 function isUrl(value: string): boolean {
   return /^https?:\/\//i.test(value);
 }
@@ -130,11 +156,6 @@ function extractDriveFileId(url: string): string | null {
   return m ? m[1] : null;
 }
 
-/**
- * Download an image from a URL. Handles Google Drive share links by
- * converting them to a direct-download URL first.
- * Returns the raw bytes and content type, or null on failure.
- */
 async function downloadImageFromUrl(
   imageUrl: string
 ): Promise<{ buffer: ArrayBuffer; contentType: string } | null> {
@@ -161,12 +182,6 @@ async function downloadImageFromUrl(
   }
 }
 
-/**
- * Resolve an "Image Link" value from the CSV to an uploaded File.
- * Only used for non-URL values (plain filenames).
- * Matching is case-insensitive and tries: exact filename, without extension,
- * and just the basename portion of a path.
- */
 function resolveUploadedImage(
   imageLink: string,
   imageMap: Map<string, File>
@@ -187,6 +202,151 @@ function resolveUploadedImage(
     return imageMap.get(basenameNoExt);
 
   return undefined;
+}
+
+type RowContext = {
+  listSlug: string;
+  listId: string;
+  mapboxToken: string;
+  imageMap: Map<string, File>;
+  creatorWalletAddress: string;
+  creatorUsername: string;
+};
+
+async function processRow(
+  row: CsvRow,
+  rowNum: number,
+  ctx: RowContext
+): Promise<ImportResult> {
+  const name = row.location;
+
+  if (!name) {
+    return { row: rowNum, name: "(empty)", status: "skipped", reason: "Missing location name" };
+  }
+
+  if (!row.imageLink) {
+    return { row: rowNum, name, status: "skipped", reason: "No image link provided" };
+  }
+
+  try {
+    const locationSlug = slugify(name);
+
+    let imageBytes: ArrayBuffer;
+    let imageContentType: string;
+    let imageExt: string;
+
+    if (isUrl(row.imageLink)) {
+      const downloaded = await downloadImageFromUrl(row.imageLink);
+      if (!downloaded) {
+        return { row: rowNum, name, status: "skipped", reason: "Image URL could not be downloaded" };
+      }
+      imageBytes = downloaded.buffer;
+      imageContentType = downloaded.contentType;
+      imageExt = imageContentType.split("/")[1]?.split(";")[0] || "jpg";
+    } else {
+      const imageFile = resolveUploadedImage(row.imageLink, ctx.imageMap);
+      if (!imageFile) {
+        return { row: rowNum, name, status: "skipped", reason: "No matching image file found" };
+      }
+      imageBytes = await imageFile.arrayBuffer();
+      imageContentType = imageFile.type || "image/jpeg";
+      imageExt = imageFile.name.split(".").pop() || "jpg";
+    }
+
+    const storagePath = `location-images/${ctx.listSlug}-r${rowNum}-${locationSlug}.${imageExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("images")
+      .upload(storagePath, imageBytes, {
+        contentType: imageContentType,
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      return { row: rowNum, name, status: "failed", reason: `Image upload failed: ${uploadError.message}` };
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("images")
+      .getPublicUrl(storagePath);
+    const coinImageUrl = urlData.publicUrl;
+
+    const address = row.address || "";
+    let latitude: number | null = null;
+    let longitude: number | null = null;
+
+    if (address) {
+      const coords = await geocodeAddress(address, ctx.mapboxToken);
+      if (coords) {
+        [longitude, latitude] = coords;
+      }
+    }
+
+    if (latitude === null || longitude === null) {
+      return {
+        row: rowNum,
+        name,
+        status: "skipped",
+        reason: address
+          ? "Address could not be geocoded"
+          : "No address provided for geocoding",
+      };
+    }
+
+    const addressSlug = slugify(address);
+    const placeId = buildPlaceId(
+      ctx.listSlug,
+      locationSlug,
+      addressSlug || `row${rowNum}`
+    );
+    const rowDescription =
+      row.quote?.slice(0, DESCRIPTION_MAX_LENGTH) || null;
+
+    const { data: locationData, error: locationError } = await supabase
+      .from("locations")
+      .upsert(
+        {
+          place_id: placeId,
+          name,
+          address: address || null,
+          description: rowDescription,
+          latitude,
+          longitude,
+          points_value: POINTS_VALUE,
+          type: row.category?.trim().slice(0, TYPE_MAX_LENGTH) || null,
+          event_url: null,
+          context: JSON.stringify({
+            recommendedBy: row.recommendedBy || null,
+            created_at: new Date().toISOString(),
+          }),
+          coin_image_url: coinImageUrl,
+          creator_wallet_address: ctx.creatorWalletAddress || null,
+          creator_username: ctx.creatorUsername || null,
+          is_visible: true,
+        },
+        { onConflict: "place_id" }
+      )
+      .select("id")
+      .single();
+
+    if (locationError) {
+      return { row: rowNum, name, status: "failed", reason: `Location insert failed: ${locationError.message}` };
+    }
+
+    const { error: memberError } = await supabase
+      .from("location_list_members")
+      .insert({ list_id: ctx.listId, location_id: locationData.id });
+
+    if (memberError && memberError.code !== "23505") {
+      return { row: rowNum, name, status: "failed", reason: `Failed to add to list: ${memberError.message}` };
+    }
+
+    return { row: rowNum, name, status: "created" };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return { row: rowNum, name, status: "failed", reason: message };
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -256,197 +416,31 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (listError) throw listError;
-    const listId = listData.id;
+
+    const ctx: RowContext = {
+      listSlug,
+      listId: listData.id,
+      mapboxToken,
+      imageMap,
+      creatorWalletAddress,
+      creatorUsername,
+    };
 
     const results: ImportResult[] = [];
     let created = 0;
     let skipped = 0;
     let failed = 0;
 
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const rowNum = i + 2;
-      const name = row.location;
-
-      if (!name) {
-        results.push({
-          row: rowNum,
-          name: "(empty)",
-          status: "skipped",
-          reason: "Missing location name",
-        });
-        skipped++;
-        continue;
-      }
-
-      if (!row.imageLink) {
-        results.push({
-          row: rowNum,
-          name,
-          status: "skipped",
-          reason: "No image link provided",
-        });
-        skipped++;
-        continue;
-      }
-
-      try {
-        const locationSlug = slugify(name);
-
-        let imageBytes: ArrayBuffer;
-        let imageContentType: string;
-        let imageExt: string;
-
-        if (isUrl(row.imageLink)) {
-          const downloaded = await downloadImageFromUrl(row.imageLink);
-          if (!downloaded) {
-            results.push({
-              row: rowNum,
-              name,
-              status: "skipped",
-              reason: "Image URL could not be downloaded",
-            });
-            skipped++;
-            continue;
-          }
-          imageBytes = downloaded.buffer;
-          imageContentType = downloaded.contentType;
-          imageExt = imageContentType.split("/")[1]?.split(";")[0] || "jpg";
-        } else {
-          const imageFile = resolveUploadedImage(row.imageLink, imageMap);
-          if (!imageFile) {
-            results.push({
-              row: rowNum,
-              name,
-              status: "skipped",
-              reason: "No matching image file found",
-            });
-            skipped++;
-            continue;
-          }
-          imageBytes = await imageFile.arrayBuffer();
-          imageContentType = imageFile.type || "image/jpeg";
-          imageExt = imageFile.name.split(".").pop() || "jpg";
-        }
-
-        const storagePath = `location-images/${listSlug}-${Date.now()}-${locationSlug}.${imageExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("images")
-          .upload(storagePath, imageBytes, {
-            contentType: imageContentType,
-            cacheControl: "3600",
-            upsert: false,
-          });
-
-        if (uploadError) {
-          results.push({
-            row: rowNum,
-            name,
-            status: "failed",
-            reason: `Image upload failed: ${uploadError.message}`,
-          });
-          failed++;
-          continue;
-        }
-
-        const { data: urlData } = supabase.storage
-          .from("images")
-          .getPublicUrl(storagePath);
-        const coinImageUrl = urlData.publicUrl;
-
-        const address = row.address || "";
-        let latitude: number | null = null;
-        let longitude: number | null = null;
-
-        if (address) {
-          const coords = await geocodeAddress(address, mapboxToken);
-          if (coords) {
-            [longitude, latitude] = coords;
-          }
-          await sleep(MAPBOX_RATE_LIMIT_MS);
-        }
-
-        if (latitude === null || longitude === null) {
-          results.push({
-            row: rowNum,
-            name,
-            status: "skipped",
-            reason: address
-              ? "Address could not be geocoded"
-              : "No address provided for geocoding",
-          });
-          skipped++;
-          continue;
-        }
-
-        const addressSlug = slugify(address);
-        const placeId = addressSlug
-          ? `${listSlug}-${locationSlug}-${addressSlug}`
-          : `${listSlug}-${locationSlug}-row${rowNum}`;
-        const rowDescription =
-          row.quote?.slice(0, DESCRIPTION_MAX_LENGTH) || null;
-
-        const { data: locationData, error: locationError } = await supabase
-          .from("locations")
-          .upsert(
-            {
-              place_id: placeId,
-              name,
-              address: address || null,
-              description: rowDescription,
-              latitude,
-              longitude,
-              points_value: POINTS_VALUE,
-              type: row.category?.trim() || null,
-              event_url: null,
-              context: JSON.stringify({
-                recommendedBy: row.recommendedBy || null,
-                created_at: new Date().toISOString(),
-              }),
-              coin_image_url: coinImageUrl,
-              creator_wallet_address: creatorWalletAddress || null,
-              creator_username: creatorUsername || null,
-              is_visible: true,
-            },
-            { onConflict: "place_id" }
-          )
-          .select("id")
-          .single();
-
-        if (locationError) {
-          results.push({
-            row: rowNum,
-            name,
-            status: "failed",
-            reason: `Location insert failed: ${locationError.message}`,
-          });
-          failed++;
-          continue;
-        }
-
-        const { error: memberError } = await supabase
-          .from("location_list_members")
-          .insert({ list_id: listId, location_id: locationData.id });
-
-        if (memberError && memberError.code !== "23505") {
-          results.push({
-            row: rowNum,
-            name,
-            status: "failed",
-            reason: `Failed to add to list: ${memberError.message}`,
-          });
-          failed++;
-          continue;
-        }
-
-        results.push({ row: rowNum, name, status: "created" });
-        created++;
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Unknown error";
-        results.push({ row: rowNum, name, status: "failed", reason: message });
-        failed++;
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      const batch = rows.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map((row, idx) => processRow(row, i + idx + 2, ctx))
+      );
+      for (const result of batchResults) {
+        results.push(result);
+        if (result.status === "created") created++;
+        else if (result.status === "skipped") skipped++;
+        else failed++;
       }
     }
 
