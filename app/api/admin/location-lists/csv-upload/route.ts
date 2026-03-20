@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { checkAdminPermission } from "@/lib/db/admin";
 import { supabase } from "@/lib/db/client";
 import { apiSuccess, apiError } from "@/lib/api/response";
+import { isSafeRemoteHttpUrl } from "@/lib/security/remote-url";
 
 export const maxDuration = 60;
 
@@ -9,6 +10,7 @@ const BATCH_SIZE = 5;
 const DESCRIPTION_MAX_LENGTH = 500;
 const TYPE_MAX_LENGTH = 50;
 const POINTS_VALUE = 100;
+const MAX_IMAGE_REDIRECTS = 3;
 
 type CsvRow = {
   category: string;
@@ -167,11 +169,29 @@ async function downloadImageFromUrl(
       targetUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
     }
 
-    const res = await fetch(targetUrl, { redirect: "follow" });
-    if (!res.ok) return null;
+    let res: Response | null = null;
+    let currentUrl = targetUrl;
 
-    const contentType = res.headers.get("content-type") || "image/jpeg";
-    if (contentType.includes("text/html")) return null;
+    for (let redirects = 0; redirects <= MAX_IMAGE_REDIRECTS; redirects++) {
+      const isSafeUrl = await isSafeRemoteHttpUrl(currentUrl);
+      if (!isSafeUrl) return null;
+
+      const response = await fetch(currentUrl, { redirect: "manual" });
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("location");
+        if (!location) return null;
+        currentUrl = new URL(location, currentUrl).toString();
+        continue;
+      }
+
+      res = response;
+      break;
+    }
+
+    if (!res || !res.ok) return null;
+
+    const contentType = (res.headers.get("content-type") || "").toLowerCase();
+    if (!contentType.startsWith("image/")) return null;
 
     const buffer = await res.arrayBuffer();
     if (buffer.byteLength < 200) return null;
