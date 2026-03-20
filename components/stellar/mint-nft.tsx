@@ -147,14 +147,14 @@ const MintNFT: React.FC<MintNFTProps> = ({
     return (
       <div className="space-y-4">
         <p className="body-medium text-[#7D7D7D] font-grotesk">
-          Connect your wallet to purchase your event ticket as an NFT.
+          Check in and receive your ticket as a digital collectible.
         </p>
         <button
           className="w-full h-[40px] bg-[#FFE600] text-[#131313] rounded-full font-pleasure hover:bg-[#FFD700] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           onClick={() => void connectWallet()}
           disabled={isPending}
         >
-          {isPending ? 'Loading...' : 'Connect Wallet'}
+          {isPending ? 'Loading...' : 'Get Ticket'}
         </button>
       </div>
     );
@@ -174,7 +174,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
   return (
     <div className="space-y-4">
       <p className="body-medium text-[#7D7D7D] font-grotesk">
-        Purchase your event ticket. 
+        Check in and receive your ticket as a digital collectible.
       </p>
 
       {needsFunding && isOnTestnet && (

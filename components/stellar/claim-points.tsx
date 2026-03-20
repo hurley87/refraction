@@ -207,14 +207,14 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
     return (
       <div className="space-y-4">
         <p className="body-medium text-[#7D7D7D] font-grotesk">
-          Connect your wallet to claim reward points.
+          Claim points for rewards.
         </p>
         <button
           className="w-full h-[40px] bg-[#FFE600] text-[#131313] rounded-full font-pleasure hover:bg-[#FFD700] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           onClick={() => void connectWallet()}
           disabled={isPending}
         >
-          {isPending ? 'Loading...' : 'Connect Wallet'}
+          {isPending ? 'Loading...' : 'Claim Points'}
         </button>
       </div>
     );
@@ -223,7 +223,7 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
   return (
     <div className="space-y-4">
       <p className="body-medium text-[#7D7D7D] font-grotesk">
-        Claim your reward points for completing this transaction.
+        Claim points for rewards.
       </p>
 
       {needsFunding && isOnTestnet && (
