@@ -68,8 +68,8 @@ const FundAccountButton: React.FC<FundAccountButtonProps> = ({
   };
 
   const buttonClass = compact
-    ? 'h-[32px] bg-[#313131] hover:bg-gray-800 text-white px-3 rounded-full font-pleasure text-sm transition-colors duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
-    : 'w-full h-[40px] bg-[#313131] hover:bg-gray-800 text-white px-4 rounded-full font-pleasure transition-colors duration-200 flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed';
+    ? 'h-[32px] bg-white hover:bg-gray-100 text-[#313131] px-3 rounded-full font-grotesk text-sm transition-colors duration-200 flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+    : 'w-full h-12 bg-white hover:bg-gray-100 text-[#313131] px-6 rounded-full title3 font-grotesk transition-colors duration-200 flex items-center justify-between cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
 
   return (
     <button

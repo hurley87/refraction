@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
 import { stellarNetwork } from '@/lib/stellar/utils/network';
-import { switchNetwork } from '@/lib/stellar/utils/wallet';
+import { detectWalletNetwork, switchNetwork } from '@/lib/stellar/utils/wallet';
 import storage from '@/lib/stellar/utils/storage';
 import { toast } from 'sonner';
 
@@ -18,11 +18,52 @@ const formatNetworkName = (name: string) => {
   return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 };
 
+/**
+ * Canonical network from passphrase (matches Horizon / Soroban usage).
+ * The wallet `network` string can be stale or wrong (e.g. WC + storage); passphrase is authoritative.
+ */
+function canonicalNetworkFromPassphrase(
+  passphrase: string | undefined
+): string | undefined {
+  if (!passphrase?.trim()) return undefined;
+  const p = passphrase;
+  if (p.includes('Future')) return 'FUTURENET';
+  if (p.includes('Public Global Stellar Network')) return 'PUBLIC';
+  if (p.includes('Test SDF Network')) return 'TESTNET';
+  if (p.includes('Public') && !p.includes('Test')) return 'PUBLIC';
+  return undefined;
+}
+
+/** Align wallet `network` strings with pill / Horizon labels. */
+function normalizeNetworkAlias(raw: string): string {
+  const u = raw.trim().toUpperCase();
+  if (u === 'MAINNET') return 'PUBLIC';
+  return u;
+}
+
 const NetworkPill: React.FC = () => {
-  const { network, address } = useWallet();
+  const { network, networkPassphrase, address } = useWallet();
+  /** Which network Horizon actually has this account on (source of truth when metadata is wrong). */
+  const [horizonNetwork, setHorizonNetwork] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!address) {
+      setHorizonNetwork(null);
+      return;
+    }
+    setHorizonNetwork(null);
+    let cancelled = false;
+    void detectWalletNetwork(address).then((res) => {
+      if (cancelled || !res?.network) return;
+      setHorizonNetwork(res.network.toUpperCase());
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [address]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -44,19 +85,74 @@ const NetworkPill: React.FC = () => {
     };
   }, [isOpen]);
 
-  // Debug: Log network value to see what we're getting
-  if (address && network) {
-    console.log('[NetworkPill] Wallet network:', network);
-  }
+  // Signing intent first: passphrase + wallet `network` match what Freighter/WC use.
+  // Horizon is only a hint when metadata is missing — it can show Testnet if mainnet
+  // Horizon failed while testnet succeeded, or disagree with the wallet network.
+  const effectiveNetworkUpper = (() => {
+    if (!address) return stellarNetwork.toUpperCase();
+
+    const fromPass = canonicalNetworkFromPassphrase(networkPassphrase);
+    if (fromPass) return fromPass;
+
+    if (network?.trim()) {
+      return normalizeNetworkAlias(network);
+    }
+
+    if (typeof window !== 'undefined') {
+      const stored = storage.getItem('walletNetwork');
+      if (stored && typeof stored === 'string' && stored.trim()) {
+        return normalizeNetworkAlias(stored);
+      }
+    }
+
+    if (horizonNetwork) return horizonNetwork;
+
+    return stellarNetwork.toUpperCase();
+  })();
+
+  useEffect(() => {
+    const passphraseNetwork = canonicalNetworkFromPassphrase(networkPassphrase);
+    const walletNetwork = network?.trim()
+      ? normalizeNetworkAlias(network)
+      : undefined;
+    const storedNetworkRaw =
+      typeof window !== 'undefined' ? storage.getItem('walletNetwork') : null;
+    const storedNetwork =
+      typeof storedNetworkRaw === 'string' && storedNetworkRaw.trim()
+        ? normalizeNetworkAlias(storedNetworkRaw)
+        : undefined;
+
+    console.log('[NetworkPill] Connected network debug:', {
+      address: address ?? null,
+      connected: Boolean(address),
+      effectiveNetwork: effectiveNetworkUpper,
+      sourcePriority: [
+        'passphrase',
+        'walletNetwork',
+        'storage',
+        'horizon',
+        'appDefault',
+      ],
+      passphraseNetwork: passphraseNetwork ?? null,
+      walletNetwork: walletNetwork ?? null,
+      storedNetwork: storedNetwork ?? null,
+      horizonNetwork: horizonNetwork ?? null,
+      appDefaultNetwork: stellarNetwork.toUpperCase(),
+    });
+  }, [
+    address,
+    network,
+    networkPassphrase,
+    horizonNetwork,
+    effectiveNetworkUpper,
+  ]);
 
   // Show the wallet's network if connected, otherwise show app's default network
-  const displayNetwork =
-    address && network
-      ? formatNetworkName(network)
-      : formatNetworkName(stellarNetwork);
+  const displayNetwork = address
+    ? formatNetworkName(effectiveNetworkUpper)
+    : formatNetworkName(stellarNetwork);
 
-  const currentNetwork =
-    address && network ? network.toUpperCase() : stellarNetwork.toUpperCase();
+  const currentNetwork = effectiveNetworkUpper;
 
   let title = '';
   let color = '#2ED06E';
@@ -64,7 +160,7 @@ const NetworkPill: React.FC = () => {
   if (!address) {
     title = `App is configured for ${formatNetworkName(stellarNetwork)}. Connect your wallet.`;
     color = '#C1C7D0';
-  } else if (network) {
+  } else if (network || networkPassphrase) {
     // Show green when connected, regardless of network
     title = `Connected to ${displayNetwork}. Click to switch network.`;
     color = '#2ED06E';
@@ -210,7 +306,11 @@ const NetworkPill: React.FC = () => {
             const isActive =
               currentNetwork === net.value ||
               (net.value === 'PUBLIC' &&
-                (currentNetwork === 'MAINNET' || currentNetwork === 'PUBLIC'));
+                (currentNetwork === 'MAINNET' ||
+                  currentNetwork === 'PUBLIC')) ||
+              (net.value === 'TESTNET' &&
+                (currentNetwork === 'TESTNET' ||
+                  currentNetwork === 'FUTURENET'));
 
             return (
               <button

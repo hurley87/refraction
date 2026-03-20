@@ -10,7 +10,7 @@ import {
   WalletConnectAllowedMethods,
 } from '@creit.tech/stellar-wallets-kit/modules/walletconnect.module';
 import { Horizon } from '@stellar/stellar-sdk';
-import {  getHorizonUrlForNetwork } from './network';
+import { getHorizonUrlForNetwork } from './network';
 
 // Get WalletConnect project ID from environment
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
@@ -367,10 +367,6 @@ export type FetchBalancesResult = {
 };
 
 /**
- * Detect which Stellar network a wallet address exists on
- * Checks both testnet and mainnet Horizon servers
- */
-/**
  * Convert network passphrase to WalletConnect chainId format
  * @param networkPassphrase - The Stellar network passphrase
  * @returns WalletConnect chainId (e.g., "stellar:testnet" or "stellar:mainnet")
@@ -391,17 +387,37 @@ export const getWalletConnectChainId = (networkPassphrase?: string): string => {
   return 'stellar:testnet'; // Default fallback
 };
 
+function horizonResultIsNotFound(
+  result: PromiseSettledResult<unknown>
+): boolean {
+  if (result.status !== 'rejected') return false;
+  const reason = result.reason;
+  if (reason instanceof Error) {
+    return /not found/i.test(reason.message);
+  }
+  return false;
+}
+
+function horizonResultIsUnknownFailure(
+  result: PromiseSettledResult<unknown>
+): boolean {
+  if (result.status !== 'rejected') return false;
+  return !horizonResultIsNotFound(result);
+}
+
 /**
- * Detect which Stellar network a wallet address exists on
- * Checks both testnet and mainnet Horizon servers
+ * Detect which Stellar network a wallet address exists on.
+ * Checks both testnet and mainnet Horizon servers.
+ *
+ * If the mainnet request fails for a non-404 reason (rate limit, CORS, etc.),
+ * we do **not** infer TESTNET from a successful testnet call — that produced
+ * false "Testnet" when the user was on mainnet.
  */
 export const detectWalletNetwork = async (
   address: string
 ): Promise<{ network: string; networkPassphrase: string } | null> => {
   const { Horizon } = await import('@stellar/stellar-sdk');
 
-  // Check both networks in parallel to see which one the account exists on
-  // Note: An account can exist on both networks, so we check both
   const testnetServer = new Horizon.Server(
     'https://horizon-testnet.stellar.org'
   );
@@ -412,39 +428,68 @@ export const detectWalletNetwork = async (
     mainnetServer.accounts().accountId(address).call(),
   ]);
 
-  const testnetExists = testnetResult.status === 'fulfilled';
-  const mainnetExists = mainnetResult.status === 'fulfilled';
+  const mainnetOk = mainnetResult.status === 'fulfilled';
+  const testnetOk = testnetResult.status === 'fulfilled';
+  const mainnetNotFound = horizonResultIsNotFound(mainnetResult);
+  const testnetNotFound = horizonResultIsNotFound(testnetResult);
+  const mainnetUnknown = horizonResultIsUnknownFailure(mainnetResult);
+  const testnetUnknown = horizonResultIsUnknownFailure(testnetResult);
 
   console.log('[Stellar] Network detection results:', {
     address,
-    testnetExists,
-    mainnetExists,
+    mainnetOk,
+    testnetOk,
+    mainnetNotFound,
+    testnetNotFound,
+    mainnetUnknown,
+    testnetUnknown,
   });
 
-  // If account exists on both networks, prefer mainnet (PUBLIC) since WalletConnect
-  // is initialized with PUBLIC by default. This ensures users connecting on mainnet
-  // get the correct network even if their account exists on both networks.
-  // If only one exists, use that one
-  if (mainnetExists) {
+  if (mainnetOk) {
     console.log('[Stellar] Wallet detected on MAINNET:', address);
     return {
       network: 'PUBLIC',
       networkPassphrase: 'Public Global Stellar Network ; September 2015',
     };
-  } else if (testnetExists) {
-    console.log('[Stellar] Wallet detected on TESTNET:', address);
-    return {
-      network: 'TESTNET',
-      networkPassphrase: 'Test SDF Network ; September 2015',
-    };
-  } else {
-    // Account not found on either network (unfunded)
+  }
+
+  if (testnetOk) {
+    // Only trust TESTNET if mainnet definitively has no account (404).
+    if (mainnetNotFound) {
+      console.log('[Stellar] Wallet detected on TESTNET:', address);
+      return {
+        network: 'TESTNET',
+        networkPassphrase: 'Test SDF Network ; September 2015',
+      };
+    }
+    if (mainnetUnknown) {
+      console.warn(
+        '[Stellar] Mainnet Horizon error; not inferring network from testnet alone:',
+        address
+      );
+      return null;
+    }
+    // Mainnet rejected but not classified — avoid guessing
+    return null;
+  }
+
+  // Neither Horizon returned an account
+  if (mainnetNotFound && testnetNotFound) {
     console.log(
       '[Stellar] Wallet not found on either network (unfunded):',
       address
     );
     return null;
   }
+
+  if (mainnetUnknown || testnetUnknown) {
+    console.warn(
+      '[Stellar] Horizon errors during network detection; inconclusive:',
+      address
+    );
+  }
+
+  return null;
 };
 
 export const fetchBalances = async (
