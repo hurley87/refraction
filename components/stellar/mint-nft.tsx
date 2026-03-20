@@ -150,7 +150,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
           Check in and receive your ticket as a digital collectible.
         </p>
         <button
-          className="w-full h-[40px] bg-[#FFE600] text-[#131313] rounded-full font-pleasure hover:bg-[#FFD700] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          className="w-full h-12 bg-white hover:bg-gray-100 text-[#313131] px-6 rounded-full title3 font-grotesk transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           onClick={() => void connectWallet()}
           disabled={isPending}
         >
@@ -232,7 +232,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
           needsFunding ||
           !hasEnoughBalance
         }
-        className="w-full h-[40px] bg-[#FFE600] text-[#131313] rounded-full font-pleasure hover:bg-[#FFD700] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+        className="w-full h-12 bg-white hover:bg-gray-100 text-[#313131] px-6 rounded-full title3 font-grotesk transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
       >
         {isLoading ? 'Processing...' : ctaLabel}
       </button>

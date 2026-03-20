@@ -324,8 +324,8 @@ export function NearIntentsBridgeWidget({
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-[26px] p-4">
-        <p className="body-medium text-[#7D7D7D] font-grotesk">
+      <div className="bg-[#313131] rounded-[26px] p-4">
+        <p className="body-medium text-[#B5B5B5] font-grotesk">
           Loading Stellar wallet…
         </p>
       </div>
@@ -334,11 +334,9 @@ export function NearIntentsBridgeWidget({
 
   if (!stellarAddress) {
     return (
-      <div className="bg-white rounded-[26px] p-4">
-        <h2 className="title2 text-[#313131] font-grotesk">
-          Bridge to Stellar
-        </h2>
-        <p className="mt-2 body-medium text-[#7D7D7D] font-grotesk">
+      <div className="bg-[#313131] rounded-[26px] p-4">
+        <h2 className="title2 text-white font-grotesk">Bridge to Stellar</h2>
+        <p className="mt-2 body-medium text-[#B5B5B5] font-grotesk">
           Connect or create a Stellar wallet above to bridge assets from other
           chains (Ethereum, Solana, Bitcoin, etc.) to your Stellar address.
         </p>
@@ -347,30 +345,29 @@ export function NearIntentsBridgeWidget({
   }
 
   return (
-    <div className="bg-white rounded-[26px] p-4">
+    <div className="bg-[#313131] rounded-[26px] p-4">
       <div className="flex flex-col gap-4">
         <div>
-     
-          <p className="mt-2 body-medium text-[#7D7D7D] font-grotesk">
+          <p className="mt-2 body-medium text-[#B5B5B5] font-grotesk">
             Swap from 100+ chains into XLM or USDC on Stellar. Powered by NEAR
             Intents.
           </p>
-          <p className="mt-2 body-medium text-[#7D7D7D] font-grotesk">
+          <p className="mt-2 body-medium text-[#B5B5B5] font-grotesk">
             App/wallet network:{' '}
-            <span className="font-medium text-[#313131]">
+            <span className="font-medium text-white">
               Stellar {isTestnet ? 'Testnet' : 'Mainnet'}
             </span>
           </p>
         </div>
 
         {loadingTokens ? (
-          <p className="body-medium text-[#7D7D7D] font-grotesk">
+          <p className="body-medium text-[#B5B5B5] font-grotesk">
             Loading tokens…
           </p>
         ) : (
           <div className="flex flex-col gap-4">
             <div>
-              <label className="mb-1 block body-medium text-[#313131] font-grotesk">
+              <label className="mb-1 block body-medium text-white font-grotesk">
                 From (Source Chain)
               </label>
               <Select
@@ -382,7 +379,7 @@ export function NearIntentsBridgeWidget({
                   setQuote(null);
                 }}
               >
-                <SelectTrigger className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-[#313131] font-grotesk focus:border-[#313131] focus:ring-1 focus:ring-[#313131] [&>span]:flex [&>span]:items-center [&>span]:gap-2">
+                <SelectTrigger className="w-full rounded-xl border border-white/20 bg-[#313131] px-3 py-2.5 text-sm text-white font-grotesk focus:border-white focus:ring-1 focus:ring-white [&>span]:flex [&>span]:items-center [&>span]:gap-2">
                   {sourceToken ? (
                     <span className="flex items-center gap-3">
                       <ChainIcon blockchain={sourceToken.blockchain} />
@@ -395,13 +392,17 @@ export function NearIntentsBridgeWidget({
                     <SelectValue placeholder="Select token" />
                   )}
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="border border-white/20 bg-[#313131] text-white">
                   {sortedSourceTokens.map((t) => (
-                    <SelectItem key={t.assetId} value={t.assetId}>
+                    <SelectItem
+                      key={t.assetId}
+                      value={t.assetId}
+                      className="text-white focus:bg-white/10 focus:text-white"
+                    >
                       <span className="flex items-center gap-3">
                         <ChainIcon blockchain={t.blockchain} />
                         <span>{t.symbol}</span>
-                        <span className="text-gray-500">
+                        <span className="text-[#B5B5B5]">
                           {getChainDisplayName(t.blockchain)}
                         </span>
                       </span>
@@ -412,11 +413,11 @@ export function NearIntentsBridgeWidget({
             </div>
 
             <div>
-              <label className="mb-1 block body-medium text-[#313131] font-grotesk">
+              <label className="mb-1 block body-medium text-white font-grotesk">
                 To (Stellar)
               </label>
               <select
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-[#313131] font-grotesk focus:border-[#313131] focus:outline-none focus:ring-1 focus:ring-[#313131]"
+                className="w-full rounded-xl border border-white/20 bg-[#313131] px-3 py-2.5 text-sm text-white font-grotesk focus:border-white focus:outline-none focus:ring-1 focus:ring-white"
                 value={destinationToken?.assetId ?? ''}
                 onChange={(e) => {
                   const t = stellarTokens.find(
@@ -435,14 +436,14 @@ export function NearIntentsBridgeWidget({
             </div>
 
             <div>
-              <label className="mb-1 block body-medium text-[#313131] font-grotesk">
+              <label className="mb-1 block body-medium text-white font-grotesk">
                 Amount
               </label>
               <input
                 type="text"
                 inputMode="decimal"
                 placeholder="0"
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-[#313131] font-grotesk focus:border-[#313131] focus:outline-none focus:ring-1 focus:ring-[#313131]"
+                className="w-full rounded-xl border border-white/20 bg-[#313131] px-3 py-2.5 text-sm text-white font-grotesk focus:border-white focus:outline-none focus:ring-1 focus:ring-white"
                 value={amount}
                 onChange={(e) => {
                   setAmount(e.target.value);
@@ -452,7 +453,7 @@ export function NearIntentsBridgeWidget({
             </div>
 
             <div>
-              <label className="mb-1 block body-medium text-[#313131] font-grotesk">
+              <label className="mb-1 block body-medium text-white font-grotesk">
                 {sourceToken
                   ? getRefundFieldConfig(sourceToken.blockchain).label
                   : 'Refund address (source chain)'}
@@ -464,14 +465,14 @@ export function NearIntentsBridgeWidget({
                     ? getRefundFieldConfig(sourceToken.blockchain).placeholder
                     : 'Select source chain first'
                 }
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-mono text-[#313131] placeholder:text-gray-400 font-grotesk focus:border-[#313131] focus:outline-none focus:ring-1 focus:ring-[#313131]"
+                className="w-full rounded-xl border border-white/20 bg-[#313131] px-3 py-2.5 text-sm font-mono text-white placeholder:text-gray-400 font-grotesk focus:border-white focus:outline-none focus:ring-1 focus:ring-white"
                 value={refundAddress}
                 onChange={(e) => {
                   setRefundAddress(e.target.value);
                   setQuote(null);
                 }}
               />
-              <p className="mt-1 body-medium text-[#7D7D7D] font-grotesk text-sm">
+              <p className="mt-1 body-medium text-[#B5B5B5] font-grotesk text-sm">
                 {sourceToken
                   ? getRefundFieldConfig(sourceToken.blockchain).help
                   : 'If the swap fails, funds are returned to this address. Select a source token to see chain-specific format.'}
@@ -492,20 +493,20 @@ export function NearIntentsBridgeWidget({
                 !amount ||
                 !effectiveRefundAddress.trim()
               }
-              className="w-full rounded-xl bg-[#313131] px-4 py-2.5 text-sm font-medium text-white font-grotesk disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#313131] focus:ring-offset-2"
+              className="w-full h-12 bg-white hover:bg-gray-100 text-[#313131] px-6 rounded-full title3 font-grotesk transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               onClick={requestQuote}
             >
               {quoteLoading ? 'Getting quote…' : 'Get quote & deposit address'}
             </button>
 
             {quote && (
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <p className="title2 text-[#313131] font-grotesk">
+              <div className="rounded-xl border border-white/20 bg-[#313131] p-4">
+                <p className="title2 text-white font-grotesk">
                   Send to complete swap
                 </p>
-                <p className="mt-2 body-medium text-[#7D7D7D] font-grotesk">
+                <p className="mt-2 body-medium text-[#B5B5B5] font-grotesk">
                   Send exactly{' '}
-                  <strong className="text-[#313131]">
+                  <strong className="text-white">
                     {quote.amountInFormatted} {sourceToken?.symbol}
                   </strong>{' '}
                   to the address below before{' '}
@@ -517,16 +518,16 @@ export function NearIntentsBridgeWidget({
                 </p>
                 <div className="mt-3 space-y-3">
                   <div>
-                    <span className="body-medium text-[#7D7D7D] font-grotesk text-sm">
+                    <span className="body-medium text-[#B5B5B5] font-grotesk text-sm">
                       Deposit address:
                     </span>
                     <div className="mt-1 flex items-center gap-2">
-                      <code className="break-all rounded-lg bg-white border border-gray-200 px-3 py-2 text-xs font-mono text-[#313131]">
+                      <code className="break-all rounded-lg bg-[#1f1f1f] border border-white/20 px-3 py-2 text-xs font-mono text-white">
                         {quote.depositAddress}
                       </code>
                       <button
                         type="button"
-                        className="shrink-0 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-[#313131] font-grotesk hover:bg-gray-50"
+                        className="shrink-0 rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm font-medium text-white font-grotesk hover:bg-white/10 cursor-pointer"
                         onClick={() => copyToClipboard(quote.depositAddress)}
                       >
                         Copy
@@ -535,16 +536,16 @@ export function NearIntentsBridgeWidget({
                   </div>
                   {quote.depositMemo && (
                     <div>
-                      <span className="body-medium text-[#7D7D7D] font-grotesk text-sm">
+                      <span className="body-medium text-[#B5B5B5] font-grotesk text-sm">
                         Memo (required for Stellar):
                       </span>
                       <div className="mt-1 flex items-center gap-2">
-                        <code className="rounded-lg bg-white border border-gray-200 px-3 py-2 text-xs font-mono text-[#313131]">
+                        <code className="rounded-lg bg-[#1f1f1f] border border-white/20 px-3 py-2 text-xs font-mono text-white">
                           {quote.depositMemo}
                         </code>
                         <button
                           type="button"
-                          className="shrink-0 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-[#313131] font-grotesk hover:bg-gray-50"
+                          className="shrink-0 rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm font-medium text-white font-grotesk hover:bg-white/10 cursor-pointer"
                           onClick={() =>
                             copyToClipboard(quote.depositMemo ?? '')
                           }

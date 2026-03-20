@@ -33,10 +33,9 @@ function StellarWalletPageContent() {
   return (
     <div
       style={{
-        background:
-          'linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.10) 100%), linear-gradient(0deg, #EE91B7 0%, #FFE600 37.5%, #1BA351 66.34%, #61BFD1 100%)',
+        background: '#131313',
       }}
-      className="min-h-screen px-2 pt-2 pb-4 font-grotesk"
+      className="min-h-screen px-2 pt-2 pb-4 font-grotesk cursor-auto"
     >
       <div className="max-w-md mx-auto">
         {/* Navigation */}
@@ -47,21 +46,45 @@ function StellarWalletPageContent() {
         {/* Main Content */}
         <div className="px-0 pt-2 space-y-2">
           {/* IRL × Stellar Card */}
-          <div className="bg-white rounded-[26px] overflow-hidden">
-            <div className="relative w-full h-48">
-              <Image
-                src="/stellar-banner.jpg"
-                alt="IRL × Stellar"
-                fill
-                className="object-cover"
-                priority
-              />
+          <div className="bg-[#313131] rounded-[26px] overflow-hidden">
+            <div className="relative w-full h-[340px] sm:h-[380px]">
+              <div className="relative w-full h-full overflow-hidden rounded-b-[17px]">
+                <Image
+                  src="/stellar-banner.png"
+                  alt="IRL × Stellar"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-2 p-4">
-              <h2 className="title2 text-[#313131] font-grotesk">
-                IRL × Stellar
-              </h2>
-              <p className="body-medium text-[#7D7D7D] font-grotesk">
+            <div className="flex flex-col items-center md:items-start gap-3 px-4 py-6 border-t border-white/25">
+                <p
+                  className="text-white text-center md:text-left"
+                  style={{
+                    fontFamily: '"ABC Monument Grotesk Unlicensed Trial"',
+                    fontSize: '31px',
+                    fontStyle: 'normal',
+                    fontWeight: 400,
+                    lineHeight: '32px',
+                    letterSpacing: '-0.93px',
+                  }}
+                >
+                IRL × STELLAR
+              </p>
+              <p
+                className="text-center md:text-left overflow-hidden text-ellipsis"
+                style={{
+                  color: 'var(--Dark-Tint-40, #B5B5B5)',
+                  fontFamily:
+                    '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
+                  fontSize: '13px',
+                  fontStyle: 'normal',
+                  fontWeight: 400,
+                  lineHeight: '20px',
+                  letterSpacing: '-0.26px',
+                }}
+              >
                 IRL works with Stellar to bring cultural onchain experiences to
                 real-world events — check in, create a Privy-powered account,
                 and earn points towards future rewards.
@@ -70,45 +93,74 @@ function StellarWalletPageContent() {
           </div>
 
           {/* Step 1: Connect */}
-          <div className="bg-white rounded-[26px] p-4">
+          <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[#FFE600] flex items-center justify-center">
-                  <span className="text-[#131313] font-bold text-sm">1</span>
-                </div>
-                <h2 className="title2 text-[#313131] font-grotesk">Connect</h2>
+                <Image
+                  src="/homepage/ellipse.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="shrink-0"
+                />
+                <h2
+                  className="title5 text-white font-grotesk"
+                  style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
+                >
+                  {stellarWalletAddress ? 'Connected' : 'Connect'}
+                </h2>
               </div>
-              <p className="body-medium text-[#7D7D7D] font-grotesk">
-                Connect with email or wallet (Privy)
-              </p>
+              {!stellarWalletAddress && (
+                <p
+                  className="text-[#B5B5B5]"
+                  style={{
+                    fontFamily:
+                      '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
+                    fontSize: '13px',
+                    fontStyle: 'normal',
+                    fontWeight: 400,
+                    lineHeight: '20px',
+                    letterSpacing: '-0.26px',
+                  }}
+                >
+                  Connect with Freighter wallet
+                </p>
+              )}
               <ConnectAccount />
             </div>
           </div>
 
           {/* Step 2: Bridge to Stellar (NEAR Intents) - collapsible */}
-          <div className="bg-white rounded-[26px] overflow-hidden">
+          <div className="bg-[#313131] rounded-[26px] overflow-hidden border border-white/15">
             <button
               type="button"
               onClick={() => setBridgeExpanded((v) => !v)}
-              className="w-full flex items-center justify-between gap-2 py-4 px-4 text-[#313131] font-grotesk hover:bg-gray-50/80 transition-colors"
+              className="w-full flex items-center justify-between gap-2 py-4 px-4 text-white font-grotesk hover:bg-white/5 transition-colors cursor-pointer"
               aria-expanded={bridgeExpanded}
             >
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[#FFE600] flex items-center justify-center">
-                  <span className="text-[#131313] font-bold text-sm">2</span>
-                </div>
-                <h2 className="title2 text-[#313131] font-grotesk">
+                <Image
+                  src="/homepage/ellipse.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="shrink-0"
+                />
+                <h2
+                  className="title5 text-white font-grotesk"
+                  style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
+                >
                   Bridge to Stellar
                 </h2>
               </div>
               <ChevronDown
-                className={`h-5 w-5 shrink-0 text-[#313131] transition-transform ${bridgeExpanded ? 'rotate-180' : ''}`}
+                className={`h-5 w-5 shrink-0 text-white transition-transform ${bridgeExpanded ? 'rotate-180' : ''}`}
                 aria-hidden
               />
             </button>
             {bridgeExpanded && (
-              <div className="border-t border-gray-100 px-4 pb-4 pt-2">
-                <p className="body-medium text-[#7D7D7D] font-grotesk mb-4">
+              <div className="border-t border-white/15 px-4 pb-4 pt-2">
+                <p className="body-medium text-[#B5B5B5] font-grotesk mb-4">
                   Move assets onto Stellar
                 </p>
                 <NearIntentsBridgeWidget
@@ -120,13 +172,20 @@ function StellarWalletPageContent() {
           </div>
 
           {/* Step 3: Get Ticket */}
-          <div className="bg-white rounded-[26px] p-4">
+          <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[#FFE600] flex items-center justify-center">
-                  <span className="text-[#131313] font-bold text-sm">3</span>
-                </div>
-                <h2 className="title2 text-[#313131] font-grotesk">
+                <Image
+                  src="/homepage/ellipse.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="shrink-0"
+                />
+                <h2
+                  className="title5 text-white font-grotesk"
+                  style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
+                >
                   Get Ticket
                 </h2>
               </div>
@@ -168,13 +227,20 @@ function StellarWalletPageContent() {
           </div>
 
           {/* Step 4: Claim Points */}
-          <div className="bg-white rounded-[26px] p-4">
+          <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-[#FFE600] flex items-center justify-center">
-                  <span className="text-[#131313] font-bold text-sm">4</span>
-                </div>
-                <h2 className="title2 text-[#313131] font-grotesk">
+                <Image
+                  src="/homepage/ellipse.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="shrink-0"
+                />
+                <h2
+                  className="title5 text-white font-grotesk"
+                  style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
+                >
                   Claim Points
                 </h2>
               </div>

@@ -41,11 +41,11 @@ export function TransactionStatus({
 
   if (status === 'success' && txHash) {
     return (
-      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+      <div className="p-4 bg-[#313131] border border-white/15 rounded-[18px]">
         <div className="flex items-start gap-2">
           <div className="flex-shrink-0">
             <svg
-              className="w-5 h-5 text-green-600"
+              className="w-5 h-5 text-[#22c55e]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -59,19 +59,19 @@ export function TransactionStatus({
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-green-800 mb-2">
+            <p className="text-sm font-medium text-white mb-2">
               {successMessage}
             </p>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-green-700 min-w-[80px]">
+                <span className="text-xs font-medium text-[#B5B5B5] min-w-[80px]">
                   Transaction:
                 </span>
                 <Link
                   href={getExplorerUrl(txHash)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-green-700 break-all font-mono hover:underline flex-1"
+                  className="text-xs text-white break-all font-mono hover:underline flex-1"
                   title="View transaction on Stellar Explorer"
                 >
                   {txHash}
@@ -81,11 +81,11 @@ export function TransactionStatus({
                     navigator.clipboard.writeText(txHash);
                     toast.success('Transaction hash copied!');
                   }}
-                  className="flex-shrink-0 p-1 hover:bg-green-100 rounded transition-colors"
+                  className="flex-shrink-0 p-1 hover:bg-white/10 rounded transition-colors cursor-pointer"
                   title="Copy transaction hash"
                 >
                   <svg
-                    className="w-4 h-4 text-green-700"
+                    className="w-4 h-4 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -101,10 +101,10 @@ export function TransactionStatus({
               </div>
               {contractId && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-green-700 min-w-[80px]">
+                  <span className="text-xs font-medium text-[#B5B5B5] min-w-[80px]">
                     Contract ID:
                   </span>
-                  <span className="text-xs text-green-700 break-all font-mono flex-1">
+                  <span className="text-xs text-white break-all font-mono flex-1">
                     {contractId}
                   </span>
                   <button
@@ -112,11 +112,11 @@ export function TransactionStatus({
                       navigator.clipboard.writeText(contractId);
                       toast.success('Contract ID copied!');
                     }}
-                    className="flex-shrink-0 p-1 hover:bg-green-100 rounded transition-colors"
+                    className="flex-shrink-0 p-1 hover:bg-white/10 rounded transition-colors cursor-pointer"
                     title="Copy contract ID"
                   >
                     <svg
-                      className="w-4 h-4 text-green-700"
+                      className="w-4 h-4 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -133,10 +133,10 @@ export function TransactionStatus({
               )}
               {tokenId !== null && tokenId !== undefined && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-green-700 min-w-[80px]">
+                  <span className="text-xs font-medium text-[#B5B5B5] min-w-[80px]">
                     Token ID:
                   </span>
-                  <span className="text-xs text-green-700 font-mono flex-1">
+                  <span className="text-xs text-white font-mono flex-1">
                     {tokenId}
                   </span>
                   <button
@@ -144,11 +144,11 @@ export function TransactionStatus({
                       navigator.clipboard.writeText(String(tokenId));
                       toast.success('Token ID copied!');
                     }}
-                    className="flex-shrink-0 p-1 hover:bg-green-100 rounded transition-colors"
+                    className="flex-shrink-0 p-1 hover:bg-white/10 rounded transition-colors cursor-pointer"
                     title="Copy token ID"
                   >
                     <svg
-                      className="w-4 h-4 text-green-700"
+                      className="w-4 h-4 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -172,10 +172,10 @@ export function TransactionStatus({
 
   if (status === 'pending') {
     return (
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="p-4 bg-[#313131] border border-white/15 rounded-[18px]">
         <div className="flex items-center gap-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-          <p className="text-sm text-blue-800">{pendingMessage}</p>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#60a5fa]"></div>
+          <p className="text-sm text-[#B5B5B5]">{pendingMessage}</p>
         </div>
       </div>
     );
@@ -183,11 +183,11 @@ export function TransactionStatus({
 
   if (status === 'error') {
     return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-        <p className="text-sm font-medium text-red-800 mb-1">
+      <div className="p-4 bg-[#313131] border border-white/15 rounded-[18px]">
+        <p className="text-sm font-medium text-[#f87171] mb-1">
           Transaction failed
         </p>
-        {error && <p className="text-xs text-red-700">{error}</p>}
+        {error && <p className="text-xs text-[#B5B5B5]">{error}</p>}
       </div>
     );
   }
