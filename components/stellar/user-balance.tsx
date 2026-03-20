@@ -69,9 +69,9 @@ export const UserBalance = () => {
             </p>
           </div>
           <div className="flex justify-start">
-            <div className="flex items-end gap-2">
+            <div className="flex items-baseline gap-2">
               <p
-                className="text-white text-center md:text-left"
+                className="m-0 text-white text-center md:text-left"
                 style={{
                   fontFamily: '"ABC Monument Grotesk Unlicensed Trial"',
                   fontSize: '64px',
@@ -84,15 +84,14 @@ export const UserBalance = () => {
                 {displayBalance !== '-' ? numBalance.toLocaleString() : '-'}
               </p>
               <p
-                className="text-[#B5B5B5]"
+                className="m-0 shrink-0 text-[#B5B5B5] leading-none"
                 style={{
                   fontFamily:
                     '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
                   fontSize: '13px',
                   fontStyle: 'normal',
                   fontWeight: 400,
-                  lineHeight: '20px',
-                  letterSpacing: '-0.26px',
+                  letterSpacing: '0.26px',
                 }}
               >
                 XLM

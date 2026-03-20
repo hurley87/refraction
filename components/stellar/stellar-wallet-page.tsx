@@ -59,19 +59,30 @@ function StellarWalletPageContent() {
               </div>
             </div>
             <div className="flex flex-col items-center md:items-start gap-3 px-4 py-6 border-t border-white/25">
-                <p
-                  className="text-white text-center md:text-left"
-                  style={{
-                    fontFamily: '"ABC Monument Grotesk Unlicensed Trial"',
-                    fontSize: '31px',
-                    fontStyle: 'normal',
-                    fontWeight: 400,
-                    lineHeight: '32px',
-                    letterSpacing: '-0.93px',
-                  }}
-                >
-                IRL × STELLAR
-              </p>
+              <div className="flex w-full justify-center">
+                <div className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-2 [filter:drop-shadow(0_0_10px_rgba(255,255,255,0.55))_drop-shadow(0_0_22px_rgba(255,255,255,0.28))]">
+                  <Image
+                    src="/IRL-SVG/$IRL_SECONDARY LOGO ICON_BLACK.svg"
+                    alt="IRL"
+                    width={130}
+                    height={78}
+                    className="h-[41.6px] w-auto object-contain brightness-0 invert"
+                  />
+                  <span
+                    className="leading-none select-none text-white [font-size:1.95rem] [text-shadow:0_0_12px_rgba(255,255,255,0.55),0_0_24px_rgba(255,255,255,0.3)]"
+                    aria-hidden
+                  >
+                    ×
+                  </span>
+                  <Image
+                    src="/stellar-logo.png"
+                    alt="Stellar"
+                    width={156}
+                    height={52}
+                    className="h-[41.6px] w-auto object-contain"
+                  />
+                </div>
+              </div>
               <p
                 className="text-center md:text-left overflow-hidden text-ellipsis"
                 style={{
