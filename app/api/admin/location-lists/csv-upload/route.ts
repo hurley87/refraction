@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { checkAdminPermission } from "@/lib/db/admin";
 import { supabase } from "@/lib/db/client";
 import { apiSuccess, apiError } from "@/lib/api/response";
+import { getPrivyClient } from "@/lib/api/privy";
 
 export const maxDuration = 60;
 
@@ -213,6 +214,29 @@ type RowContext = {
   creatorUsername: string;
 };
 
+async function resolveAuthenticatedAdminEmail(
+  request: NextRequest
+): Promise<string | null> {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return null;
+  }
+
+  const token = authHeader.slice(7).trim();
+  if (!token) return null;
+
+  try {
+    const privy = getPrivyClient();
+    const claims = await privy.verifyAuthToken(token);
+    const user = await privy.getUser(claims.userId);
+    const email = user.email?.address?.toLowerCase();
+    if (!email) return null;
+    return checkAdminPermission(email) ? email : null;
+  } catch {
+    return null;
+  }
+}
+
 async function processRow(
   row: CsvRow,
   rowNum: number,
@@ -351,8 +375,8 @@ async function processRow(
 
 export async function POST(request: NextRequest) {
   try {
-    const adminEmail = request.headers.get("x-user-email") || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await resolveAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError("Unauthorized", 403);
     }
 
