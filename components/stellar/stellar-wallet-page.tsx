@@ -97,7 +97,7 @@ function StellarWalletPageContent() {
                 }}
               >
                 IRL works with Stellar to bring cultural onchain experiences to
-                real-world events — check in, create a Privy-powered account,
+                real-world events — connect your Freighter wallet
                 and earn points towards future rewards.
               </p>
             </div>
