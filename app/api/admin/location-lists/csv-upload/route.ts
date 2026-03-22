@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { isIP } from "node:net";
 import { checkAdminPermission } from "@/lib/db/admin";
 import { supabase } from "@/lib/db/client";
 import { apiSuccess, apiError } from "@/lib/api/response";
@@ -9,6 +10,7 @@ const BATCH_SIZE = 5;
 const DESCRIPTION_MAX_LENGTH = 500;
 const TYPE_MAX_LENGTH = 50;
 const POINTS_VALUE = 100;
+const MAX_REMOTE_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 type CsvRow = {
   category: string;
@@ -156,7 +158,63 @@ function extractDriveFileId(url: string): string | null {
   return m ? m[1] : null;
 }
 
-async function downloadImageFromUrl(
+function isBlockedRemoteHostname(hostname: string): boolean {
+  const normalized = hostname.trim().toLowerCase();
+  if (!normalized) return true;
+
+  if (
+    normalized === "localhost" ||
+    normalized === "0.0.0.0" ||
+    normalized === "127.0.0.1" ||
+    normalized === "::1"
+  ) {
+    return true;
+  }
+
+  const ipVersion = isIP(normalized);
+  if (ipVersion === 4) {
+    const parts = normalized.split(".").map((segment) => Number(segment));
+    if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
+      return true;
+    }
+
+    const [a, b] = parts;
+    if (a === 10) return true;
+    if (a === 127) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+  } else if (ipVersion === 6) {
+    if (
+      normalized === "::1" ||
+      normalized.startsWith("fe80:") ||
+      normalized.startsWith("fc") ||
+      normalized.startsWith("fd")
+    ) {
+      return true;
+    }
+  } else {
+    if (normalized.endsWith(".localhost") || normalized.endsWith(".local")) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function isAllowedRemoteImageUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return false;
+    }
+    return !isBlockedRemoteHostname(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export async function downloadImageFromUrl(
   imageUrl: string
 ): Promise<{ buffer: ArrayBuffer; contentType: string } | null> {
   try {
@@ -167,16 +225,52 @@ async function downloadImageFromUrl(
       targetUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
     }
 
+    if (!isAllowedRemoteImageUrl(targetUrl)) return null;
+
     const res = await fetch(targetUrl, { redirect: "follow" });
     if (!res.ok) return null;
 
+    if (res.url && !isAllowedRemoteImageUrl(res.url)) return null;
+
+    const contentLengthHeader = res.headers.get("content-length");
+    const contentLength = contentLengthHeader
+      ? Number.parseInt(contentLengthHeader, 10)
+      : null;
+    if (contentLength && contentLength > MAX_REMOTE_IMAGE_BYTES) return null;
+
     const contentType = res.headers.get("content-type") || "image/jpeg";
-    if (contentType.includes("text/html")) return null;
+    if (!contentType.toLowerCase().startsWith("image/")) return null;
 
-    const buffer = await res.arrayBuffer();
-    if (buffer.byteLength < 200) return null;
+    const reader = res.body?.getReader();
+    if (!reader) return null;
 
-    return { buffer, contentType };
+    const chunks: Uint8Array[] = [];
+    let totalBytes = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_REMOTE_IMAGE_BYTES) {
+        await reader.cancel();
+        return null;
+      }
+
+      chunks.push(value);
+    }
+
+    if (totalBytes < 200) return null;
+
+    const bytes = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+
+    return { buffer: bytes.buffer, contentType };
   } catch {
     return null;
   }
