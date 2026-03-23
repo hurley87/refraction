@@ -205,7 +205,7 @@ const createLocationSchema = z
   );
 
 export default function AdminLocationListsPage() {
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
@@ -666,9 +666,17 @@ export default function AdminLocationListsPage() {
 
   const csvImportMutation = useMutation({
     mutationFn: async (formData: FormData) => {
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error('Unable to verify admin session. Please log in again.');
+      }
+
       const response = await fetch('/api/admin/location-lists/csv-upload', {
         method: 'POST',
-        headers: { 'x-user-email': adminEmail },
+        headers: {
+          'x-user-email': adminEmail,
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 
