@@ -255,12 +255,12 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
 
               <div
                 className="rounded-2xl p-4 space-y-3.5"
-                style={{ backgroundColor: `${textColor}15` }}
+                style={{ backgroundColor: `${textColor}22` }}
               >
                 <div className="flex items-center justify-between gap-4">
                   <span
                     className="text-xs font-medium uppercase tracking-wider"
-                    style={{ color: `${textColor}99` }}
+                    style={{ color: `${textColor}CC` }}
                   >
                     You send
                   </span>
@@ -269,13 +269,13 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
                     style={{ color: textColor }}
                   >
                     {spendItem.points_cost.toLocaleString()}{' '}
-                    <span style={{ opacity: 0.5 }}>PTS</span>
+                    <span style={{ opacity: 0.75 }}>PTS</span>
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <span
                     className="text-xs font-medium uppercase tracking-wider"
-                    style={{ color: `${textColor}99` }}
+                    style={{ color: `${textColor}CC` }}
                   >
                     You receive
                   </span>
@@ -290,12 +290,12 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
 
               <div
                 className="rounded-2xl p-4"
-                style={{ backgroundColor: `${textColor}10` }}
+                style={{ backgroundColor: `${textColor}1A` }}
               >
                 <div className="flex items-center justify-between gap-4">
                   <span
                     className="text-xs font-medium uppercase tracking-wider"
-                    style={{ color: `${textColor}99` }}
+                    style={{ color: `${textColor}CC` }}
                   >
                     Current points
                   </span>
@@ -305,7 +305,7 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
                       style={{ color: textColor }}
                     >
                       {currentPoints.toLocaleString()}{' '}
-                      <span style={{ opacity: 0.5 }}>PTS</span>
+                      <span style={{ opacity: 0.75 }}>PTS</span>
                     </span>
                     <div className="mt-0.5 text-xs font-semibold text-[#FF4A2E]">
                       -{spendItem.points_cost.toLocaleString()}
@@ -318,8 +318,8 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
                 <p
                   className="rounded-xl px-4 py-3 text-sm"
                   style={{
-                    backgroundColor: `${textColor}10`,
-                    border: `1px solid ${textColor}30`,
+                    backgroundColor: `${textColor}1A`,
+                    border: `1px solid ${textColor}40`,
                     color: textColor,
                   }}
                 >
@@ -359,7 +359,7 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
               {user && canAfford && (
                 <p
                   className="text-center text-xs"
-                  style={{ color: `${textColor}99` }}
+                  style={{ color: `${textColor}CC` }}
                 >
                   Balance after purchase: {pointsAfterRedeem.toLocaleString()} PTS
                 </p>
