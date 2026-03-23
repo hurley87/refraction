@@ -49,6 +49,13 @@ export async function POST(request: NextRequest) {
         (formData.get('checkpoint_mode') as string | null) || 'checkin';
       const points_value = formData.get('points_value');
       const is_active = formData.get('is_active');
+      const background_gradient = formData.get('background_gradient') as string | null;
+      const font_family = formData.get('font_family') as string | null;
+      const font_color = formData.get('font_color') as string | null;
+      const footer_title = formData.get('footer_title') as string | null;
+      const footer_description = formData.get('footer_description') as string | null;
+      const cta_text = formData.get('cta_text') as string | null;
+      const cta_url = formData.get('cta_url') as string | null;
 
       // Normalize form data for Zod validation
       const formFields = {
@@ -59,6 +66,13 @@ export async function POST(request: NextRequest) {
         checkpoint_mode,
         points_value: points_value ? Number(points_value) : 100,
         is_active: is_active === 'true' || String(is_active) === 'true',
+        background_gradient: background_gradient?.trim() || null,
+        font_family: font_family?.trim() || null,
+        font_color: font_color?.trim() || null,
+        footer_title: footer_title?.trim() || null,
+        footer_description: footer_description?.trim() || null,
+        cta_text: cta_text?.trim() || null,
+        cta_url: cta_url?.trim() || null,
       };
 
       const validationResult =

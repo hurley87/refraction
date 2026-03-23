@@ -197,6 +197,13 @@ export const createCheckpointRequestSchema = z.object({
   points_value: z.coerce.number().int().min(1).max(10000).default(100),
   is_active: z.boolean().default(true),
   partner_image_url: z.string().url().optional().nullable(),
+  background_gradient: z.string().max(500).optional().nullable(),
+  font_family: z.string().max(100).optional().nullable(),
+  font_color: z.string().max(50).optional().nullable(),
+  footer_title: z.string().max(255).optional().nullable(),
+  footer_description: z.string().max(1000).optional().nullable(),
+  cta_text: z.string().max(120).optional().nullable(),
+  cta_url: z.string().max(500).optional().nullable(),
 });
 
 /**
@@ -211,4 +218,11 @@ export const updateCheckpointRequestSchema = z.object({
   points_value: z.coerce.number().int().min(1).max(10000).optional(),
   is_active: z.boolean().optional(),
   partner_image_url: z.string().url().optional().nullable(),
+  background_gradient: z.string().max(500).optional().nullable(),
+  font_family: z.string().max(100).optional().nullable(),
+  font_color: z.string().max(50).optional().nullable(),
+  footer_title: z.string().max(255).optional().nullable(),
+  footer_description: z.string().max(1000).optional().nullable(),
+  cta_text: z.string().max(120).optional().nullable(),
+  cta_url: z.string().max(500).optional().nullable(),
 });

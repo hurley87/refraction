@@ -13,6 +13,17 @@ interface CheckpointLayoutProps {
   params: Promise<{ id: string }> | { id: string };
 }
 
+function GoogleFontLink({ fontFamily }: { fontFamily?: string | null }) {
+  if (!fontFamily) return null;
+  const encoded = fontFamily.replace(/\s+/g, '+');
+  return (
+    <link
+      rel="stylesheet"
+      href={`https://fonts.googleapis.com/css2?family=${encoded}:wght@400;500;600;700;800&display=swap`}
+    />
+  );
+}
+
 export default async function CheckpointLayout({
   children,
   params,
@@ -21,27 +32,32 @@ export default async function CheckpointLayout({
   const checkpoint = await getActiveCheckpointById(resolvedParams.id);
 
   return (
-    <div className="min-h-dvh overflow-y-auto">
-      <div
-        className="flex min-h-dvh flex-col p-4"
-        style={{
-          background: "url('/bg-funky.png') no-repeat center center fixed",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        }}
-      >
+    <>
+      <GoogleFontLink fontFamily={checkpoint?.font_family} />
+      <div className="min-h-dvh overflow-y-auto">
         <AuthWrapper
           requireUsername
           requireEmail
           authContextName={checkpoint?.name}
           authContextDescription={checkpoint?.description ?? undefined}
           authContextLoginCtaText={checkpoint?.login_cta_text ?? undefined}
+          checkpointCustomization={
+            checkpoint
+              ? {
+                  partnerImageUrl: checkpoint.partner_image_url ?? undefined,
+                  backgroundGradient: checkpoint.background_gradient ?? undefined,
+                  fontFamily: checkpoint.font_family ?? undefined,
+                  fontColor: checkpoint.font_color ?? undefined,
+                  footerTitle: checkpoint.footer_title ?? undefined,
+                  footerDescription: checkpoint.footer_description ?? undefined,
+                }
+              : undefined
+          }
         >
           <div className="min-h-dvh w-full">{children}</div>
         </AuthWrapper>
+        <Toaster />
       </div>
-      <Toaster />
-    </div>
+    </>
   );
 }
