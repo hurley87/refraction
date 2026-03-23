@@ -57,10 +57,10 @@ function CheckinSuccessView({
         ...fontStyle,
       }}
     >
-      <div className="w-full max-w-[430px] mx-auto flex flex-col min-h-dvh px-4">
+      <div className="w-full max-w-[430px] mx-auto flex flex-col justify-center min-h-dvh px-4 py-8">
         {/* Partner poster image (centered) */}
         {checkpoint.partner_image_url && (
-          <div className="flex justify-center mt-6 mb-4">
+          <div className="flex justify-center mb-6">
             <div
               className="rounded-lg overflow-hidden"
               style={{
@@ -81,11 +81,8 @@ function CheckinSuccessView({
           </div>
         )}
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
         {/* Content */}
-        <div className="flex flex-col gap-8 pb-8">
+        <div className="flex flex-col gap-8">
           <h1
             className="text-[61px] leading-[0.8em] font-extrabold uppercase -tracking-[0.08em]"
             style={{ color: textColor, ...fontStyle }}

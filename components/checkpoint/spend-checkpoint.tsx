@@ -153,10 +153,10 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
         ...fontStyle,
       }}
     >
-      <div className="w-full max-w-[430px] mx-auto flex flex-col min-h-dvh px-4">
+      <div className="w-full max-w-[430px] mx-auto flex flex-col justify-center min-h-dvh px-4 py-8">
         {/* Partner poster image (centered) */}
         {checkpoint.partner_image_url && (
-          <div className="flex justify-center mt-8 mb-4">
+          <div className="flex justify-center mb-6">
             <div
               className="rounded-lg overflow-hidden"
               style={{
@@ -177,11 +177,8 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
           </div>
         )}
 
-        {/* Spacer */}
-        <div className="flex-1" />
-
         {/* Content */}
-        <div className="flex flex-col gap-6 pb-8">
+        <div className="flex flex-col gap-6">
           {hasRedeemed ? (
             <>
               <h1
