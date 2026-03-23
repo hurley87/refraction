@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import type { Checkpoint, SpendItem, SpendRedemption, Player } from '@/lib/types';
 
@@ -23,6 +22,18 @@ type RedeemSpendCheckpointResponse = {
 
 interface SpendCheckpointProps {
   checkpoint: Checkpoint;
+}
+
+function extractBaseColor(gradient?: string | null): string {
+  if (!gradient) return '#C199C4';
+  const match = gradient.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (match) {
+    const r = parseInt(match[1]);
+    const g = parseInt(match[2]);
+    const b = parseInt(match[3]);
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+  return '#C199C4';
 }
 
 export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
@@ -109,11 +120,23 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
     return Math.max(0, currentPoints - spendItem.points_cost);
   }, [currentPoints, spendItem]);
 
+  const brandBg = extractBaseColor(checkpoint.background_gradient);
+  const textColor = checkpoint.font_color || '#E3FF30';
+  const fontStyle = checkpoint.font_family
+    ? { fontFamily: checkpoint.font_family }
+    : undefined;
+
   if (isLoading || !spendItem) {
     return (
-      <div className="flex min-h-dvh items-center justify-center px-4 py-10">
-        <div className="rounded-3xl bg-white px-8 py-10 text-center shadow-sm">
-          <div className="text-sm text-black/50">Loading redemption...</div>
+      <div
+        className="min-h-dvh w-full flex flex-col items-center justify-center"
+        style={{
+          background: checkpoint.background_gradient || brandBg,
+          ...fontStyle,
+        }}
+      >
+        <div className="text-sm" style={{ color: textColor }}>
+          Loading redemption...
         </div>
       </div>
     );
@@ -123,59 +146,169 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
   const canAfford = currentPoints >= spendItem.points_cost;
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col items-center justify-center px-4 py-8 font-grotesk sm:px-6">
-      <div className="w-full overflow-hidden rounded-3xl bg-white shadow-xl">
+    <div
+      className="min-h-dvh w-full flex flex-col items-center"
+      style={{
+        background: checkpoint.background_gradient || brandBg,
+        ...fontStyle,
+      }}
+    >
+      <div className="w-full max-w-[430px] mx-auto flex flex-col min-h-dvh px-4">
+        {/* Partner poster image (centered) */}
         {checkpoint.partner_image_url && (
-          <Image
-            src={checkpoint.partner_image_url}
-            alt={checkpoint.name}
-            width={760}
-            height={520}
-            className="h-auto w-full object-cover"
-          />
+          <div className="flex justify-center mt-8 mb-4">
+            <div
+              className="rounded-lg overflow-hidden"
+              style={{
+                boxShadow: '0px 0px 100px 30px rgba(255,255,255,1)',
+                width: 208,
+                height: 209,
+              }}
+            >
+              <Image
+                src={checkpoint.partner_image_url}
+                alt={checkpoint.name}
+                width={208}
+                height={209}
+                className="object-cover w-full h-full"
+                priority
+              />
+            </div>
+          </div>
         )}
 
-        <div className="px-5 pb-7 pt-6 sm:px-7">
-          <h1 className="text-center text-[32px] font-medium tracking-[-1px] font-pleasure text-[#17181A]">
-            {hasRedeemed ? 'Success!' : 'Confirm Your Purchase'}
-          </h1>
+        {/* Spacer */}
+        <div className="flex-1" />
 
-          <div className="mt-4 text-center">
-            <h2 className="text-[28px] leading-tight tracking-[-0.8px] font-pleasure text-[#17181A] sm:text-[34px]">
-              {checkpoint.name}
-            </h2>
-            {checkpoint.description && (
-              <p className="mt-1.5 text-sm text-black/50">{checkpoint.description}</p>
-            )}
-          </div>
-
-          {!hasRedeemed ? (
+        {/* Content */}
+        <div className="flex flex-col gap-6 pb-8">
+          {hasRedeemed ? (
             <>
-              <div className="mt-6 space-y-3.5 border-t border-black/8 pt-5">
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-xs font-medium uppercase tracking-wider text-black/40">You send</span>
-                  <span className="text-[15px] font-medium text-[#17181A]">
-                    {spendItem.points_cost.toLocaleString()} <span className="text-black/35">PTS</span>
+              <h1
+                className="text-[61px] leading-[0.8em] font-extrabold uppercase -tracking-[0.08em]"
+                style={{ color: textColor, ...fontStyle }}
+              >
+                You&apos;re In
+              </h1>
+
+              <h2
+                className="text-[39px] leading-[0.95em] font-normal -tracking-[0.08em]"
+                style={{ color: textColor }}
+              >
+                {checkpoint.name}
+              </h2>
+
+              <div className="flex items-end justify-between">
+                <span
+                  className="text-[13px] font-bold uppercase tracking-[0.04em]"
+                  style={{ color: textColor }}
+                >
+                  You Spent
+                </span>
+                <div className="flex items-end gap-2">
+                  <span
+                    className="text-[100px] leading-[1em] font-normal -tracking-[0.065em]"
+                    style={{ color: textColor }}
+                  >
+                    {spendItem.points_cost}
                   </span>
-                </div>
-                <div className="flex items-center justify-between gap-4">
-                  <span className="text-xs font-medium uppercase tracking-wider text-black/40">You receive</span>
-                  <span className="text-[15px] font-medium text-right text-[#17181A]">{checkpoint.name}</span>
+                  <span
+                    className="text-sm font-bold uppercase mb-2"
+                    style={{ color: textColor }}
+                  >
+                    pts
+                  </span>
                 </div>
               </div>
 
-              <div className="mt-5 rounded-2xl bg-[#F7F7F8] p-4">
+              <p
+                className="text-xl leading-[1.2] font-medium -tracking-[0.02em]"
+                style={{ color: textColor }}
+              >
+                This redemption is complete. Show this confirmation at pickup.
+              </p>
+
+              <div
+                className="w-full rounded-full py-5 px-6 text-center text-xl font-bold uppercase -tracking-[0.08em]"
+                style={{
+                  backgroundColor: `${textColor}30`,
+                  color: textColor,
+                }}
+              >
+                Redeemed
+              </div>
+            </>
+          ) : (
+            <>
+              <h1
+                className="text-[52px] leading-[0.8em] font-extrabold uppercase -tracking-[0.08em]"
+                style={{ color: textColor, ...fontStyle }}
+              >
+                {checkpoint.name}
+              </h1>
+
+              {checkpoint.description && (
+                <p
+                  className="text-xl leading-[1.2] font-medium -tracking-[0.02em]"
+                  style={{ color: textColor }}
+                >
+                  {checkpoint.description}
+                </p>
+              )}
+
+              <div
+                className="rounded-2xl p-4 space-y-3.5"
+                style={{ backgroundColor: `${textColor}15` }}
+              >
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-xs font-medium uppercase tracking-wider text-black/40">Your account</span>
-                  <span className="rounded-full border border-black/10 bg-white px-3 py-1 text-xs font-mono text-black/70">
-                    {user?.email?.address || 'Not logged in'}
+                  <span
+                    className="text-xs font-medium uppercase tracking-wider"
+                    style={{ color: `${textColor}99` }}
+                  >
+                    You send
+                  </span>
+                  <span
+                    className="text-[15px] font-medium"
+                    style={{ color: textColor }}
+                  >
+                    {spendItem.points_cost.toLocaleString()}{' '}
+                    <span style={{ opacity: 0.5 }}>PTS</span>
                   </span>
                 </div>
-                <div className="mt-3.5 flex items-center justify-between gap-4">
-                  <span className="text-xs font-medium uppercase tracking-wider text-black/40">Current points</span>
+                <div className="flex items-center justify-between gap-4">
+                  <span
+                    className="text-xs font-medium uppercase tracking-wider"
+                    style={{ color: `${textColor}99` }}
+                  >
+                    You receive
+                  </span>
+                  <span
+                    className="text-[15px] font-medium text-right"
+                    style={{ color: textColor }}
+                  >
+                    {checkpoint.name}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                className="rounded-2xl p-4"
+                style={{ backgroundColor: `${textColor}10` }}
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <span
+                    className="text-xs font-medium uppercase tracking-wider"
+                    style={{ color: `${textColor}99` }}
+                  >
+                    Current points
+                  </span>
                   <div className="text-right">
-                    <span className="text-[15px] font-medium text-[#17181A]">
-                      {currentPoints.toLocaleString()} <span className="text-black/35">PTS</span>
+                    <span
+                      className="text-[15px] font-medium"
+                      style={{ color: textColor }}
+                    >
+                      {currentPoints.toLocaleString()}{' '}
+                      <span style={{ opacity: 0.5 }}>PTS</span>
                     </span>
                     <div className="mt-0.5 text-xs font-semibold text-[#FF4A2E]">
                       -{spendItem.points_cost.toLocaleString()}
@@ -185,66 +318,55 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
               </div>
 
               {submitError && (
-                <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                <p
+                  className="rounded-xl px-4 py-3 text-sm"
+                  style={{
+                    backgroundColor: `${textColor}10`,
+                    border: `1px solid ${textColor}30`,
+                    color: textColor,
+                  }}
+                >
                   {submitError}
                 </p>
               )}
 
               {!user ? (
-                <Button
+                <button
                   onClick={login}
-                  className="mt-6 h-[52px] w-full rounded-2xl bg-[#17181A] text-base font-medium text-white hover:bg-[#2A2D34] transition-colors"
+                  className="w-full rounded-full py-5 px-6 text-center text-xl font-bold uppercase -tracking-[0.08em]"
+                  style={{
+                    backgroundColor: textColor,
+                    color: brandBg,
+                  }}
                 >
                   {checkpoint.login_cta_text?.trim() || 'Login to Redeem'}
-                </Button>
+                </button>
               ) : (
-                <Button
+                <button
                   onClick={() => redeemMutation.mutate()}
                   disabled={redeemMutation.isPending || !canAfford}
-                  className="mt-6 h-[52px] w-full rounded-2xl bg-[#17181A] text-base font-medium text-white hover:bg-[#2A2D34] transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                  className="w-full rounded-full py-5 px-6 text-center text-xl font-bold uppercase -tracking-[0.08em] disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: textColor,
+                    color: brandBg,
+                  }}
                 >
                   {redeemMutation.isPending
                     ? 'Redeeming...'
                     : canAfford
                       ? 'Confirm Purchase'
                       : 'Not Enough Points'}
-                </Button>
+                </button>
               )}
 
               {user && canAfford && (
-                <p className="mt-3 text-center text-xs text-black/40">
+                <p
+                  className="text-center text-xs"
+                  style={{ color: `${textColor}99` }}
+                >
                   Balance after purchase: {pointsAfterRedeem.toLocaleString()} PTS
                 </p>
               )}
-            </>
-          ) : (
-            <>
-              <div className="mt-1 text-center">
-                <span className="text-xs font-medium uppercase tracking-wider text-black/40">You received</span>
-              </div>
-
-              <div className="mt-5 space-y-3.5 border-t border-black/8 pt-5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wider text-black/40">You spent</span>
-                  <span className="text-[15px] font-medium text-[#17181A]">
-                    {spendItem.points_cost.toLocaleString()} <span className="text-black/35">PTS</span>
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wider text-black/40">Points balance</span>
-                  <span className="text-[15px] font-medium text-[#17181A]">
-                    {currentPoints.toLocaleString()} <span className="text-black/35">PTS</span>
-                  </span>
-                </div>
-              </div>
-
-              <p className="mt-5 text-center text-xl font-semibold text-black">
-                This redemption is complete. Show this confirmation at pickup.
-              </p>
-
-              <div className="mt-6 flex h-[52px] w-full items-center justify-center rounded-2xl border border-black/10 bg-[#F7F7F8] text-base font-medium text-black/50">
-                Redeemed
-              </div>
             </>
           )}
         </div>

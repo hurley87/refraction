@@ -58,38 +58,6 @@ function CheckinSuccessView({
       }}
     >
       <div className="w-full max-w-[430px] mx-auto flex flex-col min-h-dvh px-4">
-        {/* Glass header */}
-        <div className="sticky top-2 z-20 mt-2">
-          <div
-            className="rounded-[26px] px-4 py-2 flex items-center justify-between"
-            style={{
-              background:
-                'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,1) 100%)',
-              border: '1px solid rgba(255,255,255,0.25)',
-              boxShadow: 'inset 0px 4px 8px 0px rgba(255,255,255,0.15)',
-              backdropFilter: 'blur(64px)',
-            }}
-          >
-            <Image
-              src="/irlfooterlogo.svg"
-              alt="IRL"
-              width={40}
-              height={40}
-              className="rounded-full"
-            />
-            <button
-              onClick={() => router.push('/')}
-              className="px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wider"
-              style={{
-                background: 'rgba(255,255,255,0.25)',
-                color: '#131313',
-              }}
-            >
-              Sign Up
-            </button>
-          </div>
-        </div>
-
         {/* Partner poster image (centered) */}
         {checkpoint.partner_image_url && (
           <div className="flex justify-center mt-6 mb-4">
