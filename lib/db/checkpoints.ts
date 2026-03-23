@@ -13,6 +13,13 @@ const CHECKPOINT_COLUMNS = `
   is_active,
   created_by,
   partner_image_url,
+  background_gradient,
+  font_family,
+  font_color,
+  footer_title,
+  footer_description,
+  cta_text,
+  cta_url,
   created_at,
   updated_at
 `;
@@ -27,6 +34,13 @@ const CHECKPOINT_COLUMNS_LEGACY = `
   is_active,
   created_by,
   partner_image_url,
+  background_gradient,
+  font_family,
+  font_color,
+  footer_title,
+  footer_description,
+  cta_text,
+  cta_url,
   created_at,
   updated_at
 `;

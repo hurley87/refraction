@@ -253,6 +253,13 @@ export type Checkpoint = {
   is_active: boolean;
   created_by?: string | null;
   partner_image_url?: string | null;
+  background_gradient?: string | null;
+  font_family?: string | null;
+  font_color?: string | null;
+  footer_title?: string | null;
+  footer_description?: string | null;
+  cta_text?: string | null;
+  cta_url?: string | null;
   created_at?: string;
   updated_at?: string;
 };

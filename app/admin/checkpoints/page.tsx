@@ -23,6 +23,8 @@ import {
 import type { Checkpoint, ChainType, CheckpointMode } from '@/lib/types';
 import { usePrivy } from '@privy-io/react-auth';
 import Image from 'next/image';
+import GradientPicker from '@/components/ui/gradient-picker';
+import FontPicker from '@/components/ui/font-picker';
 
 export default function AdminCheckpointsPage() {
   const { user, login } = usePrivy();
@@ -59,6 +61,13 @@ export default function AdminCheckpointsPage() {
     checkpoint_mode: CheckpointMode;
     points_value: number;
     is_active: boolean;
+    background_gradient: string;
+    font_family: string;
+    font_color: string;
+    footer_title: string;
+    footer_description: string;
+    cta_text: string;
+    cta_url: string;
   }>({
     name: '',
     description: '',
@@ -67,6 +76,13 @@ export default function AdminCheckpointsPage() {
     checkpoint_mode: 'checkin',
     points_value: 100,
     is_active: true,
+    background_gradient: '',
+    font_family: '',
+    font_color: '',
+    footer_title: '',
+    footer_description: '',
+    cta_text: '',
+    cta_url: '',
   });
   const [partnerImageFile, setPartnerImageFile] = useState<File | null>(null);
   const [partnerImagePreview, setPartnerImagePreview] = useState<string | null>(
@@ -288,24 +304,28 @@ export default function AdminCheckpointsPage() {
     const normalizedChainType =
       formData.checkpoint_mode === 'spend' ? 'evm' : formData.chain_type;
     const loginCtaText = formData.login_cta_text.trim() || null;
+    const payload = {
+      ...formData,
+      chain_type: normalizedChainType,
+      login_cta_text: loginCtaText,
+      background_gradient: formData.background_gradient.trim() || null,
+      font_family: formData.font_family.trim() || null,
+      font_color: formData.font_color.trim() || null,
+      footer_title: formData.footer_title.trim() || null,
+      footer_description: formData.footer_description.trim() || null,
+      cta_text: formData.cta_text.trim() || null,
+      cta_url: formData.cta_url.trim() || null,
+    };
 
     if (editingCheckpoint) {
       updateCheckpointMutation.mutate({
         id: editingCheckpoint.id,
-        updates: {
-          ...formData,
-          chain_type: normalizedChainType,
-          login_cta_text: loginCtaText,
-        },
+        updates: payload,
         imageFile: partnerImageFile,
       });
     } else {
       createCheckpointMutation.mutate({
-        checkpointData: {
-          ...formData,
-          chain_type: normalizedChainType,
-          login_cta_text: loginCtaText,
-        },
+        checkpointData: payload,
         imageFile: partnerImageFile,
       });
     }
@@ -322,6 +342,13 @@ export default function AdminCheckpointsPage() {
       checkpoint_mode: checkpointMode,
       points_value: checkpoint.points_value,
       is_active: checkpoint.is_active,
+      background_gradient: checkpoint.background_gradient ?? '',
+      font_family: checkpoint.font_family ?? '',
+      font_color: checkpoint.font_color ?? '',
+      footer_title: checkpoint.footer_title ?? '',
+      footer_description: checkpoint.footer_description ?? '',
+      cta_text: checkpoint.cta_text ?? '',
+      cta_url: checkpoint.cta_url ?? '',
     });
     setPartnerImageFile(null);
     setPartnerImagePreview(checkpoint.partner_image_url || null);
@@ -348,6 +375,13 @@ export default function AdminCheckpointsPage() {
       checkpoint_mode: 'checkin',
       points_value: 100,
       is_active: true,
+      background_gradient: '',
+      font_family: '',
+      font_color: '',
+      footer_title: '',
+      footer_description: '',
+      cta_text: '',
+      cta_url: '',
     });
     setPartnerImageFile(null);
     setPartnerImagePreview(null);
@@ -592,6 +626,116 @@ export default function AdminCheckpointsPage() {
                     />
                   </div>
                 )}
+              </div>
+
+              <div className="border-t pt-4 mt-2">
+                <p className="text-sm font-semibold mb-3">Page Customization</p>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>Background Gradient</Label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Gradient overlay on the hero image
+                    </p>
+                    <GradientPicker
+                      value={formData.background_gradient}
+                      onChange={(val) =>
+                        setFormData({ ...formData, background_gradient: val })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Font Family (Google Fonts)</Label>
+                    <p className="text-xs text-gray-500 mb-1">
+                      Used for headings and body text
+                    </p>
+                    <FontPicker
+                      value={formData.font_family}
+                      onChange={(val) =>
+                        setFormData({ ...formData, font_family: val })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="font_color">Font Color</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={formData.font_color || '#FFFFFF'}
+                        onChange={(e) =>
+                          setFormData({ ...formData, font_color: e.target.value })
+                        }
+                        className="w-10 h-10 border rounded cursor-pointer"
+                      />
+                      <Input
+                        id="font_color"
+                        value={formData.font_color}
+                        onChange={(e) =>
+                          setFormData({ ...formData, font_color: e.target.value })
+                        }
+                        placeholder="#FFFFFF"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="footer_title">Footer Title</Label>
+                    <Input
+                      id="footer_title"
+                      value={formData.footer_title}
+                      onChange={(e) =>
+                        setFormData({ ...formData, footer_title: e.target.value })
+                      }
+                      placeholder="e.g., Your Local Guide To What's Good"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="footer_description">Footer Description</Label>
+                    <textarea
+                      id="footer_description"
+                      className="w-full min-h-[60px] p-2 border rounded-md text-sm"
+                      value={formData.footer_description}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          footer_description: e.target.value,
+                        })
+                      }
+                      placeholder="Description shown in footer section"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="cta_text">CTA Button Text</Label>
+                    <Input
+                      id="cta_text"
+                      value={formData.cta_text}
+                      onChange={(e) =>
+                        setFormData({ ...formData, cta_text: e.target.value })
+                      }
+                      placeholder="e.g., Explore The IRL Map"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Shown after check-in on authenticated page
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="cta_url">CTA Button URL</Label>
+                    <Input
+                      id="cta_url"
+                      value={formData.cta_url}
+                      onChange={(e) =>
+                        setFormData({ ...formData, cta_url: e.target.value })
+                      }
+                      placeholder="e.g., /interactive-map or https://..."
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">

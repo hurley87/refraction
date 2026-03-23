@@ -14,6 +14,169 @@ interface UnifiedCheckpointProps {
   checkpoint: Checkpoint;
 }
 
+function extractBaseColor(gradient?: string | null): string {
+  if (!gradient) return '#C199C4';
+  const match = gradient.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (match) {
+    const r = parseInt(match[1]);
+    const g = parseInt(match[2]);
+    const b = parseInt(match[3]);
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+  return '#C199C4';
+}
+
+function CheckinSuccessView({
+  checkpoint,
+  router,
+}: {
+  checkpoint: Checkpoint;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const brandBg = extractBaseColor(checkpoint.background_gradient);
+  const textColor = checkpoint.font_color || '#E3FF30';
+  const fontStyle = checkpoint.font_family
+    ? { fontFamily: checkpoint.font_family }
+    : undefined;
+  const ctaText = checkpoint.cta_text || 'Explore The IRL Map';
+  const ctaUrl = checkpoint.cta_url || '/interactive-map';
+
+  const handleCta = () => {
+    if (ctaUrl.startsWith('http')) {
+      window.open(ctaUrl, '_blank');
+    } else {
+      router.push(ctaUrl);
+    }
+  };
+
+  return (
+    <div
+      className="relative min-h-dvh w-full flex flex-col"
+      style={{ backgroundColor: brandBg, ...fontStyle }}
+    >
+      {/* Partner background image */}
+      {checkpoint.partner_image_url && (
+        <div className="absolute inset-0">
+          <Image
+            src={checkpoint.partner_image_url}
+            alt={checkpoint.name}
+            fill
+            className="object-cover"
+            priority
+          />
+        </div>
+      )}
+
+      {/* Gradient overlay */}
+      {checkpoint.background_gradient && (
+        <div
+          className="absolute inset-0"
+          style={{ background: checkpoint.background_gradient }}
+        />
+      )}
+
+      {/* Glass header */}
+      <div className="absolute top-2 left-2 right-2 z-20">
+        <div
+          className="rounded-[26px] px-4 py-2 flex items-center justify-between"
+          style={{
+            background:
+              'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,1) 100%)',
+            border: '1px solid rgba(255,255,255,0.25)',
+            boxShadow: 'inset 0px 4px 8px 0px rgba(255,255,255,0.15)',
+            backdropFilter: 'blur(64px)',
+          }}
+        >
+          <Image
+            src="/irlfooterlogo.svg"
+            alt="IRL"
+            width={40}
+            height={40}
+            className="rounded-full"
+          />
+          <button
+            onClick={() => router.push('/')}
+            className="px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wider"
+            style={{
+              background: 'rgba(255,255,255,0.25)',
+              color: '#131313',
+            }}
+          >
+            Sign Up
+          </button>
+        </div>
+      </div>
+
+      {/* Content overlay */}
+      <div className="relative z-10 flex flex-col justify-end min-h-dvh px-4 pb-8 pt-24">
+        <div className="flex flex-col items-center gap-8 w-full max-w-md mx-auto">
+          {/* YOU'RE IN heading */}
+          <h1
+            className="text-[61px] leading-[0.8em] font-extrabold uppercase -tracking-[0.08em] w-full"
+            style={{ color: textColor, ...fontStyle }}
+          >
+            You&apos;re In
+          </h1>
+
+          {/* Welcome + event name */}
+          <h2
+            className="text-[39px] leading-[0.95em] font-normal -tracking-[0.08em] w-full"
+            style={{ color: textColor }}
+          >
+            Welcome To{' '}
+            {checkpoint.name}
+          </h2>
+
+          {/* Points earned row */}
+          <div className="flex items-end justify-between w-full">
+            <span
+              className="text-[13px] font-bold uppercase tracking-[0.04em]"
+              style={{ color: textColor }}
+            >
+              You Earned
+            </span>
+            <div className="flex items-end gap-2">
+              <span
+                className="text-[100px] leading-[1em] font-normal -tracking-[0.065em]"
+                style={{ color: textColor }}
+              >
+                {checkpoint.points_value}
+              </span>
+              <span
+                className="text-sm font-bold uppercase mb-2"
+                style={{ color: textColor }}
+              >
+                pts
+              </span>
+            </div>
+          </div>
+
+          {/* Description */}
+          <p
+            className="text-xl leading-[1.2] font-medium -tracking-[0.02em] w-full"
+            style={{ color: textColor }}
+          >
+            {checkpoint.description ||
+              "IRL is a platform that connects you to what's happening in music and art scenes around the world, curated by locals."}
+          </p>
+
+          {/* CTA Button */}
+          <button
+            onClick={handleCta}
+            className="w-full rounded-full py-5 px-6 text-center text-xl font-bold uppercase -tracking-[0.08em]"
+            style={{
+              backgroundColor: textColor,
+              color: brandBg,
+            }}
+          >
+            {ctaText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CheckinCheckpoint({
   checkpoint,
 }: UnifiedCheckpointProps) {
@@ -327,121 +490,7 @@ function CheckinCheckpoint({
         </div>
       )}
       {checkinStatus && !checkinError && (
-        <div className="h-full flex flex-col justify-center pt-8 sm:pt-12">
-          {/* Main Content */}
-          <div className="flex flex-col px-6 pb-4 max-w-lg mx-auto w-full">
-            {/* Event Header */}
-            <div className="text-center mb-4 sm:mb-6">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold uppercase tracking-tight font-inktrap text-black">
-                {checkpoint.name}
-              </h1>
-              {checkpoint.description && (
-                <p className="text-sm md:text-base text-black/70 font-grotesk px-2 mt-1">
-                  {checkpoint.description}
-                </p>
-              )}
-            </div>
-
-            {/* Partner Image */}
-            {checkpoint.partner_image_url && (
-              <div className="w-full mb-5 sm:mb-8 rounded-xl sm:rounded-2xl overflow-hidden">
-                <Image
-                  src={checkpoint.partner_image_url}
-                  alt={checkpoint.name}
-                  width={800}
-                  height={400}
-                  className="w-full h-auto object-cover"
-                />
-              </div>
-            )}
-
-            {/* Success Card */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl px-5 py-6 sm:p-8 shadow-xl space-y-5 sm:space-y-6">
-              {/* Success Badge */}
-              <div className="flex justify-center">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-500 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-6 h-6 sm:w-8 sm:h-8 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                </div>
-              </div>
-
-              {/* You're In */}
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold uppercase tracking-tight text-center font-inktrap text-black">
-                You&apos;re In
-              </h2>
-
-              {/* Points Earned */}
-              <div className="text-center">
-                <p className="text-xs sm:text-sm uppercase tracking-wider text-gray-500 font-grotesk mb-1 sm:mb-2">
-                  You earned
-                </p>
-                <div className="flex items-baseline justify-center gap-1.5 sm:gap-2">
-                  <span className="text-5xl sm:text-6xl md:text-7xl font-bold font-inktrap text-black">
-                    {checkpoint.points_value}
-                  </span>
-                  <span className="text-base sm:text-lg font-grotesk uppercase text-gray-500">
-                    pts
-                  </span>
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-gray-200" />
-
-              {/* Description */}
-              <p className="text-center text-gray-600 font-grotesk text-sm leading-relaxed">
-                IRL gives you access to global cultural intel. Discover new
-                places, earn real rewards.
-              </p>
-
-              {/* CTA Button */}
-              <Button
-                onClick={() => router.push('/interactive-map')}
-                className="bg-black text-white rounded-full hover:bg-gray-800 w-full font-inktrap py-4 sm:py-6 text-sm sm:text-base flex items-center justify-center gap-2 sm:gap-3"
-              >
-                <span>Explore the IRL Map</span>
-                <svg
-                  className="w-4 h-4 sm:w-5 sm:h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 8l4 4m0 0l-4 4m4-4H3"
-                  />
-                </svg>
-              </Button>
-            </div>
-
-            {/* Powered by Refraction */}
-            <div className="flex items-center justify-center gap-2 text-black/70 mt-4">
-              <span className="text-xs uppercase tracking-wider font-grotesk">
-                Powered by
-              </span>
-              <Image
-                src="/refraction-black.svg"
-                alt="Refraction"
-                width={80}
-                height={24}
-                className="object-contain"
-              />
-            </div>
-          </div>
-        </div>
+        <CheckinSuccessView checkpoint={checkpoint} router={router} />
       )}
       {!checkinStatus && !checkinError && (
         <div className="flex min-h-dvh w-full flex-col items-center justify-center text-center font-inktrap text-2xl text-black">

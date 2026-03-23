@@ -51,6 +51,7 @@ describe('Checkpoints Database Module', () => {
     name: 'Test Checkpoint',
     description: 'A test checkpoint',
     chain_type: 'evm',
+    checkpoint_mode: 'checkin',
     points_value: 100,
     is_active: true,
     created_by: '0x1234567890abcdef',

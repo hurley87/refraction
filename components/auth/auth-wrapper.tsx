@@ -5,6 +5,15 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
+export interface CheckpointCustomization {
+  partnerImageUrl?: string;
+  backgroundGradient?: string;
+  fontFamily?: string;
+  fontColor?: string;
+  footerTitle?: string;
+  footerDescription?: string;
+}
+
 interface AuthWrapperProps {
   children: React.ReactNode;
   requireUsername?: boolean;
@@ -16,6 +25,19 @@ interface AuthWrapperProps {
   authContextDescription?: string | null;
   /** Optional custom login CTA button label (e.g. /c/[id]); leave blank for default */
   authContextLoginCtaText?: string | null;
+  /** CMS-driven page customization for /c/[id] pages */
+  checkpointCustomization?: CheckpointCustomization;
+}
+
+function extractBaseColorFromGradient(gradient: string): string {
+  const match = gradient.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (match) {
+    const r = parseInt(match[1]);
+    const g = parseInt(match[2]);
+    const b = parseInt(match[3]);
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+  return '#C199C4';
 }
 
 const DEFAULT_AUTH_TITLE = 'Welcome to IRL';
@@ -32,6 +54,7 @@ export default function AuthWrapper({
   authContextName,
   authContextDescription,
   authContextLoginCtaText,
+  checkpointCustomization,
 }: AuthWrapperProps) {
   const title = authContextName?.trim() || DEFAULT_AUTH_TITLE;
   const description = authContextDescription?.trim() || null;
@@ -235,10 +258,250 @@ export default function AuthWrapper({
       );
     }
 
-    // Default unauthenticated UI
+    // Default unauthenticated UI — if checkpoint customization is provided, use the branded layout
+    if (checkpointCustomization) {
+      const {
+        partnerImageUrl,
+        backgroundGradient,
+        fontFamily,
+        fontColor,
+        footerTitle,
+        footerDescription,
+      } = checkpointCustomization;
+
+      const textColor = fontColor || '#E3FF30';
+      const fontStyle = fontFamily ? { fontFamily } : undefined;
+      const brandBg = backgroundGradient
+        ? extractBaseColorFromGradient(backgroundGradient)
+        : '#C199C4';
+
+      return (
+        <div className="min-h-dvh w-full flex flex-col" style={fontStyle}>
+          {/* Hero Section */}
+          <div
+            className="relative w-full flex-shrink-0"
+            style={{
+              minHeight: '85vh',
+              backgroundColor: brandBg,
+            }}
+          >
+            {/* Partner background image */}
+            {partnerImageUrl && (
+              <div className="absolute inset-0">
+                <Image
+                  src={partnerImageUrl}
+                  alt={title}
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
+            )}
+
+            {/* Gradient overlay */}
+            {backgroundGradient && (
+              <div
+                className="absolute inset-0"
+                style={{ background: backgroundGradient }}
+              />
+            )}
+
+            {/* Glass header */}
+            <div className="absolute top-2 left-2 right-2 z-20">
+              <div
+                className="rounded-[26px] px-4 py-2 flex items-center justify-between"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,1) 100%)',
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  boxShadow: 'inset 0px 4px 8px 0px rgba(255,255,255,0.15)',
+                  backdropFilter: 'blur(64px)',
+                }}
+              >
+                <Image
+                  src="/irlfooterlogo.svg"
+                  alt="IRL"
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+                <button
+                  onClick={login}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wider"
+                  style={{
+                    background: 'rgba(255,255,255,0.25)',
+                    color: '#131313',
+                  }}
+                >
+                  Sign Up
+                </button>
+              </div>
+            </div>
+
+            {/* Poster image (centered over hero) */}
+            {partnerImageUrl && (
+              <div className="absolute inset-x-0 top-16 flex justify-center z-10 pointer-events-none">
+                <div
+                  className="rounded-lg overflow-hidden"
+                  style={{
+                    boxShadow: '0px 0px 100px 30px rgba(255,255,255,1)',
+                    width: 208,
+                    height: 209,
+                  }}
+                >
+                  <Image
+                    src={partnerImageUrl}
+                    alt={title}
+                    width={208}
+                    height={209}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Hero text content */}
+            <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 z-10">
+              <div className="flex flex-col items-center gap-6">
+                <div className="flex flex-col items-center gap-4 w-full">
+                  <h1
+                    className="text-[52px] leading-[0.81em] font-extrabold uppercase tracking-tighter text-left w-full"
+                    style={{ color: textColor, ...fontStyle }}
+                  >
+                    {title}
+                  </h1>
+                  {description && (
+                    <p
+                      className="text-xl leading-[1.2] font-medium w-full -tracking-[0.02em]"
+                      style={{ color: textColor }}
+                    >
+                      {description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="w-full flex flex-col gap-4">
+                  <button
+                    onClick={login}
+                    className="w-full rounded-full py-3 px-4 flex items-center justify-between text-xl font-bold uppercase -tracking-[0.08em]"
+                    style={{
+                      backgroundColor: textColor,
+                      color: brandBg,
+                    }}
+                  >
+                    <span>{loginCtaText}</span>
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Powered by logos */}
+                <div className="flex items-center gap-4">
+                  <span
+                    className="text-xs font-medium uppercase tracking-wider"
+                    style={{ color: textColor }}
+                  >
+                    Powered by
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer / "Get Involved" Section */}
+          {(footerTitle || footerDescription) && (
+            <div
+              className="relative w-full min-h-[80vh] flex flex-col justify-center"
+              style={{ backgroundColor: brandBg }}
+            >
+              {/* Optional background image with color overlay */}
+              {partnerImageUrl && (
+                <div className="absolute inset-0">
+                  <Image
+                    src={partnerImageUrl}
+                    alt=""
+                    fill
+                    className="object-cover opacity-40"
+                  />
+                </div>
+              )}
+
+              {/* Top gradient fade */}
+              <div
+                className="absolute inset-x-0 top-0 h-28"
+                style={{
+                  background: backgroundGradient
+                    ? backgroundGradient
+                    : `linear-gradient(180deg, ${brandBg} 0%, transparent 100%)`,
+                }}
+              />
+
+              <div className="relative z-10 px-4 py-16 flex flex-col gap-8">
+                {footerTitle && (
+                  <h2
+                    className="text-[30px] leading-[1em] font-extrabold uppercase -tracking-[0.03em]"
+                    style={{ color: textColor, ...fontStyle }}
+                  >
+                    {footerTitle}
+                  </h2>
+                )}
+                {footerDescription && (
+                  <p
+                    className="text-xl leading-[1.2] font-medium -tracking-[0.02em]"
+                    style={{ color: textColor }}
+                  >
+                    {footerDescription}
+                  </p>
+                )}
+
+                <button
+                  onClick={login}
+                  className="w-full rounded-full py-5 px-6 text-center text-xl font-bold uppercase -tracking-[0.08em]"
+                  style={{
+                    backgroundColor: textColor,
+                    color: brandBg,
+                  }}
+                >
+                  Explore The IRL Map
+                </button>
+              </div>
+
+              {/* IRL logo at bottom */}
+              <div className="absolute bottom-8 inset-x-0 flex justify-center">
+                <Image
+                  src="/irlfooterlogo.svg"
+                  alt="IRL"
+                  width={72}
+                  height={72}
+                  className="rounded-full opacity-80"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Fallback default unauthenticated UI (non-checkpoint pages)
     return (
       <div className="font-grotesk flex flex-col max-w-xl mx-auto">
-        <div className="flex flex-col items-start py-8 gap-8 flex-1 max-w-md mx-auto">
+        <div
+          className="flex min-h-dvh flex-col items-start py-8 gap-8 flex-1 max-w-md mx-auto p-4"
+          style={{
+            background: "url('/bg-funky.png') no-repeat center center fixed",
+            backgroundSize: 'cover',
+          }}
+        >
           <div className="relative w-full max-w-md flex flex-col items-center justify-center my-4 mx-auto gap-3">
             <h1 className="flex items-center justify-center text-4xl md:text-5xl font-bold uppercase tracking-tight text-center font-inktrap z-10 my-6 break-words line-clamp-4">
               {title}

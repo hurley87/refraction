@@ -113,6 +113,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       const checkpoint_mode = formData.get('checkpoint_mode');
       const points_value = formData.get('points_value');
       const is_active = formData.get('is_active');
+      const background_gradient = formData.get('background_gradient');
+      const font_family = formData.get('font_family');
+      const font_color = formData.get('font_color');
+      const footer_title = formData.get('footer_title');
+      const footer_description = formData.get('footer_description');
+      const cta_text = formData.get('cta_text');
+      const cta_url = formData.get('cta_url');
 
       if (name !== null) rawUpdates.name = String(name);
       if (description !== null)
@@ -126,6 +133,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       if (is_active !== null) {
         rawUpdates.is_active = String(is_active) === 'true';
       }
+      if (background_gradient !== null)
+        rawUpdates.background_gradient = String(background_gradient).trim() || null;
+      if (font_family !== null)
+        rawUpdates.font_family = String(font_family).trim() || null;
+      if (font_color !== null)
+        rawUpdates.font_color = String(font_color).trim() || null;
+      if (footer_title !== null)
+        rawUpdates.footer_title = String(footer_title).trim() || null;
+      if (footer_description !== null)
+        rawUpdates.footer_description = String(footer_description).trim() || null;
+      if (cta_text !== null)
+        rawUpdates.cta_text = String(cta_text).trim() || null;
+      if (cta_url !== null)
+        rawUpdates.cta_url = String(cta_url).trim() || null;
 
       if (file && file.size > 0) {
         const maxSize = 5 * 1024 * 1024;
