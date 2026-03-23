@@ -51,84 +51,89 @@ function CheckinSuccessView({
 
   return (
     <div
-      className="relative min-h-dvh w-full flex flex-col"
-      style={{ backgroundColor: brandBg, ...fontStyle }}
+      className="min-h-dvh w-full flex flex-col items-center"
+      style={{
+        background: checkpoint.background_gradient || brandBg,
+        ...fontStyle,
+      }}
     >
-      {/* Partner background image */}
-      {checkpoint.partner_image_url && (
-        <div className="absolute inset-0">
-          <Image
-            src={checkpoint.partner_image_url}
-            alt={checkpoint.name}
-            fill
-            className="object-cover"
-            priority
-          />
-        </div>
-      )}
-
-      {/* Gradient overlay */}
-      {checkpoint.background_gradient && (
-        <div
-          className="absolute inset-0"
-          style={{ background: checkpoint.background_gradient }}
-        />
-      )}
-
-      {/* Glass header */}
-      <div className="absolute top-2 left-2 right-2 z-20">
-        <div
-          className="rounded-[26px] px-4 py-2 flex items-center justify-between"
-          style={{
-            background:
-              'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,1) 100%)',
-            border: '1px solid rgba(255,255,255,0.25)',
-            boxShadow: 'inset 0px 4px 8px 0px rgba(255,255,255,0.15)',
-            backdropFilter: 'blur(64px)',
-          }}
-        >
-          <Image
-            src="/irlfooterlogo.svg"
-            alt="IRL"
-            width={40}
-            height={40}
-            className="rounded-full"
-          />
-          <button
-            onClick={() => router.push('/')}
-            className="px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wider"
+      <div className="w-full max-w-[430px] mx-auto flex flex-col min-h-dvh px-4">
+        {/* Glass header */}
+        <div className="sticky top-2 z-20 mt-2">
+          <div
+            className="rounded-[26px] px-4 py-2 flex items-center justify-between"
             style={{
-              background: 'rgba(255,255,255,0.25)',
-              color: '#131313',
+              background:
+                'linear-gradient(180deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,1) 100%)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              boxShadow: 'inset 0px 4px 8px 0px rgba(255,255,255,0.15)',
+              backdropFilter: 'blur(64px)',
             }}
           >
-            Sign Up
-          </button>
+            <Image
+              src="/irlfooterlogo.svg"
+              alt="IRL"
+              width={40}
+              height={40}
+              className="rounded-full"
+            />
+            <button
+              onClick={() => router.push('/')}
+              className="px-3 py-1.5 rounded-full text-xs font-medium uppercase tracking-wider"
+              style={{
+                background: 'rgba(255,255,255,0.25)',
+                color: '#131313',
+              }}
+            >
+              Sign Up
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Content overlay */}
-      <div className="relative z-10 flex flex-col justify-end min-h-dvh px-4 pb-8 pt-24">
-        <div className="flex flex-col items-center gap-8 w-full max-w-md mx-auto">
-          {/* YOU'RE IN heading */}
+        {/* Partner poster image (centered) */}
+        {checkpoint.partner_image_url && (
+          <div className="flex justify-center mt-6 mb-4">
+            <div
+              className="rounded-lg overflow-hidden"
+              style={{
+                boxShadow: '0px 0px 100px 30px rgba(255,255,255,1)',
+                width: 208,
+                height: 209,
+              }}
+            >
+              <Image
+                src={checkpoint.partner_image_url}
+                alt={checkpoint.name}
+                width={208}
+                height={209}
+                className="object-cover w-full h-full"
+                priority
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Content */}
+        <div className="flex flex-col gap-8 pb-8">
           <h1
-            className="text-[61px] leading-[0.8em] font-extrabold uppercase -tracking-[0.08em] w-full"
+            className="text-[61px] leading-[0.8em] font-extrabold uppercase -tracking-[0.08em]"
             style={{ color: textColor, ...fontStyle }}
           >
             You&apos;re In
           </h1>
 
-          {/* Welcome + event name */}
           <h2
-            className="text-[39px] leading-[0.95em] font-normal -tracking-[0.08em] w-full"
+            className="text-[39px] leading-[0.95em] font-normal -tracking-[0.08em]"
             style={{ color: textColor }}
           >
             Welcome To{' '}
             {checkpoint.name}
           </h2>
 
-          {/* Points earned row */}
-          <div className="flex items-end justify-between w-full">
+          <div className="flex items-end justify-between">
             <span
               className="text-[13px] font-bold uppercase tracking-[0.04em]"
               style={{ color: textColor }}
@@ -151,16 +156,14 @@ function CheckinSuccessView({
             </div>
           </div>
 
-          {/* Description */}
           <p
-            className="text-xl leading-[1.2] font-medium -tracking-[0.02em] w-full"
+            className="text-xl leading-[1.2] font-medium -tracking-[0.02em]"
             style={{ color: textColor }}
           >
             {checkpoint.description ||
               "IRL is a platform that connects you to what's happening in music and art scenes around the world, curated by locals."}
           </p>
 
-          {/* CTA Button */}
           <button
             onClick={handleCta}
             className="w-full rounded-full py-5 px-6 text-center text-xl font-bold uppercase -tracking-[0.08em]"
