@@ -271,43 +271,20 @@ export default function AuthWrapper({
 
       const textColor = fontColor || '#E3FF30';
       const fontStyle = fontFamily ? { fontFamily } : undefined;
-      const brandBg = backgroundGradient
-        ? extractBaseColorFromGradient(backgroundGradient)
-        : '#C199C4';
+      const brandBg = extractBaseColorFromGradient(backgroundGradient || '');
 
       return (
-        <div className="min-h-dvh w-full flex flex-col" style={fontStyle}>
+        <div
+          className="min-h-dvh w-full flex flex-col items-center"
+          style={{
+            background: backgroundGradient || brandBg,
+            ...fontStyle,
+          }}
+        >
           {/* Hero Section */}
-          <div
-            className="relative w-full flex-shrink-0"
-            style={{
-              minHeight: '85vh',
-              backgroundColor: brandBg,
-            }}
-          >
-            {/* Partner background image */}
-            {partnerImageUrl && (
-              <div className="absolute inset-0">
-                <Image
-                  src={partnerImageUrl}
-                  alt={title}
-                  fill
-                  className="object-cover"
-                  priority
-                />
-              </div>
-            )}
-
-            {/* Gradient overlay */}
-            {backgroundGradient && (
-              <div
-                className="absolute inset-0"
-                style={{ background: backgroundGradient }}
-              />
-            )}
-
+          <div className="relative w-full max-w-[430px] mx-auto flex flex-col min-h-dvh px-4">
             {/* Glass header */}
-            <div className="absolute top-2 left-2 right-2 z-20">
+            <div className="sticky top-2 z-20 mt-2">
               <div
                 className="rounded-[26px] px-4 py-2 flex items-center justify-between"
                 style={{
@@ -338,9 +315,9 @@ export default function AuthWrapper({
               </div>
             </div>
 
-            {/* Poster image (centered over hero) */}
+            {/* Poster image (centered) */}
             {partnerImageUrl && (
-              <div className="absolute inset-x-0 top-16 flex justify-center z-10 pointer-events-none">
+              <div className="flex justify-center mt-6 mb-4">
                 <div
                   className="rounded-lg overflow-hidden"
                   style={{
@@ -360,60 +337,56 @@ export default function AuthWrapper({
               </div>
             )}
 
+            {/* Spacer pushes content to bottom */}
+            <div className="flex-1" />
+
             {/* Hero text content */}
-            <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 z-10">
-              <div className="flex flex-col items-center gap-6">
-                <div className="flex flex-col items-center gap-4 w-full">
-                  <h1
-                    className="text-[52px] leading-[0.81em] font-extrabold uppercase tracking-tighter text-left w-full"
-                    style={{ color: textColor, ...fontStyle }}
-                  >
-                    {title}
-                  </h1>
-                  {description && (
-                    <p
-                      className="text-xl leading-[1.2] font-medium w-full -tracking-[0.02em]"
-                      style={{ color: textColor }}
-                    >
-                      {description}
-                    </p>
-                  )}
-                </div>
+            <div className="flex flex-col gap-6 pb-8">
+              <h1
+                className="text-[52px] leading-[0.81em] font-extrabold uppercase tracking-tighter text-left"
+                style={{ color: textColor, ...fontStyle }}
+              >
+                {title}
+              </h1>
+              {description && (
+                <p
+                  className="text-xl leading-[1.2] font-medium -tracking-[0.02em]"
+                  style={{ color: textColor }}
+                >
+                  {description}
+                </p>
+              )}
 
-                <div className="w-full flex flex-col gap-4">
-                  <button
-                    onClick={login}
-                    className="w-full rounded-full py-3 px-4 flex items-center justify-between text-xl font-bold uppercase -tracking-[0.08em]"
-                    style={{
-                      backgroundColor: textColor,
-                      color: brandBg,
-                    }}
-                  >
-                    <span>{loginCtaText}</span>
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M5 12h14M12 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                </div>
+              <button
+                onClick={login}
+                className="w-full rounded-full py-3 px-4 flex items-center justify-between text-xl font-bold uppercase -tracking-[0.08em]"
+                style={{
+                  backgroundColor: textColor,
+                  color: brandBg,
+                }}
+              >
+                <span>{loginCtaText}</span>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
 
-                {/* Powered by logos */}
-                <div className="flex items-center gap-4">
-                  <span
-                    className="text-xs font-medium uppercase tracking-wider"
-                    style={{ color: textColor }}
-                  >
-                    Powered by
-                  </span>
-                </div>
+              <div className="flex items-center gap-4">
+                <span
+                  className="text-xs font-medium uppercase tracking-wider"
+                  style={{ color: textColor }}
+                >
+                  Powered by
+                </span>
               </div>
             </div>
           </div>
@@ -421,32 +394,10 @@ export default function AuthWrapper({
           {/* Footer / "Get Involved" Section */}
           {(footerTitle || footerDescription) && (
             <div
-              className="relative w-full min-h-[80vh] flex flex-col justify-center"
+              className="w-full flex flex-col items-center"
               style={{ backgroundColor: brandBg }}
             >
-              {/* Optional background image with color overlay */}
-              {partnerImageUrl && (
-                <div className="absolute inset-0">
-                  <Image
-                    src={partnerImageUrl}
-                    alt=""
-                    fill
-                    className="object-cover opacity-40"
-                  />
-                </div>
-              )}
-
-              {/* Top gradient fade */}
-              <div
-                className="absolute inset-x-0 top-0 h-28"
-                style={{
-                  background: backgroundGradient
-                    ? backgroundGradient
-                    : `linear-gradient(180deg, ${brandBg} 0%, transparent 100%)`,
-                }}
-              />
-
-              <div className="relative z-10 px-4 py-16 flex flex-col gap-8">
+              <div className="w-full max-w-[430px] mx-auto px-4 py-16 flex flex-col gap-8">
                 {footerTitle && (
                   <h2
                     className="text-[30px] leading-[1em] font-extrabold uppercase -tracking-[0.03em]"
@@ -474,17 +425,16 @@ export default function AuthWrapper({
                 >
                   Explore The IRL Map
                 </button>
-              </div>
 
-              {/* IRL logo at bottom */}
-              <div className="absolute bottom-8 inset-x-0 flex justify-center">
-                <Image
-                  src="/irlfooterlogo.svg"
-                  alt="IRL"
-                  width={72}
-                  height={72}
-                  className="rounded-full opacity-80"
-                />
+                <div className="flex justify-center pt-8">
+                  <Image
+                    src="/irlfooterlogo.svg"
+                    alt="IRL"
+                    width={72}
+                    height={72}
+                    className="rounded-full opacity-80"
+                  />
+                </div>
               </div>
             </div>
           )}
