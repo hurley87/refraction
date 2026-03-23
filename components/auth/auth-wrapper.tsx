@@ -284,7 +284,7 @@ export default function AuthWrapper({
           <div className="relative w-full max-w-[430px] mx-auto flex flex-col min-h-dvh px-4">
             {/* Poster image (centered) */}
             {partnerImageUrl && (
-              <div className="flex justify-center mt-6 mb-4">
+              <div className="flex justify-center mt-6 mb-10">
                 <div
                   className="rounded-lg overflow-hidden"
                   style={{
@@ -303,9 +303,6 @@ export default function AuthWrapper({
                 </div>
               </div>
             )}
-
-            {/* Spacer pushes content to bottom */}
-            <div className="flex-1" />
 
             {/* Hero text content */}
             <div className="flex flex-col gap-6 pb-8">
