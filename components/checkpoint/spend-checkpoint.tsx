@@ -156,7 +156,7 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
       <div className="w-full max-w-[430px] mx-auto flex flex-col justify-center min-h-dvh px-4 py-8">
         {/* Partner poster image (centered) */}
         {checkpoint.partner_image_url && (
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-10">
             <div
               className="rounded-lg overflow-hidden"
               style={{
