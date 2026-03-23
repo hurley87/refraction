@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server";
 import { checkAdminPermission } from "@/lib/db/admin";
 import { supabase } from "@/lib/db/client";
+import { getPrivyClient } from "@/lib/api/privy";
 import { apiSuccess, apiError } from "@/lib/api/response";
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 
 export const maxDuration = 60;
 
@@ -9,6 +12,8 @@ const BATCH_SIZE = 5;
 const DESCRIPTION_MAX_LENGTH = 500;
 const TYPE_MAX_LENGTH = 50;
 const POINTS_VALUE = 100;
+const DOWNLOAD_TIMEOUT_MS = 10_000;
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 type CsvRow = {
   category: string;
@@ -100,6 +105,136 @@ async function geocodeAddress(
   }
 }
 
+async function isAuthenticatedAdmin(request: NextRequest): Promise<boolean> {
+  const authHeader = request.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) return false;
+
+  const token = authHeader.slice(7).trim();
+  if (!token) return false;
+
+  try {
+    const privy = getPrivyClient();
+    const verifiedClaims = await privy.verifyAuthToken(token);
+    const user = await privy.getUser(verifiedClaims.userId);
+    const email = user.email?.address?.trim().toLowerCase();
+    if (!email) return false;
+    return checkAdminPermission(email);
+  } catch {
+    return false;
+  }
+}
+
+function isLocalHostname(hostname: string): boolean {
+  const lower = hostname.toLowerCase();
+  return (
+    lower === "localhost" ||
+    lower.endsWith(".localhost") ||
+    lower.endsWith(".local")
+  );
+}
+
+function isPrivateIpv4(ip: string): boolean {
+  const parts = ip.split(".").map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
+    return false;
+  }
+
+  const [a, b] = parts;
+  return (
+    a === 10 ||
+    a === 127 ||
+    a === 0 ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 169 && b === 254)
+  );
+}
+
+function isPrivateIpv6(ip: string): boolean {
+  const normalized = ip.toLowerCase();
+  return (
+    normalized === "::1" ||
+    normalized === "::" ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    normalized.startsWith("fe80:") ||
+    normalized.startsWith("::ffff:127.")
+  );
+}
+
+function isPrivateIp(ip: string): boolean {
+  const family = isIP(ip);
+  if (family === 4) return isPrivateIpv4(ip);
+  if (family === 6) return isPrivateIpv6(ip);
+  return false;
+}
+
+async function isSafeImageUrl(rawUrl: string): Promise<boolean> {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return false;
+  }
+
+  if (parsed.username || parsed.password) return false;
+  if (isLocalHostname(parsed.hostname)) return false;
+  if (isPrivateIp(parsed.hostname)) return false;
+
+  try {
+    const resolved = await lookup(parsed.hostname, { all: true, verbatim: true });
+    if (resolved.length === 0) return false;
+    for (const addr of resolved) {
+      if (isPrivateIp(addr.address)) return false;
+    }
+  } catch {
+    return false;
+  }
+
+  return true;
+}
+
+async function readResponseWithLimit(
+  res: Response,
+  maxBytes: number
+): Promise<ArrayBuffer | null> {
+  if (!res.body) {
+    const fallback = await res.arrayBuffer();
+    return fallback.byteLength <= maxBytes ? fallback : null;
+  }
+
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel();
+      return null;
+    }
+
+    chunks.push(value);
+  }
+
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return merged.buffer;
+}
+
 async function ensureUniqueSlug(base: string): Promise<string> {
   let attempt = 0;
   const normalized = base.length > 0 ? base : `list-${Date.now()}`;
@@ -167,13 +302,34 @@ async function downloadImageFromUrl(
       targetUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
     }
 
-    const res = await fetch(targetUrl, { redirect: "follow" });
+    const safe = await isSafeImageUrl(targetUrl);
+    if (!safe) return null;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
+    const res = await fetch(targetUrl, {
+      redirect: "follow",
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeout));
     if (!res.ok) return null;
+
+    const contentLengthHeader = res.headers.get("content-length");
+    const contentLength = contentLengthHeader
+      ? Number.parseInt(contentLengthHeader, 10)
+      : null;
+    if (contentLength && contentLength > MAX_IMAGE_BYTES) return null;
 
     const contentType = res.headers.get("content-type") || "image/jpeg";
     if (contentType.includes("text/html")) return null;
+    if (
+      !contentType.toLowerCase().startsWith("image/") &&
+      !contentType.toLowerCase().startsWith("application/octet-stream")
+    ) {
+      return null;
+    }
 
-    const buffer = await res.arrayBuffer();
+    const buffer = await readResponseWithLimit(res, MAX_IMAGE_BYTES);
+    if (!buffer) return null;
     if (buffer.byteLength < 200) return null;
 
     return { buffer, contentType };
@@ -230,6 +386,27 @@ async function processRow(
 
   try {
     const locationSlug = slugify(name);
+    const address = row.address || "";
+    let latitude: number | null = null;
+    let longitude: number | null = null;
+
+    if (address) {
+      const coords = await geocodeAddress(address, ctx.mapboxToken);
+      if (coords) {
+        [longitude, latitude] = coords;
+      }
+    }
+
+    if (latitude === null || longitude === null) {
+      return {
+        row: rowNum,
+        name,
+        status: "skipped",
+        reason: address
+          ? "Address could not be geocoded"
+          : "No address provided for geocoding",
+      };
+    }
 
     let imageBytes: ArrayBuffer;
     let imageContentType: string;
@@ -271,28 +448,6 @@ async function processRow(
       .from("images")
       .getPublicUrl(storagePath);
     const coinImageUrl = urlData.publicUrl;
-
-    const address = row.address || "";
-    let latitude: number | null = null;
-    let longitude: number | null = null;
-
-    if (address) {
-      const coords = await geocodeAddress(address, ctx.mapboxToken);
-      if (coords) {
-        [longitude, latitude] = coords;
-      }
-    }
-
-    if (latitude === null || longitude === null) {
-      return {
-        row: rowNum,
-        name,
-        status: "skipped",
-        reason: address
-          ? "Address could not be geocoded"
-          : "No address provided for geocoding",
-      };
-    }
 
     const addressSlug = slugify(address);
     const placeId = buildPlaceId(
@@ -351,8 +506,8 @@ async function processRow(
 
 export async function POST(request: NextRequest) {
   try {
-    const adminEmail = request.headers.get("x-user-email") || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const isAdmin = await isAuthenticatedAdmin(request);
+    if (!isAdmin) {
       return apiError("Unauthorized", 403);
     }
 
