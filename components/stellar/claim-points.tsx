@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
+import { useStellarWallet } from '@/hooks/useStellarWallet';
 import { useNotification } from '@/lib/stellar/hooks/use-notification';
 import {
   isValidAddress,
@@ -9,7 +10,6 @@ import {
 } from '@/lib/stellar/utils/soroban';
 import { connectWallet } from '@/lib/stellar/utils/wallet';
 import { getSimplePaymentContractAddress } from '@/lib/stellar/utils/network';
-import FundAccountButton from './fund-account-button';
 import { toast } from 'sonner';
 
 interface ClaimPointsProps {
@@ -23,32 +23,38 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
   onSuccess,
   onError,
 }) => {
+  const { address, network, networkPassphrase, isPending } = useWallet();
   const {
-    address,
-    network,
-    networkPassphrase,
-    accountExists,
-    balances,
-    isPending,
-  } = useWallet();
+    address: privyStellarAddress,
+    connect: connectPrivyStellarWallet,
+    isLoading: isPrivyWalletLoading,
+    isConnecting: isPrivyWalletConnecting,
+  } = useStellarWallet();
   const { addNotification } = useNotification();
+  const effectiveAddress = privyStellarAddress ?? address ?? '';
+  const fallbackNetworkPassphrase =
+    process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toUpperCase() === 'PUBLIC' ||
+    process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toUpperCase() === 'MAINNET'
+      ? 'Public Global Stellar Network ; September 2015'
+      : 'Test SDF Network ; September 2015';
+  const effectiveNetworkPassphrase =
+    networkPassphrase ?? fallbackNetworkPassphrase;
   // Get contract address based on wallet's network (not app config)
-  const contractAddress = getSimplePaymentContractAddress(networkPassphrase);
+  const contractAddress = getSimplePaymentContractAddress(
+    effectiveNetworkPassphrase
+  );
   // Recipient is the connected user's address
-  const recipientAddress = address || '';
+  const recipientAddress = effectiveAddress;
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check if account exists and has balance
-  const xlmBalance = balances?.xlm?.balance;
-  const hasBalance = xlmBalance && Number(xlmBalance) > 0;
-  // Account needs funding if it doesn't exist OR if it exists but has no balance
-  const needsFunding =
-    (!accountExists && !hasBalance) || (accountExists && !hasBalance);
-
-  // Check if user is on testnet (Friendbot only works on testnet)
-  const isOnTestnet =
-    networkPassphrase?.includes('Test') &&
-    !networkPassphrase?.includes('Future');
+  const handleConnectForClaim = async () => {
+    // If Privy wallet exists/loads, avoid opening wallet selector.
+    try {
+      await connectPrivyStellarWallet();
+    } catch {
+      await connectWallet();
+    }
+  };
 
   const handleClaim = async () => {
     // Validate inputs
@@ -75,15 +81,15 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
       return;
     }
 
-    if (!networkPassphrase) {
+    if (!effectiveNetworkPassphrase) {
       const errorMsg =
         'Network information not available. Please reconnect your wallet.';
       toast.error(errorMsg);
       onError?.(errorMsg);
       console.error('[ClaimPoints] networkPassphrase is undefined:', {
-        address,
+        address: effectiveAddress,
         network,
-        networkPassphrase: networkPassphrase,
+        networkPassphrase: effectiveNetworkPassphrase,
       });
       return;
     }
@@ -94,7 +100,7 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
     console.log('[ClaimPoints] Starting claim request:', {
       recipientAddress,
       contractAddress,
-      networkPassphrase: networkPassphrase?.substring(0, 30) + '...',
+      networkPassphrase: effectiveNetworkPassphrase?.substring(0, 30) + '...',
     });
 
     try {
@@ -103,7 +109,7 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           walletAddress: recipientAddress,
-          networkPassphrase: networkPassphrase ?? undefined,
+          networkPassphrase: effectiveNetworkPassphrase ?? undefined,
         }),
       });
 
@@ -172,11 +178,11 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
         errorMessage.includes('not found')
       ) {
         toast.error(
-          "Account not found or not funded. Please fund your account first using the 'Fund Account' button.",
+          'Claim failed: recipient account may be missing on this network. If this persists, contact support.',
           { duration: 5000 }
         );
         addNotification(
-          'Account not found or not funded. Please fund your account before claiming points.',
+          'Claim failed: verify your Stellar address / network.',
           'error'
         );
       } else if (
@@ -203,7 +209,7 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
     }
   };
 
-  if (!address) {
+  if (!recipientAddress) {
     return (
       <div className="space-y-4">
         <p className="body-medium text-[#7D7D7D] font-grotesk">
@@ -211,10 +217,14 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
         </p>
         <button
           className="w-full h-12 bg-white hover:bg-gray-100 text-[#313131] px-6 rounded-full title3 font-grotesk transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          onClick={() => void connectWallet()}
-          disabled={isPending}
+          onClick={() => void handleConnectForClaim()}
+          disabled={
+            isPending || isPrivyWalletLoading || isPrivyWalletConnecting
+          }
         >
-          {isPending ? 'Loading...' : 'Claim Points'}
+          {isPending || isPrivyWalletLoading || isPrivyWalletConnecting
+            ? 'Loading...'
+            : 'Claim Points'}
         </button>
       </div>
     );
@@ -223,44 +233,13 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
   return (
     <div className="space-y-4">
       <p className="body-medium text-[#7D7D7D] font-grotesk">
-        Claim points for rewards.
+        Claim points for rewards. No XLM required — the reward contract covers
+        transaction fees.
       </p>
-
-      {needsFunding && isOnTestnet && (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex flex-col gap-3">
-            <div className="flex-1">
-              <p className="text-sm text-yellow-800 mb-1">
-                <strong>Account needs funding:</strong> Your account must be
-                funded with XLM before it can invoke contracts.
-              </p>
-              <p className="text-xs text-yellow-700">
-                Click the button below to fund your account using Friendbot
-                (testnet only).
-              </p>
-            </div>
-            <div className="flex justify-start">
-              <FundAccountButton />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {needsFunding && !isOnTestnet && (
-        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-yellow-800">
-            <strong>Account needs funding:</strong> Your account must be funded
-            with XLM before it can invoke contracts. Please fund your account
-            using a Stellar wallet or exchange.
-          </p>
-        </div>
-      )}
 
       <button
         onClick={handleClaim}
-        disabled={
-          isLoading || !contractAddress || !recipientAddress || needsFunding
-        }
+        disabled={isLoading || !contractAddress || !recipientAddress}
         className="w-full h-12 bg-white hover:bg-gray-100 text-[#313131] px-6 rounded-full title3 font-grotesk transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
       >
         {isLoading ? 'Processing...' : 'Claim Points'}

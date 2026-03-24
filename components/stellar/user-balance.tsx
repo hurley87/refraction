@@ -3,17 +3,61 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useStellarWallet } from '@/hooks/useStellarWallet';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
-import { disconnectWallet } from '@/lib/stellar/utils/wallet';
+import { disconnectWallet, fetchBalances } from '@/lib/stellar/utils/wallet';
 import { stellarNetwork } from '@/lib/stellar/utils/network';
 import FundAccountButton from './fund-account-button';
 
+type WalletSource = 'freighter' | 'privy';
+
 export const UserBalance = () => {
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
-  const { address, isPending, balances, network } = useWallet();
+  const {
+    address: freighterAddress,
+    isPending: freighterPending,
+    balances: freighterBalances,
+    network,
+    accountExists: freighterAccountExists,
+  } = useWallet();
+  const { address: privyAddress, isLoading: privyWalletLoading } =
+    useStellarWallet();
 
-  if (!address) return null;
+  // Privy embedded address is the IRL profile / DB `stellar_wallet_address`; prefer it when both exist.
+  const walletSource: WalletSource | null = privyAddress
+    ? 'privy'
+    : freighterAddress
+      ? 'freighter'
+      : null;
+
+  const networkName = network?.toUpperCase() || stellarNetwork;
+
+  const { data: privyHorizon, isPending: privyBalancePending } = useQuery({
+    queryKey: ['stellarHorizonBalance', privyAddress, networkName],
+    queryFn: () => fetchBalances(privyAddress!, networkName),
+    enabled: walletSource === 'privy' && !!privyAddress,
+    staleTime: 30_000,
+    refetchInterval: 10_000,
+  });
+
+  if (!walletSource) return null;
+
+  const address =
+    walletSource === 'freighter' ? freighterAddress! : privyAddress!;
+  const balances =
+    walletSource === 'freighter'
+      ? freighterBalances
+      : (privyHorizon?.balances ?? {});
+  const accountExists =
+    walletSource === 'freighter'
+      ? freighterAccountExists
+      : (privyHorizon?.accountExists ?? true);
+  const isPending =
+    walletSource === 'freighter'
+      ? freighterPending
+      : privyWalletLoading || privyBalancePending;
 
   const formatBalance = (balance: string | undefined): string => {
     if (!balance) return '-';
@@ -37,71 +81,60 @@ export const UserBalance = () => {
     displayBalance !== '-' ? parseFloat(displayBalance.replace(/,/g, '')) : 0;
 
   const currentNetwork = network?.toUpperCase() || stellarNetwork;
+  const nativeBalanceRaw = nativeBalanceEntry?.balance;
 
   return (
     <div
-      className="flex flex-col gap-3 w-full rounded-[18px] bg-[#313131] px-4 py-4"
+      className="flex flex-col gap-3 w-full"
       style={{ opacity: isPending ? 0.6 : 1 }}
     >
-      <div className="flex flex-row items-center justify-between w-full">
-        <div className="flex flex-col gap-2 flex-1">
-          <div className="flex items-center gap-2">
-            <Image
-              src="/ep-coin-white.svg"
-              alt="XLM"
-              width={12}
-              height={12}
-              className="w-4 h-4"
-            />
+      {walletSource === 'privy' && (
+        <p className="body-small font-grotesk text-[#B5B5B5]">
+          Embedded Stellar wallet (IRL / Privy)
+        </p>
+      )}
+
+      <div className="flex flex-row items-end justify-between w-full gap-3">
+        <div className="flex items-end gap-2 min-w-0 flex-1">
+          <Image
+            src="/ep-coin-white.svg"
+            alt=""
+            width={12}
+            height={12}
+            className="w-4 h-4 shrink-0 mb-2"
+            aria-hidden
+          />
+          <div className="flex items-baseline gap-2 min-w-0">
             <p
-              className="text-center md:text-left overflow-hidden uppercase text-ellipsis"
+              className="m-0 text-white text-center md:text-left truncate"
               style={{
-                color: 'var(--Dark-Tint-40, #B5B5B5)',
+                fontFamily: '"ABC Monument Grotesk Unlicensed Trial"',
+                fontSize: '64px',
+                fontStyle: 'normal',
+                fontWeight: 400,
+                lineHeight: '64px',
+                letterSpacing: '-1.92px',
+              }}
+            >
+              {displayBalance !== '-' ? numBalance.toLocaleString() : '-'}
+            </p>
+            <p
+              className="m-0 shrink-0 text-[#B5B5B5] leading-none"
+              style={{
                 fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
                 fontSize: '13px',
                 fontStyle: 'normal',
                 fontWeight: 400,
-                lineHeight: '20px',
-                letterSpacing: '-0.26px',
+                letterSpacing: '0.26px',
               }}
             >
-              Wallet Balance
+              XLM
             </p>
-          </div>
-          <div className="flex justify-start">
-            <div className="flex items-baseline gap-2">
-              <p
-                className="m-0 text-white text-center md:text-left"
-                style={{
-                  fontFamily: '"ABC Monument Grotesk Unlicensed Trial"',
-                  fontSize: '64px',
-                  fontStyle: 'normal',
-                  fontWeight: 400,
-                  lineHeight: '64px',
-                  letterSpacing: '-1.92px',
-                }}
-              >
-                {displayBalance !== '-' ? numBalance.toLocaleString() : '-'}
-              </p>
-              <p
-                className="m-0 shrink-0 text-[#B5B5B5] leading-none"
-                style={{
-                  fontFamily:
-                    '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
-                  fontSize: '13px',
-                  fontStyle: 'normal',
-                  fontWeight: 400,
-                  letterSpacing: '0.26px',
-                }}
-              >
-                XLM
-              </p>
-            </div>
           </div>
         </div>
 
         <div
-          className="h-10 min-w-10 px-3 rounded-full bg-[#FFE600] flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
+          className="h-10 min-w-10 px-3 rounded-full bg-[#FFE600] flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity shrink-0"
           onClick={() => setShowDisconnectModal(true)}
           title={address}
         >
@@ -140,7 +173,9 @@ export const UserBalance = () => {
             <div className="bg-black/25 rounded-[26px] border border-white/10 p-4 mb-4">
               <div className="flex flex-col gap-2">
                 <div className="body-small font-grotesk text-[#B5B5B5] uppercase tracking-wide">
-                  Connected Wallet
+                  {walletSource === 'freighter'
+                    ? 'Connected Wallet'
+                    : 'Embedded Stellar wallet'}
                 </div>
                 <div className="flex items-center gap-2">
                   <code className="text-xs break-all text-white flex-1 min-w-0 font-mono">
@@ -169,39 +204,75 @@ export const UserBalance = () => {
                     </svg>
                   </button>
                 </div>
+                {walletSource === 'privy' && (
+                  <p className="text-xs text-[#B5B5B5] font-grotesk leading-snug pt-1">
+                    {freighterAddress ? (
+                      <>
+                        This is your IRL embedded address (same as your
+                        profile). Freighter is also connected for optional
+                        browser-wallet flows.
+                      </>
+                    ) : (
+                      <>
+                        This address is tied to your IRL login (Privy). To use a
+                        different Stellar account, connect Freighter in the
+                        section below.
+                      </>
+                    )}
+                  </p>
+                )}
               </div>
             </div>
 
-            <button
-              type="button"
-              className="w-full min-w-0 h-12 bg-white hover:bg-gray-100 text-[#313131] px-4 sm:px-6 rounded-full title3 font-grotesk transition-colors duration-200 flex items-center gap-3 cursor-pointer"
-              onClick={() => {
-                void disconnectWallet().then(() =>
-                  setShowDisconnectModal(false)
-                );
-              }}
-            >
-              <span className="min-w-0 flex-1 text-left leading-tight">
-                Disconnect Wallet
-              </span>
-              <Image
-                src="/log-out.svg"
-                alt=""
-                width={24}
-                height={24}
-                className="h-6 w-6 shrink-0"
-                aria-hidden
-              />
-            </button>
+            {walletSource === 'freighter' ? (
+              <button
+                type="button"
+                className="w-full min-w-0 h-12 bg-white hover:bg-gray-100 text-[#313131] px-4 sm:px-6 rounded-full title3 font-grotesk transition-colors duration-200 flex items-center gap-3 cursor-pointer"
+                onClick={() => {
+                  void disconnectWallet().then(() =>
+                    setShowDisconnectModal(false)
+                  );
+                }}
+              >
+                <span className="min-w-0 flex-1 text-left leading-tight">
+                  Disconnect Wallet
+                </span>
+                <Image
+                  src="/log-out.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 shrink-0"
+                  aria-hidden
+                />
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="w-full min-w-0 h-12 bg-white hover:bg-gray-100 text-[#313131] px-4 sm:px-6 rounded-full title3 font-grotesk transition-colors duration-200 cursor-pointer"
+                onClick={() => setShowDisconnectModal(false)}
+              >
+                Close
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {currentNetwork !== 'PUBLIC' && (
-        <div className="w-full">
-          <FundAccountButton />
-        </div>
-      )}
+      {currentNetwork !== 'PUBLIC' &&
+        (walletSource === 'freighter' ? (
+          <div className="w-full">
+            <FundAccountButton />
+          </div>
+        ) : (
+          <div className="w-full">
+            <FundAccountButton
+              fundAddress={address}
+              fundAccountExists={accountExists}
+              fundXlmBalance={nativeBalanceRaw}
+            />
+          </div>
+        ))}
     </div>
   );
 };

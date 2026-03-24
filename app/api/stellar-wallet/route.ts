@@ -25,10 +25,23 @@ export async function GET(req: NextRequest) {
   try {
     const privy = getPrivyClient();
 
-    // Get user's wallets from Privy
     const user = await privy.getUser(privyUserId);
 
-    // Find Stellar wallet in linked accounts (for Tier 1 wallets)
+    // Prefer `players.stellar_wallet_address` when set: it is the IRL profile
+    // canonical key (e.g. server-created Tier 2 wallet). Privy may also expose a
+    // different linked Stellar account (Tier 1); claim-points and balances must
+    // match the DB row, not necessarily the first linked wallet.
+    const email = user.email?.address;
+    if (email) {
+      const player = await getPlayerByEmail(email);
+      if (player?.stellar_wallet_address) {
+        return apiSuccess({
+          address: player.stellar_wallet_address,
+          walletId: player.stellar_wallet_id ?? undefined,
+        });
+      }
+    }
+
     const stellarWallet = user.linkedAccounts?.find(
       (account) =>
         account.type === 'wallet' &&
@@ -41,18 +54,6 @@ export async function GET(req: NextRequest) {
         address: stellarWallet.address,
         walletId: 'id' in stellarWallet ? stellarWallet.id : undefined,
       });
-    }
-
-    // For Tier 2 server-managed wallets, check the database via user's email
-    const email = user.email?.address;
-    if (email) {
-      const player = await getPlayerByEmail(email);
-      if (player?.stellar_wallet_address) {
-        return apiSuccess({
-          address: player.stellar_wallet_address,
-          walletId: player.stellar_wallet_id ?? undefined,
-        });
-      }
     }
 
     return apiSuccess({ address: null });

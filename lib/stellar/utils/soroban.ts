@@ -1252,8 +1252,8 @@ export const mintNFT = async (
   );
   const mintCostXlm = 0.01; // Payment to contract
   const estimatedFeeXlm = isMainnet ? 0.01 : 0.00001;
-  // The native token contract requires maintaining a minimum balance after transfer
-  const minBalanceAfterTransferXlm = isMainnet ? 1.0 : 0.5;
+  // Native SAC enforces a minimum balance after transfer (same on testnet/mainnet).
+  const minBalanceAfterTransferXlm = 1.0;
   const requiredBalanceXlm =
     mintCostXlm + estimatedFeeXlm + minBalanceAfterTransferXlm;
 
