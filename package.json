@@ -34,6 +34,7 @@
     "@react-pdf-viewer/default-layout": "3.12.0",
     "@react-pdf/renderer": "^4.3.0",
     "@react-three/fiber": "^9.4.0",
+    "@reown/walletkit": "^1.5.4",
     "@shadergradient/react": "^2.3.6",
     "@solana/kit": "^2.3.0",
     "@solana/spl-token": "^0.4.14",
@@ -42,6 +43,7 @@
     "@supabase/supabase-js": "^2.48.1",
     "@syndicateio/syndicate-node": "^1.0.1",
     "@tanstack/react-query": "^5.66.9",
+    "@walletconnect/core": "^2.23.8",
     "@walletconnect/universal-provider": "^2.21.7",
     "airtable": "^0.12.2",
     "buffer": "^6.0.3",
@@ -102,7 +104,10 @@
   "resolutions": {
     "@noble/curves": "1.9.2",
     "@noble/hashes": "1.8.0",
-    "ox": "0.9.4"
+    "ox": "0.9.4",
+    "@walletconnect/core": "2.23.8",
+    "@walletconnect/sign-client": "2.23.8",
+    "@walletconnect/types": "2.23.8"
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }

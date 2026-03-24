@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { WalletConnectPayTestClient } from "./walletconnect-pay-test-client";
 
 export const metadata: Metadata = {
-  title: "WalletConnect Pay test — poster drop",
+  title: "WalletKit Pay test — poster drop",
   description:
-    "Internal test page for a $1 limited poster checkout via WalletConnect Pay.",
+    "Internal WalletConnect Pay test via WalletKit Web (getPaymentOptions, sign, confirmPayment) with Privy EVM wallet.",
   robots: { index: false, follow: false },
 };
 
