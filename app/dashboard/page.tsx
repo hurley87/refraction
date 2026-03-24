@@ -127,38 +127,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Complete Quest Section - Inside Hero */}
-              <div 
-                className="flex flex-col items-start gap-2 self-stretch rounded-[16px] p-3"
-                style={{ background: "rgba(255, 255, 255, 0.15)" }}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="body-small text-[#EDEDED] uppercase tracking-wide">
-                    EARN MORE
-                  </span>
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="title3 text-white font-grotesk">
-                      Complete Quests to Earn Points
-                    </div>
-                  </div>
-                
-                </div>
-                <Link
-                  href="https://app.galxe.com/quest/A2w5Zojdy46VKJVvpptTwf/GCzcut8Kwg?refer=quest_parent_collection"
-                  target="_blank"
-                  className="w-full h-[40px] bg-white hover:bg-gray-100 text-[#313131] px-4 rounded-full font-pleasure transition-colors duration-200 flex items-center justify-between"
-                >
-                  <h4>Complete Quests</h4>
-                  <Image
-                    src="/glxe.png"
-                    alt="galxe"
-                    width={21}
-                    height={21}
-                    className="w-[21px] h-[21px]"
-                  />
-                </Link>
-              </div>
+             
             </div>
           </div>
 

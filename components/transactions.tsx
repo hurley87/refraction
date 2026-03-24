@@ -62,7 +62,7 @@ export default function Transactions({
           className="w-4 h-4"
         />
         <h2 className="body-small font-grotesk text-[#7D7D7D]">
-          TRANSACTIONS
+          YOUR ACTIVITY
         </h2>
       </div>
 

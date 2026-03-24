@@ -1,26 +1,17 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { usePrivy } from "@privy-io/react-auth";
-import { useRouter } from "next/navigation";
-import { X, Clock } from "lucide-react";
-import Image from "next/image";
-import type { UserProfile } from "@/lib/types";
-import { useUserStats } from "@/hooks/usePlayer";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
+import { useRouter } from 'next/navigation';
+import { X } from 'lucide-react';
+import Image from 'next/image';
+import type { UserProfile } from '@/lib/types';
+import { useUserStats } from '@/hooks/usePlayer';
 
 interface UserMenuProps {
   isOpen: boolean;
   onClose: () => void;
   onEditProfile: () => void;
-}
-
-interface Challenge {
-  title: string;
-  description: string;
-  points: number;
-  url: string;
-  image?: string;
-  dateRange?: string;
 }
 
 export default function UserMenu({
@@ -31,22 +22,20 @@ export default function UserMenu({
   const { user } = usePrivy();
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile>({
-    wallet_address: "",
-    email: "",
-    name: "",
-    username: "",
-    website: "",
-    twitter_handle: "",
-    towns_handle: "",
-    farcaster_handle: "",
-    telegram_handle: "",
-    profile_picture_url: "",
+    wallet_address: '',
+    email: '',
+    name: '',
+    username: '',
+    website: '',
+    twitter_handle: '',
+    towns_handle: '',
+    farcaster_handle: '',
+    telegram_handle: '',
+    profile_picture_url: '',
   });
-  const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [isMenuMounted, setIsMenuMounted] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  const [isLoadingChallenges, setIsLoadingChallenges] = useState(false);
   const scrollableContentRef = useRef<HTMLDivElement>(null);
 
   // Use the reusable hook for user stats
@@ -60,11 +49,11 @@ export default function UserMenu({
       // Save current scroll position
       const scrollY = window.scrollY;
       // Prevent scrolling
-      document.body.style.position = "fixed";
+      document.body.style.position = 'fixed';
       document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = "100%";
-      document.body.style.overflow = "hidden";
-      
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+
       setIsMenuMounted(true);
       setTimeout(() => {
         setIsMenuVisible(true);
@@ -73,13 +62,13 @@ export default function UserMenu({
           scrollableContentRef.current.scrollTop = 0;
         }
       }, 10);
-      
+
       return () => {
         // Restore scrolling
-        document.body.style.position = "";
-        document.body.style.top = "";
-        document.body.style.width = "";
-        document.body.style.overflow = "";
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
         // Restore scroll position
         window.scrollTo(0, scrollY);
       };
@@ -96,7 +85,7 @@ export default function UserMenu({
     setIsLoadingProfile(true);
     try {
       const response = await fetch(
-        `/api/profile?wallet_address=${user.wallet.address}`,
+        `/api/profile?wallet_address=${user.wallet.address}`
       );
 
       if (response.ok) {
@@ -106,110 +95,85 @@ export default function UserMenu({
 
         setProfile({
           wallet_address: user.wallet.address,
-          email: data.email || user.email?.address || "",
-          name: data.name || "",
-          username: data.username || "",
-          website: data.website || "",
-          twitter_handle: data.twitter_handle || "",
-          towns_handle: data.towns_handle || "",
-          farcaster_handle: data.farcaster_handle || "",
-          telegram_handle: data.telegram_handle || "",
-          profile_picture_url: data.profile_picture_url || "",
+          email: data.email || user.email?.address || '',
+          name: data.name || '',
+          username: data.username || '',
+          website: data.website || '',
+          twitter_handle: data.twitter_handle || '',
+          towns_handle: data.towns_handle || '',
+          farcaster_handle: data.farcaster_handle || '',
+          telegram_handle: data.telegram_handle || '',
+          profile_picture_url: data.profile_picture_url || '',
         });
       } else {
         // If profile doesn't exist or API returns error, use defaults
         setProfile({
           wallet_address: user.wallet.address,
-          email: user.email?.address || "",
-          name: "",
-          username: "",
-          website: "",
-          twitter_handle: "",
-          towns_handle: "",
-          farcaster_handle: "",
-          telegram_handle: "",
-          profile_picture_url: "",
+          email: user.email?.address || '',
+          name: '',
+          username: '',
+          website: '',
+          twitter_handle: '',
+          towns_handle: '',
+          farcaster_handle: '',
+          telegram_handle: '',
+          profile_picture_url: '',
         });
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      console.error('Error fetching profile:', error);
       // On error, use defaults
       setProfile({
         wallet_address: user.wallet.address,
-        email: user.email?.address || "",
-        name: "",
-        username: "",
-        website: "",
-        twitter_handle: "",
-        towns_handle: "",
-        farcaster_handle: "",
-        telegram_handle: "",
-        profile_picture_url: "",
+        email: user.email?.address || '',
+        name: '',
+        username: '',
+        website: '',
+        twitter_handle: '',
+        towns_handle: '',
+        farcaster_handle: '',
+        telegram_handle: '',
+        profile_picture_url: '',
       });
     } finally {
       setIsLoadingProfile(false);
     }
   }, [user?.wallet?.address, user?.email?.address]);
 
-
-  const fetchChallenges = useCallback(async () => {
-    setIsLoadingChallenges(true);
-    try {
-      const response = await fetch("/data/challenges/quest-items.json");
-      if (response.ok) {
-        const data = await response.json();
-        // Limit to first 5 challenges for horizontal scroll
-        setChallenges(data.slice(0, 5));
-      }
-    } catch (error) {
-      console.error("Error fetching challenges:", error);
-    } finally {
-      setIsLoadingChallenges(false);
-    }
-  }, []);
-
   // Fetch data when menu opens
   useEffect(() => {
     if (isOpen && user?.wallet?.address) {
-      Promise.all([
-        fetchProfile(),
-        fetchChallenges(),
-      ]);
+      void fetchProfile();
     }
-  }, [isOpen, user?.wallet?.address, fetchProfile, fetchChallenges]);
+  }, [isOpen, user?.wallet?.address, fetchProfile]);
 
   if (!user || !isMenuMounted) return null;
 
   const handleLeaderboardClick = () => {
     onClose();
-    router.push("/leaderboard");
-  };
-
-  const handleChallengesClick = () => {
-    onClose();
-    router.push("/challenges");
+    router.push('/leaderboard');
   };
 
   const handleWebsiteClick = () => {
     if (profile.website) {
-      const url = profile.website.startsWith("http")
+      const url = profile.website.startsWith('http')
         ? profile.website
         : `https://${profile.website}`;
-      window.open(url, "_blank");
+      window.open(url, '_blank');
     }
   };
 
   const getSocialUrl = (platform: string, handle: string) => {
     if (!handle) return null;
-    const handleClean = handle.replace(/^@/, "");
+    const handleClean = handle.replace(/^@/, '');
     switch (platform) {
-      case "twitter":
+      case 'twitter':
         return `https://twitter.com/${handleClean}`;
-      case "farcaster":
+      case 'farcaster':
         return `https://warpcast.com/${handleClean}`;
-      case "telegram":
+      case 'telegram':
         return `https://t.me/${handleClean}`;
-      case "towns":
+      case 'towns':
         return `https://towns.com/${handleClean}`;
       default:
         return null;
@@ -221,21 +185,21 @@ export default function UserMenu({
     const j = num % 10;
     const k = num % 100;
     if (j === 1 && k !== 11) {
-      return "st";
+      return 'st';
     }
     if (j === 2 && k !== 12) {
-      return "nd";
+      return 'nd';
     }
     if (j === 3 && k !== 13) {
-      return "rd";
+      return 'rd';
     }
-    return "th";
+    return 'th';
   };
 
   return (
     <div
       className={`fixed font-inktrap inset-0 bg-[#7d7d7d] z-50 flex flex-col transition-all duration-300 ease-in-out ${
-        isMenuVisible ? "opacity-100" : "opacity-0"
+        isMenuVisible ? 'opacity-100' : 'opacity-0'
       }`}
     >
       <div className="max-w-lg mx-auto w-full flex flex-col h-full">
@@ -253,7 +217,10 @@ export default function UserMenu({
         </div>
 
         {/* Content */}
-        <div ref={scrollableContentRef} className="flex-1 flex flex-col justify-start px-4 pb-2 gap-1 min-h-0 overflow-y-auto">
+        <div
+          ref={scrollableContentRef}
+          className="flex-1 flex flex-col justify-start px-4 pb-2 gap-1 min-h-0 overflow-y-auto"
+        >
           {/* Section 2: User Info */}
           <div className="w-full bg-white rounded-3xl border border-gray-200 p-4 flex flex-col items-center space-y-4">
             {/* Row 1: Avatar */}
@@ -270,11 +237,11 @@ export default function UserMenu({
                 ) : (
                   <div className="w-full h-full bg-gray-300 flex items-center justify-center">
                     <span className="text-gray-600 text-2xl font-medium">
-                      {(profile.name || profile.username)
+                      {profile.name || profile.username
                         ? (profile.name || profile.username)!
                             .charAt(0)
                             .toUpperCase()
-                        : "?"}
+                        : '?'}
                     </span>
                   </div>
                 )}
@@ -286,7 +253,7 @@ export default function UserMenu({
               <div className="w-32 h-6 bg-gray-200 animate-pulse rounded"></div>
             ) : (
               <div className="text-black body-large font-medium">
-                @{profile.username || "username"}
+                @{profile.username || 'username'}
               </div>
             )}
 
@@ -332,7 +299,7 @@ export default function UserMenu({
                   ) : (
                     <div className="flex items-end gap-2">
                       <div className="display1 text-[#313131] font-inktrap">
-                        {userStats?.total_points?.toLocaleString() || "0"}
+                        {userStats?.total_points?.toLocaleString() || '0'}
                       </div>
                       <Image
                         src="/pts.svg"
@@ -340,7 +307,7 @@ export default function UserMenu({
                         width={39}
                         height={18}
                         className="mb-1"
-                        style={{ width: "auto", height: "auto" }}
+                        style={{ width: 'auto', height: 'auto' }}
                       />
                     </div>
                   )}
@@ -349,7 +316,14 @@ export default function UserMenu({
             </div>
 
             {/* Solid Line Separator */}
-            <div className="h-px bg-gray-300 my-4" style={{ marginLeft: '-1rem', marginRight: '-1rem', width: 'calc(100% + 2rem)' }}></div>
+            <div
+              className="h-px bg-gray-300 my-4"
+              style={{
+                marginLeft: '-1rem',
+                marginRight: '-1rem',
+                width: 'calc(100% + 2rem)',
+              }}
+            ></div>
 
             {/* Rank Section */}
             <div className="flex flex-col gap-2">
@@ -385,7 +359,7 @@ export default function UserMenu({
                         width={39}
                         height={18}
                         className="mb-1"
-                        style={{ width: "auto", height: "auto" }}
+                        style={{ width: 'auto', height: 'auto' }}
                       />
                     </div>
                   </div>
@@ -406,156 +380,6 @@ export default function UserMenu({
                   />
                 </button>
               </div>
-            </div>
-          </div>
-
-          {/* Section 4: Earn More Points */}
-          <div className="w-full bg-[#EDEDED] rounded-[26px] p-4">
-            <div className="w-full space-y-4">
-              {/* Row 1: EARN MORE POINTS */}
-              <div className="text-black body-small uppercase font-bold">
-                EARN MORE POINTS
-              </div>
-
-              {/* Row 2: Horizontal Scroll of Challenges */}
-              {isLoadingChallenges ? (
-                <div className="overflow-x-auto -mx-4 px-4 pb-2">
-                  <div className="flex gap-4">
-                    {[...Array(3)].map((_, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          display: "flex",
-                          width: "278px",
-                          padding: "24px",
-                          flexDirection: "column",
-                          alignItems: "flex-start",
-                          gap: "8px",
-                          borderRadius: "26px",
-                          border: "1px solid #EDEDED",
-                          background: "#FFF",
-                          boxShadow: "0 1px 8px 0 rgba(0, 0, 0, 0.08)",
-                          flexShrink: 0,
-                        }}
-                      >
-                        <div className="w-full h-6 bg-gray-200 animate-pulse rounded"></div>
-                        <div className="w-full h-4 bg-gray-200 animate-pulse rounded"></div>
-                        <div className="w-full h-4 bg-gray-200 animate-pulse rounded mt-2"></div>
-                        <div className="w-full h-7 bg-gray-200 animate-pulse rounded mt-auto"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : challenges.length > 0 ? (
-                <div className="overflow-x-auto -mx-4 px-4 pb-2">
-                  <div className="flex gap-4">
-                    {challenges.map((challenge, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          display: "flex",
-                          width: "278px",
-                          padding: "24px",
-                          flexDirection: "column",
-                          alignItems: "flex-start",
-                          gap: "8px",
-                          borderRadius: "26px",
-                          border: "1px solid #EDEDED",
-                          background: "#FFF",
-                          boxShadow: "0 1px 8px 0 rgba(0, 0, 0, 0.08)",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {/* Title */}
-                        <div className="title2 text-[#313131]">{challenge.title}</div>
-
-                        {/* Description */}
-                        <div className="text-[#4F4F4F] body-medium">
-                          {challenge.description}
-                        </div>
-
-                        {/* Points and Date Range Pills */}
-                        <div className="flex gap-1 w-full mt-auto">
-                          {/* Points */}
-                          <div 
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px',
-                              height: '28px',
-                              backgroundColor: 'transparent',
-                              borderRadius: '16px',
-                              padding: '6px 8px',
-                              border: '1px solid #e0e0e0',
-                              flex: 1
-                            }}
-                          >
-                            <Image
-                              src="/ep_coin.svg"
-                              alt="coin"
-                              width={16}
-                              height={16}
-                              className="w-4 h-4"
-                            />
-                            <div className="body-small text-black">{challenge.points}</div>
-                          </div>
-
-                          {/* Date Range */}
-                          {challenge.dateRange ? (
-                            <div 
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                height: '28px',
-                                backgroundColor: 'transparent',
-                                borderRadius: '16px',
-                                padding: '6px 8px',
-                                border: '1px solid #e0e0e0',
-                                flex: 1
-                              }}
-                            >
-                              <Clock className="w-3 h-3 text-gray-600 flex-shrink-0" />
-                              <div className="body-small text-black whitespace-nowrap">{challenge.dateRange}</div>
-                            </div>
-                          ) : (
-                            <div 
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                height: '28px',
-                                backgroundColor: 'transparent',
-                                borderRadius: '16px',
-                                padding: '6px 8px',
-                                border: '1px solid #e0e0e0',
-                                flex: 1
-                              }}
-                            >
-                              <div className="body-small text-black"></div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {/* Row 3: Challenges Button */}
-              <button
-                onClick={handleChallengesClick}
-                className="w-full h-[40px] bg-white hover:bg-gray-100 text-[#313131] px-4 rounded-full font-pleasure transition-colors duration-200 flex items-center justify-between"
-              >
-                <h4>Challenges</h4>
-                <Image
-                  src="/home/arrow-right.svg"
-                  alt="arrow"
-                  width={21}
-                  height={21}
-                  className="w-[21px] h-[21px]"
-                />
-              </button>
             </div>
           </div>
 
@@ -604,9 +428,9 @@ export default function UserMenu({
 
             {/* Row 5: Social Icons */}
             <div className="flex items-center justify-between w-full">
-              {getSocialUrl("twitter", profile.twitter_handle || "") && (
+              {getSocialUrl('twitter', profile.twitter_handle || '') && (
                 <a
-                  href={getSocialUrl("twitter", profile.twitter_handle || "")!}
+                  href={getSocialUrl('twitter', profile.twitter_handle || '')!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:opacity-70 transition-opacity flex items-center justify-center"
@@ -625,9 +449,9 @@ export default function UserMenu({
                   </svg>
                 </a>
               )}
-              {getSocialUrl("towns", profile.towns_handle || "") && (
+              {getSocialUrl('towns', profile.towns_handle || '') && (
                 <a
-                  href={getSocialUrl("towns", profile.towns_handle || "")!}
+                  href={getSocialUrl('towns', profile.towns_handle || '')!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:opacity-70 transition-opacity flex items-center justify-center"
@@ -646,9 +470,11 @@ export default function UserMenu({
                   </svg>
                 </a>
               )}
-              {getSocialUrl("farcaster", profile.farcaster_handle || "") && (
+              {getSocialUrl('farcaster', profile.farcaster_handle || '') && (
                 <a
-                  href={getSocialUrl("farcaster", profile.farcaster_handle || "")!}
+                  href={
+                    getSocialUrl('farcaster', profile.farcaster_handle || '')!
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:opacity-70 transition-opacity flex items-center justify-center"
@@ -667,9 +493,11 @@ export default function UserMenu({
                   </svg>
                 </a>
               )}
-              {getSocialUrl("telegram", profile.telegram_handle || "") && (
+              {getSocialUrl('telegram', profile.telegram_handle || '') && (
                 <a
-                  href={getSocialUrl("telegram", profile.telegram_handle || "")!}
+                  href={
+                    getSocialUrl('telegram', profile.telegram_handle || '')!
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:opacity-70 transition-opacity flex items-center justify-center"
@@ -682,10 +510,10 @@ export default function UserMenu({
                   />
                 </a>
               )}
-              {!getSocialUrl("twitter", profile.twitter_handle || "") &&
-                !getSocialUrl("towns", profile.towns_handle || "") &&
-                !getSocialUrl("farcaster", profile.farcaster_handle || "") &&
-                !getSocialUrl("telegram", profile.telegram_handle || "") && (
+              {!getSocialUrl('twitter', profile.twitter_handle || '') &&
+                !getSocialUrl('towns', profile.towns_handle || '') &&
+                !getSocialUrl('farcaster', profile.farcaster_handle || '') &&
+                !getSocialUrl('telegram', profile.telegram_handle || '') && (
                   <div className="text-gray-400 body-small">
                     No social links
                   </div>
