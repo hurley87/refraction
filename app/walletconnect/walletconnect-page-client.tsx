@@ -54,7 +54,7 @@ type FlowStatus =
   | "confirming"
   | "done";
 
-export function WalletConnectPayTestClient() {
+export function WalletConnectPageClient() {
   const { login, authenticated, ready: privyReady, user } = usePrivy();
   const { wallets } = useWallets();
 

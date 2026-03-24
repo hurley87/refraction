@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { WalletConnectPayTestClient } from "./walletconnect-pay-test-client";
+import { WalletConnectPageClient } from "./walletconnect-page-client";
 
 export const metadata: Metadata = {
   title: "WalletKit Pay test — poster drop",
@@ -9,6 +9,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function WalletConnectPayTestPage() {
-  return <WalletConnectPayTestClient />;
+export default function WalletConnectPage() {
+  return <WalletConnectPageClient />;
 }
