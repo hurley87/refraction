@@ -13,6 +13,7 @@ const PROFILE_COLUMNS = `
   email,
   username,
   name,
+  website,
   twitter_handle,
   towns_handle,
   farcaster_handle,
