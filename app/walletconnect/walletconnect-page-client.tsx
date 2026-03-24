@@ -5,7 +5,15 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { isPaymentLink } from "@reown/walletkit";
-import { ExternalLink, Loader2, ShoppingBag, Wallet } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  Loader2,
+  Lock,
+  ShieldCheck,
+  Sparkles,
+  Wallet,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -27,22 +35,21 @@ import type { PaymentOptionsResponse } from "@walletconnect/pay";
 const PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
 const PAY_API_KEY =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY?.trim() || undefined;
+/** Merchant wires the WalletConnect Pay link for this product so buyers never paste it. */
+const PRODUCT_PAYMENT_LINK =
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_PRODUCT_LINK?.trim() ?? "";
 
 const POSTER_PRICE_USD = 1;
 const POSTER_TOTAL = 100;
 const PRODUCT_NAME = "Limited edition poster";
+const PRODUCT_BLURB =
+  "Screen-printed IRL drop. Ships worldwide. Pay with USDC via WalletConnect Pay — pick your network in your wallet.";
 
-/** EVM chains WalletConnect Pay documents for USDC (CAIP-2 → account list). */
 const PAY_EVM_CHAIN_IDS = [1, 8453, 10, 137, 42161] as const;
-
-const WALLETKIT_WEB_DOCS =
-  "https://docs.walletconnect.com/payments/wallets/walletkit/web";
 
 function buildCaip10Accounts(address: string): string[] {
   const checksummed = address as `0x${string}`;
-  return PAY_EVM_CHAIN_IDS.map(
-    (id) => `eip155:${id}:${checksummed}`
-  );
+  return PAY_EVM_CHAIN_IDS.map((id) => `eip155:${id}:${checksummed}`);
 }
 
 type FlowStatus =
@@ -54,20 +61,23 @@ type FlowStatus =
   | "confirming"
   | "done";
 
+function shortAddress(addr: string): string {
+  if (addr.length < 12) return addr;
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
 export function WalletConnectPageClient() {
   const { login, authenticated, ready: privyReady, user } = usePrivy();
   const { wallets } = useWallets();
 
-  const [paymentLinkInput, setPaymentLinkInput] = useState("");
+  const [paymentLinkOverride, setPaymentLinkOverride] = useState("");
+  const [showDevLink, setShowDevLink] = useState(false);
   const [optionsResponse, setOptionsResponse] =
     useState<PaymentOptionsResponse | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [flowStatus, setFlowStatus] = useState<FlowStatus>("idle");
   const [lastError, setLastError] = useState<string | null>(null);
-  const [confirmResult, setConfirmResult] = useState<{
-    status: string;
-    isFinal: boolean;
-  } | null>(null);
+  const [purchaseComplete, setPurchaseComplete] = useState(false);
 
   const [icOpen, setIcOpen] = useState(false);
   const [icUrl, setIcUrl] = useState<string | null>(null);
@@ -84,9 +94,17 @@ export function WalletConnectPageClient() {
     );
   }, [wallets, address]);
 
-  const linkLooksLikePayment = useMemo(
-    () => paymentLinkInput.trim().length > 0 && isPaymentLink(paymentLinkInput.trim()),
-    [paymentLinkInput]
+  const effectivePaymentLink = useMemo(() => {
+    const override = paymentLinkOverride.trim();
+    if (override) return override;
+    return PRODUCT_PAYMENT_LINK.trim();
+  }, [paymentLinkOverride]);
+
+  const linkValid = useMemo(
+    () =>
+      effectivePaymentLink.length > 0 &&
+      isPaymentLink(effectivePaymentLink),
+    [effectivePaymentLink]
   );
 
   const runDataCollectionIframe = useCallback((url: string) => {
@@ -137,158 +155,199 @@ export function WalletConnectPageClient() {
     icRejectRef.current?.(new Error("Information collection cancelled"));
   }, []);
 
-  const fetchPaymentOptions = useCallback(async () => {
-    setLastError(null);
-    setOptionsResponse(null);
-    setSelectedOptionId(null);
-    setConfirmResult(null);
-
-    const link = paymentLinkInput.trim();
-    if (!link) {
-      toast.error("Paste a payment link first");
-      return;
-    }
-    if (!isPaymentLink(link)) {
-      toast.error("Not a WalletConnect Pay link (isPaymentLink returned false)");
-      return;
-    }
-    if (!address) {
-      toast.error("Connect your wallet first");
-      return;
-    }
-    if (!PROJECT_ID) {
-      toast.error("Missing NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID");
-      return;
-    }
-
-    setFlowStatus("initializing");
-    try {
-      const walletkit = await getWalletKitSingleton({
-        projectId: PROJECT_ID,
-        payApiKey: PAY_API_KEY,
-      });
-      setFlowStatus("loading_options");
-      const accounts = buildCaip10Accounts(address);
-      const options = await walletkit.pay.getPaymentOptions({
-        paymentLink: link,
-        accounts,
-        includePaymentInfo: true,
-      });
-      setOptionsResponse(options);
-      if (options.options.length === 0) {
-        toast.error("No payment options for these accounts");
-      } else {
-        toast.success("Payment options loaded");
+  const loadPaymentOptions =
+    useCallback(async (): Promise<PaymentOptionsResponse | null> => {
+      const link = effectivePaymentLink;
+      if (!link) {
+        toast.error("Payment link is not configured");
+        return null;
       }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setLastError(msg);
-      toast.error(msg);
-    } finally {
-      setFlowStatus("idle");
-    }
-  }, [address, paymentLinkInput]);
-
-  const payWithSelectedOption = useCallback(async () => {
-    if (!optionsResponse || !selectedOptionId || !address || !evmWallet) {
-      toast.error("Select a payment option and ensure your wallet is connected");
-      return;
-    }
-
-    const link = paymentLinkInput.trim();
-    if (!link || !isPaymentLink(link)) {
-      toast.error("Invalid payment link");
-      return;
-    }
-
-    setLastError(null);
-    setConfirmResult(null);
-
-    try {
-      const walletkit = await getWalletKitSingleton({
-        projectId: PROJECT_ID,
-        payApiKey: PAY_API_KEY,
-      });
-
-      const option = optionsResponse.options.find((o) => o.id === selectedOptionId);
-      if (!option) {
-        throw new Error("Selected option not found");
+      if (!isPaymentLink(link)) {
+        toast.error("Invalid payment link");
+        return null;
+      }
+      if (!address) {
+        toast.error("Connect your wallet to continue");
+        return null;
+      }
+      if (!PROJECT_ID) {
+        toast.error("App configuration incomplete");
+        return null;
       }
 
-      // Per-option data collection (recommended in WalletKit Web docs)
-      const ic = option.collectData?.url;
-      if (ic) {
-        setFlowStatus("awaiting_ic");
-        await runDataCollectionIframe(ic);
-      }
-
-      setFlowStatus("signing");
-      const actions = await walletkit.pay.getRequiredPaymentActions({
-        paymentId: optionsResponse.paymentId,
-        optionId: selectedOptionId,
-      });
-
-      const provider = await evmWallet.getEthereumProvider();
-      if (!provider) {
-        throw new Error("Could not get Ethereum provider from Privy wallet");
-      }
-
-      const signatures: string[] = [];
-      for (const action of actions) {
-        const sig = await signWalletRpcAction(
-          provider as unknown as BrowserProvider,
-          action,
-          {
-            switchChain: async (chainId) => {
-              await evmWallet.switchChain(chainId);
-            },
-          }
-        );
-        signatures.push(sig);
-      }
-
-      setFlowStatus("confirming");
-      const result = await walletkit.pay.confirmPayment({
-        paymentId: optionsResponse.paymentId,
-        optionId: selectedOptionId,
-        signatures,
-      });
-
-      setConfirmResult({ status: result.status, isFinal: result.isFinal });
-      setFlowStatus("done");
-      if (result.status === "succeeded") {
-        toast.success("Payment succeeded");
-      } else if (result.status === "processing") {
-        toast.message("Payment processing", {
-          description: result.pollInMs
-            ? `You can poll again after ${result.pollInMs}ms`
-            : undefined,
+      setLastError(null);
+      setFlowStatus("initializing");
+      try {
+        const walletkit = await getWalletKitSingleton({
+          projectId: PROJECT_ID,
+          payApiKey: PAY_API_KEY,
         });
-      } else {
-        toast.error(`Payment status: ${result.status}`);
+        setFlowStatus("loading_options");
+        const accounts = buildCaip10Accounts(address);
+        const options = await walletkit.pay.getPaymentOptions({
+          paymentLink: link,
+          accounts,
+          includePaymentInfo: true,
+        });
+        setOptionsResponse(options);
+        if (options.options.length === 0) {
+          toast.error("No payment options for your wallet");
+          return null;
+        }
+        const first = options.options[0]!.id;
+        setSelectedOptionId(first);
+        return options;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setLastError(msg);
+        toast.error(msg);
+        return null;
+      } finally {
+        setFlowStatus("idle");
       }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setLastError(msg);
-      setFlowStatus("idle");
-      toast.error(msg);
+    }, [address, effectivePaymentLink]);
+
+  const payWithSelectedOption = useCallback(
+    async (response: PaymentOptionsResponse, optionId: string) => {
+      if (!address || !evmWallet) {
+        toast.error("Wallet not ready");
+        return;
+      }
+      const link = effectivePaymentLink;
+      if (!link || !isPaymentLink(link)) {
+        toast.error("Invalid payment link");
+        return;
+      }
+
+      setLastError(null);
+
+      try {
+        const walletkit = await getWalletKitSingleton({
+          projectId: PROJECT_ID,
+          payApiKey: PAY_API_KEY,
+        });
+
+        const option = response.options.find((o) => o.id === optionId);
+        if (!option) {
+          throw new Error("Selected payment method not found");
+        }
+
+        const ic = option.collectData?.url;
+        if (ic) {
+          setFlowStatus("awaiting_ic");
+          await runDataCollectionIframe(ic);
+        }
+
+        setFlowStatus("signing");
+        const actions = await walletkit.pay.getRequiredPaymentActions({
+          paymentId: response.paymentId,
+          optionId,
+        });
+
+        const provider = await evmWallet.getEthereumProvider();
+        if (!provider) {
+          throw new Error("Could not connect to your wallet");
+        }
+
+        const signatures: string[] = [];
+        for (const action of actions) {
+          const sig = await signWalletRpcAction(
+            provider as unknown as BrowserProvider,
+            action,
+            {
+              switchChain: async (chainId) => {
+                await evmWallet.switchChain(chainId);
+              },
+            }
+          );
+          signatures.push(sig);
+        }
+
+        setFlowStatus("confirming");
+        const result = await walletkit.pay.confirmPayment({
+          paymentId: response.paymentId,
+          optionId,
+          signatures,
+        });
+
+        setFlowStatus("done");
+        if (result.status === "succeeded") {
+          setPurchaseComplete(true);
+          toast.success("Payment received — thank you!");
+        } else if (result.status === "processing") {
+          setPurchaseComplete(true);
+          toast.message("Payment is processing", {
+            description: "We will confirm shortly.",
+          });
+        } else {
+          toast.error(`Payment could not complete (${result.status})`);
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setLastError(msg);
+        setFlowStatus("idle");
+        toast.error(msg);
+      }
+    },
+    [address, effectivePaymentLink, evmWallet, runDataCollectionIframe]
+  );
+
+  const handlePayClick = useCallback(async () => {
+    if (!linkValid) {
+      toast.error(
+        PRODUCT_PAYMENT_LINK
+          ? "Payment link misconfigured"
+          : "Add a payment link under “Advanced” or set NEXT_PUBLIC_WALLETCONNECT_PAY_PRODUCT_LINK"
+      );
+      return;
     }
+    let response = optionsResponse;
+    let optionId = selectedOptionId;
+
+    if (!response || !optionId) {
+      response = (await loadPaymentOptions()) ?? null;
+      if (!response) return;
+      optionId = response.options[0]?.id ?? null;
+      if (!optionId) return;
+      setSelectedOptionId(optionId);
+    }
+
+    await payWithSelectedOption(response, optionId);
   }, [
-    address,
-    evmWallet,
+    linkValid,
+    loadPaymentOptions,
     optionsResponse,
-    paymentLinkInput,
-    runDataCollectionIframe,
+    payWithSelectedOption,
     selectedOptionId,
   ]);
 
   const configOk = Boolean(PROJECT_ID);
-  const canUsePay = privyReady && authenticated && Boolean(address) && configOk;
+  const walletReady = privyReady && authenticated && Boolean(address) && configOk;
+  const isBusy =
+    flowStatus === "initializing" ||
+    flowStatus === "loading_options" ||
+    flowStatus === "awaiting_ic" ||
+    flowStatus === "signing" ||
+    flowStatus === "confirming";
+
+  useEffect(() => {
+    if (!walletReady || !linkValid || purchaseComplete || optionsResponse) return;
+    if (!PRODUCT_PAYMENT_LINK.trim()) return;
+    void loadPaymentOptions();
+  }, [
+    walletReady,
+    linkValid,
+    purchaseComplete,
+    optionsResponse,
+    loadPaymentOptions,
+  ]);
+
+  const remaining = POSTER_TOTAL;
 
   return (
-    <div className="min-h-dvh bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50">
-      <header className="border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
-        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
+    <div className="min-h-dvh bg-gradient-to-b from-zinc-100 to-zinc-200 text-zinc-900 dark:from-zinc-950 dark:to-zinc-900 dark:text-zinc-50">
+      <header className="border-b border-zinc-200/80 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
+        <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4 sm:max-w-xl">
           <Link
             href="/"
             className="flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -300,291 +359,244 @@ export function WalletConnectPageClient() {
               height={16}
               className="h-4 w-auto dark:invert"
             />
-            <span>Back to home</span>
+            <span>Shop</span>
           </Link>
-          <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-            WalletKit Pay · test
+          <span className="flex items-center gap-1 text-xs text-zinc-500">
+            <Lock className="size-3" aria-hidden />
+            Secure checkout
           </span>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl space-y-10 px-4 py-10">
-        <section className="space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-            <ShoppingBag className="size-3.5" aria-hidden />
-            WalletKit Web integration —{" "}
-            <a
-              href={WALLETKIT_WEB_DOCS}
-              className="text-primary underline-offset-4 hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              docs
-            </a>
+      <main className="mx-auto max-w-lg px-4 py-8 sm:max-w-xl sm:py-12">
+        {!configOk ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+            This checkout is not fully configured. Add{" "}
+            <code className="rounded bg-white/60 px-1 dark:bg-zinc-900">
+              NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+            </code>{" "}
+            to the app environment.
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">{PRODUCT_NAME}</h1>
-          <p className="max-w-xl text-zinc-600 dark:text-zinc-400">
-            {POSTER_TOTAL} posters at ${POSTER_PRICE_USD} each. This page runs the
-            wallet-side flow:{" "}
-            <code className="rounded bg-zinc-200/80 px-1 text-xs dark:bg-zinc-800">
-              isPaymentLink
-            </code>{" "}
-            →{" "}
-            <code className="rounded bg-zinc-200/80 px-1 text-xs dark:bg-zinc-800">
-              pay.getPaymentOptions
-            </code>{" "}
-            → optional IC iframe →{" "}
-            <code className="rounded bg-zinc-200/80 px-1 text-xs dark:bg-zinc-800">
-              getRequiredPaymentActions
-            </code>{" "}
-            → sign →{" "}
-            <code className="rounded bg-zinc-200/80 px-1 text-xs dark:bg-zinc-800">
-              confirmPayment
-            </code>
-            , using your Privy embedded EVM wallet as the signer.
-          </p>
-        </section>
+        ) : null}
 
-        <section
-          className={cn(
-            "rounded-xl border p-6 shadow-sm",
-            configOk
-              ? "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
-              : "border-amber-200 bg-amber-50/80 dark:border-amber-900 dark:bg-amber-950/40"
-          )}
-        >
-          <h2 className="text-lg font-semibold">1. Environment</h2>
-          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-600 dark:text-zinc-400">
-            <li>
-              <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
-                NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
-              </code>{" "}
-              — same Cloud project as your wallet (required).
-            </li>
-            <li>
-              <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
-                NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY
-              </code>{" "}
-              — WCP ID from Dashboard → Pay → copy (optional; defaults to project
-              id if unset).
-            </li>
-          </ul>
-        </section>
+        <div className="overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="relative aspect-[4/3] bg-gradient-to-br from-violet-200 via-fuchsia-100 to-amber-100 dark:from-violet-950 dark:via-fuchsia-950 dark:to-amber-950">
+            <div className="absolute inset-0 flex items-center justify-center p-8">
+              <div className="text-center">
+                <Sparkles
+                  className="mx-auto size-12 text-violet-600 dark:text-violet-300"
+                  aria-hidden
+                />
+                <p className="mt-3 text-sm font-medium text-violet-950/80 dark:text-violet-100">
+                  {PRODUCT_NAME}
+                </p>
+              </div>
+            </div>
+            <div className="absolute bottom-3 left-3 right-3 flex justify-between text-xs font-medium text-zinc-700/90 dark:text-zinc-200">
+              <span className="rounded-full bg-white/90 px-2.5 py-1 backdrop-blur dark:bg-zinc-950/80">
+                {remaining} left
+              </span>
+              <span className="rounded-full bg-white/90 px-2.5 py-1 backdrop-blur dark:bg-zinc-950/80">
+                USDC · WalletConnect Pay
+              </span>
+            </div>
+          </div>
 
-        <section className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-          <h2 className="text-lg font-semibold">2. Connect wallet</h2>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            Pay signing uses your Privy EVM wallet (
-            <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-800">
-              getEthereumProvider
-            </code>
-            ). Accounts are advertised on:{" "}
-            {PAY_EVM_CHAIN_IDS.join(", ")} (eip155).
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="space-y-5 p-6 sm:p-8">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                {PRODUCT_NAME}
+              </h1>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                {PRODUCT_BLURB}
+              </p>
+              <p className="mt-4 flex items-baseline gap-2">
+                <span className="text-3xl font-bold tracking-tight">
+                  ${POSTER_PRICE_USD}
+                </span>
+                <span className="text-sm text-zinc-500">per poster · excl. shipping</span>
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-3 text-xs text-zinc-600 dark:text-zinc-400">
+              <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 dark:bg-zinc-800">
+                <ShieldCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                Encrypted wallet payment
+              </span>
+            </div>
+
+            {purchaseComplete ? (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
+                <div className="flex gap-3">
+                  <CheckCircle2 className="size-8 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <div>
+                    <p className="font-semibold text-emerald-950 dark:text-emerald-100">
+                      You are all set
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-900/80 dark:text-emerald-200/90">
+                      Thanks for your purchase. We will email shipping details to
+                      the address on your order when your pack ships.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             {!authenticated ? (
-              <Button onClick={() => login()} disabled={!privyReady}>
-                <Wallet className="size-4" />
-                Log in with Privy
+              <Button
+                size="lg"
+                className="h-12 w-full rounded-xl text-base"
+                onClick={() => login()}
+                disabled={!privyReady || !configOk}
+              >
+                <Wallet className="size-5" />
+                Connect wallet to buy
               </Button>
             ) : (
-              <div className="text-sm">
-                <span className="text-zinc-500">Connected: </span>
-                <span className="font-mono text-xs">{address}</span>
-              </div>
-            )}
-          </div>
-        </section>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Paying with
+                    </p>
+                    <p className="font-mono text-sm">{shortAddress(address!)}</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => login()}>
+                    Change
+                  </Button>
+                </div>
 
-        <section className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-          <h2 className="text-lg font-semibold">3. Payment link</h2>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            Paste a{" "}
-            <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-800">
-              https://pay.walletconnect.com/...
-            </code>{" "}
-            link from your merchant / POS flow.{" "}
-            <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-800">
-              isPaymentLink(uri)
-            </code>{" "}
-            gates before calling the Pay API.
-          </p>
-          <textarea
-            value={paymentLinkInput}
-            onChange={(e) => setPaymentLinkInput(e.target.value)}
-            rows={3}
-            className="mt-3 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-xs text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-            placeholder="https://pay.walletconnect.com/..."
-            disabled={!canUsePay}
-          />
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button
-              type="button"
-              onClick={fetchPaymentOptions}
-              disabled={
-                !canUsePay ||
-                flowStatus === "initializing" ||
-                flowStatus === "loading_options" ||
-                !linkLooksLikePayment
-              }
-            >
-              {(flowStatus === "initializing" ||
-                flowStatus === "loading_options") && (
-                <Loader2 className="size-4 animate-spin" />
-              )}
-              Load payment options
-            </Button>
-            <span
-              className={cn(
-                "self-center text-xs",
-                linkLooksLikePayment ? "text-emerald-600" : "text-zinc-500"
-              )}
-            >
-              {paymentLinkInput.trim()
-                ? linkLooksLikePayment
-                  ? "Detected as payment link"
-                  : "Not detected as payment link"
-                : "Paste a link"}
-            </span>
-          </div>
-        </section>
+                {optionsResponse && selectedOptionId ? (
+                  <div>
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
+                      Payment method
+                    </p>
+                    <ul className="space-y-2">
+                      {optionsResponse.options.map((opt) => {
+                        const active = selectedOptionId === opt.id;
+                        const needsInfo = Boolean(opt.collectData?.url);
+                        return (
+                          <li key={opt.id}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedOptionId(opt.id)}
+                              className={cn(
+                                "flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition-colors",
+                                active
+                                  ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                  : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                              )}
+                            >
+                              <span>
+                                <span className="font-medium">
+                                  {opt.amount.display.assetSymbol}
+                                </span>
+                                {opt.amount.display.networkName ? (
+                                  <span className="text-zinc-500">
+                                    {" "}
+                                    on {opt.amount.display.networkName}
+                                  </span>
+                                ) : null}
+                              </span>
+                              {needsInfo ? (
+                                <span className="text-xs text-amber-700 dark:text-amber-300">
+                                  ID check
+                                </span>
+                              ) : null}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ) : null}
 
-        {optionsResponse ? (
-          <section className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-            <h2 className="text-lg font-semibold">4. Choose option & pay</h2>
-            {optionsResponse.info ? (
-              <div className="mt-3 rounded-lg border border-zinc-100 bg-zinc-50 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950">
-                <p>
-                  <span className="text-zinc-500">Merchant: </span>
-                  {optionsResponse.info.merchant.name}
-                </p>
-                <p>
-                  <span className="text-zinc-500">Amount: </span>
-                  {optionsResponse.info.amount.display.assetSymbol} (
-                  {optionsResponse.info.amount.display.networkName ?? "network"})
-                  {" — "}
-                  <span className="font-mono text-xs">
-                    raw: {optionsResponse.info.amount.value}
-                  </span>
-                </p>
-                <p className="text-xs text-zinc-500">
-                  Payment ID: {optionsResponse.paymentId}
-                </p>
-              </div>
-            ) : null}
+                <Button
+                  size="lg"
+                  className="h-12 w-full rounded-xl text-base"
+                  disabled={!walletReady || !linkValid || isBusy || purchaseComplete}
+                  onClick={() => void handlePayClick()}
+                >
+                  {isBusy ? (
+                    <Loader2 className="size-5 animate-spin" />
+                  ) : (
+                    <Sparkles className="size-5" />
+                  )}
+                  {optionsResponse
+                    ? `Pay $${POSTER_PRICE_USD} with crypto`
+                    : `Continue — $${POSTER_PRICE_USD}`}
+                </Button>
 
-            <ul className="mt-4 space-y-2">
-              {optionsResponse.options.map((opt) => {
-                const needsIc = Boolean(opt.collectData?.url);
-                const active = selectedOptionId === opt.id;
-                return (
-                  <li key={opt.id}>
+                {!PRODUCT_PAYMENT_LINK ? (
+                  <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600">
                     <button
                       type="button"
-                      onClick={() => setSelectedOptionId(opt.id)}
-                      className={cn(
-                        "w-full rounded-lg border px-4 py-3 text-left text-sm transition-colors",
-                        active
-                          ? "border-primary bg-primary/5"
-                          : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                      )}
+                      onClick={() => setShowDevLink((v) => !v)}
+                      className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-zinc-600 dark:text-zinc-400"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-medium">
-                          {opt.amount.display.assetSymbol} on{" "}
-                          {opt.amount.display.networkName ?? "EVM"}
-                        </span>
-                        {needsIc ? (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                            Info required
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1 text-xs text-zinc-500">
-                        Option id: {opt.id} · ETA ~{opt.etaS}s
-                      </p>
+                      <span>Advanced — paste payment link (dev)</span>
+                      <ChevronDown
+                        className={cn(
+                          "size-4 transition-transform",
+                          showDevLink && "rotate-180"
+                        )}
+                      />
                     </button>
-                  </li>
-                );
-              })}
-            </ul>
+                    {showDevLink ? (
+                      <div className="border-t border-zinc-200 px-4 pb-4 pt-0 dark:border-zinc-700">
+                        <p className="py-2 text-xs text-zinc-500">
+                          For production, set{" "}
+                          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
+                            NEXT_PUBLIC_WALLETCONNECT_PAY_PRODUCT_LINK
+                          </code>{" "}
+                          so buyers never see this.
+                        </p>
+                        <textarea
+                          value={paymentLinkOverride}
+                          onChange={(e) => {
+                            setPaymentLinkOverride(e.target.value);
+                            setOptionsResponse(null);
+                            setSelectedOptionId(null);
+                          }}
+                          rows={2}
+                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
+                          placeholder="https://pay.walletconnect.com/..."
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            )}
 
-            <Button
-              className="mt-6"
-              size="lg"
-              disabled={
-                !selectedOptionId ||
-                flowStatus === "awaiting_ic" ||
-                flowStatus === "signing" ||
-                flowStatus === "confirming"
-              }
-              onClick={() => void payWithSelectedOption()}
-            >
-              {(flowStatus === "signing" || flowStatus === "confirming") && (
-                <Loader2 className="size-4 animate-spin" />
-              )}
-              Sign & confirm payment
-            </Button>
-
-            {confirmResult ? (
-              <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-                Result:{" "}
-                <strong>{confirmResult.status}</strong>
-                {confirmResult.isFinal ? " (final)" : " (not final)"}
+            {lastError ? (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+                {lastError}
               </p>
             ) : null}
-          </section>
-        ) : null}
+          </div>
+        </div>
 
-        {lastError ? (
-          <section className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-            {lastError}
-          </section>
-        ) : null}
-
-        <section className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-          <h2 className="text-lg font-semibold">Merchant / link source</h2>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            This page implements the{" "}
-            <strong>wallet</strong> integration from the WalletKit Web guide. You
-            still need a <strong>payment link</strong> from your merchant dashboard
-            or test POS (see{" "}
-            <a
-              href="https://docs.walletconnect.com/payments/merchant/onboarding"
-              className="text-primary underline-offset-4 hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              merchant onboarding
-            </a>
-            ).
-          </p>
-          <Button asChild variant="outline" size="sm" className="mt-4">
-            <a
-              href="https://dashboard.walletconnect.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              WalletConnect Dashboard
-              <ExternalLink className="size-3.5" />
-            </a>
-          </Button>
-        </section>
+        <p className="mt-8 text-center text-xs text-zinc-500">
+          Questions?{" "}
+          <Link href="/contact-us" className="underline underline-offset-2">
+            Contact us
+          </Link>
+        </p>
       </main>
 
       <Dialog open={icOpen} onOpenChange={(open) => !open && handleCloseIc()}>
         <DialogContent className="max-w-lg gap-0 p-0 sm:max-w-lg">
           <DialogHeader className="p-4 pb-0">
-            <DialogTitle>Information collection</DialogTitle>
+            <DialogTitle>Verify your details</DialogTitle>
           </DialogHeader>
           <p className="px-4 pb-2 text-xs text-muted-foreground">
-            Complete the form. When finished, the iframe posts{" "}
-            <code className="rounded bg-muted px-1">IC_COMPLETE</code> so the app
-            can call <code className="rounded bg-muted px-1">confirmPayment</code>.
+            Regulations require a few details for this payment. Complete the form,
+            then we will finish in your wallet.
           </p>
           {icUrl ? (
             <iframe
-              title="WalletConnect Pay data collection"
+              title="Payment verification"
               src={icUrl}
               className="h-[min(70vh,560px)] w-full rounded-b-lg border-t border-border bg-white"
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
