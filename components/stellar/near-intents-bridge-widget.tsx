@@ -137,7 +137,7 @@ function ChainIcon({
 }
 
 interface NearIntentsBridgeWidgetProps {
-  /** When provided (e.g. from Freighter on Stellar page), used as recipient instead of Privy Stellar address */
+  /** When provided (e.g. Privy-first from /stellar), used as recipient before falling back to `useStellarWallet` */
   stellarAddressOverride?: string | null;
   /** When provided (e.g. from useWallet().network on Stellar page), used for display and to align with wallet network. Falls back to NEXT_PUBLIC_STELLAR_NETWORK. */
   stellarNetworkOverride?: string | null;

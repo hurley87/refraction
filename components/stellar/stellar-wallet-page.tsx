@@ -1,21 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { ChevronDown } from 'lucide-react';
 import { WalletProvider } from '@/lib/stellar/providers/wallet-provider';
 import { NotificationProvider } from '@/lib/stellar/providers/notification-provider';
 import MapNav from '@/components/map/mapnav';
 import ConnectAccount from './connect-account';
+import { UserBalance } from './user-balance';
 import MintNFT from './mint-nft';
 import ClaimPoints from './claim-points';
 import { NearIntentsBridgeWidget } from './near-intents-bridge-widget';
 import { TransactionStatus } from './transaction-status';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
+import { useStellarWallet } from '@/hooks/useStellarWallet';
+import { stellarNetwork } from '@/lib/stellar/utils/network';
 import NetworkPill from './network-pill';
 
 function StellarWalletPageContent() {
-  const { network, address: stellarWalletAddress } = useWallet();
+  const {
+    network,
+    networkPassphrase,
+    address: stellarWalletAddress,
+  } = useWallet();
+  const { address: privyStellarAddress } = useStellarWallet();
+  const hasStellarForBalance = Boolean(
+    stellarWalletAddress || privyStellarAddress
+  );
   const [ticketTxHash, setTicketTxHash] = useState<string | null>(null);
   const [ticketTokenId, setTicketTokenId] = useState<number | null>(null);
   const [ticketContractId, setTicketContractId] = useState<string | null>(null);
@@ -29,6 +40,48 @@ function StellarWalletPageContent() {
   const [ticketError, setTicketError] = useState<string | null>(null);
   const [rewardError, setRewardError] = useState<string | null>(null);
   const [bridgeExpanded, setBridgeExpanded] = useState(false);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+
+    const envConfigured = process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'TESTNET';
+    const isMainnetFromPassphrase =
+      !!networkPassphrase &&
+      (networkPassphrase.includes('Public') ||
+        networkPassphrase.includes('Public Global Stellar Network'));
+    const isTestnetFromPassphrase =
+      !!networkPassphrase && networkPassphrase.includes('Test');
+
+    let effectiveLabel: string;
+    if (networkPassphrase) {
+      if (isMainnetFromPassphrase) {
+        effectiveLabel = 'MAINNET (Freighter / wallet kit passphrase)';
+      } else if (isTestnetFromPassphrase) {
+        effectiveLabel = 'TESTNET (Freighter / wallet kit passphrase)';
+      } else {
+        effectiveLabel = 'CUSTOM / OTHER (wallet passphrase set)';
+      }
+    } else {
+      const u = envConfigured.toUpperCase();
+      if (u === 'PUBLIC' || u === 'MAINNET') {
+        effectiveLabel = `MAINNET (NEXT_PUBLIC_STELLAR_NETWORK=${envConfigured}, no wallet passphrase yet)`;
+      } else {
+        effectiveLabel = `TESTNET-LIKE (NEXT_PUBLIC_STELLAR_NETWORK=${envConfigured}, no wallet passphrase yet)`;
+      }
+    }
+
+    console.debug('[Stellar /stellar] Network debug', {
+      effectiveLabel,
+      walletKitNetwork: network ?? null,
+      walletKitPassphrasePrefix: networkPassphrase
+        ? `${networkPassphrase.slice(0, 48)}…`
+        : null,
+      nextPublicStellarNetwork: envConfigured,
+      buildTimeStellarNetwork: stellarNetwork,
+      freighterAddress: stellarWalletAddress ?? null,
+      privyStellarAddress: privyStellarAddress ?? null,
+    });
+  }, [network, networkPassphrase, stellarWalletAddress, privyStellarAddress]);
 
   return (
     <div
@@ -97,11 +150,36 @@ function StellarWalletPageContent() {
                 }}
               >
                 IRL works with Stellar to bring cultural onchain experiences to
-                real-world events — connect your Freighter wallet
-                and earn points towards future rewards.
+                real-world events — use your embedded IRL wallet (Privy) or
+                connect Freighter to earn points towards future rewards.
               </p>
             </div>
           </div>
+
+          {hasStellarForBalance && (
+            <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-2">
+                  <Image
+                    src="/homepage/ellipse.svg"
+                    alt=""
+                    width={24}
+                    height={24}
+                    className="shrink-0"
+                  />
+                  <h2
+                    className="title5 text-white font-grotesk"
+                    style={{
+                      textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px',
+                    }}
+                  >
+                    Wallet Balance
+                  </h2>
+                </div>
+                <UserBalance />
+              </div>
+            </div>
+          )}
 
           {/* Step 1: Connect */}
           <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
@@ -118,10 +196,10 @@ function StellarWalletPageContent() {
                   className="title5 text-white font-grotesk"
                   style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
                 >
-                  {stellarWalletAddress ? 'Connected' : 'Connect'}
+                  {hasStellarForBalance ? 'Connected' : 'Connect'}
                 </h2>
               </div>
-              {!stellarWalletAddress && (
+              {!hasStellarForBalance && (
                 <p
                   className="text-[#B5B5B5]"
                   style={{
@@ -134,7 +212,9 @@ function StellarWalletPageContent() {
                     letterSpacing: '-0.26px',
                   }}
                 >
-                  Connect with Freighter wallet
+                  {privyStellarAddress
+                    ? 'Optionally connect Freighter if you prefer an external browser wallet.'
+                    : 'Connect with Freighter, or sign in with IRL to use your embedded Stellar wallet.'}
                 </p>
               )}
               <ConnectAccount />
@@ -175,7 +255,9 @@ function StellarWalletPageContent() {
                   Move assets onto Stellar
                 </p>
                 <NearIntentsBridgeWidget
-                  stellarAddressOverride={stellarWalletAddress ?? undefined}
+                  stellarAddressOverride={
+                    privyStellarAddress ?? stellarWalletAddress ?? undefined
+                  }
                   stellarNetworkOverride={network ?? undefined}
                 />
               </div>
@@ -231,6 +313,7 @@ function StellarWalletPageContent() {
                 error={ticketError}
                 successMessage="Ticket received successfully!"
                 network={network}
+                networkPassphrase={networkPassphrase}
                 tokenId={ticketTokenId}
                 contractId={ticketContractId}
               />
@@ -279,6 +362,7 @@ function StellarWalletPageContent() {
                 error={rewardError}
                 successMessage="Points claimed successfully!"
                 network={network}
+                networkPassphrase={networkPassphrase}
               />
             </div>
           </div>

@@ -8,28 +8,45 @@ import { getFriendbotUrl } from '@/lib/stellar/utils/friendbot';
 
 interface FundAccountButtonProps {
   compact?: boolean;
+  /**
+   * When set, funds this address (e.g. Privy embedded Stellar) instead of the
+   * Freighter-connected wallet from context.
+   */
+  fundAddress?: string;
+  /** Horizon account exists (used with fundAddress) */
+  fundAccountExists?: boolean;
+  /** Native XLM balance string from Horizon (used with fundAddress) */
+  fundXlmBalance?: string;
 }
 
 const FundAccountButton: React.FC<FundAccountButtonProps> = ({
   compact = false,
+  fundAddress,
+  fundAccountExists,
+  fundXlmBalance,
 }) => {
   const { addNotification } = useNotification();
   const [isPending, startTransition] = useTransition();
   const { address, balances, accountExists } = useWallet();
 
-  if (!address) return null;
+  const targetAddress = fundAddress ?? address;
+  if (!targetAddress) return null;
+
+  const xlmBalance = fundAddress ? fundXlmBalance : balances?.xlm?.balance;
+  const effectiveAccountExists = fundAddress
+    ? (fundAccountExists ?? true)
+    : accountExists;
 
   // Only show if account doesn't exist or balance is 0
-  const xlmBalance = balances?.xlm?.balance;
   const hasBalance = xlmBalance && Number(xlmBalance) > 0;
 
   // Don't show if account exists and has balance
-  if (accountExists && hasBalance) return null;
+  if (effectiveAccountExists && hasBalance) return null;
 
   const handleFundAccount = () => {
     startTransition(async () => {
       try {
-        const friendbotUrl = getFriendbotUrl(address);
+        const friendbotUrl = getFriendbotUrl(targetAddress);
         console.log('[Fund Account] Requesting funding from:', friendbotUrl);
 
         const response = await fetch(friendbotUrl);

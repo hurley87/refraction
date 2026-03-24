@@ -3,13 +3,43 @@
 import Link from 'next/link';
 import { toast } from 'sonner';
 
+function explorerIsMainnet(
+  network?: string | null,
+  networkPassphrase?: string | null
+): boolean {
+  const n = network?.trim().toUpperCase() ?? '';
+  if (n === 'PUBLIC' || n === 'MAINNET') return true;
+  if (
+    n === 'TESTNET' ||
+    n === 'FUTURENET' ||
+    n === 'LOCAL' ||
+    n === 'STANDALONE'
+  ) {
+    return false;
+  }
+
+  const p = networkPassphrase ?? '';
+  if (p.includes('Public Global Stellar Network')) return true;
+  if (p.includes('Test SDF Network')) return false;
+  if (p.includes('Public') && !p.includes('Test')) return true;
+
+  const env =
+    typeof process !== 'undefined'
+      ? process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toUpperCase()
+      : undefined;
+  return env === 'PUBLIC' || env === 'MAINNET';
+}
+
 interface TransactionStatusProps {
   status: 'idle' | 'pending' | 'success' | 'error';
   txHash: string | null;
   error: string | null;
   successMessage: string;
   pendingMessage?: string;
+  /** From Freighter / wallet kit; often unset when only Privy is used */
   network?: string;
+  /** When `network` is missing (e.g. Privy-only), used with env to pick mainnet vs testnet explorer */
+  networkPassphrase?: string;
   tokenId?: number | null;
   contractId?: string | null;
 }
@@ -21,14 +51,12 @@ export function TransactionStatus({
   successMessage,
   pendingMessage = 'Confirm transaction in your wallet...',
   network,
+  networkPassphrase,
   tokenId,
   contractId,
 }: TransactionStatusProps) {
-  // Determine explorer URL based on network
   const getExplorerUrl = (hash: string): string => {
-    const normalizedNetwork = network?.toUpperCase() || '';
-    const isMainnet =
-      normalizedNetwork === 'PUBLIC' || normalizedNetwork === 'MAINNET';
+    const isMainnet = explorerIsMainnet(network, networkPassphrase);
     const baseUrl = isMainnet
       ? 'https://stellar.expert/explorer/public'
       : 'https://stellar.expert/explorer/testnet';
