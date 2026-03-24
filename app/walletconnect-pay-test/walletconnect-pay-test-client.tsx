@@ -27,8 +27,6 @@ import type { PaymentOptionsResponse } from "@walletconnect/pay";
 const PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
 const PAY_API_KEY =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY?.trim() || undefined;
-const DEFAULT_PAYMENT_LINK =
-  process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_CHECKOUT_URL?.trim() ?? "";
 
 const POSTER_PRICE_USD = 1;
 const POSTER_TOTAL = 100;
@@ -60,7 +58,7 @@ export function WalletConnectPayTestClient() {
   const { login, authenticated, ready: privyReady, user } = usePrivy();
   const { wallets } = useWallets();
 
-  const [paymentLinkInput, setPaymentLinkInput] = useState(DEFAULT_PAYMENT_LINK);
+  const [paymentLinkInput, setPaymentLinkInput] = useState("");
   const [optionsResponse, setOptionsResponse] =
     useState<PaymentOptionsResponse | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
@@ -369,12 +367,6 @@ export function WalletConnectPayTestClient() {
               </code>{" "}
               — WCP ID from Dashboard → Pay → copy (optional; defaults to project
               id if unset).
-            </li>
-            <li>
-              <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
-                NEXT_PUBLIC_WALLETCONNECT_PAY_CHECKOUT_URL
-              </code>{" "}
-              — optional default payment link prefilled below.
             </li>
           </ul>
         </section>
