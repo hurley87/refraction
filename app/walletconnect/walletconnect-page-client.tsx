@@ -40,13 +40,13 @@ import { cn } from "@/lib/utils";
 import type { PaymentOptionsResponse } from "@walletconnect/pay";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
-/** WCP ID from Cloud → Pay (required for Pay API; not the same as project id). */
-const PAY_API_KEY =
+/**
+ * Must match env `NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY` — WCP ID from Cloud → Pay
+ * (not the WalletConnect project id).
+ */
+const walletConnectPayApiKey =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY?.trim() ?? "";
-const payApiKeyReady = PAY_API_KEY.length > 0;
-/** Merchant wires the WalletConnect Pay link for this product so buyers never paste it. */
-const PRODUCT_PAYMENT_LINK =
-  process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_PRODUCT_LINK?.trim() ?? "";
+const payApiKeyReady = walletConnectPayApiKey.length > 0;
 /** When set, /walletconnect can settle $1 USDC on Base without a Pay product link (plain ERC-20 transfer). */
 const POSTER_USDC_RECIPIENT =
   process.env.NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS?.trim() ?? "";
@@ -106,11 +106,11 @@ export function WalletConnectPageClient() {
     );
   }, [wallets, address]);
 
-  const effectivePaymentLink = useMemo(() => {
-    const override = paymentLinkOverride.trim();
-    if (override) return override;
-    return PRODUCT_PAYMENT_LINK.trim();
-  }, [paymentLinkOverride]);
+  /** Payment URI from QR scan only (no env-based product link). */
+  const effectivePaymentLink = useMemo(
+    () => paymentLinkOverride.trim(),
+    [paymentLinkOverride]
+  );
 
   const wcPayLinkValid = useMemo(
     () =>
@@ -180,7 +180,7 @@ export function WalletConnectPageClient() {
     useCallback(async (): Promise<PaymentOptionsResponse | null> => {
       const link = effectivePaymentLink;
       if (!link) {
-        toast.error("Payment link is not configured");
+        toast.error("Scan the payment QR code first");
         return null;
       }
       if (!isPaymentLink(link)) {
@@ -207,7 +207,7 @@ export function WalletConnectPageClient() {
       try {
         const walletkit = await getWalletKitSingleton({
           projectId: PROJECT_ID,
-          payApiKey: PAY_API_KEY,
+          payApiKey: walletConnectPayApiKey,
         });
         setFlowStatus("loading_options");
         const accounts = buildCaip10Accounts(address);
@@ -257,7 +257,7 @@ export function WalletConnectPageClient() {
       try {
         const walletkit = await getWalletKitSingleton({
           projectId: PROJECT_ID,
-          payApiKey: PAY_API_KEY,
+          payApiKey: walletConnectPayApiKey,
         });
 
         const option = response.options.find((o) => o.id === optionId);
@@ -470,7 +470,7 @@ export function WalletConnectPageClient() {
           </div>
         ) : null}
 
-        {configOk && wcPayLinkValid && !payApiKeyReady ? (
+        {configOk && !directUsdcReady && !payApiKeyReady ? (
           <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
             WalletConnect Pay needs a separate API key. In{" "}
             <a
