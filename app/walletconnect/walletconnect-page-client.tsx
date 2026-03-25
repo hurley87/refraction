@@ -7,7 +7,6 @@ import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { isPaymentLink } from "@reown/walletkit";
 import {
   CheckCircle2,
-  ChevronDown,
   Loader2,
   Lock,
   QrCode,
@@ -82,7 +81,6 @@ export function WalletConnectPageClient() {
   const { wallets } = useWallets();
 
   const [paymentLinkOverride, setPaymentLinkOverride] = useState("");
-  const [showDevLink, setShowDevLink] = useState(false);
   const [qrReaderOpen, setQrReaderOpen] = useState(false);
   const [optionsResponse, setOptionsResponse] =
     useState<PaymentOptionsResponse | null>(null);
@@ -614,54 +612,6 @@ export function WalletConnectPageClient() {
                     Sends 1 USDC on Base to the merchant wallet. No WalletConnect
                     Pay link needed.
                   </p>
-                ) : null}
-
-                {!PRODUCT_PAYMENT_LINK ? (
-                  <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600">
-                    <button
-                      type="button"
-                      onClick={() => setShowDevLink((v) => !v)}
-                      className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-zinc-600 dark:text-zinc-400"
-                    >
-                      <span>Advanced — paste payment link (dev)</span>
-                      <ChevronDown
-                        className={cn(
-                          "size-4 transition-transform",
-                          showDevLink && "rotate-180"
-                        )}
-                      />
-                    </button>
-                    {showDevLink ? (
-                      <div className="border-t border-zinc-200 px-4 pb-4 pt-0 dark:border-zinc-700">
-                        <p className="py-2 text-xs text-zinc-500">
-                          Prefer{" "}
-                          <span className="font-medium text-zinc-600 dark:text-zinc-300">
-                            Scan payment QR
-                          </span>{" "}
-                          above. Optionally set{" "}
-                          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
-                            NEXT_PUBLIC_WALLETCONNECT_PAY_PRODUCT_LINK
-                          </code>{" "}
-                          to skip scanning, or{" "}
-                          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
-                            NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS
-                          </code>{" "}
-                          for direct 1 USDC on Base.
-                        </p>
-                        <textarea
-                          value={paymentLinkOverride}
-                          onChange={(e) => {
-                            setPaymentLinkOverride(e.target.value);
-                            setOptionsResponse(null);
-                            setSelectedOptionId(null);
-                          }}
-                          rows={2}
-                          className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-xs dark:border-zinc-700 dark:bg-zinc-950"
-                          placeholder="https://pay.walletconnect.com/..."
-                        />
-                      </div>
-                    ) : null}
-                  </div>
                 ) : null}
               </div>
             )}
