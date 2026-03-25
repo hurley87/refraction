@@ -66,6 +66,7 @@
     "react-icons": "^5.5.0",
     "react-map-gl": "^8.0.4",
     "react-pdf": "^10.0.1",
+    "react-qr-reader-es6": "^2.2.1-2",
     "resend": "^4.0.1-alpha.0",
     "sonner": "^1.7.2",
     "stream-browserify": "^3.0.0",

@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Loader2,
   Lock,
+  QrCode,
   ShieldCheck,
   Sparkles,
   Wallet,
@@ -34,6 +35,7 @@ import {
   POSTER_CHECKOUT_CHAIN_ID,
   POSTER_CHECKOUT_USDC_ADDRESS_BASE,
 } from "@/lib/walletconnect-poster-direct-usdc";
+import { PaymentLinkQrReaderDialog } from "@/components/walletconnect/payment-link-qr-reader-dialog";
 import { cn } from "@/lib/utils";
 
 import type { PaymentOptionsResponse } from "@walletconnect/pay";
@@ -81,6 +83,7 @@ export function WalletConnectPageClient() {
 
   const [paymentLinkOverride, setPaymentLinkOverride] = useState("");
   const [showDevLink, setShowDevLink] = useState(false);
+  const [qrReaderOpen, setQrReaderOpen] = useState(false);
   const [optionsResponse, setOptionsResponse] =
     useState<PaymentOptionsResponse | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
@@ -351,7 +354,7 @@ export function WalletConnectPageClient() {
   const handlePayClick = useCallback(async () => {
     if (!checkoutReady) {
       toast.error(
-        "Set NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS (1 USDC on Base) or a valid WalletConnect Pay product link."
+        "Scan the payment QR code, or set NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS for direct 1 USDC on Base."
       );
       return;
     }
@@ -527,6 +530,20 @@ export function WalletConnectPageClient() {
                   </Button>
                 </div>
 
+                {!directUsdcReady && !wcPayLinkValid ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="h-12 w-full rounded-xl text-base"
+                    disabled={!walletReady || purchaseComplete}
+                    onClick={() => setQrReaderOpen(true)}
+                  >
+                    <QrCode className="size-5" />
+                    Scan payment QR
+                  </Button>
+                ) : null}
+
                 {wcPayLinkValid && optionsResponse && selectedOptionId ? (
                   <div>
                     <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -617,15 +634,19 @@ export function WalletConnectPageClient() {
                     {showDevLink ? (
                       <div className="border-t border-zinc-200 px-4 pb-4 pt-0 dark:border-zinc-700">
                         <p className="py-2 text-xs text-zinc-500">
-                          For WalletConnect Pay checkout, set{" "}
+                          Prefer{" "}
+                          <span className="font-medium text-zinc-600 dark:text-zinc-300">
+                            Scan payment QR
+                          </span>{" "}
+                          above. Optionally set{" "}
                           <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
                             NEXT_PUBLIC_WALLETCONNECT_PAY_PRODUCT_LINK
                           </code>{" "}
-                          (or use{" "}
+                          to skip scanning, or{" "}
                           <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
                             NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS
                           </code>{" "}
-                          for direct 1 USDC on Base without a Pay link).
+                          for direct 1 USDC on Base.
                         </p>
                         <textarea
                           value={paymentLinkOverride}
@@ -660,6 +681,16 @@ export function WalletConnectPageClient() {
           </Link>
         </p>
       </main>
+
+      <PaymentLinkQrReaderDialog
+        open={qrReaderOpen}
+        onOpenChange={setQrReaderOpen}
+        onPaymentLink={(uri) => {
+          setPaymentLinkOverride(uri);
+          setOptionsResponse(null);
+          setSelectedOptionId(null);
+        }}
+      />
 
       <Dialog open={icOpen} onOpenChange={(open) => !open && handleCloseIc()}>
         <DialogContent className="max-w-lg gap-0 p-0 sm:max-w-lg">
