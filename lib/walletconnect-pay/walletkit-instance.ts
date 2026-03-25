@@ -30,10 +30,18 @@ export function getWalletKitSingleton(
     );
   }
 
+  const payApiKey = params.payApiKey?.trim();
+  if (!payApiKey) {
+    return Promise.reject(
+      new Error(
+        "WalletConnect Pay needs NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY (WCP ID from Cloud → Pay). It is not the same as your WalletConnect project id."
+      )
+    );
+  }
+
   if (!initPromise) {
     initPromise = (async () => {
       const core = new Core({ projectId: params.projectId });
-      const payApiKey = params.payApiKey?.trim() || params.projectId;
 
       return WalletKit.init({
         core,
@@ -56,6 +64,11 @@ export function getWalletKitSingleton(
   return initPromise;
 }
 
-export function resetWalletKitSingletonForTests(): void {
+/** Clears the cached WalletKit instance (e.g. after changing Pay API key in env). */
+export function resetWalletKitSingleton(): void {
   initPromise = null;
+}
+
+export function resetWalletKitSingletonForTests(): void {
+  resetWalletKitSingleton();
 }
