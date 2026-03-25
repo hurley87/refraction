@@ -7,7 +7,7 @@ let initPromise: Promise<WalletKitClient> | null = null;
 
 export type InitWalletKitParams = {
   projectId: string;
-  /** WalletConnect Pay API key (WCP ID from Dashboard → Pay → copy). */
+  /** Pay credential for WalletKit: WCPay ID from Cloud → Pay → Integrate → WCPay ID (not Pay API Keys tab). */
   payApiKey?: string;
 };
 
@@ -34,7 +34,7 @@ export function getWalletKitSingleton(
   if (!payApiKey) {
     return Promise.reject(
       new Error(
-        "WalletConnect Pay needs NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY (WCP ID from Cloud → Pay). It is not the same as your WalletConnect project id."
+        "WalletConnect Pay needs NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY set to your WCPay ID (Pay → Integrate → WCPay ID). Not the Pay API Keys tab and not your Cloud project id."
       )
     );
   }

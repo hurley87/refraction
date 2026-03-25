@@ -41,8 +41,9 @@ import type { PaymentOptionsResponse } from "@walletconnect/pay";
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
 /**
- * Must match env `NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY` — WCP ID from Cloud → Pay
- * (not the WalletConnect project id).
+ * Env: `NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY` — value is your **WCPay ID** from
+ * Cloud → Pay → Integrate → WCPay ID tab (WalletKit SDK). Do not use the separate
+ * Pay "API Keys" tab for this app. Not the same as `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`.
  */
 const walletConnectPayApiKey =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY?.trim() ?? "";
@@ -197,7 +198,7 @@ export function WalletConnectPageClient() {
       }
       if (!payApiKeyReady) {
         toast.error(
-          "Add NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY (WCP ID from WalletConnect Cloud → Pay)"
+          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY to your WCPay ID (Pay → Integrate → WCPay ID tab)"
         );
         return null;
       }
@@ -232,7 +233,7 @@ export function WalletConnectPageClient() {
       } finally {
         setFlowStatus("idle");
       }
-    }, [address, effectivePaymentLink, payApiKeyReady]);
+    }, [address, effectivePaymentLink]);
 
   const payWithSelectedOption = useCallback(
     async (response: PaymentOptionsResponse, optionId: string) => {
@@ -247,7 +248,7 @@ export function WalletConnectPageClient() {
       }
       if (!payApiKeyReady) {
         toast.error(
-          "Add NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY (WCP ID from WalletConnect Cloud → Pay)"
+          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY to your WCPay ID (Pay → Integrate → WCPay ID tab)"
         );
         return;
       }
@@ -322,7 +323,7 @@ export function WalletConnectPageClient() {
         toast.error(msg);
       }
     },
-    [address, effectivePaymentLink, evmWallet, payApiKeyReady, runDataCollectionIframe]
+    [address, effectivePaymentLink, evmWallet, runDataCollectionIframe]
   );
 
   const payDirectUsdcOnBase = useCallback(async () => {
@@ -368,7 +369,7 @@ export function WalletConnectPageClient() {
     if (!checkoutReady) {
       if (wcPayLinkValid && !payApiKeyReady) {
         toast.error(
-          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY to your WCP ID (WalletConnect Cloud → Pay — not your project id)."
+          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY to your WCPay ID (Pay → Integrate — not API Keys tab, not project id)."
         );
       } else {
         toast.error(
@@ -401,7 +402,6 @@ export function WalletConnectPageClient() {
     optionsResponse,
     payDirectUsdcOnBase,
     payWithSelectedOption,
-    payApiKeyReady,
     selectedOptionId,
   ]);
 
@@ -427,7 +427,6 @@ export function WalletConnectPageClient() {
   }, [
     walletReady,
     wcPayLinkValid,
-    payApiKeyReady,
     purchaseComplete,
     optionsResponse,
     loadPaymentOptions,
@@ -481,12 +480,13 @@ export function WalletConnectPageClient() {
             >
               WalletConnect Cloud
             </a>
-            , open your project → <strong>Pay</strong> → copy the{" "}
-            <strong>WCP ID</strong> and set{" "}
+            , open <strong>Pay</strong> → <strong>Integrate</strong> →{" "}
+            <strong>WCPay ID</strong> tab and paste that value into{" "}
             <code className="rounded bg-white/60 px-1 dark:bg-zinc-900">
               NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY
             </code>
-            . It is <strong>not</strong> the same value as{" "}
+            . For WalletKit, use the WCPay ID — not the keys under the{" "}
+            <strong>API Keys</strong> tab. It is <strong>not</strong> the same as{" "}
             <code className="rounded bg-white/60 px-1 dark:bg-zinc-900">
               NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
             </code>
