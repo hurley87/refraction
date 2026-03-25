@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Loader2,
   Lock,
+  QrCode,
   ShieldCheck,
   Sparkles,
   Wallet,
@@ -28,6 +29,13 @@ import {
   signWalletRpcAction,
   type BrowserProvider,
 } from "@/lib/walletconnect-pay/sign-wallet-rpc-action";
+import {
+  encodePosterUsdcTransferData,
+  isEvmAddress,
+  POSTER_CHECKOUT_CHAIN_ID,
+  POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+} from "@/lib/walletconnect-poster-direct-usdc";
+import { PaymentLinkQrReaderDialog } from "@/components/walletconnect/payment-link-qr-reader-dialog";
 import { cn } from "@/lib/utils";
 
 import type { PaymentOptionsResponse } from "@walletconnect/pay";
@@ -38,6 +46,9 @@ const PAY_API_KEY =
 /** Merchant wires the WalletConnect Pay link for this product so buyers never paste it. */
 const PRODUCT_PAYMENT_LINK =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_PRODUCT_LINK?.trim() ?? "";
+/** When set, /walletconnect can settle $1 USDC on Base without a Pay product link (plain ERC-20 transfer). */
+const POSTER_USDC_RECIPIENT =
+  process.env.NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS?.trim() ?? "";
 
 const POSTER_PRICE_USD = 1;
 const POSTER_TOTAL = 100;
@@ -72,6 +83,7 @@ export function WalletConnectPageClient() {
 
   const [paymentLinkOverride, setPaymentLinkOverride] = useState("");
   const [showDevLink, setShowDevLink] = useState(false);
+  const [qrReaderOpen, setQrReaderOpen] = useState(false);
   const [optionsResponse, setOptionsResponse] =
     useState<PaymentOptionsResponse | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
@@ -100,12 +112,20 @@ export function WalletConnectPageClient() {
     return PRODUCT_PAYMENT_LINK.trim();
   }, [paymentLinkOverride]);
 
-  const linkValid = useMemo(
+  const wcPayLinkValid = useMemo(
     () =>
       effectivePaymentLink.length > 0 &&
       isPaymentLink(effectivePaymentLink),
     [effectivePaymentLink]
   );
+
+  const directUsdcReady = useMemo(
+    () => isEvmAddress(POSTER_USDC_RECIPIENT),
+    []
+  );
+
+  /** WalletConnect Pay flow, or direct 1 USDC on Base when treasury env is set. */
+  const checkoutReady = wcPayLinkValid || directUsdcReady;
 
   const runDataCollectionIframe = useCallback((url: string) => {
     return new Promise<void>((resolve, reject) => {
@@ -292,15 +312,57 @@ export function WalletConnectPageClient() {
     [address, effectivePaymentLink, evmWallet, runDataCollectionIframe]
   );
 
+  const payDirectUsdcOnBase = useCallback(async () => {
+    if (!address || !evmWallet) {
+      toast.error("Wallet not ready");
+      return;
+    }
+    if (!directUsdcReady) return;
+
+    setLastError(null);
+    setFlowStatus("signing");
+    try {
+      await evmWallet.switchChain(POSTER_CHECKOUT_CHAIN_ID);
+      const provider = await evmWallet.getEthereumProvider();
+      if (!provider) {
+        throw new Error("Could not connect to your wallet");
+      }
+      const data = encodePosterUsdcTransferData(
+        POSTER_USDC_RECIPIENT as `0x${string}`
+      );
+      await (provider as unknown as BrowserProvider).request({
+        method: "eth_sendTransaction",
+        params: [
+          {
+            from: address,
+            to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+            data,
+          },
+        ],
+      });
+      setFlowStatus("done");
+      setPurchaseComplete(true);
+      toast.success("Payment sent — thank you!");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setLastError(msg);
+      setFlowStatus("idle");
+      toast.error(msg);
+    }
+  }, [address, directUsdcReady, evmWallet]);
+
   const handlePayClick = useCallback(async () => {
-    if (!linkValid) {
+    if (!checkoutReady) {
       toast.error(
-        PRODUCT_PAYMENT_LINK
-          ? "Payment link misconfigured"
-          : "Add a payment link under “Advanced” or set NEXT_PUBLIC_WALLETCONNECT_PAY_PRODUCT_LINK"
+        "Scan the payment QR code, or set NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS for direct 1 USDC on Base."
       );
       return;
     }
+    if (!wcPayLinkValid) {
+      await payDirectUsdcOnBase();
+      return;
+    }
+
     let response = optionsResponse;
     let optionId = selectedOptionId;
 
@@ -314,9 +376,11 @@ export function WalletConnectPageClient() {
 
     await payWithSelectedOption(response, optionId);
   }, [
-    linkValid,
+    checkoutReady,
+    wcPayLinkValid,
     loadPaymentOptions,
     optionsResponse,
+    payDirectUsdcOnBase,
     payWithSelectedOption,
     selectedOptionId,
   ]);
@@ -331,12 +395,12 @@ export function WalletConnectPageClient() {
     flowStatus === "confirming";
 
   useEffect(() => {
-    if (!walletReady || !linkValid || purchaseComplete || optionsResponse) return;
-    if (!PRODUCT_PAYMENT_LINK.trim()) return;
+    if (!walletReady || !wcPayLinkValid || purchaseComplete || optionsResponse)
+      return;
     void loadPaymentOptions();
   }, [
     walletReady,
-    linkValid,
+    wcPayLinkValid,
     purchaseComplete,
     optionsResponse,
     loadPaymentOptions,
@@ -466,7 +530,21 @@ export function WalletConnectPageClient() {
                   </Button>
                 </div>
 
-                {optionsResponse && selectedOptionId ? (
+                {!directUsdcReady && !wcPayLinkValid ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="h-12 w-full rounded-xl text-base"
+                    disabled={!walletReady || purchaseComplete}
+                    onClick={() => setQrReaderOpen(true)}
+                  >
+                    <QrCode className="size-5" />
+                    Scan payment QR
+                  </Button>
+                ) : null}
+
+                {wcPayLinkValid && optionsResponse && selectedOptionId ? (
                   <div>
                     <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
                       Payment method
@@ -514,7 +592,9 @@ export function WalletConnectPageClient() {
                 <Button
                   size="lg"
                   className="h-12 w-full rounded-xl text-base"
-                  disabled={!walletReady || !linkValid || isBusy || purchaseComplete}
+                  disabled={
+                    !walletReady || !checkoutReady || isBusy || purchaseComplete
+                  }
                   onClick={() => void handlePayClick()}
                 >
                   {isBusy ? (
@@ -522,10 +602,19 @@ export function WalletConnectPageClient() {
                   ) : (
                     <Sparkles className="size-5" />
                   )}
-                  {optionsResponse
+                  {wcPayLinkValid && optionsResponse
                     ? `Pay $${POSTER_PRICE_USD} with crypto`
-                    : `Continue — $${POSTER_PRICE_USD}`}
+                    : wcPayLinkValid
+                      ? `Continue — $${POSTER_PRICE_USD}`
+                      : `Pay $${POSTER_PRICE_USD} USDC on Base`}
                 </Button>
+
+                {directUsdcReady && !wcPayLinkValid ? (
+                  <p className="text-center text-xs text-zinc-500 dark:text-zinc-400">
+                    Sends 1 USDC on Base to the merchant wallet. No WalletConnect
+                    Pay link needed.
+                  </p>
+                ) : null}
 
                 {!PRODUCT_PAYMENT_LINK ? (
                   <div className="rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600">
@@ -545,11 +634,19 @@ export function WalletConnectPageClient() {
                     {showDevLink ? (
                       <div className="border-t border-zinc-200 px-4 pb-4 pt-0 dark:border-zinc-700">
                         <p className="py-2 text-xs text-zinc-500">
-                          For production, set{" "}
+                          Prefer{" "}
+                          <span className="font-medium text-zinc-600 dark:text-zinc-300">
+                            Scan payment QR
+                          </span>{" "}
+                          above. Optionally set{" "}
                           <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
                             NEXT_PUBLIC_WALLETCONNECT_PAY_PRODUCT_LINK
                           </code>{" "}
-                          so buyers never see this.
+                          to skip scanning, or{" "}
+                          <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
+                            NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS
+                          </code>{" "}
+                          for direct 1 USDC on Base.
                         </p>
                         <textarea
                           value={paymentLinkOverride}
@@ -584,6 +681,16 @@ export function WalletConnectPageClient() {
           </Link>
         </p>
       </main>
+
+      <PaymentLinkQrReaderDialog
+        open={qrReaderOpen}
+        onOpenChange={setQrReaderOpen}
+        onPaymentLink={(uri) => {
+          setPaymentLinkOverride(uri);
+          setOptionsResponse(null);
+          setSelectedOptionId(null);
+        }}
+      />
 
       <Dialog open={icOpen} onOpenChange={(open) => !open && handleCloseIc()}>
         <DialogContent className="max-w-lg gap-0 p-0 sm:max-w-lg">
