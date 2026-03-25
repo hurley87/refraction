@@ -34,7 +34,7 @@ export function getWalletKitSingleton(
   if (!payApiKey) {
     return Promise.reject(
       new Error(
-        "WalletConnect Pay needs NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY set to your WCPay ID (Pay → Integrate → WCPay ID). Not the Pay API Keys tab and not your Cloud project id."
+        "WalletConnect Pay needs NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY (WCPay ID from Pay → Integrate, or API Keys secret if 401). Not your Cloud project id."
       )
     );
   }
@@ -71,4 +71,15 @@ export function resetWalletKitSingleton(): void {
 
 export function resetWalletKitSingletonForTests(): void {
   resetWalletKitSingleton();
+}
+
+/** True when the error likely means Pay rejected the Api-Key (wrong/missing credential). */
+export function isWalletConnectPayAuthErrorMessage(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes("401") ||
+    m.includes("invalid api key") ||
+    m.includes("invalid_api_key") ||
+    m.includes("unauthorized")
+  );
 }

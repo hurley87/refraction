@@ -23,7 +23,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getWalletKitSingleton } from "@/lib/walletconnect-pay/walletkit-instance";
+import {
+  getWalletKitSingleton,
+  isWalletConnectPayAuthErrorMessage,
+  resetWalletKitSingleton,
+} from "@/lib/walletconnect-pay/walletkit-instance";
+import { normalizePublicEnvValue } from "@/lib/walletconnect-pay/normalize-public-env-value";
 import {
   signWalletRpcAction,
   type BrowserProvider,
@@ -39,14 +44,16 @@ import { cn } from "@/lib/utils";
 
 import type { PaymentOptionsResponse } from "@walletconnect/pay";
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
+const PROJECT_ID = normalizePublicEnvValue(
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? ""
+);
 /**
- * Env: `NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY` — value is your **WCPay ID** from
- * Cloud → Pay → Integrate → WCPay ID tab (WalletKit SDK). Do not use the separate
- * Pay "API Keys" tab for this app. Not the same as `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`.
+ * Env: `NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY` — usually the **WCPay ID** (Integrate tab).
+ * If the gateway still returns 401, try the **secret** from Pay → API Keys (copy full key).
  */
-const walletConnectPayApiKey =
-  process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY?.trim() ?? "";
+const walletConnectPayApiKey = normalizePublicEnvValue(
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY ?? ""
+);
 const payApiKeyReady = walletConnectPayApiKey.length > 0;
 /** When set, /walletconnect can settle $1 USDC on Base without a Pay product link (plain ERC-20 transfer). */
 const POSTER_USDC_RECIPIENT =
@@ -227,8 +234,16 @@ export function WalletConnectPageClient() {
         return options;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        setLastError(msg);
-        toast.error(msg);
+        if (isWalletConnectPayAuthErrorMessage(msg)) {
+          resetWalletKitSingleton();
+          const hint =
+            "Pay rejected the credential (401). Confirm NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY in production: use the WCPay ID from Pay → Integrate, or the secret from Pay → API Keys if your project expects that. No quotes or spaces; redeploy after changing env.";
+          setLastError(hint);
+          toast.error(hint);
+        } else {
+          setLastError(msg);
+          toast.error(msg);
+        }
         return null;
       } finally {
         setFlowStatus("idle");
@@ -318,9 +333,17 @@ export function WalletConnectPageClient() {
         }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        setLastError(msg);
+        if (isWalletConnectPayAuthErrorMessage(msg)) {
+          resetWalletKitSingleton();
+          const hint =
+            "Pay rejected the credential (401). Check NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY in production (WCPay ID or API Keys secret); redeploy after changes.";
+          setLastError(hint);
+          toast.error(hint);
+        } else {
+          setLastError(msg);
+          toast.error(msg);
+        }
         setFlowStatus("idle");
-        toast.error(msg);
       }
     },
     [address, effectivePaymentLink, evmWallet, runDataCollectionIframe]
@@ -481,16 +504,17 @@ export function WalletConnectPageClient() {
               WalletConnect Cloud
             </a>
             , open <strong>Pay</strong> → <strong>Integrate</strong> →{" "}
-            <strong>WCPay ID</strong> tab and paste that value into{" "}
+            <strong>WCPay ID</strong> and set{" "}
             <code className="rounded bg-white/60 px-1 dark:bg-zinc-900">
               NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY
             </code>
-            . For WalletKit, use the WCPay ID — not the keys under the{" "}
-            <strong>API Keys</strong> tab. It is <strong>not</strong> the same as{" "}
+            . If you still get <strong>401 Invalid API key</strong> after redeploying,
+            try the <strong>secret</strong> from Pay → <strong>API Keys</strong> instead.
+            Must match the same Cloud project as{" "}
             <code className="rounded bg-white/60 px-1 dark:bg-zinc-900">
               NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
             </code>
-            .
+            — no extra quotes in the env value.
           </div>
         ) : null}
 
