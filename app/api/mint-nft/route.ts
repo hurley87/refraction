@@ -19,6 +19,48 @@ import {
   getNFTContractAddress,
 } from '@/lib/stellar/utils/network';
 
+const TX_FINALITY_MAX_POLLS = 20;
+const TX_FINALITY_POLL_INTERVAL_MS = 500;
+
+type TxFinalizationResult =
+  | { status: 'success' }
+  | { status: 'failed'; details: string }
+  | { status: 'timeout' };
+
+function normalizeTxFailureDetails(resultXdr: unknown): string {
+  if (!resultXdr) return 'Unknown transaction failure';
+  if (typeof resultXdr === 'string') return resultXdr;
+  try {
+    return JSON.stringify(resultXdr);
+  } catch {
+    return String(resultXdr);
+  }
+}
+
+async function waitForTxFinalization(
+  rpc: ReturnType<typeof getSorobanRpc>,
+  txHash: string
+): Promise<TxFinalizationResult> {
+  for (let i = 0; i < TX_FINALITY_MAX_POLLS; i++) {
+    const tx = await rpc.getTransaction(txHash);
+    if (tx.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+      return { status: 'success' };
+    }
+    if (tx.status === SorobanRpc.Api.GetTransactionStatus.FAILED) {
+      return {
+        status: 'failed',
+        details: normalizeTxFailureDetails(tx.resultXdr),
+      };
+    }
+    if (i < TX_FINALITY_MAX_POLLS - 1) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, TX_FINALITY_POLL_INTERVAL_MS)
+      );
+    }
+  }
+  return { status: 'timeout' };
+}
+
 /**
  * POST /api/mint-nft
  * Server-signed fallback mint flow for Privy Stellar wallets.
@@ -170,6 +212,20 @@ export async function POST(request: NextRequest) {
     }
     if (!sendResult.hash) {
       return apiError('Transaction sent but no hash returned', 500);
+    }
+
+    const finalization = await waitForTxFinalization(rpc, sendResult.hash);
+    if (finalization.status === 'failed') {
+      return apiError(
+        `Transaction failed after submission: ${finalization.details}`,
+        400
+      );
+    }
+    if (finalization.status === 'timeout') {
+      return apiError(
+        `Transaction submitted but not finalized yet (hash: ${sendResult.hash}). Please retry shortly.`,
+        500
+      );
     }
 
     const tokenId =
