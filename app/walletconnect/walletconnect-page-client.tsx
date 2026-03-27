@@ -10,7 +10,6 @@ import {
   Loader2,
   Lock,
   QrCode,
-  ShieldCheck,
   Sparkles,
   Wallet,
 } from "lucide-react";
@@ -28,10 +27,6 @@ import {
   isWalletConnectPayAuthErrorMessage,
   resetWalletKitSingleton,
 } from "@/lib/walletconnect-pay/walletkit-instance";
-import {
-  buildNoPaymentOptionsDetail,
-  buildWalletConnectPayErrorDetail,
-} from "@/lib/walletconnect-pay/error-details";
 import {
   signWalletRpcAction,
   type BrowserProvider,
@@ -523,15 +518,8 @@ export function WalletConnectPageClient() {
                 <span className="text-3xl font-bold tracking-tight">
                   ${POSTER_PRICE_USD}
                 </span>
-                <span className="text-sm text-zinc-500">per poster · excl. shipping</span>
+                <span className="text-sm text-zinc-500">per poster</span>
               </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3 text-xs text-zinc-600 dark:text-zinc-400">
-              <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 dark:bg-zinc-800">
-                <ShieldCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                Encrypted wallet payment
-              </span>
             </div>
 
             {purchaseComplete ? (
