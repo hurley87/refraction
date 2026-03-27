@@ -7,10 +7,6 @@ let initPromise: Promise<WalletKitClient> | null = null;
 
 export type InitWalletKitParams = {
   projectId: string;
-  /** WCPay ID from Cloud → Pay → Integrate. */
-  payAppId?: string;
-  /** Optional linked Pay API key from Cloud → Pay → API Keys. */
-  payApiKey?: string;
 };
 
 /**
@@ -28,16 +24,8 @@ export function getWalletKitSingleton(
 
   if (!params.projectId) {
     return Promise.reject(
-      new Error("NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is required for WalletKit")
-    );
-  }
-
-  const payAppId = params.payAppId?.trim();
-  const payApiKey = params.payApiKey?.trim();
-  if (!payAppId && !payApiKey) {
-    return Promise.reject(
       new Error(
-        "WalletConnect Pay needs a credential. Provide a WCPay ID via `payAppId` (recommended) or a linked API key via `payApiKey`."
+        `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID is required for WalletKit (received "${params.projectId}")`
       )
     );
   }
@@ -46,29 +34,35 @@ export function getWalletKitSingleton(
     initPromise = (async () => {
       const core = new Core({ projectId: params.projectId });
 
-      return WalletKit.init({
-        core,
-        metadata: {
-          name: "IRL — WalletConnect Pay test",
-          description: "Internal WalletConnect Pay / WalletKit test wallet",
-          url:
-            typeof window !== "undefined"
-              ? window.location.origin
-              : "https://irl.energy",
-          icons: [`${typeof window !== "undefined" ? window.location.origin : "https://irl.energy"}/favicon.ico`],
-        },
-        payConfig: {
-          ...(payAppId ? { appId: payAppId } : {}),
-          ...(payApiKey && !payAppId ? { apiKey: payApiKey } : {}),
-        },
-      });
+      try {
+        return await WalletKit.init({
+          core,
+          metadata: {
+            name: "IRL — WalletConnect Pay test",
+            description: "Internal WalletConnect Pay / WalletKit test wallet",
+            url:
+              typeof window !== "undefined"
+                ? window.location.origin
+                : "https://irl.energy",
+            icons: [`${typeof window !== "undefined" ? window.location.origin : "https://irl.energy"}/favicon.ico`],
+          },
+          payConfig: {
+            appId: params.projectId,
+          },
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `WalletKit init failed for projectId="${params.projectId}": ${message}`
+        );
+      }
     })();
   }
 
   return initPromise;
 }
 
-/** Clears the cached WalletKit instance (e.g. after changing Pay API key in env). */
+/** Clears the cached WalletKit instance (e.g. after changing project id in env). */
 export function resetWalletKitSingleton(): void {
   initPromise = null;
 }
