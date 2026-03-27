@@ -53,12 +53,12 @@ const PRODUCT_NAME = "Limited edition poster";
 const PRODUCT_BLURB =
   "Screen-printed IRL drop. Ships worldwide. Pay with USDC via WalletConnect Pay — pick your network in your wallet.";
 
-const PAY_EVM_CHAIN_IDS = [1, 8453, 10, 137, 42161] as const;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- PAY_EVM_CHAIN_IDS kept as [8432] per product config
+const PAY_EVM_CHAIN_IDS = [8432] as const;
 
-function buildCaip10Accounts(address: string): string[] {
-  const checksummed = address as `0x${string}`;
-  return PAY_EVM_CHAIN_IDS.map((id) => `eip155:${id}:${checksummed}`);
-}
+const PAY_CAIP10_ACCOUNTS = [
+  "eip155:8453:0xCBfa3c438EBb86FF17b075a0a0b6f15a08DAFEA8",
+] as const;
 
 type FlowStatus =
   | "idle"
@@ -217,10 +217,9 @@ export function WalletConnectPageClient() {
         );
         if (!walletkit) return null;
         setFlowStatus("loading_options");
-        const accounts = buildCaip10Accounts(address);
         const options = await walletkit.pay.getPaymentOptions({
           paymentLink: link,
-          accounts,
+          accounts: [...PAY_CAIP10_ACCOUNTS],
           includePaymentInfo: true,
         });
         setOptionsResponse(options);
@@ -228,6 +227,7 @@ export function WalletConnectPageClient() {
           toast.error("No payment options for your wallet");
           return null;
         }
+        toast.message("link");
         const first = options.options[0]!.id;
         setSelectedOptionId(first);
         return options;
