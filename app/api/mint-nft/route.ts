@@ -8,6 +8,7 @@ import {
   scValToNative,
 } from '@stellar/stellar-sdk';
 import { apiError } from '@/lib/api/response';
+import { verifyWalletOwnership } from '@/lib/api/privy';
 import {
   addressToScVal,
   getContract,
@@ -38,6 +39,11 @@ export async function POST(request: NextRequest) {
   }
   if (!isValidAddress(walletAddress)) {
     return apiError('Invalid wallet address', 400);
+  }
+
+  const auth = await verifyWalletOwnership(request, walletAddress);
+  if (!auth.authorized) {
+    return apiError(auth.error ?? 'Unauthorized', 401);
   }
 
   const appNetwork = process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toUpperCase();
