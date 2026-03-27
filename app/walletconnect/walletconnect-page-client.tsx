@@ -568,9 +568,6 @@ export function WalletConnectPageClient() {
 
                 {wcPayLinkValid && optionsResponse && selectedOptionId ? (
                   <div>
-                    <p className="mb-2 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                      link
-                    </p>
                     <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500">
                       Payment method
                     </p>
