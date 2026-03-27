@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const coreCtorMock = vi.fn();
-const walletKitInitMock = vi.fn();
+const { coreCtorMock, walletKitInitMock } = vi.hoisted(() => ({
+  coreCtorMock: vi.fn(),
+  walletKitInitMock: vi.fn(),
+}));
 
 vi.mock("@walletconnect/core", () => ({
   Core: function MockCore(options: unknown) {
