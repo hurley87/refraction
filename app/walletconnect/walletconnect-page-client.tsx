@@ -597,12 +597,8 @@ export function WalletConnectPageClient() {
                 <div className="flex gap-3">
                   <CheckCircle2 className="size-8 shrink-0 text-emerald-600 dark:text-emerald-400" />
                   <div>
-                    <p className="font-semibold text-emerald-950 dark:text-emerald-100">
-                      You are all set
-                    </p>
                     <p className="mt-1 text-sm text-emerald-900/80 dark:text-emerald-200/90">
-                      Thanks for your purchase. We will email shipping details to
-                      the address on your order when your pack ships.
+                      Thanks for your purchase.
                     </p>
                   </div>
                 </div>
