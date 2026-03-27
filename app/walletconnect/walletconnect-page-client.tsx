@@ -62,9 +62,16 @@ const PAY_EVM_CHAIN_IDS = [POSTER_CHECKOUT_CHAIN_ID, 8432] as const;
 function buildPayCaip10Accounts(walletAddress: string): string[] {
   if (!isEvmAddress(walletAddress)) return [];
   const normalizedAddress = walletAddress.toLowerCase();
-  return [...new Set(PAY_EVM_CHAIN_IDS)].map(
+  const uniqueChainIds = PAY_EVM_CHAIN_IDS.filter(
+    (chainId, index, chainIds) => chainIds.indexOf(chainId) === index
+  );
+  return uniqueChainIds.map(
     (chainId) => `eip155:${chainId}:${normalizedAddress}`
   );
+}
+
+function toEvmHexAddress(value: string | undefined): `0x${string}` | null {
+  return value && isEvmAddress(value) ? (value as `0x${string}`) : null;
 }
 
 type FlowStatus =
@@ -332,7 +339,7 @@ export function WalletConnectPageClient() {
           throw new Error("Could not connect to your wallet");
         }
 
-        const accountAddress = isEvmAddress(address) ? address : undefined;
+        const accountAddress = toEvmHexAddress(address);
         if (!accountAddress) {
           throw new Error("Connected wallet address is invalid for signing");
         }
