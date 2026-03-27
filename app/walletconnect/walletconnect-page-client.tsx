@@ -29,6 +29,10 @@ import {
   resetWalletKitSingleton,
 } from "@/lib/walletconnect-pay/walletkit-instance";
 import {
+  buildNoPaymentOptionsDetail,
+  buildWalletConnectPayErrorDetail,
+} from "@/lib/walletconnect-pay/error-details";
+import {
   signWalletRpcAction,
   type BrowserProvider,
 } from "@/lib/walletconnect-pay/sign-wallet-rpc-action";
@@ -162,17 +166,18 @@ export function WalletConnectPageClient() {
 
   const handleWalletKitPayError = useCallback((err: unknown, authHint: string) => {
     const msg = err instanceof Error ? err.message : String(err);
+    const full = buildWalletConnectPayErrorDetail(err);
     const formattedProjectId = JSON.stringify(PROJECT_ID);
     const withProjectId = (text: string) =>
       `${text} (projectId=${formattedProjectId})`;
     if (isWalletConnectPayAuthErrorMessage(msg)) {
       resetWalletKitSingleton();
-      const hint = withProjectId(authHint);
+      const hint = `${withProjectId(authHint)} fullError=${full}`;
       setLastError(hint);
       toast.error(hint);
       return;
     }
-    const detail = withProjectId(msg);
+    const detail = `${withProjectId(msg)} fullError=${full}`;
     setLastError(detail);
     toast.error(detail);
   }, []);
@@ -226,7 +231,14 @@ export function WalletConnectPageClient() {
         });
         setOptionsResponse(options);
         if (options.options.length === 0) {
-          toast.error("No payment options for your wallet");
+          const detail = buildNoPaymentOptionsDetail({
+            projectId: PROJECT_ID,
+            walletAddress: address,
+            paymentLink: link,
+            response: options,
+          });
+          setLastError(detail);
+          toast.error(detail);
           return null;
         }
         const first = options.options[0]!.id;
