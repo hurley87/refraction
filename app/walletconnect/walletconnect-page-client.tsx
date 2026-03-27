@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { isPaymentLink } from "@reown/walletkit";
 import {
@@ -110,31 +110,19 @@ export function WalletConnectPageClient() {
 
   const address = user?.wallet?.address;
 
-  const evmWallet = useMemo(() => {
+  const evmWallet = (() => {
     if (!address) return null;
     const lower = address.toLowerCase();
     return (
       wallets.find((w) => w.address.toLowerCase() === lower) ?? wallets[0] ?? null
     );
-  }, [wallets, address]);
+  })();
 
   /** Payment URI from QR scan only (no env-based product link). */
-  const effectivePaymentLink = useMemo(
-    () => paymentLinkOverride.trim(),
-    [paymentLinkOverride]
-  );
-
-  const wcPayLinkValid = useMemo(
-    () =>
-      effectivePaymentLink.length > 0 &&
-      isPaymentLink(effectivePaymentLink),
-    [effectivePaymentLink]
-  );
-
-  const directUsdcReady = useMemo(
-    () => isEvmAddress(POSTER_USDC_RECIPIENT),
-    []
-  );
+  const effectivePaymentLink = paymentLinkOverride.trim();
+  const wcPayLinkValid =
+    effectivePaymentLink.length > 0 && isPaymentLink(effectivePaymentLink);
+  const directUsdcReady = isEvmAddress(POSTER_USDC_RECIPIENT);
 
   /** WalletConnect Pay needs a valid link + Pay WCP id; direct USDC only needs treasury env. */
   const checkoutReady =
@@ -188,22 +176,6 @@ export function WalletConnectPageClient() {
     icRejectRef.current?.(new Error("Information collection cancelled"));
   }, []);
 
-  const getWalletKitClient = useCallback(async () => {
-    if (!PROJECT_ID) {
-      throw new Error("App configuration incomplete");
-    }
-    if (!payCredentialReady) {
-      throw new Error(
-        "Set NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (recommended WCPay ID) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY."
-      );
-    }
-    return getWalletKitSingleton({
-      projectId: PROJECT_ID,
-      payAppId: walletConnectPayAppId || undefined,
-      payApiKey: walletConnectPayApiKey || undefined,
-    });
-  }, []);
-
   const handleWalletKitPayError = useCallback((err: unknown, authHint: string) => {
     const msg = err instanceof Error ? err.message : String(err);
     if (isWalletConnectPayAuthErrorMessage(msg)) {
@@ -215,6 +187,32 @@ export function WalletConnectPageClient() {
     setLastError(msg);
     toast.error(msg);
   }, []);
+
+  const initWalletKit = useCallback(
+    async (authHint: string) => {
+      if (!PROJECT_ID) {
+        toast.error("App configuration incomplete");
+        return null;
+      }
+      if (!payCredentialReady) {
+        toast.error(
+          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (recommended) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY."
+        );
+        return null;
+      }
+      try {
+        return await getWalletKitSingleton({
+          projectId: PROJECT_ID,
+          payAppId: walletConnectPayAppId || undefined,
+          payApiKey: walletConnectPayApiKey || undefined,
+        });
+      } catch (e) {
+        handleWalletKitPayError(e, authHint);
+        return null;
+      }
+    },
+    [handleWalletKitPayError]
+  );
 
   const loadPaymentOptions =
     useCallback(async (): Promise<PaymentOptionsResponse | null> => {
@@ -231,21 +229,13 @@ export function WalletConnectPageClient() {
         toast.error("Connect your wallet to continue");
         return null;
       }
-      if (!PROJECT_ID) {
-        toast.error("App configuration incomplete");
-        return null;
-      }
-      if (!payCredentialReady) {
-        toast.error(
-          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (recommended) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY."
-        );
-        return null;
-      }
-
       setLastError(null);
       setFlowStatus("initializing");
       try {
-        const walletkit = await getWalletKitClient();
+        const walletkit = await initWalletKit(
+          "Pay rejected the credential (401). Confirm NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (WCPay ID) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY (linked API key), then redeploy."
+        );
+        if (!walletkit) return null;
         setFlowStatus("loading_options");
         const accounts = buildCaip10Accounts(address);
         const options = await walletkit.pay.getPaymentOptions({
@@ -273,8 +263,8 @@ export function WalletConnectPageClient() {
     }, [
       address,
       effectivePaymentLink,
-      getWalletKitClient,
       handleWalletKitPayError,
+      initWalletKit,
     ]);
 
   const payWithSelectedOption = useCallback(
@@ -288,17 +278,13 @@ export function WalletConnectPageClient() {
         toast.error("Invalid payment link");
         return;
       }
-      if (!payCredentialReady) {
-        toast.error(
-          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (recommended) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY."
-        );
-        return;
-      }
-
       setLastError(null);
 
       try {
-        const walletkit = await getWalletKitClient();
+        const walletkit = await initWalletKit(
+          "Pay rejected the credential (401). Check NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (WCPay ID) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY (linked API key); redeploy after changes."
+        );
+        if (!walletkit) return;
 
         const option = response.options.find((o) => o.id === optionId);
         if (!option) {
@@ -367,8 +353,8 @@ export function WalletConnectPageClient() {
       address,
       effectivePaymentLink,
       evmWallet,
-      getWalletKitClient,
       handleWalletKitPayError,
+      initWalletKit,
       runDataCollectionIframe,
     ]
   );
