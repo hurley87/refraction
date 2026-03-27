@@ -605,16 +605,13 @@ export function WalletConnectPageClient() {
               </Button>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
                       Paying with
                     </p>
                     <p className="font-mono text-sm">{shortAddress(address!)}</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => login()}>
-                    Change
-                  </Button>
                 </div>
 
                 {!directUsdcReady && !wcPayLinkValid ? (
