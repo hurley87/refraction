@@ -48,13 +48,17 @@ const PROJECT_ID = normalizePublicEnvValue(
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? ""
 );
 /**
- * Env: `NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY` — usually the **WCPay ID** (Integrate tab).
- * If the gateway still returns 401, try the **secret** from Pay → API Keys (copy full key).
+ * Prefer `NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID` (WCPay ID from Pay → Integrate).
+ * `NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY` is kept as fallback for linked API-key setups.
  */
+const walletConnectPayAppId = normalizePublicEnvValue(
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID ?? ""
+);
 const walletConnectPayApiKey = normalizePublicEnvValue(
   process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY ?? ""
 );
-const payApiKeyReady = walletConnectPayApiKey.length > 0;
+const payCredentialReady =
+  walletConnectPayAppId.length > 0 || walletConnectPayApiKey.length > 0;
 /** When set, /walletconnect can settle $1 USDC on Base without a Pay product link (plain ERC-20 transfer). */
 const POSTER_USDC_RECIPIENT =
   process.env.NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS?.trim() ?? "";
@@ -134,7 +138,7 @@ export function WalletConnectPageClient() {
 
   /** WalletConnect Pay needs a valid link + Pay WCP id; direct USDC only needs treasury env. */
   const checkoutReady =
-    (wcPayLinkValid && payApiKeyReady) || directUsdcReady;
+    (wcPayLinkValid && payCredentialReady) || directUsdcReady;
 
   const runDataCollectionIframe = useCallback((url: string) => {
     return new Promise<void>((resolve, reject) => {
@@ -184,6 +188,34 @@ export function WalletConnectPageClient() {
     icRejectRef.current?.(new Error("Information collection cancelled"));
   }, []);
 
+  const getWalletKitClient = useCallback(async () => {
+    if (!PROJECT_ID) {
+      throw new Error("App configuration incomplete");
+    }
+    if (!payCredentialReady) {
+      throw new Error(
+        "Set NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (recommended WCPay ID) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY."
+      );
+    }
+    return getWalletKitSingleton({
+      projectId: PROJECT_ID,
+      payAppId: walletConnectPayAppId || undefined,
+      payApiKey: walletConnectPayApiKey || undefined,
+    });
+  }, []);
+
+  const handleWalletKitPayError = useCallback((err: unknown, authHint: string) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (isWalletConnectPayAuthErrorMessage(msg)) {
+      resetWalletKitSingleton();
+      setLastError(authHint);
+      toast.error(authHint);
+      return;
+    }
+    setLastError(msg);
+    toast.error(msg);
+  }, []);
+
   const loadPaymentOptions =
     useCallback(async (): Promise<PaymentOptionsResponse | null> => {
       const link = effectivePaymentLink;
@@ -203,9 +235,9 @@ export function WalletConnectPageClient() {
         toast.error("App configuration incomplete");
         return null;
       }
-      if (!payApiKeyReady) {
+      if (!payCredentialReady) {
         toast.error(
-          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY to your WCPay ID (Pay → Integrate → WCPay ID tab)"
+          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (recommended) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY."
         );
         return null;
       }
@@ -213,10 +245,7 @@ export function WalletConnectPageClient() {
       setLastError(null);
       setFlowStatus("initializing");
       try {
-        const walletkit = await getWalletKitSingleton({
-          projectId: PROJECT_ID,
-          payApiKey: walletConnectPayApiKey,
-        });
+        const walletkit = await getWalletKitClient();
         setFlowStatus("loading_options");
         const accounts = buildCaip10Accounts(address);
         const options = await walletkit.pay.getPaymentOptions({
@@ -233,22 +262,21 @@ export function WalletConnectPageClient() {
         setSelectedOptionId(first);
         return options;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        if (isWalletConnectPayAuthErrorMessage(msg)) {
-          resetWalletKitSingleton();
-          const hint =
-            "Pay rejected the credential (401). Confirm NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY in production: use the WCPay ID from Pay → Integrate, or the secret from Pay → API Keys if your project expects that. No quotes or spaces; redeploy after changing env.";
-          setLastError(hint);
-          toast.error(hint);
-        } else {
-          setLastError(msg);
-          toast.error(msg);
-        }
+        handleWalletKitPayError(
+          e,
+          "Pay rejected the credential (401). Confirm NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (WCPay ID) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY (linked API key), then redeploy."
+        );
         return null;
       } finally {
         setFlowStatus("idle");
       }
-    }, [address, effectivePaymentLink]);
+    }, [
+      address,
+      effectivePaymentLink,
+      getWalletKitClient,
+      handleWalletKitPayError,
+      payCredentialReady,
+    ]);
 
   const payWithSelectedOption = useCallback(
     async (response: PaymentOptionsResponse, optionId: string) => {
@@ -261,9 +289,9 @@ export function WalletConnectPageClient() {
         toast.error("Invalid payment link");
         return;
       }
-      if (!payApiKeyReady) {
+      if (!payCredentialReady) {
         toast.error(
-          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY to your WCPay ID (Pay → Integrate → WCPay ID tab)"
+          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (recommended) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY."
         );
         return;
       }
@@ -271,10 +299,7 @@ export function WalletConnectPageClient() {
       setLastError(null);
 
       try {
-        const walletkit = await getWalletKitSingleton({
-          projectId: PROJECT_ID,
-          payApiKey: walletConnectPayApiKey,
-        });
+        const walletkit = await getWalletKitClient();
 
         const option = response.options.find((o) => o.id === optionId);
         if (!option) {
@@ -332,21 +357,22 @@ export function WalletConnectPageClient() {
           toast.error(`Payment could not complete (${result.status})`);
         }
       } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        if (isWalletConnectPayAuthErrorMessage(msg)) {
-          resetWalletKitSingleton();
-          const hint =
-            "Pay rejected the credential (401). Check NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY in production (WCPay ID or API Keys secret); redeploy after changes.";
-          setLastError(hint);
-          toast.error(hint);
-        } else {
-          setLastError(msg);
-          toast.error(msg);
-        }
+        handleWalletKitPayError(
+          e,
+          "Pay rejected the credential (401). Check NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (WCPay ID) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY (linked API key); redeploy after changes."
+        );
         setFlowStatus("idle");
       }
     },
-    [address, effectivePaymentLink, evmWallet, runDataCollectionIframe]
+    [
+      address,
+      effectivePaymentLink,
+      evmWallet,
+      getWalletKitClient,
+      handleWalletKitPayError,
+      payCredentialReady,
+      runDataCollectionIframe,
+    ]
   );
 
   const payDirectUsdcOnBase = useCallback(async () => {
@@ -390,9 +416,9 @@ export function WalletConnectPageClient() {
 
   const handlePayClick = useCallback(async () => {
     if (!checkoutReady) {
-      if (wcPayLinkValid && !payApiKeyReady) {
+      if (wcPayLinkValid && !payCredentialReady) {
         toast.error(
-          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY to your WCPay ID (Pay → Integrate — not API Keys tab, not project id)."
+          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (WCPay ID) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY (linked API key)."
         );
       } else {
         toast.error(
@@ -441,7 +467,7 @@ export function WalletConnectPageClient() {
     if (
       !walletReady ||
       !wcPayLinkValid ||
-      !payApiKeyReady ||
+      !payCredentialReady ||
       purchaseComplete ||
       optionsResponse
     )
@@ -492,9 +518,9 @@ export function WalletConnectPageClient() {
           </div>
         ) : null}
 
-        {configOk && !directUsdcReady && !payApiKeyReady ? (
+        {configOk && !directUsdcReady && !payCredentialReady ? (
           <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-            WalletConnect Pay needs a separate API key. In{" "}
+            WalletConnect Pay needs a Pay credential. In{" "}
             <a
               href="https://dashboard.walletconnect.com/"
               className="font-medium underline underline-offset-2"
@@ -503,13 +529,15 @@ export function WalletConnectPageClient() {
             >
               WalletConnect Cloud
             </a>
-            , open <strong>Pay</strong> → <strong>Integrate</strong> →{" "}
-            <strong>WCPay ID</strong> and set{" "}
+            , open <strong>Pay</strong> → <strong>Integrate</strong> and set{" "}
+            <code className="rounded bg-white/60 px-1 dark:bg-zinc-900">
+              NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID
+            </code>
+            {" "}to the listed <strong>WCPay ID</strong>. You can also provide{" "}
             <code className="rounded bg-white/60 px-1 dark:bg-zinc-900">
               NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY
-            </code>
-            . If you still get <strong>401 Invalid API key</strong> after redeploying,
-            try the <strong>secret</strong> from Pay → <strong>API Keys</strong> instead.
+            </code>{" "}
+            as an alternative linked API key.
             Must match the same Cloud project as{" "}
             <code className="rounded bg-white/60 px-1 dark:bg-zinc-900">
               NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
