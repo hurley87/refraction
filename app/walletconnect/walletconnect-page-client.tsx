@@ -275,7 +275,6 @@ export function WalletConnectPageClient() {
       effectivePaymentLink,
       getWalletKitClient,
       handleWalletKitPayError,
-      payCredentialReady,
     ]);
 
   const payWithSelectedOption = useCallback(
@@ -370,7 +369,6 @@ export function WalletConnectPageClient() {
       evmWallet,
       getWalletKitClient,
       handleWalletKitPayError,
-      payCredentialReady,
       runDataCollectionIframe,
     ]
   );
