@@ -52,12 +52,27 @@ const PRODUCT_NAME = "Limited edition poster";
 const PRODUCT_BLURB =
   "Screen-printed IRL drop. Ships worldwide. Pay with USDC via WalletConnect Pay — pick your network in your wallet.";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- PAY_EVM_CHAIN_IDS kept as [8432] per product config
-const PAY_EVM_CHAIN_IDS = [8432] as const;
+/**
+ * Build CAIP-10 accounts from the connected wallet address.
+ * Include Base mainnet plus configured pay chain(s) so WalletConnect can return
+ * actionable options for the active embedded wallet account.
+ */
+const PAY_EVM_CHAIN_IDS = [POSTER_CHECKOUT_CHAIN_ID, 8432] as const;
 
-const PAY_CAIP10_ACCOUNTS = [
-  "eip155:8453:0xCBfa3c438EBb86FF17b075a0a0b6f15a08DAFEA8",
-] as const;
+function buildPayCaip10Accounts(walletAddress: string): string[] {
+  if (!isEvmAddress(walletAddress)) return [];
+  const normalizedAddress = walletAddress.toLowerCase();
+  const uniqueChainIds = PAY_EVM_CHAIN_IDS.filter(
+    (chainId, index, chainIds) => chainIds.indexOf(chainId) === index
+  );
+  return uniqueChainIds.map(
+    (chainId) => `eip155:${chainId}:${normalizedAddress}`
+  );
+}
+
+function toEvmHexAddress(value: string | undefined): `0x${string}` | null {
+  return value && isEvmAddress(value) ? (value as `0x${string}`) : null;
+}
 
 type FlowStatus =
   | "idle"
@@ -238,10 +253,15 @@ export function WalletConnectPageClient() {
         );
         if (!walletkit) return null;
         setFlowStatus("loading_options");
+        const accounts = buildPayCaip10Accounts(address);
+        if (accounts.length === 0) {
+          throw new Error("Connected wallet address is invalid for EVM payments");
+        }
+
         const options = await withTimeout(
           walletkit.pay.getPaymentOptions({
             paymentLink: link,
-            accounts: [...PAY_CAIP10_ACCOUNTS],
+            accounts,
             includePaymentInfo: true,
           }),
           WALLET_STEP_TIMEOUT_MS,
@@ -319,6 +339,11 @@ export function WalletConnectPageClient() {
           throw new Error("Could not connect to your wallet");
         }
 
+        const accountAddress = toEvmHexAddress(address);
+        if (!accountAddress) {
+          throw new Error("Connected wallet address is invalid for signing");
+        }
+
         const signatures: string[] = [];
         for (const action of actions) {
           const sig = await withTimeout(
@@ -326,6 +351,7 @@ export function WalletConnectPageClient() {
               provider as unknown as BrowserProvider,
               action,
               {
+                accountAddress,
                 switchChain: async (chainId) => {
                   await withTimeout(
                     evmWallet.switchChain(chainId),
