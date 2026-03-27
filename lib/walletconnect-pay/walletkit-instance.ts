@@ -7,7 +7,9 @@ let initPromise: Promise<WalletKitClient> | null = null;
 
 export type InitWalletKitParams = {
   projectId: string;
-  /** Pay credential for WalletKit: WCPay ID from Cloud → Pay → Integrate → WCPay ID (not Pay API Keys tab). */
+  /** WCPay ID from Cloud → Pay → Integrate. */
+  payAppId?: string;
+  /** Optional linked Pay API key from Cloud → Pay → API Keys. */
   payApiKey?: string;
 };
 
@@ -30,11 +32,12 @@ export function getWalletKitSingleton(
     );
   }
 
+  const payAppId = params.payAppId?.trim();
   const payApiKey = params.payApiKey?.trim();
-  if (!payApiKey) {
+  if (!payAppId && !payApiKey) {
     return Promise.reject(
       new Error(
-        "WalletConnect Pay needs NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY (WCPay ID from Pay → Integrate, or API Keys secret if 401). Not your Cloud project id."
+        "WalletConnect Pay needs a credential. Provide a WCPay ID via `payAppId` (recommended) or a linked API key via `payApiKey`."
       )
     );
   }
@@ -55,7 +58,8 @@ export function getWalletKitSingleton(
           icons: [`${typeof window !== "undefined" ? window.location.origin : "https://irl.energy"}/favicon.ico`],
         },
         payConfig: {
-          apiKey: payApiKey,
+          ...(payAppId ? { appId: payAppId } : {}),
+          ...(payApiKey && !payAppId ? { apiKey: payApiKey } : {}),
         },
       });
     })();
