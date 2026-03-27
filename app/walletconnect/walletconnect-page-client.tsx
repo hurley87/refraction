@@ -48,7 +48,6 @@ const POSTER_USDC_RECIPIENT =
   process.env.NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS?.trim() ?? "";
 
 const POSTER_PRICE_USD = 1;
-const POSTER_TOTAL = 100;
 const PRODUCT_NAME = "Limited edition poster";
 const PRODUCT_BLURB =
   "Screen-printed IRL drop. Ships worldwide. Pay with USDC via WalletConnect Pay — pick your network in your wallet.";
@@ -496,8 +495,6 @@ export function WalletConnectPageClient() {
     loadPaymentOptions,
   ]);
 
-  const remaining = POSTER_TOTAL;
-
   return (
     <div className="min-h-dvh bg-gradient-to-b from-zinc-100 to-zinc-200 text-zinc-900 dark:from-zinc-950 dark:to-zinc-900 dark:text-zinc-50">
       <header className="border-b border-zinc-200/80 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
@@ -546,10 +543,7 @@ export function WalletConnectPageClient() {
                 </p>
               </div>
             </div>
-            <div className="absolute bottom-3 left-3 right-3 flex justify-between text-xs font-medium text-zinc-700/90 dark:text-zinc-200">
-              <span className="rounded-full bg-white/90 px-2.5 py-1 backdrop-blur dark:bg-zinc-950/80">
-                {remaining} left
-              </span>
+            <div className="absolute bottom-3 left-3 right-3 flex justify-end text-xs font-medium text-zinc-700/90 dark:text-zinc-200">
               <span className="rounded-full bg-white/90 px-2.5 py-1 backdrop-blur dark:bg-zinc-950/80">
                 USDC · WalletConnect Pay
               </span>
@@ -632,14 +626,13 @@ export function WalletConnectPageClient() {
                     <ul className="space-y-2">
                       {optionsResponse.options.map((opt) => {
                         const active = selectedOptionId === opt.id;
-                        const needsInfo = Boolean(opt.collectData?.url);
                         return (
                           <li key={opt.id}>
                             <button
                               type="button"
                               onClick={() => setSelectedOptionId(opt.id)}
                               className={cn(
-                                "flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition-colors",
+                                "flex w-full items-center rounded-xl border px-4 py-3 text-left text-sm transition-colors",
                                 active
                                   ? "border-primary bg-primary/5 ring-1 ring-primary"
                                   : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
@@ -656,11 +649,6 @@ export function WalletConnectPageClient() {
                                   </span>
                                 ) : null}
                               </span>
-                              {needsInfo ? (
-                                <span className="text-xs text-amber-700 dark:text-amber-300">
-                                  ID check
-                                </span>
-                              ) : null}
                             </button>
                           </li>
                         );
