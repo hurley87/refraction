@@ -5,6 +5,10 @@ export type BrowserProvider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 };
 
+function isEvmAddress(value: unknown): value is `0x${string}` {
+  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value);
+}
+
 function caip2ChainIdToNumber(chainId: string): number {
   const match = /^eip155:(\d+)$/.exec(chainId.trim());
   if (!match) {
@@ -20,7 +24,10 @@ function caip2ChainIdToNumber(chainId: string): number {
 export async function signWalletRpcAction(
   provider: BrowserProvider,
   action: Action,
-  options: { switchChain: (chainId: number) => Promise<void> }
+  options: {
+    switchChain: (chainId: number) => Promise<void>;
+    accountAddress?: `0x${string}`;
+  }
 ): Promise<string> {
   const { chainId, method, params: paramsJson } = action.walletRpc;
   const numericChain = caip2ChainIdToNumber(chainId);
@@ -30,12 +37,16 @@ export async function signWalletRpcAction(
 
   switch (method) {
     case "eth_sendTransaction": {
-      const tx = Array.isArray(parsedParams)
+      const tx = (Array.isArray(parsedParams)
         ? (parsedParams as Record<string, unknown>[])[0]
-        : (parsedParams as Record<string, unknown>);
+        : (parsedParams as Record<string, unknown>)) ?? {};
+      const txForAccount = {
+        ...tx,
+        ...(options.accountAddress ? { from: options.accountAddress } : {}),
+      };
       const hash = await provider.request({
         method: "eth_sendTransaction",
-        params: [tx],
+        params: [txForAccount],
       });
       return typeof hash === "string" ? hash : String(hash);
     }
@@ -44,10 +55,21 @@ export async function signWalletRpcAction(
       if (!Array.isArray(tuple) || tuple.length < 2) {
         throw new Error("eth_signTypedData_v4: expected [address, typedData]");
       }
-      const [address, typedData] = tuple;
+      const [rawAddress, typedData] = tuple;
+      const address =
+        options.accountAddress ??
+        (isEvmAddress(rawAddress)
+          ? rawAddress
+          : (() => {
+              throw new Error(
+                "eth_signTypedData_v4: signer address missing or invalid"
+              );
+            })());
+      const typedDataPayload =
+        typeof typedData === "string" ? typedData : JSON.stringify(typedData);
       const sig = await provider.request({
         method: "eth_signTypedData_v4",
-        params: [address, typedData],
+        params: [address, typedDataPayload],
       });
       return typeof sig === "string" ? sig : String(sig);
     }
@@ -56,7 +78,22 @@ export async function signWalletRpcAction(
       if (!Array.isArray(tuple) || tuple.length < 2) {
         throw new Error("personal_sign: expected [message, address]");
       }
-      const [message, address] = tuple;
+      const [first, second] = tuple;
+      const [messageParam, signerParam] =
+        isEvmAddress(first) && !isEvmAddress(second)
+          ? [second, first]
+          : [first, second];
+      const address =
+        options.accountAddress ??
+        (isEvmAddress(signerParam)
+          ? signerParam
+          : (() => {
+              throw new Error("personal_sign: signer address missing or invalid");
+            })());
+      const message =
+        typeof messageParam === "string"
+          ? messageParam
+          : JSON.stringify(messageParam);
       const sig = await provider.request({
         method: "personal_sign",
         params: [message, address],
