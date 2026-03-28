@@ -3,13 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WalletConnectPageClient } from "./walletconnect-page-client";
 
-vi.mock("next/image", () => ({
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img {...props} alt={props.alt ?? ""} />
-  ),
-}));
-
 vi.mock("next/link", () => ({
   default: ({
     children,
