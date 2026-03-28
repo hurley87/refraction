@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { isPaymentLink } from "@reown/walletkit";
 import {
+  AlertTriangle,
   CheckCircle2,
   Loader2,
   QrCode,
@@ -31,9 +32,11 @@ import {
 } from "@/lib/walletconnect-pay/sign-wallet-rpc-action";
 import {
   encodePosterUsdcTransferData,
+  fetchUsdcBalanceOnBase,
   isEvmAddress,
   POSTER_CHECKOUT_CHAIN_ID,
   POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+  USDC_WARNING_THRESHOLD,
 } from "@/lib/walletconnect-poster-direct-usdc";
 import { PaymentLinkQrReaderDialog } from "@/components/walletconnect/payment-link-qr-reader-dialog";
 import { cn } from "@/lib/utils";
@@ -121,6 +124,9 @@ export function WalletConnectPageClient() {
   const [icUrl, setIcUrl] = useState<string | null>(null);
   const icResolveRef = useRef<(() => void) | null>(null);
   const icRejectRef = useRef<((err: Error) => void) | null>(null);
+
+  const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
+  const [usdcBalanceLoading, setUsdcBalanceLoading] = useState(false);
 
   const address = user?.wallet?.address;
 
@@ -495,6 +501,11 @@ export function WalletConnectPageClient() {
 
   const configOk = Boolean(PROJECT_ID);
   const walletReady = privyReady && authenticated && Boolean(address) && configOk;
+  const hasLowUsdcBalance =
+    authenticated &&
+    !usdcBalanceLoading &&
+    usdcBalance !== null &&
+    usdcBalance < USDC_WARNING_THRESHOLD;
   const isBusy =
     flowStatus === "initializing" ||
     flowStatus === "loading_options" ||
@@ -518,6 +529,28 @@ export function WalletConnectPageClient() {
     optionsResponse,
     loadPaymentOptions,
   ]);
+
+  useEffect(() => {
+    if (!authenticated || !address) {
+      setUsdcBalance(null);
+      return;
+    }
+    let cancelled = false;
+    setUsdcBalanceLoading(true);
+    fetchUsdcBalanceOnBase(address as `0x${string}`)
+      .then((balance) => {
+        if (!cancelled) setUsdcBalance(balance);
+      })
+      .catch(() => {
+        if (!cancelled) setUsdcBalance(null);
+      })
+      .finally(() => {
+        if (!cancelled) setUsdcBalanceLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authenticated, address]);
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-zinc-100 to-zinc-200 text-zinc-900 dark:from-zinc-950 dark:to-zinc-900 dark:text-zinc-50">
@@ -602,13 +635,37 @@ export function WalletConnectPageClient() {
                   </div>
                 </div>
 
+                {hasLowUsdcBalance ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/40">
+                    <div className="flex gap-3">
+                      <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                          Insufficient USDC balance
+                        </p>
+                        <p className="text-sm text-amber-800/80 dark:text-amber-300/80">
+                          You need at least{" "}
+                          <span className="font-semibold">
+                            {USDC_WARNING_THRESHOLD} USDC
+                          </span>{" "}
+                          on Base to complete this purchase. Send USDC to your
+                          wallet address before continuing:
+                        </p>
+                        <p className="break-all font-mono text-xs text-amber-900 dark:text-amber-200">
+                          {address}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
                 {!directUsdcReady && !wcPayLinkValid ? (
                   <Button
                     type="button"
                     variant="outline"
                     size="lg"
                     className="h-12 w-full rounded-xl text-base"
-                    disabled={!walletReady || purchaseComplete}
+                    disabled={!walletReady || purchaseComplete || hasLowUsdcBalance}
                     onClick={() => setQrReaderOpen(true)}
                   >
                     <QrCode className="size-5" />
@@ -659,7 +716,11 @@ export function WalletConnectPageClient() {
                   size="lg"
                   className="h-12 w-full rounded-xl text-base"
                   disabled={
-                    !walletReady || !checkoutReady || isBusy || purchaseComplete
+                    !walletReady ||
+                    !checkoutReady ||
+                    isBusy ||
+                    purchaseComplete ||
+                    hasLowUsdcBalance
                   }
                   onClick={() => void handlePayClick()}
                 >
