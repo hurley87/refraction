@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
@@ -8,7 +7,6 @@ import { isPaymentLink } from "@reown/walletkit";
 import {
   CheckCircle2,
   Loader2,
-  Lock,
   QrCode,
   Sparkles,
   Wallet,
@@ -523,28 +521,6 @@ export function WalletConnectPageClient() {
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-zinc-100 to-zinc-200 text-zinc-900 dark:from-zinc-950 dark:to-zinc-900 dark:text-zinc-50">
-      <header className="border-b border-zinc-200/80 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
-        <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4 sm:max-w-xl">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            <Image
-              src="/home/IRL.png"
-              alt="IRL"
-              width={32}
-              height={16}
-              className="h-4 w-auto dark:invert"
-            />
-            <span>Shop</span>
-          </Link>
-          <span className="flex items-center gap-1 text-xs text-zinc-500">
-            <Lock className="size-3" aria-hidden />
-            Secure checkout
-          </span>
-        </div>
-      </header>
-
       <main className="mx-auto max-w-lg px-4 py-8 sm:max-w-xl sm:py-12">
         {!configOk ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
