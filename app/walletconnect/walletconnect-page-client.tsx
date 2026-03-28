@@ -735,11 +735,11 @@ export function WalletConnectPageClient() {
       />
 
       <Dialog open={icOpen} onOpenChange={(open) => !open && handleCloseIc()}>
-        <DialogContent className="max-w-lg gap-0 p-0 sm:max-w-lg">
-          <DialogHeader className="p-4 pb-0">
+        <DialogContent className="!left-0 !top-0 !flex h-dvh w-screen max-w-none !translate-x-0 !translate-y-0 flex-col gap-0 overflow-hidden rounded-none p-0 sm:!left-1/2 sm:!top-1/2 sm:h-[92dvh] sm:w-[min(56rem,96vw)] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:rounded-lg">
+          <DialogHeader className="shrink-0 p-4 pb-0">
             <DialogTitle>Verify your details</DialogTitle>
           </DialogHeader>
-          <p className="px-4 pb-2 text-xs text-muted-foreground">
+          <p className="shrink-0 px-4 pb-2 text-xs text-muted-foreground">
             Regulations require a few details for this payment. Complete the form,
             then we will finish in your wallet.
           </p>
@@ -747,7 +747,7 @@ export function WalletConnectPageClient() {
             <iframe
               title="Payment verification"
               src={icUrl}
-              className="h-[min(70vh,560px)] w-full rounded-b-lg border-t border-border bg-white"
+              className="min-h-0 flex-1 w-full border-t border-border bg-white"
               sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
             />
           ) : null}
