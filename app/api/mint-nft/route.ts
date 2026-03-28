@@ -18,6 +18,7 @@ import {
   getHorizonUrlForNetwork,
   getNFTContractAddress,
 } from '@/lib/stellar/utils/network';
+import { verifyWalletOwnership } from '@/lib/api/privy';
 
 /**
  * POST /api/mint-nft
@@ -38,6 +39,11 @@ export async function POST(request: NextRequest) {
   }
   if (!isValidAddress(walletAddress)) {
     return apiError('Invalid wallet address', 400);
+  }
+
+  const auth = await verifyWalletOwnership(request, walletAddress);
+  if (!auth.authorized) {
+    return apiError(auth.error ?? 'Unauthorized', 401);
   }
 
   const appNetwork = process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toUpperCase();

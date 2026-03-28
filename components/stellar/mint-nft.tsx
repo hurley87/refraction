@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { usePrivy } from '@privy-io/react-auth';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
 import { useStellarWallet } from '@/hooks/useStellarWallet';
 import { mintNFT, isValidContractAddress } from '@/lib/stellar/utils/soroban';
@@ -31,6 +32,7 @@ const MintNFT: React.FC<MintNFTProps> = ({
   onSuccess,
   onError,
 }) => {
+  const { getAccessToken } = usePrivy();
   const {
     address,
     network,
@@ -161,9 +163,16 @@ const MintNFT: React.FC<MintNFTProps> = ({
 
     try {
       if (primaryIsPrivy) {
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          throw new Error('Authentication required. Please sign in again.');
+        }
         const response = await fetch('/api/mint-nft', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({
             walletAddress: effectiveAddress,
             networkPassphrase: effectiveNetworkPassphrase,
