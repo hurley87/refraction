@@ -26,6 +26,7 @@ import {
   isWalletConnectPayAuthErrorMessage,
   resetWalletKitSingleton,
 } from "@/lib/walletconnect-pay/walletkit-instance";
+import { normalizePublicEnvValue } from "@/lib/walletconnect-pay/normalize-public-env-value";
 import {
   signWalletRpcAction,
   type BrowserProvider,
@@ -43,7 +44,17 @@ import { cn } from "@/lib/utils";
 
 import type { PaymentOptionsResponse } from "@walletconnect/pay";
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
+const PROJECT_ID = normalizePublicEnvValue(
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? ""
+);
+const WALLETCONNECT_PAY_APP_ID = normalizePublicEnvValue(
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID ?? ""
+);
+const WALLETCONNECT_PAY_API_KEY = normalizePublicEnvValue(
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY ?? ""
+);
+const PAY_CREDENTIAL_READY =
+  WALLETCONNECT_PAY_APP_ID.length > 0 || WALLETCONNECT_PAY_API_KEY.length > 0;
 /** When set, /walletconnect can settle $1 USDC on Base without a Pay product link (plain ERC-20 transfer). */
 const POSTER_USDC_RECIPIENT =
   process.env.NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS?.trim() ?? "";
@@ -144,8 +155,8 @@ export function WalletConnectPageClient() {
     effectivePaymentLink.length > 0 && isPaymentLink(effectivePaymentLink);
   const directUsdcReady = isEvmAddress(POSTER_USDC_RECIPIENT);
 
-  /** WalletConnect Pay needs a valid payment link and project id; direct USDC only needs treasury env. */
-  const checkoutReady = wcPayLinkValid || directUsdcReady;
+  /** WalletConnect Pay needs payment link + pay credential; direct USDC only needs treasury env. */
+  const checkoutReady = (wcPayLinkValid && PAY_CREDENTIAL_READY) || directUsdcReady;
 
   const runDataCollectionIframe = useCallback((url: string) => {
     return new Promise<void>((resolve, reject) => {
@@ -218,10 +229,18 @@ export function WalletConnectPageClient() {
         toast.error("App configuration incomplete");
         return null;
       }
+      if (!PAY_CREDENTIAL_READY) {
+        toast.error(
+          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (WCPay ID) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY."
+        );
+        return null;
+      }
       try {
         return await withTimeout(
           getWalletKitSingleton({
             projectId: PROJECT_ID,
+            payAppId: WALLETCONNECT_PAY_APP_ID || undefined,
+            payApiKey: WALLETCONNECT_PAY_API_KEY || undefined,
           }),
           60_000,
           "Wallet connection setup"
@@ -253,7 +272,7 @@ export function WalletConnectPageClient() {
       setFlowStatus("initializing");
       try {
         const walletkit = await initWalletKit(
-          "Pay rejected the configured project id (401). Confirm NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID and redeploy."
+          "Pay rejected the configured credential (401). Confirm NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY and redeploy."
         );
         if (!walletkit) return null;
         setFlowStatus("loading_options");
@@ -282,7 +301,7 @@ export function WalletConnectPageClient() {
       } catch (e) {
         handleWalletKitPayError(
           e,
-          "Pay rejected the configured project id (401). Confirm NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID and redeploy."
+          "Pay rejected the configured credential (401). Confirm NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY and redeploy."
         );
         return null;
       } finally {
@@ -310,7 +329,7 @@ export function WalletConnectPageClient() {
 
       try {
         const walletkit = await initWalletKit(
-          "Pay rejected the configured project id (401). Check NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID and redeploy after changes."
+          "Pay rejected the configured credential (401). Check NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY and redeploy after changes."
         );
         if (!walletkit) {
           setFlowStatus("idle");
@@ -397,7 +416,7 @@ export function WalletConnectPageClient() {
       } catch (e) {
         handleWalletKitPayError(
           e,
-          "Pay rejected the configured project id (401). Check NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID and redeploy after changes."
+          "Pay rejected the configured credential (401). Check NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY and redeploy after changes."
         );
       } finally {
         setFlowStatus((prev) =>
@@ -467,9 +486,15 @@ export function WalletConnectPageClient() {
 
   const handlePayClick = useCallback(async () => {
     if (!checkoutReady) {
-      toast.error(
-        "Scan the payment QR code, or set NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS for direct 1 USDC on Base."
-      );
+      if (wcPayLinkValid && !PAY_CREDENTIAL_READY) {
+        toast.error(
+          "Set NEXT_PUBLIC_WALLETCONNECT_PAY_APP_ID (WCPay ID) or NEXT_PUBLIC_WALLETCONNECT_PAY_API_KEY."
+        );
+      } else {
+        toast.error(
+          "Scan the payment QR code, or set NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS for direct 1 USDC on Base."
+        );
+      }
       return;
     }
     if (!wcPayLinkValid) {
@@ -517,6 +542,7 @@ export function WalletConnectPageClient() {
     if (
       !walletReady ||
       !wcPayLinkValid ||
+      !PAY_CREDENTIAL_READY ||
       purchaseComplete ||
       optionsResponse
     )
@@ -525,6 +551,7 @@ export function WalletConnectPageClient() {
   }, [
     walletReady,
     wcPayLinkValid,
+    PAY_CREDENTIAL_READY,
     purchaseComplete,
     optionsResponse,
     loadPaymentOptions,

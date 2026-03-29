@@ -35,17 +35,43 @@ describe("walletkit-instance", () => {
     );
   });
 
-  it("uses params.projectId directly for core and pay appId", async () => {
+  it("rejects when neither payAppId nor payApiKey is provided", async () => {
+    await expect(
+      getWalletKitSingleton({ projectId: "project-id-123" })
+    ).rejects.toThrow(
+      "WalletConnect Pay needs a credential. Provide a WCPay ID via `payAppId` (recommended) or a linked API key via `payApiKey`."
+    );
+  });
+
+  it("uses payAppId for payConfig while keeping projectId for core", async () => {
     walletKitInitMock.mockResolvedValueOnce({ pay: {} });
 
     const rawProjectId = "  untrimmed-project-id  ";
-    await getWalletKitSingleton({ projectId: rawProjectId });
+    const payAppId = "wc_pay_app_123";
+    await getWalletKitSingleton({ projectId: rawProjectId, payAppId });
 
     expect(coreCtorMock).toHaveBeenCalledWith({ projectId: rawProjectId });
     expect(walletKitInitMock).toHaveBeenCalledWith(
       expect.objectContaining({
         payConfig: {
-          appId: rawProjectId,
+          appId: payAppId,
+        },
+      })
+    );
+  });
+
+  it("uses payApiKey when payAppId is not set", async () => {
+    walletKitInitMock.mockResolvedValueOnce({ pay: {} });
+
+    await getWalletKitSingleton({
+      projectId: "project-id-123",
+      payApiKey: "pay_api_key_abc",
+    });
+
+    expect(walletKitInitMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payConfig: {
+          apiKey: "pay_api_key_abc",
         },
       })
     );
@@ -55,7 +81,10 @@ describe("walletkit-instance", () => {
     walletKitInitMock.mockRejectedValueOnce(new Error("401 unauthorized"));
 
     await expect(
-      getWalletKitSingleton({ projectId: "project-id-123" })
+      getWalletKitSingleton({
+        projectId: "project-id-123",
+        payAppId: "wc_pay_app_123",
+      })
     ).rejects.toThrow(
       'WalletKit init failed for projectId="project-id-123": 401 unauthorized'
     );
