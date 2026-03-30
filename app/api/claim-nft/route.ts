@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, createWalletClient, http, parseAbi } from 'viem';
 import { base } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
-import {
-  REWARD1155_ADDRESS,
-  REWARD1155_ABI,
-  ERC20_ABI,
-} from '@/lib/reward1155-abi';
+import { WALLETCON_NFT_ADDRESS, WALLETCON_NFT_ABI } from '@/lib/walletcon-nft';
+import { ERC20_ABI } from '@/lib/reward1155-abi';
 import { verifyWalletOwnership } from '@/lib/api/privy';
+import { getServerPrivateKey } from '@/lib/server-private-key';
 
 // In-memory lock to prevent concurrent mints for the same user
 const mintLocks = new Map<string, Promise<any>>();
@@ -15,8 +13,7 @@ const mintLocks = new Map<string, Promise<any>>();
 // When MOCK_CLAIM_NFT_OPEN=true, addresses that "minted" via mock POST (bypasses max supply / contract)
 const mockClaimedAddresses = new Set<string>();
 
-// Parse ABIs for viem
-const REWARD1155_ABI_PARSED = parseAbi(REWARD1155_ABI);
+const NFT_ABI_PARSED = parseAbi(WALLETCON_NFT_ABI);
 const ERC20_ABI_PARSED = parseAbi(ERC20_ABI);
 const WAIT_FOR_RECEIPT_TIMEOUT_MS = 10_000;
 const RECEIPT_POLL_INTERVAL_MS = 1_000;
@@ -27,7 +24,6 @@ type PendingMint = {
   startedAt: number;
 };
 
-// Keeps users from repeatedly creating new mint txs while a prior tx is still pending.
 const pendingMints = new Map<string, PendingMint>();
 
 function getActivePendingMint(address: string): PendingMint | null {
@@ -64,20 +60,18 @@ export async function POST(req: NextRequest) {
 
     const normalizedAddress = userAddress.toLowerCase();
 
-    // Mock bypass: skip contract and max-supply check when MOCK_CLAIM_NFT_OPEN=true
     if (process.env.MOCK_CLAIM_NFT_OPEN === 'true') {
       mockClaimedAddresses.add(normalizedAddress);
       return NextResponse.json({
         success: true,
         transactionHash: `0xmock${Date.now()}${Math.random().toString(16).slice(2)}`,
         nftBalance: '1',
-        tokenBalance: '100',
-        rewardAmount: '100',
+        tokenBalance: '5000000',
+        rewardAmount: '5000000',
         message: 'NFT claimed successfully! 🎉 (mock)',
       });
     }
 
-    // Check if this user is already minting
     if (mintLocks.has(normalizedAddress)) {
       return NextResponse.json(
         { success: false, error: 'Mint already in progress for this address' },
@@ -98,12 +92,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create a lock promise for this mint operation
     const mintPromise = (async () => {
       try {
         return await performMint(userAddress, normalizedAddress);
       } catch (error: any) {
-        // Handle errors from performMint and return proper error response
         console.error('Error in performMint:', error);
         return NextResponse.json(
           {
@@ -113,7 +105,6 @@ export async function POST(req: NextRequest) {
           { status: 500 }
         );
       } finally {
-        // Always remove the lock when done
         mintLocks.delete(normalizedAddress);
       }
     })();
@@ -133,17 +124,21 @@ export async function POST(req: NextRequest) {
 }
 
 async function performMint(userAddress: string, normalizedAddress: string) {
-  // Get the private key from env
-  const privateKey = process.env.SERVER_PRIVATE_KEY;
+  const privateKey = getServerPrivateKey();
   if (!privateKey) {
-    console.error('SERVER_PRIVATE_KEY not found in environment');
+    console.error(
+      '[claim-nft] No server wallet key: set SERVER_PRIVATE_KEY or SERVER_WALLET_PRIVATE_KEY in .env.local (Base wallet with ETH for gas; must be NFT contract owner).'
+    );
     return NextResponse.json(
-      { success: false, error: 'Server configuration error' },
+      {
+        success: false,
+        error:
+          'Mint is not configured: add SERVER_PRIVATE_KEY or SERVER_WALLET_PRIVATE_KEY to your environment (Base wallet funded with ETH for gas).',
+      },
       { status: 500 }
     );
   }
 
-  // Create viem clients
   const publicClient = createPublicClient({
     chain: base,
     transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
@@ -156,54 +151,79 @@ async function performMint(userAddress: string, normalizedAddress: string) {
     transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
   });
 
-  // Check if user can mint
-  const canMint = await publicClient.readContract({
-    address: REWARD1155_ADDRESS as `0x${string}`,
-    abi: REWARD1155_ABI_PARSED,
-    functionName: 'canMint',
-    args: [userAddress as `0x${string}`],
-  });
+  const addr = userAddress as `0x${string}`;
 
-  if (!canMint) {
-    // Check if already minted
-    const hasMinted = await publicClient.readContract({
-      address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI_PARSED,
-      functionName: 'hasMinted',
-      args: [userAddress as `0x${string}`],
-    });
+  const [nftBalance, totalMinted, maxSupply, mintReward, contractUsdcBalance] =
+    await Promise.all([
+      publicClient.readContract({
+        address: WALLETCON_NFT_ADDRESS,
+        abi: NFT_ABI_PARSED,
+        functionName: 'balanceOf',
+        args: [addr],
+      }),
+      publicClient.readContract({
+        address: WALLETCON_NFT_ADDRESS,
+        abi: NFT_ABI_PARSED,
+        functionName: 'totalMinted',
+      }),
+      publicClient.readContract({
+        address: WALLETCON_NFT_ADDRESS,
+        abi: NFT_ABI_PARSED,
+        functionName: 'maxSupply',
+      }),
+      publicClient.readContract({
+        address: WALLETCON_NFT_ADDRESS,
+        abi: NFT_ABI_PARSED,
+        functionName: 'mintReward',
+      }),
+      publicClient.readContract({
+        address: WALLETCON_NFT_ADDRESS,
+        abi: NFT_ABI_PARSED,
+        functionName: 'usdcBalance',
+      }),
+    ]);
 
-    if (hasMinted) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'You have already claimed your NFT',
-          alreadyClaimed: true,
-        },
-        { status: 400 }
-      );
-    }
+  if (nftBalance > 0n) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'You have already claimed your NFT',
+        alreadyClaimed: true,
+      },
+      { status: 400 }
+    );
+  }
 
+  if (totalMinted >= maxSupply) {
     return NextResponse.json(
       { success: false, error: 'Max supply reached or cannot mint' },
       { status: 400 }
     );
   }
 
-  // Mint the NFT for the user using mintTo function
+  if (mintReward > 0n && contractUsdcBalance < mintReward) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          'Reward pool is temporarily insufficient. Please try again later.',
+      },
+      { status: 503 }
+    );
+  }
+
   let hash: `0x${string}` | null = null;
   try {
     hash = await walletClient.writeContract({
-      address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI_PARSED,
-      functionName: 'mintTo',
-      args: [userAddress as `0x${string}`],
+      address: WALLETCON_NFT_ADDRESS,
+      abi: NFT_ABI_PARSED,
+      functionName: 'mint',
+      args: [addr],
       account,
     });
 
     pendingMints.set(normalizedAddress, { hash, startedAt: Date.now() });
 
-    // Wait for transaction confirmation, but cap at Vercel timeout window
     const receipt = await waitForReceiptWithTimeout(publicClient, hash);
 
     if (!receipt) {
@@ -232,52 +252,39 @@ async function performMint(userAddress: string, normalizedAddress: string) {
     throw error;
   }
 
-  // Get updated balances for the user
-  const [nftBalance, rewardTokenAddress, rewardAmount] = await Promise.all([
-    publicClient.readContract({
-      address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI_PARSED,
-      functionName: 'balanceOf',
-      args: [userAddress as `0x${string}`, BigInt(1)], // TOKEN_ID is 1
-    }),
-    publicClient.readContract({
-      address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI_PARSED,
-      functionName: 'rewardToken',
-    }),
-    publicClient.readContract({
-      address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI_PARSED,
-      functionName: 'rewardAmount',
-    }),
-  ]);
+  const usdcAddress = await publicClient.readContract({
+    address: WALLETCON_NFT_ADDRESS,
+    abi: NFT_ABI_PARSED,
+    functionName: 'usdc',
+  });
 
-  let tokenBalance = '0';
-  if (
-    rewardTokenAddress &&
-    rewardTokenAddress !== '0x0000000000000000000000000000000000000000'
-  ) {
-    tokenBalance = (
-      await publicClient.readContract({
-        address: rewardTokenAddress as `0x${string}`,
-        abi: ERC20_ABI_PARSED,
-        functionName: 'balanceOf',
-        args: [userAddress as `0x${string}`],
-      })
-    ).toString();
-  }
+  const [nftBalanceAfter, userUsdcBalance] = await Promise.all([
+    publicClient.readContract({
+      address: WALLETCON_NFT_ADDRESS,
+      abi: NFT_ABI_PARSED,
+      functionName: 'balanceOf',
+      args: [addr],
+    }),
+    usdcAddress && usdcAddress !== '0x0000000000000000000000000000000000000000'
+      ? publicClient.readContract({
+          address: usdcAddress,
+          abi: ERC20_ABI_PARSED,
+          functionName: 'balanceOf',
+          args: [addr],
+        })
+      : Promise.resolve(0n),
+  ]);
 
   return NextResponse.json({
     success: true,
     transactionHash: hash!,
-    nftBalance: nftBalance.toString(),
-    tokenBalance: tokenBalance.toString(),
-    rewardAmount: rewardAmount.toString(),
+    nftBalance: nftBalanceAfter.toString(),
+    tokenBalance: userUsdcBalance.toString(),
+    rewardAmount: mintReward.toString(),
     message: 'NFT claimed successfully! 🎉',
   });
 }
 
-// GET endpoint to check if user has claimed
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -298,7 +305,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Optional: mock "mint open" for local testing (set MOCK_CLAIM_NFT_OPEN=true in .env.local)
     if (process.env.MOCK_CLAIM_NFT_OPEN === 'true') {
       const normalized = userAddress.toLowerCase();
       const hasClaimed = mockClaimedAddresses.has(normalized);
@@ -306,7 +312,7 @@ export async function GET(req: NextRequest) {
         success: true,
         hasClaimed,
         nftBalance: hasClaimed ? '1' : '0',
-        tokenBalance: hasClaimed ? '100' : '0',
+        tokenBalance: hasClaimed ? '5000000' : '0',
         canMint: !hasClaimed,
       });
     }
@@ -316,58 +322,80 @@ export async function GET(req: NextRequest) {
       transport: http(process.env.NEXT_PUBLIC_BASE_RPC),
     });
 
-    const [hasMinted, canMint, nftBalance, rewardTokenAddress] =
-      await Promise.all([
-        publicClient.readContract({
-          address: REWARD1155_ADDRESS as `0x${string}`,
-          abi: REWARD1155_ABI_PARSED,
-          functionName: 'hasMinted',
-          args: [userAddress as `0x${string}`],
-        }),
-        publicClient.readContract({
-          address: REWARD1155_ADDRESS as `0x${string}`,
-          abi: REWARD1155_ABI_PARSED,
-          functionName: 'canMint',
-          args: [userAddress as `0x${string}`],
-        }),
-        publicClient.readContract({
-          address: REWARD1155_ADDRESS as `0x${string}`,
-          abi: REWARD1155_ABI_PARSED,
-          functionName: 'balanceOf',
-          args: [userAddress as `0x${string}`, BigInt(1)],
-        }),
-        publicClient.readContract({
-          address: REWARD1155_ADDRESS as `0x${string}`,
-          abi: REWARD1155_ABI_PARSED,
-          functionName: 'rewardToken',
-        }),
-      ]);
+    const wallet = userAddress as `0x${string}`;
 
-    if (hasMinted) {
+    const [
+      nftBalance,
+      totalMinted,
+      maxSupply,
+      mintReward,
+      contractUsdcBalance,
+      usdcAddress,
+    ] = await Promise.all([
+      publicClient.readContract({
+        address: WALLETCON_NFT_ADDRESS,
+        abi: NFT_ABI_PARSED,
+        functionName: 'balanceOf',
+        args: [wallet],
+      }),
+      publicClient.readContract({
+        address: WALLETCON_NFT_ADDRESS,
+        abi: NFT_ABI_PARSED,
+        functionName: 'totalMinted',
+      }),
+      publicClient.readContract({
+        address: WALLETCON_NFT_ADDRESS,
+        abi: NFT_ABI_PARSED,
+        functionName: 'maxSupply',
+      }),
+      publicClient.readContract({
+        address: WALLETCON_NFT_ADDRESS,
+        abi: NFT_ABI_PARSED,
+        functionName: 'mintReward',
+      }),
+      publicClient.readContract({
+        address: WALLETCON_NFT_ADDRESS,
+        abi: NFT_ABI_PARSED,
+        functionName: 'usdcBalance',
+      }),
+      publicClient.readContract({
+        address: WALLETCON_NFT_ADDRESS,
+        abi: NFT_ABI_PARSED,
+        functionName: 'usdc',
+      }),
+    ]);
+
+    const hasClaimed = nftBalance > 0n;
+    if (hasClaimed) {
       pendingMints.delete(userAddress.toLowerCase());
     }
 
+    const canMint =
+      !hasClaimed &&
+      totalMinted < maxSupply &&
+      (mintReward === 0n || contractUsdcBalance >= mintReward);
+
     let tokenBalance = '0';
     if (
-      rewardTokenAddress &&
-      rewardTokenAddress !== '0x0000000000000000000000000000000000000000'
+      usdcAddress &&
+      usdcAddress !== '0x0000000000000000000000000000000000000000'
     ) {
       tokenBalance = (
         await publicClient.readContract({
-          address: rewardTokenAddress as `0x${string}`,
+          address: usdcAddress,
           abi: ERC20_ABI_PARSED,
           functionName: 'balanceOf',
-          args: [userAddress as `0x${string}`],
+          args: [wallet],
         })
       ).toString();
     }
 
     return NextResponse.json({
       success: true,
-      hasClaimed: hasMinted,
+      hasClaimed,
       nftBalance: nftBalance.toString(),
       tokenBalance,
-      canMint: canMint,
+      canMint,
     });
   } catch (error: any) {
     console.error('Error checking mint status:', error);
