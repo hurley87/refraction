@@ -18,6 +18,7 @@ const ERC20_ABI_PARSED = parseAbi(ERC20_ABI);
 const WAIT_FOR_RECEIPT_TIMEOUT_MS = 10_000;
 const RECEIPT_POLL_INTERVAL_MS = 1_000;
 const PENDING_MINT_LOCK_TTL_MS = 5 * 60 * 1000;
+const ZERO_BIGINT = BigInt(0);
 
 type PendingMint = {
   hash: `0x${string}`;
@@ -183,7 +184,7 @@ async function performMint(userAddress: string, normalizedAddress: string) {
       }),
     ]);
 
-  if (nftBalance > 0n) {
+  if (nftBalance > ZERO_BIGINT) {
     return NextResponse.json(
       {
         success: false,
@@ -201,7 +202,7 @@ async function performMint(userAddress: string, normalizedAddress: string) {
     );
   }
 
-  if (mintReward > 0n && contractUsdcBalance < mintReward) {
+  if (mintReward > ZERO_BIGINT && contractUsdcBalance < mintReward) {
     return NextResponse.json(
       {
         success: false,
@@ -272,7 +273,7 @@ async function performMint(userAddress: string, normalizedAddress: string) {
           functionName: 'balanceOf',
           args: [addr],
         })
-      : Promise.resolve(0n),
+      : Promise.resolve(ZERO_BIGINT),
   ]);
 
   return NextResponse.json({
@@ -365,7 +366,7 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    const hasClaimed = nftBalance > 0n;
+    const hasClaimed = nftBalance > ZERO_BIGINT;
     if (hasClaimed) {
       pendingMints.delete(userAddress.toLowerCase());
     }
@@ -373,7 +374,7 @@ export async function GET(req: NextRequest) {
     const canMint =
       !hasClaimed &&
       totalMinted < maxSupply &&
-      (mintReward === 0n || contractUsdcBalance >= mintReward);
+      (mintReward === ZERO_BIGINT || contractUsdcBalance >= mintReward);
 
     let tokenBalance = '0';
     if (
