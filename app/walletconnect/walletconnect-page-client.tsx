@@ -506,6 +506,8 @@ export function WalletConnectPageClient() {
     !usdcBalanceLoading &&
     usdcBalance !== null &&
     usdcBalance < USDC_WARNING_THRESHOLD;
+  const shouldBlockForLowUsdcBalance =
+    hasLowUsdcBalance && directUsdcReady && !wcPayLinkValid;
   const isBusy =
     flowStatus === "initializing" ||
     flowStatus === "loading_options" ||
@@ -665,7 +667,7 @@ export function WalletConnectPageClient() {
                     variant="outline"
                     size="lg"
                     className="h-12 w-full rounded-xl text-base"
-                    disabled={!walletReady || purchaseComplete || hasLowUsdcBalance}
+                    disabled={!walletReady || purchaseComplete}
                     onClick={() => setQrReaderOpen(true)}
                   >
                     <QrCode className="size-5" />
@@ -720,7 +722,7 @@ export function WalletConnectPageClient() {
                     !checkoutReady ||
                     isBusy ||
                     purchaseComplete ||
-                    hasLowUsdcBalance
+                    shouldBlockForLowUsdcBalance
                   }
                   onClick={() => void handlePayClick()}
                 >
