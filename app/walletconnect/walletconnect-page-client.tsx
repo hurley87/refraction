@@ -752,12 +752,7 @@ export function WalletConnectPageClient() {
           </div>
         </div>
 
-        <p className="mt-8 text-center text-xs text-zinc-500">
-          Questions?{" "}
-          <Link href="/contact-us" className="underline underline-offset-2">
-            Contact us
-          </Link>
-        </p>
+
       </main>
 
       <PaymentLinkQrReaderDialog
