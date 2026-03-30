@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { isPaymentLink } from "@reown/walletkit";
@@ -51,7 +50,7 @@ const POSTER_USDC_RECIPIENT =
 const POSTER_PRICE_USD = 1;
 const PRODUCT_NAME = "Limited edition poster";
 const PRODUCT_BLURB =
-  "Screen-printed IRL drop. Ships worldwide. Pay with USDC via WalletConnect Pay — pick your network in your wallet.";
+  "Screen-printed IRL drop. Pay with USDC via WalletConnect Pay.";
 
 /**
  * Build CAIP-10 accounts from the connected wallet address.
@@ -593,11 +592,7 @@ export function WalletConnectPageClient() {
               <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
                 {PRODUCT_BLURB}
               </p>
-              <p className="mt-4 flex items-baseline gap-2">
-                <span className="text-3xl font-bold tracking-tight">
-                  ${POSTER_PRICE_USD}
-                </span>
-              </p>
+
             </div>
 
             {purchaseComplete ? (
@@ -752,12 +747,7 @@ export function WalletConnectPageClient() {
           </div>
         </div>
 
-        <p className="mt-8 text-center text-xs text-zinc-500">
-          Questions?{" "}
-          <Link href="/contact-us" className="underline underline-offset-2">
-            Contact us
-          </Link>
-        </p>
+
       </main>
 
       <PaymentLinkQrReaderDialog
