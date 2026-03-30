@@ -732,7 +732,7 @@ export function WalletConnectPageClient() {
                     ? `Pay $${POSTER_PRICE_USD} with crypto`
                     : wcPayLinkValid
                       ? `Continue — $${POSTER_PRICE_USD}`
-                      : `Pay $${POSTER_PRICE_USD} USDC on Base`}
+                      : `Pay on Base`}
                 </Button>
 
                 {directUsdcReady && !wcPayLinkValid ? (
