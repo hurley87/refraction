@@ -11,6 +11,7 @@ import {
   Sparkles,
   Wallet,
 } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -552,33 +553,30 @@ export function WalletConnectPageClient() {
   }, [authenticated, address]);
 
   return (
-    <div className="min-h-dvh bg-gradient-to-b from-zinc-100 to-zinc-200 text-zinc-900 dark:from-zinc-950 dark:to-zinc-900 dark:text-zinc-50">
+    <div className="min-h-dvh bg-gradient-to-b from-[#4a7dd4] via-[#2a2a2a] to-[#111111] text-zinc-50">
       <main className="mx-auto max-w-lg px-4 py-8 sm:max-w-xl sm:py-12">
         {!configOk ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+          <div className="rounded-2xl border border-amber-900 bg-amber-950/40 p-4 text-sm text-amber-100">
             This checkout is not fully configured. Add{" "}
-            <code className="rounded bg-white/60 px-1 dark:bg-zinc-900">
+            <code className="rounded bg-zinc-900 px-1">
               NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
             </code>{" "}
             to the app environment.
           </div>
         ) : null}
 
-        <div className="overflow-hidden rounded-3xl border border-zinc-200/80 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="relative aspect-[4/3] bg-gradient-to-br from-violet-200 via-fuchsia-100 to-amber-100 dark:from-violet-950 dark:via-fuchsia-950 dark:to-amber-950">
-            <div className="absolute inset-0 flex items-center justify-center p-8">
-              <div className="text-center">
-                <Sparkles
-                  className="mx-auto size-12 text-violet-600 dark:text-violet-300"
-                  aria-hidden
-                />
-                <p className="mt-3 text-sm font-medium text-violet-950/80 dark:text-violet-100">
-                  {PRODUCT_NAME}
-                </p>
-              </div>
-            </div>
-            <div className="absolute bottom-3 left-3 right-3 flex justify-end text-xs font-medium text-zinc-700/90 dark:text-zinc-200">
-              <span className="rounded-full bg-white/90 px-2.5 py-1 backdrop-blur dark:bg-zinc-950/80">
+        <div className="overflow-hidden rounded-3xl border border-zinc-700/60 bg-zinc-900 shadow-xl">
+          <div className="relative aspect-[3/4] overflow-hidden">
+            <Image
+              src="/wct/walletconnect-poster.jpg"
+              alt={PRODUCT_NAME}
+              fill
+              className="object-cover"
+              priority
+              sizes="(max-width: 640px) 100vw, 36rem"
+            />
+            <div className="absolute bottom-3 left-3 right-3 flex justify-end text-xs font-medium text-zinc-200">
+              <span className="rounded-full bg-zinc-950/80 px-2.5 py-1 backdrop-blur">
                 USDC · WalletConnect Pay
               </span>
             </div>
@@ -589,18 +587,18 @@ export function WalletConnectPageClient() {
               <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
                 {PRODUCT_NAME}
               </h1>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                 {PRODUCT_BLURB}
               </p>
 
             </div>
 
             {purchaseComplete ? (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
+              <div className="rounded-2xl border border-emerald-900 bg-emerald-950/40 p-4">
                 <div className="flex gap-3">
-                  <CheckCircle2 className="size-8 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <CheckCircle2 className="size-8 shrink-0 text-emerald-400" />
                   <div>
-                    <p className="mt-1 text-sm text-emerald-900/80 dark:text-emerald-200/90">
+                    <p className="mt-1 text-sm text-emerald-200/90">
                       Thanks for your purchase.
                     </p>
                   </div>
@@ -620,7 +618,7 @@ export function WalletConnectPageClient() {
               </Button>
             ) : (
               <div className="space-y-4">
-                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+                <div className="rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
                       Paying with
@@ -630,14 +628,14 @@ export function WalletConnectPageClient() {
                 </div>
 
                 {hasLowUsdcBalance ? (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/40">
+                  <div className="rounded-xl border border-amber-800 bg-amber-950/40 px-4 py-3">
                     <div className="flex gap-3">
-                      <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                      <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-400" />
                       <div className="space-y-1">
-                        <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                        <p className="text-sm font-medium text-amber-200">
                           Insufficient USDC balance
                         </p>
-                        <p className="text-sm text-amber-800/80 dark:text-amber-300/80">
+                        <p className="text-sm text-amber-300/80">
                           You need at least{" "}
                           <span className="font-semibold">
                             {USDC_WARNING_THRESHOLD} USDC
@@ -645,7 +643,7 @@ export function WalletConnectPageClient() {
                           on Base to complete this purchase. Send USDC to your
                           wallet address before continuing:
                         </p>
-                        <p className="break-all font-mono text-xs text-amber-900 dark:text-amber-200">
+                        <p className="break-all font-mono text-xs text-amber-200">
                           {address}
                         </p>
                       </div>
@@ -684,7 +682,7 @@ export function WalletConnectPageClient() {
                                 "flex w-full items-center rounded-xl border px-4 py-3 text-left text-sm transition-colors",
                                 active
                                   ? "border-primary bg-primary/5 ring-1 ring-primary"
-                                  : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                                  : "border-zinc-700 hover:bg-zinc-800"
                               )}
                             >
                               <span>
@@ -731,7 +729,7 @@ export function WalletConnectPageClient() {
                 </Button>
 
                 {directUsdcReady && !wcPayLinkValid ? (
-                  <p className="text-center text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-center text-xs text-zinc-400">
                     Sends 1 USDC on Base to the merchant wallet. No WalletConnect
                     Pay link needed.
                   </p>
@@ -740,7 +738,7 @@ export function WalletConnectPageClient() {
             )}
 
             {lastError ? (
-              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+              <p className="rounded-xl border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-200">
                 {lastError}
               </p>
             ) : null}
