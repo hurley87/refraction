@@ -50,7 +50,7 @@ const POSTER_USDC_RECIPIENT =
 const POSTER_PRICE_USD = 1;
 const PRODUCT_NAME = "Limited edition poster";
 const PRODUCT_BLURB =
-  "Screen-printed IRL drop. Ships worldwide. Pay with USDC via WalletConnect Pay — pick your network in your wallet.";
+  "Screen-printed IRL drop. Pay with USDC via WalletConnect Pay.";
 
 /**
  * Build CAIP-10 accounts from the connected wallet address.
