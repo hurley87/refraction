@@ -101,25 +101,10 @@ export default function LoginSuccessPage() {
                   letterSpacing: "-0.48px",
                 }}
               >
-                To claim your $WCT, digital artwork by Juan Pedro Vallejo, and IRL points, head to one of the IRL Checkpoints below.
+                To claim your $WCT, digital artwork by Dominique Falcone, $5 USDC and IRL points, head to one of the IRL Checkpoints below.
               </p>
 
-                 {/* Row 3: Map image for the next checkpoint */}
-              <div className="flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => setIsMapModalOpen(true)}
-                  className="cursor-pointer hover:opacity-90 transition-opacity"
-                >
-                  <Image
-                    src="/wct/venue-map.png"
-                    alt="Next checkpoint map"
-                    width={393}
-                    height={300}
-                    className="w-full max-w-[393px] h-auto object-contain rounded-lg"
-                  />
-                </button>
-              </div>
+              
 
                  {/* Row 4: Instruction text */}
               <p

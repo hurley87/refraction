@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import ClaimHeader from "@/components/claim/claim-header";
-import ClaimFooter from "@/components/claim/claim-footer";
-import TransferTokens from "@/components/claim/transfer-tokens";
-import MembersSection from "@/components/members-section";
-import { usePrivy } from "@privy-io/react-auth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import ClaimHeader from '@/components/claim/claim-header';
+import ClaimFooter from '@/components/claim/claim-footer';
+import TransferTokens from '@/components/claim/transfer-tokens';
+import MembersSection from '@/components/members-section';
+import { usePrivy } from '@privy-io/react-auth';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 export default function ClaimNFTPage() {
   const { authenticated, user, ready, getAccessToken } = usePrivy();
@@ -22,24 +22,27 @@ export default function ClaimNFTPage() {
   // Redirect to login if not authenticated (only after Privy is ready)
   useEffect(() => {
     if (ready && !authenticated) {
-      router.push("/claim/login");
+      router.push('/claim/login');
     }
   }, [ready, authenticated, router]);
 
   // Check claim status
   const { data: claimStatus, isLoading } = useQuery({
-    queryKey: ["claim-status", userAddress],
+    queryKey: ['claim-status', userAddress],
     queryFn: async () => {
       if (!userAddress) return null;
       const token = await getAccessToken();
-      if (!token) throw new Error("Missing authorization token");
+      if (!token) throw new Error('Missing authorization token');
 
-      const response = await fetch(`/api/claim-nft?userAddress=${userAddress}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) throw new Error("Failed to fetch claim status");
+      const response = await fetch(
+        `/api/claim-nft?userAddress=${userAddress}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) throw new Error('Failed to fetch claim status');
       return response.json();
     },
     enabled: !!userAddress && authenticated,
@@ -55,21 +58,21 @@ export default function ClaimNFTPage() {
   });
 
   const hasClaimed = claimStatus?.hasClaimed;
-  const tokenBalance = claimStatus?.tokenBalance || "0";
+  const tokenBalance = claimStatus?.tokenBalance || '0';
   const mintOver = claimStatus?.canMint === false && !hasClaimed;
 
   // Claim mutation
   const claimMutation = useMutation({
     mutationFn: async (address: string) => {
-      if (!address) throw new Error("No wallet connected");
-      if (mintOver) throw new Error("Mint is over");
+      if (!address) throw new Error('No wallet connected');
+      if (mintOver) throw new Error('Mint is over');
       const token = await getAccessToken();
-      if (!token) throw new Error("Missing authorization token");
+      if (!token) throw new Error('Missing authorization token');
 
-      const response = await fetch("/api/claim-nft", {
-        method: "POST",
+      const response = await fetch('/api/claim-nft', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ userAddress: address }),
@@ -78,36 +81,36 @@ export default function ClaimNFTPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to claim NFT");
+        throw new Error(data.error || 'Failed to claim NFT');
       }
 
       return data;
     },
     onSuccess: (data, address) => {
       if (data.pending) {
-        toast("Transaction submitted. Waiting for confirmation...");
-        queryClient.invalidateQueries({ queryKey: ["claim-status", address] });
+        toast('Transaction submitted. Waiting for confirmation...');
+        queryClient.invalidateQueries({ queryKey: ['claim-status', address] });
         // Keep claiming state as true - will be reset when hasClaimed becomes true
         return;
       }
       setClaiming(false);
-      toast.success(data.message || "NFT claimed successfully! 🎉");
-      queryClient.invalidateQueries({ queryKey: ["claim-status", address] });
-      router.push("/claim/success");
+      toast.success(data.message || 'NFT claimed successfully! 🎉');
+      queryClient.invalidateQueries({ queryKey: ['claim-status', address] });
+      router.push('/claim/success');
     },
     onError: (error: any) => {
       setClaiming(false);
-      toast.error(error.message || "Failed to claim NFT");
+      toast.error(error.message || 'Failed to claim NFT');
     },
   });
 
   const handleClaim = async () => {
     if (!userAddress) {
-      toast.error("No wallet connected");
+      toast.error('No wallet connected');
       return;
     }
     if (mintOver) {
-      toast.error("Mint is over");
+      toast.error('Mint is over');
       return;
     }
     setClaiming(true);
@@ -130,7 +133,7 @@ export default function ClaimNFTPage() {
   // Redirect to success page if user has already claimed
   useEffect(() => {
     if (ready && authenticated && hasClaimed) {
-      router.push("/claim/success");
+      router.push('/claim/success');
     }
   }, [ready, authenticated, hasClaimed, router]);
 
@@ -162,7 +165,7 @@ export default function ClaimNFTPage() {
             <div className="space-y-6 pt-[100px]">
               <div
                 className="relative w-[311px] h-[311px] mx-auto rounded-2xl overflow-visible shadow-md bg-white"
-                style={{ transform: "rotate(-2.5deg)" }}
+                style={{ transform: 'rotate(-2.5deg)' }}
               >
                 {/* IRL token on the right side, underneath the video */}
                 <div className="absolute top-35 right-0 z-0 translate-x-1/2 -translate-y-1/2">
@@ -177,21 +180,17 @@ export default function ClaimNFTPage() {
                     />
                   </div>
                 </div>
-                {/* Background Video matching nft.svg dimensions - positioned on top */}
+                {/* Background image — same frame as prior video */}
                 <div className="absolute inset-0 rounded-2xl overflow-hidden z-10">
-                  <video
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{
-                      width: "311px",
-                      height: "280px",
-                    }}
-                  >
-                    <source src="/wct/background.mp4" type="video/mp4" />
-                  </video>
+                  <Image
+                    src="/wct/cannes.png"
+                    alt=""
+                    fill
+                    priority
+                    sizes="311px"
+                    className="object-cover"
+                    aria-hidden
+                  />
                 </div>
                 {/* WCT logo on bottom left edge, on top of video */}
                 <div className="absolute bottom-0 left-0 z-20 -translate-x-1/2 translate-y-1/2">
@@ -211,14 +210,14 @@ export default function ClaimNFTPage() {
               <p
                 className="mx-auto text-center"
                 style={{
-                  color: "var(--UI-OffBlack, #131313)",
-                  textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
+                  color: 'var(--UI-OffBlack, #131313)',
+                  textShadow: '0 0 16px rgba(255, 255, 255, 0.70)',
                   fontFamily: '"Pleasure Variable Trial"',
-                  fontSize: "25px",
-                  fontStyle: "normal",
+                  fontSize: '25px',
+                  fontStyle: 'normal',
                   fontWeight: 500,
-                  lineHeight: "28px",
-                  letterSpacing: "-0.5px",
+                  lineHeight: '28px',
+                  letterSpacing: '-0.5px',
                 }}
               >
                 Claim Your Digital Artwork By
@@ -226,31 +225,31 @@ export default function ClaimNFTPage() {
               <h1
                 className="mx-auto text-center"
                 style={{
-                  width: "375px",
-                  color: "var(--UI-OffBlack, #131313)",
-                  textTransform: "uppercase",
-                  textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
+                  width: '375px',
+                  color: 'var(--UI-OffBlack, #131313)',
+                  textTransform: 'uppercase',
+                  textShadow: '0 0 16px rgba(255, 255, 255, 0.70)',
                   fontFamily: '"Inktrap"',
-                  fontSize: "48px",
-                  fontStyle: "normal",
+                  fontSize: '48px',
+                  fontStyle: 'normal',
                   fontWeight: 700,
-                  lineHeight: "48px",
-                  letterSpacing: "-3.84px",
+                  lineHeight: '48px',
+                  letterSpacing: '-3.84px',
                 }}
               >
-                JUAN PEDRO VALLEJO
+                DOMINIQUE FALCONE
               </h1>
               <p
                 className="mx-auto text-center font-inktrap"
                 style={{
-                  color: "var(--UI-OffBlack, #131313)",
-                  textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
+                  color: 'var(--UI-OffBlack, #131313)',
+                  textShadow: '0 0 16px rgba(255, 255, 255, 0.70)',
                   fontFamily: '"Pleasure Variable Trial"',
-                  fontSize: "25px",
-                  fontStyle: "normal",
+                  fontSize: '25px',
+                  fontStyle: 'normal',
                   fontWeight: 500,
-                  lineHeight: "28px",
-                  letterSpacing: "-0.5px",
+                  lineHeight: '28px',
+                  letterSpacing: '-0.5px',
                 }}
               >
                 As Well As
@@ -258,19 +257,19 @@ export default function ClaimNFTPage() {
               <h1
                 className="mx-auto text-center "
                 style={{
-                  width: "375px",
-                  color: "var(--UI-OffBlack, #131313)",
-                  textTransform: "uppercase",
-                  textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
+                  width: '375px',
+                  color: 'var(--UI-OffBlack, #131313)',
+                  textTransform: 'uppercase',
+                  textShadow: '0 0 16px rgba(255, 255, 255, 0.70)',
                   fontFamily: '"Inktrap"',
-                  fontSize: "48px",
-                  fontStyle: "normal",
+                  fontSize: '48px',
+                  fontStyle: 'normal',
                   fontWeight: 700,
-                  lineHeight: "48px",
-                  letterSpacing: "-3.84px",
+                  lineHeight: '48px',
+                  letterSpacing: '-3.84px',
                 }}
               >
-                $WCT + IRL Points
+                $USDC + IRL Points
               </h1>
 
               <div className="space-y-4">
@@ -289,18 +288,18 @@ export default function ClaimNFTPage() {
                       >
                         <span
                           style={{
-                            color: "var(--UI-White, #FFF)",
+                            color: 'var(--UI-White, #FFF)',
                             fontFamily: '"Pleasure"',
-                            fontSize: "16px",
-                            fontStyle: "normal",
+                            fontSize: '16px',
+                            fontStyle: 'normal',
                             fontWeight: 500,
-                            lineHeight: "16px",
-                            letterSpacing: "-1.28px",
+                            lineHeight: '16px',
+                            letterSpacing: '-1.28px',
                           }}
                         >
                           {claiming || claimMutation.isPending
-                            ? "Claiming..."
-                            : "Collect Your Rewards"}
+                            ? 'Claiming...'
+                            : 'Collect Your Rewards'}
                         </span>
                         <Image
                           src="/wct/walletconnect-button.svg"
@@ -326,7 +325,7 @@ export default function ClaimNFTPage() {
                       tokenBalance={tokenBalance}
                       onTransferComplete={() => {
                         queryClient.invalidateQueries({
-                          queryKey: ["claim-status", userAddress],
+                          queryKey: ['claim-status', userAddress],
                         });
                       }}
                     />
@@ -338,50 +337,40 @@ export default function ClaimNFTPage() {
                 <p
                   className="mx-auto text-center"
                   style={{
-                    color: "var(--Dark-Tint-80, #4F4F4F)",
-                    textAlign: "center",
+                    color: 'var(--Dark-Tint-80, #4F4F4F)',
+                    textAlign: 'center',
                     fontFamily:
                       '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
-                    fontSize: "13px",
-                    fontStyle: "normal",
+                    fontSize: '13px',
+                    fontStyle: 'normal',
                     fontWeight: 400,
-                    lineHeight: "20px",
-                    letterSpacing: "-0.26px",
+                    lineHeight: '20px',
+                    letterSpacing: '-0.26px',
                   }}
                 >
                   Available exclusively to WalletCon attendees.
                 </p>
-                <div
-                  className="self-stretch rounded-lg overflow-hidden"
-                  style={{
-                    height: "225px",
-                    aspectRatio: "361/225",
-                    borderRadius: "8px",
-                    boxShadow: "0 1px 8px 0 rgba(0, 0, 0, 0.08)",
-                  }}
-                >
-                  <video
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover"
-                  >
-                    <source src="/wct/background.mp4" type="video/mp4" />
-                  </video>
+                <div className="relative mx-auto size-[225px] shrink-0 overflow-hidden rounded-full shadow-[0_1px_8px_0_rgba(0,0,0,0.08)]">
+                  <Image
+                    src="/wct/dominique.jpg"
+                    alt="Artist"
+                    fill
+                    className="object-cover object-top"
+                    sizes="225px"
+                  />
                 </div>
                 <p
                   className="text-left uppercase self-stretch"
                   style={{
-                    color: "var(--Dark-Tint-60, #7D7D7D)",
+                    color: 'var(--Dark-Tint-60, #7D7D7D)',
                     fontFamily:
                       '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
-                    fontSize: "11px",
-                    fontStyle: "normal",
+                    fontSize: '11px',
+                    fontStyle: 'normal',
                     fontWeight: 500,
-                    lineHeight: "16px",
-                    letterSpacing: "0.44px",
-                    textTransform: "uppercase",
+                    lineHeight: '16px',
+                    letterSpacing: '0.44px',
+                    textTransform: 'uppercase',
                   }}
                 >
                   ABOUT THE ARTIST
@@ -389,45 +378,40 @@ export default function ClaimNFTPage() {
                 <p
                   className="text-left self-stretch"
                   style={{
-                    color: "var(--Dark-Tint-100, #313131)",
+                    color: 'var(--Dark-Tint-100, #313131)',
                     fontFamily:
                       '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
-                    fontSize: "16px",
-                    fontStyle: "normal",
+                    fontSize: '16px',
+                    fontStyle: 'normal',
                     fontWeight: 400,
-                    lineHeight: "22px",
-                    letterSpacing: "-0.48px",
+                    lineHeight: '22px',
+                    letterSpacing: '-0.48px',
                   }}
                 >
-                  Juan Pedro Vallejo is an Argentinean artist working with
-                  generative systems and code.
-                  <br />
-                  <br />
-                  Vallejo considers the screen a material in his practice,
-                  sculpting systems through unique possibilities and
-                  permutations.
+                  Dominique Falcone is the founder of Sugar, a creative studio
+                  made of all Women, LGBTQIA+ and POC based in LA & NYC.
                 </p>
                 <a
-                  href="https://www.instagram.com/vallejo.juanpedro/"
+                  href="https://www.instagram.com/domalommm/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex h-7 items-center gap-2 rounded-full self-start"
                   style={{
-                    padding: "4px 16px 4px 8px",
-                    background: "var(--Dark-Tint-20, #EDEDED)",
-                    textDecoration: "none",
+                    padding: '4px 16px 4px 8px',
+                    background: 'var(--Dark-Tint-20, #EDEDED)',
+                    textDecoration: 'none',
                   }}
                 >
                   <span
                     style={{
-                      color: "var(--UI-OffBlack, #131313)",
+                      color: 'var(--UI-OffBlack, #131313)',
                       fontFamily: '"ABC-Monument-Grotesk"',
-                      fontSize: "11px",
-                      fontStyle: "normal",
+                      fontSize: '11px',
+                      fontStyle: 'normal',
                       fontWeight: 500,
-                      lineHeight: "16px",
-                      letterSpacing: "0.44px",
-                      textTransform: "uppercase",
+                      lineHeight: '16px',
+                      letterSpacing: '0.44px',
+                      textTransform: 'uppercase',
                     }}
                   >
                     INSTAGRAM
@@ -443,16 +427,16 @@ export default function ClaimNFTPage() {
                 <div
                   className="w-full"
                   style={{
-                    height: "66px",
+                    height: '66px',
                   }}
                 />
                 <div
                   className="rounded-2xl overflow-hidden"
                   style={{
-                    width: "361px",
-                    height: "190px",
-                    aspectRatio: "19/10",
-                    borderRadius: "16px",
+                    width: '361px',
+                    height: '190px',
+                    aspectRatio: '19/10',
+                    borderRadius: '16px',
                     background:
                       "url('/wct/walletconnect-banner.svg') lightgray 50% / cover no-repeat",
                   }}
@@ -468,14 +452,14 @@ export default function ClaimNFTPage() {
                 <p
                   className="text-left uppercase self-stretch"
                   style={{
-                    color: "var(--Dark-Tint-60, #7D7D7D)",
+                    color: 'var(--Dark-Tint-60, #7D7D7D)',
                     fontFamily: '"ABC-Monument-Grotesk"',
-                    fontSize: "11px",
-                    fontStyle: "normal",
+                    fontSize: '11px',
+                    fontStyle: 'normal',
                     fontWeight: 500,
-                    lineHeight: "16px",
-                    letterSpacing: "0.44px",
-                    textTransform: "uppercase",
+                    lineHeight: '16px',
+                    letterSpacing: '0.44px',
+                    textTransform: 'uppercase',
                   }}
                 >
                   ABOUT WALLETCONNECT
@@ -483,13 +467,13 @@ export default function ClaimNFTPage() {
                 <p
                   className="text-left self-stretch"
                   style={{
-                    color: "var(--Dark-Tint-100, #313131)",
+                    color: 'var(--Dark-Tint-100, #313131)',
                     fontFamily: '"ABC-Monument-Grotesk"',
-                    fontSize: "16px",
-                    fontStyle: "normal",
+                    fontSize: '16px',
+                    fontStyle: 'normal',
                     fontWeight: 400,
-                    lineHeight: "22px",
-                    letterSpacing: "-0.48px",
+                    lineHeight: '22px',
+                    letterSpacing: '-0.48px',
                   }}
                 >
                   WCT is the native token of the WalletConnect Network and
@@ -502,21 +486,21 @@ export default function ClaimNFTPage() {
                   rel="noopener noreferrer"
                   className="flex h-7 items-center gap-2 rounded-full self-start"
                   style={{
-                    padding: "4px 16px 4px 8px",
-                    background: "var(--Dark-Tint-20, #EDEDED)",
-                    textDecoration: "none",
+                    padding: '4px 16px 4px 8px',
+                    background: 'var(--Dark-Tint-20, #EDEDED)',
+                    textDecoration: 'none',
                   }}
                 >
                   <span
                     style={{
-                      color: "var(--UI-OffBlack, #131313)",
+                      color: 'var(--UI-OffBlack, #131313)',
                       fontFamily: '"ABC-Monument-Grotesk"',
-                      fontSize: "11px",
-                      fontStyle: "normal",
+                      fontSize: '11px',
+                      fontStyle: 'normal',
                       fontWeight: 500,
-                      lineHeight: "16px",
-                      letterSpacing: "0.44px",
-                      textTransform: "uppercase",
+                      lineHeight: '16px',
+                      letterSpacing: '0.44px',
+                      textTransform: 'uppercase',
                     }}
                   >
                     LEARN MORE
@@ -532,16 +516,16 @@ export default function ClaimNFTPage() {
                 <div
                   className="w-full"
                   style={{
-                    height: "66px",
+                    height: '66px',
                   }}
                 />
                 <div
                   className="rounded-2xl overflow-hidden relative"
                   style={{
-                    width: "361px",
-                    height: "190px",
-                    aspectRatio: "19/10",
-                    borderRadius: "16px",
+                    width: '361px',
+                    height: '190px',
+                    aspectRatio: '19/10',
+                    borderRadius: '16px',
                     background:
                       "url('/wct/irl-card.svg') lightgray 50% / cover no-repeat",
                   }}
@@ -566,14 +550,14 @@ export default function ClaimNFTPage() {
                 <p
                   className="text-left uppercase self-stretch"
                   style={{
-                    color: "var(--Dark-Tint-60, #7D7D7D)",
+                    color: 'var(--Dark-Tint-60, #7D7D7D)',
                     fontFamily: '"ABC-Monument-Grotesk"',
-                    fontSize: "11px",
-                    fontStyle: "normal",
+                    fontSize: '11px',
+                    fontStyle: 'normal',
                     fontWeight: 500,
-                    lineHeight: "16px",
-                    letterSpacing: "0.44px",
-                    textTransform: "uppercase",
+                    lineHeight: '16px',
+                    letterSpacing: '0.44px',
+                    textTransform: 'uppercase',
                   }}
                 >
                   ABOUT IRL
@@ -581,13 +565,13 @@ export default function ClaimNFTPage() {
                 <p
                   className="text-left self-stretch"
                   style={{
-                    color: "var(--Dark-Tint-100, #313131)",
+                    color: 'var(--Dark-Tint-100, #313131)',
                     fontFamily: '"ABC-Monument-Grotesk"',
-                    fontSize: "16px",
-                    fontStyle: "normal",
+                    fontSize: '16px',
+                    fontStyle: 'normal',
                     fontWeight: 400,
-                    lineHeight: "22px",
-                    letterSpacing: "-0.48px",
+                    lineHeight: '22px',
+                    letterSpacing: '-0.48px',
                   }}
                 >
                   The IRL ecosystem reimagines the experience economy through
@@ -601,21 +585,21 @@ export default function ClaimNFTPage() {
                   rel="noopener noreferrer"
                   className="flex h-7 items-center gap-2 rounded-full self-start"
                   style={{
-                    padding: "4px 16px 4px 8px",
-                    background: "var(--Dark-Tint-20, #EDEDED)",
-                    textDecoration: "none",
+                    padding: '4px 16px 4px 8px',
+                    background: 'var(--Dark-Tint-20, #EDEDED)',
+                    textDecoration: 'none',
                   }}
                 >
                   <span
                     style={{
-                      color: "var(--UI-OffBlack, #131313)",
+                      color: 'var(--UI-OffBlack, #131313)',
                       fontFamily: '"ABC-Monument-Grotesk"',
-                      fontSize: "11px",
-                      fontStyle: "normal",
+                      fontSize: '11px',
+                      fontStyle: 'normal',
                       fontWeight: 500,
-                      lineHeight: "16px",
-                      letterSpacing: "0.44px",
-                      textTransform: "uppercase",
+                      lineHeight: '16px',
+                      letterSpacing: '0.44px',
+                      textTransform: 'uppercase',
                     }}
                   >
                     GO TO IRL.ENERGY
@@ -631,7 +615,7 @@ export default function ClaimNFTPage() {
                 <div
                   className="w-full"
                   style={{
-                    height: "66px",
+                    height: '66px',
                   }}
                 />
               </div>

@@ -29,16 +29,20 @@ vi.mock('viem/accounts', () => ({
   privateKeyToAccount: vi.fn(() => ({ address: '0xserver' })),
 }));
 
-vi.mock('@/lib/reward1155-abi', () => ({
-  REWARD1155_ADDRESS: '0x0000000000000000000000000000000000000001',
-  REWARD1155_ABI: [
-    'function canMint(address) view returns (bool)',
-    'function hasMinted(address) view returns (bool)',
-    'function mintTo(address)',
-    'function balanceOf(address,uint256) view returns (uint256)',
-    'function rewardToken() view returns (address)',
-    'function rewardAmount() view returns (uint256)',
+vi.mock('@/lib/walletcon-nft', () => ({
+  WALLETCON_NFT_ADDRESS: '0x0000000000000000000000000000000000000001',
+  WALLETCON_NFT_ABI: [
+    'function mint(address) returns (uint256)',
+    'function balanceOf(address) view returns (uint256)',
+    'function totalMinted() view returns (uint256)',
+    'function maxSupply() view returns (uint256)',
+    'function mintReward() view returns (uint256)',
+    'function usdcBalance() view returns (uint256)',
+    'function usdc() view returns (address)',
   ],
+}));
+
+vi.mock('@/lib/reward1155-abi', () => ({
   ERC20_ABI: ['function balanceOf(address) view returns (uint256)'],
 }));
 
@@ -69,7 +73,24 @@ describe('/api/claim-nft pending mint guard', () => {
     const { verifyWalletOwnership } = await import('@/lib/api/privy');
     vi.mocked(verifyWalletOwnership).mockResolvedValue({ authorized: true });
 
-    mockReadContract.mockResolvedValue(true);
+    mockReadContract.mockImplementation(
+      async ({ functionName }: { functionName: string }) => {
+        switch (functionName) {
+          case 'balanceOf':
+            return 0n;
+          case 'totalMinted':
+            return 0n;
+          case 'maxSupply':
+            return 120n;
+          case 'mintReward':
+            return 5_000_000n;
+          case 'usdcBalance':
+            return 10_000_000n;
+          default:
+            return 0n;
+        }
+      }
+    );
     mockWriteContract.mockResolvedValue(txHash);
     mockWaitForTransactionReceipt.mockRejectedValue({
       name: 'WaitForTransactionReceiptTimeoutError',

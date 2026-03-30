@@ -68,8 +68,8 @@ export default function ClaimLoginPage() {
           >
             <source src="/wct/background.mp4" type="video/mp4" />
           </video>
-          <div className="relative mx-auto flex w-full max-w-[393px] flex-col items-center gap-16 text-center">
-            <div className="space-y-6 pt-[100px]">
+          <div className="relative mx-auto flex w-full max-w-[393px] flex-col items-center gap-16 text-center md:max-w-[574px]">
+            <div className="flex w-full flex-col items-center space-y-6 pt-[100px]">
               <span className="hero-text text-black">
                 Welcome to
                 <br /> WalletCon Cannes!
@@ -84,8 +84,7 @@ export default function ClaimLoginPage() {
                 <br />
                 <br />
                 Check in now to unlock a limited-run digital artwork and
-                collectible print, created exclusively for WalletCon Cannes by
-                [ Artist Name ].
+                collectible print, created exclusively for WalletCon Cannes by Dominique Falcone.
               </div>
 
               <div className="flex justify-center">
@@ -117,8 +116,8 @@ export default function ClaimLoginPage() {
                 </button>
               </div>
 
-              <div className="flex w-full max-w-[375px] flex-col items-center gap-4 self-stretch px-4 pt-[34px]">
-                <span className="body-small font-grotesk text-black">
+              <div className="mx-auto flex w-full max-w-[375px] flex-col items-center justify-center gap-4 px-4 pt-[34px] text-center">
+                <span className="body-small font-grotesk text-black text-center">
                   POWERED BY
                 </span>
                 <Image
@@ -139,7 +138,7 @@ export default function ClaimLoginPage() {
                   alt="Refraction"
                   width={200}
                   height={40}
-                  className="h-auto w-[160px]"
+                  className="mx-auto h-auto w-[160px]"
                 />
               </div>
             </div>

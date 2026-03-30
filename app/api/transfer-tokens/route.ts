@@ -1,13 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createPublicClient, http, parseAbi } from "viem";
-import { base } from "viem/chains";
-import { REWARD1155_ADDRESS, REWARD1155_ABI, ERC20_ABI } from "@/lib/reward1155-abi";
+import { NextRequest, NextResponse } from 'next/server';
+import { createPublicClient, http, parseAbi } from 'viem';
+import { base } from 'viem/chains';
+import { ERC20_ABI } from '@/lib/reward1155-abi';
+import { getServerPrivateKey } from '@/lib/server-private-key';
+import { WALLETCON_NFT_ADDRESS, WALLETCON_NFT_ABI } from '@/lib/walletcon-nft';
 
 // In-memory lock to prevent concurrent transfers for the same user
 const transferLocks = new Map<string, Promise<any>>();
 
-// Parse ABIs for viem
-const REWARD1155_ABI_PARSED = parseAbi(REWARD1155_ABI);
+// Parse ABIs for viem — reward token is USDC from WalletCon NFT contract
+const WALLETCON_NFT_ABI_PARSED = parseAbi(WALLETCON_NFT_ABI);
 const ERC20_ABI_PARSED = parseAbi(ERC20_ABI);
 
 export async function POST(req: NextRequest) {
@@ -18,9 +20,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "From address, to address, and amount are required",
+          error: 'From address, to address, and amount are required',
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -29,9 +31,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Cannot transfer to the same address",
+          error: 'Cannot transfer to the same address',
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -41,9 +43,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Amount must be greater than 0",
+          error: 'Amount must be greater than 0',
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -54,9 +56,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Transfer already in progress for this address",
+          error: 'Transfer already in progress for this address',
         },
-        { status: 429 },
+        { status: 429 }
       );
     }
 
@@ -65,13 +67,13 @@ export async function POST(req: NextRequest) {
       try {
         return await performTransfer(fromAddress, toAddress, transferAmount);
       } catch (error: any) {
-        console.error("Error in performTransfer:", error);
+        console.error('Error in performTransfer:', error);
         return NextResponse.json(
           {
             success: false,
-            error: error.message || "Failed to transfer tokens",
+            error: error.message || 'Failed to transfer tokens',
           },
-          { status: 500 },
+          { status: 500 }
         );
       } finally {
         transferLocks.delete(normalizedFromAddress);
@@ -81,13 +83,13 @@ export async function POST(req: NextRequest) {
     transferLocks.set(normalizedFromAddress, transferPromise);
     return transferPromise;
   } catch (error: any) {
-    console.error("Error in POST handler:", error);
+    console.error('Error in POST handler:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to process transfer request",
+        error: error.message || 'Failed to process transfer request',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -95,25 +97,27 @@ export async function POST(req: NextRequest) {
 async function performTransfer(
   fromAddress: string,
   toAddress: string,
-  amount: bigint,
+  amount: bigint
 ) {
   // Get the private key from env
-  const privateKey = process.env.SERVER_PRIVATE_KEY;
+  const privateKey = getServerPrivateKey();
   if (!privateKey) {
-    console.error("SERVER_PRIVATE_KEY not found in environment");
+    console.error(
+      'No server wallet key: set SERVER_PRIVATE_KEY or SERVER_WALLET_PRIVATE_KEY'
+    );
     return NextResponse.json(
-      { success: false, error: "Server configuration error" },
-      { status: 500 },
+      { success: false, error: 'Server configuration error' },
+      { status: 500 }
     );
   }
 
   // Get the RPC URL from env
   const rpcUrl = process.env.NEXT_PUBLIC_BASE_RPC;
   if (!rpcUrl) {
-    console.error("NEXT_PUBLIC_BASE_RPC not found in environment");
+    console.error('NEXT_PUBLIC_BASE_RPC not found in environment');
     return NextResponse.json(
-      { success: false, error: "Server configuration error" },
-      { status: 500 },
+      { success: false, error: 'Server configuration error' },
+      { status: 500 }
     );
   }
 
@@ -123,20 +127,20 @@ async function performTransfer(
     transport: http(rpcUrl),
   });
 
-  // Get the reward token address
+  // USDC token used for mint rewards (same as `usdc` on WalletCon NFT)
   const rewardTokenAddress = await publicClient.readContract({
-    address: REWARD1155_ADDRESS as `0x${string}`,
-    abi: REWARD1155_ABI_PARSED,
-    functionName: "rewardToken",
+    address: WALLETCON_NFT_ADDRESS,
+    abi: WALLETCON_NFT_ABI_PARSED,
+    functionName: 'usdc',
   });
 
   if (
     !rewardTokenAddress ||
-    rewardTokenAddress === "0x0000000000000000000000000000000000000000"
+    rewardTokenAddress === '0x0000000000000000000000000000000000000000'
   ) {
     return NextResponse.json(
-      { success: false, error: "No reward token configured" },
-      { status: 400 },
+      { success: false, error: 'No reward token configured' },
+      { status: 400 }
     );
   }
 
@@ -144,7 +148,7 @@ async function performTransfer(
   const balance = await publicClient.readContract({
     address: rewardTokenAddress as `0x${string}`,
     abi: ERC20_ABI_PARSED,
-    functionName: "balanceOf",
+    functionName: 'balanceOf',
     args: [fromAddress as `0x${string}`],
   });
 
@@ -152,11 +156,11 @@ async function performTransfer(
     return NextResponse.json(
       {
         success: false,
-        error: "Insufficient token balance",
+        error: 'Insufficient token balance',
         balance: balance.toString(),
         requested: amount.toString(),
       },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -171,10 +175,10 @@ async function performTransfer(
     {
       success: false,
       error:
-        "Direct server transfers not supported. Use client-side signing instead.",
+        'Direct server transfers not supported. Use client-side signing instead.',
       rewardTokenAddress,
     },
-    { status: 501 },
+    { status: 501 }
   );
 }
 
@@ -182,22 +186,22 @@ async function performTransfer(
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const userAddress = searchParams.get("userAddress");
+    const userAddress = searchParams.get('userAddress');
 
     if (!userAddress) {
       return NextResponse.json(
-        { success: false, error: "User address is required" },
-        { status: 400 },
+        { success: false, error: 'User address is required' },
+        { status: 400 }
       );
     }
 
     // Get the RPC URL from env
     const rpcUrl = process.env.NEXT_PUBLIC_BASE_RPC;
     if (!rpcUrl) {
-      console.error("NEXT_PUBLIC_BASE_RPC not found in environment");
+      console.error('NEXT_PUBLIC_BASE_RPC not found in environment');
       return NextResponse.json(
-        { success: false, error: "Server configuration error" },
-        { status: 500 },
+        { success: false, error: 'Server configuration error' },
+        { status: 500 }
       );
     }
 
@@ -207,19 +211,19 @@ export async function GET(req: NextRequest) {
     });
 
     const rewardTokenAddress = await publicClient.readContract({
-      address: REWARD1155_ADDRESS as `0x${string}`,
-      abi: REWARD1155_ABI_PARSED,
-      functionName: "rewardToken",
+      address: WALLETCON_NFT_ADDRESS,
+      abi: WALLETCON_NFT_ABI_PARSED,
+      functionName: 'usdc',
     });
 
     if (
       !rewardTokenAddress ||
-      rewardTokenAddress === "0x0000000000000000000000000000000000000000"
+      rewardTokenAddress === '0x0000000000000000000000000000000000000000'
     ) {
       return NextResponse.json({
         success: true,
         tokenAddress: null,
-        balance: "0",
+        balance: '0',
         decimals: 18,
       });
     }
@@ -227,14 +231,14 @@ export async function GET(req: NextRequest) {
     const balance = await publicClient.readContract({
       address: rewardTokenAddress as `0x${string}`,
       abi: ERC20_ABI_PARSED,
-      functionName: "balanceOf",
+      functionName: 'balanceOf',
       args: [userAddress as `0x${string}`],
     });
 
     const decimals = await publicClient.readContract({
       address: rewardTokenAddress as `0x${string}`,
       abi: ERC20_ABI_PARSED,
-      functionName: "decimals",
+      functionName: 'decimals',
     });
 
     return NextResponse.json({
@@ -244,13 +248,13 @@ export async function GET(req: NextRequest) {
       decimals: Number(decimals),
     });
   } catch (error: any) {
-    console.error("Error fetching token info:", error);
+    console.error('Error fetching token info:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch token info",
+        error: error.message || 'Failed to fetch token info',
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

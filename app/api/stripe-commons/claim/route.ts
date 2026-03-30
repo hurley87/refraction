@@ -3,6 +3,7 @@ import { createPublicClient, createWalletClient, http, parseAbi } from 'viem';
 import { base } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { verifyWalletOwnership } from '@/lib/api/privy';
+import { getServerPrivateKey } from '@/lib/server-private-key';
 import { supabase } from '@/lib/db/client';
 import {
   updatePlayerPoints,
@@ -332,9 +333,11 @@ async function performClaim(
     );
   }
 
-  const privateKey = process.env.SERVER_PRIVATE_KEY;
+  const privateKey = getServerPrivateKey();
   if (!privateKey) {
-    console.error('SERVER_PRIVATE_KEY not found');
+    console.error(
+      'No server wallet key: set SERVER_PRIVATE_KEY or SERVER_WALLET_PRIVATE_KEY'
+    );
     return NextResponse.json(
       { success: false, error: 'Server configuration error' },
       { status: 500 }
