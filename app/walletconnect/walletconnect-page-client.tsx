@@ -597,7 +597,6 @@ export function WalletConnectPageClient() {
                 <span className="text-3xl font-bold tracking-tight">
                   ${POSTER_PRICE_USD}
                 </span>
-                <span className="text-sm text-zinc-500">per poster</span>
               </p>
             </div>
 
