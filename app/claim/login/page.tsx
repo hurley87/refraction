@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import ClaimHeader from "@/components/claim/claim-header";
-import ClaimFooter from "@/components/claim/claim-footer";
-import { usePrivy } from "@privy-io/react-auth";
+import { useEffect } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import ClaimHeader from '@/components/claim/claim-header';
+import ClaimFooter from '@/components/claim/claim-footer';
+import { usePrivy } from '@privy-io/react-auth';
 
 export default function ClaimLoginPage() {
   const { login, authenticated, ready } = usePrivy();
@@ -14,7 +14,7 @@ export default function ClaimLoginPage() {
   // Redirect to login success page if already authenticated (only after Privy is ready)
   useEffect(() => {
     if (ready && authenticated) {
-      router.push("/claim/login/success");
+      router.push('/claim/login/success');
     }
   }, [ready, authenticated, router]);
 
@@ -33,16 +33,16 @@ export default function ClaimLoginPage() {
             playsInline
             className="pointer-events-none absolute left-1/2 top-1/2 -z-10 hidden md:block"
             style={{
-              width: "1909px",
-              height: "1192px",
-              aspectRatio: "1909 / 1192",
+              width: '1909px',
+              height: '1192px',
+              aspectRatio: '1909 / 1192',
               flexShrink: 0,
               background:
-                "linear-gradient(0deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.72) 100%)",
-              filter: "blur(6px)",
-              transform: "translate(-50%, -55%) rotate(90deg) scale(1.45)",
-              transformOrigin: "center",
-              objectFit: "cover",
+                'linear-gradient(0deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.72) 100%)',
+              filter: 'blur(8px)',
+              transform: 'translate(-50%, -55%) rotate(90deg) scale(1.45)',
+              transformOrigin: 'center',
+              objectFit: 'cover',
             }}
           >
             <source src="/wct/background.mp4" type="video/mp4" />
@@ -54,54 +54,38 @@ export default function ClaimLoginPage() {
             playsInline
             className="pointer-events-none absolute left-1/2 top-1/2 -z-10 block md:hidden"
             style={{
-              width: "1909px",
-              height: "1192px",
-              aspectRatio: "1909 / 1192",
+              width: '1909px',
+              height: '1192px',
+              aspectRatio: '1909 / 1192',
               flexShrink: 0,
               background:
-                "linear-gradient(0deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.72) 100%)",
-              filter: "blur(6px)",
-              transform: "translate(-50%, -45%) rotate(90deg) scale(1.6)",
-              transformOrigin: "center",
-              objectFit: "cover",
+                'linear-gradient(0deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.72) 100%)',
+              filter: 'blur(6px)',
+              transform: 'translate(-50%, -45%) rotate(90deg) scale(1.6)',
+              transformOrigin: 'center',
+              objectFit: 'cover',
             }}
           >
             <source src="/wct/background.mp4" type="video/mp4" />
           </video>
           <div className="relative mx-auto flex w-full max-w-[393px] flex-col items-center gap-16 text-center">
             <div className="space-y-6 pt-[100px]">
-              <p
-                className="mx-auto text-center"
-                style={{
-                  color: "var(--UI-OffBlack, #131313)",
-                  textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
-                  fontFamily: '"Pleasure"',
-                  fontSize: "25px",
-                  fontStyle: "normal",
-                  fontWeight: 500,
-                  lineHeight: "28px",
-                  letterSpacing: "-0.5px",
-                }}
-              >
+              <span className="hero-text text-black">
                 Welcome to
-                <br /> WalletCon Buenos Aires
-              </p>
-              <div
-                className="mx-auto text-center font-inktrap"
-                style={{
-                  color: "var(--UI-OffBlack, #131313)",
-                  textAlign: "center",
-                  textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
-                  
-                  fontSize: "48px",
-                  fontStyle: "normal",
-                  fontWeight: 700,
-                  lineHeight: "48px",
-                  letterSpacing: "-3.84px",
-                  textTransform: "uppercase",
-                }}
-              >
-                Claim Your Rewards
+                <br /> WalletCon Cannes!
+              </span>
+              <div className="flex min-h-[74px] w-full max-w-[574px] md:w-[574px] flex-col justify-center self-stretch text-black title3 font-grotesk">
+                IRL connects you to what’s happening in music and art scenes
+                around the world — curated by locals.
+                <br />
+                <br />
+                Discover venues, events, and support independent culture while
+                earning rewards.
+                <br />
+                <br />
+                Check in now to unlock a limited-run digital artwork and
+                collectible print, created exclusively for WalletCon Cannes by
+                [ Artist Name ].
               </div>
 
               <div className="flex justify-center">
@@ -112,13 +96,13 @@ export default function ClaimLoginPage() {
                 >
                   <span
                     style={{
-                      color: "var(--UI-White, #FFF)",
+                      color: 'var(--UI-White, #FFF)',
                       fontFamily: '"Pleasure"',
-                      fontSize: "16px",
-                      fontStyle: "normal",
+                      fontSize: '16px',
+                      fontStyle: 'normal',
                       fontWeight: 500,
-                      lineHeight: "16px",
-                      letterSpacing: "-1.28px",
+                      lineHeight: '16px',
+                      letterSpacing: '-1.28px',
                     }}
                   >
                     Login With Email
@@ -144,12 +128,12 @@ export default function ClaimLoginPage() {
                   height={24}
                   className="mx-auto"
                   style={{
-                    width: "221px",
-                    height: "24px",
-                    aspectRatio: "221 / 24",
+                    width: '221px',
+                    height: '24px',
+                    aspectRatio: '221 / 24',
                   }}
                 />
-              
+
                 <Image
                   src="/refraction-black.svg"
                   alt="Refraction"
@@ -159,8 +143,6 @@ export default function ClaimLoginPage() {
                 />
               </div>
             </div>
-
-            
           </div>
         </main>
 
@@ -169,4 +151,3 @@ export default function ClaimLoginPage() {
     </div>
   );
 }
-
