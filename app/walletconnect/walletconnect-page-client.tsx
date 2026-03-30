@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { isPaymentLink } from "@reown/walletkit";
