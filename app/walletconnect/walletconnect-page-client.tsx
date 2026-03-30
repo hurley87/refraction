@@ -592,11 +592,7 @@ export function WalletConnectPageClient() {
               <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
                 {PRODUCT_BLURB}
               </p>
-              <p className="mt-4 flex items-baseline gap-2">
-                <span className="text-3xl font-bold tracking-tight">
-                  ${POSTER_PRICE_USD}
-                </span>
-              </p>
+
             </div>
 
             {purchaseComplete ? (
