@@ -8,6 +8,14 @@ import {
   WALLETCON_CANNES_MINT_POINTS,
 } from '@/lib/constants';
 
+function isUniqueConstraintViolation(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const code = 'code' in error ? String((error as { code?: unknown }).code) : '';
+  const message =
+    'message' in error ? String((error as { message?: unknown }).message) : '';
+  return code === '23505' || /duplicate key value/i.test(message);
+}
+
 /**
  * POST /api/claim/walletcon-mint-points
  * Awards one-time IRL points after a successful WalletCon NFT mint.
@@ -39,29 +47,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const activityWallet = player.wallet_address;
+    const activityWallet = player.wallet_address.toLowerCase();
 
-    const { data: existing, error: existingError } = await supabase
-      .from('points_activities')
-      .select('id')
-      .eq('user_wallet_address', activityWallet)
-      .eq('activity_type', WALLETCON_CANNES_MINT_ACTIVITY_TYPE)
-      .limit(1);
-
-    if (existingError) {
-      console.error('[walletcon-mint-points] lookup error:', existingError);
-      return apiError('Failed to verify existing mint points', 500);
-    }
-
-    if (existing && existing.length > 0) {
-      return apiSuccess({
-        pointsAwarded: 0,
-        alreadyAwarded: true,
-        totalPoints: player.total_points ?? 0,
-      });
-    }
-
-    const { error: insertError } = await supabase
+    const { data: insertedActivity, error: insertError } = await supabase
       .from('points_activities')
       .insert({
         user_wallet_address: activityWallet,
@@ -70,17 +58,42 @@ export async function POST(req: NextRequest) {
         description: 'WalletCon Cannes - NFT mint successful',
         metadata: { source: 'claim_success_page' },
         processed: true,
-      });
+      })
+      .select('id')
+      .single();
 
     if (insertError) {
+      if (isUniqueConstraintViolation(insertError)) {
+        return apiSuccess({
+          pointsAwarded: 0,
+          alreadyAwarded: true,
+          totalPoints: player.total_points ?? 0,
+        });
+      }
       console.error('[walletcon-mint-points] insert error:', insertError);
       return apiError('Failed to record mint points activity', 500);
     }
 
-    const updated = await updatePlayerPoints(
-      player.id,
-      WALLETCON_CANNES_MINT_POINTS
-    );
+    let updated;
+    try {
+      updated = await updatePlayerPoints(player.id, WALLETCON_CANNES_MINT_POINTS);
+    } catch (updateError) {
+      // Compensating action: if points increment fails after activity insert,
+      // remove this activity so retry can safely award once.
+      if (insertedActivity?.id) {
+        const { error: rollbackError } = await supabase
+          .from('points_activities')
+          .delete()
+          .eq('id', insertedActivity.id);
+        if (rollbackError) {
+          console.error(
+            '[walletcon-mint-points] rollback failed after points update error:',
+            rollbackError
+          );
+        }
+      }
+      throw updateError;
+    }
 
     return apiSuccess({
       pointsAwarded: WALLETCON_CANNES_MINT_POINTS,

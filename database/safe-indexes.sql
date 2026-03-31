@@ -89,6 +89,12 @@ ON perks(points_threshold) WHERE is_active = true;
 CREATE INDEX IF NOT EXISTS idx_points_activities_user_type_created 
 ON points_activities(user_wallet_address, activity_type, created_at DESC);
 
+-- Enforce one-time WalletCon Cannes points awards per wallet + activity type.
+-- Uses lower(user_wallet_address) so mixed-case submissions cannot bypass idempotency.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_points_activities_walletcon_one_time_unique
+ON points_activities(lower(user_wallet_address), activity_type)
+WHERE activity_type IN ('walletcon_cannes_checkin', 'walletcon_cannes_mint');
+
 -- =============================================================================
 -- Location lists
 -- =============================================================================
