@@ -25,52 +25,24 @@ export default function ClaimLoginPage() {
           <ClaimHeader />
         </header>
 
-        <main className="relative flex flex-1 items-center justify-center px-4 pb-16 pt-6">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="pointer-events-none absolute left-1/2 top-1/2 -z-10 hidden md:block"
-            style={{
-              width: '1909px',
-              height: '1192px',
-              aspectRatio: '1909 / 1192',
-              flexShrink: 0,
-              background:
-                'linear-gradient(0deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.72) 100%)',
-              filter: 'blur(8px)',
-              transform: 'translate(-50%, -55%) rotate(90deg) scale(1.45)',
-              transformOrigin: 'center',
-              objectFit: 'cover',
-            }}
+        <main className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-4 pb-16 pt-6">
+          <div
+            className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+            aria-hidden
           >
-            <source src="/wct/background.mp4" type="video/mp4" />
-          </video>
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="pointer-events-none absolute left-1/2 top-1/2 -z-10 block md:hidden"
-            style={{
-              width: '1909px',
-              height: '1192px',
-              aspectRatio: '1909 / 1192',
-              flexShrink: 0,
-              background:
-                'linear-gradient(0deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.72) 100%)',
-              filter: 'blur(6px)',
-              transform: 'translate(-50%, -45%) rotate(90deg) scale(1.6)',
-              transformOrigin: 'center',
-              objectFit: 'cover',
-            }}
-          >
-            <source src="/wct/background.mp4" type="video/mp4" />
-          </video>
+            <Image
+              src="/wct/poster-raster.png"
+              alt=""
+              fill
+              className="origin-center scale-[2.25] object-cover object-center"
+              sizes="100vw"
+              priority
+            />
+            <div className="absolute inset-0 bg-white/[0.72]" />
+          </div>
           <div className="relative mx-auto flex w-full max-w-[393px] flex-col items-center gap-16 text-center md:max-w-[574px]">
             <div className="flex w-full flex-col items-center space-y-6 pt-[100px]">
-              <span className="hero-text text-black">
+              <span className="hero-text display2 text-black font-inktrap">
                 Welcome to
                 <br /> WalletCon Cannes!
               </span>
@@ -84,7 +56,8 @@ export default function ClaimLoginPage() {
                 <br />
                 <br />
                 Check in now to unlock a limited-run digital artwork and
-                collectible print, created exclusively for WalletCon Cannes by Dominique Falcone.
+                collectible print, created exclusively for WalletCon Cannes by
+                Dominique Falcone.
               </div>
 
               <div className="flex justify-center">

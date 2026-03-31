@@ -1,27 +1,77 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
-import ClaimHeader from "@/components/claim/claim-header";
-import ClaimFooter from "@/components/claim/claim-footer";
-import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
+import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { X } from 'lucide-react';
+import ClaimHeader from '@/components/claim/claim-header';
+import ClaimFooter from '@/components/claim/claim-footer';
+import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
 
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy } from '@privy-io/react-auth';
 
 export default function LoginSuccessPage() {
-  const { authenticated, ready } = usePrivy();
+  const { authenticated, ready, user, getAccessToken } = usePrivy();
   const router = useRouter();
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
-  
+  const [checkinPointsLine, setCheckinPointsLine] = useState<string | null>(
+    null
+  );
+  const walletconPointsRequestedRef = useRef(false);
 
   // Redirect to login if not authenticated (only after Privy is ready)
   useEffect(() => {
     if (ready && !authenticated) {
-      router.push("/claim/login");
+      router.push('/claim/login');
     }
   }, [ready, authenticated, router]);
+
+  // One-time 100 IRL points for reaching this screen (server enforces idempotency)
+  useEffect(() => {
+    if (!ready || !authenticated || !user?.wallet?.address) return;
+    if (walletconPointsRequestedRef.current) return;
+    walletconPointsRequestedRef.current = true;
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const token = await getAccessToken();
+        const addr = user.wallet?.address;
+        if (!token || !addr) {
+          walletconPointsRequestedRef.current = false;
+          return;
+        }
+        const res = await fetch('/api/claim/walletcon-checkin-points', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ walletAddress: addr }),
+        });
+        const json = await res.json();
+        if (cancelled) return;
+        const data = json.data ?? json;
+        if (
+          res.ok &&
+          data?.success !== false &&
+          typeof data?.pointsAwarded === 'number' &&
+          data.pointsAwarded > 0
+        ) {
+          setCheckinPointsLine(
+            `You earned ${data.pointsAwarded} IRL points for checking in.`
+          );
+        }
+      } catch {
+        walletconPointsRequestedRef.current = false;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, authenticated, user?.wallet?.address, getAccessToken]);
 
   // Show loading state while Privy is initializing
   if (!ready) {
@@ -46,22 +96,36 @@ export default function LoginSuccessPage() {
           <ClaimHeader />
         </header>
 
-        <main className="relative flex flex-1 items-center justify-center px-4 pb-16 pt-6">
+        <main className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-4 pb-16 pt-6">
+          <div
+            className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+            aria-hidden
+          >
+            <Image
+              src="/wct/poster-raster.png"
+              alt=""
+              fill
+              className="origin-center scale-[2.25] object-cover object-center"
+              sizes="100vw"
+              priority
+            />
+            <div className="absolute inset-0 bg-white/[0.72]" />
+          </div>
           <div className="relative mx-auto flex w-full max-w-[393px] flex-col items-center gap-8 text-center">
             <div className="space-y-6 pt-[100px]">
               {/* Row 1: Success! */}
               <p
                 className="mx-auto text-center"
                 style={{
-                  color: "var(--UI-OffBlack, #131313)",
-                  textAlign: "center",
-                  textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
+                  color: 'var(--UI-OffBlack, #131313)',
+                  textAlign: 'center',
+                  textShadow: '0 0 16px rgba(255, 255, 255, 0.70)',
                   fontFamily: '"Pleasure"',
-                  fontSize: "25px",
-                  fontStyle: "normal",
+                  fontSize: '25px',
+                  fontStyle: 'normal',
                   fontWeight: 500,
-                  lineHeight: "28px",
-                  letterSpacing: "-0.5px",
+                  lineHeight: '28px',
+                  letterSpacing: '-0.5px',
                 }}
               >
                 Check-in complete!
@@ -69,64 +133,68 @@ export default function LoginSuccessPage() {
 
               {/* Row 2: You Showed Up */}
               <h1
-                className="mx-auto text-center"
+                className="mx-auto text-center display1 font-inktrap"
                 style={{
-                  color: "var(--UI-OffBlack, #131313)",
-                  textAlign: "center",
-                  textShadow: "0 0 16px rgba(255, 255, 255, 0.70)",
-                  fontFamily: '"Pleasure"',
-                  fontSize: "39px",
-                  fontStyle: "normal",
-                  fontWeight: 500,
-                  lineHeight: "40px",
-                  letterSpacing: "-2.34px",
+                  color: 'var(--UI-OffBlack, #131313)',
+                  textShadow: '0 0 16px rgba(255, 255, 255, 0.70)',
                 }}
               >
                 <b>Welcome to WalletCon</b>
               </h1>
 
-           
+              {checkinPointsLine ? (
+                <p
+                  className="mx-auto max-w-[340px] text-center"
+                  style={{
+                    color: 'var(--Dark-Tint-100, #313131)',
+                    fontFamily: '"ABC-Monument-Grotesk"',
+                    fontSize: '16px',
+                    fontStyle: 'normal',
+                    fontWeight: 600,
+                    lineHeight: '22px',
+                    letterSpacing: '-0.48px',
+                  }}
+                >
+                  {checkinPointsLine}
+                </p>
+              ) : null}
 
               {/* Row 4: Instruction text */}
               <p
                 className="mx-auto text-center"
                 style={{
-                  color: "var(--Dark-Tint-100, #313131)",
-                  textAlign: "center",
+                  color: 'var(--Dark-Tint-100, #313131)',
+                  textAlign: 'center',
                   fontFamily: '"ABC-Monument-Grotesk"',
-                  fontSize: "16px",
-                  fontStyle: "normal",
+                  fontSize: '16px',
+                  fontStyle: 'normal',
                   fontWeight: 400,
-                  lineHeight: "22px",
-                  letterSpacing: "-0.48px",
+                  lineHeight: '22px',
+                  letterSpacing: '-0.48px',
                 }}
               >
-                To claim your $WCT, digital artwork by Dominique Falcone, $5 USDC and IRL points, head to one of the IRL Checkpoints below.
+                To claim your $USDC, digital artwork by Dominique Falcone and
+                IRL points, head to one of the IRL Checkpoints below.
               </p>
 
-              
-
-                 {/* Row 4: Instruction text */}
+              {/* Row 4: Instruction text */}
               <p
                 className="mx-auto text-center"
                 style={{
-                  color: "var(--Dark-Tint-100, #313131)",
-                  textAlign: "center",
+                  color: 'var(--Dark-Tint-100, #313131)',
+                  textAlign: 'center',
                   fontFamily: '"ABC-Monument-Grotesk"',
-                  fontSize: "16px",
-                  fontStyle: "normal",
+                  fontSize: '16px',
+                  fontStyle: 'normal',
                   fontWeight: 400,
-                  lineHeight: "22px",
-                  letterSpacing: "-0.48px",
+                  lineHeight: '22px',
+                  letterSpacing: '-0.48px',
                 }}
               >
                 You can also pick up your physical print at the same Checkpoint.
               </p>
-
-            
             </div>
           </div>
-          
         </main>
 
         <ClaimFooter />
@@ -168,4 +236,3 @@ export default function LoginSuccessPage() {
     </div>
   );
 }
-
