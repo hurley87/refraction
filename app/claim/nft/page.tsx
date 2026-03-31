@@ -183,7 +183,7 @@ export default function ClaimNFTPage() {
                 {/* Background image — same frame as prior video */}
                 <div className="absolute inset-0 rounded-2xl overflow-hidden z-10">
                   <Image
-                    src="/wct/cannes.png"
+                    src="/wct/walletcon-cannes-poster.jpg"
                     alt=""
                     fill
                     priority

@@ -105,7 +105,7 @@ export default function LoginSuccessPage() {
               src="/wct/poster-raster.png"
               alt=""
               fill
-              className="origin-center scale-[2.25] object-cover object-center"
+              className="origin-center scale-[2.25] object-cover object-[18%_center]"
               sizes="100vw"
               priority
             />

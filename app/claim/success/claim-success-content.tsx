@@ -103,7 +103,7 @@ export function ClaimSuccessContent() {
             <div className="space-y-6 pt-[100px]">
               <div className="flex w-full max-w-[375px] flex-col items-center gap-4 self-stretch px-4 pt-[34px]">
                 <Image
-                  src="/wct/cannes.png"
+                  src="/wct/walletcon-cannes-poster.jpg"
                   alt="Claimed artwork"
                   width={375}
                   height={375}
