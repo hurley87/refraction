@@ -11,6 +11,9 @@ export const DAILY_CHECKPOINT_LIMIT = 10;
 export const WALLETCON_CANNES_CHECKIN_POINTS = 100;
 export const WALLETCON_CANNES_CHECKIN_ACTIVITY_TYPE =
   'walletcon_cannes_checkin';
+/** One-time IRL points for successfully minting the WalletCon Cannes NFT */
+export const WALLETCON_CANNES_MINT_POINTS = 100;
+export const WALLETCON_CANNES_MINT_ACTIVITY_TYPE = 'walletcon_cannes_mint';
 
 // Database field limits
 export const MAX_VARCHAR_LENGTH = 255;

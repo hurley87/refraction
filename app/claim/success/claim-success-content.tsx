@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ClaimHeader from '@/components/claim/claim-header';
 import Footer from '@/components/layout/footer';
@@ -22,6 +22,7 @@ export function ClaimSuccessContent() {
   /** null = not yet read on client (avoid redirect using stale React Query cache from /claim/nft). */
   const [previewResolved, setPreviewResolved] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
+  const mintPointsRequestedRef = useRef(false);
 
   useLayoutEffect(() => {
     const search = typeof window !== 'undefined' ? window.location.search : '';
@@ -69,6 +70,53 @@ export function ClaimSuccessContent() {
     }
   }, [claimStatus, router, isPreview, previewResolved]);
 
+  useEffect(() => {
+    if (!ready || !authenticated || isPreview || !userAddress) return;
+    if (!claimStatus?.hasClaimed) return;
+    if (mintPointsRequestedRef.current) return;
+    mintPointsRequestedRef.current = true;
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          mintPointsRequestedRef.current = false;
+          return;
+        }
+
+        const res = await fetch('/api/claim/walletcon-mint-points', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ walletAddress: userAddress }),
+        });
+
+        if (!res.ok && !cancelled) {
+          mintPointsRequestedRef.current = false;
+        }
+      } catch {
+        if (!cancelled) {
+          mintPointsRequestedRef.current = false;
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    ready,
+    authenticated,
+    isPreview,
+    userAddress,
+    claimStatus?.hasClaimed,
+    getAccessToken,
+  ]);
+
   const showLoading = !isPreview && (!previewResolved || isLoading);
 
   if (showLoading) {
@@ -103,7 +151,7 @@ export function ClaimSuccessContent() {
             <div className="space-y-6 pt-[100px]">
               <div className="flex w-full max-w-[375px] flex-col items-center gap-4 self-stretch px-4 pt-[34px]">
                 <Image
-                  src="/wct/cannes.png"
+                  src="/wct/cannes.jpg"
                   alt="Claimed artwork"
                   width={375}
                   height={375}
