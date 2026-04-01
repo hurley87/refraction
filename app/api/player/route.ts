@@ -7,7 +7,7 @@ import {
   updatePlayerRequestSchema,
 } from '@/lib/schemas/api';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
-import { trackAccountCreated } from '@/lib/analytics';
+import { trackAccountCreated, resolveServerIdentity } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 
 export async function POST(request: NextRequest) {
@@ -35,20 +35,21 @@ export async function POST(request: NextRequest) {
 
     const player = await createOrUpdatePlayer(playerData);
 
-    // Use wallet address as distinct_id for analytics
-    const distinctId = walletAddress;
+    const distinctId = resolveServerIdentity({
+      email,
+      walletAddress,
+      playerId: player.id,
+    });
 
-    // Set user properties server-side
     setUserPropertiesServer(distinctId, {
       $email: email,
       wallet_address: walletAddress,
-      wallet_type: 'EVM', // Default to EVM, could be enhanced to detect chain
+      wallet_type: 'EVM',
     });
 
-    // Track account creation for new players
     if (isNewPlayer) {
       trackAccountCreated(distinctId, {
-        wallet_type: 'EVM', // Default to EVM, could be enhanced to detect chain
+        wallet_type: 'EVM',
         has_email: !!email,
         wallet_address: walletAddress,
       });

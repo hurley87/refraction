@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/db/client';
 import { redeemPerkRequestSchema } from '@/lib/schemas/api';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
-import { trackRewardClaimed } from '@/lib/analytics';
+import { trackRewardClaimed, resolveServerIdentity } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 
 export const dynamic = 'force-dynamic';
@@ -74,16 +74,16 @@ export async function POST(request: NextRequest) {
       .single();
     if (error) throw error;
 
-    // Use wallet address as distinct_id for analytics
-    const distinctId = walletAddress;
+    const distinctId = resolveServerIdentity({
+      email: user.email || undefined,
+      walletAddress,
+    });
 
-    // Set user properties server-side
     setUserPropertiesServer(distinctId, {
       $email: user.email || undefined,
       wallet_address: walletAddress,
     });
 
-    // Track reward claim
     trackRewardClaimed(distinctId, {
       reward_id: perkId,
       reward_type: perk.type,
