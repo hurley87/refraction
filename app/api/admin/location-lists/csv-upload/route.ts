@@ -3,6 +3,7 @@ import { checkAdminPermission } from "@/lib/db/admin";
 import { supabase } from "@/lib/db/client";
 import { getPrivyClient } from "@/lib/api/privy";
 import { apiSuccess, apiError } from "@/lib/api/response";
+import { trackLocationCreated, resolveServerIdentity } from "@/lib/analytics";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 
@@ -105,22 +106,24 @@ async function geocodeAddress(
   }
 }
 
-async function isAuthenticatedAdmin(request: NextRequest): Promise<boolean> {
+async function getAuthenticatedAdminEmail(
+  request: NextRequest
+): Promise<string | null> {
   const authHeader = request.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) return false;
+  if (!authHeader?.startsWith("Bearer ")) return null;
 
   const token = authHeader.slice(7).trim();
-  if (!token) return false;
+  if (!token) return null;
 
   try {
     const privy = getPrivyClient();
     const verifiedClaims = await privy.verifyAuthToken(token);
     const user = await privy.getUser(verifiedClaims.userId);
     const email = user.email?.address?.trim().toLowerCase();
-    if (!email) return false;
-    return checkAdminPermission(email);
+    if (!email) return null;
+    return checkAdminPermission(email) ? email : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -367,6 +370,7 @@ type RowContext = {
   imageMap: Map<string, File>;
   creatorWalletAddress: string;
   creatorUsername: string;
+  adminDistinctId: string;
 };
 
 async function processRow(
@@ -497,6 +501,13 @@ async function processRow(
       return { row: rowNum, name, status: "failed", reason: `Failed to add to list: ${memberError.message}` };
     }
 
+    trackLocationCreated(ctx.adminDistinctId, {
+      location_id: locationData.id,
+      place_id: placeId,
+      type: row.category?.trim().slice(0, TYPE_MAX_LENGTH) || undefined,
+      creator_wallet_address: ctx.creatorWalletAddress || undefined,
+    });
+
     return { row: rowNum, name, status: "created" };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -506,8 +517,8 @@ async function processRow(
 
 export async function POST(request: NextRequest) {
   try {
-    const isAdmin = await isAuthenticatedAdmin(request);
-    if (!isAdmin) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError("Unauthorized", 403);
     }
 
@@ -572,6 +583,11 @@ export async function POST(request: NextRequest) {
 
     if (listError) throw listError;
 
+    const adminDistinctId = resolveServerIdentity({
+      email: adminEmail,
+      walletAddress: creatorWalletAddress || undefined,
+    });
+
     const ctx: RowContext = {
       listSlug,
       listId: listData.id,
@@ -579,6 +595,7 @@ export async function POST(request: NextRequest) {
       imageMap,
       creatorWalletAddress,
       creatorUsername,
+      adminDistinctId,
     };
 
     const results: ImportResult[] = [];
