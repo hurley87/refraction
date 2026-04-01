@@ -33,6 +33,7 @@ export type Location = {
   type?: string;
   event_url?: string | null;
   context?: string;
+  city?: string | null;
   coin_address?: string;
   coin_symbol?: string;
   coin_name?: string;

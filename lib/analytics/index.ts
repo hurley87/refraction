@@ -38,6 +38,7 @@ export {
   trackTierProgression,
   trackSpendRedemptionStarted,
   trackSpendRedemptionCompleted,
+  trackCityMilestone,
 } from './server';
 
 // Event constants
@@ -56,4 +57,5 @@ export type {
   AccountCreatedProperties,
   SpendRedemptionStartedProperties,
   SpendRedemptionCompletedProperties,
+  CityMilestoneProperties,
 } from './types';

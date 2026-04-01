@@ -14,6 +14,7 @@ const LOCATION_COLUMNS = `
   type,
   event_url,
   context,
+  city,
   coin_address,
   coin_symbol,
   coin_name,
@@ -117,6 +118,7 @@ export const updateLocationById = async (
       | 'type'
       | 'event_url'
       | 'is_visible'
+      | 'city'
     >
   >
 ) => {
@@ -154,4 +156,21 @@ export const listLocationOptions = async (
   const { data, error } = await query;
   if (error) throw error;
   return (data || []) as LocationOption[];
+};
+
+export type CityMetric = {
+  city: string;
+  total_spots: number;
+  visible_spots: number;
+  latest_spot_at: string | null;
+};
+
+/**
+ * Aggregate spot counts by city for the admin metrics dashboard.
+ * Uses a raw RPC call since Supabase JS doesn't support GROUP BY natively.
+ */
+export const getCityMetrics = async (): Promise<CityMetric[]> => {
+  const { data, error } = await supabase.rpc('get_city_metrics');
+  if (error) throw error;
+  return (data || []) as CityMetric[];
 };

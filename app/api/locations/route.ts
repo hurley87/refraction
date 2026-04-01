@@ -1,6 +1,11 @@
 import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/db/client';
-import { trackLocationCreated, trackPointsEarned, resolveServerIdentity } from '@/lib/analytics';
+import {
+  trackLocationCreated,
+  trackPointsEarned,
+  resolveServerIdentity,
+} from '@/lib/analytics';
+import { trackCityMilestone } from '@/lib/analytics/server';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { checkAdminPermission } from '@/lib/db/admin';
 import { MAX_LOCATIONS_PER_WEEK, SUPABASE_ERROR_CODES } from '@/lib/constants';
@@ -11,6 +16,7 @@ import {
   validateUrl,
 } from '@/lib/utils/validation';
 import { apiSuccess, apiError } from '@/lib/api/response';
+import { resolveCityFromCoordinates } from '@/lib/utils/city-resolver';
 
 export async function GET(request: NextRequest) {
   try {
@@ -210,14 +216,19 @@ export async function POST(request: NextRequest) {
     const creatorEmail = request.headers.get('x-user-email');
     const isAdminCreator = checkAdminPermission(creatorEmail || undefined);
 
+    // Resolve city from coordinates (and fall back to context JSON if present)
+    const parsedLat = parseFloat(lat);
+    const parsedLon = parseFloat(lon);
+    const resolvedCity = resolveCityFromCoordinates(parsedLat, parsedLon);
+
     // Insert the new location (visible for admins, hidden for regular users)
     const locationInsertPayload = {
       place_id: sanitizedPlaceId,
       name: sanitizedName,
       address: sanitizedAddress,
       description: sanitizedDescription,
-      latitude: parseFloat(lat),
-      longitude: parseFloat(lon),
+      latitude: parsedLat,
+      longitude: parsedLon,
       type: sanitizedType,
       event_url: sanitizedEventUrl,
       points_value: 100,
@@ -225,6 +236,7 @@ export async function POST(request: NextRequest) {
       creator_username: sanitizedUsername,
       coin_image_url: normalizedLocationImage,
       is_visible: isAdminCreator,
+      city: resolvedCity,
       context: JSON.stringify({
         created_at: new Date().toISOString(),
       }),
@@ -265,20 +277,21 @@ export async function POST(request: NextRequest) {
 
     if (pointsError) {
       console.error('Error awarding points:', pointsError);
-      // Don't fail the location creation if points fail
     }
 
-    // Extract city from context if available
-    let city: string | undefined;
+    // Use the resolved city; fall back to context JSON if coordinate resolver missed
+    let city: string | undefined = resolvedCity ?? undefined;
     let country: string | undefined;
-    try {
-      const context = locationData.context
-        ? JSON.parse(locationData.context)
-        : {};
-      city = context.city;
-      country = context.country;
-    } catch {
-      // Context parsing failed, ignore
+    if (!city) {
+      try {
+        const context = locationData.context
+          ? JSON.parse(locationData.context)
+          : {};
+        city = context.city;
+        country = context.country;
+      } catch {
+        // Context parsing failed, ignore
+      }
     }
 
     const distinctId = resolveServerIdentity({
@@ -307,6 +320,28 @@ export async function POST(request: NextRequest) {
       amount: pointsAwarded,
       description: `Created location: ${sanitizedName}`,
     });
+
+    // Fire city milestone event when a city crosses a threshold
+    if (city) {
+      try {
+        const { count } = await supabase
+          .from('locations')
+          .select('id', { count: 'exact', head: true })
+          .eq('city', city)
+          .eq('is_visible', true);
+
+        const MILESTONES = [10, 25, 50, 100, 250, 500];
+        if (count !== null && MILESTONES.includes(count)) {
+          trackCityMilestone(distinctId, {
+            city,
+            spot_count: count,
+            milestone: count,
+          });
+        }
+      } catch {
+        // Non-critical — don't fail the response
+      }
+    }
 
     return apiSuccess({
       location: locationData,
