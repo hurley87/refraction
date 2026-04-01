@@ -70,3 +70,22 @@ export interface AccountCreatedProperties {
   has_email: boolean;
   wallet_address: string;
 }
+
+export interface SpendRedemptionStartedProperties {
+  spend_item_id: string;
+  spend_item_name: string;
+  points_committed: number;
+  redemption_id: string;
+  checkpoint_id?: string | null;
+  flow: 'pending_create';
+}
+
+export interface SpendRedemptionCompletedProperties {
+  spend_item_id: string;
+  spend_item_name: string;
+  points_spent: number;
+  redemption_id: string;
+  checkpoint_id?: string | null;
+  flow: 'checkpoint_instant' | 'pending_verify' | 'admin_fulfill';
+  verified_by: 'user' | 'admin';
+}

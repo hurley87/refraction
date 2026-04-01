@@ -7,6 +7,8 @@ import type {
   PointsEarnedProperties,
   TierChangedProperties,
   AccountCreatedProperties,
+  SpendRedemptionStartedProperties,
+  SpendRedemptionCompletedProperties,
 } from './types';
 import { ANALYTICS_EVENTS } from './events';
 
@@ -176,4 +178,26 @@ export function trackTierChanged(
   setUserProperties(distinctId, {
     tier: properties.new_tier,
   });
+}
+
+export function trackSpendRedemptionStarted(
+  distinctId: string,
+  properties: SpendRedemptionStartedProperties
+): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.SPEND_REDEMPTION_STARTED, properties);
+  trackEvent(distinctId, ANALYTICS_EVENTS.USER_ACTIVE, {
+    action_type: 'spend_redemption_started',
+  });
+}
+
+export function trackSpendRedemptionCompleted(
+  distinctId: string,
+  properties: SpendRedemptionCompletedProperties
+): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.SPEND_REDEMPTION_COMPLETED, properties);
+  trackEvent(distinctId, ANALYTICS_EVENTS.USER_ACTIVE, {
+    action_type: 'spend_redemption_completed',
+  });
+  incrementUserProperty(distinctId, 'lifetime_spend_redemptions', 1);
+  incrementUserProperty(distinctId, 'lifetime_points_spent', properties.points_spent);
 }

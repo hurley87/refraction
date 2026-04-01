@@ -34,6 +34,8 @@ export {
   trackLocationCreated,
   trackPointsEarned,
   trackTierChanged,
+  trackSpendRedemptionStarted,
+  trackSpendRedemptionCompleted,
 } from './server';
 
 // Event constants
@@ -49,4 +51,6 @@ export type {
   PointsEarnedProperties,
   TierChangedProperties,
   AccountCreatedProperties,
+  SpendRedemptionStartedProperties,
+  SpendRedemptionCompletedProperties,
 } from './types';
