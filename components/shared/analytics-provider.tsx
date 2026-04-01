@@ -120,27 +120,29 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
       if (aptosAccount) walletType = 'Aptos';
     }
 
-    let tier: string | undefined;
-    if (player?.total_points !== undefined && tiers.length > 0) {
-      const userTier = tiers.find(
-        (t) =>
-          player.total_points >= t.min_points &&
-          (t.max_points === null || player.total_points < t.max_points)
-      );
-      tier = userTier?.title;
-    }
-
     const cohort: 'new' | 'returning' | 'power' = 'new';
 
     const properties: UserProperties = {
       $email: user.email?.address,
       $name: player?.username,
       wallet_type: walletType,
-      tier,
       total_points: player?.total_points,
       wallet_address: walletAddress,
       cohort,
     };
+
+    // Only include tier when we can actually resolve it; avoids overwriting
+    // a server-set value with undefined when tiers haven't loaded yet
+    if (player?.total_points !== undefined && tiers.length > 0) {
+      const userTier = tiers.find(
+        (t) =>
+          player.total_points >= t.min_points &&
+          (t.max_points === null || player.total_points < t.max_points)
+      );
+      if (userTier) {
+        properties.tier = userTier.title;
+      }
+    }
 
     identifyUser(distinctId, properties);
   }, [authenticated, user, player, tiers]);

@@ -34,6 +34,11 @@ vi.mock('@/lib/analytics', async () => {
   };
 });
 
+// Mock tier progression (avoids extra Supabase calls in tests)
+vi.mock('@/lib/tier-progression', () => ({
+  checkAndTrackTierProgression: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   createOrUpdatePlayer,
   createOrUpdatePlayerForSolana,

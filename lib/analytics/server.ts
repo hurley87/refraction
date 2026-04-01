@@ -6,6 +6,7 @@ import type {
   LocationCreatedProperties,
   PointsEarnedProperties,
   TierChangedProperties,
+  TierProgressionProperties,
   AccountCreatedProperties,
   SpendRedemptionStartedProperties,
   SpendRedemptionCompletedProperties,
@@ -191,6 +192,17 @@ export function trackTierChanged(
   trackEvent(distinctId, ANALYTICS_EVENTS.TIER_CHANGED, properties);
   setUserProperties(distinctId, {
     tier: properties.new_tier,
+  });
+}
+
+export function trackTierProgression(
+  distinctId: string,
+  properties: TierProgressionProperties
+): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.TIER_PROGRESSION, properties);
+  setUserProperties(distinctId, {
+    tier: properties.new_tier,
+    total_points: properties.total_points,
   });
 }
 

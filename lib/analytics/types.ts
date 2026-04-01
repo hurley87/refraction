@@ -65,6 +65,12 @@ export interface TierChangedProperties {
   total_points: number;
 }
 
+export interface TierProgressionProperties {
+  previous_tier: string;
+  new_tier: string;
+  total_points: number;
+}
+
 export interface AccountCreatedProperties {
   wallet_type: 'EVM' | 'Solana' | 'Stellar' | 'Aptos';
   has_email: boolean;
