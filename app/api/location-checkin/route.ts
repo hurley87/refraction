@@ -10,7 +10,7 @@ import {
   createLocationCheckin,
 } from '@/lib/db/checkins';
 import type { Player, Location } from '@/lib/types';
-import { trackCheckinCompleted, trackPointsEarned } from '@/lib/analytics';
+import { trackCheckinCompleted, trackPointsEarned, resolveServerIdentity } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import { sanitizeString } from '@/lib/utils/validation';
@@ -139,10 +139,12 @@ export async function POST(request: NextRequest) {
       location.points_value
     );
 
-    // Use wallet address as distinct_id for analytics
-    const distinctId = walletAddress;
+    const distinctId = resolveServerIdentity({
+      email,
+      walletAddress,
+      playerId: player.id,
+    });
 
-    // Set user properties server-side
     setUserPropertiesServer(distinctId, {
       $email: email,
       wallet_address: walletAddress,

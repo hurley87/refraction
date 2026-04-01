@@ -24,6 +24,7 @@ export type { IdentityInput, IdentityResult, IdentitySource } from './identity';
 
 // Server-side exports
 export {
+  resolveServerIdentity,
   trackEvent as trackEventServer,
   setUserProperties as setUserPropertiesServer,
   setUserPropertiesOnce,

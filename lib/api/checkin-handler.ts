@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/db/client';
 import { updatePlayerPoints } from '@/lib/db/players';
 import { getUserProfile } from '@/lib/db/profiles';
-import { trackCheckinCompleted, trackPointsEarned } from '@/lib/analytics';
+import { trackCheckinCompleted, trackPointsEarned, resolveServerIdentity } from '@/lib/analytics';
 import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import { DAILY_CHECKIN_POINTS, DAILY_CHECKPOINT_LIMIT } from '@/lib/constants';
 import { getUtcDayBounds } from '@/lib/utils/date';
@@ -207,9 +207,15 @@ export async function processCheckin(
     }
   }
 
+  const distinctId = resolveServerIdentity({
+    email: input.email,
+    walletAddress: chainWalletAddress,
+    playerId: player.id,
+  });
+
   // Track tier progression after points change
   const newPoints = latestPlayer?.total_points ?? previousPoints + pointsAwarded;
-  await checkAndTrackTierProgression(chainWalletAddress, previousPoints, newPoints);
+  await checkAndTrackTierProgression(distinctId, previousPoints, newPoints);
 
   // Calculate today's total points
   const { data: todaysCheckpoints, error: checkpointsSumError } = await supabase
@@ -234,9 +240,6 @@ export async function processCheckin(
   const responsePlayer = latestPlayer
     ? { ...latestPlayer, total_points: totalPoints }
     : { ...player, total_points: totalPoints };
-
-  // Use wallet address as distinct_id for analytics
-  const distinctId = chainWalletAddress;
 
   trackCheckinCompleted(distinctId, {
     location_id: 0,

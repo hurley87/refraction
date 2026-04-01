@@ -18,6 +18,7 @@ import {
   isInitialized,
   waitForInitialization,
   trackEvent as trackEventClient,
+  resolveDistinctId,
 } from '@/lib/analytics';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useTiers } from '@/hooks/useTiers';
@@ -88,7 +89,12 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
 
     if (!walletAddress) return;
 
-    // Determine wallet type
+    const { distinctId } = resolveDistinctId({
+      email: user.email?.address,
+      walletAddress,
+      playerId: player?.id,
+    });
+
     let walletType: 'EVM' | 'Solana' | 'Stellar' | 'Aptos' = 'EVM';
     if (user.linkedAccounts) {
       const solanaAccount = user.linkedAccounts.find(
@@ -114,8 +120,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
       if (aptosAccount) walletType = 'Aptos';
     }
 
-    // Calculate cohort (simplified - would need first_action_at from database)
-    const cohort: 'new' | 'returning' | 'power' = 'new'; // TODO: Calculate based on first_action_at
+    const cohort: 'new' | 'returning' | 'power' = 'new';
 
     const properties: UserProperties = {
       $email: user.email?.address,
@@ -139,7 +144,7 @@ export function AnalyticsProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    identifyUser(walletAddress, properties);
+    identifyUser(distinctId, properties);
   }, [authenticated, user, player, tiers]);
 
   // Reset on logout
