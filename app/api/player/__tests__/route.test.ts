@@ -15,6 +15,7 @@ vi.mock('@/lib/analytics', async () => {
   return {
     ...actual,
     trackAccountCreated: vi.fn(),
+    resolveServerIdentity: actual.resolveServerIdentity,
   };
 });
 
@@ -74,7 +75,7 @@ describe('Player API Route', () => {
       expect(json.data.player).toEqual(mockPlayer);
       expect(json.message).toContain('testuser');
       expect(trackAccountCreated).toHaveBeenCalledWith(
-        '0x1234567890abcdef1234567890abcdef12345678', // Wallet address as distinct_id
+        'test@example.com', // Email takes priority via resolveServerIdentity
         expect.objectContaining({
           wallet_type: 'EVM',
           has_email: true,

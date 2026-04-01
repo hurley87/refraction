@@ -11,6 +11,7 @@ import type {
   SpendRedemptionCompletedProperties,
 } from './types';
 import { ANALYTICS_EVENTS } from './events';
+import { resolveDistinctId, type IdentityInput } from './identity';
 
 let mixpanelInstance: Mixpanel.Mixpanel | null = null;
 
@@ -52,6 +53,19 @@ function getMixpanel(): Mixpanel.Mixpanel {
   }
 
   return mixpanelInstance!;
+}
+
+/**
+ * Resolve the best distinct_id for server-side tracking.
+ * Accepts an IdentityInput and returns the resolved distinct_id string.
+ * Falls back to walletAddress if the full resolution throws (defensive).
+ */
+export function resolveServerIdentity(input: IdentityInput): string {
+  try {
+    return resolveDistinctId(input).distinctId;
+  } catch {
+    return input.walletAddress ?? '';
+  }
 }
 
 /**

@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/db/client';
 import { updatePlayerPoints } from '@/lib/db/players';
 import { getUserProfile } from '@/lib/db/profiles';
-import { trackCheckinCompleted, trackPointsEarned } from '@/lib/analytics';
+import { trackCheckinCompleted, trackPointsEarned, resolveServerIdentity } from '@/lib/analytics';
 import { DAILY_CHECKIN_POINTS, DAILY_CHECKPOINT_LIMIT } from '@/lib/constants';
 import { getUtcDayBounds } from '@/lib/utils/date';
 import type { Player } from '@/lib/types';
@@ -229,8 +229,11 @@ export async function processCheckin(
     ? { ...latestPlayer, total_points: totalPoints }
     : { ...player, total_points: totalPoints };
 
-  // Use wallet address as distinct_id for analytics
-  const distinctId = chainWalletAddress;
+  const distinctId = resolveServerIdentity({
+    email: input.email,
+    walletAddress: chainWalletAddress,
+    playerId: player.id,
+  });
 
   trackCheckinCompleted(distinctId, {
     location_id: 0,

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/db/client';
-import { trackLocationCreated, trackPointsEarned } from '@/lib/analytics';
+import { trackLocationCreated, trackPointsEarned, resolveServerIdentity } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { checkAdminPermission } from '@/lib/db/admin';
 import { MAX_LOCATIONS_PER_WEEK, SUPABASE_ERROR_CODES } from '@/lib/constants';
@@ -281,10 +281,11 @@ export async function POST(request: NextRequest) {
       // Context parsing failed, ignore
     }
 
-    // Use wallet address as distinct_id for analytics
-    const distinctId = sanitizedWalletAddress;
+    const distinctId = resolveServerIdentity({
+      email: creatorEmail || undefined,
+      walletAddress: sanitizedWalletAddress,
+    });
 
-    // Set user properties server-side
     setUserPropertiesServer(distinctId, {
       $email: creatorEmail || undefined,
       wallet_address: sanitizedWalletAddress,

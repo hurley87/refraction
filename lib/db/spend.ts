@@ -4,6 +4,7 @@ import { getPlayerByWallet, updatePlayerPoints } from './players';
 import {
   trackSpendRedemptionStarted,
   trackSpendRedemptionCompleted,
+  resolveServerIdentity,
 } from '../analytics/server';
 
 function spendItemFromJoin(
@@ -232,7 +233,12 @@ export const createPendingSpendRedemption = async (
     data.spend_items as SpendItem | SpendItem[] | null | undefined
   );
   if (data.id && data.user_wallet_address) {
-    trackSpendRedemptionStarted(data.user_wallet_address, {
+    const spendDistinctId = resolveServerIdentity({
+      email: player.email,
+      walletAddress: data.user_wallet_address,
+      playerId: player.id,
+    });
+    trackSpendRedemptionStarted(spendDistinctId, {
       spend_item_id: data.spend_item_id,
       spend_item_name: joinedItem?.name ?? '',
       points_committed: data.points_spent,
@@ -331,7 +337,12 @@ export const verifySpendRedemption = async (
   const fulfilledItem = spendItemFromJoin(
     updated.spend_items as SpendItem | SpendItem[] | null | undefined
   );
-  trackSpendRedemptionCompleted(walletAddress, {
+  const verifyDistinctId = resolveServerIdentity({
+    email: player.email,
+    walletAddress,
+    playerId: player.id,
+  });
+  trackSpendRedemptionCompleted(verifyDistinctId, {
     spend_item_id: updated.spend_item_id,
     spend_item_name: fulfilledItem?.name ?? '',
     points_spent: updated.points_spent,
@@ -429,7 +440,12 @@ export const redeemSpendItemOnce = async (
     }
 
     if (redemption.id) {
-      trackSpendRedemptionCompleted(walletAddress, {
+      const legacyDistinctId = resolveServerIdentity({
+        email: player.email,
+        walletAddress,
+        playerId: player.id,
+      });
+      trackSpendRedemptionCompleted(legacyDistinctId, {
         spend_item_id: redemption.spend_item_id,
         spend_item_name:
           spendItemFromJoin(
@@ -504,7 +520,12 @@ export const redeemSpendItemOnce = async (
     const rpcItem = spendItemFromJoin(
       redemption.spend_items as SpendItem | SpendItem[] | null | undefined
     );
-    trackSpendRedemptionCompleted(walletAddress, {
+    const rpcDistinctId = resolveServerIdentity({
+      email: player.email,
+      walletAddress,
+      playerId: player.id,
+    });
+    trackSpendRedemptionCompleted(rpcDistinctId, {
       spend_item_id: redemption.spend_item_id,
       spend_item_name: rpcItem?.name ?? '',
       points_spent: redemption.points_spent,
@@ -575,7 +596,13 @@ export const fulfillRedemption = async (redemptionId: string) => {
     data.spend_items as SpendItem | SpendItem[] | null | undefined
   );
   if (data.user_wallet_address && data.id) {
-    trackSpendRedemptionCompleted(data.user_wallet_address, {
+    const fulfillPlayer = await getPlayerByWallet(data.user_wallet_address);
+    const fulfillDistinctId = resolveServerIdentity({
+      email: fulfillPlayer?.email,
+      walletAddress: data.user_wallet_address,
+      playerId: fulfillPlayer?.id,
+    });
+    trackSpendRedemptionCompleted(fulfillDistinctId, {
       spend_item_id: data.spend_item_id,
       spend_item_name: adminItem?.name ?? '',
       points_spent: data.points_spent,
