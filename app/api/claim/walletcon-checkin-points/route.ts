@@ -61,18 +61,39 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const { error: insertError } = await supabase
+    const baseInsertPayload = {
+      user_wallet_address: activityWallet,
+      activity_type: WALLETCON_CANNES_CHECKIN_ACTIVITY_TYPE,
+      points_earned: WALLETCON_CANNES_CHECKIN_POINTS,
+      description: 'WalletCon Cannes — check-in complete',
+      metadata: { source: 'claim_login_success' },
+      processed: true,
+    };
+
+    const idempotencyKey = `${activityWallet.toLowerCase()}:${WALLETCON_CANNES_CHECKIN_ACTIVITY_TYPE}`;
+
+    let { error: insertError } = await supabase
       .from('points_activities')
       .insert({
-        user_wallet_address: activityWallet,
-        activity_type: WALLETCON_CANNES_CHECKIN_ACTIVITY_TYPE,
-        points_earned: WALLETCON_CANNES_CHECKIN_POINTS,
-        description: 'WalletCon Cannes — check-in complete',
-        metadata: { source: 'claim_login_success' },
-        processed: true,
+        ...baseInsertPayload,
+        idempotency_key: idempotencyKey,
       });
 
+    // Backward compatibility while idempotency_key migration rolls out.
+    if (insertError?.code === '42703') {
+      ({ error: insertError } = await supabase
+        .from('points_activities')
+        .insert(baseInsertPayload));
+    }
+
     if (insertError) {
+      if (insertError.code === '23505') {
+        return apiSuccess({
+          pointsAwarded: 0,
+          alreadyAwarded: true,
+          totalPoints: player.total_points ?? 0,
+        });
+      }
       console.error('[walletcon-checkin-points] insert error:', insertError);
       return apiError('Failed to record points activity', 500);
     }
