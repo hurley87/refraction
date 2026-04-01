@@ -95,3 +95,9 @@ export interface SpendRedemptionCompletedProperties {
   flow: 'checkpoint_instant' | 'pending_verify' | 'admin_fulfill';
   verified_by: 'user' | 'admin';
 }
+
+export interface CityMilestoneProperties {
+  city: string;
+  spot_count: number;
+  milestone: number;
+}

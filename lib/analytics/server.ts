@@ -10,6 +10,7 @@ import type {
   AccountCreatedProperties,
   SpendRedemptionStartedProperties,
   SpendRedemptionCompletedProperties,
+  CityMilestoneProperties,
 } from './types';
 import { ANALYTICS_EVENTS } from './events';
 import { resolveDistinctId, type IdentityInput } from './identity';
@@ -220,10 +221,25 @@ export function trackSpendRedemptionCompleted(
   distinctId: string,
   properties: SpendRedemptionCompletedProperties
 ): void {
-  trackEvent(distinctId, ANALYTICS_EVENTS.SPEND_REDEMPTION_COMPLETED, properties);
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPEND_REDEMPTION_COMPLETED,
+    properties
+  );
   trackEvent(distinctId, ANALYTICS_EVENTS.USER_ACTIVE, {
     action_type: 'spend_redemption_completed',
   });
   incrementUserProperty(distinctId, 'lifetime_spend_redemptions', 1);
-  incrementUserProperty(distinctId, 'lifetime_points_spent', properties.points_spent);
+  incrementUserProperty(
+    distinctId,
+    'lifetime_points_spent',
+    properties.points_spent
+  );
+}
+
+export function trackCityMilestone(
+  distinctId: string,
+  properties: CityMilestoneProperties
+): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.CITY_MILESTONE, properties);
 }
