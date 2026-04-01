@@ -34,6 +34,7 @@ export {
   trackLocationCreated,
   trackPointsEarned,
   trackTierChanged,
+  trackTierProgression,
   trackSpendRedemptionStarted,
   trackSpendRedemptionCompleted,
 } from './server';
@@ -50,6 +51,7 @@ export type {
   LocationCreatedProperties,
   PointsEarnedProperties,
   TierChangedProperties,
+  TierProgressionProperties,
   AccountCreatedProperties,
   SpendRedemptionStartedProperties,
   SpendRedemptionCompletedProperties,

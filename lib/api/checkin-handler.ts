@@ -2,6 +2,7 @@ import { supabase } from '@/lib/db/client';
 import { updatePlayerPoints } from '@/lib/db/players';
 import { getUserProfile } from '@/lib/db/profiles';
 import { trackCheckinCompleted, trackPointsEarned } from '@/lib/analytics';
+import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import { DAILY_CHECKIN_POINTS, DAILY_CHECKPOINT_LIMIT } from '@/lib/constants';
 import { getUtcDayBounds } from '@/lib/utils/date';
 import type { Player } from '@/lib/types';
@@ -194,6 +195,7 @@ export async function processCheckin(
   const pointsAwarded = DAILY_CHECKIN_POINTS;
 
   // Update player points
+  const previousPoints = player.total_points ?? 0;
   let latestPlayer = player;
   if (latestPlayer?.id) {
     latestPlayer = await updatePlayerPoints(latestPlayer.id, pointsAwarded);
@@ -204,6 +206,10 @@ export async function processCheckin(
       latestPlayer = updatedProfile;
     }
   }
+
+  // Track tier progression after points change
+  const newPoints = latestPlayer?.total_points ?? previousPoints + pointsAwarded;
+  await checkAndTrackTierProgression(chainWalletAddress, previousPoints, newPoints);
 
   // Calculate today's total points
   const { data: todaysCheckpoints, error: checkpointsSumError } = await supabase

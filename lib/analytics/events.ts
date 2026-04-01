@@ -28,6 +28,7 @@ export const ANALYTICS_EVENTS = {
 
   // User Structure
   TIER_CHANGED: "tier_changed",
+  TIER_PROGRESSION: "tier_progression",
 
   // Page Views (automatically tracked)
   PAGE_VIEW: "$pageview",

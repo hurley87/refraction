@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { supabase } from '@/lib/db/client';
 import { checkAdminPermission } from '@/lib/db/admin';
 import { getPlayersByEmails, updatePlayerPoints } from '@/lib/db/players';
+import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import { fetchEventTicketHolders } from '@/lib/dice/client';
 import { apiSuccess, apiError } from '@/lib/api/response';
 
@@ -139,10 +140,16 @@ export async function POST(request: NextRequest) {
     // Award points to each matched player
     for (const { playerId, email } of matchedEntries) {
       try {
-        await updatePlayerPoints(playerId, pointsPerHolder);
+        const player = playerByEmail.get(email);
+        const previousPoints = player?.total_points ?? 0;
+        const updated = await updatePlayerPoints(playerId, pointsPerHolder);
         matchedPlayers += 1;
         totalPointsAwarded += pointsPerHolder;
         awardedEmails.push(email);
+
+        const distinctId = player?.wallet_address ?? email;
+        const newPoints = updated?.total_points ?? previousPoints + pointsPerHolder;
+        await checkAndTrackTierProgression(distinctId, previousPoints, newPoints);
       } catch (err) {
         console.error(`Failed to award points to player ${playerId}:`, err);
         unmatchedEmails.push(email);

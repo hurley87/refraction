@@ -10,6 +10,7 @@ import {
   getPlayerByWallet,
   createOrUpdatePlayer,
 } from '@/lib/db/players';
+import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import {
   STRIPE_COMMONS_NFT_ADDRESS,
   ERC721_TRANSFER_ABI,
@@ -452,7 +453,10 @@ async function recordClaim(
   if (error) throw error;
 
   if (player?.id) {
-    await updatePlayerPoints(player.id, STRIPE_COMMONS_POINTS);
+    const previousPoints = player.total_points ?? 0;
+    const updated = await updatePlayerPoints(player.id, STRIPE_COMMONS_POINTS);
+    const newPoints = updated?.total_points ?? previousPoints + STRIPE_COMMONS_POINTS;
+    await checkAndTrackTierProgression(walletAddress, previousPoints, newPoints);
   }
 }
 

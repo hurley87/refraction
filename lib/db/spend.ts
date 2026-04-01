@@ -5,6 +5,7 @@ import {
   trackSpendRedemptionStarted,
   trackSpendRedemptionCompleted,
 } from '../analytics/server';
+import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 
 function spendItemFromJoin(
   related: SpendItem | SpendItem[] | null | undefined
@@ -284,6 +285,7 @@ export const verifySpendRedemption = async (
     throw new Error('Insufficient points');
   }
 
+  const previousPoints = player.total_points ?? 0;
   const updatedPlayer = await updatePlayerPoints(
     player.id!,
     -redemption.points_spent
@@ -327,6 +329,9 @@ export const verifySpendRedemption = async (
     }
     throw updateError;
   }
+
+  const newPoints = updatedPlayer.total_points;
+  await checkAndTrackTierProgression(walletAddress, previousPoints, newPoints);
 
   const fulfilledItem = spendItemFromJoin(
     updated.spend_items as SpendItem | SpendItem[] | null | undefined
@@ -393,6 +398,7 @@ export const redeemSpendItemOnce = async (
       throw new Error('Insufficient points');
     }
 
+    const legacyPreviousPoints = player.total_points ?? 0;
     const updatedPlayer = await updatePlayerPoints(player.id, -item.points_cost);
     if (updatedPlayer.total_points < 0) {
       await updatePlayerPoints(player.id, item.points_cost);
@@ -427,6 +433,12 @@ export const redeemSpendItemOnce = async (
       }
       throw insertError;
     }
+
+    await checkAndTrackTierProgression(
+      walletAddress,
+      legacyPreviousPoints,
+      updatedPlayer.total_points
+    );
 
     if (redemption.id) {
       trackSpendRedemptionCompleted(walletAddress, {
@@ -499,6 +511,11 @@ export const redeemSpendItemOnce = async (
   if (!player) {
     throw new Error('Player not found');
   }
+
+  // RPC deducted points atomically; compute pre-deduction total
+  const rpcNewPoints = player.total_points ?? 0;
+  const rpcPreviousPoints = rpcNewPoints + redemption.points_spent;
+  await checkAndTrackTierProgression(walletAddress, rpcPreviousPoints, rpcNewPoints);
 
   if (redemption.id) {
     const rpcItem = spendItemFromJoin(

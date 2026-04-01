@@ -3,6 +3,7 @@ import { verifyWalletOwnership } from '@/lib/api/privy';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { supabase } from '@/lib/db/client';
 import { getPlayerByWallet, updatePlayerPoints } from '@/lib/db/players';
+import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import {
   WALLETCON_CANNES_CHECKIN_ACTIVITY_TYPE,
   WALLETCON_CANNES_CHECKIN_POINTS,
@@ -77,10 +78,14 @@ export async function POST(req: NextRequest) {
       return apiError('Failed to record points activity', 500);
     }
 
+    const previousPoints = player.total_points ?? 0;
     const updated = await updatePlayerPoints(
       player.id,
       WALLETCON_CANNES_CHECKIN_POINTS
     );
+
+    const newPoints = updated?.total_points ?? previousPoints + WALLETCON_CANNES_CHECKIN_POINTS;
+    await checkAndTrackTierProgression(activityWallet, previousPoints, newPoints);
 
     return apiSuccess({
       pointsAwarded: WALLETCON_CANNES_CHECKIN_POINTS,

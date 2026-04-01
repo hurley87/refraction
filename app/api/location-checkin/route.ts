@@ -12,6 +12,7 @@ import {
 import type { Player, Location } from '@/lib/types';
 import { trackCheckinCompleted, trackPointsEarned } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
+import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import { sanitizeString } from '@/lib/utils/validation';
 import { apiSuccess, apiError } from '@/lib/api/response';
 
@@ -132,6 +133,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Update player points
+    const previousPoints = player.total_points ?? 0;
     const updatedPlayer = await updatePlayerPoints(
       player.id,
       location.points_value
@@ -145,6 +147,10 @@ export async function POST(request: NextRequest) {
       $email: email,
       wallet_address: walletAddress,
     });
+
+    // Track tier progression after points change
+    const newPoints = updatedPlayer?.total_points ?? previousPoints + location.points_value;
+    await checkAndTrackTierProgression(distinctId, previousPoints, newPoints);
 
     // Extract city from location context if available
     let city: string | undefined;
