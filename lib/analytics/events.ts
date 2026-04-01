@@ -23,6 +23,8 @@ export const ANALYTICS_EVENTS = {
 
   // Token / Points
   POINTS_EARNED: "points_earned",
+  SPEND_REDEMPTION_STARTED: "spend_redemption_started",
+  SPEND_REDEMPTION_COMPLETED: "spend_redemption_completed",
 
   // User Structure
   TIER_CHANGED: "tier_changed",

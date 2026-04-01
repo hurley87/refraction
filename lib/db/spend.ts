@@ -1,6 +1,17 @@
 import { supabase } from './client';
 import type { Checkpoint, SpendItem } from '../types';
 import { getPlayerByWallet, updatePlayerPoints } from './players';
+import {
+  trackSpendRedemptionStarted,
+  trackSpendRedemptionCompleted,
+} from '../analytics/server';
+
+function spendItemFromJoin(
+  related: SpendItem | SpendItem[] | null | undefined
+): SpendItem | null {
+  if (!related) return null;
+  return Array.isArray(related) ? related[0] ?? null : related;
+}
 
 const SPEND_ITEM_COLUMNS = `
   id,
@@ -216,6 +227,21 @@ export const createPendingSpendRedemption = async (
     .single();
 
   if (error) throw error;
+
+  const joinedItem = spendItemFromJoin(
+    data.spend_items as SpendItem | SpendItem[] | null | undefined
+  );
+  if (data.id && data.user_wallet_address) {
+    trackSpendRedemptionStarted(data.user_wallet_address, {
+      spend_item_id: data.spend_item_id,
+      spend_item_name: joinedItem?.name ?? '',
+      points_committed: data.points_spent,
+      redemption_id: data.id,
+      checkpoint_id: joinedItem?.checkpoint_id ?? null,
+      flow: 'pending_create',
+    });
+  }
+
   return data;
 };
 
@@ -243,12 +269,9 @@ export const verifySpendRedemption = async (
     throw new Error('Redemption already verified');
   }
 
-  const related = redemption.spend_items as
-    | SpendItem
-    | SpendItem[]
-    | null
-    | undefined;
-  const item = Array.isArray(related) ? related[0] : related;
+  const item = spendItemFromJoin(
+    redemption.spend_items as SpendItem | SpendItem[] | null | undefined
+  );
   if (!item?.is_active) {
     throw new Error('This item is no longer available');
   }
@@ -304,6 +327,20 @@ export const verifySpendRedemption = async (
     }
     throw updateError;
   }
+
+  const fulfilledItem = spendItemFromJoin(
+    updated.spend_items as SpendItem | SpendItem[] | null | undefined
+  );
+  trackSpendRedemptionCompleted(walletAddress, {
+    spend_item_id: updated.spend_item_id,
+    spend_item_name: fulfilledItem?.name ?? '',
+    points_spent: updated.points_spent,
+    redemption_id: updated.id!,
+    checkpoint_id: fulfilledItem?.checkpoint_id ?? null,
+    flow: 'pending_verify',
+    verified_by: 'user',
+  });
+
   return updated;
 };
 
@@ -391,6 +428,21 @@ export const redeemSpendItemOnce = async (
       throw insertError;
     }
 
+    if (redemption.id) {
+      trackSpendRedemptionCompleted(walletAddress, {
+        spend_item_id: redemption.spend_item_id,
+        spend_item_name:
+          spendItemFromJoin(
+            redemption.spend_items as SpendItem | SpendItem[] | null | undefined
+          )?.name ?? item.name,
+        points_spent: redemption.points_spent,
+        redemption_id: redemption.id,
+        checkpoint_id: item.checkpoint_id ?? null,
+        flow: 'checkpoint_instant',
+        verified_by: 'user',
+      });
+    }
+
     return { redemption, player: updatedPlayer };
   };
 
@@ -448,6 +500,21 @@ export const redeemSpendItemOnce = async (
     throw new Error('Player not found');
   }
 
+  if (redemption.id) {
+    const rpcItem = spendItemFromJoin(
+      redemption.spend_items as SpendItem | SpendItem[] | null | undefined
+    );
+    trackSpendRedemptionCompleted(walletAddress, {
+      spend_item_id: redemption.spend_item_id,
+      spend_item_name: rpcItem?.name ?? '',
+      points_spent: redemption.points_spent,
+      redemption_id: redemption.id,
+      checkpoint_id: rpcItem?.checkpoint_id ?? null,
+      flow: 'checkpoint_instant',
+      verified_by: 'user',
+    });
+  }
+
   return { redemption, player };
 };
 
@@ -494,7 +561,7 @@ export const fulfillRedemption = async (redemptionId: string) => {
     })
     .eq('id', redemptionId)
     .eq('is_fulfilled', false)
-    .select(SPEND_REDEMPTION_COLUMNS)
+    .select(`${SPEND_REDEMPTION_COLUMNS}, spend_items (${SPEND_ITEM_COLUMNS})`)
     .single();
 
   if (error) {
@@ -503,6 +570,22 @@ export const fulfillRedemption = async (redemptionId: string) => {
     }
     throw error;
   }
+
+  const adminItem = spendItemFromJoin(
+    data.spend_items as SpendItem | SpendItem[] | null | undefined
+  );
+  if (data.user_wallet_address && data.id) {
+    trackSpendRedemptionCompleted(data.user_wallet_address, {
+      spend_item_id: data.spend_item_id,
+      spend_item_name: adminItem?.name ?? '',
+      points_spent: data.points_spent,
+      redemption_id: data.id,
+      checkpoint_id: adminItem?.checkpoint_id ?? null,
+      flow: 'admin_fulfill',
+      verified_by: 'admin',
+    });
+  }
+
   return data;
 };
 
