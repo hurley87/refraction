@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 type Suggestion = {
   id?: string;
@@ -33,6 +34,8 @@ export interface LocationSearchProps {
     featureType?: string;
   }) => void;
   className?: string;
+  /** Typography for collapsed placeholder + expanded input (e.g. map-specific body styles). */
+  inputClassName?: string;
 }
 
 function useDebounced<T extends (...args: any[]) => void>(fn: T, ms: number) {
@@ -48,10 +51,11 @@ function useDebounced<T extends (...args: any[]) => void>(fn: T, ms: number) {
 }
 
 export default function LocationSearch({
-  placeholder = 'Search location',
+  placeholder = 'Search',
   proximity,
   onSelect,
   className,
+  inputClassName,
 }: LocationSearchProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -184,7 +188,13 @@ export default function LocationSearch({
     return (
       <button
         onClick={() => setShowSearch(true)}
-        className={`flex flex-1 items-center gap-2 rounded-full bg-white/80 px-4 h-10 text-[#7d7d7d] shadow-sm transition-colors hover:bg-white hover:text-[#313131] w-full ${className}`}
+        className={cn(
+          'box-border flex h-10 max-h-10 min-h-10 w-full flex-1 items-center gap-2 rounded-full bg-white/80 px-4 py-0 shadow-sm transition-colors hover:bg-white',
+          inputClassName
+            ? 'text-inherit'
+            : 'text-[#7d7d7d] hover:text-[#313131]',
+          className
+        )}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -200,7 +210,9 @@ export default function LocationSearch({
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.3-4.3" />
         </svg>
-        <span className="text-sm truncate">{placeholder}</span>
+        <span className={cn('min-w-0 flex-1 truncate text-sm', inputClassName)}>
+          {placeholder}
+        </span>
       </button>
     );
   }
@@ -209,7 +221,7 @@ export default function LocationSearch({
     <div className={`relative flex flex-1 items-center gap-2 ${className}`}>
       {/* Search Input */}
       <div className="flex-1 relative">
-        <div className="flex items-center gap-2 rounded-full bg-white/80 shadow-sm h-10 px-4">
+        <div className="box-border flex h-10 max-h-10 min-h-10 items-center gap-2 rounded-full bg-white/80 px-4 py-0 shadow-sm">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -242,7 +254,10 @@ export default function LocationSearch({
               setIsOpen(true);
             }}
             onKeyDown={handleKeyDown}
-            className="flex-1 h-full border-0 p-0 text-sm text-[#313131] placeholder:text-[#7d7d7d] bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+            className={cn(
+              'h-full flex-1 border-0 bg-transparent p-0 text-sm text-[#313131] placeholder:text-[#7d7d7d] focus-visible:ring-0 focus-visible:ring-offset-0',
+              inputClassName
+            )}
           />
           <button
             onClick={() => {
