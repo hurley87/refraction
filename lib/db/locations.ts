@@ -165,12 +165,85 @@ export type CityMetric = {
   latest_spot_at: string | null;
 };
 
+type CityMetricLocationRow = {
+  city: string | null;
+  is_visible: boolean | null;
+  created_at: string | null;
+};
+
+const isMissingCityMetricsRpc = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') return false;
+  const code = 'code' in error ? (error as { code?: string }).code : undefined;
+  const message =
+    'message' in error ? (error as { message?: string }).message : undefined;
+
+  return (
+    code === 'PGRST202' ||
+    Boolean(message?.toLowerCase().includes('get_city_metrics'))
+  );
+};
+
+const buildCityMetricsFromLocations = (
+  rows: CityMetricLocationRow[]
+): CityMetric[] => {
+  const metricsByCity = new Map<string, CityMetric>();
+
+  for (const row of rows) {
+    const normalizedCity = row.city?.trim() ? row.city.trim() : 'Unknown';
+    const existing = metricsByCity.get(normalizedCity) ?? {
+      city: normalizedCity,
+      total_spots: 0,
+      visible_spots: 0,
+      latest_spot_at: null,
+    };
+
+    existing.total_spots += 1;
+    if (row.is_visible) {
+      existing.visible_spots += 1;
+    }
+
+    if (
+      row.created_at &&
+      (!existing.latest_spot_at || row.created_at > existing.latest_spot_at)
+    ) {
+      existing.latest_spot_at = row.created_at;
+    }
+
+    metricsByCity.set(normalizedCity, existing);
+  }
+
+  return Array.from(metricsByCity.values()).sort(
+    (a, b) => b.visible_spots - a.visible_spots || a.city.localeCompare(b.city)
+  );
+};
+
 /**
  * Aggregate spot counts by city for the admin metrics dashboard.
  * Uses a raw RPC call since Supabase JS doesn't support GROUP BY natively.
  */
 export const getCityMetrics = async (): Promise<CityMetric[]> => {
   const { data, error } = await supabase.rpc('get_city_metrics');
-  if (error) throw error;
-  return (data || []) as CityMetric[];
+  if (!error) {
+    return (data || []) as CityMetric[];
+  }
+
+  if (!isMissingCityMetricsRpc(error)) {
+    throw error;
+  }
+
+  console.warn(
+    '[getCityMetrics] get_city_metrics RPC missing; using fallback aggregation query.'
+  );
+
+  const { data: locationRows, error: locationError } = await supabase
+    .from('locations')
+    .select('city, is_visible, created_at');
+
+  if (locationError) {
+    throw locationError;
+  }
+
+  return buildCityMetricsFromLocations(
+    (locationRows ?? []) as CityMetricLocationRow[]
+  );
 };

@@ -4,15 +4,18 @@ import type { Location, LocationOption } from '@/lib/types';
 // Mock the supabase client - use any for complex mock chains
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockFrom = vi.fn((): any => ({}));
+const mockRpc = vi.fn();
 
 vi.mock('@/lib/db/client', () => ({
   supabase: {
     from: (table: string) => mockFrom(table),
+    rpc: (...args: unknown[]) => mockRpc(...args),
   },
 }));
 
 import {
   createOrGetLocation,
+  getCityMetrics,
   listAllLocations,
   listLocationsByWallet,
   listLocationOptions,
@@ -496,6 +499,83 @@ describe('Locations Database Module', () => {
         code: 'PGRST500',
         message: 'Database error',
       });
+    });
+  });
+
+  describe('getCityMetrics', () => {
+    it('should return metrics from RPC when function exists', async () => {
+      const rpcMetrics = [
+        {
+          city: 'New York City',
+          total_spots: 10,
+          visible_spots: 8,
+          latest_spot_at: '2026-04-01T00:00:00Z',
+        },
+      ];
+
+      mockRpc.mockResolvedValue({ data: rpcMetrics, error: null });
+
+      const result = await getCityMetrics();
+
+      expect(result).toEqual(rpcMetrics);
+      expect(mockRpc).toHaveBeenCalledWith('get_city_metrics');
+    });
+
+    it('should fallback to locations aggregation when RPC is missing', async () => {
+      mockRpc.mockResolvedValue({
+        data: null,
+        error: {
+          code: 'PGRST202',
+          message: 'Could not find function public.get_city_metrics',
+        },
+      });
+      mockFrom.mockReturnValue({
+        select: vi.fn().mockResolvedValue({
+          data: [
+            {
+              city: 'New York City',
+              is_visible: true,
+              created_at: '2026-04-01T00:00:00Z',
+            },
+            {
+              city: 'New York City',
+              is_visible: false,
+              created_at: '2026-04-02T00:00:00Z',
+            },
+            {
+              city: null,
+              is_visible: true,
+              created_at: '2026-04-03T00:00:00Z',
+            },
+          ],
+          error: null,
+        }),
+      });
+
+      const result = await getCityMetrics();
+
+      expect(mockFrom).toHaveBeenCalledWith('locations');
+      expect(result).toEqual([
+        {
+          city: 'New York City',
+          total_spots: 2,
+          visible_spots: 1,
+          latest_spot_at: '2026-04-02T00:00:00Z',
+        },
+        {
+          city: 'Unknown',
+          total_spots: 1,
+          visible_spots: 1,
+          latest_spot_at: '2026-04-03T00:00:00Z',
+        },
+      ]);
+    });
+
+    it('should throw RPC errors unrelated to missing function', async () => {
+      const rpcError = { code: '42501', message: 'permission denied' };
+      mockRpc.mockResolvedValue({ data: null, error: rpcError });
+
+      await expect(getCityMetrics()).rejects.toEqual(rpcError);
     });
   });
 });
