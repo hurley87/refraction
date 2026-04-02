@@ -63,6 +63,10 @@ const LOCATION_INSTRUCTION_STORAGE_KEY =
   'irl-location-create-instruction-count';
 const LOCATION_INSTRUCTION_LIMIT = 3;
 
+/** Style/Body/Body Medium — map LocationSearch (Gal Gothic) */
+const MAP_SEARCH_INPUT_CLASS =
+  'text-center text-base font-medium leading-[22px] tracking-[-0.48px] font-["Gal_Gothic_Variable",sans-serif] text-[color:var(--Dark-Tint-40---Neutral,#A9A9A9)] placeholder:text-[color:var(--Dark-Tint-40---Neutral,#A9A9A9)]';
+
 const getWelcomeBannerStorageKey = (wallet?: string | null) =>
   wallet
     ? `${WELCOME_BANNER_STORAGE_KEY}:${wallet}`
@@ -1182,40 +1186,123 @@ export default function InteractiveMap({
 
   return (
     <div className="fixed inset-0 w-full h-full">
-      {/* MapNav Header */}
+      {/* MapNav Header (mobile: search sits between logo and menu) */}
       <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/20 to-transparent">
-        <div className="max-w-md w-full mx-auto px-4 py-4">
-          <MapNav />
+        <div className="mx-auto flex w-full justify-center py-4">
+          <MapNav
+            center={
+              <div className="flex w-[163px] max-w-[min(163px,100%)] min-w-0 shrink-0 items-center md:hidden">
+                <LocationSearch
+                  placeholder="Search"
+                  proximity={{
+                    longitude: viewState.longitude,
+                    latitude: viewState.latitude,
+                  }}
+                  onSelect={handleSearchSelect}
+                  className="w-full min-w-0"
+                  inputClassName={MAP_SEARCH_INPUT_CLASS}
+                />
+              </div>
+            }
+          />
         </div>
       </div>
 
-      {/* Search Bar - Centered Below Header */}
-      <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-md px-4">
+      {/* Mobile: locate control (lower right) */}
+      <div className="pointer-events-none absolute bottom-4 right-4 z-10 md:hidden">
+        <button
+          type="button"
+          onClick={handleLocateUser}
+          disabled={isLocating}
+          className="pointer-events-auto flex h-[55px] w-[55px] shrink-0 items-center justify-center gap-4 rounded-[1000px] border border-[var(--IRL-Yellow,#FFF200)] bg-[var(--IRL-Yellow,#FFF200)] px-3 py-2 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label={isLocating ? 'Locating...' : 'My Location'}
+        >
+          {isLocating ? (
+            <svg
+              className="size-6 shrink-0 animate-spin text-[#171717]"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width={24}
+              height={24}
+              viewBox="0 0 24 24"
+              fill="none"
+              className="aspect-square size-6 shrink-0"
+              aria-hidden="true"
+            >
+              <path
+                d="M5.82333 16.099L3 18.9316L5.06064 21L7.87035 18.1797L9.87107 20.1196V14.1031H3.8771L5.82333 16.099Z"
+                fill="#171717"
+              />
+              <path
+                d="M11.9999 10.2014C11.0288 10.2014 10.2402 10.9916 10.2402 11.9677C10.2402 12.9438 11.0275 13.734 11.9999 13.734C12.9723 13.734 13.7595 12.9438 13.7595 11.9677C13.7595 10.9916 12.9723 10.2014 11.9999 10.2014Z"
+                fill="#171717"
+              />
+              <path
+                d="M16.1177 18.1661L18.9397 21L21.0004 18.9316L18.1906 16.1113L20.1233 14.1031H14.1279V20.1196L16.1177 18.1661Z"
+                fill="#171717"
+              />
+              <path
+                d="M18.1766 7.83501L21 5.00242L18.9393 2.93402L16.1296 5.75431L14.1289 3.81442V9.83095H20.1229L18.1766 7.83501Z"
+                fill="#171717"
+              />
+              <path
+                d="M7.88261 5.76798L5.06064 2.93402L3 5.00242L5.80971 7.82271L3.8771 9.83095H9.87107V3.81442L7.88261 5.76798Z"
+                fill="#171717"
+              />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* Search row (desktop/tablet) + welcome banner (all breakpoints) */}
+      <div className="absolute left-1/2 top-20 z-10 w-full max-w-md -translate-x-1/2 transform px-4">
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-2 md:flex">
             <div className="flex-1">
               <LocationSearch
-                placeholder="Search location"
+                placeholder="Search"
                 proximity={{
                   longitude: viewState.longitude,
                   latitude: viewState.latitude,
                 }}
                 onSelect={handleSearchSelect}
+                inputClassName={MAP_SEARCH_INPUT_CLASS}
               />
             </div>
             <button
               type="button"
               onClick={handleLocateUser}
               disabled={isLocating}
-              className="flex items-center justify-center size-10 rounded-full bg-white/80 text-[#7d7d7d] shadow-sm transition-colors hover:bg-white hover:text-[#313131] disabled:cursor-not-allowed disabled:opacity-50 dark:bg-black/50 dark:text-white/70 dark:hover:bg-black/70 dark:hover:text-white shrink-0"
+              className="flex h-[55px] w-[55px] shrink-0 items-center justify-center gap-4 rounded-[1000px] border border-[var(--IRL-Yellow,#FFF200)] bg-[var(--IRL-Yellow,#FFF200)] px-3 py-2 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
               aria-label={isLocating ? 'Locating...' : 'My Location'}
             >
               {isLocating ? (
                 <svg
-                  className="h-4 w-4 animate-spin"
+                  className="size-6 shrink-0 animate-spin text-[#171717]"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <circle
                     className="opacity-25"
@@ -1234,17 +1321,33 @@ export default function InteractiveMap({
               ) : (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
+                  width={24}
+                  height={24}
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4"
+                  className="aspect-square size-6 shrink-0"
                   aria-hidden="true"
                 >
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                  <path
+                    d="M5.82333 16.099L3 18.9316L5.06064 21L7.87035 18.1797L9.87107 20.1196V14.1031H3.8771L5.82333 16.099Z"
+                    fill="#171717"
+                  />
+                  <path
+                    d="M11.9999 10.2014C11.0288 10.2014 10.2402 10.9916 10.2402 11.9677C10.2402 12.9438 11.0275 13.734 11.9999 13.734C12.9723 13.734 13.7595 12.9438 13.7595 11.9677C13.7595 10.9916 12.9723 10.2014 11.9999 10.2014Z"
+                    fill="#171717"
+                  />
+                  <path
+                    d="M16.1177 18.1661L18.9397 21L21.0004 18.9316L18.1906 16.1113L20.1233 14.1031H14.1279V20.1196L16.1177 18.1661Z"
+                    fill="#171717"
+                  />
+                  <path
+                    d="M18.1766 7.83501L21 5.00242L18.9393 2.93402L16.1296 5.75431L14.1289 3.81442V9.83095H20.1229L18.1766 7.83501Z"
+                    fill="#171717"
+                  />
+                  <path
+                    d="M7.88261 5.76798L5.06064 2.93402L3 5.00242L5.80971 7.82271L3.8771 9.83095H9.87107V3.81442L7.88261 5.76798Z"
+                    fill="#171717"
+                  />
                 </svg>
               )}
             </button>
@@ -1403,7 +1506,7 @@ export default function InteractiveMap({
                       <feComposite in2="hardAlpha" operator="out" />
                       <feColorMatrix
                         type="matrix"
-                        values="0 0 0 0 0.4 0 0 0 0 0.835294 0 0 0 0 0.458824 0 0 0 1 0"
+                        values="0 0 0 0 1 0 0 0 0 0.949019608 0 0 0 0 0 0 0 0 1 0"
                       />
                       <feBlend
                         mode="normal"
@@ -1499,7 +1602,7 @@ export default function InteractiveMap({
             longitude={searchedLocation.longitude}
             anchor="bottom"
           >
-            <div className="w-8 h-8 rounded-full border-2 shadow-md bg-yellow-400 border-white animate-pulse" />
+            <div className="h-8 w-8 animate-pulse rounded-full border-2 border-white bg-[#FFF200] shadow-md" />
           </Marker>
         )}
 
@@ -1844,7 +1947,7 @@ export default function InteractiveMap({
                             <feComposite in2="hardAlpha" operator="out" />
                             <feColorMatrix
                               type="matrix"
-                              values="0 0 0 0 0.4 0 0 0 0 0.835294 0 0 0 0 0.458824 0 0 0 1 0"
+                              values="0 0 0 0 1 0 0 0 0 0.949019608 0 0 0 0 0 0 0 0 1 0"
                             />
                             <feBlend
                               mode="normal"
