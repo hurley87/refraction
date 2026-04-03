@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { usePrivy } from "@privy-io/react-auth";
-import Image from "next/image";
+import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { usePrivy } from '@privy-io/react-auth';
+import Image from 'next/image';
 
 interface NavigationMenuProps {
   isOpen: boolean;
@@ -18,9 +18,16 @@ interface MenuItem {
   external?: boolean;
 }
 
+/** Style/Label/Label XL + ink black */
+const menuTextClassName =
+  'min-w-0 flex-[1_0_0] text-left font-label-xl text-[25px] font-normal not-italic uppercase leading-[28px] tracking-[-0.5px] text-[color:var(--Dark-Tint-100---Ink-Black,#171717)]';
+
+/** Same label style, white on ink (Log Out row) */
+const menuTextOnInkClassName =
+  'min-w-0 flex-[1_0_0] text-left font-label-xl text-[25px] font-normal not-italic uppercase leading-[28px] tracking-[-0.5px] text-white';
+
 /**
- * NavigationMenu component - displays navigation menu matching Figma design
- * Shows menu items with active state for Dashboard and navigation arrows for others
+ * Full-screen overlay menu: 393×476 panel, header row (logo + close), scrollable links, fixed auth row.
  */
 export default function NavigationMenu({
   isOpen,
@@ -33,34 +40,38 @@ export default function NavigationMenu({
 
   // Define menu items with their routes
   const allMenuItems: MenuItem[] = [
-    { label: "Dashboard", path: "/dashboard" },
-    { label: "Map", path: "/interactive-map" },
-    { label: "Challenges", path: "/challenges", hidden: true },
-    { label: "Leaderboard", path: "/leaderboard", hidden: true },
-    { label: "Events", path: "/events" },
-    { label: "Rewards", path: "/rewards" },
-    { label: "Stellar", path: "/stellar" },
-    { label: "FAQ", path: "/faq", hidden: true },
-    { label: "Livepaper", path: "/livepaper" },
-    { label: "Become a Partner", path: "https://www.irl.energy/contact-us", external: true }, // pragma: allowlist secret
+    { label: 'Map', path: '/interactive-map' },
+    { label: 'Dashboard', path: '/dashboard' },
+    { label: 'City Guides', path: '/city-guides', hidden: true },
+    { label: 'Leaderboard', path: '/leaderboard', hidden: true },
+    { label: 'Events', path: '/events' },
+    { label: 'Rewards', path: '/rewards' },
+    { label: 'Stellar', path: '/stellar' },
+    { label: 'FAQ', path: '/faq', hidden: true },
+    { label: 'Livepaper', path: '/livepaper' },
+    {
+      label: 'Become a Partner',
+      path: 'https://www.irl.energy/contact-us',
+      external: true,
+    }, // pragma: allowlist secret
   ];
 
   // Filter menu items - Dashboard only shows if user is logged in; hidden items are not shown
   const menuItems = allMenuItems.filter(
-    (item) => !item.hidden && (item.path !== "/dashboard" || user)
+    (item) => !item.hidden && (item.path !== '/dashboard' || user)
   );
 
   // Determine active item based on current pathname
   const activePath =
-    pathname === "/" || pathname === "/game" || pathname === "/dashboard" 
-      ? "/dashboard" 
+    pathname === '/' || pathname === '/game' || pathname === '/dashboard'
+      ? '/dashboard'
       : pathname;
 
   const handleNavigate = (item: MenuItem) => {
     if (pendingPath) return;
 
     if (item.external) {
-      window.open(item.path, "_blank", "noopener,noreferrer");
+      window.open(item.path, '_blank', 'noopener,noreferrer');
       onClose();
       return;
     }
@@ -105,17 +116,17 @@ export default function NavigationMenu({
       // Save current scroll position
       const scrollY = window.scrollY;
       // Prevent scrolling
-      document.body.style.position = "fixed";
+      document.body.style.position = 'fixed';
       document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = "100%";
-      document.body.style.overflow = "hidden";
-      
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+
       return () => {
         // Restore scrolling
-        document.body.style.position = "";
-        document.body.style.top = "";
-        document.body.style.width = "";
-        document.body.style.overflow = "";
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
         // Restore scroll position
         window.scrollTo(0, scrollY);
       };
@@ -128,9 +139,9 @@ export default function NavigationMenu({
     <div
       className="fixed inset-0 z-50 bg-[#4F4F4F] bg-opacity-70 backdrop-blur-sm"
       style={{
-        willChange: "backdrop-filter",
-        WebkitBackdropFilter: "blur(4px)",
-        backdropFilter: "blur(4px)",
+        willChange: 'backdrop-filter',
+        WebkitBackdropFilter: 'blur(4px)',
+        backdropFilter: 'blur(4px)',
       }}
       onClick={(e) => {
         // Close menu when clicking on backdrop
@@ -139,162 +150,89 @@ export default function NavigationMenu({
         }
       }}
     >
-      <div
-        className="fixed top-0 left-1/2 transform -translate-x-1/2 w-full max-w-lg pt-[8px]"
-        style={{
-          height: `${
-            8 +
-            44 +
-            menuItems.length * 60 +
-            60 +
-            menuItems.filter((item) => activePath === item.path).length * 6
-          }px`,
-        }}
-      >
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute bg-white border border-[#ededed] h-[40px] rounded-[24px] flex items-center justify-center hover:bg-gray-50 transition-colors top-[8px] left-2 right-2"
-          aria-label="Close menu"
-        >
-          <div className="relative shrink-0 size-[24px] flex items-center justify-center">
+      {/* Menu panel: header in flow so links never sit under logo/close */}
+      <div className="absolute top-[53px] left-1/2 flex h-[476px] w-[393px] max-w-[min(393px,calc(100%-32px))] -translate-x-1/2 flex-col overflow-hidden">
+        <div className="flex h-[70px] w-full shrink-0 items-center justify-between bg-[var(--Dark-Tint-White,#FFF)] px-4">
+          <Image
+            src="/IRL-SVG/IRL-LOGO-NEW.svg"
+            alt="IRL"
+            width={70}
+            height={70}
+            className="size-[70px] shrink-0 object-contain"
+            priority
+          />
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex shrink-0 items-center justify-center p-0 transition-opacity hover:opacity-80"
+            aria-label="Close menu"
+          >
             <Image
-              src="/x-close.svg"
-              alt="Close"
+              src="/menu/menu-x.svg"
+              alt=""
               width={24}
               height={24}
-              className="object-center"
-              style={{ width: "auto", height: "auto" }}
+              className="block size-6"
             />
-          </div>
-        </button>
+          </button>
+        </div>
 
-        {/* Menu Items */}
-        {menuItems.map((item, index) => {
-          const isActive = activePath === item.path;
-          const isPending = pendingPath === item.path;
-          // Count how many items before this one are active (each adds 6px: 3px top + 3px bottom padding)
-          const activeItemsBefore = menuItems
-            .slice(0, index)
-            .filter((prevItem) => activePath === prevItem.path).length;
-          const topPosition = 8 + 44 + index * 60 + activeItemsBefore * 6; // 8px top padding + 44px for close button + 4px gap, then 60px spacing per item + 6px for each active item before
-
-          return isActive ? (
-            <div
-              key={item.path}
-              className="absolute left-2 right-2 rounded-[26px]"
-              style={{
-                top: `${topPosition}px`,
-                padding: "3px",
-                background: "linear-gradient(270deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.10) 100%), linear-gradient(270deg, #EE91B7 0%, #FFE600 37.5%, #1BA351 66.34%, #61BFD1 100%)",
-              }}
-            >
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          {menuItems.map((item) => {
+            const isActive = activePath === item.path;
+            const isPending = pendingPath === item.path;
+            return (
               <button
+                key={item.path}
                 type="button"
                 onClick={() => handleNavigate(item)}
                 aria-busy={isPending || undefined}
-                className={`w-full box-border flex h-[56px] items-center justify-between px-[16px] py-[19px] rounded-[23px] bg-white hover:bg-gray-50 transition-colors ${
-                  pendingPath ? "opacity-70" : ""
-                }`}
+                aria-current={isActive ? 'page' : undefined}
+                className={`box-border flex w-[393px] max-w-full shrink-0 items-center justify-between px-6 py-[19px] transition-opacity ${
+                  isActive
+                    ? 'bg-[var(--IRL-Yellow,#FFF200)]'
+                    : 'bg-[var(--Dark-Tint-White,#FFF)] hover:opacity-90'
+                } ${pendingPath ? 'opacity-70' : ''}`}
               >
-                <p className="basis-0 font-pleasure font-medium grow leading-[28px] min-h-px min-w-px not-italic relative shrink-0 text-[#313131] text-[25px] tracking-[-0.5px] text-left">
-                  {item.label}
-                </p>
-                {isPending && (
-                  <div className="overflow-clip relative shrink-0 size-[24px] flex items-center justify-center">
+                <span className={menuTextClassName}>{item.label}</span>
+                {isPending ? (
+                  <div className="relative flex size-[24px] shrink-0 items-center justify-center overflow-clip">
                     <span className="sr-only">Navigating to {item.label}</span>
                     <span className="size-5 animate-spin rounded-full border-[3px] border-[#db85a8]/40 border-t-[#db85a8]" />
                   </div>
+                ) : isActive ? null : (
+                  <div className="relative flex size-[24px] shrink-0 items-center justify-center overflow-clip">
+                    <Image
+                      src="/arrow-right.svg"
+                      alt=""
+                      width={24}
+                      height={24}
+                      className="block size-full max-w-none"
+                    />
+                  </div>
                 )}
               </button>
-            </div>
-          ) : (
-            <button
-              key={item.path}
-              type="button"
-              onClick={() => handleNavigate(item)}
-              aria-busy={isPending || undefined}
-              className={`absolute bg-white box-border flex h-[56px] items-center justify-between px-[16px] py-[19px] rounded-[24px] hover:bg-gray-50 transition-colors ${
-                pendingPath ? "opacity-70" : ""
-              } left-2 right-2`}
-              style={{ top: `${topPosition}px` }}
-            >
-              <p className="basis-0 font-pleasure font-medium grow leading-[28px] min-h-px min-w-px not-italic relative shrink-0 text-[#313131] text-[25px] tracking-[-0.5px] text-left">
-                {item.label}
-              </p>
-              {isPending && (
-                <div className="overflow-clip relative shrink-0 size-[24px] flex items-center justify-center">
-                  <span className="sr-only">Navigating to {item.label}</span>
-                  <span className="size-5 animate-spin rounded-full border-[3px] border-[#db85a8]/40 border-t-[#db85a8]" />
-                </div>
-              )}
-              {!isActive && !isPending && (
-                <div className="overflow-clip relative shrink-0 size-[24px] flex items-center justify-center">
-                  <Image
-                    src="/home/arrow-right.svg"
-                    alt="arrow-right"
-                    width={24}
-                    height={24}
-                    className="block max-w-none size-full"
-                  />
-                </div>
-              )}
-            </button>
-          );
-        })}
+            );
+          })}
+        </div>
 
-        {/* Log Out / Log In Button */}
         {user ? (
           <button
+            type="button"
             onClick={handleLogout}
-            className="absolute bg-[#b5b5b5] box-border flex h-[56px] items-center justify-between px-[24px] py-[8px] rounded-[26px] hover:bg-[#a0a0a0] transition-colors left-2 right-2"
-            style={{
-              top: `${
-                8 +
-                44 +
-                menuItems.length * 60 +
-                menuItems.filter((item) => activePath === item.path).length * 6
-              }px`,
-            }}
+            className="box-border flex w-[393px] max-w-full shrink-0 items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-6 py-[19px] transition-opacity hover:opacity-90"
           >
-            <p className="font-pleasure font-medium leading-[28px] relative shrink-0 text-[#313131] text-[25px] text-nowrap tracking-[-0.5px] whitespace-pre text-left">
-              Log Out
-            </p>
-            <div className="overflow-clip relative shrink-0 size-[24px] flex items-center justify-center">
-              <Image
-                src="/log-out.svg"
-                alt="arrow-right"
-                width={24}
-                height={24}
-                className="block max-w-none size-full"
-              />
-            </div>
+            <span className={menuTextOnInkClassName}>Log Out</span>
+            <div className="relative flex size-[24px] shrink-0 items-center justify-center overflow-clip"></div>
           </button>
         ) : (
           <button
+            type="button"
             onClick={handleLogin}
-            className="absolute bg-[#b5b5b5] box-border flex h-[56px] items-center justify-between px-[24px] py-[8px] rounded-[26px] hover:bg-[#a0a0a0] transition-colors left-2 right-2"
-            style={{
-              top: `${
-                8 +
-                44 +
-                menuItems.length * 60 +
-                menuItems.filter((item) => activePath === item.path).length * 6
-              }px`,
-            }}
+            className="mt-1 box-border flex h-[56px] w-full shrink-0 items-center justify-between rounded-[26px] bg-[#b5b5b5] px-[24px] py-[8px] transition-colors hover:bg-[#a0a0a0]"
           >
-            <p className="font-pleasure font-medium leading-[28px] relative shrink-0 text-[#313131] text-[25px] text-nowrap tracking-[-0.5px] whitespace-pre text-left">
-              Log In
-            </p>
-            <div className="overflow-clip relative shrink-0 size-[24px] flex items-center justify-center">
-              <Image
-                src="/log-out.svg"
-                alt="arrow-right"
-                width={24}
-                height={24}
-                className="block max-w-none size-full"
-              />
-            </div>
+            <span className={menuTextClassName}>Log In</span>
+            <div className="relative flex size-[24px] shrink-0 items-center justify-center overflow-clip"></div>
           </button>
         )}
       </div>
