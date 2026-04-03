@@ -7,7 +7,7 @@
 
 @font-face {
   font-family: 'Inktrap-Regular';
-  src: url('/fonts/Pleasure-Trial-Regular.otf') format('opentype');
+  src: url('/fonts/Pleasure-Inktrap-Trial-Regular.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
 }
@@ -145,4 +145,91 @@
   src: url('/fonts/PowerrBlack-1GLyL.ttf') format('truetype');
   font-weight: 900;
   font-style: normal;
+}
+
+/* Gal Gothic Variable — matches map search / UI usage */
+@font-face {
+  font-family: 'Gal Gothic Variable';
+  src: url('/fonts/GalGothicVariable-Reg.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gal Gothic Variable';
+  src: url('/fonts/GalGothicVariable-Italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Alias: interactive-map uses `font-["Gal_Gothic_Variable",sans-serif]` */
+@font-face {
+  font-family: 'Gal_Gothic_Variable';
+  src: url('/fonts/GalGothicVariable-Reg.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gal_Gothic_Variable';
+  src: url('/fonts/GalGothicVariable-Italic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Style/Label/Label XL — nav menu (`font-label-xl` in Tailwind) */
+@font-face {
+  font-family: 'Special Gothic Expanded One';
+  src: url('/fonts/Special%20Gothic%20Expanded%20Regular.otf')
+    format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Special Gothic Expanded One';
+  src: url('/fonts/Special%20Gothic%20Expanded%20SemiBold.otf')
+    format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Special Gothic Semi Expanded (narrower than “Expanded One”) */
+@font-face {
+  font-family: 'Special Gothic Semi Expanded';
+  src: url('/fonts/SpecialSemi-ExpandedMedium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Special Gothic Semi Expanded';
+  src: url('/fonts/SpecialSemi-ExpandedBold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Alias: design token / Figma name */
+@font-face {
+  font-family: 'Special Gothic SemiExpanded';
+  src: url('/fonts/SpecialSemi-ExpandedMedium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Special Gothic SemiExpanded';
+  src: url('/fonts/SpecialSemi-ExpandedBold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
 }
