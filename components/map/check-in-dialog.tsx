@@ -141,7 +141,7 @@ export default function CheckInDialog({
                     />
                   </svg>
                 </button>
-                <h2 className="text-sm font-inktrap text-[#1a1a1a] tracking-[-0.5px]">
+                <h2 className=" text-[#1a1a1a] tracking-[-0.5px] title3">
                   Check In
                 </h2>
               </div>
@@ -229,7 +229,7 @@ export default function CheckInDialog({
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-inktrap text-[13px] leading-tight tracking-[-0.3px] text-[#1a1a1a] line-clamp-1">
+                      <h3 className=" text-[13px] leading-tight tracking-[-0.3px] text-[#1a1a1a] line-clamp-1">
                         {checkInTarget?.name || 'Selected Location'}
                       </h3>
                       <p className="font-inktrap text-[10px] uppercase tracking-[0.3px] text-[#999] mt-0.5 line-clamp-1">
@@ -265,7 +265,7 @@ export default function CheckInDialog({
                               </div>
                             )}
                           </div>
-                          <span className="text-[10px] font-inktrap text-[#999]">
+                          <span className="text-[10px] font-gal-gothic-variable text-[#999]">
                             {locationCheckins.length > 0
                               ? `+${Math.max(locationCheckins.length - 2, 0)}`
                               : 'Be first'}

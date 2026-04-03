@@ -92,14 +92,14 @@ export default function MapCard({
         {/* Location Info */}
         <div className="flex flex-col gap-1">
           {/* Name */}
-          <p className="font-inktrap text-[13px] leading-snug text-[#1a1a1a] line-clamp-2">
+          <h3 className="leading-snug text-[#1a1a1a] line-clamp-2">
             {name}
-          </p>
+          </h3>
 
           {/* Address */}
           <div className="flex gap-1.5 items-center">
             <MapPin className="w-3 h-3 text-[#999] flex-shrink-0" />
-            <span className="font-inktrap text-[10px] text-[#999] uppercase tracking-[0.3px] truncate">
+            <span className="label-small  text-[#999] uppercase tracking-[0.3px] truncate">
               {address}
             </span>
           </div>
@@ -113,7 +113,7 @@ export default function MapCard({
             disabled={isLoading}
             className="flex-1 bg-[#1a1a1a] cursor-pointer flex items-center justify-center gap-1.5 h-8 px-3 rounded-full hover:bg-black transition-colors disabled:opacity-50"
           >
-            <span className="font-inktrap text-[10px] text-white tracking-[0.3px] uppercase">
+            <span className="label-large text-white tracking-[0.3px] uppercase">
               {isLoading ? '...' : isExisting ? 'Check In' : 'Create'}
             </span>
             <ChevronRight className="w-3.5 h-3.5 text-white" />

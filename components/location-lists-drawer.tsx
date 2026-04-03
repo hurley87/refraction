@@ -324,7 +324,7 @@ export default function LocationListsDrawer({
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <p className="text-[15px] font-inktrap font-medium tracking-[-0.3px] text-[#1a1a1a]">
+              <p className="text-[15px]  font-medium tracking-[-0.3px] text-[#1a1a1a] title3" >
                 Explore
               </p>
               <p className="text-xs font-anonymous text-[#888]">
@@ -334,7 +334,7 @@ export default function LocationListsDrawer({
             <button
               type="button"
               onClick={() => setIsExpanded((prev) => !prev)}
-              className="flex items-center gap-1.5 rounded-full bg-black/[0.04] px-3 py-1.5 text-[10px] font-inktrap uppercase tracking-[1px] text-[#1a1a1a] transition-all hover:bg-black/[0.08] active:scale-95"
+              className="flex items-center gap-1.5 rounded-full bg-black/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[1px] text-[#1a1a1a] transition-all hover:bg-black/[0.08] active:scale-95"
             >
               {isExpanded ? 'Hide' : 'View'}
               {isExpanded ? (
@@ -377,9 +377,9 @@ export default function LocationListsDrawer({
                     return (
                       <div key={list.id} className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-inktrap font-medium text-[#1a1a1a]">
+                          <h3 className=" text-[#1a1a1a] title3">
                             {list.title}
-                          </p>
+                          </h3>
                           <span className="text-[10px] font-anonymous text-[#999]">
                             {visibleCount > 0
                               ? `${visibleCount} spots`
@@ -409,7 +409,7 @@ export default function LocationListsDrawer({
                                   )}
                                 </div>
                                 <div className="mt-1.5 px-0.5">
-                                  <p className="text-xs font-inktrap text-[#1a1a1a] truncate leading-tight">
+                                  <p className=" text-[#1a1a1a] truncate leading-tight title3">
                                     {location.name}
                                   </p>
                                   <p className="text-[9px] font-anonymous text-[#888] truncate mt-0.5">
