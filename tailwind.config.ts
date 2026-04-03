@@ -73,6 +73,8 @@ const config: Config = {
         'abc-monument-bold': ['ABC-Monument-Bold', 'sans-serif'],
         'abc-monument-regular': ['ABC-Monument-Regular', 'sans-serif'],
         powerr: ['Powerr', 'sans-serif'],
+        /** Style/Label/Label XL — nav menu, etc. */
+        'label-xl': ['"Special Gothic Expanded One"', 'sans-serif'],
       },
       keyframes: {
         marquee: {

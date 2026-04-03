@@ -70,7 +70,7 @@ export default function MapNav({ center }: MapNavProps) {
           className="relative flex size-[40px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#ffffff] transition-colors hover:bg-[#5a5a5a]"
         >
           <Image
-            src="/IRL-SVG/HAMBURGER-MENU.svg"
+            src="/menu/HAMBURGER-MENU.svg"
             alt="Hamburger Menu"
             width={24}
             height={24}
