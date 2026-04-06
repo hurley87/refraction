@@ -26,17 +26,26 @@ import type { Tier } from "@/lib/types";
 import { usePrivy } from "@privy-io/react-auth";
 
 // Component to display discount code type for a perk
-function PerkCodeTypeInfo({ perkId }: { perkId: string }) {
+function PerkCodeTypeInfo({
+  perkId,
+  adminEmail,
+}: {
+  perkId: string;
+  adminEmail: string;
+}) {
   const { data: codes = [] } = useQuery<PerkDiscountCode[]>({
-    queryKey: ["perk-codes-preview", perkId],
+    queryKey: ["perk-codes-preview", perkId, adminEmail],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/perks/${perkId}/codes`);
+      const response = await fetch(`/api/admin/perks/${perkId}/codes`, {
+        headers: { "x-user-email": adminEmail },
+      });
       if (!response.ok) return [];
       const responseData = await response.json();
       // Unwrap the apiSuccess wrapper
       const data = responseData.data || responseData;
       return data.codes ?? [];
     },
+    enabled: !!adminEmail,
   });
 
   if (codes.length === 0) return null;
@@ -138,11 +147,15 @@ export default function AdminPerksPage() {
       verifyAdmin();
     }, [user, checkAdminStatus]);
 
+    const adminEmail = user?.email?.address || "";
+
     // Fetch all perks
     const { data: perks = [], isLoading: perksLoading } = useQuery({
-      queryKey: ["admin-perks"],
+      queryKey: ["admin-perks", adminEmail],
       queryFn: async () => {
-        const response = await fetch("/api/admin/perks?activeOnly=false");
+        const response = await fetch("/api/admin/perks?activeOnly=false", {
+          headers: { "x-user-email": adminEmail },
+        });
         if (!response.ok) throw new Error("Failed to fetch perks");
         const responseData = await response.json();
         // Unwrap the apiSuccess wrapper
@@ -174,7 +187,10 @@ export default function AdminPerksPage() {
       ) => {
         const response = await fetch("/api/admin/perks", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-email": adminEmail,
+          },
           body: JSON.stringify(perkData),
         });
         if (!response.ok) throw new Error("Failed to create perk");
@@ -205,7 +221,10 @@ export default function AdminPerksPage() {
       }) => {
         const response = await fetch(`/api/admin/perks/${id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-email": adminEmail,
+          },
           body: JSON.stringify(updates),
         });
         if (!response.ok) throw new Error("Failed to update perk");
@@ -230,6 +249,7 @@ export default function AdminPerksPage() {
       mutationFn: async (id: string) => {
         const response = await fetch(`/api/admin/perks/${id}`, {
           method: "DELETE",
+          headers: { "x-user-email": adminEmail },
         });
         if (!response.ok) throw new Error("Failed to delete perk");
       },
@@ -256,7 +276,10 @@ export default function AdminPerksPage() {
       }) => {
         const response = await fetch(`/api/admin/perks/${perkId}/codes`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-email": adminEmail,
+          },
           body: JSON.stringify({ codes, is_universal: isUniversal }),
         });
         if (!response.ok) throw new Error("Failed to create discount codes");
@@ -284,6 +307,7 @@ export default function AdminPerksPage() {
       mutationFn: async (codeId: string) => {
         const response = await fetch(`/api/admin/perks/codes/${codeId}`, {
           method: "DELETE",
+          headers: { "x-user-email": adminEmail },
         });
         if (!response.ok) throw new Error("Failed to delete discount code");
       },
@@ -1003,7 +1027,9 @@ export default function AdminPerksPage() {
                           </a>
                         </div>
                       )}
-                      {perk.id && <PerkCodeTypeInfo perkId={perk.id} />}
+                      {perk.id && adminEmail && (
+                        <PerkCodeTypeInfo perkId={perk.id} adminEmail={adminEmail} />
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-col space-y-2">

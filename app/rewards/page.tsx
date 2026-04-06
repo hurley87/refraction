@@ -167,25 +167,33 @@ export default function PerksPage() {
     ? !address || canAfford(selectedPerk)
     : false;
 
-  // Fetch discount codes for the selected perk
-  const { data: selectedPerkCodes = [] } = useQuery({
-    queryKey: ["perk-codes", selectedPerk?.id],
+  // Universal codes only; individual codes come from redemption after /api/perks/redeem
+  const { data: universalCodes = [] } = useQuery({
+    queryKey: ["perk-codes-public", selectedPerk?.id],
     queryFn: async () => {
       if (!selectedPerk?.id) return [];
-      const response = await fetch(`/api/admin/perks/${selectedPerk.id}/codes`);
+      const response = await fetch(`/api/perks/${selectedPerk.id}/codes`);
       if (!response.ok) return [];
       const responseData = await response.json();
-      // Unwrap the apiSuccess wrapper
       const data = responseData.data || responseData;
-      return data.codes ?? [];
+      return (data.codes ?? []) as PerkDiscountCode[];
     },
     enabled: !!selectedPerk?.id && isModalOpen,
   });
 
-  // Get the first available code (or first universal code)
+  const redemptionForSelected =
+    selectedPerk?.id != null
+      ? userRedemptions.find(
+          (r: UserPerkRedemption) => r.perk_id === selectedPerk.id,
+        )
+      : undefined;
+
+  const universalDiscountCode = universalCodes[0]?.code;
+  const individualDiscountCode =
+    redemptionForSelected?.perk_discount_codes?.code;
+
   const selectedDiscountCode =
-    selectedPerkCodes.find((code: PerkDiscountCode) => code.is_universal || !code.is_claimed)
-      ?.code || "IRL2026";
+    universalDiscountCode ?? individualDiscountCode ?? "IRL2026";
 
   // Check if the code is a URL
   const isCodeUrl = (str: string) => {
