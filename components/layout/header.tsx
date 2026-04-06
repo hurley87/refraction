@@ -19,21 +19,21 @@ export default function Header() {
         data-name="Hero"
       >
         <nav
-          className="flex items-center justify-between px-2 py-2 overflow-clip rounded-[inherit]"
+          className="flex h-12 items-center justify-between px-4 py-0 overflow-clip rounded-[inherit]"
           data-name="Nav"
         >
           {/* Inner shadow overlay */}
           <div className="absolute inset-0 pointer-events-none shadow-[0px_4px_8px_0px_inset_rgba(255,255,255,0.15)] rounded-[inherit]" />
 
           {/* Logo */}
-          <Link href="/" className="shrink-0 relative z-10">
-            <div className="bg-[#313131] rounded-full w-[40px] h-[40px] flex items-center justify-center hover:opacity-90 transition-opacity">
+          <Link href="/" className="shrink-0 relative z-10 pt-1">
+            <div className="flex h-[40px] items-center justify-center bg-transparent transition-opacity hover:opacity-90">
               <Image
-                src="/home/IRL.png"
+                src="/IRL-SVG/IRL-LOGO-NEW.svg"
                 alt="IRL"
-                width={27.312}
-                height={14}
-                className="block"
+                width={48}
+                height={27}
+                className="h-auto w-auto"
                 priority
               />
             </div>
@@ -41,22 +41,18 @@ export default function Header() {
 
           {/* Hamburger Menu Button */}
           <button
+            type="button"
             onClick={() => setIsNavigationMenuOpen(true)}
-            className="shrink-0 relative z-10 bg-white hover:bg-white/80 active:bg-white/60 backdrop-blur-sm rounded-full w-[40px] h-[40px] flex items-center justify-center transition-all cursor-pointer"
+            className="relative z-10 flex size-[40px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#ffffff] transition-colors hover:bg-[#5a5a5a]"
             aria-label="Open navigation menu"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path
-                d="M20.6396 16.5186H3.36035V15.5186H20.6396V16.5186ZM20.6396 12.5H3.36035V11.5H20.6396V12.5ZM20.6396 8.48242H3.36035V7.48242H20.6396V8.48242Z"
-                fill="#313131"
-              />
-            </svg>
+            <Image
+              src="/menu/HAMBURGER-MENU.svg"
+              alt="Hamburger Menu"
+              width={24}
+              height={24}
+              className="block shrink-0"
+            />
           </button>
         </nav>
       </div>
