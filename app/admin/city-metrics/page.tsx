@@ -21,7 +21,7 @@ type SortDirection = 'asc' | 'desc';
 const MILESTONE_THRESHOLD = 10;
 
 export default function AdminCityMetricsPage() {
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('visible_spots');
@@ -60,8 +60,13 @@ export default function AdminCityMetricsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-city-metrics'],
     queryFn: async () => {
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error('Missing authorization token');
+      }
+
       const res = await fetch('/api/admin/city-metrics', {
-        headers: { 'x-user-email': user?.email?.address || '' },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to fetch city metrics');
       const json = await res.json();
