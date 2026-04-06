@@ -1,21 +1,15 @@
-import { NextRequest } from "next/server";
+import { NextRequest } from 'next/server';
+import { checkAdminPermission } from '@/lib/db/admin';
 
-// Admin emails allowlist
-const ADMIN_EMAILS = [
-  "dhurls99@gmail.com",
-  "kaitlyn@refractionfestival.com",
-  "jim@refractionfestival.com",
-  "lovegreg@gmail.com",
-  "greg@refractionfestival.com",
-];
+export { checkAdminPermission };
 
 // Extract user email from Privy token (simplified for now)
 export async function getUserFromRequest(
-  request: NextRequest,
+  request: NextRequest
 ): Promise<{ email?: string } | null> {
   try {
     // For now, we'll use a simple approach - you can enhance this to properly verify Privy JWT tokens
-    const userEmail = request.headers.get("x-user-email"); // Frontend can send this after Privy auth
+    const userEmail = request.headers.get('x-user-email'); // Frontend can send this after Privy auth
 
     if (!userEmail) {
       return null;
@@ -23,18 +17,13 @@ export async function getUserFromRequest(
 
     return { email: userEmail };
   } catch (error) {
-    console.error("Error extracting user from request:", error);
+    console.error('Error extracting user from request:', error);
     return null;
   }
 }
 
-export function checkAdminPermission(email: string | undefined): boolean {
-  if (!email) return false;
-  return ADMIN_EMAILS.includes(email);
-}
-
 export async function requireAdmin(
-  request: NextRequest,
+  request: NextRequest
 ): Promise<{ isValid: boolean; user?: { email: string } }> {
   const user = await getUserFromRequest(request);
 
