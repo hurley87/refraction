@@ -15,6 +15,7 @@ vi.mock('@/lib/db/client', () => ({
 
 import {
   createOrGetLocation,
+  deleteLocationById,
   getCityMetrics,
   listAllLocations,
   listLocationsByWallet,
@@ -153,6 +154,62 @@ describe('Locations Database Module', () => {
         code: 'PGRST500',
         message: 'Insert failed',
       });
+    });
+  });
+
+  describe('deleteLocationById', () => {
+    it('should return true when a row is deleted', async () => {
+      mockFrom.mockReturnValue({
+        delete: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            select: vi.fn(() => ({
+              maybeSingle: vi
+                .fn()
+                .mockResolvedValue({ data: { id: 1 }, error: null }),
+            })),
+          })),
+        })),
+      });
+
+      const result = await deleteLocationById(1);
+
+      expect(result).toBe(true);
+      expect(mockFrom).toHaveBeenCalledWith('locations');
+    });
+
+    it('should return false when no row matches', async () => {
+      mockFrom.mockReturnValue({
+        delete: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            select: vi.fn(() => ({
+              maybeSingle: vi
+                .fn()
+                .mockResolvedValue({ data: null, error: null }),
+            })),
+          })),
+        })),
+      });
+
+      const result = await deleteLocationById(999);
+
+      expect(result).toBe(false);
+    });
+
+    it('should throw on delete error', async () => {
+      const dbError = { code: 'PGRST500', message: 'Delete failed' };
+      mockFrom.mockReturnValue({
+        delete: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            select: vi.fn(() => ({
+              maybeSingle: vi
+                .fn()
+                .mockResolvedValue({ data: null, error: dbError }),
+            })),
+          })),
+        })),
+      });
+
+      await expect(deleteLocationById(1)).rejects.toEqual(dbError);
     });
   });
 

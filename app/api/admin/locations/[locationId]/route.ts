@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { checkAdminPermission } from '@/lib/db/admin';
-import { updateLocationById } from '@/lib/db/locations';
+import { deleteLocationById, updateLocationById } from '@/lib/db/locations';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 
 const updateLocationSchema = z.object({
@@ -73,5 +73,41 @@ export async function PATCH(
   } catch (error) {
     console.error('Failed to update location', error);
     return apiError('Failed to update location', 500);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { locationId: string } }
+) {
+  try {
+    const adminEmail = request.headers.get('x-user-email') || undefined;
+    if (!checkAdminPermission(adminEmail)) {
+      return apiError('Unauthorized', 403);
+    }
+
+    const locationId = Number(params.locationId);
+    if (Number.isNaN(locationId) || locationId <= 0) {
+      return apiError('Invalid location id', 400);
+    }
+
+    const deleted = await deleteLocationById(locationId);
+    if (!deleted) {
+      return apiError('Location not found', 404);
+    }
+    return apiSuccess({ deleted: true });
+  } catch (error: unknown) {
+    console.error('Failed to delete location', error);
+    const code =
+      error && typeof error === 'object' && 'code' in error
+        ? String((error as { code: string }).code)
+        : '';
+    if (code === '23503') {
+      return apiError(
+        'Cannot delete this location because it is still referenced (for example by check-ins or lists). Remove those references first.',
+        409
+      );
+    }
+    return apiError('Failed to delete location', 500);
   }
 }

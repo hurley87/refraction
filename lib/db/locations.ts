@@ -136,6 +136,24 @@ export const updateLocationById = async (
 };
 
 /**
+ * Permanently delete a location by ID (admin use).
+ * @returns true if a row was deleted, false if no matching location
+ */
+export const deleteLocationById = async (
+  locationId: number
+): Promise<boolean> => {
+  const { data, error } = await supabase
+    .from('locations')
+    .delete()
+    .eq('id', locationId)
+    .select('id')
+    .maybeSingle();
+
+  if (error) throw error;
+  return data != null;
+};
+
+/**
  * List location options for search/dropdowns with optional search filter
  */
 export const listLocationOptions = async (
