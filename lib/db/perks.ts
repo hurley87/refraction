@@ -272,6 +272,21 @@ export const getDiscountCodesByPerkId = async (perkId: string) => {
 };
 
 /**
+ * Universal codes only (safe for public listing; individual codes stay server-side until redeem).
+ */
+export const getUniversalDiscountCodesByPerkId = async (perkId: string) => {
+  const { data, error } = await supabase
+    .from('perk_discount_codes')
+    .select(DISCOUNT_CODE_COLUMNS)
+    .eq('perk_id', perkId)
+    .eq('is_universal', true)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+};
+
+/**
  * Delete a discount code
  */
 export const deleteDiscountCode = async (codeId: string) => {
