@@ -109,33 +109,15 @@ const isLocationInBounds = (
 
 /**
  * Get effective bounds for filtering based on map viewport.
- * Only uses mapBounds (what's visible in the viewport), not user location.
- * Falls back to default New York bounds if map bounds aren't available yet.
+ * Only uses mapBounds (what's visible in the viewport). Returns null until the
+ * map has reported bounds so we don't show list content against a fake viewport.
  */
 const getEffectiveBounds = (
   mapBounds: MapBounds | null | undefined,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _userLocation: UserLocation | null | undefined // Not used for filtering, kept for API compatibility
 ): MapBounds | null => {
-  // Priority 1: Use map bounds (what's visible in the viewport)
-  if (mapBounds) {
-    return mapBounds;
-  }
-
-  // Priority 2: Default to New York with generous radius (only used before map loads)
-  // This ensures locations are visible on initial load
-  const defaultLat = 40.7081;
-  const defaultLng = -73.9442;
-  const latAdjustment = Math.cos((defaultLat * Math.PI) / 180);
-  // ~20km radius for initial view
-  const radiusDegrees = 0.235 / latAdjustment;
-
-  return {
-    north: defaultLat + radiusDegrees,
-    south: defaultLat - radiusDegrees,
-    east: defaultLng + radiusDegrees,
-    west: defaultLng - radiusDegrees,
-  };
+  return mapBounds ?? null;
 };
 
 export default function LocationListsDrawer({
@@ -185,9 +167,7 @@ export default function LocationListsDrawer({
     console.log('[Filter] Effective bounds:', effectiveBounds);
 
     if (!effectiveBounds) {
-      // If no bounds available, return all lists (shouldn't happen due to fallback)
-      console.log('[Filter] No effective bounds, returning all lists');
-      return lists;
+      return [];
     }
 
     console.log(
@@ -295,7 +275,7 @@ export default function LocationListsDrawer({
 
   // Check if there are any visible locations after filtering
   const hasVisibleLocations = useMemo(() => {
-    if (isLoadingLists) return true; // Show drawer while loading
+    if (isLoadingLists) return false;
     return filteredLists.some(
       (list) => list.locations && list.locations.length > 0
     );
@@ -324,7 +304,7 @@ export default function LocationListsDrawer({
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <p className="text-[15px]  font-medium tracking-[-0.3px] text-[#1a1a1a] title3" >
+              <p className="text-[15px]  font-medium tracking-[-0.3px] text-[#1a1a1a] title3">
                 Explore
               </p>
               <p className="text-xs font-anonymous text-[#888]">
