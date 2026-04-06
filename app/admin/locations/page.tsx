@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import type { Location } from '@/lib/types';
@@ -120,6 +120,31 @@ export default function AdminLocationsPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/locations/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-user-email': user?.email?.address || '' },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          typeof body.error === 'string'
+            ? body.error
+            : 'Failed to delete location';
+        throw new Error(msg);
+      }
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [...LOCATIONS_KEY, 'all'] });
+      toast.success('Location deleted');
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to delete location');
+    },
+  });
+
   // Loading state
   if (adminLoading) {
     return (
@@ -211,6 +236,9 @@ export default function AdminLocationsPage() {
                     <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
                       Visible
                     </th>
+                    <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -261,7 +289,9 @@ export default function AdminLocationsPage() {
                       <td className="px-4 py-3 text-center">
                         <Switch
                           checked={location.is_visible ?? false}
-                          disabled={toggleMutation.isPending}
+                          disabled={
+                            toggleMutation.isPending || deleteMutation.isPending
+                          }
                           onCheckedChange={(checked) =>
                             toggleMutation.mutate({
                               id: location.id!,
@@ -269,6 +299,36 @@ export default function AdminLocationsPage() {
                             })
                           }
                         />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-9 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                          disabled={
+                            deleteMutation.isPending || location.id == null
+                          }
+                          aria-label={`Delete ${location.name}`}
+                          onClick={() => {
+                            if (location.id == null) return;
+                            if (
+                              !confirm(
+                                `Delete "${location.name}"? This cannot be undone.`
+                              )
+                            ) {
+                              return;
+                            }
+                            deleteMutation.mutate(location.id);
+                          }}
+                        >
+                          {deleteMutation.isPending &&
+                          deleteMutation.variables === location.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
                       </td>
                     </tr>
                   ))}
