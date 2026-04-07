@@ -1,8 +1,6 @@
 'use client';
 
 import Image from 'next/image';
-import { MapPin, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
 import {
   Tooltip,
   TooltipContent,
@@ -30,128 +28,89 @@ interface MapCardProps {
 export default function MapCard({
   name,
   address,
+  description,
   isExisting = false,
   onAction,
   onClose,
   isLoading = false,
   imageUrl,
-  placeId,
   eventUrl,
 }: MapCardProps) {
-  const handleShare = () => {
-    if (!placeId) return;
-    const shareUrl = `${window.location.origin}/interactive-map?placeId=${encodeURIComponent(placeId)}`;
-    navigator.clipboard
-      .writeText(shareUrl)
-      .then(() => {
-        toast.success('Link copied to clipboard');
-      })
-      .catch(() => {
-        toast.error('Failed to copy link');
-      });
-  };
+  const descriptionText = description?.trim() || address;
   return (
-    <div className="bg-white border border-[#e8e8e8] rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.08)] overflow-hidden w-[280px]">
-      {/* Location Image with Close Button Overlay */}
-      {imageUrl && (
-        <div className="w-full h-24 relative">
-          <Image
-            src={imageUrl}
-            alt={name}
-            fill
-            className="object-cover"
-            unoptimized
-          />
-          {/* Close Button Overlay */}
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm cursor-pointer flex items-center justify-center w-6 h-6 rounded-full border border-[#e8e8e8] shadow-sm hover:bg-white transition-colors"
-              aria-label="Close"
-            >
-              <svg
-                className="w-3 h-3 text-[#666]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2.5}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          )}
-        </div>
+    <div
+      className="flex h-[288px] min-h-[288px] max-h-[288px] w-[calc(100vw-32px)] max-w-[361px] flex-col items-end gap-2 overflow-hidden border border-[rgba(255,255,255,0.15)] p-2 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px]"
+      style={{
+        background: imageUrl
+          ? `url(${imageUrl}) lightgray center top / cover no-repeat`
+          : 'lightgray',
+      }}
+    >
+      {/* Close Button Overlay */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="cursor-pointer self-start flex h-7 w-7 items-center justify-center gap-4 border border-[#DBDBDB] bg-white p-1 transition-colors hover:bg-white"
+          aria-label="Close"
+        >
+          <svg
+            className="h-6 w-6 shrink-0 aspect-square"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
+              fill="#757575"
+            />
+          </svg>
+        </button>
       )}
 
       {/* Card Content */}
-      <div className={`flex flex-col gap-2.5 ${imageUrl ? 'p-3' : 'p-3.5'}`}>
+      <div className="mt-auto flex self-stretch flex-col items-start gap-2 bg-white p-2">
         {/* Location Info */}
-        <div className="flex flex-col gap-1">
+        <div className="flex self-stretch flex-col items-start justify-center gap-[5px] pb-1">
           {/* Name */}
-          <h3 className="leading-snug text-[#1a1a1a] line-clamp-2">
+          <p className="title4 leading-snug text-[#1a1a1a] line-clamp-2">
             {name}
-          </h3>
+          </p>
 
-          {/* Address */}
-          <div className="flex gap-1.5 items-center">
-            <MapPin className="w-3 h-3 text-[#999] flex-shrink-0" />
-            <span className="label-small  text-[#999] uppercase tracking-[0.3px] truncate">
-              {address}
-            </span>
+          {/* Truncated description */}
+          <div className="relative flex self-stretch items-center gap-2 pr-14">
+            <span className="body-small line-clamp-2">{descriptionText}</span>
+            <button
+              type="button"
+              onClick={onAction}
+              className="underline label-medium absolute bottom-1 right-0 cursor-pointer bg-white px-1"
+            >
+              MORE
+            </button>
           </div>
         </div>
 
         {/* Action Buttons - Horizontal Layout */}
-        <div className="flex gap-2">
+        <div className="flex w-full self-stretch gap-2">
           {/* Check In / Create Location Button */}
           <button
             onClick={onAction}
             disabled={isLoading}
-            className="flex-1 bg-[#1a1a1a] cursor-pointer flex items-center justify-center gap-1.5 h-8 px-3 rounded-full hover:bg-black transition-colors disabled:opacity-50"
+            className="flex h-8 w-full flex-[1_0_0] items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-2 py-1 transition-colors hover:bg-black disabled:opacity-50"
           >
-            <span className="label-large text-white tracking-[0.3px] uppercase">
+            <span className="label-medium text-white">
               {isLoading ? '...' : isExisting ? 'Check In' : 'Create'}
             </span>
-            <ChevronRight className="w-3.5 h-3.5 text-white" />
+            <Image
+              src="/arrow-right.svg"
+              alt=""
+              width={24}
+              height={24}
+              className="block size-6 max-w-none"
+            />
           </button>
 
-          {/* Share Button */}
-          {placeId && (
-            <TooltipProvider delayDuration={300}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={handleShare}
-                    className="flex items-center justify-center w-8 h-8 text-[#666] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-colors border border-[#e0e0e0] rounded-full"
-                    type="button"
-                    aria-label="Share"
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                      <polyline points="16 6 12 2 8 6" />
-                      <line x1="12" y1="2" x2="12" y2="15" />
-                    </svg>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Copy link to clipboard</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
           {eventUrl && (
             <TooltipProvider delayDuration={300}>
               <Tooltip>

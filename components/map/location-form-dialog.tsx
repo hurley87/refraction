@@ -86,9 +86,9 @@ export default function LocationFormDialog({
                     />
                   </svg>
                 </button>
-                <h2 className="text-sm font-inktrap text-[#1a1a1a] tracking-[-0.5px]">
+                <p className="body-large text-[#1a1a1a] tracking-[-0.5px]">
                   New Location
-                </h2>
+                </p>
               </div>
             </div>
           )}
@@ -129,7 +129,7 @@ export default function LocationFormDialog({
                       htmlFor="address"
                       className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]"
                     >
-                      Address
+                      Address!
                     </label>
                     <Input
                       id="address"

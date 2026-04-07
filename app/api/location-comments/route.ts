@@ -1,30 +1,30 @@
-import { NextRequest } from "next/server";
-import { supabase } from "@/lib/db/client";
-import { apiSuccess, apiError } from "@/lib/api/response";
+import { NextRequest } from 'next/server';
+import { supabase } from '@/lib/db/client';
+import { apiSuccess, apiError } from '@/lib/api/response';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const placeId = searchParams.get("placeId");
-    const limitParam = searchParams.get("limit");
+    const placeId = searchParams.get('placeId');
+    const limitParam = searchParams.get('limit');
 
     if (!placeId) {
-      return apiError("placeId query parameter is required", 400);
+      return apiError('placeId query parameter is required', 400);
     }
 
     const limit = Math.max(
       1,
-      Math.min(parseInt(limitParam || "6", 10) || 6, 20),
+      Math.min(parseInt(limitParam || '6', 10) || 6, 20)
     );
 
     const { data, error } = await supabase
-      .from("locations")
-      .select("id, place_id")
-      .eq("place_id", placeId)
+      .from('locations')
+      .select('id, place_id')
+      .eq('place_id', placeId)
       .single();
 
     if (error) {
-      if (error.code === "PGRST116") {
+      if (error.code === 'PGRST116') {
         return apiSuccess({ checkins: [] });
       }
       throw error;
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: checkinData, error: checkinError } = await supabase
-      .from("player_location_checkins")
+      .from('player_location_checkins')
       .select(
         `
           id,
@@ -47,16 +47,17 @@ export async function GET(request: NextRequest) {
           checkin_at,
           players:player_id (
             username,
-            wallet_address
+            wallet_address,
+            profile_picture_url
           ),
           locations:location_id (
             place_id
           )
-        `,
+        `
       )
-      .eq("location_id", locationId)
-      .not("comment", "is", null)
-      .order("created_at", { ascending: false })
+      .eq('location_id', locationId)
+      .not('comment', 'is', null)
+      .order('created_at', { ascending: false })
       .limit(limit);
 
     if (checkinError) {
@@ -65,7 +66,9 @@ export async function GET(request: NextRequest) {
 
     const checkins = (checkinData || []).map((entry) => {
       // Supabase returns joined tables as arrays, extract first element
-      const player = Array.isArray(entry.players) ? entry.players[0] : entry.players;
+      const player = Array.isArray(entry.players)
+        ? entry.players[0]
+        : entry.players;
       return {
         id: entry.id,
         comment: entry.comment,
@@ -74,12 +77,13 @@ export async function GET(request: NextRequest) {
         createdAt: entry.created_at || entry.checkin_at,
         username: player?.username || null,
         walletAddress: player?.wallet_address || null,
+        profilePictureUrl: player?.profile_picture_url || null,
       };
     });
 
     return apiSuccess({ checkins });
   } catch (error) {
-    console.error("Location comments API error:", error);
-    return apiError("Failed to fetch location comments", 500);
+    console.error('Location comments API error:', error);
+    return apiError('Failed to fetch location comments', 500);
   }
 }
