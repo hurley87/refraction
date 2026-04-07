@@ -8,7 +8,7 @@
 
 .mapboxgl-popup-content {
   background-color: transparent !important;
-  width: 299px !important;
+  width: min(361px, calc(100vw - 32px)) !important;
   height: auto !important;
   padding: 0 !important;
   border: none !important;
@@ -91,16 +91,17 @@
   }
 
   .title4 {
-    font-size: 1rem; /* 13px */
-    line-height: 1rem; /* 16px */
-    font-weight: 400;
+    font-size: 1rem; /* 16px */
+    line-height: 1.25rem; /* 20px */
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: -0.48px;
     font-family: 'Gal Gothic Variable', sans-serif;
   }
 
   /* Style/Title/Title 5 */
   .title5 {
-    color: var(--Dark-Tint-100---Ink-Black, #171717);
-    font-family: 'ABC Monument Grotesk Unlicensed Trial', sans-serif;
+    font-family: 'Gal Gothic Variable', sans-serif;
     font-size: 0.8125rem; /* 13px */
     font-style: normal;
     font-weight: 500;
@@ -177,7 +178,6 @@
 
   /* Style/Label/Label Small */
   .label-small {
-    color: var(--Dark-Tint-80---Transparent-Ink, #454545);
     font-family: 'Gal Gothic Variable', sans-serif;
     font-size: 11px;
     font-style: normal;
@@ -187,9 +187,24 @@
     text-transform: uppercase;
   }
 
+  .label-medium {
+    font-family: 'Gal Gothic Variable', sans-serif;
+    font-size: 0.8125rem; /* 13px */
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1rem; /* 16px */
+    letter-spacing: 0.52px;
+
+    text-decoration-style: solid;
+    text-decoration-skip-ink: none;
+    text-decoration-thickness: auto;
+    text-underline-offset: auto;
+    text-underline-position: from-font;
+    text-transform: uppercase;
+  }
+
   /* Style/Label/Label Large */
   .label-large {
-    color: var(--Dark-Tint-White, #fff);
     font-family: 'Special Gothic SemiExpanded', sans-serif;
     font-size: 1rem; /* 16px */
     font-style: normal;
@@ -217,7 +232,7 @@
 
 /* Ensure popup respects width constraints provided in content */
 .mapboxgl-popup {
-  max-width: 20rem; /* 320px, mirrors max-w-80 */
+  max-width: min(361px, calc(100vw - 32px)) !important;
 }
 
 /* Animation delay utilities for GSAP transitions */

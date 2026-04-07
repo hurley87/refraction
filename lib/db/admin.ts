@@ -8,6 +8,7 @@ export const ADMIN_EMAILS = [
   "malcolm@refractionfestival.com",
   "lovegreg@gmail.com",
   "greg@refractionfestival.com",
+  "graham@refractionfestival.com",
 ];
 
 /**

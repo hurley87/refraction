@@ -26,7 +26,7 @@ export default function Header() {
           <div className="absolute inset-0 pointer-events-none shadow-[0px_4px_8px_0px_inset_rgba(255,255,255,0.15)] rounded-[inherit]" />
 
           {/* Logo */}
-          <Link href="/" className="shrink-0 relative z-10 pt-1">
+          <Link href="/" className="shrink-0 relative z-10 pt-1 pb-1 ">
             <div className="flex h-[40px] items-center justify-center bg-transparent transition-opacity hover:opacity-90">
               <Image
                 src="/IRL-SVG/IRL-LOGO-NEW.svg"

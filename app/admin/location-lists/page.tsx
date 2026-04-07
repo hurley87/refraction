@@ -283,7 +283,12 @@ export default function AdminLocationListsPage() {
   };
   type CsvImportResponse = {
     list: { id: string };
-    summary: { total: number; created: number; skipped: number; failed: number };
+    summary: {
+      total: number;
+      created: number;
+      skipped: number;
+      failed: number;
+    };
     results: ImportResult[];
   };
   const [csvImportResults, setCsvImportResults] =
@@ -1310,8 +1315,7 @@ export default function AdminLocationListsPage() {
                             <div
                               className="h-2.5 w-2.5 shrink-0 rounded-full"
                               style={{
-                                backgroundColor:
-                                  list.accent_color || '#111827',
+                                backgroundColor: list.accent_color || '#111827',
                               }}
                             />
                             <h3 className="truncate text-sm font-semibold">
@@ -1976,7 +1980,11 @@ export default function AdminLocationListsPage() {
                   <div className="text-xs text-blue-800">
                     <p className="font-medium">CSV format</p>
                     <p className="mt-0.5">
-                      Columns: <code className="font-mono text-[11px]">Category, Location, Address, Quote, Image Link, Recommended By</code>
+                      Columns:{' '}
+                      <code className="font-mono text-[11px]">
+                        Category, Location, Address, Quote, Image Link,
+                        Recommended By
+                      </code>
                     </p>
                     <p className="mt-1">
                       The <strong>Image Link</strong> column can be an image URL
@@ -2362,12 +2370,24 @@ export default function AdminLocationListsPage() {
             <Button
               type="submit"
               disabled={createLocationMutation.isPending}
-              className={`w-full ${blackButtonClasses}`}
+              className={`flex h-11 w-full items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-4 py-2 transition-colors hover:bg-black disabled:opacity-50 ${blackButtonClasses}`}
             >
-              {createLocationMutation.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="label-medium uppercase text-white">
+                {createLocationMutation.isPending
+                  ? 'Creating...'
+                  : 'Create location'}
+              </span>
+              {createLocationMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin text-[#DBDBDB]" />
+              ) : (
+                <Image
+                  src="/arrow-right.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="block size-6 max-w-none"
+                />
               )}
-              Create location
             </Button>
           </form>
         </DialogContent>
