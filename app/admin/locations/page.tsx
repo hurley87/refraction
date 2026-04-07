@@ -13,7 +13,7 @@ import Image from 'next/image';
 const LOCATIONS_KEY = ['admin-locations'] as const;
 
 export default function AdminLocationsPage() {
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
@@ -122,9 +122,17 @@ export default function AdminLocationsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error('Missing authorization token');
+      }
+
       const res = await fetch(`/api/admin/locations/${id}`, {
         method: 'DELETE',
-        headers: { 'x-user-email': user?.email?.address || '' },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-user-email': user?.email?.address || '',
+        },
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
