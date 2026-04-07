@@ -169,74 +169,95 @@ export async function getRecentSignups(
 
 /**
  * Get the most recent check-ins with player and location details.
+ * Uses separate lookups to avoid dependency on FK constraint names.
  */
 export async function getRecentCheckins(
   limit: number = 20
 ): Promise<RecentCheckin[]> {
-  const { data, error } = await supabase
+  const { data: checkins, error } = await supabase
     .from('player_location_checkins')
-    .select(
-      `
-      id,
-      points_earned,
-      created_at,
-      players!player_location_checkins_player_id_fkey (
-        wallet_address,
-        username
-      ),
-      locations!player_location_checkins_location_id_fkey (
-        name
-      )
-    `
-    )
+    .select('id, player_id, location_id, points_earned, created_at')
     .order('created_at', { ascending: false })
     .limit(limit);
 
   if (error) throw error;
+  if (!checkins || checkins.length === 0) return [];
 
-  return (data ?? []).map((row: any) => ({
-    id: row.id,
-    player_wallet: row.players?.wallet_address ?? null,
-    player_username: row.players?.username ?? null,
-    location_name: row.locations?.name ?? null,
-    points_earned: row.points_earned,
-    created_at: row.created_at,
-  }));
+  const playerIds = [...new Set(checkins.map((c) => c.player_id))];
+  const locationIds = [...new Set(checkins.map((c) => c.location_id))];
+
+  const [playersResult, locationsResult] = await Promise.all([
+    supabase
+      .from('players')
+      .select('id, wallet_address, username')
+      .in('id', playerIds),
+    supabase.from('locations').select('id, name').in('id', locationIds),
+  ]);
+
+  const playersMap = new Map(
+    (playersResult.data ?? []).map((p: any) => [p.id, p])
+  );
+  const locationsMap = new Map(
+    (locationsResult.data ?? []).map((l: any) => [l.id, l])
+  );
+
+  return checkins.map((row) => {
+    const player = playersMap.get(row.player_id) as any;
+    const location = locationsMap.get(row.location_id) as any;
+    return {
+      id: row.id,
+      player_wallet: player?.wallet_address ?? null,
+      player_username: player?.username ?? null,
+      location_name: location?.name ?? null,
+      points_earned: row.points_earned,
+      created_at: row.created_at,
+    };
+  });
 }
 
 /**
  * Get locations sorted by number of check-ins.
+ * Counts are computed via a separate aggregation query for reliability.
  */
 export async function getTopLocations(
   limit: number = 20
 ): Promise<TopLocation[]> {
-  const { data, error } = await supabase
-    .from('locations')
-    .select(
-      `
-      id,
-      name,
-      city,
-      player_location_checkins (
-        id
-      )
-    `
-    )
-    .order('created_at', { ascending: false });
+  const { data: checkins, error: checkinsErr } = await supabase
+    .from('player_location_checkins')
+    .select('location_id');
 
-  if (error) throw error;
+  if (checkinsErr) throw checkinsErr;
 
-  const withCounts = (data ?? [])
-    .map((loc: any) => ({
-      id: loc.id,
-      name: loc.name,
-      city: loc.city ?? null,
-      checkin_count: Array.isArray(loc.player_location_checkins)
-        ? loc.player_location_checkins.length
-        : 0,
-    }))
-    .sort((a, b) => b.checkin_count - a.checkin_count)
+  const countMap = new Map<number, number>();
+  for (const c of checkins ?? []) {
+    countMap.set(c.location_id, (countMap.get(c.location_id) ?? 0) + 1);
+  }
+
+  const topIds = Array.from(countMap.entries())
+    .sort((a, b) => b[1] - a[1])
     .slice(0, limit);
 
-  return withCounts;
+  if (topIds.length === 0) return [];
+
+  const { data: locations, error: locErr } = await supabase
+    .from('locations')
+    .select('id, name, city')
+    .in(
+      'id',
+      topIds.map(([id]) => id)
+    );
+
+  if (locErr) throw locErr;
+
+  const locMap = new Map((locations ?? []).map((l: any) => [l.id, l]));
+
+  return topIds.map(([id, count]) => {
+    const loc = locMap.get(id) as any;
+    return {
+      id,
+      name: loc?.name ?? 'Unknown',
+      city: loc?.city ?? null,
+      checkin_count: count,
+    };
+  });
 }
