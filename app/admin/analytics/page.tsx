@@ -141,16 +141,19 @@ function BarChart({
       </div>
       <div className="flex h-32 items-end gap-px">
         {displayData.map((point) => {
-          const height = Math.max((point.count / maxCount) * 100, 2);
+          const heightPx = Math.max(
+            Math.round((point.count / maxCount) * 128),
+            2
+          );
           return (
             <div
               key={point.date}
-              className="group relative flex-1"
+              className="group relative flex-1 self-end"
               title={`Week of ${point.date}: ${point.count}`}
             >
               <div
                 className={`w-full rounded-t-sm ${color} transition-opacity hover:opacity-80`}
-                style={{ height: `${height}%` }}
+                style={{ height: `${heightPx}px` }}
               />
               <div className="pointer-events-none absolute -top-8 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white group-hover:block">
                 {point.date}: {point.count}
@@ -375,19 +378,19 @@ export default function AdminAnalyticsPage() {
               />
               <SummaryCard
                 icon={<Gift className="h-4 w-4" />}
-                label="Perk Redemptions"
+                label="Perks"
                 value={data.summary.total_perk_redemptions}
                 color="amber"
               />
               <SummaryCard
                 icon={<ShoppingBag className="h-4 w-4" />}
-                label="Spend Redemptions"
+                label="Spends"
                 value={data.summary.total_spend_redemptions}
                 color="rose"
               />
               <SummaryCard
                 icon={<TrendingUp className="h-4 w-4" />}
-                label="Points Awarded"
+                label="Points"
                 value={data.summary.total_points_awarded}
                 color="indigo"
               />
@@ -740,7 +743,9 @@ function SummaryCard({
 
   return (
     <div className={`rounded-lg border ${c.border} ${c.bg} p-4`}>
-      <div className={`flex items-center gap-2 text-sm font-medium ${c.text}`}>
+      <div
+        className={`flex items-center gap-1.5 whitespace-nowrap text-sm font-medium ${c.text}`}
+      >
         {icon}
         {label}
       </div>
