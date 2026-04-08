@@ -1,5 +1,37 @@
 import { supabase } from './client';
 
+/**
+ * PostgREST/Supabase returns at most this many rows per request unless configured otherwise.
+ * We paginate with `.range()` so analytics stay correct beyond this cap.
+ */
+const POSTGREST_DEFAULT_MAX_ROWS = 1000;
+
+/**
+ * Fetch all rows for a query by paging with `.range(from, to)`.
+ * Required when aggregating or counting in JS; otherwise results silently truncate.
+ */
+export async function fetchAllRowsInPages<T>(
+  runPage: (
+    from: number,
+    to: number
+  ) => Promise<{ data: T[] | null; error: { message: string } | null }>
+): Promise<T[]> {
+  const rows: T[] = [];
+  let offset = 0;
+  for (;;) {
+    const { data, error } = await runPage(
+      offset,
+      offset + POSTGREST_DEFAULT_MAX_ROWS - 1
+    );
+    if (error) throw error;
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < POSTGREST_DEFAULT_MAX_ROWS) break;
+    offset += POSTGREST_DEFAULT_MAX_ROWS;
+  }
+  return rows;
+}
+
 export interface TimeSeriesPoint {
   date: string;
   count: number;
@@ -63,11 +95,16 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
       supabase.from('locations').select('*', { count: 'exact', head: true }),
     ]);
 
-  const { data: pointsData } = await supabase
-    .from('players')
-    .select('total_points');
+  const pointsRows = await fetchAllRowsInPages<{ total_points: number | null }>(
+    (from, to) =>
+      supabase
+        .from('players')
+        .select('total_points')
+        .order('id', { ascending: true })
+        .range(from, to)
+  );
 
-  const totalPoints = (pointsData ?? []).reduce(
+  const totalPoints = pointsRows.reduce(
     (sum, p) => sum + (p.total_points ?? 0),
     0
   );
@@ -112,42 +149,58 @@ export async function getAnalyticsTimeSeries(
   from?: string,
   to?: string
 ): Promise<AnalyticsTimeSeries> {
-  let signupsQuery = supabase.from('players').select('created_at');
-  let checkinsQuery = supabase
-    .from('player_location_checkins')
-    .select('created_at');
-  let perkQuery = supabase.from('user_perk_redemptions').select('redeemed_at');
-  let spendQuery = supabase.from('spend_redemptions').select('created_at');
+  const buildSignupsQuery = () => {
+    let q = supabase.from('players').select('created_at, id');
+    if (from) q = q.gte('created_at', from);
+    if (to) q = q.lte('created_at', to);
+    return q;
+  };
+  const buildCheckinsQuery = () => {
+    let q = supabase.from('player_location_checkins').select('created_at, id');
+    if (from) q = q.gte('created_at', from);
+    if (to) q = q.lte('created_at', to);
+    return q;
+  };
+  const buildPerksQuery = () => {
+    let q = supabase.from('user_perk_redemptions').select('redeemed_at, id');
+    if (from) q = q.gte('redeemed_at', from);
+    if (to) q = q.lte('redeemed_at', to);
+    return q;
+  };
+  const buildSpendsQuery = () => {
+    let q = supabase.from('spend_redemptions').select('created_at, id');
+    if (from) q = q.gte('created_at', from);
+    if (to) q = q.lte('created_at', to);
+    return q;
+  };
 
-  if (from) {
-    signupsQuery = signupsQuery.gte('created_at', from);
-    checkinsQuery = checkinsQuery.gte('created_at', from);
-    perkQuery = perkQuery.gte('redeemed_at', from);
-    spendQuery = spendQuery.gte('created_at', from);
-  }
-  if (to) {
-    signupsQuery = signupsQuery.lte('created_at', to);
-    checkinsQuery = checkinsQuery.lte('created_at', to);
-    perkQuery = perkQuery.lte('redeemed_at', to);
-    spendQuery = spendQuery.lte('created_at', to);
-  }
-
-  const [signups, checkins, perks, spends] = await Promise.all([
-    signupsQuery.order('created_at', { ascending: true }),
-    checkinsQuery.order('created_at', { ascending: true }),
-    perkQuery.order('redeemed_at', { ascending: true }),
-    spendQuery.order('created_at', { ascending: true }),
+  const [signupRows, checkinRows, perkRows, spendRows] = await Promise.all([
+    fetchAllRowsInPages<{ created_at: string }>((fromIdx, toIdx) =>
+      buildSignupsQuery().order('id', { ascending: true }).range(fromIdx, toIdx)
+    ),
+    fetchAllRowsInPages<{ created_at: string }>((fromIdx, toIdx) =>
+      buildCheckinsQuery()
+        .order('id', { ascending: true })
+        .range(fromIdx, toIdx)
+    ),
+    fetchAllRowsInPages<{ redeemed_at: string | null }>((fromIdx, toIdx) =>
+      buildPerksQuery().order('id', { ascending: true }).range(fromIdx, toIdx)
+    ),
+    fetchAllRowsInPages<{ created_at: string }>((fromIdx, toIdx) =>
+      buildSpendsQuery().order('id', { ascending: true }).range(fromIdx, toIdx)
+    ),
   ]);
 
   return {
-    signups: buildDailyTimeSeries(signups.data ?? []),
-    checkins: buildDailyTimeSeries(checkins.data ?? []),
+    signups: buildDailyTimeSeries(signupRows),
+    checkins: buildDailyTimeSeries(checkinRows),
     perk_redemptions: buildDailyTimeSeries(
-      (perks.data ?? []).map((r) => ({
-        created_at: (r as any).redeemed_at,
-      }))
+      perkRows.map((r) => ({
+        created_at: r.redeemed_at ?? '',
+      })),
+      'created_at'
     ),
-    spend_redemptions: buildDailyTimeSeries(spends.data ?? []),
+    spend_redemptions: buildDailyTimeSeries(spendRows),
   };
 }
 
@@ -222,14 +275,17 @@ export async function getRecentCheckins(
 export async function getTopLocations(
   limit: number = 20
 ): Promise<TopLocation[]> {
-  const { data: checkins, error: checkinsErr } = await supabase
-    .from('player_location_checkins')
-    .select('location_id');
-
-  if (checkinsErr) throw checkinsErr;
+  const checkins = await fetchAllRowsInPages<{ location_id: number }>(
+    (from, to) =>
+      supabase
+        .from('player_location_checkins')
+        .select('location_id, id')
+        .order('id', { ascending: true })
+        .range(from, to)
+  );
 
   const countMap = new Map<number, number>();
-  for (const c of checkins ?? []) {
+  for (const c of checkins) {
     countMap.set(c.location_id, (countMap.get(c.location_id) ?? 0) + 1);
   }
 
