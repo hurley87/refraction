@@ -27,12 +27,12 @@ export default function Header() {
 
           {/* Logo */}
           <Link href="/" className="shrink-0 relative z-10 pt-1 pb-1 ">
-            <div className="flex h-[40px] items-center justify-center bg-transparent transition-opacity hover:opacity-90">
+            <div className="flex h-[40px] items-center justify-center bg-transparent transition-opacity hover:opacity-90 pt-2">
               <Image
                 src="/IRL-SVG/IRL-LOGO-NEW.svg"
                 alt="IRL"
-                width={48}
-                height={27}
+                width={70}
+                height={38.8}
                 className="h-auto w-auto"
                 priority
               />
