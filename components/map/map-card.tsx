@@ -1,12 +1,12 @@
 'use client';
 
-import Image from 'next/image';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { formatLocationCategory } from '@/lib/utils/format-location-category';
 
 interface MapCardProps {
   name: string;
@@ -26,6 +26,8 @@ interface MapCardProps {
   variant?: 'default' | 'createPreview';
   /** Label for the primary button when `variant` is `createPreview`. */
   createPreviewActionLabel?: string;
+  /** Location category (e.g. from marker `type`); shown on default variant only. */
+  type?: string | null;
 }
 
 /**
@@ -44,6 +46,7 @@ export default function MapCard({
   eventUrl,
   variant = 'default',
   createPreviewActionLabel = 'Create and check in',
+  type,
 }: MapCardProps) {
   if (variant === 'createPreview') {
     return (
@@ -188,6 +191,12 @@ export default function MapCard({
           </div>
         </div>
 
+        <div className="flex w-full items-center self-stretch">
+          <p className="flex label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5 uppercase tracking-[0.3px] text-[#171717]">
+            {formatLocationCategory(type)}
+          </p>
+        </div>
+
         {/* Action Buttons - Horizontal Layout */}
         <div className="flex w-full self-stretch gap-2">
           {/* Check In / Create Location Button */}
@@ -196,16 +205,23 @@ export default function MapCard({
             disabled={isLoading}
             className="flex h-8 w-full flex-[1_0_0] items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-2 py-1 transition-colors hover:bg-black disabled:opacity-50"
           >
-            <span className="label-medium text-white">
+            <span className="label-medium uppercase text-white">
               {isLoading ? '...' : isExisting ? 'Check In' : 'Create'}
             </span>
-            <Image
-              src="/arrow-right.svg"
-              alt=""
+            <svg
               width={24}
               height={24}
-              className="block size-6 max-w-none"
-            />
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="size-6 shrink-0"
+              aria-hidden
+            >
+              <path
+                d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                fill="#ffffff"
+              />
+            </svg>
           </button>
 
           {eventUrl && (
