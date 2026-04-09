@@ -14,7 +14,7 @@ export async function fetchAllRowsInPages<T>(
   runPage: (
     from: number,
     to: number
-  ) => Promise<{ data: T[] | null; error: { message: string } | null }>
+  ) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
 ): Promise<T[]> {
   const rows: T[] = [];
   let offset = 0;
