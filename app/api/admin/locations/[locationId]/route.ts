@@ -46,8 +46,8 @@ export async function PATCH(
   { params }: { params: { locationId: string } }
 ) {
   try {
-    const adminEmail = request.headers.get('x-user-email') || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized', 403);
     }
 
