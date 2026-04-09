@@ -4,7 +4,12 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Map, { Marker } from 'react-map-gl/mapbox';
 import LocationSearch from '@/components/shared/location-search';
-import { deriveDisplayNameAndAddress } from '@/lib/utils/location-autofill';
+import {
+  deriveDisplayNameAndAddress,
+  MapboxGeocodeFeature,
+  mergePoiAndAddressReverseGeocode,
+  mergeSearchBoxReverseFeatures,
+} from '@/lib/utils/location-autofill';
 import { usePrivy } from '@privy-io/react-auth';
 import { toast } from 'sonner';
 import MapNav from '@/components/map/mapnav';
@@ -140,6 +145,9 @@ export default function InteractiveMap({
   });
   const [searchedLocation, setSearchedLocation] =
     useState<SearchLocationData | null>(null);
+  /** Reverse-geocoded spot from map click — not yet an IRL location; show compact card before create form. */
+  const [pendingMapCreateMarker, setPendingMapCreateMarker] =
+    useState<MarkerData | null>(null);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showCheckInCommentModal, setShowCheckInCommentModal] = useState(false);
@@ -524,66 +532,99 @@ export default function InteractiveMap({
 
     // Clear searched location when clicking on the map
     setSearchedLocation(null);
+    setPendingMapCreateMarker(null);
 
     const { lngLat } = event;
     const longitude = lngLat.lng;
     const latitude = lngLat.lat;
 
     try {
-      // Use reverse geocoding to get location information
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}&types=poi,place,address`
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.features && data.features.length > 0) {
-          const feature = data.features[0];
-          // Determine if this is a POI or address based on feature properties
-          const isPOI =
-            feature.properties?.category === 'poi' ||
-            feature.properties?.poi ||
-            feature.place_type?.includes('poi');
-          const spotName = isPOI ? feature.text || '' : '';
-          const fullAddress = feature.place_name || '';
-
-          // For POIs, strip the POI name prefix from the address if present
-          let address = fullAddress;
-          if (isPOI && spotName && fullAddress.startsWith(`${spotName}, `)) {
-            address = fullAddress.slice(`${spotName}, `.length);
-          } else if (!isPOI) {
-            address = fullAddress;
-          }
-
-          const newMarker: MarkerData = {
-            latitude,
-            longitude,
-            place_id: feature.id || `temp-${Date.now()}`,
-            name: spotName || address || 'Unknown Location', // Venue name (fallback to address)
-            address: address || 'Unknown Location', // Street address
-          };
-          const duplicateMarker = findExistingMarker(newMarker.place_id);
-          if (duplicateMarker) {
-            toast.info('That location already exists—check it out instead!');
-            setSelectedMarker(duplicateMarker);
-            setPopupInfo(duplicateMarker);
-            setShowLocationForm(false);
-            setSearchedLocation(null);
-            return;
-          }
-
-          setSelectedMarker(newMarker);
-          setFormData({
-            name: newMarker.name, // Venue name
-            address: newMarker.address || newMarker.name, // Address
-            description: '',
-            locationImage: null,
-            checkInComment: '',
-          });
-          setFormStep('business-details');
-          setShowLocationForm(true);
-        }
+      const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+      const geocodeBaseUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json`;
+      // Search Box /reverse returns multiple feature types (POI + address) in one response — better
+      // POI coverage than Geocoding v5 for the same coordinates. Fall back to dual Geocoding requests.
+      const searchBoxReverseUrl = `https://api.mapbox.com/search/searchbox/v1/reverse?longitude=${longitude}&latitude=${latitude}&limit=10&access_token=${token}`;
+      const searchBoxRes = await fetch(searchBoxReverseUrl);
+      let mergedFromSearchBox = null as ReturnType<
+        typeof mergeSearchBoxReverseFeatures
+      >;
+      if (searchBoxRes.ok) {
+        const searchBoxData = await searchBoxRes.json();
+        mergedFromSearchBox = mergeSearchBoxReverseFeatures(
+          searchBoxData.features,
+          { click: { latitude, longitude } }
+        );
       }
+
+      let resolvedName: string;
+      let resolvedAddress: string;
+      let placeId: string;
+
+      if (mergedFromSearchBox) {
+        resolvedName = mergedFromSearchBox.name;
+        resolvedAddress = mergedFromSearchBox.address;
+        placeId = mergedFromSearchBox.mapboxId || `temp-${Date.now()}`;
+      } else {
+        const [poiResponse, addressResponse] = await Promise.all([
+          fetch(`${geocodeBaseUrl}?access_token=${token}&types=poi&limit=1`),
+          fetch(
+            `${geocodeBaseUrl}?access_token=${token}&types=address&limit=1`
+          ),
+        ]);
+
+        let poiFeature: MapboxGeocodeFeature | undefined;
+        let addressFeature: MapboxGeocodeFeature | undefined;
+        if (poiResponse.ok) {
+          const poiData = await poiResponse.json();
+          poiFeature = poiData.features?.[0];
+        }
+        if (addressResponse.ok) {
+          const addressData = await addressResponse.json();
+          addressFeature = addressData.features?.[0];
+        }
+
+        if (!poiFeature && !addressFeature) {
+          throw new Error('No reverse geocode features');
+        }
+
+        const merged = mergePoiAndAddressReverseGeocode(
+          poiFeature,
+          addressFeature,
+          { click: { latitude, longitude } }
+        );
+        resolvedName = merged.name;
+        resolvedAddress = merged.address;
+        placeId = poiFeature?.id || addressFeature?.id || `temp-${Date.now()}`;
+      }
+
+      const newMarker: MarkerData = {
+        latitude,
+        longitude,
+        place_id: placeId,
+        name: resolvedName,
+        address: resolvedAddress,
+      };
+      const duplicateMarker = findExistingMarker(newMarker.place_id);
+      if (duplicateMarker) {
+        toast.info('That location already exists—check it out instead!');
+        setSelectedMarker(duplicateMarker);
+        setPopupInfo(duplicateMarker);
+        setShowLocationForm(false);
+        setSearchedLocation(null);
+        setPendingMapCreateMarker(null);
+        return;
+      }
+
+      setSelectedMarker(newMarker);
+      setFormData({
+        name: newMarker.name, // Venue name
+        address: newMarker.address || newMarker.name, // Address
+        description: '',
+        locationImage: null,
+        checkInComment: '',
+      });
+      setFormStep('business-details');
+      setPendingMapCreateMarker(newMarker);
     } catch (error) {
       console.error('Reverse geocoding failed:', error);
       // Still allow creating even if reverse geocoding fails
@@ -605,8 +646,24 @@ export default function InteractiveMap({
         checkInComment: '',
       });
       setFormStep('business-details');
-      setShowLocationForm(true);
+      setPendingMapCreateMarker(newMarker);
     }
+  };
+
+  const handleOpenCreateFromPendingMapClick = () => {
+    if (!pendingMapCreateMarker) return;
+    setSelectedMarker(pendingMapCreateMarker);
+    setFormData((prev) => ({
+      ...prev,
+      name: pendingMapCreateMarker.name,
+      address: pendingMapCreateMarker.address || pendingMapCreateMarker.name,
+      description: '',
+      locationImage: null,
+      checkInComment: prev.checkInComment,
+    }));
+    setFormStep('business-details');
+    setShowLocationForm(true);
+    setPendingMapCreateMarker(null);
   };
 
   const handleSearchSelect = (picked: {
@@ -617,6 +674,7 @@ export default function InteractiveMap({
     placeFormatted?: string;
     featureType?: string;
   }) => {
+    setPendingMapCreateMarker(null);
     const { longitude, latitude, id, name, placeFormatted, featureType } =
       picked;
     const newViewState = { longitude, latitude, zoom: 15 };
@@ -702,6 +760,7 @@ export default function InteractiveMap({
     setPopupInfo(marker);
     setSelectedMarker(marker);
     setSearchedLocation(null); // Clear searched location when clicking a marker
+    setPendingMapCreateMarker(null);
   };
 
   const handleLocateUser = () => {
@@ -871,6 +930,7 @@ export default function InteractiveMap({
       setPopupInfo(null);
       setSearchedLocation(null);
       setSelectedMarker(null);
+      setPendingMapCreateMarker(null);
     } catch (error) {
       console.error('Error checking in:', error);
       toast.error('Failed to check in: ' + (error as Error).message);
@@ -889,6 +949,7 @@ export default function InteractiveMap({
       setPopupInfo(existingMarker);
       setShowLocationForm(false);
       setSearchedLocation(null);
+      setPendingMapCreateMarker(null);
       return;
     }
 
@@ -1112,6 +1173,7 @@ export default function InteractiveMap({
     setFormStep('business-details');
     setSelectedMarker(null);
     setPopupInfo(null);
+    setPendingMapCreateMarker(null);
     setPointsEarned({ creation: 0, checkIn: 0 });
     setFormData({
       name: '',
@@ -1122,6 +1184,18 @@ export default function InteractiveMap({
     });
   };
 
+  const handleCloseLocationFormRef = useRef(handleCloseLocationForm);
+  handleCloseLocationFormRef.current = handleCloseLocationForm;
+
+  useEffect(() => {
+    if (!showLocationForm) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleCloseLocationFormRef.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showLocationForm]);
+
   const handleFocusLocationFromList = (location: DrawerLocationSummary) => {
     if (
       typeof location.latitude !== 'number' ||
@@ -1129,6 +1203,8 @@ export default function InteractiveMap({
     ) {
       return;
     }
+
+    setPendingMapCreateMarker(null);
 
     const lat = location.latitude;
     const lon = location.longitude;
@@ -1554,6 +1630,16 @@ export default function InteractiveMap({
           </Marker>
         )}
 
+        {pendingMapCreateMarker && !popupInfo && !searchedLocation && (
+          <Marker
+            latitude={pendingMapCreateMarker.latitude}
+            longitude={pendingMapCreateMarker.longitude}
+            anchor="bottom"
+          >
+            <div className="h-8 w-8 animate-pulse rounded-full border-2 border-white bg-[#FFF200] shadow-md" />
+          </Marker>
+        )}
+
         {userLocation && (
           <Marker
             latitude={userLocation.latitude}
@@ -1608,6 +1694,27 @@ export default function InteractiveMap({
         </div>
       )}
 
+      {/* Compact card after map click — new spot not yet on IRL */}
+      {pendingMapCreateMarker && !popupInfo && !searchedLocation && (
+        <div className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center px-4">
+          <div className="pointer-events-auto">
+            <MapCard
+              variant="createPreview"
+              name={pendingMapCreateMarker.name}
+              address={
+                pendingMapCreateMarker.address || pendingMapCreateMarker.name
+              }
+              onAction={handleOpenCreateFromPendingMapClick}
+              onClose={() => {
+                setPendingMapCreateMarker(null);
+                setSelectedMarker(null);
+              }}
+              isLoading={false}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Check-In Dialog */}
       <Dialog
         open={showCheckInModal}
@@ -1616,11 +1723,11 @@ export default function InteractiveMap({
         }}
       >
         <DialogContent className="fixed left-0 top-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center gap-0 bg-transparent p-0 shadow-none [&>button]:hidden">
-          <div className="flex h-full w-full min-h-0 flex-col items-center overflow-hidden bg-white pb-2 pt-0">
+          <div className="flex h-full w-full min-h-0 max-w-[393px] flex-col items-stretch overflow-hidden bg-white pb-2 pt-0 mx-auto">
             {/* Hero: location image — first row */}
             {!checkInSuccess && (
               <div
-                className="flex h-[258px] w-full max-w-[393px] shrink-0 items-start gap-2 border border-white/15 p-2 bg-cover bg-center bg-no-repeat bg-[lightgray]"
+                className="flex h-[258px] w-full shrink-0 items-start gap-2 border border-white/15 p-2 bg-cover bg-center bg-no-repeat bg-[lightgray]"
                 style={
                   checkInTarget?.imageUrl
                     ? {
@@ -2545,7 +2652,7 @@ export default function InteractiveMap({
         }}
       >
         <DialogContent className="fixed left-0 top-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center gap-0 border-none bg-transparent p-0 shadow-none [&>button]:hidden">
-          <div className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-white">
+          <div className="flex h-full w-full min-h-0 max-w-[393px] flex-col overflow-hidden bg-white mx-auto">
             <div className="flex items-center justify-between border-b border-[#f0f0f0] bg-white px-4 py-3">
               <h3 className="label-large tracking-[-0.5px] text-[#1a1a1a]">
                 Check-In
@@ -2634,27 +2741,28 @@ export default function InteractiveMap({
         </DialogContent>
       </Dialog>
 
-      {/* Location Form Dialog */}
-      <Dialog
-        open={showLocationForm}
-        onOpenChange={(open) => {
-          if (!open) handleCloseLocationForm();
-        }}
-      >
-        <DialogContent className="w-full max-w-[340px] p-0 bg-transparent border-none shadow-none [&>button]:hidden">
-          <div className="bg-white rounded-2xl overflow-hidden max-h-[85vh] flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+      {/* New location — bottom drawer (map stays visible above) */}
+      {showLocationForm && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-[80] flex justify-center pointer-events-none px-0 sm:px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="new-location-drawer-title"
+        >
+          <div className="pointer-events-auto flex w-full max-w-[393px] max-h-[min(88vh,640px)] flex-col overflow-hidden rounded-t-2xl border border-b-0 border-[#ebebeb] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.12)] sm:rounded-2xl sm:border-b sm:mb-[max(0.5rem,env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)]">
             {/* Header */}
             {formStep !== 'success' && (
-              <div className="bg-white flex items-center justify-between px-3 py-2.5 border-b border-[#f0f0f0]">
-                <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center justify-between border-b border-[#f0f0f0] bg-white px-3 py-2.5">
+                <div className="flex min-w-0 items-center gap-2">
                   <button
                     onClick={handleCloseLocationForm}
-                    className="text-[#999] hover:text-[#666] transition-colors disabled:opacity-50"
+                    className="shrink-0 text-[#999] transition-colors hover:text-[#666] disabled:opacity-50"
                     aria-label="Close"
                     disabled={isCreatingLocation}
+                    type="button"
                   >
                     <svg
-                      className="w-5 h-5"
+                      className="h-5 w-5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -2667,7 +2775,10 @@ export default function InteractiveMap({
                       />
                     </svg>
                   </button>
-                  <h2 className=" text-[#1a1a1a] tracking-[-0.5px]">
+                  <h2
+                    id="new-location-drawer-title"
+                    className="truncate text-[#1a1a1a] tracking-[-0.5px]"
+                  >
                     New Location
                   </h2>
                 </div>
@@ -2675,7 +2786,7 @@ export default function InteractiveMap({
             )}
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {/* Step 1: Business Details */}
               {formStep === 'business-details' && (
                 <div className="p-3">
@@ -2916,7 +3027,7 @@ export default function InteractiveMap({
 
             {/* Footer */}
             {formStep !== 'success' ? (
-              <div className="p-3 pt-0">
+              <div className="shrink-0 p-3 pt-0">
                 <button
                   onClick={handleBusinessDetailsNext}
                   disabled={isCreatingLocation}
@@ -2926,7 +3037,7 @@ export default function InteractiveMap({
                 </button>
               </div>
             ) : (
-              <div className="p-3">
+              <div className="shrink-0 p-3">
                 <button
                   onClick={handleCloseLocationForm}
                   className="bg-[#1a1a1a] hover:bg-black text-white rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex items-center justify-center transition-colors w-full"
@@ -2936,8 +3047,8 @@ export default function InteractiveMap({
               </div>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }

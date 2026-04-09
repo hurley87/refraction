@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import {
+  buildFullAddressFromSearchBoxProps,
+  type SearchBoxPlaceProperties,
+} from '@/lib/utils/location-autofill';
 
 type Suggestion = {
   id?: string;
@@ -16,7 +20,7 @@ type RetrievedFeature = {
   features?: Array<{
     id?: string;
     geometry?: { type: string; coordinates: [number, number] };
-    properties?: Record<string, unknown>;
+    properties?: SearchBoxPlaceProperties;
     name?: string;
     place_formatted?: string;
   }>;
@@ -144,16 +148,25 @@ export default function LocationSearch({
         const json: RetrievedFeature = await res.json();
         const feat = json.features?.[0];
         const coords = feat?.geometry?.coordinates;
+        const props = feat?.properties;
         if (!coords) return;
         // Rotate token after successful retrieve (end of session)
         sessionTokenRef.current = null;
+        // Prefer retrieve `properties` over suggestion fields — suggestions can omit or
+        // mislabel POIs; authoritative name / feature_type / full_address live on the feature.
+        const nameFromRetrieve =
+          props?.name_preferred?.trim() || props?.name?.trim() || s.name;
+        const placeFormattedFromRetrieve =
+          buildFullAddressFromSearchBoxProps(props) || s.place_formatted;
+        const featureTypeFromRetrieve = props?.feature_type ?? s.feature_type;
+        const idFromRetrieve = props?.mapbox_id?.trim() || mapboxId;
         onSelect({
           longitude: coords[0],
           latitude: coords[1],
-          id: mapboxId,
-          name: s.name,
-          placeFormatted: s.place_formatted,
-          featureType: s.feature_type,
+          id: idFromRetrieve,
+          name: nameFromRetrieve,
+          placeFormatted: placeFormattedFromRetrieve,
+          featureType: featureTypeFromRetrieve,
         });
         setIsOpen(false);
         setSuggestions([]);

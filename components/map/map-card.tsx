@@ -19,6 +19,13 @@ interface MapCardProps {
   imageUrl?: string | null;
   placeId?: string | null;
   eventUrl?: string | null;
+  /**
+   * Compact card for map-click “new spot” flow: POI name, address, one primary CTA
+   * styled like the check-in dialog footer button.
+   */
+  variant?: 'default' | 'createPreview';
+  /** Label for the primary button when `variant` is `createPreview`. */
+  createPreviewActionLabel?: string;
 }
 
 /**
@@ -35,7 +42,72 @@ export default function MapCard({
   isLoading = false,
   imageUrl,
   eventUrl,
+  variant = 'default',
+  createPreviewActionLabel = 'Create and check in',
 }: MapCardProps) {
+  if (variant === 'createPreview') {
+    return (
+      <div className="flex w-[calc(100vw-32px)] max-w-[361px] flex-col overflow-hidden rounded-sm border border-[rgba(255,255,255,0.15)] bg-white/95 p-2 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px]">
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="cursor-pointer mb-1 flex h-7 w-7 items-center justify-center gap-4 border border-[#DBDBDB] bg-white p-1 transition-colors hover:bg-white"
+            aria-label="Close"
+            type="button"
+          >
+            <svg
+              className="h-6 w-6 shrink-0 aspect-square"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
+                fill="#757575"
+              />
+            </svg>
+          </button>
+        )}
+
+        <div className="flex flex-col gap-3 px-1 pb-1 pt-0">
+          <div className="flex flex-col gap-1.5">
+            <p className="title4 line-clamp-2 leading-snug text-[#1a1a1a]">
+              {name}
+            </p>
+            <p className="body-small line-clamp-3 text-[#454545]">{address}</p>
+          </div>
+
+          <button
+            onClick={onAction}
+            disabled={isLoading}
+            type="button"
+            className="flex h-11 w-full items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-4 py-2 transition-colors hover:bg-black disabled:opacity-50"
+          >
+            <span className="label-medium label-large uppercase text-[#ffffff]">
+              {isLoading ? '...' : createPreviewActionLabel}
+            </span>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="block size-6 max-w-none shrink-0"
+              aria-hidden
+            >
+              <path
+                d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                fill="#DBDBDB"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const descriptionText = description?.trim() || address;
   return (
     <div
