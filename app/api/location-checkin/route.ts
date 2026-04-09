@@ -10,7 +10,11 @@ import {
   createLocationCheckin,
 } from '@/lib/db/checkins';
 import type { Player, Location } from '@/lib/types';
-import { trackCheckinCompleted, trackPointsEarned, resolveServerIdentity } from '@/lib/analytics';
+import {
+  trackCheckinCompleted,
+  trackPointsEarned,
+  resolveServerIdentity,
+} from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import { sanitizeString } from '@/lib/utils/validation';
@@ -98,9 +102,20 @@ export async function POST(request: NextRequest) {
 
     const location = await createOrGetLocation(locationInfo);
 
-    // Reject check-ins at hidden locations
+    // Pending locations (not on the public map yet) only allow check-in for the creator,
+    // so users can complete the create → check-in flow before admin approval.
     if (location.is_visible === false) {
-      return apiError('This location is not available for check-ins', 403);
+      const creator = location.creator_wallet_address?.trim() ?? '';
+      const requester = walletAddress.trim();
+      const sameWallet =
+        creator.length > 0 &&
+        requester.length > 0 &&
+        (creator.startsWith('0x') && requester.startsWith('0x')
+          ? creator.toLowerCase() === requester.toLowerCase()
+          : creator === requester);
+      if (!sameWallet) {
+        return apiError('This location is not available for check-ins', 403);
+      }
     }
 
     const sanitizedComment =
@@ -151,7 +166,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Track tier progression after points change
-    const newPoints = updatedPlayer?.total_points ?? previousPoints + location.points_value;
+    const newPoints =
+      updatedPlayer?.total_points ?? previousPoints + location.points_value;
     await checkAndTrackTierProgression(distinctId, previousPoints, newPoints);
 
     // Extract city from location context if available

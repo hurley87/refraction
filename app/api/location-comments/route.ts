@@ -25,14 +25,36 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return apiSuccess({ checkins: [] });
+        return apiSuccess({ checkins: [], hasUserCheckedIn: false });
       }
       throw error;
     }
 
     const locationId = data?.id;
     if (!locationId) {
-      return apiSuccess({ checkins: [] });
+      return apiSuccess({ checkins: [], hasUserCheckedIn: false });
+    }
+
+    const walletForStatus = searchParams.get('walletAddress')?.trim();
+    let hasUserCheckedIn = false;
+    if (walletForStatus) {
+      const { data: playerRow } = await supabase
+        .from('players')
+        .select('id')
+        .eq('wallet_address', walletForStatus)
+        .maybeSingle();
+
+      if (playerRow?.id) {
+        const { count, error: countError } = await supabase
+          .from('player_location_checkins')
+          .select('id', { count: 'exact', head: true })
+          .eq('location_id', locationId)
+          .eq('player_id', playerRow.id);
+
+        if (!countError) {
+          hasUserCheckedIn = (count ?? 0) > 0;
+        }
+      }
     }
 
     const { data: checkinData, error: checkinError } = await supabase
@@ -81,7 +103,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return apiSuccess({ checkins });
+    return apiSuccess({ checkins, hasUserCheckedIn });
   } catch (error) {
     console.error('Location comments API error:', error);
     return apiError('Failed to fetch location comments', 500);

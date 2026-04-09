@@ -48,35 +48,60 @@ export default function MapCard({
   if (variant === 'createPreview') {
     return (
       <div className="flex w-[calc(100vw-32px)] max-w-[361px] flex-col overflow-hidden rounded-sm border border-[rgba(255,255,255,0.15)] bg-white/95 p-2 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px]">
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="cursor-pointer mb-1 flex h-7 w-7 items-center justify-center gap-4 border border-[#DBDBDB] bg-white p-1 transition-colors hover:bg-white"
-            aria-label="Close"
-            type="button"
-          >
-            <svg
-              className="h-6 w-6 shrink-0 aspect-square"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
-                fill="#757575"
-              />
-            </svg>
-          </button>
-        )}
-
         <div className="flex flex-col gap-3 px-1 pb-1 pt-0">
           <div className="flex flex-col gap-1.5">
-            <p className="title4 line-clamp-2 leading-snug text-[#1a1a1a]">
-              {name}
-            </p>
-            <p className="body-small line-clamp-3 text-[#454545]">{address}</p>
+            <div className="flex items-start gap-2">
+              <p className="title3 min-w-0 flex-1 line-clamp-2 leading-snug font-semibold text-[#000000]">
+                {name}
+              </p>
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center gap-4 border border-[#DBDBDB] bg-white p-1 transition-colors hover:bg-white"
+                  aria-label="Close"
+                  type="button"
+                >
+                  <svg
+                    className="aspect-square h-6 w-6 shrink-0"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
+                      fill="#757575"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+            <div className="flex min-w-0 items-start gap-2">
+              <svg
+                aria-hidden
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#757575]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              <p className="label-medium min-w-0 flex-1 line-clamp-3  uppercase text-[#757575]">
+                {address}
+              </p>
+            </div>
           </div>
 
           <button
@@ -146,7 +171,7 @@ export default function MapCard({
         {/* Location Info */}
         <div className="flex self-stretch flex-col items-start justify-center gap-[5px] pb-1">
           {/* Name */}
-          <p className="title4 leading-snug text-[#1a1a1a] line-clamp-2">
+          <p className="title3 leading-snug text-[#1a1a1a] line-clamp-2">
             {name}
           </p>
 

@@ -7,7 +7,8 @@ import {
 } from '@/lib/analytics';
 import { trackCityMilestone } from '@/lib/analytics/server';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
-import { checkAdminPermission } from '@/lib/db/admin';
+import { checkAdminPermission, isAdminUsername } from '@/lib/db/admin';
+import { getPlayerByWallet } from '@/lib/db/players';
 import { MAX_LOCATIONS_PER_WEEK, SUPABASE_ERROR_CODES } from '@/lib/constants';
 import { getUtcWeekBounds } from '@/lib/utils/date';
 import {
@@ -212,9 +213,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if creator is an admin
+    // Check if creator is an admin (email header from client, or username on player row)
     const creatorEmail = request.headers.get('x-user-email');
-    const isAdminCreator = checkAdminPermission(creatorEmail || undefined);
+    let isAdminCreator = checkAdminPermission(creatorEmail || undefined);
+    if (!isAdminCreator) {
+      const player = await getPlayerByWallet(sanitizedWalletAddress);
+      if (player?.username && isAdminUsername(player.username)) {
+        isAdminCreator = true;
+      }
+    }
 
     // Resolve city from coordinates (and fall back to context JSON if present)
     const parsedLat = parseFloat(lat);
