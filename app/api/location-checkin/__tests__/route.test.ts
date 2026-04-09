@@ -291,11 +291,12 @@ describe('Location Checkin API Route', () => {
     });
 
     describe('Hidden Location', () => {
-      it('should return 403 for hidden location', async () => {
+      it('should return 403 for hidden location when user is not the creator', async () => {
         vi.mocked(createOrUpdatePlayer).mockResolvedValue(mockPlayer);
         vi.mocked(createOrGetLocation).mockResolvedValue({
           ...mockLocation,
           is_visible: false,
+          creator_wallet_address: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         });
 
         const request = createPostRequest({
@@ -308,6 +309,30 @@ describe('Location Checkin API Route', () => {
 
         expect(response.status).toBe(403);
         expect(json.error).toContain('not available for check-ins');
+      });
+
+      it('should allow check-in for hidden location when user is the creator', async () => {
+        vi.mocked(createOrUpdatePlayer).mockResolvedValue(mockPlayer);
+        vi.mocked(createOrGetLocation).mockResolvedValue({
+          ...mockLocation,
+          is_visible: false,
+          creator_wallet_address: validWallet,
+        });
+        vi.mocked(checkUserLocationCheckin).mockResolvedValue(null);
+        vi.mocked(createLocationCheckin).mockResolvedValue(mockCheckin);
+        vi.mocked(updatePlayerPoints).mockResolvedValue(mockPlayer);
+
+        const request = createPostRequest({
+          walletAddress: validWallet,
+          locationData: validLocationData,
+        });
+
+        const response = await POST(request);
+        const json = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(json.success).toBe(true);
+        expect(createLocationCheckin).toHaveBeenCalled();
       });
     });
 
