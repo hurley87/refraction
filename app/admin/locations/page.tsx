@@ -100,10 +100,16 @@ export default function AdminLocationsPage() {
       id: number;
       isVisible: boolean;
     }) => {
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error('Missing authorization token');
+      }
+
       const res = await fetch(`/api/admin/locations/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
           'x-user-email': user?.email?.address || '',
         },
         body: JSON.stringify({ isVisible }),
