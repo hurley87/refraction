@@ -20,6 +20,7 @@ import LocationListsDrawer, {
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 interface MarkerData {
   latitude: number;
@@ -56,14 +57,6 @@ interface LocationFormData {
 }
 
 type FormStep = 'business-details' | 'success';
-
-interface SearchLocationData {
-  latitude: number;
-  longitude: number;
-  place_id: string;
-  name: string;
-  placeFormatted?: string;
-}
 
 const WELCOME_BANNER_STORAGE_KEY = 'irl-map-welcome-dismissed';
 const WELCOME_BANNER_MAX_SHOWS = 3;
@@ -143,9 +136,7 @@ export default function InteractiveMap({
     locationImage: null,
     checkInComment: '',
   });
-  const [searchedLocation, setSearchedLocation] =
-    useState<SearchLocationData | null>(null);
-  /** Reverse-geocoded spot from map click — not yet an IRL location; show compact card before create form. */
+  /** Reverse-geocoded spot from map click or search — not yet an IRL location; show compact card before create form. */
   const [pendingMapCreateMarker, setPendingMapCreateMarker] =
     useState<MarkerData | null>(null);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
@@ -530,8 +521,13 @@ export default function InteractiveMap({
       return;
     }
 
-    // Clear searched location when clicking on the map
-    setSearchedLocation(null);
+    if (showLocationForm) {
+      if (isCreatingLocation) {
+        return;
+      }
+      handleCloseLocationForm();
+    }
+
     setPendingMapCreateMarker(null);
 
     const { lngLat } = event;
@@ -610,7 +606,6 @@ export default function InteractiveMap({
         setSelectedMarker(duplicateMarker);
         setPopupInfo(duplicateMarker);
         setShowLocationForm(false);
-        setSearchedLocation(null);
         setPendingMapCreateMarker(null);
         return;
       }
@@ -702,6 +697,13 @@ export default function InteractiveMap({
       }
     }, 500);
 
+    const existingByPlaceId = findExistingMarker(id);
+    if (existingByPlaceId) {
+      setSelectedMarker(existingByPlaceId);
+      setPopupInfo(existingByPlaceId);
+      return;
+    }
+
     // Open nearest existing marker if within 100m
     const toRad = (v: number) => (v * Math.PI) / 180;
     const earth = 6371000; // m
@@ -735,22 +737,21 @@ export default function InteractiveMap({
     if (nearest && nearestDist <= 100) {
       setSelectedMarker(nearest);
       setPopupInfo(nearest);
-      setSearchedLocation(null); // Clear searched location if marker found
     } else {
-      // Create a temporary location from search
       const { displayName, address } = deriveDisplayNameAndAddress({
         name,
         placeFormatted,
         featureType,
       });
-      const searchLocation: SearchLocationData = {
+      const resolvedName = displayName || address || 'Unknown Location';
+      const newMarker: MarkerData = {
         latitude,
         longitude,
         place_id: id,
-        name: displayName || address || 'Unknown Location',
-        placeFormatted: placeFormatted,
+        name: resolvedName,
+        address: placeFormatted?.trim() || resolvedName,
       };
-      setSearchedLocation(searchLocation);
+      setPendingMapCreateMarker(newMarker);
       setSelectedMarker(null);
       setPopupInfo(null);
     }
@@ -759,8 +760,28 @@ export default function InteractiveMap({
   const handleMarkerClick = (marker: MarkerData) => {
     setPopupInfo(marker);
     setSelectedMarker(marker);
-    setSearchedLocation(null); // Clear searched location when clicking a marker
     setPendingMapCreateMarker(null);
+
+    const targetZoom = Math.max(viewState.zoom ?? 12, 15);
+    // Bottom padding keeps the pin in the visual center above the fixed map card overlay.
+    const bottomPaddingPx =
+      typeof window !== 'undefined'
+        ? Math.min(360, Math.max(200, Math.round(window.innerHeight * 0.34)))
+        : 280;
+
+    mapRef.current?.flyTo?.({
+      center: [marker.longitude, marker.latitude],
+      zoom: targetZoom,
+      duration: 1200,
+      padding: { top: 0, bottom: bottomPaddingPx, left: 0, right: 0 },
+    });
+
+    setTimeout(() => {
+      const bounds = calculateMapBounds();
+      if (bounds) {
+        setMapBounds(bounds);
+      }
+    }, 1300);
   };
 
   const handleLocateUser = () => {
@@ -897,7 +918,6 @@ export default function InteractiveMap({
         if (response.status === 409) {
           toast.info("You've already checked in at this location!");
           setPopupInfo(null);
-          setSearchedLocation(null);
           handleCloseCheckInModal();
           return;
         }
@@ -928,7 +948,6 @@ export default function InteractiveMap({
 
       // Close the map popups
       setPopupInfo(null);
-      setSearchedLocation(null);
       setSelectedMarker(null);
       setPendingMapCreateMarker(null);
     } catch (error) {
@@ -937,40 +956,6 @@ export default function InteractiveMap({
     } finally {
       setIsCheckingIn(false);
     }
-  };
-
-  const handleInitiateLocationCreation = async () => {
-    if (!searchedLocation) return;
-
-    const existingMarker = findExistingMarker(searchedLocation.place_id);
-    if (existingMarker) {
-      toast.info('That location already exists—check it out instead!');
-      setSelectedMarker(existingMarker);
-      setPopupInfo(existingMarker);
-      setShowLocationForm(false);
-      setSearchedLocation(null);
-      setPendingMapCreateMarker(null);
-      return;
-    }
-
-    // Set up for creating the location
-    const newMarker: MarkerData = {
-      latitude: searchedLocation.latitude,
-      longitude: searchedLocation.longitude,
-      place_id: searchedLocation.place_id,
-      name: searchedLocation.name,
-    };
-
-    setSelectedMarker(newMarker);
-    setFormData({
-      name: searchedLocation.name, // Venue name
-      address: searchedLocation.placeFormatted || searchedLocation.name, // Address
-      description: '',
-      locationImage: null,
-      checkInComment: '',
-    });
-    setFormStep('business-details');
-    setShowLocationForm(true);
   };
 
   const handleBusinessDetailsNext = () => {
@@ -1002,7 +987,6 @@ export default function InteractiveMap({
       setSelectedMarker(existingMarker);
       setPopupInfo(existingMarker);
       setShowLocationForm(false);
-      setSearchedLocation(null);
       return;
     }
 
@@ -1087,7 +1071,6 @@ export default function InteractiveMap({
             setSelectedMarker(marker);
             setPopupInfo(marker);
             setShowLocationForm(false);
-            setSearchedLocation(null);
           };
 
           // Try to fetch full location details from API
@@ -1260,6 +1243,13 @@ export default function InteractiveMap({
       });
     }
   };
+
+  const mapCardBottomOverlayClassName = cn(
+    'pointer-events-none fixed inset-x-0 z-[75] flex justify-center px-4',
+    showLocationForm
+      ? 'bottom-[calc(min(88vh,640px)+0.5rem)]'
+      : 'bottom-[max(0.75rem,env(safe-area-inset-bottom))]'
+  );
 
   return (
     <div className="fixed inset-0 w-full h-full">
@@ -1619,18 +1609,7 @@ export default function InteractiveMap({
           </Marker>
         ))}
 
-        {/* Temporary marker for searched locations */}
-        {searchedLocation && !popupInfo && (
-          <Marker
-            latitude={searchedLocation.latitude}
-            longitude={searchedLocation.longitude}
-            anchor="bottom"
-          >
-            <div className="h-8 w-8 animate-pulse rounded-full border-2 border-white bg-[#FFF200] shadow-md" />
-          </Marker>
-        )}
-
-        {pendingMapCreateMarker && !popupInfo && !searchedLocation && (
+        {pendingMapCreateMarker && !popupInfo && (
           <Marker
             latitude={pendingMapCreateMarker.latitude}
             longitude={pendingMapCreateMarker.longitude}
@@ -1654,10 +1633,9 @@ export default function InteractiveMap({
         )}
       </Map>
 
-      {/* Centered map card overlay for existing markers */}
       {popupInfo && (
-        <div className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center px-4">
-          <div className="pointer-events-auto">
+        <div className={mapCardBottomOverlayClassName}>
+          <div className="pointer-events-auto w-full max-w-[361px]">
             <MapCard
               name={popupInfo.name}
               address={popupInfo.address || popupInfo.name}
@@ -1677,27 +1655,9 @@ export default function InteractiveMap({
         </div>
       )}
 
-      {/* Centered map card overlay for searched locations */}
-      {searchedLocation && !popupInfo && (
-        <div className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center px-4">
-          <div className="pointer-events-auto">
-            <MapCard
-              name={searchedLocation.name}
-              address={searchedLocation.placeFormatted || searchedLocation.name}
-              isExisting={false}
-              onAction={handleInitiateLocationCreation}
-              onClose={() => setSearchedLocation(null)}
-              isLoading={false}
-              eventUrl={null}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Compact card after map click — new spot not yet on IRL */}
-      {pendingMapCreateMarker && !popupInfo && !searchedLocation && (
-        <div className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center px-4">
-          <div className="pointer-events-auto">
+      {pendingMapCreateMarker && !popupInfo && (
+        <div className={mapCardBottomOverlayClassName}>
+          <div className="pointer-events-auto w-full max-w-[361px]">
             <MapCard
               variant="createPreview"
               name={pendingMapCreateMarker.name}
