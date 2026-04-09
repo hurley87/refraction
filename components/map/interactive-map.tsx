@@ -21,6 +21,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { formatLocationCategory } from '@/lib/utils/format-location-category';
 
 interface MarkerData {
   latitude: number;
@@ -91,14 +92,6 @@ function getCheckinInitial(entry: LocationCheckinPreview) {
     return entry.walletAddress.slice(2, 3).toUpperCase();
   }
   return '+';
-}
-
-function formatLocationCategory(type?: string | null) {
-  const normalized = (type ?? 'location').trim();
-  if (!normalized) return 'Location';
-  return normalized
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 interface InteractiveMapProps {
@@ -1720,6 +1713,7 @@ export default function InteractiveMap({
               name={popupInfo.name}
               address={popupInfo.address || popupInfo.name}
               description={popupInfo.description}
+              type={popupInfo.type}
               isExisting={true}
               onAction={() => handleStartCheckIn(popupInfo)}
               onClose={() => {
