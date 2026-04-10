@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     const player = await createOrUpdatePlayer(playerData);
 
-    // Create or get location
+    // Create or get location (must record creator so pending spots pass the visibility gate below)
     const locationInfo: Omit<Location, 'id' | 'created_at'> = {
       place_id: sanitizedPlaceId,
       name: sanitizedName,
@@ -98,6 +98,11 @@ export async function POST(request: NextRequest) {
       type: sanitizedType || 'location',
       context: sanitizedContext,
       is_visible: false, // New locations require admin approval
+      creator_wallet_address: walletAddress.trim(),
+      creator_username:
+        typeof username === 'string' && username.trim()
+          ? username.trim()
+          : undefined,
     };
 
     const location = await createOrGetLocation(locationInfo);

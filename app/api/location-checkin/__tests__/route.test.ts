@@ -228,6 +228,12 @@ describe('Location Checkin API Route', () => {
             username: 'testuser',
           })
         );
+        expect(createOrGetLocation).toHaveBeenCalledWith(
+          expect.objectContaining({
+            creator_wallet_address: validWallet,
+            creator_username: 'testuser',
+          })
+        );
       });
 
       it('should correctly add points to player total', async () => {
