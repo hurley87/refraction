@@ -8,7 +8,6 @@ import { NotificationProvider } from '@/lib/stellar/providers/notification-provi
 import MapNav from '@/components/map/mapnav';
 import ConnectAccount from './connect-account';
 import { UserBalance } from './user-balance';
-import MintNFT from './mint-nft';
 import ClaimPoints from './claim-points';
 import { NearIntentsBridgeWidget } from './near-intents-bridge-widget';
 import { TransactionStatus } from './transaction-status';
@@ -27,17 +26,10 @@ function StellarWalletPageContent() {
   const hasStellarForBalance = Boolean(
     stellarWalletAddress || privyStellarAddress
   );
-  const [ticketTxHash, setTicketTxHash] = useState<string | null>(null);
-  const [ticketTokenId, setTicketTokenId] = useState<number | null>(null);
-  const [ticketContractId, setTicketContractId] = useState<string | null>(null);
   const [rewardTxHash, setRewardTxHash] = useState<string | null>(null);
-  const [ticketStatus, setTicketStatus] = useState<
-    'idle' | 'pending' | 'success' | 'error'
-  >('idle');
   const [rewardStatus, setRewardStatus] = useState<
     'idle' | 'pending' | 'success' | 'error'
   >('idle');
-  const [ticketError, setTicketError] = useState<string | null>(null);
   const [rewardError, setRewardError] = useState<string | null>(null);
   const [bridgeExpanded, setBridgeExpanded] = useState(false);
 
@@ -264,63 +256,7 @@ function StellarWalletPageContent() {
             )}
           </div>
 
-          {/* Step 3: Get Ticket */}
-          <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <Image
-                  src="/homepage/ellipse.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="shrink-0"
-                />
-                <h2
-                  className="title5 text-white font-grotesk"
-                  style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
-                >
-                  Get Ticket
-                </h2>
-              </div>
-
-              <MintNFT
-                ctaLabel="Get Ticket"
-                onPending={() => {
-                  setTicketStatus('pending');
-                  setTicketTxHash(null);
-                  setTicketTokenId(null);
-                  setTicketContractId(null);
-                  setTicketError(null);
-                }}
-                onSuccess={(result) => {
-                  setTicketStatus('success');
-                  setTicketTxHash(result.txHash);
-                  setTicketTokenId(result.tokenId);
-                  setTicketContractId(result.contractId);
-                }}
-                onError={(errorMsg) => {
-                  setTicketStatus('error');
-                  setTicketTxHash(null);
-                  setTicketTokenId(null);
-                  setTicketContractId(null);
-                  setTicketError(errorMsg);
-                }}
-              />
-
-              <TransactionStatus
-                status={ticketStatus}
-                txHash={ticketTxHash}
-                error={ticketError}
-                successMessage="Ticket received successfully!"
-                network={network}
-                networkPassphrase={networkPassphrase}
-                tokenId={ticketTokenId}
-                contractId={ticketContractId}
-              />
-            </div>
-          </div>
-
-          {/* Step 4: Claim Points */}
+          {/* Step 3: Claim Points */}
           <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
