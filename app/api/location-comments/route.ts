@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/db/client';
+import { getPlayerIdByWalletAddress } from '@/lib/db/players';
 import { apiSuccess, apiError } from '@/lib/api/response';
 
 export async function GET(request: NextRequest) {
@@ -38,18 +39,14 @@ export async function GET(request: NextRequest) {
     const walletForStatus = searchParams.get('walletAddress')?.trim();
     let hasUserCheckedIn = false;
     if (walletForStatus) {
-      const { data: playerRow } = await supabase
-        .from('players')
-        .select('id')
-        .eq('wallet_address', walletForStatus)
-        .maybeSingle();
+      const playerId = await getPlayerIdByWalletAddress(walletForStatus);
 
-      if (playerRow?.id) {
+      if (playerId != null) {
         const { count, error: countError } = await supabase
           .from('player_location_checkins')
           .select('id', { count: 'exact', head: true })
           .eq('location_id', locationId)
-          .eq('player_id', playerRow.id);
+          .eq('player_id', playerId);
 
         if (!countError) {
           hasUserCheckedIn = (count ?? 0) > 0;
