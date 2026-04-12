@@ -18,6 +18,7 @@ import {
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import { sanitizeString } from '@/lib/utils/validation';
+import { sameWalletAddress } from '@/lib/utils/wallets';
 import { apiSuccess, apiError } from '@/lib/api/response';
 
 export async function POST(request: NextRequest) {
@@ -112,13 +113,7 @@ export async function POST(request: NextRequest) {
     if (location.is_visible === false) {
       const creator = location.creator_wallet_address?.trim() ?? '';
       const requester = walletAddress.trim();
-      const sameWallet =
-        creator.length > 0 &&
-        requester.length > 0 &&
-        (creator.startsWith('0x') && requester.startsWith('0x')
-          ? creator.toLowerCase() === requester.toLowerCase()
-          : creator === requester);
-      if (!sameWallet) {
+      if (!sameWalletAddress(creator, requester)) {
         return apiError('This location is not available for check-ins', 403);
       }
     }

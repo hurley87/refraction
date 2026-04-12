@@ -340,6 +340,30 @@ describe('Location Checkin API Route', () => {
         expect(json.success).toBe(true);
         expect(createLocationCheckin).toHaveBeenCalled();
       });
+
+      it('allows creator check-in when request wallet casing differs from stored creator (EVM)', async () => {
+        const checksummedCreator = '0x0000000000000000000000000000000000000001';
+        vi.mocked(createOrUpdatePlayer).mockResolvedValue(mockPlayer);
+        vi.mocked(createOrGetLocation).mockResolvedValue({
+          ...mockLocation,
+          is_visible: false,
+          creator_wallet_address: checksummedCreator,
+        });
+        vi.mocked(checkUserLocationCheckin).mockResolvedValue(null);
+        vi.mocked(createLocationCheckin).mockResolvedValue(mockCheckin);
+        vi.mocked(updatePlayerPoints).mockResolvedValue(mockPlayer);
+
+        const request = createPostRequest({
+          walletAddress: checksummedCreator.toLowerCase(),
+          locationData: validLocationData,
+        });
+
+        const response = await POST(request);
+        const json = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(json.success).toBe(true);
+      });
     });
 
     describe('Database Errors', () => {

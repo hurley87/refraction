@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import type { Player } from '../types';
+import { tryNormalizeEvmAddress } from '../utils/wallets';
 
 type PlayerLookupField =
   | 'wallet_address'
@@ -89,6 +90,40 @@ export const createOrUpdatePlayer = async (
 export const getPlayerByWallet = async (walletAddress: string) => {
   return getPlayerByField('wallet_address', walletAddress);
 };
+
+/**
+ * Resolve `players.id` for a wallet string. Tries EIP-55 form and the raw
+ * trimmed value so lookups work whether the row stores checksummed or
+ * all-lowercase EVM addresses.
+ */
+export async function getPlayerIdByWalletAddress(
+  walletAddress: string
+): Promise<number | null> {
+  const t = walletAddress.trim();
+  if (!t) return null;
+
+  const candidates: string[] = [];
+  const evm = tryNormalizeEvmAddress(t);
+  if (evm) {
+    candidates.push(evm);
+    if (evm !== t) candidates.push(t);
+  } else {
+    candidates.push(t);
+  }
+
+  for (const addr of candidates) {
+    const { data, error } = await supabase
+      .from('players')
+      .select('id')
+      .eq('wallet_address', addr)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    if (data?.id != null) return data.id;
+  }
+
+  return null;
+}
 
 /**
  * Get player by Solana wallet address
