@@ -1496,7 +1496,7 @@ export default function InteractiveMap({
             <div className="rounded-3xl bg-white shadow-lg border border-[#ededed] overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-[#ededed]">
-                <h3 className="font-['Gal_Gothic_Variable',sans-serif] text-[20px] font-semibold not-italic leading-6 tracking-[-0.4px] text-[color:var(--Dark-Tint-100---Ink-Black,#171717)]">
+                <h3 className="label-large font-semibold not-italic leading-6 tracking-[-0.4px] text-[color:var(--Dark-Tint-100---Ink-Black,#171717)]">
                   Welcome to IRL!
                 </h3>
                 <button
