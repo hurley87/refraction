@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import type { Perk } from "@/lib/types";
-import Link from "next/link";
-import { usePrivy } from "@privy-io/react-auth";
-import { Tag, Clock, MapPin, ExternalLink, Gift } from "lucide-react";
+import type { Perk } from '@/lib/types';
+import Link from 'next/link';
+import { usePrivy } from '@privy-io/react-auth';
+import { Tag, Clock, MapPin, ExternalLink, Gift } from 'lucide-react';
 
-import { useState, useEffect } from "react";
-import MapNav from "@/components/map/mapnav";
+import { useState, useEffect } from 'react';
+import MapNav from '@/components/map/mapnav';
 import {
   usePerks,
   useAvailableCodesCount,
   useUserRedemptions,
-} from "@/hooks/usePerks";
-import { useCurrentPlayer } from "@/hooks/usePlayer";
-import { useAnalytics } from "@/hooks/useAnalytics";
+} from '@/hooks/usePerks';
+import { useCurrentPlayer } from '@/hooks/usePlayer';
+import { useAnalytics } from '@/hooks/useAnalytics';
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {
@@ -21,28 +21,28 @@ const getTimeLeft = (endDate: string) => {
   const end = new Date(endDate);
   const diffMs = end.getTime() - now.getTime();
 
-  if (diffMs <= 0) return { expired: true, text: "Expired" };
+  if (diffMs <= 0) return { expired: true, text: 'Expired' };
 
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor(
-    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
   );
   const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
   if (diffDays > 0) {
     return {
       expired: false,
-      text: `${diffDays} day${diffDays !== 1 ? "s" : ""} left`,
+      text: `${diffDays} day${diffDays !== 1 ? 's' : ''} left`,
     };
   } else if (diffHours > 0) {
     return {
       expired: false,
-      text: `${diffHours} hour${diffHours !== 1 ? "s" : ""} left`,
+      text: `${diffHours} hour${diffHours !== 1 ? 's' : ''} left`,
     };
   } else if (diffMinutes > 0) {
     return { expired: false, text: `${diffMinutes} min left` };
   } else {
-    return { expired: false, text: "Less than 1 min left" };
+    return { expired: false, text: 'Less than 1 min left' };
   }
 };
 
@@ -91,7 +91,7 @@ export default function PerksPage() {
 
   // Track page view on mount
   useEffect(() => {
-    trackPage("perks");
+    trackPage('perks');
   }, [trackPage]);
 
   // Fetch all active perks
@@ -114,13 +114,13 @@ export default function PerksPage() {
     <div
       style={{
         background:
-          "linear-gradient(0deg, #61BFD1 0%, #1BA351 33.66%, #FFE600 62.5%, #EE91B7 100%)",
+          'linear-gradient(0deg, #61BFD1 0%, #1BA351 33.66%, #FFE600 62.5%, #EE91B7 100%)',
       }}
       className="min-h-screen p-4 pb-0 font-grotesk"
     >
       <div className="min-h-screen max-w-lg mx-auto">
         {/* Status Bar */}
-        <MapNav />
+        <MapNav className="max-md:px-0" />
 
         {/* Perks Header */}
         <div className="px-0 pt-8 mb-6">
@@ -190,8 +190,8 @@ export default function PerksPage() {
                   );
                   const isExpiringSoon = Boolean(
                     perk.end_date &&
-                      new Date(perk.end_date) <
-                        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                    new Date(perk.end_date) <
+                      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                   );
                   const userRedeemed = perk.id ? hasRedeemed(perk.id) : false;
 
@@ -199,7 +199,7 @@ export default function PerksPage() {
                     <div
                       key={perk.id}
                       className={`bg-white rounded-2xl p-4 ${
-                        !affordable || isExpired ? "opacity-60" : ""
+                        !affordable || isExpired ? 'opacity-60' : ''
                       }`}
                     >
                       {/* Header */}
@@ -260,10 +260,10 @@ export default function PerksPage() {
                               endDate={perk.end_date}
                               className={`font-inktrap ${
                                 isExpired
-                                  ? "text-red-600"
+                                  ? 'text-red-600'
                                   : isExpiringSoon
-                                    ? "text-orange-600"
-                                    : "text-gray-600"
+                                    ? 'text-orange-600'
+                                    : 'text-gray-600'
                               }`}
                             />
                           </div>
@@ -292,10 +292,10 @@ export default function PerksPage() {
                         !isExpired &&
                         !userRedeemed && (
                           <div className="text-xs text-red-600 mb-3 font-inktrap">
-                            Need{" "}
+                            Need{' '}
                             {(
                               perk.points_threshold - userPoints
-                            ).toLocaleString()}{" "}
+                            ).toLocaleString()}{' '}
                             more points
                           </div>
                         )}
@@ -305,20 +305,20 @@ export default function PerksPage() {
                         <button
                           className={`w-full py-3 rounded-full font-inktrap font-medium text-sm transition-colors ${
                             userRedeemed
-                              ? "bg-green-100 text-green-800"
+                              ? 'bg-green-100 text-green-800'
                               : affordable && !isExpired
-                                ? "bg-black text-white hover:bg-gray-800"
-                                : "bg-gray-100 text-gray-500"
+                                ? 'bg-black text-white hover:bg-gray-800'
+                                : 'bg-gray-100 text-gray-500'
                           }`}
                           disabled={!affordable || isExpired}
                         >
                           {userRedeemed
-                            ? "✓ Redeemed"
+                            ? '✓ Redeemed'
                             : isExpired
-                              ? "Expired"
+                              ? 'Expired'
                               : affordable
-                                ? "View Details"
-                                : "Insufficient Points"}
+                                ? 'View Details'
+                                : 'Insufficient Points'}
                         </button>
                       </Link>
                     </div>

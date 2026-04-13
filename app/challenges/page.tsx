@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { Clock } from "lucide-react";
-import Image from "next/image";
-import MapNav from "@/components/map/mapnav";
+import React, { useState, useEffect } from 'react';
+import { Clock } from 'lucide-react';
+import Image from 'next/image';
+import MapNav from '@/components/map/mapnav';
 
 interface Quest {
   title: string;
@@ -13,8 +13,8 @@ interface Quest {
   image?: string;
   action?: string;
   dateRange?: string;
-  "image-width"?: string;
-  "image-height"?: string;
+  'image-width'?: string;
+  'image-height'?: string;
   id?: string;
   progress?: number;
   maxProgress?: number;
@@ -33,8 +33,8 @@ export default function Page() {
       setIsScrolled(window.scrollY > 10);
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Load quests data
@@ -42,25 +42,27 @@ export default function Page() {
     const loadQuests = async () => {
       try {
         setIsLoading(true);
-        
+
         // Load quest header (banner) data
         const headerResponse = await fetch('/data/challenges/quests.json');
         if (headerResponse.ok) {
           const headerData = await headerResponse.json();
           setQuestHeader(headerData[0]); // Get first item from array
         }
-        
+
         // Load individual quest items
         const response = await fetch('/data/challenges/quest-items.json');
         if (response.ok) {
           const questsData = await response.json();
-          const enrichedQuests = questsData.map((quest: any, index: number) => ({
-            ...quest,
-            id: `quest-${index + 1}`,
-            progress: Math.floor(Math.random() * 5) + 1,
-            maxProgress: 10,
-            isCompleted: Math.random() > 0.7
-          }));
+          const enrichedQuests = questsData.map(
+            (quest: any, index: number) => ({
+              ...quest,
+              id: `quest-${index + 1}`,
+              progress: Math.floor(Math.random() * 5) + 1,
+              maxProgress: 10,
+              isCompleted: Math.random() > 0.7,
+            })
+          );
           setQuests(enrichedQuests);
         } else {
           console.error('Failed to load quests:', response.status);
@@ -76,7 +78,6 @@ export default function Page() {
   }, []);
 
   const renderQuestCard = (quest: Quest) => {
-
     return (
       <div
         key={quest.id}
@@ -85,9 +86,7 @@ export default function Page() {
         {/* Row 1: Title and Description */}
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <div className="title2 text-[#313131]">
-              {quest.title}
-            </div>
+            <div className="title2 text-[#313131]">{quest.title}</div>
           </div>
           <div className="text-[#7d7d7d]  font-grotesk body-medium">
             {quest.description}
@@ -97,7 +96,7 @@ export default function Page() {
         {/* Row 2: Points and Date Range Pills */}
         <div className="flex gap-1 w-full">
           {/* Points */}
-          <div 
+          <div
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -107,7 +106,7 @@ export default function Page() {
               borderRadius: '16px',
               padding: '6px 8px',
               border: '1px solid #e0e0e0',
-              flex: 1
+              flex: 1,
             }}
           >
             <Image
@@ -122,7 +121,7 @@ export default function Page() {
 
           {/* Date Range */}
           {quest.dateRange ? (
-            <div 
+            <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -132,14 +131,16 @@ export default function Page() {
                 borderRadius: '16px',
                 padding: '6px 8px',
                 border: '1px solid #e0e0e0',
-                flex: 1
+                flex: 1,
               }}
             >
               <Clock className="w-3 h-3 text-gray-600 flex-shrink-0" />
-              <div className="body-small text-black whitespace-nowrap">{quest.dateRange}</div>
+              <div className="body-small text-black whitespace-nowrap">
+                {quest.dateRange}
+              </div>
             </div>
           ) : (
-            <div 
+            <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -149,7 +150,7 @@ export default function Page() {
                 borderRadius: '16px',
                 padding: '6px 8px',
                 border: '1px solid #e0e0e0',
-                flex: 1
+                flex: 1,
               }}
             >
               <div className="body-small text-black"></div>
@@ -161,7 +162,9 @@ export default function Page() {
         <a
           href={quest.url}
           target={quest.url?.startsWith('http') ? '_blank' : '_self'}
-          rel={quest.url?.startsWith('http') ? 'noopener noreferrer' : undefined}
+          rel={
+            quest.url?.startsWith('http') ? 'noopener noreferrer' : undefined
+          }
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -174,10 +177,12 @@ export default function Page() {
             padding: '8px 16px',
             border: '1px solid #e0e0e0',
             cursor: 'pointer',
-            textDecoration: 'none'
+            textDecoration: 'none',
           }}
         >
-          <div className="body-small text-[#313131] font-grotesk uppercase">{quest.action || "Buy"}</div>
+          <div className="body-small text-[#313131] font-grotesk uppercase">
+            {quest.action || 'Buy'}
+          </div>
           <Image
             src="/glxe.png"
             alt="arrow"
@@ -193,20 +198,21 @@ export default function Page() {
   return (
     <div
       style={{
-        borderTopLeftRadius: "26px",
-        borderTopRightRadius: "26px",
-        background: "linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.10) 100%), linear-gradient(0deg, #61BFD1 0%, #EE91B7 23.56%, #F24406 53.37%, #FFE600 76.92%, #1BA351 99.99%)",
+        borderTopLeftRadius: '26px',
+        borderTopRightRadius: '26px',
+        background:
+          'linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.10) 100%), linear-gradient(0deg, #61BFD1 0%, #EE91B7 23.56%, #F24406 53.37%, #FFE600 76.92%, #1BA351 99.99%)',
       }}
-      className="min-h-screen px-2 pt-2 pb-4 font-grotesk"
+      className="min-h-screen px-4 pt-2 pb-4 font-grotesk md:px-2"
     >
       <div className="max-w-lg mx-auto">
         {/* Status Bar - Sticky Header */}
-        <div 
-          className={`sticky top-0 z-50 pb-2 pt-2 -mt-2 -mx-2 px-2 transition-colors duration-200 ${
-            isScrolled ? "bg-transparent backdrop-blur-sm" : "bg-transparent"
+        <div
+          className={`sticky top-0 z-50 pb-2 pt-2 -mt-2 transition-colors duration-200 ${
+            isScrolled ? 'bg-transparent backdrop-blur-sm' : 'bg-transparent'
           }`}
         >
-          <MapNav />
+          <MapNav className="max-md:px-0" />
         </div>
 
         {/* Main Content */}
@@ -224,7 +230,7 @@ export default function Page() {
             <div className="bg-white backdrop-blur-sm rounded-[16px] p-4 border border-white/20">
               <div className="rounded-[16px] flex flex-col gap-3 transition-all duration-200">
                 {/* Quest Challenge Image - Full Width Above Title */}
-               
+
                 <div className="flex items-center gap-2 ">
                   <span className="body-small text-gray-600 uppercase tracking-wide">
                     Challenge Quest
@@ -249,13 +255,13 @@ export default function Page() {
                   className="w-full h-[40px] bg-[#313131] hover:bg-gray-800 text-white px-4 rounded-full font-pleasure  transition-colors duration-200 flex items-center justify-between"
                 >
                   <h4>Complete Quest on Galxe</h4>
-                   <Image
-            src="/glxe.png"
-            alt="arrow"
-            width={21}
-            height={21}
-            className="w-[21px] h-[21px]"
-          />
+                  <Image
+                    src="/glxe.png"
+                    alt="arrow"
+                    width={21}
+                    height={21}
+                    className="w-[21px] h-[21px]"
+                  />
                 </a>
               </div>
             </div>
@@ -264,10 +270,12 @@ export default function Page() {
           {/* Quests Section */}
           {!isLoading && (
             <>
-             
               <div className="space-y-1">
-                {quests.map(quest => (
-                  <div key={quest.id} className="bg-white backdrop-blur-sm rounded-[16px] p-4 border border-white/20">
+                {quests.map((quest) => (
+                  <div
+                    key={quest.id}
+                    className="bg-white backdrop-blur-sm rounded-[16px] p-4 border border-white/20"
+                  >
                     {renderQuestCard(quest)}
                   </div>
                 ))}

@@ -80,12 +80,12 @@ function StellarWalletPageContent() {
       style={{
         background: '#FFE600',
       }}
-      className="min-h-screen px-2 pt-2 pb-4 font-grotesk cursor-auto"
+      className="min-h-screen px-4 pt-2 pb-4 font-grotesk cursor-auto md:px-2"
     >
       <div className="max-w-md mx-auto">
         {/* Navigation */}
         <div className="pb-2 pt-2 flex items-center justify-between">
-          <MapNav />
+          <MapNav className="max-md:px-0" />
         </div>
 
         {/* Main Content */}

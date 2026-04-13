@@ -210,9 +210,9 @@ export default function EventsPage() {
     pastEvents.length === 0;
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(0deg,_#61BFD1_0%,_#EE91B7_26.92%,_#FFE600_54.33%,_#1BA351_100%)] px-2 pb-20 pt-4 font-grotesk">
+    <div className="min-h-screen bg-[linear-gradient(0deg,_#61BFD1_0%,_#EE91B7_26.92%,_#FFE600_54.33%,_#1BA351_100%)] px-4 pb-20 pt-4 font-grotesk md:px-2">
       <div className="mx-auto max-w-md">
-        <MapNav />
+        <MapNav className="max-md:px-0" />
 
         <div className="space-y-3 pt-3">
           {(isLoading || manualLoading) && (

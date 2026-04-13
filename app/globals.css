@@ -125,14 +125,14 @@
     line-height: 4rem; /* 64px */
     font-weight: 700;
     font-family: 'Special Gothic Expanded One', sans-serif;
-    letter-spacing: -8px;
+    letter-spacing: -8%;
   }
 
   .display2 {
     font-size: 3rem; /* 48px */
     line-height: 3rem; /* 48px */
     font-weight: 700;
-    letter-spacing: -8px;
+    letter-spacing: -8%;
     font-family: 'Special Gothic Expanded One', sans-serif;
   }
 
@@ -140,7 +140,7 @@
     font-size: 75px;
     line-height: 76px;
     font-weight: 700;
-    letter-spacing: -6.5px;
+    letter-spacing: -8.5%;
     font-family: 'Special Gothic Expanded One', sans-serif;
   }
 
