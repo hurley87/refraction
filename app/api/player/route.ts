@@ -78,8 +78,15 @@ export async function POST(request: NextRequest) {
         await addCampaignMonitorSubscriber({ email });
       } catch (campaignMonitorError) {
         console.error(
-          'Failed to add subscriber to Campaign Monitor:',
-          campaignMonitorError
+          JSON.stringify({
+            source: 'api_player_post',
+            message: 'campaign_monitor_sync_exception',
+            walletAddressSuffix: walletAddress.slice(-8),
+            error:
+              campaignMonitorError instanceof Error
+                ? campaignMonitorError.message
+                : String(campaignMonitorError),
+          })
         );
       }
     }
