@@ -185,10 +185,7 @@ export default function AuthWrapper({
               }
             : unauthenticatedUI === 'map-onboarding'
               ? {
-                  backgroundImage: "url('/bg-green.png')",
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
+                  backgroundColor: '#E3FF30',
                 }
               : {
                   background:
@@ -201,7 +198,7 @@ export default function AuthWrapper({
           <p
             className={cn(
               'text-center text-lg font-semibold tracking-tight font-inktrap md:text-xl',
-              !cp && unauthenticatedUI === 'map-onboarding' && 'text-white',
+              !cp && unauthenticatedUI === 'map-onboarding' && 'text-[#171717]',
               !cp && unauthenticatedUI !== 'map-onboarding' && 'text-foreground'
             )}
             style={cp ? { color: checkpointText } : undefined}
@@ -261,27 +258,19 @@ export default function AuthWrapper({
 
     if (unauthenticatedUI === 'map-onboarding') {
       return (
-        <div
-          className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 overflow-hidden"
-          style={{
-            backgroundImage: "url('/bg-green.png')",
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-          }}
-        >
+        <div className="min-h-screen w-full flex items-center justify-center bg-[#FFE600] p-4 sm:p-6 overflow-hidden">
           <div className="w-full max-w-md mx-auto flex flex-col items-center justify-between h-fit py-6 sm:py-8 gap-6">
             {/* Map Screenshot */}
             <div className="rounded-[26px] overflow-hidden w-full h-[calc(100vh-320px)] max-h-[400px] min-h-[320px]">
               <img
-                src="/map-onboarding.png"
+                src="map/map-onboarding.png"
                 alt="IRL Map showing local spots to explore and check in"
                 className="h-full w-full object-cover object-top"
                 loading="lazy"
               />
             </div>
 
-            <p className="text-white text-[14px] sm:text-[16px] leading-[20px] sm:leading-[22px] tracking-[-0.36px] sm:tracking-[-0.48px] text-left w-full px-2">
+            <p className="text-[#171717] text-[14px] sm:text-[16px] leading-[20px] sm:leading-[22px] tracking-[-0.36px] sm:tracking-[-0.48px] text-left w-full px-2">
               IRL Maps are curated by locals shaping the scene.
               <br />
               Click on a location to check in and earn points for future rewards
@@ -290,12 +279,25 @@ export default function AuthWrapper({
 
             <button
               onClick={login}
-              className="bg-white flex h-12 items-center justify-between px-4 py-2 rounded-full w-full cursor-pointer hover:bg-gray-100 transition-colors"
+              className="bg-black flex h-12 items-center justify-between px-4 py-2 rounded-full w-full cursor-pointer hover:bg-neutral-900 transition-colors"
             >
-              <span className="font-pleasure font-medium text-[16px] leading-[16px] text-[#313131] tracking-[-1.28px]">
+              <span className="label-medium label-large uppercase text-white">
                 {loginCtaText}
               </span>
-              <img src="/arrow-right.svg" alt="" className="w-6 h-6" />
+              <svg
+                width={20}
+                height={20}
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="size-5 shrink-0"
+                aria-hidden
+              >
+                <path
+                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                  fill="#ffffff"
+                />
+              </svg>
             </button>
           </div>
         </div>
