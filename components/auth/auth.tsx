@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { usePrivy } from "@privy-io/react-auth";
-import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
-import Image from "next/image";
+import { usePrivy } from '@privy-io/react-auth';
+import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 interface AuthProps {
   children: React.ReactNode;
@@ -11,7 +11,7 @@ interface AuthProps {
 
 export default function Auth({ children }: AuthProps) {
   const { user, ready, linkEmail, login } = usePrivy();
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState('');
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
   const [needsUsername, setNeedsUsername] = useState(false);
 
@@ -21,8 +21,8 @@ export default function Auth({ children }: AuthProps) {
         try {
           const response = await fetch(
             `/api/player?walletAddress=${encodeURIComponent(
-              user.wallet.address,
-            )}`,
+              user.wallet.address
+            )}`
           );
 
           if (response.ok) {
@@ -40,7 +40,7 @@ export default function Auth({ children }: AuthProps) {
             setNeedsUsername(true);
           }
         } catch (error) {
-          console.error("Error checking player data:", error);
+          console.error('Error checking player data:', error);
           // Assume new player if error occurs
           setNeedsUsername(true);
         }
@@ -57,14 +57,14 @@ export default function Auth({ children }: AuthProps) {
 
     setIsCreatingPlayer(true);
     try {
-      const response = await fetch("/api/player", {
-        method: "POST",
+      const response = await fetch('/api/player', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           walletAddress: user.wallet.address,
-          email: user.email?.address || "",
+          email: user.email?.address || '',
           username: username.trim(),
         }),
       });
@@ -75,11 +75,11 @@ export default function Auth({ children }: AuthProps) {
         // Player created successfully
         setNeedsUsername(false);
       } else {
-        console.error("Failed to create player:", responseData.error);
+        console.error('Failed to create player:', responseData.error);
         // TODO: Show error message to user
       }
     } catch (error) {
-      console.error("Error creating player:", error);
+      console.error('Error creating player:', error);
       // TODO: Show error message to user
     } finally {
       setIsCreatingPlayer(false);
@@ -113,17 +113,23 @@ export default function Auth({ children }: AuthProps) {
     );
   }
 
-  // Show username prompt after login
+  // Show username prompt after login (same shell as default AuthWrapper: funky hero background)
   if (ready && user && needsUsername) {
     return (
-      <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto min-h-dvh px-4 py-8">
-        <div className="flex flex-col gap-6">
-          <p className="text-lg font-inktrap text-center">
+      <div
+        className="font-grotesk flex min-h-dvh w-full flex-col items-center justify-center px-4 py-8"
+        style={{
+          background: "url('/bg-funky.png') no-repeat center center fixed",
+          backgroundSize: 'cover',
+        }}
+      >
+        <div className="flex w-full max-w-md flex-col gap-6">
+          <p className="text-center text-lg font-semibold tracking-tight text-foreground font-inktrap md:text-xl">
             Choose your username to start earning points
           </p>
 
-          <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/30">
-            <p className="text-sm mb-3 font-inktrap uppercase">
+          <div className="rounded-2xl border border-white/30 bg-white/20 p-4 backdrop-blur-sm">
+            <p className="mb-3 text-sm font-inktrap uppercase text-foreground">
               ENTER YOUR USERNAME
             </p>
             <input
@@ -131,24 +137,26 @@ export default function Auth({ children }: AuthProps) {
               placeholder="Enter your username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-white/90 border-0 rounded-full pl-4 pr-4 py-3 text-black placeholder:text-gray-500 font-inktrap focus:outline-none focus:bg-white"
+              className="w-full rounded-full border border-border/60 bg-white py-3 pl-4 pr-4 font-inktrap text-foreground placeholder:text-muted-foreground shadow-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
               maxLength={20}
               disabled={isCreatingPlayer}
+              autoComplete="username"
             />
           </div>
 
           <Button
-            className="w-full bg-white text-black rounded-full hover:bg-white/90 font-inktrap py-6 text-base flex items-center justify-center px-6 disabled:opacity-50 uppercase"
+            className="flex w-full items-center justify-center rounded-full bg-white px-6 py-6 text-base font-inktrap uppercase text-black hover:bg-white/90 disabled:opacity-50"
             onClick={handleCreatePlayer}
             disabled={!username.trim() || isCreatingPlayer}
           >
-            {isCreatingPlayer ? "CREATING PLAYER..." : "START EARNING"}
+            {isCreatingPlayer ? 'CREATING PLAYER...' : 'START EARNING'}
             {!isCreatingPlayer && (
               <svg
-                className="w-4 h-4 ml-2"
+                className="ml-2 h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden
               >
                 <path
                   strokeLinecap="round"

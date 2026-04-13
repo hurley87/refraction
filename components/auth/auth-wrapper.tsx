@@ -4,6 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 export interface CheckpointCustomization {
   partnerImageUrl?: string;
@@ -161,15 +162,55 @@ export default function AuthWrapper({
     );
   }
 
-  // Username requirement check
+  // Username requirement check — match surrounding auth shells so the form is not white-on-white
   if (requireUsername && ready && user && needsUsername) {
-    return (
-      <div className="flex flex-col gap-6 w-full justify-center max-w-xl mx-auto min-h-dvh px-4 py-8">
-        <div className="flex flex-col gap-6">
-          <p className="text-lg font-inktrap text-center">{usernameHeading}</p>
+    const cp = checkpointCustomization;
+    const checkpointBg =
+      cp?.backgroundGradient ||
+      extractBaseColorFromGradient(cp?.backgroundGradient ?? '');
+    const checkpointText = cp?.fontColor || '#E3FF30';
 
-          <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/30">
-            <p className="text-sm mb-3 font-inktrap uppercase">
+    return (
+      <div
+        className={cn(
+          'w-full min-h-dvh flex flex-col items-center justify-center px-4 py-8 sm:px-6',
+          !cp && unauthenticatedUI === 'map-onboarding' && 'overflow-hidden',
+          !cp && unauthenticatedUI !== 'map-onboarding' && 'font-grotesk'
+        )}
+        style={
+          cp
+            ? {
+                background: checkpointBg,
+                ...(cp.fontFamily ? { fontFamily: cp.fontFamily } : {}),
+              }
+            : unauthenticatedUI === 'map-onboarding'
+              ? {
+                  backgroundImage: "url('/bg-green.png')",
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                }
+              : {
+                  background:
+                    "url('/bg-funky.png') no-repeat center center fixed",
+                  backgroundSize: 'cover',
+                }
+        }
+      >
+        <div className="flex w-full max-w-md flex-col gap-6">
+          <p
+            className={cn(
+              'text-center text-lg font-semibold tracking-tight font-inktrap md:text-xl',
+              !cp && unauthenticatedUI === 'map-onboarding' && 'text-white',
+              !cp && unauthenticatedUI !== 'map-onboarding' && 'text-foreground'
+            )}
+            style={cp ? { color: checkpointText } : undefined}
+          >
+            {usernameHeading}
+          </p>
+
+          <div className="rounded-2xl border border-white/30 bg-white/20 p-4 backdrop-blur-sm">
+            <p className="mb-3 text-sm font-inktrap uppercase text-foreground">
               ENTER YOUR USERNAME
             </p>
             <input
@@ -177,24 +218,26 @@ export default function AuthWrapper({
               placeholder="Enter your username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-white/90 border-0 rounded-full pl-4 pr-4 py-3 text-black placeholder:text-gray-500 font-inktrap focus:outline-none focus:bg-white"
+              className="w-full rounded-full border border-border/60 bg-white py-3 pl-4 pr-4 font-inktrap text-foreground placeholder:text-muted-foreground shadow-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
               maxLength={20}
               disabled={isCreatingPlayer}
+              autoComplete="username"
             />
           </div>
 
           <Button
-            className="w-full bg-white text-black rounded-full hover:bg-white/90 font-inktrap py-6 text-base flex items-center justify-center px-6 disabled:opacity-50 uppercase"
+            className="flex w-full items-center justify-center rounded-full bg-white px-6 py-6 text-base font-inktrap uppercase text-black hover:bg-white/90 disabled:opacity-50"
             onClick={handleCreatePlayer}
             disabled={!username.trim() || isCreatingPlayer}
           >
             {isCreatingPlayer ? 'CREATING PLAYER...' : 'START EARNING'}
             {!isCreatingPlayer && (
               <svg
-                className="w-4 h-4 ml-2"
+                className="ml-2 h-4 w-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden
               >
                 <path
                   strokeLinecap="round"
@@ -241,7 +284,8 @@ export default function AuthWrapper({
             <p className="text-white text-[14px] sm:text-[16px] leading-[20px] sm:leading-[22px] tracking-[-0.36px] sm:tracking-[-0.48px] text-left w-full px-2">
               IRL Maps are curated by locals shaping the scene.
               <br />
-              Click on a location to check in and earn points for future rewards at clubs, bars and galleries in your city.
+              Click on a location to check in and earn points for future rewards
+              at clubs, bars and galleries in your city.
             </p>
 
             <button
@@ -343,7 +387,6 @@ export default function AuthWrapper({
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
               </button>
-
             </div>
           </div>
 
