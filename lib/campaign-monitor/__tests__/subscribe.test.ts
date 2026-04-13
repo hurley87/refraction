@@ -27,7 +27,6 @@ describe('addCampaignMonitorSubscriber', () => {
 
     await addCampaignMonitorSubscriber({
       email: 'user@example.com',
-      name: 'Test',
     });
 
     expect(fetch).not.toHaveBeenCalled();
@@ -39,7 +38,6 @@ describe('addCampaignMonitorSubscriber', () => {
 
     await addCampaignMonitorSubscriber({
       email: 'user@example.com',
-      name: 'Display Name',
     });
 
     expect(fetch).toHaveBeenCalledTimes(1);
@@ -54,27 +52,7 @@ describe('addCampaignMonitorSubscriber', () => {
     );
     expect(JSON.parse(init?.body as string)).toEqual({
       EmailAddress: 'user@example.com',
-      Name: 'Display Name',
       ConsentToTrack: 'Yes',
-    });
-  });
-
-  it('includes City custom field when city is provided', async () => {
-    process.env.CAMPAIGN_MONITOR_API_KEY = 'k';
-    process.env.CAMPAIGN_MONITOR_LIST_ID = 'lid';
-    process.env.CAMPAIGN_MONITOR_CITY_FIELD_KEY = 'City';
-
-    await addCampaignMonitorSubscriber({
-      email: 'a@b.co',
-      city: 'Mexico City',
-    });
-
-    expect(
-      JSON.parse(vi.mocked(fetch).mock.calls[0][1]?.body as string)
-    ).toEqual({
-      EmailAddress: 'a@b.co',
-      ConsentToTrack: 'Yes',
-      CustomFields: [{ Key: 'City', Value: 'Mexico City' }],
     });
   });
 

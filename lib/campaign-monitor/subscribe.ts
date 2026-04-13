@@ -7,10 +7,6 @@ const CREATESEND_API_BASE = 'https://api.createsend.com/api/v3.3';
 
 export type AddCampaignMonitorSubscriberInput = {
   email: string;
-  /** Display name (e.g. username until a separate "name" field exists). */
-  name?: string;
-  /** Optional; sent as a custom field when set (key from env or "City"). */
-  city?: string;
 };
 
 function isConfigured(): boolean {
@@ -37,30 +33,10 @@ export async function addCampaignMonitorSubscriber(
     return;
   }
 
-  const cityKey = process.env.CAMPAIGN_MONITOR_CITY_FIELD_KEY?.trim() || 'City';
-
-  const customFields: { Key: string; Value: string }[] = [];
-  const city = input.city?.trim();
-  if (city) {
-    customFields.push({
-      Key: cityKey,
-      Value: city.slice(0, 250),
-    });
-  }
-
-  const body: Record<string, unknown> = {
+  const body = {
     EmailAddress: email,
-    ConsentToTrack: 'Yes',
+    ConsentToTrack: 'Yes' as const,
   };
-
-  const name = input.name?.trim();
-  if (name) {
-    body.Name = name.slice(0, 250);
-  }
-
-  if (customFields.length > 0) {
-    body.CustomFields = customFields;
-  }
 
   const auth = Buffer.from(`${apiKey}:x`, 'utf8').toString('base64');
   const url = `${CREATESEND_API_BASE}/subscribers/${encodeURIComponent(listId)}.json`;
