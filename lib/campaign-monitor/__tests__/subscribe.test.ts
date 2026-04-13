@@ -69,12 +69,31 @@ describe('addCampaignMonitorSubscriber', () => {
     });
   });
 
+  it('includes Name when username is provided', async () => {
+    process.env.CAMPAIGN_MONITOR_API_KEY = 'k';
+    process.env.CAMPAIGN_MONITOR_LIST_ID = 'lid';
+
+    await addCampaignMonitorSubscriber({
+      email: 'a@b.co',
+      username: 'coolhandle',
+    });
+
+    expect(
+      JSON.parse(vi.mocked(fetch).mock.calls[0][1]?.body as string)
+    ).toEqual({
+      EmailAddress: 'a@b.co',
+      Name: 'coolhandle',
+      ConsentToTrack: 'Yes',
+    });
+  });
+
   it('throws when API returns error', async () => {
     process.env.CAMPAIGN_MONITOR_API_KEY = 'k';
     process.env.CAMPAIGN_MONITOR_LIST_ID = 'lid';
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: false,
       status: 400,
+      statusText: 'Bad Request',
       text: async () => '{"Code":1}',
     });
 

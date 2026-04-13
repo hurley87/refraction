@@ -34,7 +34,7 @@ function InteractiveMapContent() {
   }, [cityParam, latParam, lngParam]);
 
   return (
-    <AuthWrapper unauthenticatedUI="map-onboarding">
+    <AuthWrapper requireUsername unauthenticatedUI="map-onboarding">
       <div className="font-grotesk h-full w-full">
         <InteractiveMap
           initialPlaceId={placeId}

@@ -75,7 +75,10 @@ export async function POST(request: NextRequest) {
 
     if (isNewPlayer && email) {
       try {
-        await addCampaignMonitorSubscriber({ email });
+        await addCampaignMonitorSubscriber({
+          email,
+          username: username.trim(),
+        });
       } catch (campaignMonitorError) {
         console.error(
           JSON.stringify({
