@@ -10,10 +10,15 @@ import {
   createLocationCheckin,
 } from '@/lib/db/checkins';
 import type { Player, Location } from '@/lib/types';
-import { trackCheckinCompleted, trackPointsEarned, resolveServerIdentity } from '@/lib/analytics';
+import {
+  trackCheckinCompleted,
+  trackPointsEarned,
+  resolveServerIdentity,
+} from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import { sanitizeString } from '@/lib/utils/validation';
+import { sameWalletAddress } from '@/lib/utils/wallets';
 import { apiSuccess, apiError } from '@/lib/api/response';
 
 export async function POST(request: NextRequest) {
@@ -83,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     const player = await createOrUpdatePlayer(playerData);
 
-    // Create or get location
+    // Create or get location (must record creator so pending spots pass the visibility gate below)
     const locationInfo: Omit<Location, 'id' | 'created_at'> = {
       place_id: sanitizedPlaceId,
       name: sanitizedName,
@@ -94,13 +99,23 @@ export async function POST(request: NextRequest) {
       type: sanitizedType || 'location',
       context: sanitizedContext,
       is_visible: false, // New locations require admin approval
+      creator_wallet_address: walletAddress.trim(),
+      creator_username:
+        typeof username === 'string' && username.trim()
+          ? username.trim()
+          : undefined,
     };
 
     const location = await createOrGetLocation(locationInfo);
 
-    // Reject check-ins at hidden locations
+    // Pending locations (not on the public map yet) only allow check-in for the creator,
+    // so users can complete the create → check-in flow before admin approval.
     if (location.is_visible === false) {
-      return apiError('This location is not available for check-ins', 403);
+      const creator = location.creator_wallet_address?.trim() ?? '';
+      const requester = walletAddress.trim();
+      if (!sameWalletAddress(creator, requester)) {
+        return apiError('This location is not available for check-ins', 403);
+      }
     }
 
     const sanitizedComment =
@@ -151,7 +166,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Track tier progression after points change
-    const newPoints = updatedPlayer?.total_points ?? previousPoints + location.points_value;
+    const newPoints =
+      updatedPlayer?.total_points ?? previousPoints + location.points_value;
     await checkAndTrackTierProgression(distinctId, previousPoints, newPoints);
 
     // Extract city from location context if available

@@ -834,10 +834,16 @@ export default function AdminLocationListsPage() {
         imageUrl = uploadData.imageUrl || uploadData.url || '';
       }
 
+      const token = await getAccessToken();
+      if (!token) {
+        throw new Error('Missing authorization token');
+      }
+
       const response = await fetch(`/api/admin/locations/${locationId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
           'x-user-email': adminEmail,
         },
         body: JSON.stringify({

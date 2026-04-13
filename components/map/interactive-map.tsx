@@ -4,7 +4,12 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Map, { Marker } from 'react-map-gl/mapbox';
 import LocationSearch from '@/components/shared/location-search';
-import { deriveDisplayNameAndAddress } from '@/lib/utils/location-autofill';
+import {
+  deriveDisplayNameAndAddress,
+  MapboxGeocodeFeature,
+  mergePoiAndAddressReverseGeocode,
+  mergeSearchBoxReverseFeatures,
+} from '@/lib/utils/location-autofill';
 import { usePrivy } from '@privy-io/react-auth';
 import { toast } from 'sonner';
 import MapNav from '@/components/map/mapnav';
@@ -15,6 +20,8 @@ import LocationListsDrawer, {
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import { formatLocationCategory } from '@/lib/utils/format-location-category';
 
 interface MarkerData {
   latitude: number;
@@ -52,14 +59,6 @@ interface LocationFormData {
 
 type FormStep = 'business-details' | 'success';
 
-interface SearchLocationData {
-  latitude: number;
-  longitude: number;
-  place_id: string;
-  name: string;
-  placeFormatted?: string;
-}
-
 const WELCOME_BANNER_STORAGE_KEY = 'irl-map-welcome-dismissed';
 const WELCOME_BANNER_MAX_SHOWS = 3;
 const LOCATION_INSTRUCTION_STORAGE_KEY =
@@ -93,14 +92,6 @@ function getCheckinInitial(entry: LocationCheckinPreview) {
     return entry.walletAddress.slice(2, 3).toUpperCase();
   }
   return '+';
-}
-
-function formatLocationCategory(type?: string | null) {
-  const normalized = (type ?? 'location').trim();
-  if (!normalized) return 'Location';
-  return normalized
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 interface InteractiveMapProps {
@@ -138,8 +129,9 @@ export default function InteractiveMap({
     locationImage: null,
     checkInComment: '',
   });
-  const [searchedLocation, setSearchedLocation] =
-    useState<SearchLocationData | null>(null);
+  /** Reverse-geocoded spot from map click or search — not yet an IRL location; show compact card before create form. */
+  const [pendingMapCreateMarker, setPendingMapCreateMarker] =
+    useState<MarkerData | null>(null);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showCheckInCommentModal, setShowCheckInCommentModal] = useState(false);
@@ -152,6 +144,9 @@ export default function InteractiveMap({
     LocationCheckinPreview[]
   >([]);
   const [isLoadingLocationCheckins, setIsLoadingLocationCheckins] =
+    useState(false);
+  /** From GET /api/location-comments when walletAddress is sent — any check-in counts (incl. no comment). */
+  const [hasUserCheckedInAtLocation, setHasUserCheckedInAtLocation] =
     useState(false);
   const [locationCheckinsError, setLocationCheckinsError] = useState<
     string | null
@@ -491,8 +486,12 @@ export default function InteractiveMap({
     setIsLoadingLocationCheckins(true);
     setLocationCheckinsError(null);
     try {
+      const params = new URLSearchParams({ placeId });
+      if (walletAddress) {
+        params.set('walletAddress', walletAddress);
+      }
       const response = await fetch(
-        `/api/location-comments?placeId=${encodeURIComponent(placeId)}`
+        `/api/location-comments?${params.toString()}`
       );
       if (!response.ok) {
         throw new Error('Failed to fetch comments');
@@ -501,9 +500,11 @@ export default function InteractiveMap({
       // Unwrap the apiSuccess wrapper
       const data = responseData.data || responseData;
       setLocationCheckins(data.checkins || []);
+      setHasUserCheckedInAtLocation(Boolean(data.hasUserCheckedIn));
     } catch (error) {
       console.error('Failed to load location check-ins:', error);
       setLocationCheckins([]);
+      setHasUserCheckedInAtLocation(false);
       setLocationCheckinsError('Unable to load check-ins right now.');
     } finally {
       setIsLoadingLocationCheckins(false);
@@ -522,68 +523,105 @@ export default function InteractiveMap({
       return;
     }
 
-    // Clear searched location when clicking on the map
-    setSearchedLocation(null);
+    if (showLocationForm) {
+      if (isCreatingLocation) {
+        return;
+      }
+      handleCloseLocationForm();
+    }
+
+    setPendingMapCreateMarker(null);
 
     const { lngLat } = event;
     const longitude = lngLat.lng;
     const latitude = lngLat.lat;
 
     try {
-      // Use reverse geocoding to get location information
-      const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}&types=poi,place,address`
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.features && data.features.length > 0) {
-          const feature = data.features[0];
-          // Determine if this is a POI or address based on feature properties
-          const isPOI =
-            feature.properties?.category === 'poi' ||
-            feature.properties?.poi ||
-            feature.place_type?.includes('poi');
-          const spotName = isPOI ? feature.text || '' : '';
-          const fullAddress = feature.place_name || '';
-
-          // For POIs, strip the POI name prefix from the address if present
-          let address = fullAddress;
-          if (isPOI && spotName && fullAddress.startsWith(`${spotName}, `)) {
-            address = fullAddress.slice(`${spotName}, `.length);
-          } else if (!isPOI) {
-            address = fullAddress;
-          }
-
-          const newMarker: MarkerData = {
-            latitude,
-            longitude,
-            place_id: feature.id || `temp-${Date.now()}`,
-            name: spotName || address || 'Unknown Location', // Venue name (fallback to address)
-            address: address || 'Unknown Location', // Street address
-          };
-          const duplicateMarker = findExistingMarker(newMarker.place_id);
-          if (duplicateMarker) {
-            toast.info('That location already exists—check it out instead!');
-            setSelectedMarker(duplicateMarker);
-            setPopupInfo(duplicateMarker);
-            setShowLocationForm(false);
-            setSearchedLocation(null);
-            return;
-          }
-
-          setSelectedMarker(newMarker);
-          setFormData({
-            name: newMarker.name, // Venue name
-            address: newMarker.address || newMarker.name, // Address
-            description: '',
-            locationImage: null,
-            checkInComment: '',
-          });
-          setFormStep('business-details');
-          setShowLocationForm(true);
-        }
+      const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+      const geocodeBaseUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json`;
+      // Search Box /reverse returns multiple feature types (POI + address) in one response — better
+      // POI coverage than Geocoding v5 for the same coordinates. Fall back to dual Geocoding requests.
+      const searchBoxReverseUrl = `https://api.mapbox.com/search/searchbox/v1/reverse?longitude=${longitude}&latitude=${latitude}&limit=10&access_token=${token}`;
+      const searchBoxRes = await fetch(searchBoxReverseUrl);
+      let mergedFromSearchBox = null as ReturnType<
+        typeof mergeSearchBoxReverseFeatures
+      >;
+      if (searchBoxRes.ok) {
+        const searchBoxData = await searchBoxRes.json();
+        mergedFromSearchBox = mergeSearchBoxReverseFeatures(
+          searchBoxData.features,
+          { click: { latitude, longitude } }
+        );
       }
+
+      let resolvedName: string;
+      let resolvedAddress: string;
+      let placeId: string;
+
+      if (mergedFromSearchBox) {
+        resolvedName = mergedFromSearchBox.name;
+        resolvedAddress = mergedFromSearchBox.address;
+        placeId = mergedFromSearchBox.mapboxId || `temp-${Date.now()}`;
+      } else {
+        const [poiResponse, addressResponse] = await Promise.all([
+          fetch(`${geocodeBaseUrl}?access_token=${token}&types=poi&limit=1`),
+          fetch(
+            `${geocodeBaseUrl}?access_token=${token}&types=address&limit=1`
+          ),
+        ]);
+
+        let poiFeature: MapboxGeocodeFeature | undefined;
+        let addressFeature: MapboxGeocodeFeature | undefined;
+        if (poiResponse.ok) {
+          const poiData = await poiResponse.json();
+          poiFeature = poiData.features?.[0];
+        }
+        if (addressResponse.ok) {
+          const addressData = await addressResponse.json();
+          addressFeature = addressData.features?.[0];
+        }
+
+        if (!poiFeature && !addressFeature) {
+          throw new Error('No reverse geocode features');
+        }
+
+        const merged = mergePoiAndAddressReverseGeocode(
+          poiFeature,
+          addressFeature,
+          { click: { latitude, longitude } }
+        );
+        resolvedName = merged.name;
+        resolvedAddress = merged.address;
+        placeId = poiFeature?.id || addressFeature?.id || `temp-${Date.now()}`;
+      }
+
+      const newMarker: MarkerData = {
+        latitude,
+        longitude,
+        place_id: placeId,
+        name: resolvedName,
+        address: resolvedAddress,
+      };
+      const duplicateMarker = findExistingMarker(newMarker.place_id);
+      if (duplicateMarker) {
+        toast.info('That location already exists—check it out instead!');
+        setSelectedMarker(duplicateMarker);
+        setPopupInfo(duplicateMarker);
+        setShowLocationForm(false);
+        setPendingMapCreateMarker(null);
+        return;
+      }
+
+      setSelectedMarker(newMarker);
+      setFormData({
+        name: newMarker.name, // Venue name
+        address: newMarker.address || newMarker.name, // Address
+        description: '',
+        locationImage: null,
+        checkInComment: '',
+      });
+      setFormStep('business-details');
+      setPendingMapCreateMarker(newMarker);
     } catch (error) {
       console.error('Reverse geocoding failed:', error);
       // Still allow creating even if reverse geocoding fails
@@ -605,8 +643,24 @@ export default function InteractiveMap({
         checkInComment: '',
       });
       setFormStep('business-details');
-      setShowLocationForm(true);
+      setPendingMapCreateMarker(newMarker);
     }
+  };
+
+  const handleOpenCreateFromPendingMapClick = () => {
+    if (!pendingMapCreateMarker) return;
+    setSelectedMarker(pendingMapCreateMarker);
+    setFormData((prev) => ({
+      ...prev,
+      name: pendingMapCreateMarker.name,
+      address: pendingMapCreateMarker.address || pendingMapCreateMarker.name,
+      description: '',
+      locationImage: null,
+      checkInComment: prev.checkInComment,
+    }));
+    setFormStep('business-details');
+    setShowLocationForm(true);
+    setPendingMapCreateMarker(null);
   };
 
   const handleSearchSelect = (picked: {
@@ -617,6 +671,7 @@ export default function InteractiveMap({
     placeFormatted?: string;
     featureType?: string;
   }) => {
+    setPendingMapCreateMarker(null);
     const { longitude, latitude, id, name, placeFormatted, featureType } =
       picked;
     const newViewState = { longitude, latitude, zoom: 15 };
@@ -643,6 +698,13 @@ export default function InteractiveMap({
         setMapBounds(bounds);
       }
     }, 500);
+
+    const existingByPlaceId = findExistingMarker(id);
+    if (existingByPlaceId) {
+      setSelectedMarker(existingByPlaceId);
+      setPopupInfo(existingByPlaceId);
+      return;
+    }
 
     // Open nearest existing marker if within 100m
     const toRad = (v: number) => (v * Math.PI) / 180;
@@ -677,22 +739,21 @@ export default function InteractiveMap({
     if (nearest && nearestDist <= 100) {
       setSelectedMarker(nearest);
       setPopupInfo(nearest);
-      setSearchedLocation(null); // Clear searched location if marker found
     } else {
-      // Create a temporary location from search
       const { displayName, address } = deriveDisplayNameAndAddress({
         name,
         placeFormatted,
         featureType,
       });
-      const searchLocation: SearchLocationData = {
+      const resolvedName = displayName || address || 'Unknown Location';
+      const newMarker: MarkerData = {
         latitude,
         longitude,
         place_id: id,
-        name: displayName || address || 'Unknown Location',
-        placeFormatted: placeFormatted,
+        name: resolvedName,
+        address: placeFormatted?.trim() || resolvedName,
       };
-      setSearchedLocation(searchLocation);
+      setPendingMapCreateMarker(newMarker);
       setSelectedMarker(null);
       setPopupInfo(null);
     }
@@ -701,7 +762,28 @@ export default function InteractiveMap({
   const handleMarkerClick = (marker: MarkerData) => {
     setPopupInfo(marker);
     setSelectedMarker(marker);
-    setSearchedLocation(null); // Clear searched location when clicking a marker
+    setPendingMapCreateMarker(null);
+
+    const targetZoom = Math.max(viewState.zoom ?? 12, 15);
+    // Bottom padding keeps the pin in the visual center above the fixed map card overlay.
+    const bottomPaddingPx =
+      typeof window !== 'undefined'
+        ? Math.min(360, Math.max(200, Math.round(window.innerHeight * 0.34)))
+        : 280;
+
+    mapRef.current?.flyTo?.({
+      center: [marker.longitude, marker.latitude],
+      zoom: targetZoom,
+      duration: 1200,
+      padding: { top: 0, bottom: bottomPaddingPx, left: 0, right: 0 },
+    });
+
+    setTimeout(() => {
+      const bounds = calculateMapBounds();
+      if (bounds) {
+        setMapBounds(bounds);
+      }
+    }, 1300);
   };
 
   const handleLocateUser = () => {
@@ -782,6 +864,7 @@ export default function InteractiveMap({
     setCheckInSuccess(false);
     setLocationCheckins([]);
     setLocationCheckinsError(null);
+    setHasUserCheckedInAtLocation(false);
     setShowCheckInModal(true);
     void loadLocationCheckins(marker.place_id);
   };
@@ -796,6 +879,7 @@ export default function InteractiveMap({
     setLocationCheckins([]);
     setLocationCheckinsError(null);
     setIsLoadingLocationCheckins(false);
+    setHasUserCheckedInAtLocation(false);
   };
 
   const handleCheckIn = async () => {
@@ -837,8 +921,8 @@ export default function InteractiveMap({
       if (!response.ok) {
         if (response.status === 409) {
           toast.info("You've already checked in at this location!");
+          setHasUserCheckedInAtLocation(true);
           setPopupInfo(null);
-          setSearchedLocation(null);
           handleCloseCheckInModal();
           return;
         }
@@ -848,6 +932,7 @@ export default function InteractiveMap({
       // Show success screen
       setCheckInPointsEarned(result.pointsEarned || 100);
       setCheckInSuccess(true);
+      setHasUserCheckedInAtLocation(true);
       setShowCheckInCommentModal(false);
       const trimmedComment = checkInComment.trim();
       if (trimmedComment.length > 0) {
@@ -869,8 +954,8 @@ export default function InteractiveMap({
 
       // Close the map popups
       setPopupInfo(null);
-      setSearchedLocation(null);
       setSelectedMarker(null);
+      setPendingMapCreateMarker(null);
     } catch (error) {
       console.error('Error checking in:', error);
       toast.error('Failed to check in: ' + (error as Error).message);
@@ -879,42 +964,14 @@ export default function InteractiveMap({
     }
   };
 
-  const handleInitiateLocationCreation = async () => {
-    if (!searchedLocation) return;
-
-    const existingMarker = findExistingMarker(searchedLocation.place_id);
-    if (existingMarker) {
-      toast.info('That location already exists—check it out instead!');
-      setSelectedMarker(existingMarker);
-      setPopupInfo(existingMarker);
-      setShowLocationForm(false);
-      setSearchedLocation(null);
-      return;
-    }
-
-    // Set up for creating the location
-    const newMarker: MarkerData = {
-      latitude: searchedLocation.latitude,
-      longitude: searchedLocation.longitude,
-      place_id: searchedLocation.place_id,
-      name: searchedLocation.name,
-    };
-
-    setSelectedMarker(newMarker);
-    setFormData({
-      name: searchedLocation.name, // Venue name
-      address: searchedLocation.placeFormatted || searchedLocation.name, // Address
-      description: '',
-      locationImage: null,
-      checkInComment: '',
-    });
-    setFormStep('business-details');
-    setShowLocationForm(true);
-  };
-
   const handleBusinessDetailsNext = () => {
     if (!formData.name.trim()) {
       toast.error('Location name is required');
+      return;
+    }
+
+    if (!formData.description.trim()) {
+      toast.error('Description is required');
       return;
     }
 
@@ -941,7 +998,6 @@ export default function InteractiveMap({
       setSelectedMarker(existingMarker);
       setPopupInfo(existingMarker);
       setShowLocationForm(false);
-      setSearchedLocation(null);
       return;
     }
 
@@ -981,6 +1037,9 @@ export default function InteractiveMap({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(user?.email?.address
+            ? { 'x-user-email': user.email.address }
+            : {}),
         },
         body: JSON.stringify({
           place_id: selectedMarker.place_id,
@@ -1026,7 +1085,6 @@ export default function InteractiveMap({
             setSelectedMarker(marker);
             setPopupInfo(marker);
             setShowLocationForm(false);
-            setSearchedLocation(null);
           };
 
           // Try to fetch full location details from API
@@ -1093,12 +1151,65 @@ export default function InteractiveMap({
       // Location created successfully - it will appear on the map after admin approval
       // Do NOT add to local markers state - location is hidden until admin approves
 
-      const creationPoints = result.pointsAwarded || 100;
+      const payload = result.data ?? result;
+      const creationPoints = payload.pointsAwarded ?? 100;
+      const apiLocation = payload.location as
+        | {
+            latitude?: number;
+            longitude?: number;
+            place_id?: string;
+            name?: string;
+            address?: string | null;
+            description?: string | null;
+            creator_wallet_address?: string | null;
+            creator_username?: string | null;
+            coin_image_url?: string | null;
+            type?: string | null;
+            points_value?: number | null;
+            event_url?: string | null;
+            is_visible?: boolean | null;
+          }
+        | undefined;
 
-      // Store points and show success screen
-      setPointsEarned({ creation: creationPoints, checkIn: 0 });
-      setFormStep('success');
+      const markerForCheckIn: MarkerData = apiLocation
+        ? {
+            latitude: Number(apiLocation.latitude ?? selectedMarker.latitude),
+            longitude: Number(
+              apiLocation.longitude ?? selectedMarker.longitude
+            ),
+            place_id: apiLocation.place_id ?? selectedMarker.place_id,
+            name: apiLocation.name ?? selectedMarker.name,
+            address:
+              apiLocation.address ??
+              selectedMarker.address ??
+              apiLocation.name ??
+              selectedMarker.name,
+            description: apiLocation.description ?? formData.description,
+            creator_wallet_address:
+              apiLocation.creator_wallet_address ?? walletAddress ?? null,
+            creator_username: apiLocation.creator_username ?? userUsername,
+            imageUrl: apiLocation.coin_image_url ?? locationImageUrl ?? null,
+            type: apiLocation.type ?? 'location',
+            points_value: apiLocation.points_value ?? 100,
+            event_url: apiLocation.event_url ?? null,
+          }
+        : {
+            ...selectedMarker,
+            name: formData.name || selectedMarker.name,
+            address:
+              formData.address || selectedMarker.address || selectedMarker.name,
+            description: formData.description,
+            imageUrl: locationImageUrl,
+          };
+
+      toast.success(
+        apiLocation?.is_visible === false
+          ? `Location created! +${creationPoints} point${creationPoints === 1 ? '' : 's'}. Check-in unlocks after your spot is approved.`
+          : `Location created! +${creationPoints} point${creationPoints === 1 ? '' : 's'}`
+      );
+      handleCloseLocationForm();
       remindLocationCreationFlow();
+      handleStartCheckIn(markerForCheckIn);
     } catch (error) {
       console.error('Error creating location:', error);
       toast.error('Failed to create location: ' + (error as Error).message);
@@ -1112,6 +1223,7 @@ export default function InteractiveMap({
     setFormStep('business-details');
     setSelectedMarker(null);
     setPopupInfo(null);
+    setPendingMapCreateMarker(null);
     setPointsEarned({ creation: 0, checkIn: 0 });
     setFormData({
       name: '',
@@ -1122,6 +1234,24 @@ export default function InteractiveMap({
     });
   };
 
+  const isCreateLocationFormComplete = Boolean(
+    formData.name.trim() &&
+    formData.description.trim() &&
+    formData.locationImage
+  );
+
+  const handleCloseLocationFormRef = useRef(handleCloseLocationForm);
+  handleCloseLocationFormRef.current = handleCloseLocationForm;
+
+  useEffect(() => {
+    if (!showLocationForm) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleCloseLocationFormRef.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showLocationForm]);
+
   const handleFocusLocationFromList = (location: DrawerLocationSummary) => {
     if (
       typeof location.latitude !== 'number' ||
@@ -1129,6 +1259,8 @@ export default function InteractiveMap({
     ) {
       return;
     }
+
+    setPendingMapCreateMarker(null);
 
     const lat = location.latitude;
     const lon = location.longitude;
@@ -1184,6 +1316,13 @@ export default function InteractiveMap({
       });
     }
   };
+
+  const mapCardBottomOverlayClassName = cn(
+    'pointer-events-none fixed inset-x-0 z-[75] flex justify-center px-4',
+    showLocationForm
+      ? 'bottom-[calc(min(88vh,640px)+0.5rem)]'
+      : 'bottom-[max(0.75rem,env(safe-area-inset-bottom))]'
+  );
 
   return (
     <div className="fixed inset-0 w-full h-full">
@@ -1543,11 +1682,10 @@ export default function InteractiveMap({
           </Marker>
         ))}
 
-        {/* Temporary marker for searched locations */}
-        {searchedLocation && !popupInfo && (
+        {pendingMapCreateMarker && !popupInfo && (
           <Marker
-            latitude={searchedLocation.latitude}
-            longitude={searchedLocation.longitude}
+            latitude={pendingMapCreateMarker.latitude}
+            longitude={pendingMapCreateMarker.longitude}
             anchor="bottom"
           >
             <div className="h-8 w-8 animate-pulse rounded-full border-2 border-white bg-[#FFF200] shadow-md" />
@@ -1568,14 +1706,14 @@ export default function InteractiveMap({
         )}
       </Map>
 
-      {/* Centered map card overlay for existing markers */}
       {popupInfo && (
-        <div className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center px-4">
-          <div className="pointer-events-auto">
+        <div className={mapCardBottomOverlayClassName}>
+          <div className="pointer-events-auto w-full max-w-[361px]">
             <MapCard
               name={popupInfo.name}
               address={popupInfo.address || popupInfo.name}
               description={popupInfo.description}
+              type={popupInfo.type}
               isExisting={true}
               onAction={() => handleStartCheckIn(popupInfo)}
               onClose={() => {
@@ -1591,18 +1729,21 @@ export default function InteractiveMap({
         </div>
       )}
 
-      {/* Centered map card overlay for searched locations */}
-      {searchedLocation && !popupInfo && (
-        <div className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center px-4">
-          <div className="pointer-events-auto">
+      {pendingMapCreateMarker && !popupInfo && (
+        <div className={mapCardBottomOverlayClassName}>
+          <div className="pointer-events-auto w-full max-w-[361px]">
             <MapCard
-              name={searchedLocation.name}
-              address={searchedLocation.placeFormatted || searchedLocation.name}
-              isExisting={false}
-              onAction={handleInitiateLocationCreation}
-              onClose={() => setSearchedLocation(null)}
+              variant="createPreview"
+              name={pendingMapCreateMarker.name}
+              address={
+                pendingMapCreateMarker.address || pendingMapCreateMarker.name
+              }
+              onAction={handleOpenCreateFromPendingMapClick}
+              onClose={() => {
+                setPendingMapCreateMarker(null);
+                setSelectedMarker(null);
+              }}
               isLoading={false}
-              eventUrl={null}
             />
           </div>
         </div>
@@ -1616,11 +1757,11 @@ export default function InteractiveMap({
         }}
       >
         <DialogContent className="fixed left-0 top-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center gap-0 bg-transparent p-0 shadow-none [&>button]:hidden">
-          <div className="flex h-full w-full min-h-0 flex-col items-center overflow-hidden bg-white pb-2 pt-0">
+          <div className="flex h-full w-full min-h-0 max-w-[393px] flex-col items-stretch overflow-hidden bg-white pb-2 pt-0 mx-auto">
             {/* Hero: location image — first row */}
             {!checkInSuccess && (
               <div
-                className="flex h-[258px] w-full max-w-[393px] shrink-0 items-start gap-2 border border-white/15 p-2 bg-cover bg-center bg-no-repeat bg-[lightgray]"
+                className="flex h-[258px] w-full shrink-0 items-start gap-2 border border-white/15 p-2 bg-cover bg-center bg-no-repeat bg-[lightgray]"
                 style={
                   checkInTarget?.imageUrl
                     ? {
@@ -2482,13 +2623,32 @@ export default function InteractiveMap({
                     </svg>
                   </div>
                   <button
-                    onClick={() => setShowCheckInCommentModal(true)}
-                    disabled={isCheckingIn || !checkInTarget}
-                    className="flex h-11 w-full flex-[1_0_0] self-stretch items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-4 py-2 transition-colors hover:bg-black disabled:opacity-50"
+                    onClick={() => {
+                      if (hasUserCheckedInAtLocation) return;
+                      setShowCheckInCommentModal(true);
+                    }}
+                    disabled={
+                      isCheckingIn ||
+                      !checkInTarget ||
+                      hasUserCheckedInAtLocation
+                    }
+                    className={cn(
+                      'flex h-11 w-full flex-[1_0_0] self-stretch items-center justify-between px-4 py-2 transition-colors',
+                      hasUserCheckedInAtLocation
+                        ? 'cursor-not-allowed bg-[#DBDBDB]'
+                        : 'bg-[var(--Dark-Tint-100---Ink-Black,#171717)] hover:bg-black disabled:opacity-50'
+                    )}
                     type="button"
                   >
-                    <span className="label-medium label-large uppercase text-[#ffffff]">
-                      Check-In
+                    <span
+                      className={cn(
+                        'label-medium label-large uppercase',
+                        hasUserCheckedInAtLocation
+                          ? 'text-[#999]'
+                          : 'text-[#ffffff]'
+                      )}
+                    >
+                      {hasUserCheckedInAtLocation ? 'CHECKED IN' : 'Check-In'}
                     </span>
                     <svg
                       width="24"
@@ -2501,7 +2661,9 @@ export default function InteractiveMap({
                     >
                       <path
                         d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
-                        fill="#DBDBDB"
+                        fill={
+                          hasUserCheckedInAtLocation ? '#b0b0b0' : '#DBDBDB'
+                        }
                       />
                     </svg>
                   </button>
@@ -2545,7 +2707,7 @@ export default function InteractiveMap({
         }}
       >
         <DialogContent className="fixed left-0 top-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center gap-0 border-none bg-transparent p-0 shadow-none [&>button]:hidden">
-          <div className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-white">
+          <div className="flex h-full w-full min-h-0 max-w-[393px] flex-col overflow-hidden bg-white mx-auto">
             <div className="flex items-center justify-between border-b border-[#f0f0f0] bg-white px-4 py-3">
               <h3 className="label-large tracking-[-0.5px] text-[#1a1a1a]">
                 Check-In
@@ -2634,57 +2796,43 @@ export default function InteractiveMap({
         </DialogContent>
       </Dialog>
 
-      {/* Location Form Dialog */}
-      <Dialog
-        open={showLocationForm}
-        onOpenChange={(open) => {
-          if (!open) handleCloseLocationForm();
-        }}
-      >
-        <DialogContent className="w-full max-w-[340px] p-0 bg-transparent border-none shadow-none [&>button]:hidden">
-          <div className="bg-white rounded-2xl overflow-hidden max-h-[85vh] flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+      {/* New location — bottom drawer (map stays visible above) */}
+      {showLocationForm && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-[80] flex justify-center pointer-events-none px-0 sm:px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="new-location-drawer-title"
+        >
+          <div className="pointer-events-auto flex w-full max-w-[393px] max-h-[min(88vh,640px)] flex-col overflow-hidden rounded-t-2xl border border-b-0 border-[#ebebeb] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.12)] sm:rounded-2xl sm:border-b sm:mb-[max(0.5rem,env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)]">
             {/* Header */}
             {formStep !== 'success' && (
-              <div className="bg-white flex items-center justify-between px-3 py-2.5 border-b border-[#f0f0f0]">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleCloseLocationForm}
-                    className="text-[#999] hover:text-[#666] transition-colors disabled:opacity-50"
-                    aria-label="Close"
-                    disabled={isCreatingLocation}
+              <div className="flex shrink-0 items-center justify-between bg-white px-3 pt-2.5 pb-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <p
+                    id="new-location-drawer-title"
+                    className="truncate text-[#000000] tracking-[-0.5px] label-small uppercase"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                  <h2 className=" text-[#1a1a1a] tracking-[-0.5px]">
-                    New Location
-                  </h2>
+                    create and check in
+                  </p>
                 </div>
               </div>
             )}
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {/* Step 1: Business Details */}
               {formStep === 'business-details' && (
-                <div className="p-3">
+                <div className="px-3 pb-3 pt-0">
                   <div className="flex flex-col gap-3">
+                    <p className="m-0 title3 text-[#000000] font-semibold">
+                      Add Business Details
+                    </p>
                     {/* Name Field */}
                     <div className="flex flex-col gap-1.5">
                       <label
                         htmlFor="name"
-                        className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]"
+                        className="label-small text-[#757575] uppercase tracking-[0.3px]"
                       >
                         Name <span className="text-red-500">*</span>
                       </label>
@@ -2699,7 +2847,7 @@ export default function InteractiveMap({
                             name: e.target.value,
                           }))
                         }
-                        className="rounded-xl px-3 h-10 border border-[#e8e8e8] bg-white text-sm tracking-[-0.2px] text-[#1a1a1a] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#999]"
+                        className="px-3 h-10 border border-[#e8e8e8] bg-white body-medium tracking-[-0.2px] text-[#000000] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#999]"
                         maxLength={100}
                       />
                     </div>
@@ -2708,7 +2856,7 @@ export default function InteractiveMap({
                     <div className="flex flex-col gap-1.5">
                       <label
                         htmlFor="address"
-                        className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]"
+                        className="label-small text-[#757575] uppercase tracking-[0.3px]"
                       >
                         Address
                       </label>
@@ -2723,22 +2871,23 @@ export default function InteractiveMap({
                             address: e.target.value,
                           }))
                         }
-                        className="rounded-xl px-3 h-10 border border-[#e8e8e8] bg-[#fafafa] text-sm tracking-[-0.2px] text-[#666] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className=" px-3 h-10 border border-[#e8e8e8] bg-[#fafafa] body-medium tracking-[-0.2px] text-[#666] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0"
                         maxLength={200}
                       />
                     </div>
 
                     {/* Description Field */}
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex h-[176px] shrink-0 flex-col items-start gap-2 self-stretch">
                       <label
                         htmlFor="description"
-                        className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]"
+                        className="label-small shrink-0 text-[#757575] uppercase tracking-[0.3px]"
                       >
-                        Description
+                        Description <span className="text-red-500">*</span>
                       </label>
                       <Textarea
                         id="description"
-                        placeholder="What makes this place special?"
+                        required
+                        placeholder="Describe this business"
                         value={formData.description}
                         onChange={(e) =>
                           setFormData((prev) => ({
@@ -2746,22 +2895,22 @@ export default function InteractiveMap({
                             description: e.target.value,
                           }))
                         }
-                        className="min-h-[70px] rounded-xl p-3 border border-[#e8e8e8] bg-white text-sm tracking-[-0.2px] text-[#1a1a1a] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#999] resize-none"
+                        className="min-h-0 w-full flex-1 resize-none border border-[#e8e8e8] bg-white p-3 body-medium tracking-[-0.2px] text-[#000000] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#999]"
                         maxLength={500}
                       />
                     </div>
 
                     {/* Image Upload */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]">
-                        Image <span className="text-red-500">*</span>
+                      <label className="label-small text-[#757575] uppercase tracking-[0.3px]">
+                        Add image <span className="text-red-500">*</span>
                       </label>
                       {formData.locationImage ? (
                         <div className="relative">
                           <img
                             src={URL.createObjectURL(formData.locationImage)}
                             alt="Preview"
-                            className="w-full h-32 object-cover rounded-xl"
+                            className="w-full h-32 object-cover border border-[#e8e8e8] bg-white"
                           />
                           <button
                             type="button"
@@ -2771,7 +2920,7 @@ export default function InteractiveMap({
                                 locationImage: null,
                               }));
                             }}
-                            className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm hover:bg-white rounded-full w-6 h-6 flex items-center justify-center transition-colors shadow-sm"
+                            className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm hover:bg-white w-6 h-6 flex items-center justify-center transition-colors shadow-sm"
                           >
                             <svg
                               className="w-3 h-3 text-[#666]"
@@ -2791,23 +2940,24 @@ export default function InteractiveMap({
                       ) : (
                         <label
                           htmlFor="locationImage"
-                          className="bg-[#f8f8f8] border border-dashed border-[#d0d0d0] rounded-xl flex flex-col items-center justify-center py-6 cursor-pointer hover:bg-[#f0f0f0] hover:border-[#999] transition-colors"
+                          className="flex cursor-pointer flex-col items-center justify-center gap-2 self-stretch px-10 py-4 transition-colors"
+                          style={{
+                            border:
+                              '1px dashed var(--Borders-Heavy-Border, #454545)',
+                            background:
+                              'var(--Backgrounds-Secondary-CTA-BG, #DBDBDB)',
+                          }}
                         >
-                          <svg
-                            className="w-5 h-5 text-[#999] mb-1.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={1.5}
-                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                          <p className="text-[10px] font-medium text-[#999] uppercase tracking-[0.3px]">
-                            Upload image
+                          <Image
+                            src="/guidance-vupload.svg"
+                            alt=""
+                            width={20}
+                            height={20}
+                            className="h-5 w-5 shrink-0"
+                            aria-hidden
+                          />
+                          <p className="text-[#171717] label-small uppercase tracking-[0.3px]">
+                            Upload an image
                           </p>
                         </label>
                       )}
@@ -2916,17 +3066,25 @@ export default function InteractiveMap({
 
             {/* Footer */}
             {formStep !== 'success' ? (
-              <div className="p-3 pt-0">
+              <div className="shrink-0 p-3 pt-0">
                 <button
+                  type="button"
                   onClick={handleBusinessDetailsNext}
-                  disabled={isCreatingLocation}
-                  className="bg-[#1a1a1a] hover:bg-black text-white rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex items-center justify-center transition-colors disabled:opacity-50 w-full"
+                  disabled={isCreatingLocation || !isCreateLocationFormComplete}
+                  className={cn(
+                    'flex h-11 w-full shrink-0 items-center justify-center self-stretch rounded-full px-4 transition-colors',
+                    isCreateLocationFormComplete && !isCreatingLocation
+                      ? 'bg-[#1a1a1a] text-white hover:bg-black'
+                      : 'cursor-not-allowed bg-[#DBDBDB] text-[#999]'
+                  )}
                 >
-                  {isCreatingLocation ? 'Creating...' : 'Create Location'}
+                  <span className="label-large uppercase">
+                    {isCreatingLocation ? '...' : 'Next'}
+                  </span>
                 </button>
               </div>
             ) : (
-              <div className="p-3">
+              <div className="shrink-0 p-3">
                 <button
                   onClick={handleCloseLocationForm}
                   className="bg-[#1a1a1a] hover:bg-black text-white rounded-full h-9 font-inktrap text-[11px] uppercase tracking-[0.3px] flex items-center justify-center transition-colors w-full"
@@ -2936,8 +3094,8 @@ export default function InteractiveMap({
               </div>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }

@@ -24,31 +24,33 @@
     font-size: 2.4375rem; /* 39px */
     line-height: 2.5rem; /* 40px */
     font-weight: 700;
-    font-family: 'Gal Gothic Variable', sans-serif;
+    font-family: 'Special Gothic SemiExpanded', sans-serif;
+    letter-spacing: -2.34px;
   }
 
   h2 {
     font-size: 1.9375rem; /* 31px */
     line-height: 2rem; /* 32px */
     font-weight: 500;
-    letter-spacing: -0.62px;
-    font-family: 'Gal Gothic Variable', sans-serif;
+    letter-spacing: -2%;
+    font-family: 'Special Gothic SemiExpanded', sans-serif;
   }
 
   h3 {
     font-size: 1.5625rem; /* 25px */
     line-height: 1.75rem; /* 28px */
-    letter-spacing: -0.5px;
+    letter-spacing: -2%;
     font-weight: 500;
-    font-family: 'Special Gothic Expanded One', sans-serif;
+    font-family: 'Special Gothic SemiExpanded', sans-serif;
   }
 
   h4 {
-    font-size: 1rem !important; /* 16px */
-    line-height: 1.5rem !important; /* 24px - better line height */
-    letter-spacing: -1.28px !important;
+    font-size: 16px !important; /* 16px */
+    line-height: 16px !important; /* 24px - better line height */
+    letter-spacing: -8% !important;
     font-weight: 500 !important;
-    font-family: 'Gal Gothic Variable', sans-serif !important;
+    font-family: 'Special Gothic SemiExpanded', sans-serif;
+    
   }
 
   .hero-text {
@@ -70,16 +72,16 @@
     font-size: 1.9375rem; /* 31px */
     line-height: 2rem; /* 32px */
     font-weight: 700;
+    letter-spacing: -8% !important;
     font-family: 'Gal Gothic Variable', sans-serif;
   }
 
   .title2 {
     font-size: 1.5625rem; /* 25px */
     line-height: 2rem; /* 32px */
-    font-style: normal;
     font-weight: 400;
     font-family: 'Gal Gothic Variable', sans-serif;
-    letter-spacing: -0.25px;
+    letter-spacing: -1% !important;
   }
 
   .title3 {
@@ -91,11 +93,11 @@
   }
 
   .title4 {
-    font-size: 1rem; /* 16px */
+    font-size: 13px;/* 16px */
     line-height: 1.25rem; /* 20px */
     font-style: normal;
     font-weight: 600;
-    letter-spacing: -0.48px;
+    letter-spacing: -3%;
     font-family: 'Gal Gothic Variable', sans-serif;
   }
 
@@ -122,49 +124,52 @@
     font-size: 3.8125rem; /* 61px */
     line-height: 4rem; /* 64px */
     font-weight: 700;
-    font-family: 'Pleasure', sans-serif;
-    letter-spacing: -4.88px;
+    font-family: 'Special Gothic Expanded One', sans-serif;
+    letter-spacing: -8px;
   }
 
   .display2 {
     font-size: 3rem; /* 48px */
     line-height: 3rem; /* 48px */
     font-weight: 700;
-    font-family: 'Inktrap-Regular', sans-serif;
+    letter-spacing: -8px;
+    font-family: 'Special Gothic Expanded One', sans-serif;
   }
 
   .display0 {
-    font-size: 4.75rem; /* 76px */
-    line-height: 6.25rem; /* 100px */
+    font-size: 75px;
+    line-height: 76px;
     font-weight: 700;
-    font-family: 'Inktrap-Regular', sans-serif;
+    letter-spacing: -6.5px;
+    font-family: 'Special Gothic Expanded One', sans-serif;
   }
 
   .body-large {
-    font-size: 1rem; /* 16px */
-    line-height: 1.5rem; /* 24px */
+    font-size: 25px; /* 16px */
+    line-height: 32px; /* 24px */
+    letter-spacing: -2%;
     font-weight: 400;
-    font-family: 'ABC-Monument-Grotesk', sans-serif;
+    font-family: 'Gal Gothic Variable', sans-serif;
   }
 
   .body-medium {
-    font-size: 0.8125rem; /* 13px */
-    line-height: 1.25rem; /* 20px */
+    font-size: 18px; /* 13px */
+    line-height: 24px;/* 20px */
     font-weight: 400;
-    font-family: 'ABC-Monument-Grotesk', sans-serif;
-    letter-spacing: -0.26px;
+    font-family: 'Gal Gothic Variable', sans-serif;
+    letter-spacing: -2%;
     font-style: normal;
   }
 
   /* Style/Body/Body Small */
   .body-small {
-    color: var(--Dark-Tint-80---Transparent-Ink, #454545);
+    
     font-family: 'Gal Gothic Variable', sans-serif;
     font-size: 0.8125rem; /* 13px */
     font-style: normal;
     font-weight: 500;
     line-height: 1.25rem; /* 20px */
-    letter-spacing: -0.26px;
+    letter-spacing: -2%;
   }
 
   .body {
@@ -183,35 +188,29 @@
     font-style: normal;
     font-weight: 600;
     line-height: 16px;
-    letter-spacing: 0.44px;
+    letter-spacing: 4%;
     text-transform: uppercase;
-  }
 
+  }
   .label-medium {
     font-family: 'Gal Gothic Variable', sans-serif;
     font-size: 0.8125rem; /* 13px */
     font-style: normal;
     font-weight: 700;
     line-height: 1rem; /* 16px */
-    letter-spacing: 0.52px;
+    letter-spacing: 0%;
 
-    text-decoration-style: solid;
-    text-decoration-skip-ink: none;
-    text-decoration-thickness: auto;
-    text-underline-offset: auto;
-    text-underline-position: from-font;
-    text-transform: uppercase;
   }
 
   /* Style/Label/Label Large */
   .label-large {
     font-family: 'Special Gothic SemiExpanded', sans-serif;
-    font-size: 1rem; /* 16px */
+    font-size: 16px; /* 16px */
     font-style: normal;
     font-weight: 700;
-    line-height: 1rem; /* 16px, 100% */
-    letter-spacing: 0.64px;
-    text-transform: uppercase;
+    line-height: 16px; /* 16px, 100% */
+    letter-spacing: 4;
+    
   }
 }
 

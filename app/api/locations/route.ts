@@ -7,7 +7,8 @@ import {
 } from '@/lib/analytics';
 import { trackCityMilestone } from '@/lib/analytics/server';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
-import { checkAdminPermission } from '@/lib/db/admin';
+import { checkAdminPermission, isAdminUsername } from '@/lib/db/admin';
+import { getPlayerByWallet } from '@/lib/db/players';
 import { MAX_LOCATIONS_PER_WEEK, SUPABASE_ERROR_CODES } from '@/lib/constants';
 import { getUtcWeekBounds } from '@/lib/utils/date';
 import {
@@ -121,14 +122,19 @@ export async function POST(request: NextRequest) {
       locationImage,
     } = body;
 
-    // Validate required fields
+    const latProvided =
+      lat !== null && lat !== undefined && String(lat).trim() !== '';
+    const lonProvided =
+      lon !== null && lon !== undefined && String(lon).trim() !== '';
+
+    // Validate required fields (lat/lon may be 0 — do not use truthiness)
     if (
       typeof place_id !== 'string' ||
       !place_id.trim() ||
       typeof name !== 'string' ||
       !name.trim() ||
-      !lat ||
-      !lon ||
+      !latProvided ||
+      !lonProvided ||
       typeof walletAddress !== 'string' ||
       !walletAddress.trim()
     ) {
@@ -165,6 +171,19 @@ export async function POST(request: NextRequest) {
     const sanitizedWalletAddress = walletAddress.trim();
     const sanitizedUsername = sanitizeOptionalVarchar(username);
     const normalizedLocationImage = locationImage.trim();
+
+    const parsedLat = parseFloat(String(lat));
+    const parsedLon = parseFloat(String(lon));
+    if (
+      Number.isNaN(parsedLat) ||
+      Number.isNaN(parsedLon) ||
+      parsedLat < -90 ||
+      parsedLat > 90 ||
+      parsedLon < -180 ||
+      parsedLon > 180
+    ) {
+      return apiError('Invalid latitude or longitude', 400);
+    }
 
     // Ensure location doesn't already exist before proceeding
     const { data: existingLocation, error: locationLookupError } =
@@ -212,13 +231,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if creator is an admin
+    // Check if creator is an admin (email header from client, or username on player row)
     const creatorEmail = request.headers.get('x-user-email');
-    const isAdminCreator = checkAdminPermission(creatorEmail || undefined);
+    let isAdminCreator = checkAdminPermission(creatorEmail || undefined);
+    if (!isAdminCreator) {
+      const player = await getPlayerByWallet(sanitizedWalletAddress);
+      if (player?.username && isAdminUsername(player.username)) {
+        isAdminCreator = true;
+      }
+    }
 
     // Resolve city from coordinates (and fall back to context JSON if present)
-    const parsedLat = parseFloat(lat);
-    const parsedLon = parseFloat(lon);
     const resolvedCity = resolveCityFromCoordinates(parsedLat, parsedLon);
 
     // Insert the new location (visible for admins, hidden for regular users)

@@ -1,14 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const mockDeleteLocationById = vi.fn();
-const mockUpdateLocationById = vi.fn();
 const mockVerifyAuthToken = vi.fn();
 const mockGetUser = vi.fn();
+const mockEqDelete = vi.fn();
+const mockDelete = vi.fn(() => ({ eq: mockEqDelete }));
+const mockSingle = vi.fn();
+const mockSelect = vi.fn(() => ({ single: mockSingle }));
+const mockEqUpdate = vi.fn(() => ({ select: mockSelect }));
+const mockUpdate = vi.fn(() => ({ eq: mockEqUpdate }));
+const mockFrom = vi.fn(() => ({
+  update: mockUpdate,
+  delete: mockDelete,
+}));
 
-vi.mock('@/lib/db/locations', () => ({
-  deleteLocationById: (...args: unknown[]) => mockDeleteLocationById(...args),
-  updateLocationById: (...args: unknown[]) => mockUpdateLocationById(...args),
+vi.mock('@/lib/db/client', () => ({
+  supabase: {
+    from: (...args: unknown[]) => mockFrom(...args),
+  },
 }));
 
 vi.mock('@/lib/api/privy', () => ({
@@ -18,31 +27,10 @@ vi.mock('@/lib/api/privy', () => ({
   }),
 }));
 
-import { DELETE, PATCH } from '../route';
-
-function createDeleteRequest(
-  locationId: string,
-  options?: { authHeader?: string; userEmailHeader?: string }
-): NextRequest {
-  const headers = new Headers();
-  if (options?.authHeader) {
-    headers.set('authorization', options.authHeader);
-  }
-  if (options?.userEmailHeader) {
-    headers.set('x-user-email', options.userEmailHeader);
-  }
-
-  return new NextRequest(
-    `http://localhost:3000/api/admin/locations/${locationId}`,
-    {
-      method: 'DELETE',
-      headers,
-    }
-  );
-}
+import { PATCH, DELETE } from '../route';
 
 function createPatchRequest(
-  locationId: string,
+  perkId: string,
   body: Record<string, unknown>,
   options?: { authHeader?: string; userEmailHeader?: string }
 ): NextRequest {
@@ -54,37 +42,48 @@ function createPatchRequest(
   if (options?.userEmailHeader) {
     headers.set('x-user-email', options.userEmailHeader);
   }
-
-  return new NextRequest(
-    `http://localhost:3000/api/admin/locations/${locationId}`,
-    {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify(body),
-    }
-  );
+  return new NextRequest(`http://localhost:3000/api/perks/${perkId}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(body),
+  });
 }
 
-describe('PATCH /api/admin/locations/[locationId]', () => {
+function createDeleteRequest(
+  perkId: string,
+  options?: { authHeader?: string; userEmailHeader?: string }
+): NextRequest {
+  const headers = new Headers();
+  if (options?.authHeader) {
+    headers.set('authorization', options.authHeader);
+  }
+  if (options?.userEmailHeader) {
+    headers.set('x-user-email', options.userEmailHeader);
+  }
+  return new NextRequest(`http://localhost:3000/api/perks/${perkId}`, {
+    method: 'DELETE',
+    headers,
+  });
+}
+
+describe('PATCH /api/perks/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('returns 403 when token is missing even if x-user-email is admin', async () => {
     const request = createPatchRequest(
-      '42',
-      { isVisible: true },
-      {
-        userEmailHeader: 'dhurls99@gmail.com',
-      }
+      'perk-1',
+      { title: 'Hacked' },
+      { userEmailHeader: 'dhurls99@gmail.com' }
     );
-    const response = await PATCH(request, { params: { locationId: '42' } });
+    const response = await PATCH(request, { params: { id: 'perk-1' } });
     const json = await response.json();
 
     expect(response.status).toBe(403);
     expect(json.success).toBe(false);
     expect(json.error).toBe('Unauthorized');
-    expect(mockUpdateLocationById).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 
   it('returns 403 for verified non-admin users', async () => {
@@ -94,60 +93,58 @@ describe('PATCH /api/admin/locations/[locationId]', () => {
     });
 
     const request = createPatchRequest(
-      '42',
-      { isVisible: true },
+      'perk-1',
+      { title: 'X' },
       { authHeader: 'Bearer valid-non-admin-token' }
     );
-    const response = await PATCH(request, { params: { locationId: '42' } });
+    const response = await PATCH(request, { params: { id: 'perk-1' } });
     const json = await response.json();
 
     expect(response.status).toBe(403);
     expect(json.success).toBe(false);
-    expect(json.error).toBe('Unauthorized');
-    expect(mockUpdateLocationById).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 
-  it('returns 200 and updates when verified admin token is present', async () => {
+  it('returns 200 when verified admin token is present', async () => {
     mockVerifyAuthToken.mockResolvedValue({ userId: 'privy_admin_123' });
     mockGetUser.mockResolvedValue({
       email: { address: 'dhurls99@gmail.com' },
     });
-    const updatedRow = { id: 42, is_visible: true };
-    mockUpdateLocationById.mockResolvedValue(updatedRow);
+    const updated = { id: 'perk-1', title: 'Updated' };
+    mockSingle.mockResolvedValue({ data: updated, error: null });
 
     const request = createPatchRequest(
-      '42',
-      { isVisible: true },
+      'perk-1',
+      { title: 'Updated' },
       { authHeader: 'Bearer valid-admin-token' }
     );
-    const response = await PATCH(request, { params: { locationId: '42' } });
+    const response = await PATCH(request, { params: { id: 'perk-1' } });
     const json = await response.json();
 
     expect(response.status).toBe(200);
     expect(json.success).toBe(true);
-    expect(json.data.location).toEqual(updatedRow);
-    expect(mockUpdateLocationById).toHaveBeenCalledWith(42, {
-      is_visible: true,
-    });
+    expect(json.data.perk).toEqual(updated);
+    expect(mockFrom).toHaveBeenCalledWith('perks');
+    expect(mockUpdate).toHaveBeenCalledWith({ title: 'Updated' });
   });
 });
 
-describe('DELETE /api/admin/locations/[locationId]', () => {
+describe('DELETE /api/perks/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('returns 403 when token is missing even if x-user-email is admin', async () => {
-    const request = createDeleteRequest('42', {
+    const request = createDeleteRequest('perk-1', {
       userEmailHeader: 'dhurls99@gmail.com',
     });
-    const response = await DELETE(request, { params: { locationId: '42' } });
+    const response = await DELETE(request, { params: { id: 'perk-1' } });
     const json = await response.json();
 
     expect(response.status).toBe(403);
     expect(json.success).toBe(false);
     expect(json.error).toBe('Unauthorized');
-    expect(mockDeleteLocationById).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 
   it('returns 403 for verified non-admin users', async () => {
@@ -156,34 +153,33 @@ describe('DELETE /api/admin/locations/[locationId]', () => {
       email: { address: 'not-admin@example.com' },
     });
 
-    const request = createDeleteRequest('42', {
+    const request = createDeleteRequest('perk-1', {
       authHeader: 'Bearer valid-non-admin-token',
     });
-    const response = await DELETE(request, { params: { locationId: '42' } });
+    const response = await DELETE(request, { params: { id: 'perk-1' } });
     const json = await response.json();
 
     expect(response.status).toBe(403);
     expect(json.success).toBe(false);
-    expect(json.error).toBe('Unauthorized');
-    expect(mockDeleteLocationById).not.toHaveBeenCalled();
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 
-  it('returns 200 and deletes when verified admin token is present', async () => {
+  it('returns 200 when verified admin token is present', async () => {
     mockVerifyAuthToken.mockResolvedValue({ userId: 'privy_admin_123' });
     mockGetUser.mockResolvedValue({
       email: { address: 'dhurls99@gmail.com' },
     });
-    mockDeleteLocationById.mockResolvedValue(true);
+    mockEqDelete.mockResolvedValue({ error: null });
 
-    const request = createDeleteRequest('42', {
+    const request = createDeleteRequest('perk-1', {
       authHeader: 'Bearer valid-admin-token',
     });
-    const response = await DELETE(request, { params: { locationId: '42' } });
+    const response = await DELETE(request, { params: { id: 'perk-1' } });
     const json = await response.json();
 
     expect(response.status).toBe(200);
     expect(json.success).toBe(true);
-    expect(json.data.deleted).toBe(true);
-    expect(mockDeleteLocationById).toHaveBeenCalledWith(42);
+    expect(mockFrom).toHaveBeenCalledWith('perks');
+    expect(mockDelete).toHaveBeenCalled();
   });
 });

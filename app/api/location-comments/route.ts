@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/db/client';
+import { getPlayerIdByWalletAddress } from '@/lib/db/players';
 import { apiSuccess, apiError } from '@/lib/api/response';
 
 export async function GET(request: NextRequest) {
@@ -25,14 +26,32 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return apiSuccess({ checkins: [] });
+        return apiSuccess({ checkins: [], hasUserCheckedIn: false });
       }
       throw error;
     }
 
     const locationId = data?.id;
     if (!locationId) {
-      return apiSuccess({ checkins: [] });
+      return apiSuccess({ checkins: [], hasUserCheckedIn: false });
+    }
+
+    const walletForStatus = searchParams.get('walletAddress')?.trim();
+    let hasUserCheckedIn = false;
+    if (walletForStatus) {
+      const playerId = await getPlayerIdByWalletAddress(walletForStatus);
+
+      if (playerId != null) {
+        const { count, error: countError } = await supabase
+          .from('player_location_checkins')
+          .select('id', { count: 'exact', head: true })
+          .eq('location_id', locationId)
+          .eq('player_id', playerId);
+
+        if (!countError) {
+          hasUserCheckedIn = (count ?? 0) > 0;
+        }
+      }
     }
 
     const { data: checkinData, error: checkinError } = await supabase
@@ -81,7 +100,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return apiSuccess({ checkins });
+    return apiSuccess({ checkins, hasUserCheckedIn });
   } catch (error) {
     console.error('Location comments API error:', error);
     return apiError('Failed to fetch location comments', 500);

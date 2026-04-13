@@ -5,11 +5,15 @@ describe('addCampaignMonitorSubscriber', () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
         status: 201,
+        statusText: 'Created',
         text: async () => '"user@example.com"',
       })
     );
@@ -32,9 +36,18 @@ describe('addCampaignMonitorSubscriber', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('no-ops when env is only whitespace', async () => {
+    process.env.CAMPAIGN_MONITOR_API_KEY = '   ';
+    process.env.CAMPAIGN_MONITOR_LIST_ID = '  \t';
+
+    await addCampaignMonitorSubscriber({ email: 'user@example.com' });
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('POSTs to CreateSend with Basic auth and JSON body', async () => {
-    process.env.CAMPAIGN_MONITOR_API_KEY = 'test-api-key';
-    process.env.CAMPAIGN_MONITOR_LIST_ID = 'list-id-abc';
+    process.env.CAMPAIGN_MONITOR_API_KEY = '  test-api-key  ';
+    process.env.CAMPAIGN_MONITOR_LIST_ID = '  list-id-abc  ';
 
     await addCampaignMonitorSubscriber({
       email: 'user@example.com',
@@ -80,6 +93,7 @@ describe('addCampaignMonitorSubscriber', () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: false,
       status: 400,
+      statusText: 'Bad Request',
       text: async () => '{"Code":1}',
     });
 

@@ -137,8 +137,8 @@ export default function AuthWrapper({
   // Loading state
   if (!ready) {
     return (
-      <div className="flex items-center justify-center text-center w-full min-h-dvh font-inktrap text-2xl">
-        Loading...
+      <div className="bg-[#fff200] text-[#171717] display0 flex items-center justify-center text-center w-full min-h-dvh uppercase">
+        Loading
       </div>
     );
   }
