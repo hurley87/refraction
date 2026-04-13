@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useCallback } from "react";
-import { usePrivy } from "@privy-io/react-auth";
-import { Trophy, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import Image from "next/image";
-import MapNav from "@/components/map/mapnav";
-import Link from "next/link";
-import LeaderboardAvatar from "@/components/leaderboard-avatar";
-import { useUserStats } from "@/hooks/usePlayer";
+import React, { useState, useEffect, useCallback } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
+import { Trophy, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
+import MapNav from '@/components/map/mapnav';
+import Link from 'next/link';
+import LeaderboardAvatar from '@/components/leaderboard-avatar';
+import { useUserStats } from '@/hooks/usePlayer';
 
 interface LeaderboardUser {
   player_id: number;
@@ -31,15 +31,15 @@ const getOrdinalSuffix = (num: number): string => {
   const j = num % 10;
   const k = num % 100;
   if (j === 1 && k !== 11) {
-    return "st";
+    return 'st';
   }
   if (j === 2 && k !== 12) {
-    return "nd";
+    return 'nd';
   }
   if (j === 3 && k !== 13) {
-    return "rd";
+    return 'rd';
   }
-  return "th";
+  return 'th';
 };
 
 export default function LeaderboardPage() {
@@ -48,9 +48,8 @@ export default function LeaderboardPage() {
   const currentUsername = user?.google?.name || user?.twitter?.name;
 
   // Use the reusable hook for user stats
-  const { userStats, isLoading: isLoadingUserStats } = useUserStats(
-    currentUserAddress
-  );
+  const { userStats, isLoading: isLoadingUserStats } =
+    useUserStats(currentUserAddress);
 
   const [showJumpButton, setShowJumpButton] = useState(false);
   const [hasJumpedToUser, setHasJumpedToUser] = useState(false);
@@ -71,14 +70,14 @@ export default function LeaderboardPage() {
       setIsLoadingMore(true);
       try {
         const response = await fetch(
-          `/api/leaderboard?page=${page}&limit=${limit}`,
+          `/api/leaderboard?page=${page}&limit=${limit}`
         );
         const result = await response.json();
 
         // API response is wrapped in { success: true, data: { leaderboard: [...], pagination: {...} } }
         const apiData = result.data || result;
-        
-        console.log("[LeaderboardPage] API Response:", {
+
+        console.log('[LeaderboardPage] API Response:', {
           ok: response.ok,
           status: response.status,
           success: result.success,
@@ -91,15 +90,18 @@ export default function LeaderboardPage() {
         });
 
         if (response.ok && result.success && apiData.leaderboard) {
-          console.log("[LeaderboardPage] Setting leaderboard data:", apiData.leaderboard);
+          console.log(
+            '[LeaderboardPage] Setting leaderboard data:',
+            apiData.leaderboard
+          );
           setLeaderboardData(apiData.leaderboard);
           if (apiData.pagination) {
             setPagination(apiData.pagination);
           }
           // Scroll to top when page changes
-          window.scrollTo({ top: 0, behavior: "smooth" });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-          console.warn("[LeaderboardPage] Invalid response:", {
+          console.warn('[LeaderboardPage] Invalid response:', {
             ok: response.ok,
             success: result.success,
             hasData: !!result.data,
@@ -108,12 +110,12 @@ export default function LeaderboardPage() {
           });
         }
       } catch (error) {
-        console.error("Error loading leaderboard:", error);
+        console.error('Error loading leaderboard:', error);
       } finally {
         setIsLoadingMore(false);
       }
     },
-    [],
+    []
   );
 
   // Fetch leaderboard when page changes
@@ -129,7 +131,6 @@ export default function LeaderboardPage() {
     }
   };
 
-
   // Handle scroll detection for Jump To button
   useEffect(() => {
     const handleScroll = () => {
@@ -137,18 +138,18 @@ export default function LeaderboardPage() {
       setShowJumpButton(scrolled);
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Jump to user's rank (simple version for top 100 only)
   const jumpToUserRank = () => {
     if (userStats?.rank) {
       const userElement = document.querySelector(
-        `[data-rank="${userStats.rank}"]`,
+        `[data-rank="${userStats.rank}"]`
       );
       if (userElement) {
-        userElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        userElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
         setHasJumpedToUser(true);
       }
     }
@@ -156,7 +157,7 @@ export default function LeaderboardPage() {
 
   // Back to top
   const backToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setHasJumpedToUser(false);
   };
 
@@ -168,14 +169,14 @@ export default function LeaderboardPage() {
     <div
       style={{
         background:
-          "linear-gradient(0deg, #61BFD1 0%, #EE91B7 26.92%, #FFE600 54.33%, #1BA351 100%)",
+          'linear-gradient(0deg, #61BFD1 0%, #EE91B7 26.92%, #FFE600 54.33%, #1BA351 100%)',
       }}
-      className="min-h-screen px-2 pt-2 pb-0 font-grotesk relative"
+      className="min-h-screen px-4 pt-2 pb-0 font-grotesk relative md:px-2"
     >
       <div className="max-w-md mx-auto">
         {/* Navigation */}
         <div className="mb-2">
-          <MapNav />
+          <MapNav className="max-md:px-0" />
         </div>
 
         <div>
@@ -216,11 +217,10 @@ export default function LeaderboardPage() {
                               alt="Points"
                               width={39}
                               height={18}
-                              style={{ width: "auto", height: "auto" }}
+                              style={{ width: 'auto', height: 'auto' }}
                             />
                           </div>
                         </div>
-                      
                       </>
                     ) : (
                       <span className="display1 text-white">?</span>
@@ -278,67 +278,65 @@ export default function LeaderboardPage() {
               {!isLoadingMore && leaderboardData.length > 0 && (
                 <>
                   {leaderboardData.map((entry: LeaderboardUser) => (
-                      <div
-                        key={entry.player_id}
-                        data-rank={entry.rank}
-                        className={`rounded-[26px] p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center ${
-                          entry.wallet_address === currentUserAddress
-                            ? "bg-[#4F4F4F]"
-                            : "bg-white"
-                        }`}
-                      >
-                        {/* Rank */}
-                        <div className="flex items-center gap-2">
-                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ededed] body-small font-medium text-black">
-                            {entry.rank}
-                          </span>
-                        </div>
+                    <div
+                      key={entry.player_id}
+                      data-rank={entry.rank}
+                      className={`rounded-[26px] p-4 grid grid-cols-[auto_1fr_auto] gap-4 items-center ${
+                        entry.wallet_address === currentUserAddress
+                          ? 'bg-[#4F4F4F]'
+                          : 'bg-white'
+                      }`}
+                    >
+                      {/* Rank */}
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ededed] body-small font-medium text-black">
+                          {entry.rank}
+                        </span>
+                      </div>
 
-                        {/* Name */}
-                        <div className="flex items-center gap-2 min-w-0 pl-5">
-                        <Link 
+                      {/* Name */}
+                      <div className="flex items-center gap-2 min-w-0 pl-5">
+                        <Link
                           href={`/profiles/${entry.wallet_address}`}
                           className="flex items-center gap-2 min-w-0"
                         >
-                            <LeaderboardAvatar
-                              walletAddress={entry.wallet_address}
-                              size={16}
-                            />
-                            <span
-                              className={`title4 truncate ${
-                                entry.wallet_address === currentUserAddress
-                                  ? "text-white"
-                                  : "text-black"
-                              }`}
-                            >
-                              {entry.username ||
-                                formatWalletAddress(entry.wallet_address)}
-                            </span>
-                          </Link>
-                        </div>
-
-                        {/* Points */}
-                        <div className="text-right">
-                          <div
-                            className={`body-medium ${
+                          <LeaderboardAvatar
+                            walletAddress={entry.wallet_address}
+                            size={16}
+                          />
+                          <span
+                            className={`title4 truncate ${
                               entry.wallet_address === currentUserAddress
-                                ? "text-white"
-                                : "text-black"
+                                ? 'text-white'
+                                : 'text-black'
                             }`}
                           >
-                            {entry.total_points.toLocaleString()}
-                          </div>
+                            {entry.username ||
+                              formatWalletAddress(entry.wallet_address)}
+                          </span>
+                        </Link>
+                      </div>
+
+                      {/* Points */}
+                      <div className="text-right">
+                        <div
+                          className={`body-medium ${
+                            entry.wallet_address === currentUserAddress
+                              ? 'text-white'
+                              : 'text-black'
+                          }`}
+                        >
+                          {entry.total_points.toLocaleString()}
                         </div>
                       </div>
+                    </div>
                   ))}
                 </>
               )}
 
               {/* Empty State - Only show when not loading and no data */}
               {!isLoadingMore && leaderboardData.length === 0 && (
-                <div className="bg-white rounded-2xl p-8 text-center">
-                 
-                </div>
+                <div className="bg-white rounded-2xl p-8 text-center"></div>
               )}
 
               {/* Loading More Indicator */}
@@ -392,7 +390,7 @@ export default function LeaderboardPage() {
                 <button
                   onClick={
                     leaderboardData.some(
-                      (entry) => entry.wallet_address === currentUserAddress,
+                      (entry) => entry.wallet_address === currentUserAddress
                     )
                       ? hasJumpedToUser
                         ? backToTop
@@ -405,7 +403,7 @@ export default function LeaderboardPage() {
                   <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
                     {currentUsername || user?.email ? (
                       <span className="text-gray-600 text-xs font-medium">
-                        {(currentUsername || user?.email?.address || "?")
+                        {(currentUsername || user?.email?.address || '?')
                           .charAt(0)
                           .toUpperCase()}
                       </span>
@@ -416,18 +414,18 @@ export default function LeaderboardPage() {
 
                   <span>
                     {leaderboardData.some(
-                      (entry) => entry.wallet_address === currentUserAddress,
+                      (entry) => entry.wallet_address === currentUserAddress
                     )
                       ? hasJumpedToUser
-                        ? "Back To Top"
-                        : "Jump To Your Place"
-                      : "Back To Top"}
+                        ? 'Back To Top'
+                        : 'Jump To Your Place'
+                      : 'Back To Top'}
                   </span>
 
                   {/* Arrow */}
                   <div className="w-5 h-5 rounded-full bg-gray-400 flex items-center justify-center">
                     {leaderboardData.some(
-                      (entry) => entry.wallet_address === currentUserAddress,
+                      (entry) => entry.wallet_address === currentUserAddress
                     ) && !hasJumpedToUser ? (
                       <ChevronDown className="w-3 h-3 text-white" />
                     ) : (
