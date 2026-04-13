@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import Image from 'next/image';
 import MapNav from '@/components/map/mapnav';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   useCurrentPlayer,
@@ -13,22 +12,6 @@ import {
 } from '@/hooks/usePlayer';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
 import Transactions from '@/components/transactions';
-
-// Helper function to get ordinal suffix
-const getOrdinalSuffix = (num: number): string => {
-  const j = num % 10;
-  const k = num % 100;
-  if (j === 1 && k !== 11) {
-    return 'st';
-  }
-  if (j === 2 && k !== 12) {
-    return 'nd';
-  }
-  if (j === 3 && k !== 13) {
-    return 'rd';
-  }
-  return 'th';
-};
 
 export default function DashboardPage() {
   const { user, ready } = usePrivy();
