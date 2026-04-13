@@ -5,7 +5,12 @@ import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
-import type { Checkpoint, SpendItem, SpendRedemption, Player } from '@/lib/types';
+import type {
+  Checkpoint,
+  SpendItem,
+  SpendRedemption,
+  Player,
+} from '@/lib/types';
 
 type SpendCheckpointResponse = {
   checkpoint: Checkpoint;
@@ -93,7 +98,8 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
       if (!response.ok) {
         throw new Error(responseData?.error || 'Failed to redeem');
       }
-      return (responseData.data || responseData) as RedeemSpendCheckpointResponse;
+      return (responseData.data ||
+        responseData) as RedeemSpendCheckpointResponse;
     },
     onSuccess: async () => {
       setSubmitError(null);
@@ -162,14 +168,14 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
               style={{
                 boxShadow: '0px 0px 100px 30px rgba(255,255,255,1)',
                 width: 208,
-                height: 209,
+                height: 260,
               }}
             >
               <Image
                 src={checkpoint.partner_image_url}
                 alt={checkpoint.name}
                 width={208}
-                height={209}
+                height={260}
                 className="object-cover w-full h-full"
                 priority
               />
@@ -361,7 +367,8 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
                   className="text-center text-xs"
                   style={{ color: `${textColor}CC` }}
                 >
-                  Balance after purchase: {pointsAfterRedeem.toLocaleString()} PTS
+                  Balance after purchase: {pointsAfterRedeem.toLocaleString()}{' '}
+                  PTS
                 </p>
               )}
             </>

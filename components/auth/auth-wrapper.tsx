@@ -334,14 +334,14 @@ export default function AuthWrapper({
                   style={{
                     boxShadow: '0px 0px 100px 30px rgba(255,255,255,1)',
                     width: 208,
-                    height: 209,
+                    height: 260,
                   }}
                 >
                   <Image
                     src={partnerImageUrl}
                     alt={title}
                     width={208}
-                    height={209}
+                    height={260}
                     className="object-cover w-full h-full"
                   />
                 </div>
