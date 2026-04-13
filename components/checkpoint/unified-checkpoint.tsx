@@ -66,14 +66,14 @@ function CheckinSuccessView({
               style={{
                 boxShadow: '0px 0px 100px 30px rgba(255,255,255,1)',
                 width: 208,
-                height: 209,
+                height: 260,
               }}
             >
               <Image
                 src={checkpoint.partner_image_url}
                 alt={checkpoint.name}
                 width={208}
-                height={209}
+                height={260}
                 className="object-cover w-full h-full"
                 priority
               />
@@ -94,8 +94,7 @@ function CheckinSuccessView({
             className="text-[39px] leading-[0.95em] font-normal -tracking-[0.08em]"
             style={{ color: textColor }}
           >
-            Welcome To{' '}
-            {checkpoint.name}
+            Welcome To {checkpoint.name}
           </h2>
 
           <div className="flex items-end justify-between">
@@ -145,9 +144,7 @@ function CheckinSuccessView({
   );
 }
 
-function CheckinCheckpoint({
-  checkpoint,
-}: UnifiedCheckpointProps) {
+function CheckinCheckpoint({ checkpoint }: UnifiedCheckpointProps) {
   const { user } = usePrivy();
   const { createWallet } = useCreateWallet();
   const {
@@ -469,7 +466,9 @@ function CheckinCheckpoint({
   );
 }
 
-export default function UnifiedCheckpoint({ checkpoint }: UnifiedCheckpointProps) {
+export default function UnifiedCheckpoint({
+  checkpoint,
+}: UnifiedCheckpointProps) {
   if (checkpoint.checkpoint_mode === 'spend') {
     return <SpendCheckpoint checkpoint={checkpoint} />;
   }
