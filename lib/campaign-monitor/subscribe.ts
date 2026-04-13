@@ -7,6 +7,8 @@ const CREATESEND_API_BASE = 'https://api.createsend.com/api/v3.3';
 
 export type AddCampaignMonitorSubscriberInput = {
   email: string;
+  /** Maps to CreateSend `Name` (IRL handle). */
+  username?: string;
 };
 
 function isConfigured(): boolean {
@@ -33,10 +35,14 @@ export async function addCampaignMonitorSubscriber(
     return;
   }
 
-  const body = {
+  const name = input.username?.trim();
+  const body: Record<string, unknown> = {
     EmailAddress: email,
-    ConsentToTrack: 'Yes' as const,
+    ConsentToTrack: 'Yes',
   };
+  if (name) {
+    body.Name = name.slice(0, 250);
+  }
 
   const auth = Buffer.from(`${apiKey}:x`, 'utf8').toString('base64');
   const url = `${CREATESEND_API_BASE}/subscribers/${encodeURIComponent(listId)}.json`;
