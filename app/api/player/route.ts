@@ -9,6 +9,7 @@ import {
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { trackAccountCreated, resolveServerIdentity } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
+import { addCampaignMonitorSubscriber } from '@/lib/campaign-monitor/subscribe';
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,6 +71,17 @@ export async function POST(request: NextRequest) {
     } catch (airtableSyncError) {
       console.error('Failed to sync user to Airtable:', airtableSyncError);
       // We log the error but do NOT block the main response
+    }
+
+    if (isNewPlayer && email) {
+      try {
+        await addCampaignMonitorSubscriber({ email });
+      } catch (campaignMonitorError) {
+        console.error(
+          'Failed to add subscriber to Campaign Monitor:',
+          campaignMonitorError
+        );
+      }
     }
 
     return apiSuccess(
