@@ -4,11 +4,16 @@ import type { Player } from '@/lib/types';
 // Mock the supabase client
 const mockRpc = vi.fn();
 const mockSingle = vi.fn();
+const mockMaybeSingle = vi.fn();
 const mockSelect = vi.fn(() => ({
   single: mockSingle,
   eq: vi.fn(() => ({ single: mockSingle })),
 }));
-const mockEq = vi.fn(() => ({ single: mockSingle, select: mockSelect }));
+const mockEq = vi.fn(() => ({
+  single: mockSingle,
+  maybeSingle: mockMaybeSingle,
+  select: mockSelect,
+}));
 const mockInsert = vi.fn(() => ({ select: mockSelect }));
 const mockUpdate = vi.fn(() => ({ eq: mockEq }));
 const mockFrom = vi.fn(() => ({
@@ -24,8 +29,10 @@ vi.mock('@/lib/db/client', () => ({
   },
 }));
 
+import { getAddress } from 'viem';
 import {
   getPlayerByWallet,
+  getPlayerIdByWalletAddress,
   getPlayerBySolanaWallet,
   getPlayerByStellarWallet,
   getPlayerByEmail,
@@ -42,10 +49,48 @@ describe('Players Database Module', () => {
       insert: mockInsert,
       update: mockUpdate,
     });
-    mockSelect.mockReturnValue({ eq: mockEq, single: mockSingle });
-    mockEq.mockReturnValue({ single: mockSingle, select: mockSelect });
+    mockSelect.mockReturnValue({
+      eq: mockEq,
+      single: mockSingle,
+    });
+    mockEq.mockReturnValue({
+      single: mockSingle,
+      maybeSingle: mockMaybeSingle,
+      select: mockSelect,
+    });
     mockInsert.mockReturnValue({ select: mockSelect });
     mockUpdate.mockReturnValue({ eq: mockEq });
+  });
+
+  describe('getPlayerIdByWalletAddress', () => {
+    it('falls back to raw input when checksummed EVM lookup misses', async () => {
+      // Pick an address whose EIP-55 form differs from all-lowercase (0x00…01 checksums equal).
+      const rawLower = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
+      const checksummed = getAddress(rawLower as `0x${string}`);
+      expect(checksummed).not.toBe(rawLower);
+
+      mockMaybeSingle
+        .mockResolvedValueOnce({ data: null, error: null })
+        .mockResolvedValueOnce({ data: { id: 99 }, error: null });
+
+      const id = await getPlayerIdByWalletAddress(rawLower);
+
+      expect(id).toBe(99);
+      expect(mockMaybeSingle).toHaveBeenCalledTimes(2);
+      expect(mockEq).toHaveBeenNthCalledWith(1, 'wallet_address', checksummed);
+      expect(mockEq).toHaveBeenNthCalledWith(2, 'wallet_address', rawLower);
+    });
+
+    it('returns null when no row matches', async () => {
+      mockMaybeSingle.mockReset();
+      mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+
+      const id = await getPlayerIdByWalletAddress(
+        '0x0000000000000000000000000000000000000002'
+      );
+
+      expect(id).toBeNull();
+    });
   });
 
   describe('getPlayerByWallet', () => {
