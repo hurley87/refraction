@@ -11,8 +11,8 @@ import { cn } from '@/lib/utils';
 interface MapNavProps {
   /** Renders between the logo and the menu (e.g. mobile search). */
   center?: ReactNode;
-  /** Dashboard: IRL mark with glow filter (same 70×39 mark as default). */
-  irlLogoVariant?: 'default' | 'dashboard';
+  /** `dashboard`: glow on dark ink mark; `light`: white mark for dark/photo heroes. */
+  irlLogoVariant?: 'default' | 'dashboard' | 'light';
   /** Merged onto the nav bar row (e.g. `max-md:px-0` when parent supplies horizontal padding). */
   className?: string;
 }
@@ -132,8 +132,13 @@ export default function MapNav({
                 height="39"
                 viewBox="0 0 70 39"
                 fill="none"
+                className="block h-[39px] w-[70px] shrink-0"
+                aria-hidden
               >
-                <path d={IRL_LOGO_PATH_D} fill="#171717" />
+                <path
+                  d={IRL_LOGO_PATH_D}
+                  fill={irlLogoVariant === 'light' ? '#FFFFFF' : '#171717'}
+                />
               </svg>
             )}
           </Link>
