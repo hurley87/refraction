@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import Image from 'next/image';
 import type { UserProfile } from '@/lib/types';
+import { getSocialUrl } from '@/lib/utils/social-links';
 import { useUserStats } from '@/hooks/usePlayer';
 
 interface UserMenuProps {
@@ -160,23 +161,6 @@ export default function UserMenu({
         ? profile.website
         : `https://${profile.website}`;
       window.open(url, '_blank');
-    }
-  };
-
-  const getSocialUrl = (platform: string, handle: string) => {
-    if (!handle) return null;
-    const handleClean = handle.replace(/^@/, '');
-    switch (platform) {
-      case 'twitter':
-        return `https://twitter.com/${handleClean}`;
-      case 'farcaster':
-        return `https://warpcast.com/${handleClean}`;
-      case 'telegram':
-        return `https://t.me/${handleClean}`;
-      case 'towns':
-        return `https://towns.com/${handleClean}`;
-      default:
-        return null;
     }
   };
 

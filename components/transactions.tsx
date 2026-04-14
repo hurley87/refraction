@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import Link from "next/link";
-import { Coins } from "lucide-react";
+import Image from 'next/image';
+import Link from 'next/link';
+import { Coins } from 'lucide-react';
 
 export interface Activity {
   id: string;
@@ -23,15 +23,17 @@ interface TransactionsProps {
   emptyStateActionHref?: string;
   emptyStateActionLabel?: string;
   maxHeight?: string;
+  /** Omit outer white card; use inside a parent that already provides background and padding. */
+  embedded?: boolean;
 }
 
 // Helper function to normalize event text (trim whitespace and standardize capitalization)
 function normalizeEventText(event: string): string {
-  if (!event) return "";
-  
+  if (!event) return '';
+
   // Trim leading and trailing whitespace
   const trimmed = event.trim();
-  
+
   // Convert to title case (capitalize first letter of each word)
   return trimmed
     .split(/\s+/)
@@ -39,7 +41,7 @@ function normalizeEventText(event: string): string {
       if (word.length === 0) return word;
       return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     })
-    .join(" ");
+    .join(' ');
 }
 
 export default function Transactions({
@@ -47,12 +49,13 @@ export default function Transactions({
   isLoading = false,
   error = null,
   showEmptyStateAction = false,
-  emptyStateActionHref = "/interactive-map",
-  emptyStateActionLabel = "Explore Map",
-  maxHeight = "400px",
+  emptyStateActionHref = '/interactive-map',
+  emptyStateActionLabel = 'Explore Map',
+  maxHeight = '400px',
+  embedded = false,
 }: TransactionsProps) {
-  return (
-    <div className="bg-white rounded-[26px] p-[16px] pt-[24px]">
+  const inner = (
+    <>
       <div className="flex items-center gap-2 mb-4">
         <Image
           src="/list-icon.svg"
@@ -61,7 +64,7 @@ export default function Transactions({
           height={8}
           className="w-4 h-4"
         />
-        <h2 className="body-small font-grotesk text-[#7D7D7D]">
+        <h2 className="label-small text-[#7D7D7D]">
           YOUR ACTIVITY
         </h2>
       </div>
@@ -88,9 +91,9 @@ export default function Transactions({
           <p className="text-red-600 text-sm">
             {error instanceof Error
               ? error.message
-              : typeof error === "string"
+              : typeof error === 'string'
                 ? error
-                : "An error occurred"}
+                : 'An error occurred'}
           </p>
         </div>
       )}
@@ -146,24 +149,23 @@ export default function Transactions({
                 key={activity.id}
                 className="grid grid-cols-[1fr_2fr_auto] gap-2 py-3 border-b border-gray-100 last:border-b-0 items-center"
               >
-                <div className="body-medium text-[#F0A0AF] font-grotesk">
+                <div className="label-medium text-[#F0A0AF]">
                   {activity.date}
                 </div>
-                <div className="body-medium text-[#4F4F4F] font-grotesk truncate capitalize text-left">
+                <div className="body-small text-[#4F4F4F]  truncate capitalize text-left">
                   {normalizeEventText(activity.event)}
                 </div>
-                <div className="body-medium text-[#7D7D7D] font-grotesk text-right whitespace-nowrap">
+                <div className="body-small text-[#7D7D7D] text-right whitespace-nowrap">
                   +{activity.points}
                 </div>
               </div>
             ))}
           </div>
-              {console.table(activities)}
           {/* Load More Button */}
           {activities.length >= 20 && (
             <div className="mt-4 pt-3 border-t border-gray-100">
               <button className="w-full h-[40px] bg-[#ededed] hover:bg-gray-200 text-[#313131] px-4 rounded-full transition-colors duration-200 flex items-center justify-center">
-                <span className="body-small font-grotesk uppercase">
+                <span className="body-small uppercase">
                   Load More
                 </span>
               </button>
@@ -171,6 +173,14 @@ export default function Transactions({
           )}
         </>
       )}
-    </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="w-full">{inner}</div>;
+  }
+
+  return (
+    <div className="bg-white rounded-[26px] p-[16px] pt-[24px]">{inner}</div>
   );
 }

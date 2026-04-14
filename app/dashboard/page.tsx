@@ -10,7 +10,9 @@ import {
   useUserStats,
   usePlayerActivities,
 } from '@/hooks/usePlayer';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
+import DashboardSocialLinks from '@/components/dashboard/dashboard-social-links';
 import Transactions from '@/components/transactions';
 
 export default function DashboardPage() {
@@ -19,6 +21,7 @@ export default function DashboardPage() {
   const currentUserAddress = user?.wallet?.address;
 
   const { data: player, isLoading: isLoadingPlayer } = useCurrentPlayer();
+  const { data: userProfile } = useUserProfile(currentUserAddress);
 
   // Use reusable hook for user stats (rank and points)
   const { userStats, isLoading: isLoadingUserStats } =
@@ -66,21 +69,21 @@ export default function DashboardPage() {
         background:
           'linear-gradient(0deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0.20) 100%), linear-gradient(180deg, #DBDBDB 0%, #757575 100%)',
       }}
-      className="min-h-screen px-4 pt-2 pb-4 font-grotesk md:px-2"
+      className="min-h-screen pt-2 pb-4 font-grotesk"
     >
-      <div className="max-w-md mx-auto">
+      <div className="mx-auto w-full max-w-md px-4 md:px-2">
         {/* Navigation - Sticky Header */}
         <div
           className={`sticky top-0 z-50 pb-2 pt-2 -mt-2 transition-colors duration-200 ${
             isScrolled ? 'bg-transparent backdrop-blur-sm' : 'bg-transparent'
           }`}
         >
-          <MapNav irlLogoVariant="dashboard" className="max-md:px-0" />
+          <MapNav irlLogoVariant="dashboard" className="w-full px-0" />
         </div>
 
-        <div className="flex flex-col gap-2 self-stretch">
-          {currentUserAddress && (
-            <div className="flex items-center gap-4 self-stretch px-1 py-1">
+        {currentUserAddress && (
+          <>
+            <div className="mt-[50px] flex items-center gap-4 self-stretch px-1 py-1">
               <LeaderboardAvatar walletAddress={currentUserAddress} size={64} />
               {isLoadingPlayer ? (
                 <div
@@ -88,56 +91,57 @@ export default function DashboardPage() {
                   aria-hidden
                 />
               ) : (
-                <span className="min-w-0 truncate title2 text-[#ffffff]">
+                <span className="min-w-0 truncate title2 font-bold text-[#ffffff]">
                   {handleText ?? '—'}
                 </span>
               )}
             </div>
-          )}
+            <DashboardSocialLinks profile={userProfile} />
+          </>
+        )}
+      </div>
 
-          {/* Hero Section - Points Display */}
-          <div className="bg-white/20 backdrop-blur-md rounded-[26px] p-2 border border-white/30">
-            <div className="flex flex-col gap-4">
-              {/* Points Display */}
-              <div className="flex flex-col gap-2 pt-2 pl-2 pr-2">
-                <div className="flex items-center gap-2">
-                  <Image
-                    src="/ep-coin-white.svg"
-                    alt="Points"
-                    width={12}
-                    height={12}
-                    className="w-4 h-4"
-                  />
-                  <div className="label-small  text-[#EDEDED] uppercase tracking-wide">
-                    Your Points
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  {isLoadingUserStats ? (
-                    <div className="w-20 h-10 bg-white/20 animate-pulse rounded"></div>
-                  ) : (
-                    <div className="flex items-end gap-2">
-                      <div className="text-white display2">
-                        {userStats?.total_points?.toLocaleString() || '0'}
-                      </div>
-                      <Image
-                        src="/points-label-white.svg"
-                        alt="points"
-                        width={39}
-                        height={18}
-                        className="mb-1"
-                        style={{ width: 'auto', height: 'auto' }}
-                      />
-                    </div>
-                  )}
-                </div>
+      {/* Points + activity: same max width as mobile column (max-w-md + page gutters) */}
+      <div className="mx-auto w-full max-w-md px-4 md:px-2">
+        <div
+          className="flex w-full flex-col items-start gap-6 rounded-b-[26px] rounded-t-none border-0 p-4"
+          style={{
+            background: 'var(--Backgrounds-Background, #FFF)',
+          }}
+        >
+          <div className="flex w-full flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <Image
+                src="/ep-coin-white.svg"
+                alt="Points"
+                width={12}
+                height={12}
+                className="h-4 w-4 brightness-0"
+              />
+              <div className="label-small uppercase tracking-wide text-[#7D7D7D]">
+                Your Points
               </div>
-
-              {/* Complete Quest Section - Inside Hero */}
+            </div>
+            <div className="flex w-full justify-end">
+              {isLoadingUserStats ? (
+                <div className="h-10 w-20 animate-pulse rounded bg-gray-200" />
+              ) : (
+                <div className="flex items-end gap-2">
+                  <div className="display2 text-[#171717]">
+                    {userStats?.total_points?.toLocaleString() || '0'}
+                  </div>
+                  <Image
+                    src="/points-label-white.svg"
+                    alt="points"
+                    width={39}
+                    height={18}
+                    className="mb-1 h-[18px] w-auto brightness-0"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Transaction Ledger Section */}
           <Transactions
             activities={activities}
             isLoading={isLoadingActivities}
@@ -146,6 +150,7 @@ export default function DashboardPage() {
             emptyStateActionHref="/interactive-map"
             emptyStateActionLabel="Explore Map"
             maxHeight="400px"
+            embedded
           />
         </div>
       </div>
