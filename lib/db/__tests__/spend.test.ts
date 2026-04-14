@@ -66,6 +66,7 @@ vi.mock('@/lib/db/players', () => ({
   updatePlayerPoints: mockUpdatePlayerPoints,
 }));
 
+import { getAddress } from 'viem';
 import {
   createPendingSpendRedemption,
   redeemSpendItemOnce,
@@ -144,6 +145,34 @@ describe('createPendingSpendRedemption', () => {
     expect(mockUpdatePlayerPoints).not.toHaveBeenCalled();
   });
 
+  it('inserts spend_redemptions with players.wallet_address casing (EVM)', async () => {
+    const rawLower = '0x1234567890abcdef1234567890abcdef12345678';
+    const checksummed = getAddress(rawLower as `0x${string}`);
+    const item = { id: itemId, points_cost: 100, is_active: true };
+    const player = { id: 1, wallet_address: rawLower, total_points: 500 };
+    const redemption = {
+      id: redemptionId,
+      spend_item_id: itemId,
+      user_wallet_address: rawLower,
+      points_spent: 100,
+      is_fulfilled: false,
+    };
+
+    vi.mocked(getPlayerByWallet).mockResolvedValue(player as any);
+    mockSingle
+      .mockResolvedValueOnce({ data: item, error: null })
+      .mockResolvedValueOnce({ data: redemption, error: null });
+
+    await createPendingSpendRedemption(itemId, checksummed);
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        user_wallet_address: rawLower,
+        spend_item_id: itemId,
+      })
+    );
+  });
+
   it('throws when user already redeemed this item', async () => {
     const item = { id: itemId, points_cost: 100, is_active: true };
     const player = { id: 1, wallet_address: wallet, total_points: 500 };
@@ -199,6 +228,42 @@ describe('verifySpendRedemption', () => {
     expect(mockUpdate).toHaveBeenCalled();
   });
 
+  it('allows verify when request wallet casing differs from redemption row (EVM)', async () => {
+    const rawLower = '0x1234567890abcdef1234567890abcdef12345678';
+    const checksummed = getAddress(rawLower as `0x${string}`);
+    const redemption = {
+      id: redemptionId,
+      spend_item_id: itemId,
+      user_wallet_address: rawLower,
+      points_spent: 100,
+      is_fulfilled: false,
+      spend_items: { id: itemId, is_active: true },
+    };
+    const player = { id: 1, wallet_address: rawLower, total_points: 200 };
+    const updatedPlayer = {
+      id: 1,
+      wallet_address: rawLower,
+      total_points: 100,
+    };
+    const updatedRedemption = {
+      ...redemption,
+      is_fulfilled: true,
+      fulfilled_at: new Date().toISOString(),
+      verified_by: 'user',
+    };
+
+    mockSingle
+      .mockResolvedValueOnce({ data: redemption, error: null })
+      .mockResolvedValueOnce({ data: updatedRedemption, error: null });
+    mockUpdatePlayerPoints.mockResolvedValue(updatedPlayer);
+    vi.mocked(getPlayerByWallet).mockResolvedValue(player as any);
+
+    const result = await verifySpendRedemption(redemptionId, checksummed);
+
+    expect(result.is_fulfilled).toBe(true);
+    expect(mockUpdatePlayerPoints).toHaveBeenCalledWith(1, -100);
+  });
+
   it('throws when redemption already verified', async () => {
     const redemption = {
       id: redemptionId,
@@ -250,7 +315,9 @@ describe('redeemSpendItemOnce', () => {
     const player = { id: 1, wallet_address: wallet, total_points: 100 };
 
     mockRpc.mockResolvedValue({
-      data: [{ redemption_id: redemptionId, player_id: 1, player_total_points: 100 }],
+      data: [
+        { redemption_id: redemptionId, player_id: 1, player_total_points: 100 },
+      ],
       error: null,
     });
     mockSingle.mockResolvedValueOnce({ data: redemption, error: null });

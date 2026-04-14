@@ -7,12 +7,13 @@ import {
   resolveServerIdentity,
 } from '../analytics/server';
 import { checkAndTrackTierProgression } from '@/lib/tier-progression';
+import { sameWalletAddress } from '@/lib/utils/wallets';
 
 function spendItemFromJoin(
   related: SpendItem | SpendItem[] | null | undefined
 ): SpendItem | null {
   if (!related) return null;
-  return Array.isArray(related) ? related[0] ?? null : related;
+  return Array.isArray(related) ? (related[0] ?? null) : related;
 }
 
 const SPEND_ITEM_COLUMNS = `
@@ -210,9 +211,11 @@ export const createPendingSpendRedemption = async (
     throw new Error('Player not found');
   }
 
+  const canonicalWallet = player.wallet_address ?? walletAddress;
+
   const existingRedemption = await getLatestSpendRedemptionForUser(
     spendItemId,
-    walletAddress
+    canonicalWallet
   );
   if (existingRedemption) {
     throw new Error('You already redeemed this item');
@@ -222,7 +225,7 @@ export const createPendingSpendRedemption = async (
     .from('spend_redemptions')
     .insert({
       spend_item_id: spendItemId,
-      user_wallet_address: walletAddress,
+      user_wallet_address: canonicalWallet,
       points_spent: item.points_cost,
     })
     .select(`${SPEND_REDEMPTION_COLUMNS}, spend_items (${SPEND_ITEM_COLUMNS})`)
@@ -269,7 +272,7 @@ export const verifySpendRedemption = async (
   if (fetchError || !redemption) {
     throw new Error('Redemption not found');
   }
-  if (redemption.user_wallet_address !== walletAddress) {
+  if (!sameWalletAddress(redemption.user_wallet_address, walletAddress)) {
     throw new Error('Unauthorized');
   }
   if (redemption.is_fulfilled) {
@@ -367,11 +370,14 @@ export const getUserRedemptionForSpendItem = async (
   spendItemId: string,
   walletAddress: string
 ) => {
+  const player = await getPlayerByWallet(walletAddress);
+  const lookupWallet = player?.wallet_address ?? walletAddress;
+
   const { data, error } = await supabase
     .from('spend_redemptions')
     .select(`${SPEND_REDEMPTION_COLUMNS}, spend_items (${SPEND_ITEM_COLUMNS})`)
     .eq('spend_item_id', spendItemId)
-    .eq('user_wallet_address', walletAddress)
+    .eq('user_wallet_address', lookupWallet)
     .order('created_at', { ascending: false })
     .limit(1);
 
@@ -397,9 +403,11 @@ export const redeemSpendItemOnce = async (
       throw new Error('Player not found');
     }
 
+    const canonicalWallet = player.wallet_address ?? walletAddress;
+
     const existingRedemption = await getLatestSpendRedemptionForUser(
       spendItemId,
-      walletAddress
+      canonicalWallet
     );
     if (existingRedemption) {
       throw new Error('You already redeemed this item');
@@ -410,7 +418,10 @@ export const redeemSpendItemOnce = async (
     }
 
     const legacyPreviousPoints = player.total_points ?? 0;
-    const updatedPlayer = await updatePlayerPoints(player.id, -item.points_cost);
+    const updatedPlayer = await updatePlayerPoints(
+      player.id,
+      -item.points_cost
+    );
     if (updatedPlayer.total_points < 0) {
       await updatePlayerPoints(player.id, item.points_cost);
       throw new Error('Insufficient points');
@@ -420,13 +431,15 @@ export const redeemSpendItemOnce = async (
       .from('spend_redemptions')
       .insert({
         spend_item_id: spendItemId,
-        user_wallet_address: walletAddress,
+        user_wallet_address: canonicalWallet,
         points_spent: item.points_cost,
         is_fulfilled: true,
         fulfilled_at: new Date().toISOString(),
         verified_by: 'user',
       })
-      .select(`${SPEND_REDEMPTION_COLUMNS}, spend_items (${SPEND_ITEM_COLUMNS})`)
+      .select(
+        `${SPEND_REDEMPTION_COLUMNS}, spend_items (${SPEND_ITEM_COLUMNS})`
+      )
       .single();
 
     if (insertError) {
@@ -505,9 +518,9 @@ export const redeemSpendItemOnce = async (
     throw rpcError;
   }
 
-  const rpcResult = (Array.isArray(rpcData) ? rpcData[0] : rpcData) as
-    | { redemption_id?: string }
-    | null;
+  const rpcResult = (Array.isArray(rpcData) ? rpcData[0] : rpcData) as {
+    redemption_id?: string;
+  } | null;
 
   if (!rpcResult?.redemption_id) {
     throw new Error('Failed to redeem');
@@ -531,7 +544,11 @@ export const redeemSpendItemOnce = async (
   // RPC deducted points atomically; compute pre-deduction total
   const rpcNewPoints = player.total_points ?? 0;
   const rpcPreviousPoints = rpcNewPoints + redemption.points_spent;
-  await checkAndTrackTierProgression(walletAddress, rpcPreviousPoints, rpcNewPoints);
+  await checkAndTrackTierProgression(
+    walletAddress,
+    rpcPreviousPoints,
+    rpcNewPoints
+  );
 
   if (redemption.id) {
     const rpcItem = spendItemFromJoin(
@@ -637,10 +654,13 @@ export const fulfillRedemption = async (redemptionId: string) => {
  * Get all redemptions for a user
  */
 export const getUserSpendRedemptions = async (walletAddress: string) => {
+  const player = await getPlayerByWallet(walletAddress);
+  const lookupWallet = player?.wallet_address ?? walletAddress;
+
   const { data, error } = await supabase
     .from('spend_redemptions')
     .select(`${SPEND_REDEMPTION_COLUMNS}, spend_items (${SPEND_ITEM_COLUMNS})`)
-    .eq('user_wallet_address', walletAddress)
+    .eq('user_wallet_address', lookupWallet)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
