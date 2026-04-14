@@ -1,17 +1,17 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from 'next';
 
-import { Space_Grotesk } from "next/font/google";
-import "./globals.css";
-import "mapbox-gl/dist/mapbox-gl.css";
-import Providers from "@/components/shared/providers";
-import { Toaster } from "@/components/ui/sonner";
-import Script from "next/script";
-import Image from "next/image";
+import { Space_Grotesk } from 'next/font/google';
+import './globals.css';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import Providers from '@/components/shared/providers';
+import { Toaster } from '@/components/ui/sonner';
+import Script from 'next/script';
+import Image from 'next/image';
 
 const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-space-grotesk",
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
 });
 
 // Get base URL for absolute image URLs (required for Twitter cards)
@@ -23,7 +23,7 @@ const getBaseUrl = () => {
     return `https://${process.env.VERCEL_URL}`;
   }
   // Default fallback - update this to your production domain
-  return "https://irl.energy";
+  return 'https://irl.energy';
 };
 
 const baseUrl = getBaseUrl();
@@ -32,14 +32,14 @@ const baseUrl = getBaseUrl();
 const imageUrl = `${baseUrl}/irl-share.png?v=2`;
 
 export const metadata: Metadata = {
-  title: "IRL",
+  title: 'IRL',
   description: "IRL - Culture's rewards program.",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
   },
   openGraph: {
-    title: "$IRL",
+    title: '$IRL',
     description: "IRL - Culture's rewards program.",
     url: baseUrl,
     images: [
@@ -47,29 +47,29 @@ export const metadata: Metadata = {
         url: imageUrl,
         width: 1200,
         height: 630,
-        alt: "$IRL",
+        alt: '$IRL',
       },
     ],
-    type: "website",
+    type: 'website',
   },
   twitter: {
-    card: "summary_large_image",
-    title: "$IRL",
+    card: 'summary_large_image',
+    title: '$IRL',
     description: "IRL - Culture's rewards program.",
     images: [imageUrl],
   },
   appleWebApp: {
-    statusBarStyle: "black-translucent", // Options: "default", "black", "black-translucent"
+    statusBarStyle: 'black-translucent', // Options: "default", "black", "black-translucent"
   },
   other: {
-    "apple-mobile-web-app-status-bar-style": "black-translucent",
-    "mobile-web-app-capable": "yes",
-    "msapplication-navbutton-color": "#000000",
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'mobile-web-app-capable': 'yes',
+    'msapplication-navbutton-color': '#000000',
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: '#000000',
 };
 
 export default function RootLayout({
