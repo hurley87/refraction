@@ -88,7 +88,25 @@ export const createOrUpdatePlayer = async (
  * Get player by EVM wallet address
  */
 export const getPlayerByWallet = async (walletAddress: string) => {
-  return getPlayerByField('wallet_address', walletAddress);
+  const t = walletAddress.trim();
+  if (!t) return null;
+
+  const candidates: string[] = [];
+  const evm = tryNormalizeEvmAddress(t);
+  if (evm) {
+    const lower = evm.toLowerCase();
+    if (!candidates.includes(evm)) candidates.push(evm);
+    if (lower !== evm && !candidates.includes(lower)) candidates.push(lower);
+    if (t !== evm && t !== lower && !candidates.includes(t)) candidates.push(t);
+  } else {
+    candidates.push(t);
+  }
+
+  for (const addr of candidates) {
+    const player = await getPlayerByField('wallet_address', addr);
+    if (player) return player;
+  }
+  return null;
 };
 
 /**

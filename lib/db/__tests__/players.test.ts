@@ -112,11 +112,39 @@ describe('Players Database Module', () => {
       expect(mockFrom).toHaveBeenCalled();
     });
 
+    it('resolves EVM player when DB stores different casing than input', async () => {
+      const rawLower = '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
+      const checksummed = getAddress(rawLower as `0x${string}`);
+      const mockPlayer: Player = {
+        id: 42,
+        wallet_address: rawLower,
+        username: 'mixedcase',
+        total_points: 10,
+      };
+
+      mockSingle
+        .mockResolvedValueOnce({
+          data: null,
+          error: { code: 'PGRST116', message: 'Not found' },
+        })
+        .mockResolvedValueOnce({ data: mockPlayer, error: null });
+
+      const result = await getPlayerByWallet(checksummed);
+
+      expect(result).toEqual(mockPlayer);
+      expect(mockSingle).toHaveBeenCalledTimes(2);
+    });
+
     it('should return null when not found (PGRST116)', async () => {
-      mockSingle.mockResolvedValueOnce({
-        data: null,
-        error: { code: 'PGRST116', message: 'Not found' },
-      });
+      mockSingle
+        .mockResolvedValueOnce({
+          data: null,
+          error: { code: 'PGRST116', message: 'Not found' },
+        })
+        .mockResolvedValueOnce({
+          data: null,
+          error: { code: 'PGRST116', message: 'Not found' },
+        });
 
       const result = await getPlayerByWallet(
         '0x1234567890abcdef1234567890abcdef12345678'
