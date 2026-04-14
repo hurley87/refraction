@@ -101,8 +101,8 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Points + activity: same max width as mobile column (max-w-md + page gutters) */}
-      <div className="mx-auto w-full max-w-md px-4 md:px-2">
+      {/* Points + activity: full-bleed on small screens; from md, same gutters as column above */}
+      <div className="mx-auto w-full max-w-md px-0 md:px-2">
         <div
           className="flex w-full flex-col items-start gap-6 rounded-b-[26px] rounded-t-none border-0 p-4"
           style={{
