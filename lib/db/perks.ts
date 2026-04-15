@@ -32,6 +32,12 @@ const DISCOUNT_CODE_COLUMNS = `
   is_universal
 `;
 
+const isDuplicateRedemptionError = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  (error as { code?: string }).code === '23505';
+
 /**
  * Create a new perk
  */
@@ -203,7 +209,12 @@ export const redeemPerk = async (perkId: string, walletAddress: string) => {
     )
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (isDuplicateRedemptionError(error)) {
+      throw new Error('Perk already redeemed');
+    }
+    throw error;
+  }
   return data;
 };
 
