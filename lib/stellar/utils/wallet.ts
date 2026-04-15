@@ -15,9 +15,6 @@ import { getHorizonUrlForNetwork } from './network';
 // Get WalletConnect project ID from environment
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
-// Build modules array - include WalletConnect if project ID is configured
-const modules = [...sep43Modules()];
-
 // Determine network for both WalletConnect module and StellarWalletsKit
 // They must use the same network to avoid chainId mismatches
 const wcNetworkEnv =
@@ -41,15 +38,42 @@ const currentNetwork =
           // Users can connect on either network and we'll detect and adapt
           WalletNetwork.PUBLIC;
 
+// Initialize kit network to match WalletConnect module initialization
+// This ensures consistency between kit network and WalletConnect module network
+// Both should use the same network to avoid chainId mismatches
+const kitNetwork = walletConnectProjectId
+  ? // If WalletConnect is enabled, use the same network as WalletConnect module
+    currentNetwork
+  : // If WalletConnect is not enabled, use network from environment
+    envNetwork === 'PUBLIC' || envNetwork === 'MAINNET'
+    ? WalletNetwork.PUBLIC
+    : envNetwork === 'FUTURENET'
+      ? WalletNetwork.FUTURENET
+      : WalletNetwork.TESTNET;
+
+// stellar-wallets-kit calls `window` (via custom-element registration and
+// `getSupportedWallets`) during module initialisation. Guard the entire
+// construction so that importing this module on the server never throws.
+// The primary protection is the `ssr: false` dynamic import in app/stellar/page.tsx;
+// this guard is a belt-and-suspenders defence.
+if (typeof window === 'undefined') {
+  throw new Error(
+    '[stellar/wallet] This module must only be loaded in a browser context.'
+  );
+}
+
+// Build modules array - include WalletConnect if project ID is configured
+const modules = [...sep43Modules()];
+
 if (walletConnectProjectId) {
   // Get app metadata from environment or use defaults
   const appName = process.env.NEXT_PUBLIC_APP_NAME || 'IRL';
   const appDescription =
     process.env.NEXT_PUBLIC_APP_DESCRIPTION || 'IRL Rewards Program';
   const appUrl =
-    typeof window !== 'undefined'
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_APP_URL || 'https://irl.xyz';
+    window.location.origin ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'https://irl.xyz';
   const appIcons = process.env.NEXT_PUBLIC_APP_ICONS
     ? [process.env.NEXT_PUBLIC_APP_ICONS]
     : ['https://irl.xyz/favicon.ico'];
@@ -66,19 +90,6 @@ if (walletConnectProjectId) {
     })
   );
 }
-
-// Initialize kit network to match WalletConnect module initialization
-// This ensures consistency between kit network and WalletConnect module network
-// Both should use the same network to avoid chainId mismatches
-const kitNetwork = walletConnectProjectId
-  ? // If WalletConnect is enabled, use the same network as WalletConnect module
-    currentNetwork
-  : // If WalletConnect is not enabled, use network from environment
-    envNetwork === 'PUBLIC' || envNetwork === 'MAINNET'
-    ? WalletNetwork.PUBLIC
-    : envNetwork === 'FUTURENET'
-      ? WalletNetwork.FUTURENET
-      : WalletNetwork.TESTNET;
 
 const kit: StellarWalletsKit = new StellarWalletsKit({
   network: kitNetwork,
