@@ -373,6 +373,60 @@ describe('POST /api/perks/redeem', () => {
   });
 
   describe('Database Errors', () => {
+    it('should return 400 when insert loses a redemption race', async () => {
+      // Mock user with enough points
+      mockSingle.mockResolvedValueOnce({
+        data: { total_points: 500 },
+        error: null,
+      });
+      // Mock perk
+      mockSingle.mockResolvedValueOnce({
+        data: {
+          id: validPerkId,
+          points_threshold: 100,
+          type: 'discount',
+          location: null,
+        },
+        error: null,
+      });
+      // Mock no existing redemption
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: { code: 'PGRST116', message: 'Not found' },
+      });
+      // Mock available code
+      mockSingle.mockResolvedValueOnce({
+        data: {
+          id: 'code-123',
+          code: 'SAVE50',
+          perk_id: validPerkId,
+          is_claimed: false,
+        },
+        error: null,
+      });
+      // Mock insert conflict from a concurrent request
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: '23505',
+          message: 'duplicate key value violates unique constraint',
+        },
+      });
+
+      const request = createRequest({
+        perkId: validPerkId,
+        walletAddress: validWallet,
+      });
+
+      const response = await POST(request);
+      const json = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(json.success).toBe(false);
+      expect(json.error).toBe('Perk already redeemed');
+      expect(trackRewardClaimed).not.toHaveBeenCalled();
+    });
+
     it('should return 500 on user fetch error', async () => {
       mockSingle.mockResolvedValueOnce({
         data: null,

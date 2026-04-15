@@ -7,6 +7,12 @@ import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/se
 
 export const dynamic = 'force-dynamic';
 
+const isDuplicateRedemptionError = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  (error as { code?: string }).code === '23505';
+
 // POST /api/perks/redeem { perkId, walletAddress }
 export async function POST(request: NextRequest) {
   try {
@@ -72,7 +78,12 @@ export async function POST(request: NextRequest) {
       })
       .select(`*, perk_discount_codes ( code )`)
       .single();
-    if (error) throw error;
+    if (error) {
+      if (isDuplicateRedemptionError(error)) {
+        return apiError('Perk already redeemed', 400);
+      }
+      throw error;
+    }
 
     const distinctId = resolveServerIdentity({
       email: user.email || undefined,
