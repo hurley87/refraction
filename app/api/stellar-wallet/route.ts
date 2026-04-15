@@ -5,6 +5,7 @@ import {
 } from '@/lib/db/players';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { getPrivyClient, verifyCallerIdentity } from '@/lib/api/privy';
+import { captureHandledException } from '@/lib/monitoring/capture-handled-exception';
 
 /**
  * GET - Get Stellar wallet for a user
@@ -59,6 +60,12 @@ export async function GET(req: NextRequest) {
     return apiSuccess({ address: null });
   } catch (error) {
     console.error('Error fetching Stellar wallet:', error);
+    captureHandledException(error, {
+      route: '/api/stellar-wallet',
+      operation: 'get_stellar_wallet',
+      statusCode: 500,
+      extra: { hasPrivyUserId: Boolean(privyUserId) },
+    });
     return apiError(
       error instanceof Error ? error.message : 'Failed to fetch wallet',
       500
@@ -138,6 +145,12 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error('Error creating Stellar wallet:', error);
+    captureHandledException(error, {
+      route: '/api/stellar-wallet',
+      operation: 'create_stellar_wallet',
+      statusCode: 500,
+      extra: { hasPrivyUserId: Boolean(privyUserId) },
+    });
     return apiError(
       error instanceof Error ? error.message : 'Failed to create wallet',
       500
