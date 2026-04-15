@@ -1,6 +1,6 @@
 # Contributor Guide
 
-This file guides contributors and AI agents (e.g. Cursor) working in this repo. For full architecture and patterns, see **CLAUDE.md**. For persistent coding rules, see **.cursorrules**.
+This file guides contributors and AI agents (e.g. Cursor) working in this repo. For persistent coding rules, see **.cursorrules**.
 
 ## Project in one line
 

@@ -1,137 +1,187 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IRL
 
-## Getting Started
+IRL is a rewards app for cultural events and locations. Users sign in with [Privy](https://privy.io), create a player profile, discover locations and events, complete check-ins to earn points, progress through tiers, and redeem perks.
 
-### Environment Variables
+## Tech stack
 
-Create a `.env.local` file in the root directory and add:
+- **Framework**: Next.js 14 (App Router)
+- **Auth**: Privy — social login + embedded multi-chain wallets (EVM/Base, Solana, Stellar)
+- **Database**: Supabase PostgreSQL
+- **Blockchain**: Wagmi/Viem (EVM), Solana Web3.js, Stellar/Soroban
+- **State**: React Query v5
+- **Validation**: Zod
+- **UI**: Tailwind CSS + shadcn/ui (Radix-based)
+- **Analytics**: Mixpanel (client + server)
+- **Maps**: Mapbox GL
 
-```bash
-MAPBOX_ACCESS_TOKEN=your_mapbox_access_token_here
-GOOGLE_PLACES_API_KEY=your_google_places_api_key_here
+## Getting started
 
-# Stellar Network Configuration
-# The app automatically uses MAINNET in production and TESTNET in development
-# You can override this behavior with the env vars below
-
-# Production Detection (optional)
-# Set to "true" for production/mainnet, "false" for development/testnet
-# If not set, the app uses VERCEL_ENV or NODE_ENV to determine production status
-PRODUCTION=false
-
-# Network Override (optional - only needed if you want to override auto-detection)
-# NEXT_PUBLIC_STELLAR_NETWORK=TESTNET  # or PUBLIC for mainnet
-# NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE="Test SDF Network ; September 2015"  # Auto-set if not provided
-# NEXT_PUBLIC_STELLAR_RPC_URL=https://rpc-futurenet.stellar.org  # Auto-set if not provided
-# NEXT_PUBLIC_STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org  # Auto-set if not provided
-
-# Contract Addresses (optional - supports network-specific addresses)
-# Option 1: Network-specific addresses (recommended for production)
-# NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_MAINNET=your_mainnet_nft_contract_id
-# NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_TESTNET=your_testnet_nft_contract_id
-# NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_MAINNET=your_mainnet_payment_contract_id
-# NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_TESTNET=your_testnet_payment_contract_id
-
-# Option 2: Single address for all networks (fallback)
-# NEXT_PUBLIC_NFT_CONTRACT_ADDRESS=your_nft_contract_id
-# NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS=your_payment_contract_id
-
-# WalletConnect Configuration (optional, enables WalletConnect wallet option)
-# Get your project ID from https://cloud.walletconnect.com
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id_here
-
-# Optional: Customize WalletConnect app metadata
-NEXT_PUBLIC_APP_NAME=Refraction
-NEXT_PUBLIC_APP_DESCRIPTION=Refraction Stellar Wallet
-NEXT_PUBLIC_APP_URL=https://your-app-url.com
-NEXT_PUBLIC_APP_ICONS=https://your-app-url.com/icon1.png,https://your-app-url.com/icon2.png
-```
-
-To get these API keys:
-
-- **Mapbox**: Sign up at [mapbox.com](https://mapbox.com) and get your access token
-- **Google Places**: Enable the Places API in [Google Cloud Console](https://console.cloud.google.com) and create an API key
-
-**Stellar Network Configuration:**
-
-The app automatically switches between networks based on environment:
-
-- **Development/Local**: Uses `TESTNET` by default
-- **Production (Vercel)**: Automatically uses `PUBLIC` (Mainnet) when `PRODUCTION=true` or `VERCEL_ENV=production`
-
-**Production Detection:**
-
-- Set `PRODUCTION=true` in Vercel environment variables for production deployments
-- Set `PRODUCTION=false` (or omit) for local development
-- The app also checks `VERCEL_ENV` and `NODE_ENV` as fallbacks
-
-**Manual Override:**
-If you need to override the automatic network selection, you can set:
-
-- `NEXT_PUBLIC_STELLAR_NETWORK` - `TESTNET`, `PUBLIC`, `FUTURENET`, or `LOCAL`
-- `NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE` - Network passphrase (auto-set if not provided)
-- `NEXT_PUBLIC_STELLAR_RPC_URL` - Soroban RPC URL (auto-set if not provided)
-- `NEXT_PUBLIC_STELLAR_HORIZON_URL` - Horizon API URL (auto-set if not provided)
-
-**Contract Addresses:**
-The app supports network-specific contract addresses for easier deployment:
-
-- **Network-specific (recommended)**: Use `_MAINNET` and `_TESTNET` suffixes
-
-  - `NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_MAINNET` - NFT contract on mainnet
-  - `NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_TESTNET` - NFT contract on testnet
-  - `NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_MAINNET` - Payment contract on mainnet
-  - `NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_TESTNET` - Payment contract on testnet
-
-- **Single address (fallback)**: Use generic env vars for all networks
-  - `NEXT_PUBLIC_NFT_CONTRACT_ADDRESS` - NFT contract (used if network-specific not set)
-  - `NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS` - Payment contract (used if network-specific not set)
-
-The app automatically selects the correct address based on the current network.
-
-**Network Options:**
-
-- `TESTNET` - Stellar Testnet (default for development)
-- `PUBLIC` - Stellar Mainnet (default for production)
-- `FUTURENET` - Stellar Futurenet
-- `LOCAL` - Local Stellar network (requires local Horizon server)
-
-**WalletConnect Setup:**
-
-- Sign up at [WalletConnect Cloud](https://cloud.walletconnect.com) to get your project ID
-- Add `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` to your `.env.local` file
-- WalletConnect will automatically appear as a wallet option in the connection modal
-- Optional: Customize app metadata with `NEXT_PUBLIC_APP_NAME`, `NEXT_PUBLIC_APP_DESCRIPTION`, `NEXT_PUBLIC_APP_URL`, and `NEXT_PUBLIC_APP_ICONS`
-
-First, run the development server:
+**Package manager:** Yarn 1.22.22 is required (specified in `packageManager`).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+yarn install
+cp .env.local.example .env.local   # then fill in credentials
+yarn dev                            # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create `.env.local` from `.env.local.example`. Required variables:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Auth
+NEXT_PUBLIC_PRIVY_APP_ID=
 
-## Learn More
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
-To learn more about Next.js, take a look at the following resources:
+# Maps
+NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Analytics
+NEXT_PUBLIC_MIXPANEL_TOKEN=   # client-side project token
+MIXPANEL_TOKEN=               # server-side (falls back to NEXT_PUBLIC_MIXPANEL_TOKEN)
+MIXPANEL_SECRET=              # optional, for enhanced API security
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Blockchain
+SERVER_WALLET_PRIVATE_KEY=
+BASE_RPC_URL=
+```
 
-## Deploy on Vercel
+### Stellar / Soroban (optional)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The app auto-selects testnet in development and mainnet in production (`VERCEL_ENV=production`). Override with:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+NEXT_PUBLIC_STELLAR_NETWORK=TESTNET          # TESTNET | PUBLIC | FUTURENET | LOCAL
+# Network-specific contract addresses (recommended)
+NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_MAINNET=
+NEXT_PUBLIC_NFT_CONTRACT_ADDRESS_TESTNET=
+NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_MAINNET=
+NEXT_PUBLIC_SIMPLE_PAYMENT_CONTRACT_ADDRESS_TESTNET=
+```
+
+## Commands
+
+```bash
+yarn dev            # Dev server at http://localhost:3000
+yarn build          # Production build
+yarn lint           # ESLint
+yarn test           # Vitest (single run)
+yarn test:watch     # Vitest watch mode
+yarn test:coverage  # Coverage report
+```
+
+## Core user flows
+
+| Flow                   | Entry point                            | Success signal                                             |
+| ---------------------- | -------------------------------------- | ---------------------------------------------------------- |
+| Signup & onboarding    | Privy sign-in                          | `players` row with wallet + username                       |
+| Location discovery     | Map or `/c/[id]`                       | User reaches a check-in surface                            |
+| Location check-in      | Map pin or location page               | `player_location_checkins` row written, points incremented |
+| Checkpoint check-in    | `/c/[id]`                              | `points_activities` row written, points incremented        |
+| Rewards browse & claim | `/rewards` or `/perks`                 | `user_perk_redemptions` row with code or link              |
+| Spend redemption       | `/c/[id]` with `checkpoint_mode=spend` | `spend_redemptions` fulfilled, points deducted             |
+
+> **Note:** Perk claims do **not** deduct points — points act as a qualification threshold. Only spend redemptions deduct points.
+
+## Feature status
+
+### Live
+
+- Privy auth + player onboarding
+- Interactive map (main discovery surface)
+- Location check-ins and checkpoint check-ins
+- Points balance, tiers, dashboard, leaderboard
+- Rewards catalog + perk claiming (qualification-based, no deduction)
+- Spend redemption (points deducted on completion)
+- Events page (DICE API + manually maintained JSON)
+- User-submitted locations (new submissions start hidden, may need admin approval)
+- Admin surfaces: users, locations, checkpoints, perks, analytics, city metrics
+
+### Partial / manual
+
+- **Challenges / quests** — UI exists; progress is randomized client-side from static JSON
+- **City guides** — route exists; content is placeholder pending CMS
+- **Events ingestion** — partly from DICE API, partly from manually maintained JSON
+- **Spend fulfillment** — user flows are live; venue-side verification can rely on manual ops
+
+### Planned
+
+- CMS-powered city guides
+- IRL Spend (staff-friendly event checkout tied to user + event)
+- Bridge-powered IRL Member Card (in-person identity + spend instrument)
+
+## Data sources
+
+| Source   | Source of truth for                                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Supabase | Current points balances, completed check-ins, perk claims, spend state, active locations / checkpoints / tiers / rewards |
+| Mixpanel | Engagement trends, funnel conversion, route views, behavior sequencing                                                   |
+
+**Key rules:**
+
+- `players.total_points` is the authoritative current points balance.
+- `points_activities` is **not** a complete ledger of every point mutation.
+- Do not reconstruct point balances from Mixpanel events.
+- For "how many completed X exist?" → Supabase. For "where do users drop off?" → Mixpanel.
+
+## Key analytics events
+
+| Event                        | When fired                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------ |
+| `account_created`            | Net-new player profile created                                                 |
+| `checkin_completed`          | Successful location or checkpoint check-in (use `checkin_type` to distinguish) |
+| `points_earned`              | Points awarded (check-ins, location creation)                                  |
+| `reward_page_viewed`         | Reward detail opened                                                           |
+| `reward_claimed`             | Perk successfully redeemed                                                     |
+| `spend_redemption_started`   | Spend redemption initiated (pending-create flow)                               |
+| `spend_redemption_completed` | Spend redemption fulfilled or verified                                         |
+| `tier_progression`           | Tier changed after a points update                                             |
+| `location_created`           | Location created (may start hidden)                                            |
+
+**Known gaps:** `session_started` and `tier_changed` are defined in code but not currently emitted. `cohort` is hard-coded to `new` and should not be used for segmentation.
+
+## Directory structure
+
+```
+app/            # Next.js App Router: pages, layouts, ~50 API routes
+components/     # React components (components/ui/ = shadcn)
+lib/            # Business logic
+├── db/         # Database access layer
+├── schemas/    # Zod validation schemas
+├── api/        # API utilities (response helpers)
+├── analytics/  # Mixpanel integration
+└── types.ts    # Centralized TypeScript types
+hooks/          # Custom React hooks
+database/       # SQL migration scripts
+soroban-contracts/  # Stellar/Soroban smart contracts
+```
+
+Path alias: `@/*` maps to the project root.
+
+## API response format
+
+All API routes use helpers from `lib/api/response.ts`:
+
+```typescript
+// Success
+return apiSuccess({ player });
+
+// Error
+return apiError('Not found', 404);
+
+// Validation error
+return apiValidationError(zodError);
+```
+
+Response shape: `{ success: boolean; data?: T; error?: string; message?: string }`.
+
+## Contributing
+
+1. Branch from `main`: `git checkout -b feature/your-feature`
+2. Commit with clear messages: `fix: handle edge case in login form`
+3. Open a PR targeting `main`; ensure lint and tests pass
+
+See `docs/APP_OVERVIEW.md` for product context, funnel definitions, and data source rules.
