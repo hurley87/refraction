@@ -6,14 +6,14 @@ IRL is a rewards app for cultural events and locations. Users sign in with Privy
 
 ## Current product goal
 
-TODO: the repo does not state a single current team goal. The clearest instrumented product loops are:
+The homepage suggests the current focus is **activation into real-world discovery and attendance**, with the clearest user path being:
 
-- `account_created` -> first `checkin_completed`
-- first `checkin_completed` -> repeat `checkin_completed`
-- `reward_page_viewed` -> `reward_claimed`
-- `spend_redemption_started` -> `spend_redemption_completed`
+- landing page -> interactive map (`Find Spots Nearby`)
+- nearby spot or event discovery
+- real-world visit
+- first successful `checkin_completed`
 
-Use current weekly data to determine which of these is the active bottleneck instead of assuming one.
+The most specific current product goal to use for weekly analysis is: **improve first check-in completion after discovery**. A secondary theme on the homepage is venue/event growth (`Bring IRL to your city`), but the primary user-side focus is getting people from discovery into real-world participation.
 
 ## Core user flows
 
@@ -123,10 +123,11 @@ Important: perk claims do **not** deduct points. Points act as a qualification t
 
 ### Planned but not live
 
-| Feature name                   | What it does                                                                                          | Who uses it               | Status             |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------- | ------------------------- | ------------------ |
-| CMS-powered city guides        | Replace the current placeholder guides/editorials with real CMS-backed content.                       | End users + internal team | `planned-not-live` |
-| TODO: additional roadmap items | The repo does not contain a reliable, current product roadmap beyond the explicit placeholders above. | TODO                      | `planned-not-live` |
+| Feature name                   | What it does                                                                                                                         | Who uses it                   | Status             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- | ------------------ |
+| CMS-powered city guides        | Replace the current placeholder guides/editorials with real CMS-backed content.                                                      | End users + internal team     | `planned-not-live` |
+| IRL Spend                      | Add a staff-friendly event checkout flow that ties a live purchase to a user and event, confirms payment, and issues points.         | End users + staff + operators | `planned-not-live` |
+| Bridge-powered IRL Member Card | Add a dedicated IRL member card product that acts as in-person identity and spend instrument, with website account access via Privy. | End users + internal team     | `planned-not-live` |
 
 ## Key data sources and definitions
 
@@ -251,7 +252,7 @@ Important: perk claims do **not** deduct points. Points act as a qualification t
 
 ## Open questions / missing instrumentation
 
-- TODO: the repo does not document the team's single current product goal or north-star metric.
+- Inferred from the homepage, the likely north-star is **real-world participation after discovery**, best approximated today by successful check-ins. The exact team-owned KPI definition is still not explicitly documented in the repo.
 - `session_started` is defined but not emitted.
 - `tier_changed` is defined but not emitted; current live tier-change signal is `tier_progression`.
 - `cohort` is currently hard-coded to `new`, so it should not be trusted for real segmentation.
