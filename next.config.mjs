@@ -114,7 +114,6 @@ const sentryWebpackPluginOptions = {
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
   silent: true,
-  disableLogger: true,
 };
 
 export default withSentryConfig(nextConfig, sentryWebpackPluginOptions);
