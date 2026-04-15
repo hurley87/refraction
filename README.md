@@ -184,4 +184,4 @@ Response shape: `{ success: boolean; data?: T; error?: string; message?: string 
 2. Commit with clear messages: `fix: handle edge case in login form`
 3. Open a PR targeting `main`; ensure lint and tests pass
 
-See `CLAUDE.md` for full architecture detail and `docs/APP_OVERVIEW.md` for product context, funnel definitions, and data source rules.
+See `docs/APP_OVERVIEW.md` for product context, funnel definitions, and data source rules.
