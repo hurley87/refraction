@@ -5,6 +5,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { verifyWalletOwnership } from '@/lib/api/privy';
 import { getServerPrivateKey } from '@/lib/server-private-key';
 import { supabase } from '@/lib/db/client';
+import { captureHandledException } from '@/lib/monitoring/capture-handled-exception';
 import {
   updatePlayerPoints,
   getPlayerByWallet,
@@ -303,6 +304,14 @@ export async function POST(req: NextRequest) {
         const msg =
           error instanceof Error ? error.message : 'Failed to claim artwork';
         console.error('Error in performClaim:', error);
+        captureHandledException(error, {
+          route: '/api/stripe-commons/claim',
+          operation: 'perform_claim',
+          statusCode: 500,
+          extra: {
+            walletAddressSuffix: normalized.slice(-8),
+          },
+        });
         return NextResponse.json(
           { success: false, error: msg },
           { status: 500 }
@@ -318,6 +327,11 @@ export async function POST(req: NextRequest) {
     const msg =
       error instanceof Error ? error.message : 'Failed to process claim';
     console.error('Error in POST handler:', error);
+    captureHandledException(error, {
+      route: '/api/stripe-commons/claim',
+      operation: 'post_handler',
+      statusCode: 500,
+    });
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
@@ -455,8 +469,13 @@ async function recordClaim(
   if (player?.id) {
     const previousPoints = player.total_points ?? 0;
     const updated = await updatePlayerPoints(player.id, STRIPE_COMMONS_POINTS);
-    const newPoints = updated?.total_points ?? previousPoints + STRIPE_COMMONS_POINTS;
-    await checkAndTrackTierProgression(walletAddress, previousPoints, newPoints);
+    const newPoints =
+      updated?.total_points ?? previousPoints + STRIPE_COMMONS_POINTS;
+    await checkAndTrackTierProgression(
+      walletAddress,
+      previousPoints,
+      newPoints
+    );
   }
 }
 
@@ -515,6 +534,11 @@ export async function GET(req: NextRequest) {
     const msg =
       error instanceof Error ? error.message : 'Failed to check claim status';
     console.error('Error checking claim status:', error);
+    captureHandledException(error, {
+      route: '/api/stripe-commons/claim',
+      operation: 'get_claim_status',
+      statusCode: 500,
+    });
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }

@@ -6,6 +6,7 @@ import { WALLETCON_NFT_ADDRESS, WALLETCON_NFT_ABI } from '@/lib/walletcon-nft';
 import { ERC20_ABI } from '@/lib/reward1155-abi';
 import { verifyWalletOwnership } from '@/lib/api/privy';
 import { getServerPrivateKey } from '@/lib/server-private-key';
+import { captureHandledException } from '@/lib/monitoring/capture-handled-exception';
 
 // In-memory lock to prevent concurrent mints for the same user
 const mintLocks = new Map<string, Promise<any>>();
@@ -98,6 +99,14 @@ export async function POST(req: NextRequest) {
         return await performMint(userAddress, normalizedAddress);
       } catch (error: any) {
         console.error('Error in performMint:', error);
+        captureHandledException(error, {
+          route: '/api/claim-nft',
+          operation: 'mint_claim',
+          statusCode: 500,
+          extra: {
+            normalizedAddress,
+          },
+        });
         return NextResponse.json(
           {
             success: false,
@@ -114,6 +123,11 @@ export async function POST(req: NextRequest) {
     return mintPromise;
   } catch (error: any) {
     console.error('Error in POST handler:', error);
+    captureHandledException(error, {
+      route: '/api/claim-nft',
+      operation: 'post_request',
+      statusCode: 500,
+    });
     return NextResponse.json(
       {
         success: false,
@@ -129,6 +143,14 @@ async function performMint(userAddress: string, normalizedAddress: string) {
   if (!privateKey) {
     console.error(
       '[claim-nft] No server wallet key: set SERVER_PRIVATE_KEY or SERVER_WALLET_PRIVATE_KEY in .env.local (Base wallet with ETH for gas; must be NFT contract owner).'
+    );
+    captureHandledException(
+      new Error('Missing server wallet key for /api/claim-nft mint execution.'),
+      {
+        route: '/api/claim-nft',
+        operation: 'missing_server_wallet_key',
+        statusCode: 500,
+      }
     );
     return NextResponse.json(
       {
@@ -400,6 +422,11 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error checking mint status:', error);
+    captureHandledException(error, {
+      route: '/api/claim-nft',
+      operation: 'get_claim_status',
+      statusCode: 500,
+    });
     return NextResponse.json(
       {
         success: false,

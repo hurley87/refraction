@@ -24,6 +24,7 @@ const securityHeaders = [
   },
 ];
 
+import { withSentryConfig } from "@sentry/nextjs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -105,7 +106,14 @@ const nextConfig = {
       },
     ];
   },
- 
+
 };
 
-export default nextConfig;
+const sentryWebpackPluginOptions = {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: true,
+};
+
+export default withSentryConfig(nextConfig, sentryWebpackPluginOptions);

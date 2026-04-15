@@ -10,6 +10,7 @@ import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { trackAccountCreated, resolveServerIdentity } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { addCampaignMonitorSubscriber } from '@/lib/campaign-monitor/subscribe';
+import { captureHandledException } from '@/lib/monitoring/capture-handled-exception';
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,6 +71,14 @@ export async function POST(request: NextRequest) {
       });
     } catch (airtableSyncError) {
       console.error('Failed to sync user to Airtable:', airtableSyncError);
+      captureHandledException(airtableSyncError, {
+        route: '/api/player',
+        operation: 'sync_user_to_airtable',
+        statusCode: 500,
+        extra: {
+          hasEmail: Boolean(player.email),
+        },
+      });
       // We log the error but do NOT block the main response
     }
 
@@ -91,6 +100,14 @@ export async function POST(request: NextRequest) {
                 : String(campaignMonitorError),
           })
         );
+        captureHandledException(campaignMonitorError, {
+          route: '/api/player',
+          operation: 'campaign_monitor_subscribe',
+          statusCode: 500,
+          extra: {
+            hasEmail: Boolean(email),
+          },
+        });
       }
     }
 
