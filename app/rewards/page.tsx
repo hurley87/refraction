@@ -518,8 +518,7 @@ export default function PerksPage() {
   return (
     <div
       style={{
-        background:
-          'var(--Gradients-Rewards-Pink, linear-gradient(0deg, rgba(0, 0, 0, 0.10) 0%, rgba(0, 0, 0, 0.10) 100%), linear-gradient(0deg, #FFE600 0%, #1BA351 36.06%, #61BFD1 65.39%, #EE91B7 100%))',
+        background: '#FFE600',
         padding: '16px',
         paddingBottom: '0',
       }}
@@ -563,7 +562,7 @@ export default function PerksPage() {
                   borderRadius: '26px',
                   border: '1px solid rgba(255, 255, 255, 0.25)',
                   background:
-                    'linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.45) 100%)',
+                    'linear-gradient(180deg, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.92) 100%)',
                 }}
               >
                 {/* Latest Reward Title */}
@@ -757,7 +756,7 @@ export default function PerksPage() {
                       }}
                       disabled={latestRewardExpired}
                     >
-                      <h4 className="font-pleasure text-left">
+                      <h4 className="font-grotesk text-left">
                         {latestRewardRedeemed
                           ? '✓ Redeemed'
                           : latestRewardExpired
@@ -791,7 +790,7 @@ export default function PerksPage() {
                     onClick={() => handleOpenPerk(latestReward)}
                     className="w-full h-[40px] bg-white text-black font-bold rounded-full px-4 hover:bg-gray-100 transition-colors flex items-center justify-between"
                   >
-                    <h4 className="font-pleasure text-left">View Details</h4>
+                    <h4 className="font-grotesk text-left">View Details</h4>
                     <div
                       style={{
                         display: 'flex',
@@ -1277,7 +1276,7 @@ export default function PerksPage() {
                     }}
                   >
                     <div className="flex w-full items-center justify-between">
-                      <h3 className="text-[#313131] font-pleasure text-left">
+                      <h3 className="text-[#313131] font-grotesk text-left">
                         {tier.title}
                       </h3>
                       <div className="flex items-center gap-2 rounded-full border border-[#EDEDED] bg-[#ffffff] px-3 py-1">
@@ -1364,7 +1363,7 @@ export default function PerksPage() {
                                       No image
                                     </div>
                                   )}
-                                  <h4 className="text-[#020303] font-pleasure line-clamp-2">
+                                  <h4 className="text-[#020303] font-grotesk line-clamp-2">
                                     {tierPerk.title}
                                   </h4>
                                 </div>
@@ -1626,7 +1625,7 @@ export default function PerksPage() {
                               href={claimUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex w-full items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-pleasure uppercase tracking-wide text-white hover:bg-[#313131] transition-colors"
+                              className="inline-flex w-full items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white hover:bg-[#313131] transition-colors"
                             >
                               <h4 className="text-left">Claim Reward</h4>
                               <Image
@@ -1641,7 +1640,7 @@ export default function PerksPage() {
                             <button
                               type="button"
                               disabled
-                              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-pleasure uppercase tracking-wide text-gray-500 cursor-not-allowed"
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-grotesk uppercase tracking-wide text-gray-500 cursor-not-allowed"
                             >
                               <h4>Claim Reward</h4>
                             </button>
@@ -1654,7 +1653,7 @@ export default function PerksPage() {
                           <button
                             type="button"
                             onClick={handleCopyCode}
-                            className="inline-flex items-center justify-between gap-2 rounded-full border font-pleasure border-[#131313]/20 bg-white px-4 py-2 body-small uppercase tracking-wide text-[#313131] hover:bg-gray-50 transition-colors flex-1"
+                            className="inline-flex items-center justify-between gap-2 rounded-full border font-grotesk border-[#131313]/20 bg-white px-4 py-2 body-small uppercase tracking-wide text-[#313131] hover:bg-gray-50 transition-colors flex-1"
                           >
                             <span>
                               {selectedDiscountCode?.slice(0, 20) || ''}
@@ -1668,7 +1667,7 @@ export default function PerksPage() {
                               href={claimUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-pleasure uppercase tracking-wide text-white hover:bg-[#313131] transition-colors flex-1"
+                              className="inline-flex items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white hover:bg-[#313131] transition-colors flex-1"
                             >
                               <span className="text-left">Claim Reward</span>
                               <Image
@@ -1683,7 +1682,7 @@ export default function PerksPage() {
                             <button
                               type="button"
                               disabled
-                              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-pleasure uppercase tracking-wide text-gray-500 cursor-not-allowed flex-1"
+                              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-grotesk uppercase tracking-wide text-gray-500 cursor-not-allowed flex-1"
                             >
                               Claim Reward
                             </button>
