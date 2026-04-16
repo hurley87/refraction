@@ -17,8 +17,6 @@ import {
   getHorizonUrlForNetwork,
   getRpcUrlForNetwork,
 } from './network';
-import { wallet } from './wallet';
-import { WalletNetwork } from '@creit.tech/stellar-wallets-kit';
 import storage from './storage';
 
 /**
@@ -393,6 +391,16 @@ export const invokeContract = async (
   const walletId = storage.getItem('walletId');
   const isWalletConnect = walletId === 'wallet_connect';
 
+  // Dynamically import wallet and WalletNetwork to avoid importing browser-only code
+  // at the module level (which would break server-side API routes).
+  const { wallet, WalletNetwork } = await import('./wallet').then(
+    async (m) => ({
+      wallet: m.wallet,
+      WalletNetwork: (await import('@creit.tech/stellar-wallets-kit'))
+        .WalletNetwork,
+    })
+  );
+
   // IMPORTANT: Ensure the wallet is set before signing, especially for WalletConnect
   // This is critical for WalletConnect to properly route the signing request to the mobile wallet
   if (walletId) {
@@ -402,7 +410,9 @@ export const invokeContract = async (
 
   // Convert passphrase to WalletNetwork enum for WalletConnect compatibility
   // WalletConnect expects WalletNetwork enum, not the passphrase string
-  let networkPassphraseForSigning: string | WalletNetwork;
+  let networkPassphraseForSigning:
+    | string
+    | (typeof WalletNetwork)[keyof typeof WalletNetwork];
   if (isWalletConnect) {
     // Convert passphrase to WalletNetwork enum for WalletConnect
     if (passphrase?.includes('Test')) {
@@ -659,7 +669,7 @@ export const invokeContract = async (
 
           // Re-sign transaction
           // For WalletConnect, use WalletNetwork enum instead of passphrase string
-          let reNetworkPassphrase: string | WalletNetwork;
+          let reNetworkPassphrase: string;
           if (isWalletConnect) {
             if (passphrase?.includes('Test')) {
               reNetworkPassphrase = WalletNetwork.TESTNET;
@@ -1411,26 +1421,35 @@ export const mintNFT = async (
   // WalletConnect expects WalletNetwork enum, not the passphrase string
   // (walletId and isWalletConnect are already defined at function start)
 
+  // Dynamically import wallet and WalletNetwork to avoid importing browser-only code
+  // at the module level (which would break server-side API routes).
+  const { wallet: walletKit, WalletNetwork: WN } =
+    await import('./wallet').then(async (m) => ({
+      wallet: m.wallet,
+      WalletNetwork: (await import('@creit.tech/stellar-wallets-kit'))
+        .WalletNetwork,
+    }));
+
   // IMPORTANT: Ensure the wallet is set before signing, especially for WalletConnect
   // This is critical for WalletConnect to properly route the signing request to the mobile wallet
   if (walletId) {
-    wallet.setWallet(walletId);
+    walletKit.setWallet(walletId);
     console.log('[Soroban] mintNFT: Set wallet before signing:', walletId);
   }
 
   // Convert passphrase to WalletNetwork enum for WalletConnect compatibility
   // WalletNetwork enum values ARE the passphrase strings, so this conversion ensures type compatibility
-  let networkPassphraseForSigning: string | WalletNetwork;
+  let networkPassphraseForSigning: string;
   if (isWalletConnect) {
     // For WalletConnect, use WalletNetwork enum to ensure it matches module initialization
     if (passphrase?.includes('Test')) {
-      networkPassphraseForSigning = WalletNetwork.TESTNET;
+      networkPassphraseForSigning = WN.TESTNET;
     } else if (passphrase?.includes('Public')) {
-      networkPassphraseForSigning = WalletNetwork.PUBLIC;
+      networkPassphraseForSigning = WN.PUBLIC;
     } else if (passphrase?.includes('Future')) {
-      networkPassphraseForSigning = WalletNetwork.FUTURENET;
+      networkPassphraseForSigning = WN.FUTURENET;
     } else {
-      networkPassphraseForSigning = WalletNetwork.TESTNET;
+      networkPassphraseForSigning = WN.TESTNET;
     }
   } else {
     // For other wallets, use the passphrase string directly
@@ -1444,9 +1463,9 @@ export const mintNFT = async (
       networkPassphraseForSigning,
       networkPassphraseType: typeof networkPassphraseForSigning,
       isWalletNetworkEnum: isWalletConnect
-        ? networkPassphraseForSigning === WalletNetwork.TESTNET ||
-          networkPassphraseForSigning === WalletNetwork.PUBLIC ||
-          networkPassphraseForSigning === WalletNetwork.FUTURENET
+        ? networkPassphraseForSigning === WN.TESTNET ||
+          networkPassphraseForSigning === WN.PUBLIC ||
+          networkPassphraseForSigning === WN.FUTURENET
         : 'N/A',
       signerAddress,
       walletId,
@@ -1469,7 +1488,7 @@ export const mintNFT = async (
   if (isWalletConnect) {
     try {
       // Verify WalletConnect is still connected by checking address
-      const currentAddress = await wallet.getAddress();
+      const currentAddress = await walletKit.getAddress();
       if (
         !currentAddress?.address ||
         currentAddress.address !== signerAddress
@@ -1503,7 +1522,7 @@ export const mintNFT = async (
   let signedTransactionResult;
   try {
     // Add a timeout for WalletConnect to detect if it's hanging
-    const signPromise = wallet.signTransaction(
+    const signPromise = walletKit.signTransaction(
       preparedTransaction.toXDR(),
       signOptions
     );
@@ -1698,16 +1717,16 @@ export const mintNFT = async (
 
           // Re-sign transaction
           // For WalletConnect, use WalletNetwork enum instead of passphrase string
-          let reNetworkPassphrase: string | WalletNetwork;
+          let reNetworkPassphrase: string;
           if (isWalletConnect) {
             if (passphrase?.includes('Test')) {
-              reNetworkPassphrase = WalletNetwork.TESTNET;
+              reNetworkPassphrase = WN.TESTNET;
             } else if (passphrase?.includes('Public')) {
-              reNetworkPassphrase = WalletNetwork.PUBLIC;
+              reNetworkPassphrase = WN.PUBLIC;
             } else if (passphrase?.includes('Future')) {
-              reNetworkPassphrase = WalletNetwork.FUTURENET;
+              reNetworkPassphrase = WN.FUTURENET;
             } else {
-              reNetworkPassphrase = WalletNetwork.TESTNET;
+              reNetworkPassphrase = WN.TESTNET;
             }
           } else {
             reNetworkPassphrase = passphrase || Networks.TESTNET;
@@ -1718,7 +1737,7 @@ export const mintNFT = async (
             address: signerAddress,
           };
 
-          const reSignedResult = await wallet.signTransaction(
+          const reSignedResult = await walletKit.signTransaction(
             rePreparedTransaction.toXDR(),
             reSignOptions
           );
