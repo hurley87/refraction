@@ -38,8 +38,14 @@ vi.mock('@/lib/db/client', () => ({
   },
 }));
 
+const mockGetPlayerByWallet = vi.fn();
+vi.mock('@/lib/db/players', () => ({
+  getPlayerByWallet: (...args: unknown[]) => mockGetPlayerByWallet(...args),
+}));
+
 import { POST } from '../route';
 import { trackRewardClaimed } from '@/lib/analytics';
+import { getAddress } from 'viem';
 
 // Helper to create NextRequest with JSON body
 function createRequest(body: unknown): NextRequest {
@@ -56,6 +62,11 @@ describe('POST /api/perks/redeem', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetPlayerByWallet.mockResolvedValue({
+      wallet_address: validWallet,
+      total_points: 500,
+      email: undefined,
+    });
   });
 
   describe('Validation Errors', () => {
@@ -110,10 +121,10 @@ describe('POST /api/perks/redeem', () => {
 
   describe('Insufficient Points', () => {
     it('should return 400 when user has insufficient points', async () => {
-      // Mock user with 50 points
-      mockSingle.mockResolvedValueOnce({
-        data: { total_points: 50 },
-        error: null,
+      mockGetPlayerByWallet.mockResolvedValueOnce({
+        wallet_address: validWallet,
+        total_points: 50,
+        email: undefined,
       });
       // Mock perk requiring 500 points
       mockSingle.mockResolvedValueOnce({
@@ -140,21 +151,7 @@ describe('POST /api/perks/redeem', () => {
     });
 
     it('should return 400 when user not found (null user)', async () => {
-      // Mock user not found
-      mockSingle.mockResolvedValueOnce({
-        data: null,
-        error: null,
-      });
-      // Mock perk requiring 100 points
-      mockSingle.mockResolvedValueOnce({
-        data: {
-          id: validPerkId,
-          points_threshold: 100,
-          type: 'discount',
-          location: null,
-        },
-        error: null,
-      });
+      mockGetPlayerByWallet.mockResolvedValueOnce(null);
 
       const request = createRequest({
         perkId: validPerkId,
@@ -172,11 +169,6 @@ describe('POST /api/perks/redeem', () => {
 
   describe('Already Redeemed', () => {
     it('should return 400 when perk already redeemed by user', async () => {
-      // Mock user with enough points
-      mockSingle.mockResolvedValueOnce({
-        data: { total_points: 500 },
-        error: null,
-      });
       // Mock perk
       mockSingle.mockResolvedValueOnce({
         data: {
@@ -209,11 +201,6 @@ describe('POST /api/perks/redeem', () => {
 
   describe('No Available Codes', () => {
     it('should return 400 when no discount codes available', async () => {
-      // Mock user with enough points
-      mockSingle.mockResolvedValueOnce({
-        data: { total_points: 500 },
-        error: null,
-      });
       // Mock perk
       mockSingle.mockResolvedValueOnce({
         data: {
@@ -250,6 +237,67 @@ describe('POST /api/perks/redeem', () => {
   });
 
   describe('Successful Redemption', () => {
+    it('inserts redemption using players.wallet_address casing when request is checksummed', async () => {
+      const checksummed = getAddress(validWallet as `0x${string}`);
+      mockGetPlayerByWallet.mockResolvedValueOnce({
+        wallet_address: validWallet,
+        total_points: 500,
+        email: undefined,
+      });
+
+      const mockRedemption = {
+        id: 'redemption-123',
+        perk_id: validPerkId,
+        discount_code_id: 'code-123',
+        user_wallet_address: validWallet,
+        created_at: '2024-01-01T00:00:00Z',
+        perk_discount_codes: { code: 'SAVE50' },
+      };
+
+      mockSingle.mockResolvedValueOnce({
+        data: {
+          id: validPerkId,
+          points_threshold: 100,
+          type: 'discount',
+          location: 'Partner Store',
+        },
+        error: null,
+      });
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: { code: 'PGRST116', message: 'Not found' },
+      });
+      mockSingle.mockResolvedValueOnce({
+        data: {
+          id: 'code-123',
+          code: 'SAVE50',
+          perk_id: validPerkId,
+          is_claimed: false,
+        },
+        error: null,
+      });
+      mockSingle.mockResolvedValueOnce({
+        data: mockRedemption,
+        error: null,
+      });
+
+      const request = createRequest({
+        perkId: validPerkId,
+        walletAddress: checksummed,
+      });
+
+      const response = await POST(request);
+      const json = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(json.success).toBe(true);
+      expect(mockInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_wallet_address: validWallet,
+        })
+      );
+    });
+
     it('should return redemption record with code on success', async () => {
       const mockRedemption = {
         id: 'redemption-123',
@@ -260,11 +308,6 @@ describe('POST /api/perks/redeem', () => {
         perk_discount_codes: { code: 'SAVE50' },
       };
 
-      // Mock user with enough points
-      mockSingle.mockResolvedValueOnce({
-        data: { total_points: 500 },
-        error: null,
-      });
       // Mock perk
       mockSingle.mockResolvedValueOnce({
         data: {
@@ -320,11 +363,6 @@ describe('POST /api/perks/redeem', () => {
         perk_discount_codes: { code: 'SAVE50' },
       };
 
-      // Mock user with enough points
-      mockSingle.mockResolvedValueOnce({
-        data: { total_points: 500 },
-        error: null,
-      });
       // Mock perk
       mockSingle.mockResolvedValueOnce({
         data: {
@@ -374,11 +412,6 @@ describe('POST /api/perks/redeem', () => {
 
   describe('Database Errors', () => {
     it('should return 400 when insert loses a redemption race', async () => {
-      // Mock user with enough points
-      mockSingle.mockResolvedValueOnce({
-        data: { total_points: 500 },
-        error: null,
-      });
       // Mock perk
       mockSingle.mockResolvedValueOnce({
         data: {
@@ -427,11 +460,10 @@ describe('POST /api/perks/redeem', () => {
       expect(trackRewardClaimed).not.toHaveBeenCalled();
     });
 
-    it('should return 500 on user fetch error', async () => {
-      mockSingle.mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Database connection failed' },
-      });
+    it('should return 500 on player lookup failure', async () => {
+      mockGetPlayerByWallet.mockRejectedValueOnce(
+        new Error('Database connection failed')
+      );
 
       const request = createRequest({
         perkId: validPerkId,
@@ -447,11 +479,6 @@ describe('POST /api/perks/redeem', () => {
     });
 
     it('should return 500 on perk fetch error', async () => {
-      // Mock successful user fetch
-      mockSingle.mockResolvedValueOnce({
-        data: { total_points: 500 },
-        error: null,
-      });
       // Mock perk fetch error
       mockSingle.mockResolvedValueOnce({
         data: null,
@@ -472,11 +499,6 @@ describe('POST /api/perks/redeem', () => {
     });
 
     it('should return 500 on redemption insert error', async () => {
-      // Mock user with enough points
-      mockSingle.mockResolvedValueOnce({
-        data: { total_points: 500 },
-        error: null,
-      });
       // Mock perk
       mockSingle.mockResolvedValueOnce({
         data: {

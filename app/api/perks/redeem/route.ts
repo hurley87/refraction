@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/db/client';
+import { getPlayerByWallet } from '@/lib/db/players';
 import { redeemPerkRequestSchema } from '@/lib/schemas/api';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { trackRewardClaimed, resolveServerIdentity } from '@/lib/analytics';
@@ -25,13 +26,16 @@ export async function POST(request: NextRequest) {
 
     const { perkId, walletAddress } = validationResult.data;
 
-    // Check user points and perk threshold (include email for identity resolution)
-    const { data: user, error: userError } = await supabase
-      .from('players')
-      .select('total_points, email')
-      .eq('wallet_address', walletAddress)
-      .single();
-    if (userError) throw userError;
+    const player = await getPlayerByWallet(walletAddress);
+    if (!player) {
+      return apiError('Insufficient points', 400);
+    }
+
+    const canonicalWallet = player.wallet_address ?? walletAddress;
+    const user = {
+      total_points: player.total_points ?? 0,
+      email: player.email,
+    };
 
     const { data: perk, error: perkError } = await supabase
       .from('perks')
@@ -40,7 +44,7 @@ export async function POST(request: NextRequest) {
       .single();
     if (perkError) throw perkError;
 
-    if (!user || user.total_points < perk.points_threshold) {
+    if (user.total_points < perk.points_threshold) {
       return apiError('Insufficient points', 400);
     }
 
@@ -49,7 +53,7 @@ export async function POST(request: NextRequest) {
       .from('user_perk_redemptions')
       .select('id')
       .eq('perk_id', perkId)
-      .eq('user_wallet_address', walletAddress)
+      .eq('user_wallet_address', canonicalWallet)
       .single();
     if (existingError && existingError.code !== 'PGRST116') throw existingError; // PGRST116 = not found
     if (existing) {
@@ -74,7 +78,7 @@ export async function POST(request: NextRequest) {
       .insert({
         perk_id: perkId,
         discount_code_id: availableCode.id,
-        user_wallet_address: walletAddress,
+        user_wallet_address: canonicalWallet,
       })
       .select(`*, perk_discount_codes ( code )`)
       .single();
@@ -87,12 +91,12 @@ export async function POST(request: NextRequest) {
 
     const distinctId = resolveServerIdentity({
       email: user.email || undefined,
-      walletAddress,
+      walletAddress: canonicalWallet,
     });
 
     setUserPropertiesServer(distinctId, {
       $email: user.email || undefined,
-      wallet_address: walletAddress,
+      wallet_address: canonicalWallet,
     });
 
     trackRewardClaimed(distinctId, {
