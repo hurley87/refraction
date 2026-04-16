@@ -133,7 +133,8 @@ export const getAvailablePerksForUser = async (walletAddress: string) => {
       ${PERK_COLUMNS},
       user_perk_redemptions!left(
         id,
-        redeemed_at
+        redeemed_at,
+        user_wallet_address
       )
     `
     )
@@ -147,9 +148,8 @@ export const getAvailablePerksForUser = async (walletAddress: string) => {
   // Filter out already redeemed perks
   return (
     perks?.filter((perk) => {
-      const redemption = perk.user_perk_redemptions.find(
-        (r: { user_wallet_address?: string }) =>
-          sameWalletAddress(r.user_wallet_address ?? '', walletAddress)
+      const redemption = perk.user_perk_redemptions.find((r) =>
+        sameWalletAddress(r.user_wallet_address ?? '', walletAddress)
       );
       return !redemption;
     }) || []
