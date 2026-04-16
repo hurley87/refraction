@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { getAddress } from 'viem';
 import type { Perk, Player } from '@/lib/types';
 
 // Mock the supabase client - using any to avoid complex typing
@@ -171,6 +172,37 @@ describe('Perks Database Module', () => {
   });
 
   describe('getAvailablePerksForUser', () => {
+    it('treats redemption as redeemed when casing differs from input wallet', async () => {
+      const lower = '0x1234567890abcdef1234567890abcdef12345678';
+      const checksummed = getAddress(lower as `0x${string}`);
+      const mockPlayer: Player = {
+        id: 1,
+        wallet_address: lower,
+        total_points: 500,
+      };
+
+      const mockPerks = [
+        {
+          id: '1',
+          title: 'Already Redeemed (casing)',
+          points_threshold: 100,
+          user_perk_redemptions: [
+            {
+              id: 'r1',
+              user_wallet_address: lower,
+            },
+          ],
+        },
+      ];
+
+      vi.mocked(getPlayerByWallet).mockResolvedValueOnce(mockPlayer);
+      mockOr.mockResolvedValueOnce({ data: mockPerks, error: null });
+
+      const result = await getAvailablePerksForUser(checksummed);
+
+      expect(result).toHaveLength(0);
+    });
+
     it('should filter by points threshold and exclude redeemed', async () => {
       const mockPlayer: Player = {
         id: 1,
@@ -292,6 +324,52 @@ describe('Perks Database Module', () => {
 
       expect(result).toEqual(mockRedemption);
       expect(result.perk_discount_codes?.code).toBe('DISCOUNT50');
+    });
+
+    it('uses players.wallet_address casing on insert when input is checksummed', async () => {
+      const checksummed = getAddress(mockWallet as `0x${string}`);
+      const mockPlayer: Player = {
+        id: 1,
+        wallet_address: mockWallet,
+        total_points: 500,
+      };
+
+      const mockPerk: Perk = {
+        id: mockPerkId,
+        title: 'Test Perk',
+        description: 'Desc',
+        points_threshold: 100,
+        type: 'discount',
+      };
+
+      const mockCode = {
+        id: 'code-123',
+        code: 'DISCOUNT50',
+        perk_id: mockPerkId,
+        is_claimed: false,
+      };
+
+      const mockRedemption = {
+        id: 'redemption-123',
+        perk_id: mockPerkId,
+        discount_code_id: 'code-123',
+        user_wallet_address: mockWallet,
+        perk_discount_codes: { code: 'DISCOUNT50' },
+      };
+
+      vi.mocked(getPlayerByWallet).mockResolvedValueOnce(mockPlayer);
+      mockSingle.mockResolvedValueOnce({ data: mockPerk, error: null });
+      mockSingle.mockResolvedValueOnce({ data: null, error: null });
+      mockSingle.mockResolvedValueOnce({ data: mockCode, error: null });
+      mockSingle.mockResolvedValueOnce({ data: mockRedemption, error: null });
+
+      await redeemPerk(mockPerkId, checksummed);
+
+      expect(mockInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_wallet_address: mockWallet,
+        })
+      );
     });
 
     it('should throw error for insufficient points', async () => {

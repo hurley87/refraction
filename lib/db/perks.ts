@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import type { Perk } from '../types';
 import { getPlayerByWallet } from './players';
+import { sameWalletAddress } from '../utils/wallets';
 
 // Select specific columns for perk queries
 const PERK_COLUMNS = `
@@ -147,7 +148,8 @@ export const getAvailablePerksForUser = async (walletAddress: string) => {
   return (
     perks?.filter((perk) => {
       const redemption = perk.user_perk_redemptions.find(
-        (r: any) => r.user_wallet_address === walletAddress
+        (r: { user_wallet_address?: string }) =>
+          sameWalletAddress(r.user_wallet_address ?? '', walletAddress)
       );
       return !redemption;
     }) || []
@@ -166,12 +168,14 @@ export const redeemPerk = async (perkId: string, walletAddress: string) => {
     throw new Error('Insufficient points to redeem this perk');
   }
 
+  const canonicalWallet = userStats.wallet_address ?? walletAddress;
+
   // Check if already redeemed
   const { data: existingRedemption } = await supabase
     .from('user_perk_redemptions')
     .select('id')
     .eq('perk_id', perkId)
-    .eq('user_wallet_address', walletAddress)
+    .eq('user_wallet_address', canonicalWallet)
     .single();
 
   if (existingRedemption) {
@@ -197,7 +201,7 @@ export const redeemPerk = async (perkId: string, walletAddress: string) => {
     .insert({
       perk_id: perkId,
       discount_code_id: availableCode.id,
-      user_wallet_address: walletAddress,
+      user_wallet_address: canonicalWallet,
     })
     .select(
       `
@@ -222,6 +226,9 @@ export const redeemPerk = async (perkId: string, walletAddress: string) => {
  * Get all perk redemptions for a user
  */
 export const getUserPerkRedemptions = async (walletAddress: string) => {
+  const player = await getPlayerByWallet(walletAddress);
+  const lookupWallet = player?.wallet_address ?? walletAddress;
+
   const { data, error } = await supabase
     .from('user_perk_redemptions')
     .select(
@@ -238,7 +245,7 @@ export const getUserPerkRedemptions = async (walletAddress: string) => {
       )
     `
     )
-    .eq('user_wallet_address', walletAddress)
+    .eq('user_wallet_address', lookupWallet)
     .order('redeemed_at', { ascending: false });
 
   if (error) throw error;
