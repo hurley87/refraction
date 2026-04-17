@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { ChevronDown } from 'lucide-react';
 import { WalletProvider } from '@/lib/stellar/providers/wallet-provider';
 import { NotificationProvider } from '@/lib/stellar/providers/notification-provider';
-import MapNav from '@/components/map/mapnav';
+import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
 import ConnectAccount from './connect-account';
 import { UserBalance } from './user-balance';
 import ClaimPoints from './claim-points';
@@ -84,8 +84,8 @@ function StellarWalletPageContent() {
     >
       <div className="max-w-md mx-auto">
         {/* Navigation */}
-        <div className="pb-2 pt-2 flex items-center justify-between">
-          <MapNav className="max-md:px-0" />
+        <div className="flex min-w-0 items-center justify-between pb-2 pt-2">
+          <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
         </div>
 
         {/* Main Content */}

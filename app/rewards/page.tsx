@@ -18,7 +18,7 @@ import {
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-import MapNav from '@/components/map/mapnav';
+import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
 import { usePerks, useUserRedemptions } from '@/hooks/usePerks';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useTiers } from '@/hooks/useTiers';
@@ -527,8 +527,8 @@ export default function PerksPage() {
       <div className="max-w-md mx-auto">
         {/* Status Bar with Header */}
         <div className="flex justify-between items-center">
-          <div className="flex-1">
-            <MapNav className="max-md:px-0" />
+          <div className="min-w-0 flex-1">
+            <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
           </div>
         </div>
 

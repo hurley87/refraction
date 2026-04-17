@@ -53,7 +53,7 @@ export default function FeaturedEditorialHeroCard({
       <div className="absolute left-0 right-0 top-0 z-20 mx-auto w-full max-w-[393px]">
         <MapNav
           irlLogoVariant="light"
-          className="w-full max-w-full bg-transparent px-4 pt-2"
+          className="w-full max-w-full min-w-0 bg-transparent px-4 pt-2"
         />
       </div>
 

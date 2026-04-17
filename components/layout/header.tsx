@@ -15,11 +15,11 @@ export default function Header() {
   return (
     <>
       <div
-        className="fixed md:top-[16px] top-[8px] left-[8px] right-[8px] md:left-[171px] md:right-[217px] max-w-7xl mx-auto z-50 rounded-[26px] backdrop-blur-[32px] bg-gradient-to-b from-white/[0.157] to-white/[0.45] border border-white/25"
+        className="fixed md:top-[16px] top-[8px] left-[max(8px,env(safe-area-inset-left))] right-[max(8px,env(safe-area-inset-right))] md:left-[171px] md:right-[217px] max-w-7xl mx-auto z-50 rounded-[26px] backdrop-blur-[32px] bg-gradient-to-b from-white/[0.157] to-white/[0.45] border border-white/25"
         data-name="Hero"
       >
         <nav
-          className="flex h-12 items-center justify-between px-4 py-0 overflow-clip rounded-[inherit]"
+          className="flex min-w-0 h-12 items-center justify-between gap-2 px-4 py-0 rounded-[inherit]"
           data-name="Nav"
         >
           {/* Inner shadow overlay */}

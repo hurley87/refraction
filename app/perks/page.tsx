@@ -6,7 +6,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { Tag, Clock, MapPin, ExternalLink, Gift } from 'lucide-react';
 
 import { useState, useEffect } from 'react';
-import MapNav from '@/components/map/mapnav';
+import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
 import {
   usePerks,
   useAvailableCodesCount,
@@ -120,7 +120,7 @@ export default function PerksPage() {
     >
       <div className="min-h-screen max-w-lg mx-auto">
         {/* Status Bar */}
-        <MapNav className="max-md:px-0" />
+        <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
 
         {/* Perks Header */}
         <div className="px-0 pt-8 mb-6">

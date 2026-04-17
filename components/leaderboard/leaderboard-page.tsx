@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { Trophy, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
-import MapNav from '@/components/map/mapnav';
+import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
 import Link from 'next/link';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
 import { useUserStats } from '@/hooks/usePlayer';
@@ -175,8 +175,8 @@ export default function LeaderboardPage() {
     >
       <div className="max-w-md mx-auto">
         {/* Navigation */}
-        <div className="mb-2">
-          <MapNav className="max-md:px-0" />
+        <div className="mb-2 min-w-0">
+          <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
         </div>
 
         <div>

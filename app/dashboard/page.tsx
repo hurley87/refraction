@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import Image from 'next/image';
-import MapNav from '@/components/map/mapnav';
+import MapNav, { MAP_NAV_SAFE_AREA_X } from '@/components/map/mapnav';
+import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import {
   useCurrentPlayer,
@@ -74,11 +75,14 @@ export default function DashboardPage() {
       <div className="mx-auto w-full max-w-md px-4 md:px-2">
         {/* Navigation - Sticky Header */}
         <div
-          className={`sticky top-0 z-50 pb-2 pt-2 -mt-2 transition-colors duration-200 ${
+          className={`sticky top-0 z-50 min-w-0 pb-2 pt-2 -mt-2 transition-colors duration-200 ${
             isScrolled ? 'bg-transparent backdrop-blur-sm' : 'bg-transparent'
           }`}
         >
-          <MapNav irlLogoVariant="dashboard" className="w-full px-0" />
+          <MapNav
+            irlLogoVariant="dashboard"
+            className={cn('w-full min-w-0', MAP_NAV_SAFE_AREA_X)}
+          />
         </div>
 
         {currentUserAddress && (
