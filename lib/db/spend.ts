@@ -9,6 +9,12 @@ import {
 import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import { sameWalletAddress } from '@/lib/utils/wallets';
 
+const isDuplicateSpendRedemptionError = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  (error as { code?: string }).code === '23505';
+
 function spendItemFromJoin(
   related: SpendItem | SpendItem[] | null | undefined
 ): SpendItem | null {
@@ -231,7 +237,12 @@ export const createPendingSpendRedemption = async (
     .select(`${SPEND_REDEMPTION_COLUMNS}, spend_items (${SPEND_ITEM_COLUMNS})`)
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (isDuplicateSpendRedemptionError(error)) {
+      throw new Error('You already redeemed this item');
+    }
+    throw error;
+  }
 
   const joinedItem = spendItemFromJoin(
     data.spend_items as SpendItem | SpendItem[] | null | undefined

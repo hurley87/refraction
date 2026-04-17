@@ -189,6 +189,26 @@ describe('createPendingSpendRedemption', () => {
     );
     expect(mockInsert).not.toHaveBeenCalled();
   });
+
+  it('throws same message when insert loses a race to unique (spend_item, wallet)', async () => {
+    const item = { id: itemId, points_cost: 100, is_active: true };
+    const player = { id: 1, wallet_address: wallet, total_points: 500 };
+
+    vi.mocked(getPlayerByWallet).mockResolvedValue(player as any);
+    mockSingle
+      .mockResolvedValueOnce({ data: item, error: null })
+      .mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: '23505',
+          message: 'duplicate key value violates unique constraint',
+        },
+      });
+
+    await expect(createPendingSpendRedemption(itemId, wallet)).rejects.toThrow(
+      'You already redeemed this item'
+    );
+  });
 });
 
 describe('verifySpendRedemption', () => {
