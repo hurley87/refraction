@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
 import Image from 'next/image';
-import MapNav from '@/components/map/mapnav';
+import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
 
 interface Quest {
   title: string;
@@ -208,11 +208,11 @@ export default function Page() {
       <div className="max-w-lg mx-auto">
         {/* Status Bar - Sticky Header */}
         <div
-          className={`sticky top-0 z-50 pb-2 pt-2 -mt-2 transition-colors duration-200 ${
+          className={`sticky top-0 z-50 min-w-0 pb-2 pt-2 -mt-2 transition-colors duration-200 ${
             isScrolled ? 'bg-transparent backdrop-blur-sm' : 'bg-transparent'
           }`}
         >
-          <MapNav className="max-md:px-0" />
+          <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
         </div>
 
         {/* Main Content */}

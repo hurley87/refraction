@@ -1328,10 +1328,10 @@ export default function InteractiveMap({
     <div className="fixed inset-0 w-full h-full">
       {/* MapNav Header (mobile: search sits between logo and menu) */}
       <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/20 to-transparent">
-        <div className="mx-auto flex w-full justify-center py-4">
+        <div className="mx-auto flex min-w-0 w-full justify-center py-4">
           <MapNav
             center={
-              <div className="flex w-[163px] max-w-[min(163px,100%)] min-w-0 shrink-0 items-center md:hidden">
+              <div className="flex w-full min-w-0 max-w-[163px] items-center md:hidden">
                 <LocationSearch
                   placeholder="Search"
                   proximity={{

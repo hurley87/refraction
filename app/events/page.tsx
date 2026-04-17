@@ -19,7 +19,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog';
-import MapNav from '@/components/map/mapnav';
+import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
 import type { DiceEvent, DiceImage, DiceVenue } from '@/lib/dice';
 
 interface EventsResponse {
@@ -212,7 +212,7 @@ export default function EventsPage() {
   return (
     <div className="min-h-screen bg-[linear-gradient(0deg,_#61BFD1_0%,_#EE91B7_26.92%,_#FFE600_54.33%,_#1BA351_100%)] px-4 pb-20 pt-4 font-grotesk md:px-2">
       <div className="mx-auto max-w-md">
-        <MapNav className="max-md:px-0" />
+        <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
 
         <div className="space-y-3 pt-3">
           {(isLoading || manualLoading) && (

@@ -16,7 +16,7 @@ const FEATURED_MIAMI = {
   featuredPeople: ['NICHOLAS PADILLA', 'bITTER BABE', 'INVT'],
   heroImageSrc: '/city-guides/miami/miami-hero-card.png',
   heroImageAlt: 'Miami skyline and palm trees',
-  readHref: '#',
+  readHref: '/city-guides/template',
 };
 
 /** Placeholder rows until CMS; replace with API-driven data. */
@@ -29,7 +29,7 @@ const PLACEHOLDER_GUIDE_CARDS = [
     publishedAt: '2025-08-14',
     imageSrc: '/city-guides/miami/miami-hero-card.png',
     imageAlt: 'Placeholder city skyline',
-    readHref: '#',
+    readHref: '/city-guides/template',
   },
   {
     guideKind: 'city-guide' as const,
