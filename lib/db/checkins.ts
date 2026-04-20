@@ -46,3 +46,19 @@ export const createLocationCheckin = async (
   if (error) throw error;
   return data;
 };
+
+/**
+ * Whether the player has completed at least one map location check-in.
+ */
+export const hasPlayerAnyLocationCheckin = async (
+  playerId: number
+): Promise<boolean> => {
+  const { data, error } = await supabase
+    .from('player_location_checkins')
+    .select('id')
+    .eq('player_id', playerId)
+    .limit(1);
+
+  if (error) throw error;
+  return Boolean(data && data.length > 0);
+};

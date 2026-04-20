@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import {
+  FIRST_CHECKIN_NUDGE_PENDING_KEY,
+  FIRST_CHECKIN_NUDGE_SNOOZE_UNTIL_KEY,
+} from '@/lib/first-checkin-nudge';
 
 export interface CheckpointCustomization {
   partnerImageUrl?: string;
@@ -125,6 +129,14 @@ export default function AuthWrapper({
 
       if (responseData.success) {
         setNeedsUsername(false);
+        if (typeof window !== 'undefined' && walletAddress) {
+          const normalized = walletAddress.toLowerCase();
+          window.localStorage.setItem(
+            FIRST_CHECKIN_NUDGE_PENDING_KEY,
+            normalized
+          );
+          window.localStorage.removeItem(FIRST_CHECKIN_NUDGE_SNOOZE_UNTIL_KEY);
+        }
       } else {
         console.error('Failed to create player:', responseData.error);
       }

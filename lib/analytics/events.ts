@@ -9,6 +9,8 @@ export const ANALYTICS_EVENTS = {
 
   // Interest
   ACCOUNT_CREATED: 'account_created',
+  /** Shown on /interactive-map after username creation when the user has no map check-ins yet. */
+  FIRST_CHECKIN_MAP_NUDGE_SHOWN: 'first_checkin_map_nudge_shown',
 
   // Conversion
   CHECKIN_COMPLETED: 'checkin_completed',

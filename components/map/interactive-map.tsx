@@ -11,6 +11,7 @@ import {
   mergeSearchBoxReverseFeatures,
 } from '@/lib/utils/location-autofill';
 import { usePrivy } from '@privy-io/react-auth';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import MapNav from '@/components/map/mapnav';
 import MapCard from '@/components/map/map-card';
@@ -22,6 +23,17 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { formatLocationCategory } from '@/lib/utils/format-location-category';
+import {
+  haversineKm,
+  parseInteractiveMapCoordsFromUrl,
+} from '@/lib/utils/checkpoint-map-link';
+import {
+  FIRST_CHECKIN_NUDGE_PENDING_KEY,
+  FIRST_CHECKIN_NUDGE_SNOOZE_UNTIL_KEY,
+  FIRST_CHECKIN_NUDGE_NEARBY_KM,
+  FIRST_CHECKIN_SNOOZE_MS,
+} from '@/lib/first-checkin-nudge';
+import { ANALYTICS_EVENTS, trackEvent } from '@/lib/analytics';
 
 interface MarkerData {
   latitude: number;
@@ -56,6 +68,15 @@ interface LocationFormData {
   locationImage: File | null;
   checkInComment: string;
 }
+
+type NearbyCheckpointNudge = {
+  id: string;
+  name: string;
+  description: string | null;
+  points_value: number;
+  distance_km: number;
+  cta_url: string | null;
+};
 
 type FormStep = 'business-details' | 'success';
 
@@ -105,9 +126,14 @@ export default function InteractiveMap({
   initialLatitude,
   initialLongitude,
 }: InteractiveMapProps) {
+  const router = useRouter();
   const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
+  const walletLower = walletAddress?.toLowerCase() ?? null;
   const [userUsername, setUserUsername] = useState<string | null>(null);
+  const [hasAnyLocationCheckin, setHasAnyLocationCheckin] = useState<
+    boolean | null
+  >(null);
 
   const [viewState, setViewState] = useState({
     longitude: initialLongitude ?? -73.9442,
@@ -116,6 +142,8 @@ export default function InteractiveMap({
   });
 
   const [markers, setMarkers] = useState<MarkerData[]>([]);
+  const markersRef = useRef(markers);
+  markersRef.current = markers;
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const [popupInfo, setPopupInfo] = useState<MarkerData | null>(null);
   const [showLocationForm, setShowLocationForm] = useState(false);
@@ -171,6 +199,25 @@ export default function InteractiveMap({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [welcomeBannerViews, setWelcomeBannerViews] = useState(0);
   const [, setLocationInstructionShows] = useState(0);
+
+  const mapCenterRef = useRef({
+    latitude: viewState.latitude,
+    longitude: viewState.longitude,
+  });
+  mapCenterRef.current = {
+    latitude: viewState.latitude,
+    longitude: viewState.longitude,
+  };
+
+  const [firstCheckinNudgeOpen, setFirstCheckinNudgeOpen] = useState(false);
+  const [firstCheckinNudgeNearby, setFirstCheckinNudgeNearby] = useState<
+    MarkerData[]
+  >([]);
+  const [firstCheckinNudgeCheckpoint, setFirstCheckinNudgeCheckpoint] =
+    useState<NearbyCheckpointNudge | null>(null);
+  const [firstCheckinNudgeLoading, setFirstCheckinNudgeLoading] =
+    useState(false);
+  const firstCheckinNudgeTrackedRef = useRef(false);
 
   // When initial coords are provided (e.g. from ?city= or ?lat=&lng=), center the map on them.
   // This runs when props change (e.g. after hydration when searchParams become available).
@@ -245,6 +292,176 @@ export default function InteractiveMap({
     };
     fetchUserData();
   }, [walletAddress]);
+
+  useEffect(() => {
+    if (!walletAddress) {
+      setHasAnyLocationCheckin(null);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const response = await fetch(
+          `/api/player/checkin-status?walletAddress=${encodeURIComponent(walletAddress)}`
+        );
+        if (!response.ok) {
+          if (!cancelled) setHasAnyLocationCheckin(false);
+          return;
+        }
+        const json = await response.json();
+        const data = json.data ?? json;
+        if (!cancelled) {
+          setHasAnyLocationCheckin(Boolean(data?.hasAnyLocationCheckin));
+        }
+      } catch {
+        if (!cancelled) setHasAnyLocationCheckin(false);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [walletAddress]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !walletLower) return;
+    if (hasAnyLocationCheckin !== true) return;
+    const pending = window.localStorage.getItem(
+      FIRST_CHECKIN_NUDGE_PENDING_KEY
+    );
+    if (pending === walletLower) {
+      window.localStorage.removeItem(FIRST_CHECKIN_NUDGE_PENDING_KEY);
+      window.localStorage.removeItem(FIRST_CHECKIN_NUDGE_SNOOZE_UNTIL_KEY);
+    }
+  }, [hasAnyLocationCheckin, walletLower]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !walletLower) return;
+    if (hasAnyLocationCheckin !== false) return;
+
+    const pending = window.localStorage.getItem(
+      FIRST_CHECKIN_NUDGE_PENDING_KEY
+    );
+    if (pending !== walletLower) {
+      setFirstCheckinNudgeOpen(false);
+      return;
+    }
+
+    const snoozeRaw = window.localStorage.getItem(
+      FIRST_CHECKIN_NUDGE_SNOOZE_UNTIL_KEY
+    );
+    const snoozeUntil = snoozeRaw ? parseInt(snoozeRaw, 10) : 0;
+    if (Number.isFinite(snoozeUntil) && snoozeUntil > Date.now()) {
+      setFirstCheckinNudgeOpen(false);
+      return;
+    }
+
+    setFirstCheckinNudgeOpen(true);
+  }, [hasAnyLocationCheckin, walletLower]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !walletLower) return;
+    if (hasAnyLocationCheckin !== false) return;
+    const pending = window.localStorage.getItem(
+      FIRST_CHECKIN_NUDGE_PENDING_KEY
+    );
+    if (pending !== walletLower) return;
+
+    const tick = () => {
+      const snoozeRaw = window.localStorage.getItem(
+        FIRST_CHECKIN_NUDGE_SNOOZE_UNTIL_KEY
+      );
+      const snoozeUntil = snoozeRaw ? parseInt(snoozeRaw, 10) : 0;
+      if (Number.isFinite(snoozeUntil) && snoozeUntil > Date.now()) {
+        setFirstCheckinNudgeOpen(false);
+      } else {
+        setFirstCheckinNudgeOpen(true);
+      }
+    };
+
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, [hasAnyLocationCheckin, walletLower]);
+
+  useEffect(() => {
+    if (!firstCheckinNudgeOpen) {
+      firstCheckinNudgeTrackedRef.current = false;
+    }
+  }, [firstCheckinNudgeOpen]);
+
+  useEffect(() => {
+    if (!firstCheckinNudgeOpen || !walletAddress) return;
+
+    const { latitude, longitude } = mapCenterRef.current;
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+
+    let cancelled = false;
+    setFirstCheckinNudgeLoading(true);
+
+    const run = async () => {
+      try {
+        const checkpointRes = await fetch(
+          `/api/checkpoints/nearby?lat=${encodeURIComponent(String(latitude))}&lng=${encodeURIComponent(String(longitude))}&radiusKm=40`
+        );
+        let nearestCheckpoint: NearbyCheckpointNudge | null = null;
+        if (checkpointRes.ok) {
+          const checkpointJson = await checkpointRes.json();
+          const cpData = checkpointJson.data ?? checkpointJson;
+          const list = (cpData?.checkpoints ?? []) as NearbyCheckpointNudge[];
+          nearestCheckpoint = list[0] ?? null;
+        }
+
+        const allMarkers = markersRef.current;
+        const withDistance = allMarkers
+          .map((m) => ({
+            m,
+            km: haversineKm(latitude, longitude, m.latitude, m.longitude),
+          }))
+          .filter((x) => x.km <= FIRST_CHECKIN_NUDGE_NEARBY_KM)
+          .sort((a, b) => a.km - b.km)
+          .slice(0, 5)
+          .map((x) => x.m);
+
+        if (!cancelled) {
+          setFirstCheckinNudgeCheckpoint(nearestCheckpoint);
+          setFirstCheckinNudgeNearby(withDistance);
+        }
+      } catch {
+        if (!cancelled) {
+          setFirstCheckinNudgeCheckpoint(null);
+          setFirstCheckinNudgeNearby([]);
+        }
+      } finally {
+        if (!cancelled) setFirstCheckinNudgeLoading(false);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [firstCheckinNudgeOpen, walletAddress, markers.length]);
+
+  useEffect(() => {
+    if (
+      !firstCheckinNudgeOpen ||
+      firstCheckinNudgeLoading ||
+      firstCheckinNudgeTrackedRef.current
+    ) {
+      return;
+    }
+    firstCheckinNudgeTrackedRef.current = true;
+    trackEvent(ANALYTICS_EVENTS.FIRST_CHECKIN_MAP_NUDGE_SHOWN, {
+      nearby_count: firstCheckinNudgeNearby.length,
+      has_nearby_checkpoint: Boolean(firstCheckinNudgeCheckpoint),
+    });
+  }, [
+    firstCheckinNudgeOpen,
+    firstCheckinNudgeLoading,
+    firstCheckinNudgeNearby.length,
+    firstCheckinNudgeCheckpoint,
+  ]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -869,6 +1086,60 @@ export default function InteractiveMap({
     void loadLocationCheckins(marker.place_id);
   };
 
+  const clearFirstCheckinNudgePending = () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(FIRST_CHECKIN_NUDGE_PENDING_KEY);
+      window.localStorage.removeItem(FIRST_CHECKIN_NUDGE_SNOOZE_UNTIL_KEY);
+    }
+    setFirstCheckinNudgeOpen(false);
+  };
+
+  const dismissFirstCheckinNudge = () => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(
+        FIRST_CHECKIN_NUDGE_SNOOZE_UNTIL_KEY,
+        String(Date.now() + FIRST_CHECKIN_SNOOZE_MS)
+      );
+    }
+    setFirstCheckinNudgeOpen(false);
+  };
+
+  const handleFirstCheckinNudgeSpotClick = (marker: MarkerData) => {
+    clearFirstCheckinNudgePending();
+    handleStartCheckIn(marker);
+  };
+
+  const handleFirstCheckinNudgeCheckpointClick = (
+    checkpoint: NearbyCheckpointNudge
+  ) => {
+    clearFirstCheckinNudgePending();
+    const coords = parseInteractiveMapCoordsFromUrl(checkpoint.cta_url);
+    if (coords) {
+      const targetZoom = 15;
+      mapRef.current?.flyTo?.({
+        center: [coords.lng, coords.lat],
+        zoom: targetZoom,
+        duration: 1200,
+      });
+      setViewState((prev) => ({
+        ...prev,
+        latitude: coords.lat,
+        longitude: coords.lng,
+        zoom: targetZoom,
+      }));
+      setTimeout(() => {
+        const bounds = calculateMapBounds({
+          longitude: coords.lng,
+          latitude: coords.lat,
+          zoom: targetZoom,
+        });
+        if (bounds) setMapBounds(bounds);
+      }, 1300);
+      return;
+    }
+    router.push(`/c/${checkpoint.id}`);
+  };
+
   const handleCloseCheckInModal = () => {
     setShowCheckInModal(false);
     setShowCheckInCommentModal(false);
@@ -924,6 +1195,8 @@ export default function InteractiveMap({
           setHasUserCheckedInAtLocation(true);
           setPopupInfo(null);
           handleCloseCheckInModal();
+          clearFirstCheckinNudgePending();
+          setHasAnyLocationCheckin(true);
           return;
         }
         throw new Error(result.error || 'Failed to check in');
@@ -956,6 +1229,8 @@ export default function InteractiveMap({
       setPopupInfo(null);
       setSelectedMarker(null);
       setPendingMapCreateMarker(null);
+      clearFirstCheckinNudgePending();
+      setHasAnyLocationCheckin(true);
     } catch (error) {
       console.error('Error checking in:', error);
       toast.error('Failed to check in: ' + (error as Error).message);
@@ -1530,6 +1805,116 @@ export default function InteractiveMap({
                 <p className="text-sm text-[#7d7d7d] mt-2 leading-relaxed">
                   Click on a spot to check in and earn 100 points.
                 </p>
+              </div>
+            </div>
+          )}
+          {firstCheckinNudgeOpen && (
+            <div className="rounded-3xl border border-[#ededed] bg-white shadow-lg overflow-hidden">
+              <div className="flex items-center justify-between border-b border-[#ededed] px-4 py-3">
+                <h3 className="label-large font-semibold not-italic leading-6 tracking-[-0.4px] text-[#171717]">
+                  Check in nearby
+                </h3>
+                <button
+                  type="button"
+                  onClick={dismissFirstCheckinNudge}
+                  className="flex size-8 items-center justify-center rounded-full bg-[#ededed] transition-colors hover:bg-[#e0e0e0]"
+                  aria-label="Dismiss reminder"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 text-[#b5b5b5]"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className="space-y-3 px-4 py-4">
+                <p className="text-sm leading-relaxed text-[#313131]">
+                  Tap a spot below to open check-in, or pick any pin on the map.
+                  Your first check-in unlocks points toward rewards.
+                </p>
+                {firstCheckinNudgeLoading ? (
+                  <p className="text-sm text-[#7d7d7d]">
+                    Finding spots near you…
+                  </p>
+                ) : null}
+                {firstCheckinNudgeCheckpoint ? (
+                  <div className="rounded-2xl border border-[#ededed] bg-[#fafafa] p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#7d7d7d]">
+                      Active checkpoint nearby
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-[#171717]">
+                      {firstCheckinNudgeCheckpoint.name}
+                    </p>
+                    <p className="text-xs text-[#7d7d7d]">
+                      About {firstCheckinNudgeCheckpoint.distance_km} km away ·{' '}
+                      {firstCheckinNudgeCheckpoint.points_value} pts
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleFirstCheckinNudgeCheckpointClick(
+                          firstCheckinNudgeCheckpoint
+                        )
+                      }
+                      className="mt-3 w-full rounded-full bg-[#171717] py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                    >
+                      Go to checkpoint
+                    </button>
+                  </div>
+                ) : null}
+                {firstCheckinNudgeNearby.length > 0 ? (
+                  <ul className="max-h-[40vh] space-y-2 overflow-y-auto pr-1">
+                    {firstCheckinNudgeNearby.map((m) => {
+                      const km = haversineKm(
+                        viewState.latitude,
+                        viewState.longitude,
+                        m.latitude,
+                        m.longitude
+                      );
+                      const label =
+                        km < 1
+                          ? `${Math.round(km * 1000)} m`
+                          : `${Math.round(km * 10) / 10} km`;
+                      return (
+                        <li key={m.place_id}>
+                          <button
+                            type="button"
+                            onClick={() => handleFirstCheckinNudgeSpotClick(m)}
+                            className="flex w-full items-start justify-between gap-2 rounded-xl border border-[#ededed] bg-white px-3 py-2.5 text-left text-sm transition-colors hover:bg-[#fafafa]"
+                          >
+                            <span className="min-w-0 flex-1 font-medium text-[#171717]">
+                              {m.name}
+                            </span>
+                            <span className="shrink-0 text-xs text-[#7d7d7d]">
+                              {label}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : !firstCheckinNudgeLoading ? (
+                  <p className="text-sm text-[#7d7d7d] leading-relaxed">
+                    No pins in the immediate area yet. Zoom the map or search to
+                    find a spot, then tap a marker to check in.
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={dismissFirstCheckinNudge}
+                  className="text-xs font-medium text-[#7d7d7d] underline underline-offset-2 hover:text-[#171717]"
+                >
+                  Remind me in 24 hours
+                </button>
               </div>
             </div>
           )}
