@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import Map, { Marker } from 'react-map-gl/mapbox';
 import LocationSearch from '@/components/shared/location-search';
 import {
@@ -98,13 +99,60 @@ interface InteractiveMapProps {
   initialPlaceId?: string | null;
   initialLatitude?: number;
   initialLongitude?: number;
+  /**
+   * When true with `initialPlaceId`, fly to the pin and open the bottom MapCard only.
+   * When false (default), open the full-screen check-in flow (e.g. shared links).
+   */
+  deepLinkMapCardOnly?: boolean;
+  /** When set (e.g. from `returnTo` query), replace IRL logo with back control to this path. */
+  guideReturnHref?: string | null;
+}
+
+/**
+ * Zoom after a Mapbox Search Box selection. Cities/places use ~10 so the
+ * viewport stays wide enough for Explore list bounds; addresses/POIs stay tight.
+ */
+function zoomForMapboxSearchFeature(featureType?: string): number {
+  switch (featureType?.toLowerCase() ?? '') {
+    case 'country':
+      return 4;
+    case 'region':
+      return 6;
+    case 'postcode':
+    case 'district':
+      return 10;
+    case 'place':
+      return 10;
+    case 'locality':
+      return 11;
+    case 'neighborhood':
+      return 12;
+    case 'street':
+      return 14;
+    case 'address':
+    case 'poi':
+      return 15;
+    case 'category':
+      return 14;
+    default:
+      return 11;
+  }
 }
 
 export default function InteractiveMap({
   initialPlaceId,
   initialLatitude,
   initialLongitude,
+  deepLinkMapCardOnly = false,
+  guideReturnHref = null,
 }: InteractiveMapProps) {
+  const guideReturnPersistedRef = useRef<string | null>(null);
+  if (guideReturnHref) {
+    guideReturnPersistedRef.current = guideReturnHref;
+  }
+  const effectiveGuideReturnHref =
+    guideReturnHref ?? guideReturnPersistedRef.current;
+
   const { user } = usePrivy();
   const walletAddress = user?.wallet?.address;
   const [userUsername, setUserUsername] = useState<string | null>(null);
@@ -452,34 +500,46 @@ export default function InteractiveMap({
     if (targetMarker) {
       deepLinkHandledRef.current = true;
       const targetZoom = Math.max(viewState.zoom ?? 12, 15);
-      // Center map on location
-      setViewState((prev) => ({
-        ...prev,
-        latitude: targetMarker.latitude,
-        longitude: targetMarker.longitude,
+      const bottomPaddingPx =
+        typeof window !== 'undefined'
+          ? Math.min(360, Math.max(200, Math.round(window.innerHeight * 0.34)))
+          : 280;
+
+      mapRef.current?.flyTo?.({
+        center: [targetMarker.longitude, targetMarker.latitude],
         zoom: targetZoom,
-      }));
-      // Update bounds after view changes
+        duration: 1200,
+        padding: { top: 0, bottom: bottomPaddingPx, left: 0, right: 0 },
+      });
+
       setTimeout(() => {
-        const bounds = calculateMapBounds({
-          longitude: targetMarker.longitude,
-          latitude: targetMarker.latitude,
-          zoom: targetZoom,
-        });
+        const bounds = calculateMapBounds();
         if (bounds) {
           setMapBounds(bounds);
         }
-      }, 300);
-      // Open check-in modal
-      setCheckInTarget(targetMarker);
-      setCheckInComment('');
-      setCheckInSuccess(false);
-      setLocationCheckins([]);
-      setLocationCheckinsError(null);
-      setShowCheckInModal(true);
-      void loadLocationCheckins(targetMarker.place_id);
+      }, 1300);
+
+      if (deepLinkMapCardOnly) {
+        setPopupInfo(targetMarker);
+        setSelectedMarker(targetMarker);
+        setPendingMapCreateMarker(null);
+      } else {
+        setCheckInTarget(targetMarker);
+        setCheckInComment('');
+        setCheckInSuccess(false);
+        setLocationCheckins([]);
+        setLocationCheckinsError(null);
+        setShowCheckInModal(true);
+        void loadLocationCheckins(targetMarker.place_id);
+      }
     }
-  }, [initialPlaceId, markers, viewState.zoom, calculateMapBounds]);
+  }, [
+    initialPlaceId,
+    markers,
+    viewState.zoom,
+    calculateMapBounds,
+    deepLinkMapCardOnly,
+  ]);
 
   const loadLocationCheckins = async (placeId: string) => {
     if (!placeId) return;
@@ -674,7 +734,8 @@ export default function InteractiveMap({
     setPendingMapCreateMarker(null);
     const { longitude, latitude, id, name, placeFormatted, featureType } =
       picked;
-    const newViewState = { longitude, latitude, zoom: 15 };
+    const zoom = zoomForMapboxSearchFeature(featureType);
+    const newViewState = { longitude, latitude, zoom };
     setViewState(newViewState);
 
     console.log('[MapBounds] Search selected:', { longitude, latitude, name });
@@ -1330,6 +1391,24 @@ export default function InteractiveMap({
       <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/20 to-transparent">
         <div className="mx-auto flex min-w-0 w-full justify-center py-4">
           <MapNav
+            leftSlot={
+              effectiveGuideReturnHref ? (
+                <Link
+                  href={effectiveGuideReturnHref}
+                  className="flex h-12 w-12 shrink-0 items-center justify-center gap-4 rounded-[179px] border border-[var(--Dark-Tint-20---Light-Steel,#DBDBDB)] bg-[var(--Dark-Tint-White,#FFF)] p-2 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px] transition-opacity hover:opacity-90"
+                  aria-label="Back to guide"
+                >
+                  <Image
+                    src="/arrow-left.svg"
+                    alt=""
+                    width={24}
+                    height={24}
+                    className="block shrink-0"
+                    unoptimized
+                  />
+                </Link>
+              ) : undefined
+            }
             center={
               <div className="flex w-full min-w-0 max-w-[163px] items-center md:hidden">
                 <LocationSearch

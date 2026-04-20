@@ -10,6 +10,7 @@ export const FEATURED_CITY_COORDINATES: Record<
   Denver: { lat: 39.7392, lng: -104.9903 },
   Toronto: { lat: 43.6532, lng: -79.3832 },
   Amsterdam: { lat: 52.3676, lng: 4.9041 },
+  Berlin: { lat: 52.52, lng: 13.405 },
   'New York City': { lat: 40.7128, lng: -74.006 },
   'Mexico City': { lat: 19.4326, lng: -99.1332 },
 };
