@@ -23,7 +23,7 @@ The most specific current product goal to use for weekly analysis is: **improve 
 2. **App action:** If the user has no linked email, prompt them to link one.
 3. **App action:** Check `/api/player` for an existing `players` row for the wallet.
 4. **User action:** If no player exists or username is missing, enter a username.
-5. **App action:** Create or update the player record, initialize `total_points`, and fire `account_created` only for net-new players.
+5. **App action:** Create or update the player record, initialize `total_points`, fire `account_created` only for net-new players, and run non-blocking signup syncs for downstream systems.
 6. **Success means:** The user has a persisted `players` row with wallet, username, and a usable points balance.
 
 ### Discovering a location, checkpoint, or venue
@@ -109,17 +109,18 @@ Important: perk claims do **not** deduct points. Points act as a qualification t
 | Perk claiming                  | Lets an eligible user redeem a perk and receive a code or claim link.                                               | End users          | `live` |
 | Spend redemption               | Supports point-spend items tied to checkpoints, pending verification, instant redemption, and completion tracking.  | End users          | `live` |
 | Events page                    | Shows public events from DICE plus manually maintained events.                                                      | End users          | `live` |
+| Signup CRM sync                | Sends net-new signups with email to Campaign Monitor in a non-blocking background step.                             | Internal team      | `live` |
 | User-submitted locations       | Lets users create locations; non-admin-created locations start hidden and may need approval.                        | End users + admins | `live` |
 | Admin operations surfaces      | Admin routes exist for users, locations, checkpoints, perks, analytics, city metrics, and related operations.       | Internal team      | `live` |
 
 ### Partial / Manual
 
-| Feature name                 | What it does                                                                                                             | Who uses it                 | Status    |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------- | --------- |
-| Challenges / quests          | Shows challenge content, but current quest progress and completion state are randomized client-side from static JSON.    | End users                   | `partial` |
-| City guides                  | Route exists, but content is explicitly placeholder data until a CMS powers it.                                          | End users                   | `partial` |
-| Events ingestion             | Event discovery is live, but part of the feed comes from manually maintained JSON instead of one fully automated source. | End users + internal team   | `manual`  |
-| Spend fulfillment operations | User-facing spend flows are live, but admin fulfillment paths and venue verification can rely on manual operations.      | Internal team + venue staff | `manual`  |
+| Feature name                 | What it does                                                                                                                  | Who uses it                 | Status    |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------- | --------- |
+| Challenges / quests          | Shows challenge content, but current quest progress and completion state are randomized client-side from static JSON.         | End users                   | `partial` |
+| City guides                  | A city guides index and article template route exist, but the content is still static placeholder data until a CMS powers it. | End users                   | `partial` |
+| Events ingestion             | Event discovery is live, but part of the feed comes from manually maintained JSON instead of one fully automated source.      | End users + internal team   | `manual`  |
+| Spend fulfillment operations | User-facing spend flows are live, but admin fulfillment paths and venue verification can rely on manual operations.           | Internal team + venue staff | `manual`  |
 
 ### Planned but not live
 
@@ -150,6 +151,15 @@ Important: perk claims do **not** deduct points. Points act as a qualification t
   - `session_started` and `tier_changed` are defined in code but not currently emitted.
   - Some user properties are incomplete or placeholder (for example, `cohort` is hard-coded to `new` on the client).
   - Similar behavioral counts may not exactly match Supabase row counts.
+
+### Campaign Monitor
+
+- Stores marketing-list subscriptions for net-new users with email when `/api/player` creates a first-time player.
+- Trust Campaign Monitor for email audience sync state, not product analytics or source-of-truth user/account facts.
+- Limitations:
+  - Sync runs only for net-new player creation with email.
+  - The sync is non-blocking, so signup can still succeed if Campaign Monitor fails.
+  - This integration currently sends email plus username only; city/profile enrichment is not wired.
 
 | Name                         | Type           | Source            | Meaning                                                                                       | When it is created or fired                                                              | Caveats                                                                                                       |
 | ---------------------------- | -------------- | ----------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
