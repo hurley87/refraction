@@ -1,38 +1,35 @@
 #!/bin/bash
 # Deploy Simple Payment contract (sends custom fungible tokens from contract to recipient)
 
+set -e
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 echo -e "${YELLOW}Simple Payment Contract Deployment${NC}"
 echo "Sends custom fungible tokens from the contract to a recipient via send_token(token_address, recipient, amount)."
 echo ""
 
-# Check if source key is provided
 if [ -z "$1" ]; then
     echo -e "${RED}Error: Secret key not provided${NC}"
-    echo "Usage: ./DEPLOY_SIMPLE_PAYMENT.sh YOUR_SECRET_KEY [NETWORK]"
+    echo "Usage: ./deploy.sh YOUR_SECRET_KEY [NETWORK]"
     echo ""
     echo "Example:"
-    echo "  ./DEPLOY_SIMPLE_PAYMENT.sh SCKH34BJYI7LZNHFWK4URGVIQ3Q6NSSHW3JBVQVJ3HLPOBJDMBW6FAX4 testnet"
+    echo "  ./deploy.sh SCKH34BJYI7LZNHFWK4URGVIQ3Q6NSSHW3JBVQVJ3HLPOBJDMBW6FAX4 testnet"
     exit 1
 fi
 
 SOURCE_KEY="$1"
 NETWORK="${2:-testnet}"
 
-# Build the contract
 echo -e "${YELLOW}Building contract...${NC}"
-cd soroban-contracts/simple_payment
 cargo build --target wasm32v1-none --release
-
-if [ $? -ne 0 ]; then
-    echo -e "${RED}Error: Build failed${NC}"
-    exit 1
-fi
 
 echo -e "${GREEN}Build successful${NC}"
 echo ""

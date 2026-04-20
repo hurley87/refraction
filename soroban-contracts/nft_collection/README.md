@@ -153,6 +153,18 @@ The script will:
 - Deploy with proper constructor arguments
 - Display the contract ID and next steps
 
+To confirm the constructor ran (storage initialized), you can invoke `is_initialized` on the deployed contract (replace `CONTRACT_ID`, account, and network):
+
+```bash
+soroban contract invoke \
+  --id CONTRACT_ID \
+  --source-account YOUR_G_ADDRESS \
+  --network testnet \
+  -- is_initialized
+```
+
+If minting fails with `MissingValue`, the contract was likely deployed without the `--` separator before constructor arguments; redeploy using this script or the manual steps below.
+
 ### Manual Deploy
 
 If you prefer to deploy manually:

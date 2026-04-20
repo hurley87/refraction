@@ -70,7 +70,7 @@ soroban contract deploy \
   --network testnet
 ```
 
-Save the returned contract ID. You can also use the project script: `./DEPLOY_SIMPLE_PAYMENT.sh YOUR_SECRET_KEY [testnet|mainnet|futurenet]`.
+Save the returned contract ID. You can also use the contract directory script: `./deploy.sh YOUR_SECRET_KEY [testnet|mainnet|futurenet]` (from `soroban-contracts/simple_payment/`).
 
 ## Using the Contract
 
