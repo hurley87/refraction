@@ -107,6 +107,20 @@ const nextConfig = {
     ];
   },
 
+  async redirects() {
+    return [
+      {
+        source: "/map",
+        destination: "/interactive-map/",
+        permanent: true,
+      },
+      {
+        source: "/map/",
+        destination: "/interactive-map/",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 const sentryWebpackPluginOptions = {

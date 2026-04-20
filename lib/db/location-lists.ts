@@ -126,12 +126,19 @@ export const deleteLocationList = async (id: string) => {
   if (error) throw error;
 };
 
+export type GetLocationsForListOptions = {
+  /** Membership row order; default `desc` (newest first), use `asc` for guide reading order. */
+  membershipOrder?: 'asc' | 'desc';
+};
+
 /**
  * Get all locations in a specific list
  */
 export const getLocationsForList = async (
-  listId: string
+  listId: string,
+  options?: GetLocationsForListOptions
 ): Promise<LocationListLocation[]> => {
+  const ascending = options?.membershipOrder === 'asc';
   const { data, error } = await supabase
     .from('location_list_members')
     .select(
@@ -146,7 +153,7 @@ export const getLocationsForList = async (
       `
     )
     .eq('list_id', listId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending });
 
   if (error) throw error;
 
@@ -165,6 +172,56 @@ export const getLocationsForList = async (
         location: location as Location,
       } as LocationListLocation;
     });
+};
+
+const DEFAULT_MICHAIL_BERLIN_LIST_SLUGS = [
+  'michail-stangl-berlin',
+  'michail-stangl',
+  'berlin-michail-stangl',
+] as const;
+
+/**
+ * Locations for the Berlin / Michail Stangl city guide template.
+ * Set `MICHAIL_STANGL_BERLIN_LIST_SLUG` to match your `location_lists.slug`.
+ * Otherwise tries common slugs, then first active list whose title matches `%stangl%`.
+ */
+export const getMichailStanglBerlinGuideListLocations = async (): Promise<
+  LocationListLocation[]
+> => {
+  const envSlug = process.env.MICHAIL_STANGL_BERLIN_LIST_SLUG?.trim();
+  const slugsToTry = envSlug
+    ? [
+        envSlug,
+        ...DEFAULT_MICHAIL_BERLIN_LIST_SLUGS.filter((s) => s !== envSlug),
+      ]
+    : [...DEFAULT_MICHAIL_BERLIN_LIST_SLUGS];
+
+  for (const slug of slugsToTry) {
+    const { data: row, error } = await supabase
+      .from('location_lists')
+      .select('id')
+      .eq('is_active', true)
+      .eq('slug', slug)
+      .maybeSingle();
+    if (error) throw error;
+    if (row?.id) {
+      return getLocationsForList(row.id, { membershipOrder: 'asc' });
+    }
+  }
+
+  const { data: fallback, error: fbError } = await supabase
+    .from('location_lists')
+    .select('id')
+    .eq('is_active', true)
+    .ilike('title', '%stangl%')
+    .limit(1)
+    .maybeSingle();
+  if (fbError) throw fbError;
+  if (fallback?.id) {
+    return getLocationsForList(fallback.id, { membershipOrder: 'asc' });
+  }
+
+  return [];
 };
 
 /**

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useState, useMemo } from 'react';
 import {
   // MapPin, CheckCircle2,
   ChevronDown,
@@ -51,6 +51,31 @@ interface LocationListsDrawerProps {
 }
 
 /**
+ * Normalize API coordinates (PostgREST may return numbers; some paths use strings).
+ */
+const toLngLat = (
+  location: DrawerLocationSummary
+): { latitude: number; longitude: number } | null => {
+  const { latitude: latRaw, longitude: lngRaw } = location;
+  const lat =
+    typeof latRaw === 'number'
+      ? latRaw
+      : typeof latRaw === 'string'
+        ? parseFloat(latRaw)
+        : NaN;
+  const lng =
+    typeof lngRaw === 'number'
+      ? lngRaw
+      : typeof lngRaw === 'string'
+        ? parseFloat(lngRaw)
+        : NaN;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return null;
+  }
+  return { latitude: lat, longitude: lng };
+};
+
+/**
  * Check if a location is within map bounds.
  * Handles longitude wrapping across the anti-meridian.
  */
@@ -58,15 +83,13 @@ const isLocationInBounds = (
   location: DrawerLocationSummary,
   bounds: MapBounds
 ): boolean => {
-  if (
-    typeof location.latitude !== 'number' ||
-    typeof location.longitude !== 'number'
-  ) {
+  const coords = toLngLat(location);
+  if (!coords) {
     console.log('[Filter] Location missing coordinates:', location.name);
     return false;
   }
 
-  const { latitude, longitude } = location;
+  const { latitude, longitude } = coords;
   const { north, south, east, west } = bounds;
 
   // Check latitude bounds
@@ -176,17 +199,15 @@ export default function LocationListsDrawer({
     );
 
     const filtered = lists
+      .filter((list) => (list.locations?.length ?? 0) > 0)
       .map((list) => {
-        if (!list.locations || list.locations.length === 0) {
-          return { ...list, locations: [] }; // Return list with empty locations array
-        }
-
-        const totalLocations = list.locations.length;
+        const locs = list.locations ?? [];
+        const totalLocations = locs.length;
         console.log(
           `[Filter] Filtering list "${list.title}" with ${totalLocations} locations`
         );
 
-        const filteredLocations = list.locations.filter((location) =>
+        const filteredLocations = locs.filter((location) =>
           isLocationInBounds(location, effectiveBounds)
         );
 
@@ -198,10 +219,6 @@ export default function LocationListsDrawer({
           ...list,
           locations: filteredLocations,
         };
-      })
-      .filter((list) => {
-        // Remove lists with no locations after filtering
-        return (list.locations?.length ?? 0) > 0;
       });
 
     const totalFiltered = filtered.reduce(
@@ -281,7 +298,32 @@ export default function LocationListsDrawer({
     );
   }, [filteredLists, isLoadingLists]);
 
-  if (!hasVisibleLocations) {
+  /** Lists that have at least one spot in the current map view (no empty section headers). */
+  const listsWithSpotsInView = useMemo(
+    () => filteredLists.filter((list) => (list.locations?.length ?? 0) > 0),
+    [filteredLists]
+  );
+
+  const hasAnyListLocations = useMemo(() => {
+    if (isLoadingLists) return false;
+    return lists.some((list) => (list.locations?.length ?? 0) > 0);
+  }, [lists, isLoadingLists]);
+
+  const isRemoteMapView = hasAnyListLocations && !hasVisibleLocations;
+
+  useLayoutEffect(() => {
+    if (isRemoteMapView) {
+      setIsExpanded(false);
+    }
+  }, [isRemoteMapView]);
+
+  useEffect(() => {
+    if (hasVisibleLocations) {
+      setIsExpanded(true);
+    }
+  }, [hasVisibleLocations]);
+
+  if (isLoadingLists || !hasAnyListLocations) {
     return null;
   }
 
@@ -308,7 +350,9 @@ export default function LocationListsDrawer({
                 Explore
               </p>
               <p className="text-xs font-anonymous text-[#888]">
-                Discover spots nearby
+                {isRemoteMapView
+                  ? 'No spots in this view — open to browse your lists'
+                  : 'Discover spots nearby'}
               </p>
             </div>
             <button
@@ -351,8 +395,13 @@ export default function LocationListsDrawer({
                       </div>
                     ))}
                   </div>
-                ) : (
-                  filteredLists.map((list) => {
+                ) : !mapBounds ? (
+                  <p className="text-[13px] font-anonymous leading-snug text-[#888]">
+                    Move the map to show spots from your lists in the current
+                    view.
+                  </p>
+                ) : listsWithSpotsInView.length > 0 ? (
+                  listsWithSpotsInView.map((list) => {
                     const visibleCount = list.locations?.length ?? 0;
                     return (
                       <div key={list.id} className="space-y-2">
@@ -361,52 +410,71 @@ export default function LocationListsDrawer({
                             {list.title}
                           </h3>
                           <span className="text-[10px] font-anonymous text-[#999]">
-                            {visibleCount > 0
-                              ? `${visibleCount} spots`
-                              : 'No spots'}
+                            {`${visibleCount} spots`}
                           </span>
                         </div>
-                        {list.locations && list.locations.length > 0 ? (
-                          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                            {list.locations.map((location) => (
-                              <article
-                                key={location.membershipId}
-                                onClick={() => onLocationFocus?.(location)}
-                                className="group relative flex w-36 flex-shrink-0 flex-col rounded-xl bg-black/[0.02] p-1.5 transition-all hover:bg-black/[0.04] active:scale-[0.98] cursor-pointer"
-                              >
-                                <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
-                                  {location.coin_image_url ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                      src={location.coin_image_url}
-                                      alt={location.name}
-                                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                    />
-                                  ) : (
-                                    <div className="flex h-full w-full items-center justify-center bg-black/[0.04] text-[10px] font-anonymous text-[#999]">
-                                      No image
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="mt-1.5 px-0.5">
-                                  <p className=" text-[#1a1a1a] truncate leading-tight title3">
-                                    {location.name}
-                                  </p>
-                                  <p className="text-[9px] font-anonymous text-[#888] truncate mt-0.5">
-                                    {location.description || location.name}
-                                  </p>
-                                </div>
-                              </article>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-[10px] font-anonymous text-[#999]">
-                            No locations in view.
-                          </p>
-                        )}
+                        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                          {(list.locations ?? []).map((location) => (
+                            <article
+                              key={location.membershipId}
+                              onClick={() => onLocationFocus?.(location)}
+                              className="group relative flex w-36 flex-shrink-0 flex-col rounded-xl bg-black/[0.02] p-1.5 transition-all hover:bg-black/[0.04] active:scale-[0.98] cursor-pointer"
+                            >
+                              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
+                                {location.coin_image_url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={location.coin_image_url}
+                                    alt={location.name}
+                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center bg-black/[0.04] text-[10px] font-anonymous text-[#999]">
+                                    No image
+                                  </div>
+                                )}
+                              </div>
+                              <div className="mt-1.5 px-0.5">
+                                <p className=" text-[#1a1a1a] truncate leading-tight title3">
+                                  {location.name}
+                                </p>
+                                <p className="text-[9px] font-anonymous text-[#888] truncate mt-0.5">
+                                  {location.description || location.name}
+                                </p>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
                       </div>
                     );
                   })
+                ) : filteredLists.length > 0 ? (
+                  filteredLists.map((list) => {
+                    const totalCount =
+                      lists.find((l) => l.id === list.id)?.locations?.length ??
+                      0;
+                    return (
+                      <div key={list.id} className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="text-[#1a1a1a] title3">
+                            {list.title}
+                          </h3>
+                          <span className="shrink-0 text-[10px] font-anonymous text-[#999]">
+                            {totalCount} {totalCount === 1 ? 'spot' : 'spots'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-anonymous leading-snug text-[#888]">
+                          Not in the current map view. Pan or zoom to where
+                          these spots are to browse them here.
+                        </p>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-[13px] font-anonymous leading-snug text-[#666]">
+                    No saved spots in this area. Pan or zoom the map to where
+                    your lists have locations.
+                  </p>
                 )}
               </div>
             </div>
