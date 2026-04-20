@@ -66,7 +66,8 @@ function interactiveMapLaunchHref() {
  * Optional per-location contributor when CMS attributes a pick to one of several guide authors.
  * Replace with a CMS lookup; while null/empty, cards use the guide authors only (not `creator_username`).
  */
-function getCmsContributorForLocation(_placeId: string): string | null {
+function getCmsContributorForLocation(placeId: string): string | null {
+  if (!placeId.trim()) return null;
   return null;
 }
 
