@@ -1,8 +1,8 @@
-import Image from 'next/image';
-
 import { cn } from '@/lib/utils';
-
-const DEFAULT_TEXTURE_SRC = '/city-guides/paper-texture.jpg';
+import {
+  CityGuideTexturedImage,
+  DEFAULT_PAPER_TEXTURE_SRC,
+} from '@/components/city-guides/city-guide-textured-image';
 
 export interface CityGuideArticleHeroImageProps {
   src: string;
@@ -26,46 +26,23 @@ export interface CityGuideArticleHeroImageProps {
 export function CityGuideArticleHeroImage({
   src,
   alt,
-  textureSrc = DEFAULT_TEXTURE_SRC,
+  textureSrc = DEFAULT_PAPER_TEXTURE_SRC,
   textureOpacity = 0.38,
   textureBlendMode = 'lighten',
   className,
 }: CityGuideArticleHeroImageProps) {
   return (
-    <div
-      className={cn(
-        'relative h-[361px] w-full max-w-[361px] overflow-hidden',
-        className
-      )}
-    >
-      <Image
-        src={src}
-        alt={alt}
-        fill
-        priority
-        className="object-cover object-center"
-        sizes="361px"
-      />
-      {textureSrc ? (
-        <div
-          className="pointer-events-none absolute left-1/2 top-1/2 z-[1] h-[412px] w-[412px] -translate-x-1/2 -translate-y-1/2"
-          aria-hidden
-        >
-          <Image
-            src={textureSrc}
-            alt=""
-            fill
-            className={cn(
-              'object-cover',
-              textureBlendMode === 'lighten'
-                ? 'mix-blend-lighten'
-                : 'mix-blend-soft-light'
-            )}
-            style={{ opacity: textureOpacity }}
-            sizes="412px"
-          />
-        </div>
-      ) : null}
-    </div>
+    <CityGuideTexturedImage
+      src={src}
+      alt={alt}
+      sizes="361px"
+      priority
+      containerClassName={cn('h-[361px] w-full max-w-[361px]', className)}
+      textureSrc={textureSrc}
+      textureOpacity={textureOpacity}
+      textureBlendMode={textureBlendMode}
+      textureClassName="left-1/2 top-1/2 h-[412px] w-[412px] -translate-x-1/2 -translate-y-1/2"
+      textureSizes="412px"
+    />
   );
 }

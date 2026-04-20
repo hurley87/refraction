@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 
 import { CityGuideArticleNav } from '@/components/city-guides/city-guide-article-nav';
 import { CityGuideArticleDescription } from '@/components/city-guides/city-guide-article-description';
 import { CityGuideArticleHeroImage } from '@/components/city-guides/city-guide-article-hero-image';
 import { CityGuideLocationCard } from '@/components/city-guides/city-guide-location-card';
+import { CityGuideTexturedImage } from '@/components/city-guides/city-guide-textured-image';
 import { CityGuideArticleMetaRow } from '@/components/city-guides/city-guide-article-meta-row';
 import { CityGuideArticleTitle } from '@/components/city-guides/city-guide-article-title';
 import { getMichailStanglBerlinGuideListLocations } from '@/lib/db/location-lists';
@@ -124,14 +124,13 @@ export default async function CityGuideTemplatePage() {
             <h2 className="title3 flex h-[54px] w-full max-w-[361px] shrink-0 items-center text-[#171717]">
               {TEMPLATE_GUIDE_MAP.heading}
             </h2>
-            <div className="relative h-[361px] w-full max-w-[361px] shrink-0 overflow-hidden">
-              <Image
+            <div className="h-[361px] w-full max-w-[361px] shrink-0 overflow-hidden">
+              <CityGuideTexturedImage
                 src={TEMPLATE_GUIDE_MAP.imageSrc}
                 alt={TEMPLATE_GUIDE_MAP.imageAlt}
-                fill
-                className="object-cover object-center"
                 sizes="361px"
-                priority={false}
+                containerClassName="h-full w-full"
+                textureOpacity={0.34}
               />
             </div>
           </section>
