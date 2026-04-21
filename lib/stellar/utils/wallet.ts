@@ -52,7 +52,7 @@ if (walletConnectProjectId) {
       : process.env.NEXT_PUBLIC_APP_URL || 'https://irl.energy';
   const appIcons = process.env.NEXT_PUBLIC_APP_ICONS
     ? [process.env.NEXT_PUBLIC_APP_ICONS]
-    : ['https://irl.energy/irl-svg/irl-logo-new.svg'];
+    : ['https://irl.energy/IRL-SVG/IRL-LOGO-NEW.svg'];
 
   modules.push(
     new WalletConnectModule({
