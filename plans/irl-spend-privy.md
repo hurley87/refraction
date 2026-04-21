@@ -1,6 +1,6 @@
-# irl-spend-privy.end
+# irl-spend-privy
 
-This document is the **end-state / stakeholder-aligned** view of the Privy server-wallet spend pilot. It **extends** the technical plan in the Refraction repo:
+This document is the **stakeholder-aligned** Privy server-wallet spend pilot. It **extends** the technical plan in the Refraction repo:
 
 - Source plan: [hurley87/refraction — `plans/irl-spend-privy-server-wallet.md`](https://github.com/hurley87/refraction/blob/main/plans/irl-spend-privy-server-wallet.md)
 
@@ -57,7 +57,7 @@ The user journey is intentionally tight:
 4. Admin sees the confirmed transaction in real time.
 5. User receives the configured points (default 100).
 
-**irl-spend-privy.end addition:** Design copy and flows so the user perceives **“pay with IRL / earn IRL”**; optional **points → USDC** redemption uses treasury liquidity with **clear, configurable rates** and **operator controls**.
+**This plan adds:** Design copy and flows so the user perceives **“pay with IRL / earn IRL”**; optional **points → USDC** redemption uses treasury liquidity with **clear, configurable rates** and **operator controls**.
 
 ---
 
@@ -98,7 +98,7 @@ The Privy server wallet + QR approach in this plan needs **zero Stripe hardware*
 
 ---
 
-## Scope of the controlled test (May 6th) (from base plan, with end-state notes)
+## Scope of the controlled test (May 6th) (from base plan, with notes above)
 
 ### In scope
 
@@ -114,7 +114,7 @@ The Privy server wallet + QR approach in this plan needs **zero Stripe hardware*
 - Configurable points per Spend Experience (default 100); **`points_reward` is flat per experience for v1** (no tiers or multipliers yet).
 - **One event treasury:** a **single server wallet per event**; admin funds it and decides how to distribute proceeds (no separate merchant treasury split in v1).
 
-**irl-spend-privy.end addition (may be same sprint or immediate follow, to be scoped):**
+**Addition (may be same sprint or immediate follow, to be scoped):**
 
 - **Points → USDC redemption** path with **treasury-funded** payouts, **configurable exchange rate**, caps/limits aligned with **~$500 experimental float** (or updated ops number), and **audit trail** (ledger + on-chain tx).
 
@@ -131,7 +131,7 @@ The Privy server wallet + QR approach in this plan needs **zero Stripe hardware*
 - **Admin CMS (`app/admin/spend/`)** — configure experiences, view live transactions, view aggregate stats.
 - **On-chain** — USDC ERC-20 transfer on Base from user server wallet → treasury wallet.
 
-**irl-spend-privy.end addition:** For redemption, **treasury (or hot wallet)** → user server wallet (or designated payout path), with **IRL server-side** signing for treasury sends **only** via secured keys / policies (exact custody TBD in implementation).
+**Redemption:** For redemption, **treasury (or hot wallet)** → user server wallet (or designated payout path), with **IRL server-side** signing for treasury sends **only** via secured keys / policies (exact custody TBD in implementation).
 
 ### High-level flow
 
@@ -154,7 +154,7 @@ The Privy server wallet + QR approach in this plan needs **zero Stripe hardware*
                      -> emit realtime update for admin dashboard
 ```
 
-**irl-spend-privy.end addition (conceptual):**
+**Redemption flow (conceptual):**
 
 ```
 [User] requests "convert points to USDC"
