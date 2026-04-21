@@ -1,43 +1,35 @@
 # irl-spend-privy
 
-This document is the **stakeholder-aligned** Privy server-wallet spend pilot. It **extends** the technical plan in the Refraction repo:
-
-- Source plan: [hurley87/refraction — `plans/irl-spend-privy-server-wallet.md`](https://github.com/hurley87/refraction/blob/main/plans/irl-spend-privy-server-wallet.md)
-
-Stakeholder alignment and **Decisions (resolved)** below capture what differs from or narrows the linked plan. For tables, routes, hooks, build steps, risks, and metrics, use the source document.
+Privy server-wallet in-person spend pilot.
 
 ---
 
-## Stakeholder alignment (chat — Dave & Malcolm Levy)
+## Event & flow (USDC on Base ↔ IRL)
 
-These points refine **product intent**, **treasury economics**, and **UX framing** for the same May 6th-style pilot (event format comparable to prior Denver events at ESP or Public Records).
-
-### Event & flow (USDC on Base ↔ IRL)
-
-- **User → treasury (earn):** Attendee scans a QR with their phone and confirms a transfer of **USDC on Base** to a **treasury** wallet. The system **records the on-chain transaction** and **credits points** to the user (same direction as the base plan: server wallet → treasury, then points).
-- **Treasury → user (redeem / “cash out” points):** Users can **fund their spend capability** by converting **points back into USDC** drawn from the **same treasury** (or a clearly separated ops wallet that is treated as treasury for accounting). This is a **second leg** not fully specified in the Refraction v1 doc, which focused on inbound spend + points; here the **closed loop** is explicit: **treasury receives USDC on spend, treasury may disburse USDC when points are redeemed.**
-- **Example conversion (discussion):** **5,000 points = $5 USDC** (i.e. **1,000 points per $1** for that example rate). Actual rates should be **configurable** and consistent with `points_reward` / ledger rules so ops can match the economics of each experience.
+- **User → treasury (earn):** Attendee scans a QR with their phone and confirms a transfer of **USDC on Base** to a **treasury** wallet. The system **records the on-chain transaction** and **credits points** to the user (server wallet → treasury, then points).
+- **Treasury → user (redeem / “cash out” points):** Users can **fund their spend capability** by converting **points back into USDC** drawn from the **same treasury** (or a clearly separated ops wallet that is treated as treasury for accounting). Beyond inbound spend + points, the **closed loop** is explicit: **treasury receives USDC on spend, treasury may disburse USDC when points are redeemed.**
+- **Example conversion:** **5,000 points = $5 USDC** (i.e. **1,000 points per $1** for that example rate). Actual rates should be **configurable** and consistent with `points_reward` / ledger rules so ops can match the economics of each experience.
 - **IRL owns the “why” on-chain:** **IRL** implements **points ↔ USDC conversion logic** and **executes** the relevant transfers (inbound from user server wallet to treasury on scan-and-confirm; outbound from treasury when redeeming points), so purchasing at the bar still feels like **“paying with IRL”** from the user’s perspective.
 
-### Treasury budget (discussion)
+## Treasury budget
 
 - **Rough sizing:** ~**100 people** at the event, each with **~5,000 points** available to convert back to USDC → order of **$500 USDC** in the **treasury wallet** as a working budget for **experimentation** (not a hard cap; adjust for real attendance and redemption).
 
-### UX principle (discussion)
+## UX principle
 
-- **Seamless / “behind the scenes”:** The attendee should **not** have to think about chains, EOAs, or raw crypto UX where avoidable. Stablecoin and server-wallet mechanics run **under the hood**; the surface is **IRL** (scan → confirm → balance / points), aligned with the base plan’s server-wallet + gas-sponsored path.
+- **Seamless / “behind the scenes”:** The attendee should **not** have to think about chains, EOAs, or raw crypto UX where avoidable. Stablecoin and server-wallet mechanics run **under the hood**; the surface is **IRL** (scan → confirm → balance / points), aligned with this plan’s server-wallet + gas-sponsored path.
 
-### Ecosystem: Bridge (discussion)
+## Ecosystem: Bridge
 
-- **Bridge** was called out as the tool that makes it **easy for users to get stablecoins into wallets** (on-ramp / funding path). The linked Refraction pilot defers deep **in-app** Bridge/Tempo integration for v1; this chat still treats Bridge as the **likely complement** for **getting USDC into** user or server wallets **before or between events**, while the **in-app spend loop** remains IRL + Privy server wallet + treasury.
+- **Bridge** was called out as the tool that makes it **easy for users to get stablecoins into wallets** (on-ramp / funding path). Deep **in-app** Bridge/Tempo integration can stay deferred for v1; Bridge remains the **likely complement** for **getting USDC into** user or server wallets **before or between events**, while the **in-app spend loop** remains IRL + Privy server wallet + treasury.
 
-### Open integration work (discussion)
+## Open integration work
 
 - **UI/UX and stack fit:** How this **pairs with the existing IRL stack** (Privy, Supabase, admin, wallet surfaces) is a **first-class design problem**—especially for **redemption** (points → USDC) and **operator visibility** (treasury balance, liability vs. float).
 
 ---
 
-## Summary (from base plan)
+## Summary
 
 A controlled test of IRL Spend powered by **Privy server wallets** and **gas-sponsored stablecoin transactions**. Users fund their IRL server wallet with stablecoins, then tap to confirm on-chain purchases at events by scanning a QR code generated from a **Spend Experience** configured in the IRL CMS. Every confirmed transaction posts back to the admin dashboard and automatically issues configurable points (default **100**) to the user.
 
@@ -45,7 +37,7 @@ This plan targets a **controlled test on May 6th** and a build window of the wee
 
 ---
 
-## Objective (from base plan)
+## Objective
 
 Prove that IRL can run real, on-chain, in-person spend at a live event without the user paying gas, without staff running a card terminal, and without the user leaving the IRL app.
 
@@ -61,7 +53,7 @@ The user journey is intentionally tight:
 
 ---
 
-## Why this plan (vs. `irl-spend.md`) (from base plan)
+## Why this plan (vs. `irl-spend.md`)
 
 The existing `irl-spend.md` plan uses **Stripe Terminal** for card-present payments in v1, with Privy only as the identity layer. This plan replaces that critical path with a **Privy server wallet + stablecoin** flow and keeps Stripe Terminal out of v1 entirely.
 
@@ -70,7 +62,7 @@ The existing `irl-spend.md` plan uses **Stripe Terminal** for card-present payme
 
 The `/walletconnect` experience in this repo is the closest existing surface and is the reference pattern for the scan-and-confirm UX.
 
-### Important: Stripe Terminal does not support stablecoin payments (from base plan)
+### Important: Stripe Terminal does not support stablecoin payments
 
 Stripe Terminal is a card-present product (EMV chip, contactless, swiped) plus NFC mobile wallets (Apple Pay, Google Pay, Samsung Pay). **Stablecoin / USDC acceptance is not available on Stripe Terminal.** Stripe's stablecoin acceptance is an online-only product, exposed through Checkout, Payment Links, Elements, and the Payment Intents API — not through the in-person Terminal stack.
 
@@ -86,7 +78,7 @@ References:
 
 Implication for `irl-spend.md`: if a future phase of that plan says "Stripe Terminal for stablecoin," that is not possible today. Stablecoin at the point of sale must come from a non-Terminal path, which is what this plan provides.
 
-### Additional Stripe Terminal concern: hardware cost and integration burden (from base plan)
+### Additional Stripe Terminal concern: hardware cost and integration burden
 
 Even setting aside the stablecoin gap, Stripe Terminal imposes real cost and engineering drag that a QR-scan-and-confirm flow avoids entirely:
 
@@ -98,7 +90,7 @@ The Privy server wallet + QR approach in this plan needs **zero Stripe hardware*
 
 ---
 
-## Scope of the controlled test (May 6th) (from base plan, with notes above)
+## Scope of the controlled test (May 6th)
 
 ### In scope
 
@@ -120,7 +112,7 @@ The Privy server wallet + QR approach in this plan needs **zero Stripe hardware*
 
 ---
 
-## System architecture (from base plan)
+## System architecture
 
 ### Actors & components
 
@@ -163,7 +155,7 @@ The Privy server wallet + QR approach in this plan needs **zero Stripe hardware*
   -> debit points in same atomic DB transaction as ledger + (optional) pending on-chain state
 ```
 
-### Why server wallet (not user EOA) (from base plan)
+### Why server wallet (not user EOA)
 
 - Removes wallet-UX friction; user never signs a raw EVM transaction.
 - IRL fully controls the transaction construction and gas sponsorship.
@@ -184,4 +176,4 @@ The Privy server wallet + QR approach in this plan needs **zero Stripe hardware*
 | Server wallet visibility | **Yes** — expose the server wallet address on the user profile for v1.                                                           |
 | `points_reward`          | **Flat per experience** for v1; no tiers or multipliers yet.                                                                     |
 
-Implementation detail for redemption and extra ledger fields remains in the linked source plan; extend that doc when redemption ships.
+Define redemption ledger fields, treasury signing, and custody in implementation specs when redemption ships.
