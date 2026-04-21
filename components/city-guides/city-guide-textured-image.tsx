@@ -13,11 +13,11 @@ export interface CityGuideTexturedImageProps {
   className?: string;
   /** Paper grit overlay; set `null` to disable. */
   textureSrc?: string | null;
-  /** Texture layer opacity (0–1). @default 0.38 */
+  /** Texture layer opacity (0–1). @default 0.52 */
   textureOpacity?: number;
   /**
-   * `lighten` matches design spec but bright paper can hide the photo — pair with lower `textureOpacity`.
-   * `soft-light` keeps grit stronger at higher opacity. @default lighten
+   * `lighten` matches some comps but can hide grit on bright areas.
+   * `soft-light` keeps the paper grain more visible. @default soft-light
    */
   textureBlendMode?: 'lighten' | 'soft-light';
   textureClassName?: string;
@@ -35,8 +35,8 @@ export function CityGuideTexturedImage({
   containerClassName,
   className,
   textureSrc = DEFAULT_PAPER_TEXTURE_SRC,
-  textureOpacity = 0.38,
-  textureBlendMode = 'lighten',
+  textureOpacity = 0.52,
+  textureBlendMode = 'soft-light',
   textureClassName,
   textureSizes,
 }: CityGuideTexturedImageProps) {

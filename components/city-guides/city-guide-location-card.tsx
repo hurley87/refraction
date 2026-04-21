@@ -42,7 +42,7 @@ export function CityGuideLocationCard({
             alt={imageAlt}
             sizes="361px"
             containerClassName="h-full w-full"
-            textureOpacity={0.32}
+            textureOpacity={0.44}
           />
         ) : null}
       </div>
