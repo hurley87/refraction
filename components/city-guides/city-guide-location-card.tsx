@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
+import { CityGuideTexturedImage } from '@/components/city-guides/city-guide-textured-image';
 import { cn } from '@/lib/utils';
 
 export interface CityGuideLocationCardProps {
@@ -34,14 +35,14 @@ export function CityGuideLocationCard({
       )}
       aria-label={`Location: ${name}`}
     >
-      <div className="relative h-[345px] w-full max-w-[361px] shrink-0 overflow-hidden bg-neutral-200">
+      <div className="h-[345px] w-full max-w-[361px] shrink-0 overflow-hidden bg-neutral-200">
         {imageSrc ? (
-          <Image
+          <CityGuideTexturedImage
             src={imageSrc}
             alt={imageAlt}
-            fill
-            className="object-cover object-center"
             sizes="361px"
+            containerClassName="h-full w-full"
+            textureOpacity={0.32}
           />
         ) : null}
       </div>
