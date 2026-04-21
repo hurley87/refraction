@@ -5,10 +5,18 @@ import InteractiveMap from '@/components/map/interactive-map';
 import AuthWrapper from '@/components/auth/auth-wrapper';
 import { useSearchParams } from 'next/navigation';
 import { getFeaturedCityCoordinates } from '@/lib/featured-cities';
+import { sanitizeInternalReturnPath } from '@/lib/utils/safe-return-path';
 
 function InteractiveMapContent() {
   const searchParams = useSearchParams();
   const placeId = searchParams.get('placeId');
+  /** City guide etc.: show location MapCard drawer only, not the full-screen check-in modal. */
+  const mapCardOnlyDeepLink = searchParams.get('mapCard') === '1';
+  const returnToRaw = searchParams.get('returnTo');
+  const guideReturnHref = useMemo(
+    () => sanitizeInternalReturnPath(returnToRaw),
+    [returnToRaw]
+  );
   const cityParam = searchParams.get('city');
   const latParam = searchParams.get('lat');
   const lngParam = searchParams.get('lng');
@@ -40,6 +48,8 @@ function InteractiveMapContent() {
           initialPlaceId={placeId}
           initialLatitude={initialLatitude}
           initialLongitude={initialLongitude}
+          deepLinkMapCardOnly={mapCardOnlyDeepLink}
+          guideReturnHref={guideReturnHref}
         />
       </div>
     </AuthWrapper>
