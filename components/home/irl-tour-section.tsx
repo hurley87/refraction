@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
+import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
+
 const POSTER_SRC = '/homepage/irl-tour-event-flyer.png';
 const MOBILE_BG_IMAGE = '/homepage/irl-tour-event-flyer.png';
 const DESKTOP_BG_IMAGE = '/homepage/irl-tour-event-flyer.png';
@@ -43,13 +45,7 @@ export default function IRLTourSection() {
         {/* Left column: text content (on desktop); second on mobile */}
         <div className="order-2 md:order-1 flex flex-col flex-1 min-w-0 md:w-[574px] md:flex-none md:items-start md:gap-[35px]">
           <div className="flex items-center justify-left gap-2 mb-4 md:mb-0">
-            <Image
-              src="/homepage/ellipse.svg"
-              alt=""
-              width={24}
-              height={24}
-              className="shrink-0"
-            />
+            <WelcomeEllipse />
             <h2
               className="title5 text-left md:text-[13px] md:leading-[16px] md:font-medium md:tracking-[-0.39px]"
               style={{
@@ -87,28 +83,35 @@ export default function IRLTourSection() {
               fontWeight: 400,
             }}
           >
-            The IRL Tour brings the community together in cities around the world.
+            The IRL Tour brings the community together in cities around the
+            world.
           </p>
 
           {/* CTAs */}
           <div className="flex items-center justify-center mb-6 md:mb-0 w-full">
-            <Link href="/events">
-              <button className="flex justify-center items-center gap-2.5 py-5 px-10 rounded-full cursor-pointer hover:bg-gray-100 transition-colors bg-white">
-                <span
-                  className="text-center"
-                  style={{
-                    color: 'var(--Black, #020303)',
-                    fontFamily:
-                      '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-                    fontSize: '20px',
-                    fontStyle: 'normal',
-                    fontWeight: 400,
-                    lineHeight: '24px',
-                    letterSpacing: '-0.4px',
-                  }}
+            <Link
+              href="/events"
+              className="inline-flex w-[361px] max-w-full shrink-0"
+            >
+              <button
+                type="button"
+                className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[var(--Backgrounds-Highlight,#FFF200)] py-2 pr-2 pl-4 text-[#171717]"
+              >
+                <span className="whitespace-nowrap">Browse Events</span>
+                <svg
+                  width={24}
+                  height={24}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="shrink-0"
+                  aria-hidden
                 >
-                  Browse Events
-                </span>
+                  <path
+                    d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                    fill="#171717"
+                  />
+                </svg>
               </button>
             </Link>
           </div>

@@ -1,5 +1,5 @@
-import { Core } from "@walletconnect/core";
-import { WalletKit } from "@reown/walletkit";
+import { Core } from '@walletconnect/core';
+import { WalletKit } from '@reown/walletkit';
 
 type WalletKitClient = Awaited<ReturnType<typeof WalletKit.init>>;
 
@@ -16,9 +16,9 @@ export type InitWalletKitParams = {
 export function getWalletKitSingleton(
   params: InitWalletKitParams
 ): Promise<WalletKitClient> {
-  if (typeof window === "undefined") {
+  if (typeof window === 'undefined') {
     return Promise.reject(
-      new Error("WalletKit can only be initialized in the browser")
+      new Error('WalletKit can only be initialized in the browser')
     );
   }
 
@@ -38,13 +38,15 @@ export function getWalletKitSingleton(
         return await WalletKit.init({
           core,
           metadata: {
-            name: "IRL — WalletConnect Pay test",
-            description: "Internal WalletConnect Pay / WalletKit test wallet",
+            name: 'IRL — WalletConnect Pay test',
+            description: 'Internal WalletConnect Pay / WalletKit test wallet',
             url:
-              typeof window !== "undefined"
+              typeof window !== 'undefined'
                 ? window.location.origin
-                : "https://irl.energy",
-            icons: [`${typeof window !== "undefined" ? window.location.origin : "https://irl.energy"}/favicon.ico`],
+                : 'https://irl.energy',
+            icons: [
+              `${typeof window !== 'undefined' ? window.location.origin : 'https://irl.energy'}/irl-svg/irl-logo-new.svg`,
+            ],
           },
           payConfig: {
             appId: params.projectId,
@@ -75,9 +77,9 @@ export function resetWalletKitSingletonForTests(): void {
 export function isWalletConnectPayAuthErrorMessage(message: string): boolean {
   const m = message.toLowerCase();
   return (
-    m.includes("401") ||
-    m.includes("invalid api key") ||
-    m.includes("invalid_api_key") ||
-    m.includes("unauthorized")
+    m.includes('401') ||
+    m.includes('invalid api key') ||
+    m.includes('invalid_api_key') ||
+    m.includes('unauthorized')
   );
 }

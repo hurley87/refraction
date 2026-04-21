@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
+import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
+
 /**
  * Check-Ins Fund Culture section - Culture as infrastructure
  */
@@ -11,13 +13,7 @@ export default function CheckInsFundCultureSection() {
     <section className="w-full bg-[#131313] px-4 md:px-[171px] md:pr-[217px] py-16 md:py-24">
       <div className="max-w-[1177px] md:max-w-7xl mx-auto flex flex-col items-center text-center">
         <div className="flex items-center justify-center gap-2 mb-4">
-          <Image
-            src="/homepage/ellipse.svg"
-            alt=""
-            width={24}
-            height={24}
-            className="shrink-0"
-          />
+          <WelcomeEllipse />
           <h2
             className="text-[#FFF] font-['ABC_Monument_Grotesk_Unlicensed_Trial',_sans-serif] text-[13px] font-medium leading-4 tracking-[-0.39px] text-center"
             style={{ textShadow: '0 0 26.7px #FFF' }}

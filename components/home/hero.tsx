@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
+import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
+
 /**
  * Hero component with background image above the fold
  */
@@ -29,13 +31,7 @@ export default function Hero() {
         <div className="flex flex-col w-full max-w-[574px] md:w-[574px] items-start gap-12">
           {/* Row 1: ellipse + Welcome to IRL (title5) */}
           <div className="flex items-center gap-2">
-            <Image
-              src="/homepage/ellipse.svg"
-              alt=""
-              width={24}
-              height={24}
-              className="shrink-0"
-            />
+            <WelcomeEllipse />
             <span className="title5 text-white font-grotesk">
               Welcome to IRL
             </span>
@@ -47,9 +43,29 @@ export default function Hero() {
           </div>
 
           {/* CTA button */}
-          <Link href="/interactive-map" className="flex">
-            <button className="flex h-[52px] py-3 px-6 justify-center items-center gap-2.5 rounded-full bg-white hover:bg-gray-100 transition-colors cursor-pointer title3 text-[#313131] font-grotesk whitespace-nowrap">
-              Find Spots Nearby →
+          <Link
+            href="/interactive-map"
+            className="inline-flex w-[361px] max-w-full shrink-0"
+          >
+            <button
+              type="button"
+              className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[var(--Backgrounds-Highlight,#FFF200)] py-2 pr-2 pl-4 text-[#171717]"
+            >
+              <span className="whitespace-nowrap">Find Spots Nearby</span>
+              <svg
+                width={24}
+                height={24}
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="shrink-0"
+                aria-hidden
+              >
+                <path
+                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                  fill="#171717"
+                />
+              </svg>
             </button>
           </Link>
         </div>
@@ -61,7 +77,8 @@ export default function Hero() {
             aria-hidden
           />
           <div className="flex min-h-[74px] w-full max-w-[574px] md:w-[574px] flex-col justify-center self-stretch text-white title3 font-grotesk">
-            From listening bars to late-night art shows, the people shaping the scene show you where to go.
+            From listening bars to late-night art shows, the people shaping the
+            scene show you where to go.
           </div>
         </div>
       </div>

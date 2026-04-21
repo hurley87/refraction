@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
+import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
+
 const COVER_IMAGES = [
   {
     src: '/homepage/city-guides-covers/jiminal.png',
@@ -83,13 +85,7 @@ export default function CityGuidesCoverSection() {
         {/* Left column: section content */}
         <div className="flex flex-col items-center gap-4 md:gap-[35px] md:items-start md:w-[574px] md:flex-none">
           <div className="flex items-center justify-start gap-2 mb-0 w-full">
-            <Image
-              src="/homepage/ellipse.svg"
-              alt=""
-              width={24}
-              height={24}
-              className="shrink-0"
-            />
+            <WelcomeEllipse />
             <h2
               className="title5 text-white text-left"
               style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
@@ -130,24 +126,27 @@ export default function CityGuidesCoverSection() {
               href={SUBSTACK_GUIDES_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full sm:inline-block sm:w-auto"
+              className="inline-flex w-[361px] max-w-full shrink-0"
             >
-              <button className="flex w-full sm:w-auto flex-[1_0_0] sm:flex-initial self-stretch sm:self-auto justify-center items-center gap-2.5 py-5 px-6 rounded-full cursor-pointer hover:bg-gray-100 transition-colors bg-white">
-                <span
-                  className="text-center"
-                  style={{
-                    color: 'var(--Black, #020303)',
-                    fontFamily:
-                      '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-                    fontSize: '20px',
-                    fontStyle: 'normal',
-                    fontWeight: 400,
-                    lineHeight: '24px',
-                    letterSpacing: '-0.4px',
-                  }}
+              <button
+                type="button"
+                className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[var(--Backgrounds-Highlight,#FFF200)] py-2 pr-2 pl-4 text-[#171717]"
+              >
+                <span className="whitespace-nowrap">Read the Guides</span>
+                <svg
+                  width={24}
+                  height={24}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="shrink-0"
+                  aria-hidden
                 >
-                  Read the Guides
-                </span>
+                  <path
+                    d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                    fill="#171717"
+                  />
+                </svg>
               </button>
             </Link>
           </div>
@@ -167,12 +166,12 @@ export default function CityGuidesCoverSection() {
           <div
             ref={scrollRef}
             onScroll={updateArrows}
-            className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory mb-0 scroll-smooth md:pl-14 md:pr-14"
+            className="mb-0 grid auto-cols-[252px] grid-flow-col gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory scroll-smooth md:pl-14 md:pr-14"
           >
             {COVER_IMAGES.map((img, i) => (
               <div
                 key={i}
-                className="flex flex-col items-center flex-shrink-0 w-[252px] snap-center group"
+                className="group flex h-full min-h-0 min-w-0 snap-center flex-col items-center"
                 style={{ background: 'var(--Dark-Tint-100, #313131)' }}
               >
                 <Link
@@ -194,8 +193,9 @@ export default function CityGuidesCoverSection() {
                     />
                   </div>
                 </Link>
-                <div className="flex flex-col items-start gap-4 md:gap-3 pt-6 pr-6 pb-6 pl-6 md:pt-6 md:pr-6 md:pb-12 md:pl-6 self-stretch border-t border-white/25 md:border-white">
+                <div className="flex min-h-0 flex-1 flex-col justify-between gap-4 self-stretch border-t border-white/25 pt-6 pr-6 pb-6 pl-6 md:gap-3 md:border-white md:pt-6 md:pr-6 md:pb-12 md:pl-6">
                   <span
+                    className="min-w-0 self-stretch"
                     style={{
                       color: 'var(--UI-White, #FFF)',
                       fontFamily:
@@ -213,22 +213,27 @@ export default function CityGuidesCoverSection() {
                     href={img.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full"
+                    className="inline-flex w-full shrink-0"
                   >
                     <button
-                      className="flex h-[42px] self-stretch justify-center items-center gap-6 rounded-full text-white hover:bg-white/10 transition-colors w-full"
-                      style={{ background: 'rgba(253, 255, 255, 0.15)' }}
+                      type="button"
+                      className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[var(--Backgrounds-Highlight,#FFF200)] py-2 pr-2 pl-4 text-[#171717]"
                     >
-                      <span
-                        style={{
-                          fontFamily:
-                            '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-                          fontSize: '16px',
-                          fontWeight: 500,
-                        }}
+                      <span className="whitespace-nowrap">Read Guide</span>
+                      <svg
+                        width={24}
+                        height={24}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="shrink-0"
+                        aria-hidden
                       >
-                        Read Guide
-                      </span>
+                        <path
+                          d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                          fill="#171717"
+                        />
+                      </svg>
                     </button>
                   </Link>
                 </div>

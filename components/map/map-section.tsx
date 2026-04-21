@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+
+import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 
@@ -163,13 +165,7 @@ export default function MapSection() {
       {/* How It Works: compact on mobile; inline on desktop */}
       <div className="min-h-0 md:min-h-0 flex flex-col items-center justify-center bg-[#131313] px-4 pt-8 pb-0 md:py-0 md:pb-0 md:pt-0">
         <div className="flex items-center justify-center gap-2 mt-4 md:mt-6">
-          <Image
-            src="/homepage/ellipse.svg"
-            alt=""
-            width={24}
-            height={24}
-            className="shrink-0"
-          />
+          <WelcomeEllipse />
           <h2
             className="title5  text-white text-center"
             style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
@@ -306,18 +302,34 @@ export default function MapSection() {
                   Earn Points
                 </p>
                 <p className="body-large text-[#b5b5b5] text-center md:text-left font-grotesk">
-                  Earn points towards future rewards at clubs, bars, and galleries — your first check-in gets you started.
+                  Earn points towards future rewards at clubs, bars, and
+                  galleries — your first check-in gets you started.
                 </p>
 
                 {/* Mobile: button below paragraph */}
                 <Link
                   href="/interactive-map"
-                  className="mt-6 w-full max-w-[260px] mx-auto md:hidden"
+                  className="mx-auto mt-6 inline-flex w-[361px] max-w-full shrink-0 md:hidden"
                 >
-                  <button className="bg-white flex h-12 items-center justify-center gap-2 px-4 py-2 rounded-full w-full cursor-pointer hover:bg-gray-100 transition-colors">
-                    <span className="title3 text-[#313131] ">
-                      Get Started
-                    </span>
+                  <button
+                    type="button"
+                    className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[var(--Backgrounds-Highlight,#FFF200)] py-2 pr-2 pl-4 text-[#171717]"
+                  >
+                    <span className="whitespace-nowrap">Get Started</span>
+                    <svg
+                      width={24}
+                      height={24}
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="shrink-0"
+                      aria-hidden
+                    >
+                      <path
+                        d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                        fill="#171717"
+                      />
+                    </svg>
                   </button>
                 </Link>
                 <div className="mt-2 md:hidden"></div>
@@ -331,10 +343,27 @@ export default function MapSection() {
       <div className="hidden md:block bg-[#131313] text-center py-8 px-4">
         <Link
           href="/interactive-map"
-          className="inline-flex items-center justify-center"
+          className="inline-flex w-[361px] max-w-full shrink-0 items-center justify-center"
         >
-          <button className="bg-white flex h-12 items-center justify-center gap-2 px-6 py-2 rounded-full cursor-pointer hover:bg-gray-100 transition-colors">
-            <span className="title3 text-[#313131] ">Get Started</span>
+          <button
+            type="button"
+            className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[var(--Backgrounds-Highlight,#FFF200)] py-2 pr-2 pl-4 text-[#171717]"
+          >
+            <span className="whitespace-nowrap">Get Started</span>
+            <svg
+              width={24}
+              height={24}
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="shrink-0"
+              aria-hidden
+            >
+              <path
+                d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                fill="#171717"
+              />
+            </svg>
           </button>
         </Link>
       </div>

@@ -1146,7 +1146,7 @@ export default function AdminLocationListsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] px-4 py-10 font-inktrap">
+    <div className="min-h-screen bg-[#f5f5f5] px-4 py-10 font-grotesk">
       <div className="mx-auto max-w-6xl space-y-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>

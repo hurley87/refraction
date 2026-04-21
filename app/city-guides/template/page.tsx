@@ -16,9 +16,11 @@ export const metadata: Metadata = {
     'Layout template for a city guide article — populate from CMS when ready.',
 };
 
-/** Lead paragraphs after hero; first = Title4 semibold, rest = Body Medium. */
+/** Lead copy after hero: Title4 bold headline + one or more Body Medium paragraphs. */
+const TEMPLATE_LEAD_HEADLINE =
+  'For over 15 years, Michail Stangl aka Opium Hum has been a vital node in the global electronic music underground.';
 const TEMPLATE_LEAD_PARAGRAPHS = [
-  'For over 15 years, Michail Stangl, aka Opium Hum, has been a vital node in the global electronic music underground. Best known as the former face and lead programmer of Boiler Room and as curator of Berlin’s legendary CTM Festival, Stangl’s work has consistently mapped the bleeding edges of contemporary club culture.',
+  'Best known as the former face and lead programmer of Boiler Room and as curator of Berlin’s legendary CTM Festival, Stangl’s work has consistently mapped the bleeding edges of contemporary club culture.',
 ];
 
 /** Template hero; replace with CMS fields. */
@@ -113,6 +115,7 @@ export default async function CityGuideTemplatePage() {
           />
 
           <CityGuideArticleDescription
+            headline={TEMPLATE_LEAD_HEADLINE}
             paragraphs={TEMPLATE_LEAD_PARAGRAPHS}
             className="mb-10"
           />
@@ -130,7 +133,7 @@ export default async function CityGuideTemplatePage() {
                 alt={TEMPLATE_GUIDE_MAP.imageAlt}
                 sizes="361px"
                 containerClassName="h-full w-full"
-                textureOpacity={0.48}
+                textureSrc={null}
               />
             </div>
           </section>

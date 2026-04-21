@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+
+import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 
 const CONTACT_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/contact-us`;
 const MOBILE_BG_IMAGE = '/homepage/get-involved.png';
@@ -35,13 +36,7 @@ export default function GetInvolvedSection() {
       <div className="relative z-10 max-w-[1177px] mx-auto flex flex-col items-center text-center justify-center flex-1 min-h-0 md:flex-1 md:justify-center">
         <div className="flex flex-col items-center w-full md:w-[574px] md:gap-[35px]">
           <div className="flex items-center justify-center gap-2 mb-4 md:mb-0 mt-[210px] md:mt-0">
-            <Image
-              src="/homepage/ellipse.svg"
-              alt=""
-              width={24}
-              height={24}
-              className="shrink-0"
-            />
+            <WelcomeEllipse />
             <h2
               className="title5 text-white text-center"
               style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
@@ -83,21 +78,27 @@ export default function GetInvolvedSection() {
               href={CONTACT_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto"
+              className="inline-flex w-[361px] max-w-full shrink-0"
             >
-              <button className="flex flex-[1_0_0] self-stretch w-full justify-center items-center gap-2.5 py-5 px-6 rounded-full cursor-pointer hover:bg-gray-100 transition-colors bg-white">
-                <span
-                  className="text-center text-[20px] leading-[24px] tracking-[-0.4px] md:font-pleasure md:font-medium md:text-[16px] md:leading-[16px] md:tracking-[-1.28px]"
-                  style={{
-                    color: 'var(--Black, #020303)',
-                    fontFamily:
-                      '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-                    fontStyle: 'normal',
-                    fontWeight: 400,
-                  }}
+              <button
+                type="button"
+                className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[var(--Backgrounds-Highlight,#FFF200)] py-2 pr-2 pl-4 text-[#171717]"
+              >
+                <span className="whitespace-nowrap">Contact Us</span>
+                <svg
+                  width={24}
+                  height={24}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="shrink-0"
+                  aria-hidden
                 >
-                  Contact Us
-                </span>
+                  <path
+                    d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                    fill="#171717"
+                  />
+                </svg>
               </button>
             </Link>
           </div>

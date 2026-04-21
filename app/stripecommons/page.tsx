@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+
+import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 import { usePrivy } from '@privy-io/react-auth';
 
 export default function StripeCommonsPage() {
@@ -90,13 +92,7 @@ export default function StripeCommonsPage() {
 
             <div className="space-y-4">
               <div className="flex items-center gap-2 self-start">
-                <Image
-                  src="/homepage/ellipse.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="shrink-0 "
-                />
+                <WelcomeEllipse />
                 <span className="title5 font-grotesk text-black">
                   March 18 2026
                 </span>

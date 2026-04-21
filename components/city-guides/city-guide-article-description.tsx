@@ -1,30 +1,37 @@
 import { cn } from '@/lib/utils';
 
 export interface CityGuideArticleDescriptionProps {
-  /** First item renders as Title4 semibold; remaining items as Body Medium. All `#171717`. */
-  paragraphs: string[];
+  /** Title4 bold; `#171717`. */
+  headline?: string;
+  /** Body Medium; each non-empty entry is its own `<p>`, `#171717`. */
+  paragraphs?: string[];
   className?: string;
 }
 
+function normalizedBodyParagraphs(paragraphs?: string[]): string[] {
+  if (!paragraphs?.length) return [];
+  return paragraphs.map((p) => p.trim()).filter(Boolean);
+}
+
 /**
- * Lead copy after the hero: first paragraph Title4 semibold, rest Body Medium.
+ * Lead copy after the hero: headline in Title4 bold, supporting copy in Body Medium.
  */
 export function CityGuideArticleDescription({
+  headline,
   paragraphs,
   className,
 }: CityGuideArticleDescriptionProps) {
-  if (paragraphs.length === 0) return null;
+  const head = headline?.trim() ?? '';
+  const bodies = normalizedBodyParagraphs(paragraphs);
+  if (!head && bodies.length === 0) return null;
 
   return (
     <div className={cn('flex w-full max-w-[361px] flex-col gap-4', className)}>
-      {paragraphs.map((text, i) => (
+      {head ? <p className="title4 font-bold text-[#171717]">{head}</p> : null}
+      {bodies.map((text, i) => (
         <p
           key={`${i}-${text.slice(0, 24)}`}
-          className={
-            i === 0
-              ? 'title4 font-semibold text-[#171717]'
-              : 'body-medium text-[#171717]'
-          }
+          className="body-medium text-[#171717]"
         >
           {text}
         </p>
