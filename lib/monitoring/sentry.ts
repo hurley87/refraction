@@ -13,7 +13,7 @@ const DEFAULT_IGNORED_ERRORS = [
 const DEFAULT_IGNORED_PATHS = [
   '/_next/',
   '/favicon.ico',
-  '/IRL-SVG/irl-logo-new.svg',
+  '/IRL-SVG/IRL-LOGO-NEW.svg',
   '/IRL-SVG/irl-logo-new-favicon.svg',
   '/robots.txt',
   '/sitemap.xml',
