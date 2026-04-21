@@ -4,7 +4,7 @@ This document is the **end-state / stakeholder-aligned** view of the Privy serve
 
 - Source plan: [hurley87/refraction — `plans/irl-spend-privy-server-wallet.md`](https://github.com/hurley87/refraction/blob/main/plans/irl-spend-privy-server-wallet.md)
 
-Everything below the **Stakeholder alignment** section is carried forward from that plan unless noted as an addition from partner discussion.
+Stakeholder alignment and **Decisions (resolved)** below capture what differs from or narrows the linked plan. For tables, routes, hooks, build steps, risks, and metrics, use the source document.
 
 ---
 
@@ -29,7 +29,7 @@ These points refine **product intent**, **treasury economics**, and **UX framing
 
 ### Ecosystem: Bridge (discussion)
 
-- **Bridge** was called out as the tool that makes it **easy for users to get stablecoins into wallets** (on-ramp / funding path). The Refraction pilot **defers** Bridge/Tempo in “out of scope”; this chat treats Bridge as the **likely complement** for **getting USDC into** user or server wallets **before or between events**, while the **in-app spend loop** remains IRL + Privy server wallet + treasury.
+- **Bridge** was called out as the tool that makes it **easy for users to get stablecoins into wallets** (on-ramp / funding path). The linked Refraction pilot defers deep **in-app** Bridge/Tempo integration for v1; this chat still treats Bridge as the **likely complement** for **getting USDC into** user or server wallets **before or between events**, while the **in-app spend loop** remains IRL + Privy server wallet + treasury.
 
 ### Open integration work (discussion)
 
@@ -106,29 +106,17 @@ The Privy server wallet + QR approach in this plan needs **zero Stripe hardware*
 - One chain, one stablecoin. **Recommendation: USDC on Base**, matching `lib/walletconnect-poster-direct-usdc.ts` and `/walletconnect`.
 - Privy **server wallets** provisioned per IRL user.
 - User-initiated funding of their own server wallet with USDC.
-- IRL-sponsored gas via a paymaster (Privy smart wallets / ERC-4337).
+- IRL-sponsored gas via **Privy-native** smart-wallet paymaster / bundler on Base.
 - CMS in admin to create and manage **Spend Experiences**.
-- QR generation per Spend Experience (or per session).
+- **One-time QR per sale** (not a stable long-lived QR per experience); revisit if attribution or ops need a stable code.
 - In-app QR scan + confirm flow (modeled on `/walletconnect`).
 - Admin transaction ledger with real-time updates.
-- Configurable points per Spend Experience (default 100).
-- A single known recipient treasury wallet per Spend Experience.
+- Configurable points per Spend Experience (default 100); **`points_reward` is flat per experience for v1** (no tiers or multipliers yet).
+- **One event treasury:** a **single server wallet per event**; admin funds it and decides how to distribute proceeds (no separate merchant treasury split in v1).
 
 **irl-spend-privy.end addition (may be same sprint or immediate follow, to be scoped):**
 
 - **Points → USDC redemption** path with **treasury-funded** payouts, **configurable exchange rate**, caps/limits aligned with **~$500 experimental float** (or updated ops number), and **audit trail** (ledger + on-chain tx).
-
-### Out of scope for the controlled test (from base plan)
-
-- Fiat on-ramps to fund the server wallet (manual USDC transfer only).
-- Off-ramps, settlements, or payouts to merchants on-chain.
-- Refunds and disputes tooling.
-- Multi-chain routing or multi-token support.
-- Bridge card, Bridge balances, Tempo integration.
-- Stripe Terminal.
-- Full KYC/AML flows beyond what Privy provides by default.
-
-**irl-spend-privy.end note:** **Bridge** (or similar) remains a **complementary** way to **obtain USDC**; the base plan still lists Bridge/Tempo as deferred **inside** IRL for v1, but operators may still use Bridge **outside** the app for participant onboarding.
 
 ---
 
@@ -138,7 +126,7 @@ The Privy server wallet + QR approach in this plan needs **zero Stripe hardware*
 
 - **IRL App (Next.js 14)** — user-facing flows, QR scan, confirmation UI, transaction status.
 - **Privy** — user auth + **server wallets** provisioned on the user's behalf.
-- **Paymaster** — sponsors gas for the server wallet transaction. Use Privy smart-wallet / bundler support on Base.
+- **Paymaster** — sponsors gas for the server wallet transaction via **Privy-native** smart-wallet sponsor / bundler on Base (not a third-party paymaster for v1).
 - **Supabase** — persistence for spend experiences, QR sessions, transactions, and points ledger entries.
 - **Admin CMS (`app/admin/spend/`)** — configure experiences, view live transactions, view aggregate stats.
 - **On-chain** — USDC ERC-20 transfer on Base from user server wallet → treasury wallet.
@@ -150,7 +138,7 @@ The Privy server wallet + QR approach in this plan needs **zero Stripe hardware*
 ```
 [Admin CMS] -- creates Spend Experience + treasury recipient + price + points --> [Supabase]
          |
-         +--> generates stable QR (payload: spend_experience_id or spend_session_id)
+         +--> generates one-time QR per sale (payload encodes sale/session; expires or invalidates after use as designed)
 
 [Staff] -- displays QR at checkout
 
@@ -182,20 +170,18 @@ The Privy server wallet + QR approach in this plan needs **zero Stripe hardware*
 - Matches the pattern needed for future deeper reward programmability.
 - Keeps the user in IRL; no external wallet app required.
 
----
-
-## Data model, API surface, frontend, implementation notes, build plan, risks, success metrics, open questions, decision
-
-The Refraction plan defines these in full (`spend_experiences`, `spend_sessions`, `spend_transactions`, API routes, pages, hooks, paymaster notes, idempotency, analytics, etc.). **Do not duplicate the entire spec here**—treat [the source markdown](https://github.com/hurley87/refraction/blob/main/plans/irl-spend-privy-server-wallet.md) as canonical for those sections.
-
-**irl-spend-privy.end — add to data model / API (when redemption ships):**
-
-- Ledger entries or tables for **redemption** (points debited, USDC amount, rate snapshot, treasury tx hash).
-- Admin surfaces for **treasury balance**, **redemption queue**, and **kill switch**.
-- Rate configuration (global or per-program), e.g. supporting **5,000 points ↔ $5** as one preset.
+**Profile:** Show the user’s **Privy server wallet address** on the profile (not only inside a funding drawer).
 
 ---
 
-## Decision (merged)
+## Decisions (resolved)
 
-Ship the smallest possible Privy server wallet spend loop for May 6th: CMS-configured Spend Experience → stable QR → in-app scan + confirm → gas-sponsored USDC transfer → real-time admin feed → configurable points (default 100). **Align UX with “pay with IRL”**; size **treasury float** for experimentation (discussion: **~$500 USDC** for ~100 attendees at **~5,000 points** each if full redemption). **Plan** (and optionally ship in lockstep) **points → USDC** from treasury with **explicit rates and controls**. Treat **Bridge** as the practical way users **acquire USDC**, even when deep Bridge/Tempo **in-app** integrations remain deferred. Everything else — multi-chain, merchant settlement rails, Stripe Terminal — remains explicitly deferred or out of scope for the pilot unless pulled in deliberately.
+| Topic                    | Decision                                                                                                                         |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Paymaster                | **Privy-native** smart-wallet sponsor / bundler (not an external paymaster for v1).                                              |
+| QR strategy              | **One-time QR per sale** (default). Stable QR per experience is not the default; revisit if attribution gets noisy.              |
+| Treasury                 | **One server wallet per event.** Admin funds it and chooses how to distribute. No separate merchant treasury split for the test. |
+| Server wallet visibility | **Yes** — expose the server wallet address on the user profile for v1.                                                           |
+| `points_reward`          | **Flat per experience** for v1; no tiers or multipliers yet.                                                                     |
+
+Implementation detail for redemption and extra ledger fields remains in the linked source plan; extend that doc when redemption ships.
