@@ -9,11 +9,10 @@ export interface CityGuideArticleHeroImageProps {
   alt: string;
   /** Paper grit overlay; set `null` to disable. */
   textureSrc?: string | null;
-  /** Texture layer opacity (0–1). @default 0.78 */
+  /** Texture layer opacity (0–1). @default 0.48 */
   textureOpacity?: number;
   /**
-   * `lighten` matches design spec but bright paper can hide the photo — pair with lower `textureOpacity`.
-   * `soft-light` keeps grit strong at higher opacity. @default soft-light
+   * Hero defaults to `lighten` so the photo stays vivid; `soft-light` reads more “matte” / muted.
    */
   textureBlendMode?: 'lighten' | 'soft-light';
   className?: string;
@@ -27,7 +26,7 @@ export function CityGuideArticleHeroImage({
   src,
   alt,
   textureSrc = DEFAULT_PAPER_TEXTURE_SRC,
-  textureOpacity = 0.38,
+  textureOpacity = 0.48,
   textureBlendMode = 'lighten',
   className,
 }: CityGuideArticleHeroImageProps) {

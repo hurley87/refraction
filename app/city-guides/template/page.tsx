@@ -27,7 +27,7 @@ const TEMPLATE_HERO = {
   titlePrefix: 'The IRL Guide to',
   cityName: 'Berlin',
   contributors: ['Michail Stangl'] as const,
-  heroImageSrc: '/city-guides/berlin/michail-stangl-hero.jpg',
+  heroImageSrc: '/city-guides/berlin/michail/michail-stangl-hero.jpg',
   heroImageAlt: 'Berlin — hero photograph for the city guide',
 };
 
@@ -130,7 +130,7 @@ export default async function CityGuideTemplatePage() {
                 alt={TEMPLATE_GUIDE_MAP.imageAlt}
                 sizes="361px"
                 containerClassName="h-full w-full"
-                textureOpacity={0.34}
+                textureOpacity={0.48}
               />
             </div>
           </section>
