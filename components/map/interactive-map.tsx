@@ -6,7 +6,6 @@ import Link from 'next/link';
 import Map, { Marker } from 'react-map-gl/mapbox';
 import LocationSearch from '@/components/shared/location-search';
 import {
-  deriveDisplayNameAndAddress,
   MapboxGeocodeFeature,
   mergePoiAndAddressReverseGeocode,
   mergeSearchBoxReverseFeatures,
@@ -732,8 +731,7 @@ export default function InteractiveMap({
     featureType?: string;
   }) => {
     setPendingMapCreateMarker(null);
-    const { longitude, latitude, id, name, placeFormatted, featureType } =
-      picked;
+    const { longitude, latitude, featureType, name } = picked;
     const zoom = zoomForMapboxSearchFeature(featureType);
     const newViewState = { longitude, latitude, zoom };
     setViewState(newViewState);
@@ -760,64 +758,9 @@ export default function InteractiveMap({
       }
     }, 500);
 
-    const existingByPlaceId = findExistingMarker(id);
-    if (existingByPlaceId) {
-      setSelectedMarker(existingByPlaceId);
-      setPopupInfo(existingByPlaceId);
-      return;
-    }
-
-    // Open nearest existing marker if within 100m
-    const toRad = (v: number) => (v * Math.PI) / 180;
-    const earth = 6371000; // m
-    const distanceMeters = (
-      aLat: number,
-      aLon: number,
-      bLat: number,
-      bLon: number
-    ) => {
-      const dLat = toRad(bLat - aLat);
-      const dLon = toRad(bLon - aLon);
-      const A =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(aLat)) *
-          Math.cos(toRad(bLat)) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(A), Math.sqrt(1 - A));
-      return earth * c;
-    };
-
-    let nearest: MarkerData | null = null;
-    let nearestDist = Number.POSITIVE_INFINITY;
-    for (const m of markers) {
-      const d = distanceMeters(latitude, longitude, m.latitude, m.longitude);
-      if (d < nearestDist) {
-        nearestDist = d;
-        nearest = m;
-      }
-    }
-    if (nearest && nearestDist <= 100) {
-      setSelectedMarker(nearest);
-      setPopupInfo(nearest);
-    } else {
-      const { displayName, address } = deriveDisplayNameAndAddress({
-        name,
-        placeFormatted,
-        featureType,
-      });
-      const resolvedName = displayName || address || 'Unknown Location';
-      const newMarker: MarkerData = {
-        latitude,
-        longitude,
-        place_id: id,
-        name: resolvedName,
-        address: placeFormatted?.trim() || resolvedName,
-      };
-      setPendingMapCreateMarker(newMarker);
-      setSelectedMarker(null);
-      setPopupInfo(null);
-    }
+    // Search only recenters the map — never open MapCard or pending-create from a suggestion.
+    setSelectedMarker(null);
+    setPopupInfo(null);
   };
 
   const handleMarkerClick = (marker: MarkerData) => {

@@ -49,10 +49,10 @@ if (walletConnectProjectId) {
   const appUrl =
     typeof window !== 'undefined'
       ? window.location.origin
-      : process.env.NEXT_PUBLIC_APP_URL || 'https://irl.xyz';
+      : process.env.NEXT_PUBLIC_APP_URL || 'https://irl.energy';
   const appIcons = process.env.NEXT_PUBLIC_APP_ICONS
     ? [process.env.NEXT_PUBLIC_APP_ICONS]
-    : ['https://irl.xyz/irl-svg/irl-logo-new.svg'];
+    : ['https://irl.energy/irl-svg/irl-logo-new.svg'];
 
   modules.push(
     new WalletConnectModule({

@@ -154,7 +154,7 @@ export default function NavigationMenu({
       <div className="absolute top-[53px] left-1/2 flex h-[476px] w-[393px] max-w-[min(393px,calc(100%-32px))] -translate-x-1/2 flex-col overflow-hidden">
         <div className="flex h-[70px] w-full shrink-0 items-center justify-between bg-[var(--Dark-Tint-White,#FFF)] px-4">
           <Image
-            src="/irl-svg/irl-logo-new.svg"
+            src="/IRL-SVG/irl-logo-new.svg"
             alt="IRL"
             width={70}
             height={70}

@@ -111,7 +111,7 @@ const nextConfig = {
     return [
       {
         source: "/favicon.ico",
-        destination: "/irl-svg/irl-logo-new-favicon.svg",
+        destination: "/IRL-SVG/irl-logo-new-favicon.svg",
         permanent: false,
       },
       {
