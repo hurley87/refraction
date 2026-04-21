@@ -27,6 +27,22 @@ The existing `irl-spend.md` plan uses **Stripe Terminal** for card-present payme
 
 The `/walletconnect` experience in this repo is the closest existing surface and is the reference pattern for the scan-and-confirm UX.
 
+### Important: Stripe Terminal does not support stablecoin payments
+
+Stripe Terminal is a card-present product (EMV chip, contactless, swiped) plus NFC mobile wallets (Apple Pay, Google Pay, Samsung Pay). **Stablecoin / USDC acceptance is not available on Stripe Terminal.** Stripe's stablecoin acceptance is an online-only product, exposed through Checkout, Payment Links, Elements, and the Payment Intents API — not through the in-person Terminal stack.
+
+This is the core reason this plan does not sit on top of Stripe Terminal: there is no supported Stripe path to take USDC at the reader. To do stablecoin spend in person, we own the rails (Privy server wallet + paymaster + direct ERC-20 transfer) rather than waiting on a Stripe product that does not exist.
+
+References:
+
+- [Stripe Terminal global availability / supported card brands](https://docs.stripe.com/terminal/payments/collect-card-payment/supported-card-brands) — Terminal supports card brands and NFC mobile wallets; no mention of stablecoins.
+- [Stripe Terminal overview](https://docs.stripe.com/terminal/overview) — describes EMV / contactless / swiped and Tap to Pay; does not include stablecoins.
+- [Stablecoin payments — Stripe Docs](https://docs.stripe.com/payments/stablecoin-payments) — lists the integration surfaces (Checkout, Payment Links, Elements, Payment Intents); **Terminal is not listed**.
+- [Accept stablecoin payments](https://docs.stripe.com/payments/accept-stablecoin-payments) — same online-only integration surfaces, US-businesses-only, USD settlement.
+- [Stablecoin and Crypto Payments (Support)](https://support.stripe.com/user/topics/stablecoin-and-crypto-payments) — Stripe's consolidated help topic; confirms stablecoin acceptance is a Stripe payment method for online flows.
+
+Implication for `irl-spend.md`: if a future phase of that plan says "Stripe Terminal for stablecoin," that is not possible today. Stablecoin at the point of sale must come from a non-Terminal path, which is what this plan provides.
+
 ## Scope of the Controlled Test (May 6th)
 
 ### In scope
