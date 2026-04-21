@@ -100,7 +100,7 @@ export default function FeaturedEditorialHeroCard({
           <h4 className=" font-semibold leading-tight text-[#171717]">
             {titleLine1}
           </h4>
-          <span className="display1 font-bold uppercase leading-none tracking-tight text-[#171717]">
+          <span className="display1 font-bold uppercase tracking-tight text-[#171717] md:leading-none">
             {titleLine2}
           </span>
         </div>
