@@ -43,6 +43,16 @@ References:
 
 Implication for `irl-spend.md`: if a future phase of that plan says "Stripe Terminal for stablecoin," that is not possible today. Stablecoin at the point of sale must come from a non-Terminal path, which is what this plan provides.
 
+### Additional Stripe Terminal concern: hardware cost and integration burden
+
+Even setting aside the stablecoin gap, Stripe Terminal imposes real cost and engineering drag that a QR-scan-and-confirm flow avoids entirely:
+
+- **Certified reader hardware is required** — Stripe Terminal only works with Stripe-listed devices. Published per-reader prices from Stripe's own pricing docs: BBPOS WisePad 3 and Stripe Reader M2 at **$59**, BBPOS WisePOS E at **$249**, Stripe Reader S700 at **$349**. See [Pricing for Stripe Terminal](https://support.stripe.com/questions/pricing-for-stripe-terminal), the [Stripe Reader S700](https://stripe.com/terminal/s700) and [BBPOS WisePOS E](https://stripe.com/terminal/wisepose) product pages. For any event of meaningful size we'd have to buy or rent multiple readers.
+- **Or integrate with an existing POS** — Stripe Terminal is explicitly not a standalone POS; it's designed to sit inside existing POS software via Stripe's iOS / Android / JavaScript / React Native / server-driven SDKs, or through no-code POS partners. See the [Stripe Terminal docs](https://docs.stripe.com/terminal) and [Set up the reader](https://docs.stripe.com/terminal/payments/setup-reader). That means either we adopt and operate a POS ourselves, or we integrate into whatever POS each venue already runs — neither is realistic for a May 6th controlled test.
+- **Tap to Pay is not an escape hatch for us** — [Tap to Pay on iPhone / Android](https://stripe.com/terminal/tap-to-pay) still requires Stripe Terminal SDK integration and still doesn't accept stablecoins, so it doesn't remove either the integration work or the product gap.
+
+The Privy server wallet + QR approach in this plan needs **zero Stripe hardware**, **zero POS integration**, and runs on devices users and staff already own (a phone with a camera and the IRL app). That is a significantly cheaper and faster path to a controlled test, and it's the only path that actually lets stablecoins change hands in person.
+
 ## Scope of the Controlled Test (May 6th)
 
 ### In scope
