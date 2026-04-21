@@ -24,7 +24,7 @@ export default function ArtistCTA() {
 
         <div className="flex flex-col gap-6 items-center text-center max-w-[900px] w-full">
           {/* Main heading */}
-          <div className="display2  leading-[32px]  md:leading-[64px] md:max-w-[927px] tracking-[-2.08px] text-white ">
+          <div className="display2-sm text-white md:max-w-[927px]">
             IRL launched with an alumni network of 2000+ DJs, music and visual
             artists.
           </div>

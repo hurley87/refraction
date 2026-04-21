@@ -14,30 +14,31 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
 });
 
-// Get base URL for absolute image URLs (required for Twitter cards)
-const getBaseUrl = () => {
-  if (process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL;
-  }
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  // Default fallback - update this to your production domain
-  return 'https://irl.energy';
-};
+/**
+ * Canonical site origin for metadata (icons, OG). Ensures relative URLs resolve
+ * correctly when deployed (e.g. custom domain vs preview URL).
+ */
+function getMetadataBase(): URL {
+  const raw =
+    process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
+    'https://irl.energy';
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return new URL(withProtocol.replace(/\/$/, ''));
+}
 
-const baseUrl = getBaseUrl();
+const metadataBase = getMetadataBase();
+const baseUrl = metadataBase.origin;
+
 // Add cache-busting parameter to force Twitter to refresh cached images
 // Increment the version number when you update the image
 const imageUrl = `${baseUrl}/irl-share.png?v=2`;
 
 export const metadata: Metadata = {
+  metadataBase,
   title: 'IRL',
   description: "IRL - Culture's rewards program.",
-  icons: {
-    icon: [{ url: '/irl-svg/irl-logo-new-favicon.svg', type: 'image/svg+xml' }],
-    shortcut: '/irl-svg/irl-logo-new-favicon.svg',
-  },
+  /** Favicon: `app/icon.svg` (Next injects `<link rel="icon" href="/icon?…">`). */
   openGraph: {
     title: '$IRL',
     description: "IRL - Culture's rewards program.",

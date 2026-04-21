@@ -50,7 +50,6 @@
     letter-spacing: -8% !important;
     font-weight: 500 !important;
     font-family: 'Special Gothic SemiExpanded', sans-serif;
-    
   }
 
   .hero-text {
@@ -121,11 +120,19 @@
   }
 
   .display1 {
-    font-size: 3.8125rem; /* 61px */
-    line-height: 4rem; /* 64px */
     font-weight: 700;
     font-family: 'Special Gothic Expanded One', sans-serif;
-    letter-spacing: -8%;
+    font-size: 2.25rem; /* 36px — mobile stack */
+    line-height: 2.8125rem; /* 45px */
+    letter-spacing: -0.065em;
+  }
+
+  @media (min-width: 768px) {
+    .display1 {
+      font-size: 3.8125rem; /* 61px */
+      line-height: 4rem; /* 64px */
+      letter-spacing: -8%;
+    }
   }
 
   .display2 {
@@ -136,12 +143,37 @@
     font-family: 'Special Gothic Expanded One', sans-serif;
   }
 
-  .display0 {
-    font-size: 75px;
-    line-height: 76px;
+  /* Mobile-friendly stack: roomier line-height than display2’s 1:1 cap (avoids crushed wraps). */
+  .display2-sm {
+    font-size: 2rem; /* 32px */
+    line-height: 2.5rem; /* 40px */
     font-weight: 700;
-    letter-spacing: -8.5%;
+    letter-spacing: -0.065em;
     font-family: 'Special Gothic Expanded One', sans-serif;
+  }
+
+  @media (min-width: 768px) {
+    .display2-sm {
+      font-size: 3rem; /* 48px — matches display2 */
+      line-height: 4rem; /* 64px */
+      letter-spacing: -8%;
+    }
+  }
+
+  .display0 {
+    font-weight: 700;
+    font-family: 'Special Gothic Expanded One', sans-serif;
+    font-size: 2.5rem; /* 40px — mobile stack */
+    line-height: 3.125rem; /* 50px */
+    letter-spacing: -0.07em;
+  }
+
+  @media (min-width: 768px) {
+    .display0 {
+      font-size: 75px;
+      line-height: 76px;
+      letter-spacing: -8.5%;
+    }
   }
 
   .body-large {
@@ -154,7 +186,7 @@
 
   .body-medium {
     font-size: 18px; /* 13px */
-    line-height: 24px;/* 20px */
+    line-height: 24px; /* 20px */
     font-weight: 400;
     font-family: 'Gal Gothic Variable', sans-serif;
     letter-spacing: -2%;
@@ -163,7 +195,6 @@
 
   /* Style/Body/Body Small */
   .body-small {
-    
     font-family: 'Gal Gothic Variable', sans-serif;
     font-size: 0.8125rem; /* 13px */
     font-style: normal;
@@ -190,7 +221,6 @@
     line-height: 16px;
     letter-spacing: 4%;
     text-transform: uppercase;
-
   }
   .label-medium {
     font-family: 'Gal Gothic Variable', sans-serif;
@@ -199,7 +229,6 @@
     font-weight: 700;
     line-height: 1rem; /* 16px */
     letter-spacing: 0%;
-
   }
 
   /* Style/Label/Label Large */
@@ -210,7 +239,6 @@
     font-weight: 700;
     line-height: 16px; /* 16px, 100% */
     letter-spacing: 4;
-    
   }
 }
 
