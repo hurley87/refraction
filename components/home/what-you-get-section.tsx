@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+
+import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 
 /**
  * What You Get section - Benefits of the IRL network
@@ -16,13 +17,7 @@ export default function WhatYouGetSection() {
     >
       <div className="max-w-[1177px] md:max-w-7xl mx-auto">
         <div className="flex items-center justify-center gap-2 mb-12 md:mb-16">
-          <Image
-            src="/homepage/ellipse.svg"
-            alt=""
-            width={24}
-            height={24}
-            className="shrink-0"
-          />
+          <WelcomeEllipse />
           <h2
             className="title5 leading-[28px] md:leading-[40px] tracking-[-0.5px] md:tracking-[-0.8px] text-white text-center"
             style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}

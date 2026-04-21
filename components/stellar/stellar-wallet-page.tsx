@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { ChevronDown } from 'lucide-react';
+
+import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 import { WalletProvider } from '@/lib/stellar/providers/wallet-provider';
 import { NotificationProvider } from '@/lib/stellar/providers/notification-provider';
 import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
@@ -152,13 +154,7 @@ function StellarWalletPageContent() {
             <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
               <div className="flex flex-col gap-4">
                 <div className="flex items-center gap-2">
-                  <Image
-                    src="/homepage/ellipse.svg"
-                    alt=""
-                    width={24}
-                    height={24}
-                    className="shrink-0"
-                  />
+                  <WelcomeEllipse />
                   <h2
                     className="title5 text-white font-grotesk"
                     style={{
@@ -177,13 +173,7 @@ function StellarWalletPageContent() {
           <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
-                <Image
-                  src="/homepage/ellipse.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="shrink-0"
-                />
+                <WelcomeEllipse />
                 <h2
                   className="title5 text-white font-grotesk"
                   style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
@@ -222,13 +212,7 @@ function StellarWalletPageContent() {
               aria-expanded={bridgeExpanded}
             >
               <div className="flex items-center gap-2">
-                <Image
-                  src="/homepage/ellipse.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="shrink-0"
-                />
+                <WelcomeEllipse />
                 <h2
                   className="title5 text-white font-grotesk"
                   style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
@@ -260,13 +244,7 @@ function StellarWalletPageContent() {
           <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
-                <Image
-                  src="/homepage/ellipse.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="shrink-0"
-                />
+                <WelcomeEllipse />
                 <h2
                   className="title5 text-white font-grotesk"
                   style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}

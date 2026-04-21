@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
+
+import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 
 const VENUES = [
   {
@@ -131,13 +132,7 @@ export default function CityGuidesCarouselSection() {
         style={{ aspectRatio: '125/271' }}
       >
         <div className="flex items-left justify-left gap-2 mb-4">
-          <Image
-            src="/homepage/ellipse.svg"
-            alt=""
-            width={24}
-            height={24}
-            className="shrink-0"
-          />
+          <WelcomeEllipse />
           <h2
             className="title5 text-white text-left"
             style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 26.7px' }}
@@ -215,14 +210,30 @@ export default function CityGuidesCarouselSection() {
           {/* Explore [city] CTA – links to interactive map by city name */}
           <Link
             href={`/interactive-map?city=${encodeURIComponent(selectedVenue.city)}`}
-            className="flex flex-1 min-w-0 self-stretch justify-center items-center gap-2.5 py-5 px-6 rounded-full transition-colors hover:opacity-90"
-            style={{
-              background: 'rgba(253, 255, 255, 0.15)',
-            }}
+            className="inline-flex w-full max-w-full shrink-0"
           >
-            <span className="title4 text-[#FFFFFF] font-grotesk">
-              Explore {selectedVenue.city}
-            </span>
+            <button
+              type="button"
+              className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[var(--Backgrounds-Highlight,#FFF200)] py-2 pr-2 pl-4 text-[#171717]"
+            >
+              <span className="min-w-0 truncate">
+                Explore {selectedVenue.city}
+              </span>
+              <svg
+                width={24}
+                height={24}
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="shrink-0"
+                aria-hidden
+              >
+                <path
+                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                  fill="#171717"
+                />
+              </svg>
+            </button>
           </Link>
         </div>
       </div>

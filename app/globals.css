@@ -85,19 +85,19 @@
   }
 
   .title3 {
-    font-size: 1.25rem; /* 20px */
-    line-height: 1.5rem; /* 24px */
-    font-weight: 400;
-    letter-spacing: -2%;
+    font-size: 25px; /* 20px */
+    line-height: 32px; /* 24px */
+    font-weight: 700;
+    letter-spacing: -0.25px;
     font-family: 'Gal Gothic Variable', sans-serif;
   }
 
   .title4 {
-    font-size: 13px;/* 16px */
-    line-height: 1.25rem; /* 20px */
+    font-size: 20px;
+    line-height: 24px;
     font-style: normal;
     font-weight: 600;
-    letter-spacing: -3%;
+    letter-spacing: -0.4px;
     font-family: 'Gal Gothic Variable', sans-serif;
   }
 

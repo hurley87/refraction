@@ -110,6 +110,11 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: "/favicon.ico",
+        destination: "/irl-svg/irl-logo-new-favicon.svg",
+        permanent: false,
+      },
+      {
         source: "/map",
         destination: "/interactive-map/",
         permanent: true,
