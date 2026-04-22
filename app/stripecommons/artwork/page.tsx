@@ -379,7 +379,7 @@ export default function StripeCommonsArtworkPage() {
                 />
                 <span className="text-black/30">·</span>
                 <Image
-                  src="/IRL-SVG/$IRL_SECONDARY LOGO ICON_BLACK.svg"
+                  src="/irl-svg/$IRL_SECONDARY LOGO ICON_BLACK.svg"
                   alt="IRL"
                   width={30}
                   height={24}

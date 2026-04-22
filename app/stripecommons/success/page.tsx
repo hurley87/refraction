@@ -106,12 +106,10 @@ export default function StripeCommonsSuccessPage() {
 
             {/* Hero heading – match stripecommons typography */}
             <div className="space-y-4">
-             
               <p className="hero-text self-stretch text-cemter text-black">
                 Check-in complete!
                 <br />
               </p>
-           
             </div>
 
             {/* Success message */}
@@ -132,8 +130,6 @@ export default function StripeCommonsSuccessPage() {
               enjoy the rest of Stripe Commons. See you IRL again soon.
             </p>
 
-           
-
             {/* CTA – match stripecommons button style */}
             <div className="w-full space-y-3">
               <Link
@@ -142,7 +138,6 @@ export default function StripeCommonsSuccessPage() {
               >
                 Claim Your Artwork + Points
               </Link>
-             
             </div>
 
             {/* Partner logos – match stripecommons/page.tsx */}
@@ -160,7 +155,7 @@ export default function StripeCommonsSuccessPage() {
                 />
                 <span className="text-black/30">·</span>
                 <Image
-                  src="/IRL-SVG/$IRL_SECONDARY LOGO ICON_BLACK.svg"
+                  src="/irl-svg/$IRL_SECONDARY LOGO ICON_BLACK.svg"
                   alt="IRL"
                   width={30}
                   height={24}

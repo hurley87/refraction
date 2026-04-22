@@ -81,68 +81,81 @@ export default function RootLayout({
   return (
     <html lang="en" className={spaceGrotesk.variable}>
       <head>
-        {/* Suppress harmless browser extension errors */}
-        <Script id="suppress-extension-errors" strategy="beforeInteractive">
-          {`
-            // Suppress harmless browser extension errors
-            (function() {
-              const originalError = console.error;
-              console.error = function(...args) {
-                const message = args[0]?.toString() || '';
-                if (
-                  message.includes('runtime.lastError') ||
-                  message.includes('Receiving end does not exist') ||
-                  message.includes('Could not establish connection') ||
-                  message.includes('Extension context invalidated') ||
-                  message.includes('Cannot redefine property: ethereum') ||
-                  message.includes('Cannot redefine property') ||
-                  message.includes('ERR_NAME_NOT_RESOLVED') ||
-                  message.includes('googletagmanager.com') ||
-                  message.includes('net::ERR_NAME_NOT_RESOLVED')
-                ) {
-                  return; // Suppress these errors
-                }
-                originalError.apply(console, args);
-              };
-
-              // Also suppress unhandled errors from extensions
-              window.addEventListener('error', function(event) {
-                const message = event.message || '';
-                const source = event.filename || '';
-                if (
-                  message.includes('runtime.lastError') ||
-                  message.includes('Receiving end does not exist') ||
-                  message.includes('Could not establish connection') ||
-                  message.includes('Extension context invalidated') ||
-                  message.includes('Cannot redefine property: ethereum') ||
-                  message.includes('Cannot redefine property') ||
-                  message.includes('ERR_NAME_NOT_RESOLVED') ||
-                  source.includes('googletagmanager.com') ||
-                  message.includes('net::ERR_NAME_NOT_RESOLVED')
-                ) {
-                  event.preventDefault();
-                  return false;
-                }
-              }, true);
-
-              // Suppress unhandled promise rejections from extensions
-              window.addEventListener('unhandledrejection', function(event) {
-                const message = event.reason?.message || event.reason?.toString() || '';
-                if (
-                  message.includes('runtime.lastError') ||
-                  message.includes('Receiving end does not exist') ||
-                  message.includes('Could not establish connection') ||
-                  message.includes('Extension context invalidated') ||
-                  message.includes('Cannot redefine property: ethereum') ||
-                  message.includes('Cannot redefine property')
-                ) {
-                  event.preventDefault();
-                  return false;
-                }
-              });
-            })();
-          `}
-        </Script>
+        {/* Inline script (not next/script beforeInteractive): avoids hydration mismatch — Next injects beforeInteractive children via __next_s with empty SSR markup. */}
+        <script
+          id="suppress-extension-errors"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{
+            __html: `
+(function() {
+  const originalError = console.error;
+  const originalWarn = console.warn;
+  console.error = function() {
+    const message = arguments[0] != null ? String(arguments[0]) : '';
+    if (
+      message.includes('runtime.lastError') ||
+      message.includes('Receiving end does not exist') ||
+      message.includes('Could not establish connection') ||
+      message.includes('Extension context invalidated') ||
+      message.includes('Cannot redefine property: ethereum') ||
+      message.includes('Cannot redefine property') ||
+      message.includes('ERR_NAME_NOT_RESOLVED') ||
+      message.includes('googletagmanager.com') ||
+      message.includes('net::ERR_NAME_NOT_RESOLVED')
+    ) {
+      return;
+    }
+    originalError.apply(console, arguments);
+  };
+  console.warn = function() {
+    const message = arguments[0] != null ? String(arguments[0]) : '';
+    if (message.includes('SES Removing unpermitted intrinsics')) {
+      return;
+    }
+    originalWarn.apply(console, arguments);
+  };
+  window.addEventListener('error', function(event) {
+    const message = event.message || '';
+    const source = event.filename || '';
+    if (
+      message.includes('runtime.lastError') ||
+      message.includes('Receiving end does not exist') ||
+      message.includes('Could not establish connection') ||
+      message.includes('Extension context invalidated') ||
+      message.includes('Cannot redefine property: ethereum') ||
+      message.includes('Cannot redefine property') ||
+      message.includes('ERR_NAME_NOT_RESOLVED') ||
+      source.includes('googletagmanager.com') ||
+      message.includes('net::ERR_NAME_NOT_RESOLVED')
+    ) {
+      event.preventDefault();
+      return false;
+    }
+  }, true);
+  window.addEventListener('unhandledrejection', function(event) {
+    const reason = event.reason;
+    const message =
+      reason && typeof reason === 'object' && reason != null && 'message' in reason
+        ? String(reason.message)
+        : reason != null
+          ? String(reason)
+          : '';
+    if (
+      message.includes('runtime.lastError') ||
+      message.includes('Receiving end does not exist') ||
+      message.includes('Could not establish connection') ||
+      message.includes('Extension context invalidated') ||
+      message.includes('Cannot redefine property: ethereum') ||
+      message.includes('Cannot redefine property')
+    ) {
+      event.preventDefault();
+      return false;
+    }
+  });
+})();
+`.trim(),
+          }}
+        />
         {/* Google Analytics */}
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
           <>
