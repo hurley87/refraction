@@ -9,6 +9,27 @@ import { useStellarWallet } from '@/hooks/useStellarWallet';
 import { useAptosWallet } from '@/hooks/useAptosWallet';
 import SpendCheckpoint from '@/components/checkpoint/spend-checkpoint';
 import type { Checkpoint } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
+/** Same arrow as `components/home/hero.tsx` “Find Spots Nearby” CTA. */
+function HomepageHeroCtaArrow({ className }: { className?: string }) {
+  return (
+    <svg
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn('shrink-0', className)}
+      aria-hidden
+    >
+      <path
+        d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
 
 interface UnifiedCheckpointProps {
   checkpoint: Checkpoint;
@@ -82,16 +103,16 @@ function CheckinSuccessView({
         )}
 
         {/* Content */}
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-8 align-center justify-center">
           <h1
-            className="text-[61px] leading-[0.8em] font-extrabold uppercase -tracking-[0.08em]"
+            className="display0 sm:display0-sm text-[#171717] uppercase text-center"
             style={{ color: textColor, ...fontStyle }}
           >
-            You&apos;re In
+            You Are In
           </h1>
 
           <h2
-            className="text-[39px] leading-[0.95em] font-normal -tracking-[0.08em]"
+            className="body-large sm:body-small text-[#171717] uppercase text-center"
             style={{ color: textColor }}
           >
             Welcome To {checkpoint.name}
@@ -99,29 +120,39 @@ function CheckinSuccessView({
 
           <div className="flex items-end justify-between">
             <span
-              className="text-[13px] font-bold uppercase tracking-[0.04em]"
-              style={{ color: textColor }}
+              className="body-large uppercase tracking-[0.04em]"
+              style={{ color: '#ffffff' }}
             >
               You Earned
             </span>
             <div className="flex items-end gap-2">
               <span
-                className="text-[100px] leading-[1em] font-normal -tracking-[0.065em]"
+                className="display2 sm:display2-sm text-[#ffffff] leading-[1em] -tracking-[0.065em]"
                 style={{ color: textColor }}
               >
                 {checkpoint.points_value}
               </span>
               <span
-                className="text-sm font-bold uppercase mb-2"
+                className="display1 sm:display1-sm font-bold uppercase mb-2"
                 style={{ color: textColor }}
               >
-                pts
+                <img
+                  src="/pts.svg"
+                  alt="points"
+                  width={20}
+                  height={20}
+                  style={{
+                    width: 'auto',
+                    height: 'auto',
+                    filter: 'invert(1) brightness(1000%)',
+                  }}
+                />
               </span>
             </div>
           </div>
 
           <p
-            className="text-xl leading-[1.2] font-medium -tracking-[0.02em]"
+            className="body-medium text-[#ffffff] leading-[1.2] font-medium -tracking-[0.02em] text-center uppercase"
             style={{ color: textColor }}
           >
             {checkpoint.description ||
@@ -129,14 +160,16 @@ function CheckinSuccessView({
           </p>
 
           <button
+            type="button"
             onClick={handleCta}
-            className="w-full rounded-full py-5 px-6 text-center text-xl font-bold uppercase -tracking-[0.08em]"
+            className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between py-2 pl-4 pr-2 text-left transition-opacity hover:opacity-90"
             style={{
               backgroundColor: textColor,
               color: brandBg,
             }}
           >
-            {ctaText}
+            <span className="min-w-0 truncate pr-2">{ctaText}</span>
+            <HomepageHeroCtaArrow />
           </button>
         </div>
       </div>
@@ -330,19 +363,54 @@ function CheckinCheckpoint({ checkpoint }: UnifiedCheckpointProps) {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center text-center w-full min-h-dvh font-grotesk px-6">
-        <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-lg space-y-4">
-          <h1 className="text-3xl font-inktrap text-black uppercase">
+      <div className="relative min-h-dvh w-full overflow-hidden bg-[#FAFF00] px-5 py-10 font-grotesk text-black">
+        <div
+          className="pointer-events-none absolute -left-20 top-0 h-full w-40 -skew-y-1 bg-gradient-to-r from-black/20 to-transparent blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.12]"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.03) 1px, rgba(0,0,0,0.03) 2px)',
+          }}
+          aria-hidden
+        />
+        <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center text-center">
+          <h1 className="mt-1 sm:display2-sm display2 text-[#171717] uppercase leading-[0.82] tracking-[-0.08em]">
             {checkpoint.name}
           </h1>
           {checkpoint.description && (
-            <p className="text-gray-600 text-base font-grotesk">
+            <p className="label-medium mx-auto mt-8 max-w-sm text-balance text-base font-bold leading-snug tracking-[-0.02em] text-[#454545]">
               {checkpoint.description}
             </p>
           )}
-          <p className="text-gray-500 text-sm font-grotesk">
+          <p className="label-large mt-6 text-[#171717] uppercase tracking-[0.24em]">
             Sign in to check in
           </p>
+          <ul
+            className="mt-10 flex list-none flex-col items-center gap-2 border-t-4 border-black pt-5 label-medium text-[#454545] uppercase leading-tight tracking-wide sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-5 sm:gap-y-1"
+            aria-label="How IRL works"
+          >
+            <li>
+              <span className="mr-1" aria-hidden>
+                ❶
+              </span>
+              Check in
+            </li>
+            <li>
+              <span className="mr-1" aria-hidden>
+                ❷
+              </span>
+              Earn points
+            </li>
+            <li>
+              <span className="mr-1" aria-hidden>
+                ❸
+              </span>
+              Unlock rewards
+            </li>
+          </ul>
         </div>
       </div>
     );
@@ -394,35 +462,83 @@ function CheckinCheckpoint({ checkpoint }: UnifiedCheckpointProps) {
     }
 
     return (
-      <div className="flex flex-col items-center justify-center text-center w-full h-full font-grotesk px-6">
-        <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-lg space-y-4">
-          <h1 className="text-3xl font-inktrap text-black uppercase">
-            Create {chainLabel} Wallet
+      <div className="relative min-h-dvh w-full overflow-hidden bg-[#FAFF00] px-5 py-10 font-grotesk text-black">
+        <div
+          className="pointer-events-none absolute -left-20 top-0 h-full w-40 -skew-y-1 bg-gradient-to-r from-black/20 to-transparent blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.12]"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.03) 1px, rgba(0,0,0,0.03) 2px)',
+          }}
+          aria-hidden
+        />
+        <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center text-center">
+          <h1 className="mt-1 sm:display2-sm display2 text-[#171717] uppercase leading-[0.82] tracking-[-0.08em]">
+            Create {chainLabel} wallet
           </h1>
-          <p className="text-gray-600 text-base">
+          <p className="label-medium mx-auto mt-8 max-w-sm text-balance text-base font-bold leading-snug tracking-[-0.02em] text-[#454545]">
             A {chainLabel} wallet is required for this checkpoint. Create one
             now to check in and earn points.
           </p>
           {checkpoint.chain_type === 'stellar' && stellarError && (
-            <p className="text-red-600 text-sm">{stellarError}</p>
+            <p className="mt-4 text-balance text-sm font-bold text-red-700">
+              {stellarError}
+            </p>
           )}
           {checkpoint.chain_type === 'aptos' && aptosError && (
-            <p className="text-red-600 text-sm">{aptosError}</p>
+            <p className="mt-4 text-balance text-sm font-bold text-red-700">
+              {aptosError}
+            </p>
           )}
-          <Button
-            onClick={handleCreateWallet}
-            disabled={isCreating}
-            className="text-white bg-black rounded-full w-full font-inktrap py-3 text-lg hover:bg-gray-800 disabled:opacity-50"
+          <div className="mt-8 flex w-full max-w-sm flex-col gap-3 self-center">
+            <button
+              type="button"
+              onClick={handleCreateWallet}
+              disabled={isCreating}
+              className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[#000000] py-2 pl-4 pr-2 text-[#FFFFFF] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className="whitespace-nowrap">
+                {isCreating
+                  ? 'Creating Wallet...'
+                  : `Create ${chainLabel} Wallet`}
+              </span>
+              <HomepageHeroCtaArrow />
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/')}
+              className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between border-2 border-[#000000] bg-[#000000] py-2 pl-4 pr-2 text-[#FFFFFF] transition-opacity hover:opacity-80"
+            >
+              <span className="whitespace-nowrap">Go Home</span>
+              <HomepageHeroCtaArrow />
+            </button>
+          </div>
+          <ul
+            className="mt-10 flex list-none flex-col items-center gap-2 border-t-4 border-black pt-5 label-medium text-[#454545] uppercase leading-tight tracking-wide sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-5 sm:gap-y-1"
+            aria-label="How IRL works"
           >
-            {isCreating ? 'Creating Wallet...' : `Create ${chainLabel} Wallet`}
-          </Button>
-          <Button
-            onClick={() => router.push('/')}
-            variant="outline"
-            className="text-black border-black rounded-full w-full font-inktrap py-3 text-lg hover:bg-gray-100"
-          >
-            Go Home
-          </Button>
+            <li>
+              <span className="mr-1" aria-hidden>
+                ❶
+              </span>
+              Check in
+            </li>
+            <li>
+              <span className="mr-1" aria-hidden>
+                ❷
+              </span>
+              Earn points
+            </li>
+            <li>
+              <span className="mr-1" aria-hidden>
+                ❸
+              </span>
+              Unlock rewards
+            </li>
+          </ul>
         </div>
       </div>
     );
@@ -458,8 +574,8 @@ function CheckinCheckpoint({ checkpoint }: UnifiedCheckpointProps) {
         <CheckinSuccessView checkpoint={checkpoint} router={router} />
       )}
       {!checkinStatus && !checkinError && (
-        <div className="flex min-h-dvh w-full flex-col items-center justify-center text-center font-inktrap text-2xl text-black">
-          <div>{isCheckingIn ? 'Checking in...' : 'Loading...'}</div>
+        <div className="sm:display0-sm display0 flex min-h-dvh w-full items-center justify-center bg-[#fff200] text-center uppercase text-[#171717]">
+          {isCheckingIn ? 'Checking In' : 'Loading'}
         </div>
       )}
     </div>

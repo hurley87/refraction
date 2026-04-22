@@ -759,7 +759,7 @@ describe('UnifiedCheckpoint', () => {
       render(<UnifiedCheckpoint checkpoint={mockEvmCheckpoint} />);
 
       await waitFor(() => {
-        expect(screen.getByText('Checking in...')).toBeInTheDocument();
+        expect(screen.getByText('Checking in')).toBeInTheDocument();
       });
     });
   });

@@ -916,6 +916,7 @@ export default function AdminCheckpointsPage() {
                 onChange={(e) => setField('cta_text', e.target.value)}
                 placeholder="Default: Explore The IRL Map"
               />
+              <p className="text-xs text-gray-400 mt-1">tip: keep the text short or the button looks weird and can truncate (20-25 characters total)</p>
               <p className="text-xs text-gray-400 mt-1">Shown after check-in.</p>
             </div>
             <div>

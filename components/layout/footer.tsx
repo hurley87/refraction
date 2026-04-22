@@ -173,7 +173,7 @@ export default function Footer() {
       <div className="relative min-h-[600px] w-full overflow-hidden pb-8 pt-8 md:hidden">
         <div className="absolute bottom-0 left-0 right-0 z-0 flex flex-col items-center gap-3 px-6 pb-6 pt-8">
           <Image
-            src="/irl-svg/IRL-LOGO-NEW-1.svg"
+            src="/irl-svg/irl-logo-new-yellow.svg"
             alt="IRL"
             width={98}
             height={54}
@@ -311,7 +311,7 @@ export default function Footer() {
         {/* Row 3 - Desktop footer wordmark */}
         <div className="flex w-full flex-col items-center gap-3 md:px-[30px] md:pb-[33px]">
           <Image
-            src="/irl-svg/IRL-LOGO-NEW-1.svg"
+            src="/irl-svg/irl-logo-new-yellow.svg"
             alt="IRL"
             width={98}
             height={54}

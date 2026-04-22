@@ -25,7 +25,7 @@ export default function ClaimHeader() {
               className="relative flex size-[40px] shrink-0 items-center justify-center rounded-full bg-[#313131]"
             >
               <Image
-                src="/home/IRL.png"
+                src="/irl-svg/irl-logo-new.svg"
                 alt="IRL"
                 width={27}
                 height={14}

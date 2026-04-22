@@ -158,7 +158,7 @@ export default function StripeCommonsArtworkPage() {
               className="relative flex size-[40px] shrink-0 items-center justify-center rounded-full bg-black/10"
             >
               <Image
-                src="/home/IRL.png"
+                src="/irl-svg/irl-logo-new.svg"
                 alt="IRL"
                 width={27}
                 height={14}
@@ -379,7 +379,7 @@ export default function StripeCommonsArtworkPage() {
                 />
                 <span className="text-black/30">·</span>
                 <Image
-                  src="/irl-svg/$IRL_SECONDARY LOGO ICON_BLACK.svg"
+                  src="/irl-svg/irl-logo-new.svg"
                   alt="IRL"
                   width={30}
                   height={24}

@@ -11,6 +11,27 @@ import type {
   SpendRedemption,
   Player,
 } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
+/** Same arrow as `components/home/hero.tsx` “Find Spots Nearby” CTA. */
+function HomepageHeroCtaArrow({ className }: { className?: string }) {
+  return (
+    <svg
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn('shrink-0', className)}
+      aria-hidden
+    >
+      <path
+        d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
 
 type SpendCheckpointResponse = {
   checkpoint: Checkpoint;
@@ -188,14 +209,14 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
           {hasRedeemed ? (
             <>
               <h1
-                className="text-[61px] leading-[0.8em] font-extrabold uppercase -tracking-[0.08em]"
+                className="body-large sm:body-small uppercase text-center"
                 style={{ color: textColor, ...fontStyle }}
               >
-                You&apos;re In
+                You Are In
               </h1>
 
               <h2
-                className="text-[39px] leading-[0.95em] font-normal -tracking-[0.08em]"
+                className="display2 sm:display2-sm uppercase text-center"
                 style={{ color: textColor }}
               >
                 {checkpoint.name}
@@ -203,48 +224,52 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
 
               <div className="flex items-end justify-between">
                 <span
-                  className="text-[13px] font-bold uppercase tracking-[0.04em]"
+                  className="label-medium uppercase tracking-[0.04em]"
                   style={{ color: textColor }}
                 >
                   You Spent
                 </span>
                 <div className="flex items-end gap-2">
                   <span
-                    className="text-[100px] leading-[1em] font-normal -tracking-[0.065em]"
+                    className="display2 sm:display2-sm leading-[1em] font-normal -tracking-[0.065em]"
                     style={{ color: textColor }}
                   >
-                    {spendItem.points_cost}
+                    {spendItem.points_cost.toLocaleString()}
                   </span>
-                  <span
-                    className="text-sm font-bold uppercase mb-2"
-                    style={{ color: textColor }}
-                  >
-                    pts
-                  </span>
+                  <img
+                    src="/pts.svg"
+                    alt="points"
+                    width={20}
+                    height={20}
+                    className="h-5 w-auto shrink-0"
+                    style={{ filter: 'invert(1) brightness(1000%)' }}
+                  />
                 </div>
               </div>
 
               <p
-                className="text-xl leading-[1.2] font-medium -tracking-[0.02em]"
+                className="body-medium sm:body-small leading-[1.2] font-medium -tracking-[0.02em] text-center"
                 style={{ color: textColor }}
               >
                 This redemption is complete. Show this confirmation at pickup.
               </p>
 
               <div
-                className="w-full rounded-full py-5 px-6 text-center text-xl font-bold uppercase -tracking-[0.08em]"
+                role="status"
+                className="label-large flex h-[44px] w-full items-center justify-center py-2 pl-4 pr-2 text-center uppercase"
                 style={{
-                  backgroundColor: `${textColor}30`,
-                  color: textColor,
+                  backgroundColor: textColor,
+                  color: brandBg,
                 }}
               >
-                Redeemed
+                <span className="min-w-0 truncate pr-2">Redeemed</span>
+                
               </div>
             </>
           ) : (
             <>
               <h1
-                className="text-[52px] leading-[0.8em] font-extrabold uppercase -tracking-[0.08em]"
+                className="display1 sm:display1-sm text-center uppercase "
                 style={{ color: textColor, ...fontStyle }}
               >
                 {checkpoint.name}
@@ -252,8 +277,8 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
 
               {checkpoint.description && (
                 <p
-                  className="text-xl leading-[1.2] font-medium -tracking-[0.02em]"
-                  style={{ color: textColor }}
+                  className="label-medium text-[#eeeeee] leading-[1.2] font-medium -tracking-[0.02em] text-center"
+                  style={{ color: '#eeeeee' }}
                 >
                   {checkpoint.description}
                 </p>
@@ -265,28 +290,37 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
               >
                 <div className="flex items-center justify-between gap-4">
                   <span
-                    className="text-xs font-medium uppercase tracking-wider"
+                    className="label-medium uppercase tracking-wider"
                     style={{ color: `${textColor}CC` }}
                   >
                     You send
                   </span>
                   <span
-                    className="text-[15px] font-medium"
+                    className="label-medium inline-flex items-center gap-1.5 whitespace-nowrap font-medium"
                     style={{ color: textColor }}
                   >
-                    {spendItem.points_cost.toLocaleString()}{' '}
-                    <span style={{ opacity: 0.75 }}>PTS</span>
+                    {spendItem.points_cost.toLocaleString()}
+                    <img
+                      src="/pts.svg"
+                      alt="points"
+                      width={20}
+                      height={20}
+                      className="h-5 w-auto shrink-0"
+                      style={{
+                        filter: 'invert(1) brightness(1000%)',
+                      }}
+                    />
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-4">
                   <span
-                    className="text-xs font-medium uppercase tracking-wider"
+                    className="label-medium uppercase tracking-wider"
                     style={{ color: `${textColor}CC` }}
                   >
                     You receive
                   </span>
                   <span
-                    className="text-[15px] font-medium text-right"
+                    className="label-medium text-right"
                     style={{ color: textColor }}
                   >
                     {checkpoint.name}
@@ -300,20 +334,29 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
               >
                 <div className="flex items-center justify-between gap-4">
                   <span
-                    className="text-xs font-medium uppercase tracking-wider"
+                    className="label-medium uppercase tracking-wider"
                     style={{ color: `${textColor}CC` }}
                   >
                     Current points
                   </span>
-                  <div className="text-right">
+                  <div className="flex flex-col items-end text-right">
                     <span
-                      className="text-[15px] font-medium"
+                      className="label-medium inline-flex items-center justify-end gap-1.5 whitespace-nowrap font-medium"
                       style={{ color: textColor }}
                     >
-                      {currentPoints.toLocaleString()}{' '}
-                      <span style={{ opacity: 0.75 }}>PTS</span>
+                      {currentPoints.toLocaleString()}
+                      <img
+                        src="/pts.svg"
+                        alt="points"
+                        width={20}
+                        height={20}
+                        className="h-5 w-auto shrink-0"
+                        style={{
+                          filter: 'invert(1) brightness(1000%)',
+                        }}
+                      />
                     </span>
-                    <div className="mt-0.5 text-xs font-semibold text-[#FF4A2E]">
+                    <div className="mt-0.5 label-medium font-semibold text-[#FF4A2E]">
                       -{spendItem.points_cost.toLocaleString()}
                     </div>
                   </div>
@@ -322,7 +365,7 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
 
               {submitError && (
                 <p
-                  className="rounded-xl px-4 py-3 text-sm"
+                  className="label-small rounded-xl px-4 py-3"
                   style={{
                     backgroundColor: `${textColor}1A`,
                     border: `1px solid ${textColor}40`,
@@ -346,25 +389,29 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
                 </button>
               ) : (
                 <button
+                  type="button"
                   onClick={() => redeemMutation.mutate()}
                   disabled={redeemMutation.isPending || !canAfford}
-                  className="w-full rounded-full py-5 px-6 text-center text-xl font-bold uppercase -tracking-[0.08em] disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between py-2 pl-4 pr-2 text-left transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
                   style={{
                     backgroundColor: textColor,
                     color: brandBg,
                   }}
                 >
-                  {redeemMutation.isPending
-                    ? 'Redeeming...'
-                    : canAfford
-                      ? 'Confirm Purchase'
-                      : 'Not Enough Points'}
+                  <span className="min-w-0 truncate pr-2">
+                    {redeemMutation.isPending
+                      ? 'Redeeming...'
+                      : canAfford
+                        ? 'Confirm Purchase'
+                        : 'Not Enough Points'}
+                  </span>
+                  <HomepageHeroCtaArrow />
                 </button>
               )}
 
               {user && canAfford && (
                 <p
-                  className="text-center text-xs"
+                  className="label-medium text-center"
                   style={{ color: `${textColor}CC` }}
                 >
                   Balance after purchase: {pointsAfterRedeem.toLocaleString()}{' '}
