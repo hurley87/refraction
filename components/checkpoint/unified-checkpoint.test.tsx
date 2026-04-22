@@ -558,7 +558,7 @@ describe('UnifiedCheckpoint', () => {
         expect(screen.getByText(/You're In/i)).toBeInTheDocument();
         expect(screen.getByText(/You earned/i)).toBeInTheDocument();
         expect(screen.getByText('100')).toBeInTheDocument();
-        expect(screen.getByText(/pts/i)).toBeInTheDocument();
+        expect(screen.getByAltText('points')).toBeInTheDocument();
       });
     });
 

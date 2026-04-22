@@ -108,11 +108,11 @@ function CheckinSuccessView({
             className="display0 sm:display0-sm text-[#171717] uppercase text-center"
             style={{ color: textColor, ...fontStyle }}
           >
-            You Are In
+            You&apos;re In
           </h1>
 
           <h2
-            className="body-large sm:body-small text-[#171717] uppercase text-center"
+            className="body-large sm:body-large text-[#171717] uppercase text-center"
             style={{ color: textColor }}
           >
             Welcome To {checkpoint.name}
@@ -547,26 +547,44 @@ function CheckinCheckpoint({ checkpoint }: UnifiedCheckpointProps) {
   return (
     <div className="flex min-h-dvh w-full flex-col justify-center font-sans">
       {checkinError && (
-        <div className="flex flex-col items-center justify-center text-center w-full h-full font-grotesk px-6">
-          <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-lg space-y-4">
-            <h1 className="text-3xl font-inktrap text-red-600 uppercase">
+        <div className="relative min-h-dvh w-full overflow-hidden bg-[#FAFF00] px-5 py-10 font-grotesk text-black">
+          <div
+            className="pointer-events-none absolute -left-20 top-0 h-full w-40 -skew-y-1 bg-gradient-to-r from-black/20 to-transparent blur-3xl"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.12]"
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.03) 1px, rgba(0,0,0,0.03) 2px)',
+            }}
+            aria-hidden
+          />
+          <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center text-center">
+            <h1 className="mt-1 sm:display2-sm display2 text-[#171717] uppercase leading-[0.82] tracking-[-0.08em]">
               {checkinError.includes('limit')
                 ? 'Daily Limit Reached'
                 : 'Check-in Error'}
             </h1>
-            <p className="text-black text-base">{checkinError}</p>
+            <p className="label-medium mx-auto mt-8 max-w-sm text-balance text-base font-bold leading-snug tracking-[-0.02em] text-[#454545]">
+              {checkinError}
+            </p>
             {checkinError.includes('limit') && (
-              <p className="text-gray-500 text-sm">
+              <p className="label-medium mx-auto mt-4 max-w-sm text-balance text-base font-bold leading-snug tracking-[-0.02em] text-[#454545]">
                 You can complete up to 10 checkpoint visits per day. Come back
                 tomorrow for more points.
               </p>
             )}
-            <Button
-              onClick={() => router.push('/')}
-              className="text-white bg-black rounded-full w-full font-inktrap py-3 text-lg hover:bg-yellow-400"
-            >
-              Visit IRL.ENERGY
-            </Button>
+            <div className="mt-8 flex w-full max-w-sm flex-col gap-3 self-center">
+              <button
+                type="button"
+                onClick={() => router.push('/')}
+                className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[#000000] py-2 pl-4 pr-2 text-[#FFFFFF] transition-opacity hover:opacity-90"
+              >
+                <span className="min-w-0 truncate pr-2">Visit IRL.ENERGY</span>
+                <HomepageHeroCtaArrow />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -575,7 +593,7 @@ function CheckinCheckpoint({ checkpoint }: UnifiedCheckpointProps) {
       )}
       {!checkinStatus && !checkinError && (
         <div className="sm:display0-sm display0 flex min-h-dvh w-full items-center justify-center bg-[#fff200] text-center uppercase text-[#171717]">
-          {isCheckingIn ? 'Checking In' : 'Loading'}
+          {isCheckingIn ? 'Checking in' : 'Loading'}
         </div>
       )}
     </div>
