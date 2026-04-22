@@ -45,7 +45,7 @@ export function getWalletKitSingleton(
                 ? window.location.origin
                 : 'https://irl.energy',
             icons: [
-              `${typeof window !== 'undefined' ? window.location.origin : 'https://irl.energy'}/IRL-SVG/IRL-LOGO-NEW.svg`,
+              `${typeof window !== 'undefined' ? window.location.origin : 'https://irl.energy'}/irl-svg/irl-logo-new.svg`,
             ],
           },
           payConfig: {

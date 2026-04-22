@@ -153,13 +153,15 @@ export default function NavigationMenu({
       {/* Menu panel: header in flow so links never sit under logo/close */}
       <div className="absolute top-[53px] left-1/2 flex h-[476px] w-[393px] max-w-[min(393px,calc(100%-32px))] -translate-x-1/2 flex-col overflow-hidden">
         <div className="flex h-[70px] w-full shrink-0 items-center justify-between bg-[var(--Dark-Tint-White,#FFF)] px-4">
-          <Image
-            src="/IRL-SVG/IRL-LOGO-NEW.svg"
+          {/* Native img + cache-bust: avoids Next/Image + stale 301 cache from old /IRL-SVG redirects on some dev setups */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/irl-svg/irl-logo-new.svg?v=4"
             alt="IRL"
             width={70}
-            height={70}
+            height={63}
             className="size-[70px] shrink-0 object-contain"
-            priority
+            decoding="async"
           />
           <button
             type="button"
