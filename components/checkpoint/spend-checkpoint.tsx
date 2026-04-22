@@ -162,8 +162,8 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
           ...fontStyle,
         }}
       >
-        <div className="text-sm" style={{ color: textColor }}>
-          Loading redemption...
+        <div className="display2 sm:display2-sm text-center" style={{ color: textColor }}>
+          Loading Redemption...
         </div>
       </div>
     );
@@ -209,14 +209,14 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
           {hasRedeemed ? (
             <>
               <h1
-                className="body-large sm:body-small uppercase text-center"
+                className="display0 sm:display0-sm uppercase text-center"
                 style={{ color: textColor, ...fontStyle }}
               >
                 You Are In
               </h1>
 
               <h2
-                className="display2 sm:display2-sm uppercase text-center"
+                className="body-large sm:body-large uppercase text-center"
                 style={{ color: textColor }}
               >
                 {checkpoint.name}
