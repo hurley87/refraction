@@ -59,11 +59,11 @@ export default function StripeCommonsSuccessPage() {
               className="relative flex size-[40px] shrink-0 items-center justify-center rounded-full bg-black/10"
             >
               <Image
-                src="/home/IRL.png"
+                src="/irl-svg/irl-logo-new.svg"
                 alt="IRL"
                 width={27}
                 height={14}
-                className="block invert"
+                className="block "
               />
             </Link>
             <div className="flex items-center gap-1.5 rounded-full bg-black/10 px-3 py-1.5">
@@ -155,7 +155,7 @@ export default function StripeCommonsSuccessPage() {
                 />
                 <span className="text-black/30">·</span>
                 <Image
-                  src="/irl-svg/$IRL_SECONDARY LOGO ICON_BLACK.svg"
+                  src="/irl-svg/irl-logo-new.svg"
                   alt="IRL"
                   width={30}
                   height={24}

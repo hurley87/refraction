@@ -109,7 +109,7 @@ function StellarWalletPageContent() {
               <div className="flex w-full justify-center">
                 <div className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-2 [filter:drop-shadow(0_0_10px_rgba(255,255,255,0.55))_drop-shadow(0_0_22px_rgba(255,255,255,0.28))]">
                   <Image
-                    src="/irl-svg/$IRL_SECONDARY LOGO ICON_BLACK.svg"
+                    src="/irl-svg/irl-logo-new.svg"
                     alt="IRL"
                     width={130}
                     height={78}
