@@ -61,7 +61,12 @@ export default function CityGuideListCard({
         className
       )}
     >
-      <CityGuidesHubCardImage src={imageSrc} alt={imageAlt} />
+      <CityGuidesHubCardImage
+        src={imageSrc}
+        alt={imageAlt}
+        href={readHref}
+        linkLabel={title}
+      />
 
       <div className="flex w-full items-center justify-between gap-2">
         <div

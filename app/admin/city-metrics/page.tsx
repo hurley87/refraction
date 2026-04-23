@@ -20,6 +20,8 @@ type SortDirection = 'asc' | 'desc';
 
 const MILESTONE_THRESHOLD = 10;
 
+const EMPTY_CITY_METRICS: CityMetric[] = [];
+
 export default function AdminCityMetricsPage() {
   const { user, login, getAccessToken } = usePrivy();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -79,7 +81,7 @@ export default function AdminCityMetricsPage() {
     enabled: !!isAdmin && !!user?.email?.address,
   });
 
-  const metrics = data?.metrics ?? [];
+  const metrics = data?.metrics ?? EMPTY_CITY_METRICS;
 
   const sortedMetrics = useMemo(() => {
     return [...metrics].sort((a, b) => {

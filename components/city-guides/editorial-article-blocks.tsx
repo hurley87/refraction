@@ -27,13 +27,13 @@ export function EditorialArticleBlocks({
             );
           case 'subtitleTitle3':
             return (
-              <h2 key={key} className="title3 text-[#171717]">
+              <div key={key} className="title3 text-[#171717]">
                 {block.text}
-              </h2>
+              </div>
             );
           case 'subtitleH1':
             return (
-              <h1 key={key} className="title1 text-[#171717]">
+              <h1 key={key} className="text-[#171717]">
                 {block.text}
               </h1>
             );

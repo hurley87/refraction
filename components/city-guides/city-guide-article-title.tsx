@@ -24,12 +24,12 @@ export function CityGuideArticleTitle({
 
   return (
     <div className={cn('w-full max-w-[361px]', className)}>
-      <h1 className="font-['Gal_Gothic_Variable',sans-serif] text-[42px] font-bold leading-[40px] tracking-[-0.03em] text-[#313131]">
+      <div className="title2 text-[#313131]">
         <span>{titlePrefix.trimEnd()} </span>
         <span className="box-decoration-clone bg-[#FFE600] px-1 py-0">
           {cityName}
         </span>
-      </h1>
+      </div>
 
       {singleContributor ? (
         <p className="mt-2 font-['Gal_Gothic_Variable',sans-serif] text-[1.9375rem] font-medium leading-8 tracking-[-0.08em] text-[#313131]">

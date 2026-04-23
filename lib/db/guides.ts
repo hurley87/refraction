@@ -101,7 +101,7 @@ export function hubListTitle(row: GuideRow): string {
   }
   const primary = row.title_primary?.trim() ?? '';
   const secondary = row.title_secondary?.trim();
-  if (primary && secondary) return `${primary} — ${secondary}`;
+  if (primary && secondary) return `${primary} : ${secondary}`;
   return primary || row.slug;
 }
 
