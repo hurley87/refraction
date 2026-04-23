@@ -137,7 +137,17 @@ const nextConfig = {
       },
       {
         source: "/editorial/template",
-        destination: "/city-guides/editorial/template",
+        destination: "/city-guides",
+        permanent: true,
+      },
+      {
+        source: "/city-guides/template",
+        destination: "/city-guides",
+        permanent: true,
+      },
+      {
+        source: "/city-guides/editorial/template",
+        destination: "/city-guides",
         permanent: true,
       },
     ];
