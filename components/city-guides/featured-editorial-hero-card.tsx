@@ -27,8 +27,9 @@ export function defaultReadLabel(kind: GuideKind): string {
 }
 
 /**
- * Featured editorial / city guide — full-width square hero with image under `MapNav`;
- * summary uses the 361px hub rail; list cards use `city-guides-hub-card-image`.
+ * Featured editorial / city guide — square hero (max `393px` wide, same hub column as
+ * list rail) with image under `MapNav`; summary uses the 361px hub rail; list cards
+ * use `city-guides-hub-card-image`.
  */
 export default function FeaturedEditorialHeroCard({
   guideKind,
@@ -36,7 +37,6 @@ export default function FeaturedEditorialHeroCard({
   titleLine2,
   featuredPeople,
   heroImageSrc,
-  heroImageAlt,
   readHref,
   readLabel,
   className,
@@ -48,18 +48,24 @@ export default function FeaturedEditorialHeroCard({
       className={cn('w-full overflow-hidden bg-white', className)}
       aria-labelledby="featured-guide-title"
     >
-      <div className="relative aspect-square w-full shrink-0 overflow-hidden">
-        <div className="absolute inset-0 bg-neutral-200">
-          <Image
-            src={heroImageSrc}
-            alt={heroImageAlt}
-            fill
-            priority
-            className="object-cover object-center"
-            sizes="100vw"
-          />
+      <div className="mx-auto w-full max-w-[393px]">
+        <div className="relative aspect-square w-full shrink-0 overflow-hidden">
+          <Link
+            href={readHref}
+            className="absolute inset-0 z-[1] block bg-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400"
+            aria-label={`${resolvedReadLabel}: ${titleLine1} ${titleLine2}`}
+          >
+            <Image
+              src={heroImageSrc}
+              alt=""
+              fill
+              priority
+              className="object-cover object-center"
+              sizes="(max-width: 393px) 100vw, 393px"
+            />
+          </Link>
+          <MapNav className="absolute top-0 right-0 left-0 z-10 w-full max-w-none min-w-0 bg-transparent px-4 pt-2" />
         </div>
-        <MapNav className="absolute top-0 right-0 left-0 z-10 w-full max-w-none min-w-0 bg-transparent px-4 pt-2" />
       </div>
 
       <div className="mx-auto flex w-full max-w-[393px] justify-center bg-white px-4 pb-10">

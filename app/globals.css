@@ -21,11 +21,12 @@
 
 @layer base {
   h1 {
-    font-size: 2.4375rem; /* 39px */
-    line-height: 2.5rem; /* 40px */
-    font-weight: 700;
+    font-size: 42px; /* 39px */
+    line-height: 40px; /* 40px */
+    font-weight: 500;
     font-family: 'Special Gothic SemiExpanded', sans-serif;
-    letter-spacing: -2.34px;
+    letter-spacing: -0.84px;
+    font-style: normal;
   }
 
   h2 {
@@ -76,11 +77,12 @@
   }
 
   .title2 {
-    font-size: 1.5625rem; /* 25px */
-    line-height: 2rem; /* 32px */
-    font-weight: 400;
+    font-size: 31px; /* 25px */
+    line-height: 32px; /* 32px */
+    font-weight: 700;
     font-family: 'Gal Gothic Variable', sans-serif;
-    letter-spacing: -1% !important;
+    letter-spacing: -0.93px !important;
+    font-style: normal;
   }
 
   .title3 {
@@ -88,6 +90,7 @@
     line-height: 32px; /* 24px */
     font-weight: 700;
     letter-spacing: -0.25px;
+    font-style: normal;
     font-family: 'Gal Gothic Variable', sans-serif;
   }
 
@@ -185,11 +188,11 @@
   }
 
   .body-medium {
-    font-size: 18px; /* 13px */
-    line-height: 24px; /* 20px */
-    font-weight: 400;
+    font-size: 16px; /* 13px */
+    line-height: 22px; /* 20px */
+    font-weight: 500;
     font-family: 'Gal Gothic Variable', sans-serif;
-    letter-spacing: -2%;
+    letter-spacing: -0.48px;
     font-style: normal;
   }
 
