@@ -8,6 +8,7 @@ import { CityGuideLocationCard } from '@/components/city-guides/city-guide-locat
 import { CityGuideTexturedImage } from '@/components/city-guides/city-guide-textured-image';
 import { CityGuideArticleMetaRow } from '@/components/city-guides/city-guide-article-meta-row';
 import { CityGuideArticleTitle } from '@/components/city-guides/city-guide-article-title';
+import { GuideArticleContributorsSection } from '@/components/city-guides/guide-article-contributors-section';
 import { getMichailStanglBerlinGuideListLocations } from '@/lib/db/location-lists';
 
 export const metadata: Metadata = {
@@ -32,6 +33,24 @@ const TEMPLATE_HERO = {
   heroImageSrc: '/city-guides/berlin/michail/michail-stangl-hero.jpg',
   heroImageAlt: 'Berlin — hero photograph for the city guide',
 };
+
+/** Guide contributors; replace with CMS fields when ready. */
+const TEMPLATE_GUIDE_CONTRIBUTORS = [
+  {
+    name: 'Michail Stangl',
+    bio: 'For more than a decade, Michail Stangl has been a driving force in the global underground music scene, blending avant-garde, pop, and underground culture into a mesmerizing mix.',
+    photoSrc: '/city-guides/berlin/michail/michail-stangl-hero.jpg',
+    photoAlt: 'Michail Stangl',
+    instagramHref: 'https://www.instagram.com/opium_hum/',
+  },
+  {
+    name: 'Graham Bertie',
+    bio: 'Graham Bertie is a DJ and producer based in Toronto. He is known for his unique blend of techno and house music.',
+    photoSrc: '/city-guides/berlin/graham/graham-bertie-hero.jpg',
+    photoAlt: 'Graham Bertie',
+    instagramHref: 'https://www.instagram.com/grahamdouglasbertie/',
+  },
+] as const;
 
 /** Static map for “In this guide”; replace with CMS / interactive map when ready. */
 const TEMPLATE_GUIDE_MAP = {
@@ -117,6 +136,11 @@ export default async function CityGuideTemplatePage() {
           <CityGuideArticleDescription
             headline={TEMPLATE_LEAD_HEADLINE}
             paragraphs={TEMPLATE_LEAD_PARAGRAPHS}
+            className="mb-10"
+          />
+
+          <GuideArticleContributorsSection
+            contributors={TEMPLATE_GUIDE_CONTRIBUTORS}
             className="mb-10"
           />
 
