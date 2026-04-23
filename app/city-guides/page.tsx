@@ -49,7 +49,7 @@ const PLACEHOLDER_GUIDE_CARDS = [
     publishedAt: '2025-04-20',
     imageSrc: '/city-guides/miami/miami-hero-card.png',
     imageAlt: 'Placeholder market lights',
-    readHref: '#',
+    readHref: '/city-guides/editorial/template',
   },
   {
     guideKind: 'editorial' as const,
@@ -59,7 +59,7 @@ const PLACEHOLDER_GUIDE_CARDS = [
     publishedAt: '2025-01-11',
     imageSrc: '/city-guides/miami/miami-hero-card-full.jpg',
     imageAlt: 'Placeholder gallery interior',
-    readHref: '#',
+    readHref: '/city-guides/editorial/template',
   },
 ];
 

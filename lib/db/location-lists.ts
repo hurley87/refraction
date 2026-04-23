@@ -180,14 +180,11 @@ const DEFAULT_MICHAIL_BERLIN_LIST_SLUGS = [
   'berlin-michail-stangl',
 ] as const;
 
-/**
- * Locations for the Berlin / Michail Stangl city guide template.
- * Set `MICHAIL_STANGL_BERLIN_LIST_SLUG` to match your `location_lists.slug`.
- * Otherwise tries common slugs, then first active list whose title matches `%stangl%`.
- */
-export const getMichailStanglBerlinGuideListLocations = async (): Promise<
+const MICHAIL_BERLIN_GUIDE_QUERY_MS = 12_000;
+
+async function loadMichailStanglBerlinGuideListLocations(): Promise<
   LocationListLocation[]
-> => {
+> {
   const envSlug = process.env.MICHAIL_STANGL_BERLIN_LIST_SLUG?.trim();
   const slugsToTry = envSlug
     ? [
@@ -222,6 +219,40 @@ export const getMichailStanglBerlinGuideListLocations = async (): Promise<
   }
 
   return [];
+}
+
+const MICHAIL_BERLIN_GUIDE_TIMEOUT = Symbol('michailBerlinGuideTimeout');
+
+/**
+ * Locations for the Berlin / Michail Stangl city guide template.
+ * Set `MICHAIL_STANGL_BERLIN_LIST_SLUG` to match your `location_lists.slug`.
+ * Otherwise tries common slugs, then first active list whose title matches `%stangl%`.
+ *
+ * Bounded wait: avoids the page hanging forever when Supabase is misconfigured or unreachable.
+ */
+export const getMichailStanglBerlinGuideListLocations = async (): Promise<
+  LocationListLocation[]
+> => {
+  const rowsOrTimeout = await Promise.race([
+    loadMichailStanglBerlinGuideListLocations(),
+    new Promise<typeof MICHAIL_BERLIN_GUIDE_TIMEOUT>((resolve) => {
+      setTimeout(
+        () => resolve(MICHAIL_BERLIN_GUIDE_TIMEOUT),
+        MICHAIL_BERLIN_GUIDE_QUERY_MS
+      );
+    }),
+  ]);
+
+  if (rowsOrTimeout === MICHAIL_BERLIN_GUIDE_TIMEOUT) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        '[getMichailStanglBerlinGuideListLocations] Supabase query timed out; showing empty list. Check SUPABASE_URL / network.'
+      );
+    }
+    return [];
+  }
+
+  return rowsOrTimeout;
 };
 
 /**
