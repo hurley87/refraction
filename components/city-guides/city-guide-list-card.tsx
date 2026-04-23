@@ -1,7 +1,7 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CityGuidesHubCardImage } from '@/components/city-guides/city-guides-hub-card-image';
 import {
   defaultReadLabel,
   guideKindLabel,
@@ -57,19 +57,11 @@ export default function CityGuideListCard({
   return (
     <article
       className={cn(
-        'mx-auto flex w-full max-w-[361px] flex-col gap-4 border-t border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFFFFF)] pt-6 pb-6',
+        'mx-auto flex w-full max-w-[361px] flex-col gap-4 border-t border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFFFFF)] pb-6',
         className
       )}
     >
-      <div className="relative h-[192.533px] w-full shrink-0 overflow-hidden bg-neutral-200">
-        <Image
-          src={imageSrc}
-          alt={imageAlt}
-          fill
-          className="object-cover"
-          sizes="361px"
-        />
-      </div>
+      <CityGuidesHubCardImage src={imageSrc} alt={imageAlt} />
 
       <div className="flex w-full items-center justify-between gap-2">
         <div

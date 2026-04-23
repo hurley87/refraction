@@ -1,13 +1,9 @@
 import { cn } from '@/lib/utils';
 
 import { EditorialArticleImageFrame } from '@/components/city-guides/editorial-article-image-frame';
+import type { EditorialContentBlock } from '@/lib/guides/block-schema';
 
-/** Shapes a future CMS stream: paragraphs, two subtitle scales, and image frames. */
-export type EditorialContentBlock =
-  | { type: 'paragraph'; text: string }
-  | { type: 'subtitleTitle3'; text: string }
-  | { type: 'subtitleDisplay'; text: string }
-  | { type: 'image'; src: string; alt: string; caption: string };
+export type { EditorialContentBlock };
 
 export interface EditorialArticleBlocksProps {
   blocks: EditorialContentBlock[];
@@ -35,11 +31,11 @@ export function EditorialArticleBlocks({
                 {block.text}
               </h2>
             );
-          case 'subtitleDisplay':
+          case 'subtitleH1':
             return (
-              <h2 key={key} className="display1 text-[#171717]">
+              <h1 key={key} className="title1 text-[#171717]">
                 {block.text}
-              </h2>
+              </h1>
             );
           case 'image':
             return (

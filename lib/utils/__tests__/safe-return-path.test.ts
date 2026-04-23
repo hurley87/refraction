@@ -3,12 +3,12 @@ import { sanitizeInternalReturnPath } from '../safe-return-path';
 
 describe('sanitizeInternalReturnPath', () => {
   it('allows simple app paths', () => {
-    expect(sanitizeInternalReturnPath('/city-guides/template')).toBe(
-      '/city-guides/template'
-    );
-    expect(sanitizeInternalReturnPath('/city-guides/editorial/template')).toBe(
-      '/city-guides/editorial/template'
-    );
+    expect(
+      sanitizeInternalReturnPath('/city-guides/berlin-michail-stangl')
+    ).toBe('/city-guides/berlin-michail-stangl');
+    expect(
+      sanitizeInternalReturnPath('/city-guides/editorial/montreal-dispatch')
+    ).toBe('/city-guides/editorial/montreal-dispatch');
     expect(sanitizeInternalReturnPath('/interactive-map')).toBe(
       '/interactive-map'
     );
