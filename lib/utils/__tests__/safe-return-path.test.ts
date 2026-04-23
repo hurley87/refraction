@@ -6,6 +6,9 @@ describe('sanitizeInternalReturnPath', () => {
     expect(sanitizeInternalReturnPath('/city-guides/template')).toBe(
       '/city-guides/template'
     );
+    expect(sanitizeInternalReturnPath('/city-guides/editorial/template')).toBe(
+      '/city-guides/editorial/template'
+    );
     expect(sanitizeInternalReturnPath('/interactive-map')).toBe(
       '/interactive-map'
     );

@@ -59,7 +59,7 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     // Handle canvas module for react-pdf
     config.resolve.alias.canvas = false;
     config.resolve.alias.encoding = false;
@@ -76,12 +76,14 @@ const nextConfig = {
       ),
     };
 
-    // Optimize webpack for better dependency resolution
-    config.optimization = {
-      ...config.optimization,
-      providedExports: false,
-      usedExports: false,
-    };
+    // Production-only: these flags have caused dev-server compile/watch stalls on large apps.
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        providedExports: false,
+        usedExports: false,
+      };
+    }
 
     // Fallbacks for node modules in client-side
     if (!isServer) {
@@ -99,6 +101,10 @@ const nextConfig = {
     return config;
   },
   async headers() {
+    // Strict CSP can break or slow Next.js dev (HMR, inline scripts, tooling). Apply on prod builds only.
+    if (process.env.NODE_ENV !== "production") {
+      return [];
+    }
     return [
       {
         source: "/:path*",
@@ -122,6 +128,16 @@ const nextConfig = {
       {
         source: "/map/",
         destination: "/interactive-map/",
+        permanent: true,
+      },
+      {
+        source: "/editorial",
+        destination: "/city-guides",
+        permanent: true,
+      },
+      {
+        source: "/editorial/template",
+        destination: "/city-guides/editorial/template",
         permanent: true,
       },
     ];
