@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 
 import { Space_Grotesk } from 'next/font/google';
 import './globals.css';
@@ -15,10 +16,9 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 /**
- * Canonical site origin for metadata (icons, OG). Ensures relative URLs resolve
- * correctly when deployed (e.g. custom domain vs preview URL).
+ * Fallback site origin for metadata (build time, or when the request host is unknown).
  */
-function getMetadataBase(): URL {
+function getDefaultMetadataBase(): URL {
   const raw =
     process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
@@ -27,47 +27,85 @@ function getMetadataBase(): URL {
   return new URL(withProtocol.replace(/\/$/, ''));
 }
 
-const metadataBase = getMetadataBase();
-const baseUrl = metadataBase.origin;
+const LINK_PREVIEW_FILE = 'IRL WEB PREVIEW_01.png';
 
-// Add cache-busting when you change the default link-preview asset (OG / X)
-const linkPreviewFile = 'IRL WEB PREVIEW_01.png';
-const imageUrl = `${baseUrl}/link-preview/${encodeURIComponent(linkPreviewFile)}?v=1`;
+/**
+ * X / Facebook compare the request URL to og:url and image URLs. If everything
+ * is hard-coded to `irl.energy` but the link is shared as `www.irl.energy`, the
+ * card can fail. Only allow our domains + dev hosts so we never reflect arbitrary
+ * Host into metadata.
+ */
+function isAllowedMetadataHost(host: string): boolean {
+  if (host === 'irl.energy' || host === 'www.irl.energy') return true;
+  if (host.startsWith('localhost') || host.startsWith('127.0.0.1')) return true;
+  if (host.endsWith('.vercel.app')) return true;
+  return false;
+}
 
-export const metadata: Metadata = {
-  metadataBase,
-  title: 'IRL',
-  description: "IRL - Culture's rewards program.",
-  /** Favicon: `app/icon.svg` (Next injects `<link rel="icon" href="/icon?…">`). */
-  openGraph: {
-    title: '$IRL',
+/**
+ * `metadataBase` + absolute OG / Twitter image URLs for this request
+ * (www vs non-www, preview domain, local dev).
+ */
+function getMetadataBaseForRequest(h: Pick<Headers, 'get'>): {
+  metadataBase: URL;
+  imageUrl: string;
+} {
+  const forwarded = h.get('x-forwarded-host') ?? h.get('host') ?? '';
+  const host = forwarded.split(',')[0].trim();
+  if (!host || !isAllowedMetadataHost(host)) {
+    const metadataBase = getDefaultMetadataBase();
+    const imageUrl = `${metadataBase.origin}/link-preview/${encodeURIComponent(LINK_PREVIEW_FILE)}?v=1`;
+    return { metadataBase, imageUrl };
+  }
+
+  const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+  const protoHeader = h.get('x-forwarded-proto')?.split(',')[0].trim();
+  const protocol =
+    isLocal && protoHeader === 'https' ? 'https' : isLocal ? 'http' : 'https';
+  const metadataBase = new URL(`${protocol}://${host}`);
+  const imageUrl = `${metadataBase.origin}/link-preview/${encodeURIComponent(LINK_PREVIEW_FILE)}?v=1`;
+  return { metadataBase, imageUrl };
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const h = headers();
+  const { metadataBase, imageUrl } = getMetadataBaseForRequest(h);
+
+  return {
+    metadataBase,
+    title: 'IRL',
     description: "IRL - Culture's rewards program.",
-    url: baseUrl,
-    images: [
-      {
-        url: imageUrl,
-        width: 1200,
-        height: 630,
-        alt: '$IRL',
-      },
-    ],
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: '$IRL',
-    description: "IRL - Culture's rewards program.",
-    images: [imageUrl],
-  },
-  appleWebApp: {
-    statusBarStyle: 'black-translucent', // Options: "default", "black", "black-translucent"
-  },
-  other: {
-    'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'mobile-web-app-capable': 'yes',
-    'msapplication-navbutton-color': '#000000',
-  },
-};
+    /** Favicon: `app/icon.svg` (Next injects `<link rel="icon" href="/icon?…">`). */
+    openGraph: {
+      title: '$IRL',
+      description: "IRL - Culture's rewards program.",
+      url: new URL('/', metadataBase).href,
+      images: [
+        {
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          alt: '$IRL',
+        },
+      ],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: '$IRL',
+      description: "IRL - Culture's rewards program.",
+      images: [imageUrl],
+    },
+    appleWebApp: {
+      statusBarStyle: 'black-translucent', // Options: "default", "black", "black-translucent"
+    },
+    other: {
+      'apple-mobile-web-app-status-bar-style': 'black-translucent',
+      'mobile-web-app-capable': 'yes',
+      'msapplication-navbutton-color': '#000000',
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: '#000000',
