@@ -11,7 +11,7 @@ const mockFrom = vi.fn((): any => ({}));
 
 vi.mock('@/lib/db/client', () => ({
   supabase: {
-    from: (table: string) => mockFrom(table),
+    from: () => mockFrom(),
   },
 }));
 
@@ -49,7 +49,7 @@ describe('guides helpers', () => {
       title_secondary: 'World',
       slug: 'x',
     } as GuideRow;
-    expect(hubListTitle(row)).toBe('Hello - World');
+    expect(hubListTitle(row)).toBe('Hello : World');
   });
 
   it('guideKindToUi maps DB kind', () => {

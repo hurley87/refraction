@@ -5,6 +5,7 @@ import {
   parseEditorialBlocks,
   type EditorialContentBlock,
 } from '@/lib/guides/block-schema';
+import { verifyGuidePreviewToken } from '@/lib/guides/preview-token';
 import type { GuideKind } from '@/components/city-guides/featured-editorial-hero-card';
 
 const GUIDES_QUERY_MS = 12_000;
@@ -311,6 +312,21 @@ async function fetchGuideBySlug(
   return (data as unknown as GuideRow | null) ?? null;
 }
 
+async function fetchGuideById(guideId: string): Promise<GuideRow | null> {
+  const { data, error } = await supabase
+    .from('guides')
+    .select(GUIDE_LIST_COLUMNS)
+    .eq('id', guideId)
+    .maybeSingle();
+  if (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[guides] fetchGuideById:', error.message);
+    }
+    return null;
+  }
+  return (data as unknown as GuideRow | null) ?? null;
+}
+
 export type CityGuidePageData = {
   row: GuideRow;
   contributors: GuideContributorUi[];
@@ -319,19 +335,15 @@ export type CityGuidePageData = {
   locationContributorByPlaceId: Map<string, string>;
 };
 
-/**
- * Public city guide article by slug.
- */
-export async function getCityGuidePageData(
-  slug: string
+export type GetGuidePageOptions = {
+  /** HMAC token from /api/admin/guides/:id/preview-link — required to view drafts on public routes. */
+  previewToken?: string | null;
+};
+
+async function buildCityGuidePageDataFromRow(
+  row: GuideRow
 ): Promise<CityGuidePageData | null> {
-  const rowOrTimeout = await withQueryTimeout(fetchGuideBySlug(slug, true));
-  if (rowOrTimeout === GUIDE_QUERY_TIMEOUT) {
-    logTimeout('getCityGuidePageData');
-    return null;
-  }
-  const row = rowOrTimeout;
-  if (!row || row.kind !== 'city_guide') return null;
+  if (row.kind !== 'city_guide') return null;
 
   const contributorsOrTimeout = await withQueryTimeout(
     fetchContributorsForGuide(row.id)
@@ -404,6 +416,38 @@ export async function getCityGuidePageData(
   };
 }
 
+/**
+ * Public city guide article by slug, or a draft when {@link GetGuidePageOptions.previewToken} is valid.
+ */
+export async function getCityGuidePageData(
+  slug: string,
+  options?: GetGuidePageOptions
+): Promise<CityGuidePageData | null> {
+  const previewToken = options?.previewToken?.trim() || null;
+
+  if (previewToken) {
+    const claim = verifyGuidePreviewToken(previewToken);
+    if (!claim || claim.slug !== slug) return null;
+    const rowOrTimeout = await withQueryTimeout(fetchGuideById(claim.guideId));
+    if (rowOrTimeout === GUIDE_QUERY_TIMEOUT) {
+      logTimeout('getCityGuidePageData.preview');
+      return null;
+    }
+    const row = rowOrTimeout;
+    if (!row || row.slug !== slug) return null;
+    return buildCityGuidePageDataFromRow(row);
+  }
+
+  const rowOrTimeout = await withQueryTimeout(fetchGuideBySlug(slug, true));
+  if (rowOrTimeout === GUIDE_QUERY_TIMEOUT) {
+    logTimeout('getCityGuidePageData');
+    return null;
+  }
+  const row = rowOrTimeout;
+  if (!row) return null;
+  return buildCityGuidePageDataFromRow(row);
+}
+
 export type EditorialPageData = {
   row: GuideRow;
   contributors: GuideContributorUi[];
@@ -411,19 +455,10 @@ export type EditorialPageData = {
   blocks: EditorialContentBlock[];
 };
 
-/**
- * Public editorial article by slug.
- */
-export async function getEditorialPageData(
-  slug: string
+async function buildEditorialPageDataFromRow(
+  row: GuideRow
 ): Promise<EditorialPageData | null> {
-  const rowOrTimeout = await withQueryTimeout(fetchGuideBySlug(slug, true));
-  if (rowOrTimeout === GUIDE_QUERY_TIMEOUT) {
-    logTimeout('getEditorialPageData');
-    return null;
-  }
-  const row = rowOrTimeout;
-  if (!row || row.kind !== 'editorial') return null;
+  if (row.kind !== 'editorial') return null;
 
   const contributorsOrTimeout = await withQueryTimeout(
     fetchContributorsForGuide(row.id)
@@ -438,6 +473,38 @@ export async function getEditorialPageData(
   const blocks = parseEditorialBlocks(row.blocks);
 
   return { row, contributors, contributorNames, blocks };
+}
+
+/**
+ * Public editorial article by slug, or a draft when {@link GetGuidePageOptions.previewToken} is valid.
+ */
+export async function getEditorialPageData(
+  slug: string,
+  options?: GetGuidePageOptions
+): Promise<EditorialPageData | null> {
+  const previewToken = options?.previewToken?.trim() || null;
+
+  if (previewToken) {
+    const claim = verifyGuidePreviewToken(previewToken);
+    if (!claim || claim.slug !== slug) return null;
+    const rowOrTimeout = await withQueryTimeout(fetchGuideById(claim.guideId));
+    if (rowOrTimeout === GUIDE_QUERY_TIMEOUT) {
+      logTimeout('getEditorialPageData.preview');
+      return null;
+    }
+    const row = rowOrTimeout;
+    if (!row || row.slug !== slug) return null;
+    return buildEditorialPageDataFromRow(row);
+  }
+
+  const rowOrTimeout = await withQueryTimeout(fetchGuideBySlug(slug, true));
+  if (rowOrTimeout === GUIDE_QUERY_TIMEOUT) {
+    logTimeout('getEditorialPageData');
+    return null;
+  }
+  const row = rowOrTimeout;
+  if (!row) return null;
+  return buildEditorialPageDataFromRow(row);
 }
 
 // --- Admin (published or draft) ---

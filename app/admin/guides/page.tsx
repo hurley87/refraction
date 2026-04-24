@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { toast } from 'sonner';
-import { Loader2, Plus } from 'lucide-react';
+import { Eye, Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { AdminGuideSummary } from '@/lib/db/guides';
 
@@ -61,6 +61,38 @@ export default function AdminGuidesListPage() {
     },
     enabled: !!isAdmin,
   });
+
+  const openPreview = useCallback(
+    async (guideId: string) => {
+      if (!adminEmail) {
+        toast.error('Not signed in');
+        return;
+      }
+      try {
+        const response = await fetch(
+          `/api/admin/guides/${guideId}/preview-link`,
+          { headers: { 'x-user-email': adminEmail } }
+        );
+        const responseData = await response.json();
+        const data = responseData.data || responseData;
+        if (!response.ok) {
+          throw new Error(
+            data.error || data.message || 'Could not open preview'
+          );
+        }
+        const url = data.url as string;
+        if (!url) {
+          throw new Error('No preview URL returned');
+        }
+        window.open(url, '_blank', 'noopener,noreferrer');
+      } catch (e) {
+        const message =
+          e instanceof Error ? e.message : 'Could not open preview';
+        toast.error(message);
+      }
+    },
+    [adminEmail]
+  );
 
   const createMutation = useMutation({
     mutationFn: async (kind: 'city_guide' | 'editorial') => {
@@ -169,12 +201,22 @@ export default function AdminGuidesListPage() {
                   {g.is_featured ? ' · Featured' : ''}
                 </div>
               </div>
-              <Link
-                href={`/admin/guides/${g.id}`}
-                className="text-sm font-medium text-blue-600 hover:underline"
-              >
-                Edit
-              </Link>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => void openPreview(g.id)}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-[#171717] hover:underline"
+                >
+                  <Eye className="size-4" aria-hidden />
+                  Preview
+                </button>
+                <Link
+                  href={`/admin/guides/${g.id}`}
+                  className="text-sm font-medium text-blue-600 hover:underline"
+                >
+                  Edit
+                </Link>
+              </div>
             </li>
           ))}
         </ul>

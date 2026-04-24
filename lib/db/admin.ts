@@ -9,6 +9,7 @@ export const ADMIN_EMAILS = [
   'lovegreg@gmail.com',
   'greg@refractionfestival.com',
   'graham@refractionfestival.com',
+  'raf@refractionfestival.com',
 ];
 
 /**

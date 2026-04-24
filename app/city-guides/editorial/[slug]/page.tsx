@@ -9,15 +9,21 @@ import { EditorialArticleMetaRow } from '@/components/city-guides/editorial-arti
 import { EditorialArticleTitle } from '@/components/city-guides/editorial-article-title';
 import { GuideArticleContributorsSection } from '@/components/city-guides/guide-article-contributors-section';
 import { getEditorialPageData, hubListTitle } from '@/lib/db/guides';
+import { DraftPreviewBanner } from '@/components/city-guides/draft-preview-banner';
 
 export const revalidate = 60;
 
-type PageProps = { params: { slug: string } };
+type PageProps = {
+  params: { slug: string };
+  searchParams?: { preview?: string };
+};
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: PageProps): Promise<Metadata> {
-  const data = await getEditorialPageData(params.slug);
+  const previewToken = searchParams?.preview ?? null;
+  const data = await getEditorialPageData(params.slug, { previewToken });
   if (!data) {
     return { title: 'Editorial | IRL' };
   }
@@ -26,14 +32,23 @@ export async function generateMetadata({
     data.row.card_preview?.trim() ||
     data.row.lead_headline?.trim() ||
     'IRL editorial';
+  if (previewToken) {
+    return { title, description, robots: { index: false, follow: false } };
+  }
   return { title, description };
 }
 
-export default async function EditorialBySlugPage({ params }: PageProps) {
-  const data = await getEditorialPageData(params.slug);
+export default async function EditorialBySlugPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const previewToken = searchParams?.preview ?? null;
+  const data = await getEditorialPageData(params.slug, { previewToken });
   if (!data) {
     notFound();
   }
+
+  const showDraftPreviewBanner = Boolean(previewToken);
 
   const { row, contributors, contributorNames, blocks } = data;
   const leadParagraphs = row.lead_paragraphs?.filter((p) => p.trim()) ?? [];
@@ -41,6 +56,7 @@ export default async function EditorialBySlugPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen w-full bg-[#F5F5F5] font-grotesk">
+      {showDraftPreviewBanner ? <DraftPreviewBanner guideId={row.id} /> : null}
       <div className="mx-auto w-full max-w-[393px] rounded-[48px] bg-[var(--Backgrounds-Background,#FFF)] shadow-sm">
         <header className="sticky top-0 z-30 rounded-t-[48px] bg-[var(--Backgrounds-Background,#FFF)] pt-[max(8px,env(safe-area-inset-top))]">
           <CityGuideArticleNav />
