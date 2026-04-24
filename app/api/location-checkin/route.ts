@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     const player = await createOrUpdatePlayer(playerData);
 
-    // Create or get location (must record creator so pending spots pass the visibility gate below)
+    // Create or get location (must record creator; legacy is_visible=false rows use gate below)
     const locationInfo: Omit<Location, 'id' | 'created_at'> = {
       place_id: sanitizedPlaceId,
       name: sanitizedName,
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       points_value: 100, // Each location is worth 100 points
       type: sanitizedType || 'location',
       context: sanitizedContext,
-      is_visible: false, // New locations require admin approval
+      is_visible: true,
       creator_wallet_address: walletAddress.trim(),
       creator_username:
         typeof username === 'string' && username.trim()
@@ -108,8 +108,7 @@ export async function POST(request: NextRequest) {
 
     const location = await createOrGetLocation(locationInfo);
 
-    // Pending locations (not on the public map yet) only allow check-in for the creator,
-    // so users can complete the create → check-in flow before admin approval.
+    // Legacy: locations still marked hidden only allow the creator to check in.
     if (location.is_visible === false) {
       const creator = location.creator_wallet_address?.trim() ?? '';
       const requester = walletAddress.trim();

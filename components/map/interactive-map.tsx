@@ -1152,9 +1152,6 @@ export default function InteractiveMap({
         throw new Error(result.error || 'Failed to create location');
       }
 
-      // Location created successfully - it will appear on the map after admin approval
-      // Do NOT add to local markers state - location is hidden until admin approves
-
       const payload = result.data ?? result;
       const creationPoints = payload.pointsAwarded ?? 100;
       const apiLocation = payload.location as
@@ -1206,10 +1203,15 @@ export default function InteractiveMap({
             imageUrl: locationImageUrl,
           };
 
+      setMarkers((current) => {
+        if (current.some((m) => m.place_id === markerForCheckIn.place_id)) {
+          return current;
+        }
+        return [...current, markerForCheckIn];
+      });
+
       toast.success(
-        apiLocation?.is_visible === false
-          ? `Location created! +${creationPoints} point${creationPoints === 1 ? '' : 's'}. Check-in unlocks after your spot is approved.`
-          : `Location created! +${creationPoints} point${creationPoints === 1 ? '' : 's'}`
+        `Location created! +${creationPoints} point${creationPoints === 1 ? '' : 's'}`
       );
       handleCloseLocationForm();
       remindLocationCreationFlow();
@@ -3048,11 +3050,9 @@ export default function InteractiveMap({
                       </p>
                     </div>
 
-                    {/* Pending Approval Message */}
                     <div className="flex flex-col items-center gap-2 mt-2">
                       <p className="text-[11px] text-white/90 text-center leading-relaxed px-4">
-                        Your location is pending review and will appear on the
-                        map once approved by an admin.
+                        Your location is on the map for the community to find.
                       </p>
                     </div>
 

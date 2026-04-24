@@ -7,8 +7,7 @@ import {
 } from '@/lib/analytics';
 import { trackCityMilestone } from '@/lib/analytics/server';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
-import { checkAdminPermission, isAdminUsername } from '@/lib/db/admin';
-import { getPlayerByWallet } from '@/lib/db/players';
+import { checkAdminPermission } from '@/lib/db/admin';
 import { MAX_LOCATIONS_PER_WEEK, SUPABASE_ERROR_CODES } from '@/lib/constants';
 import { getUtcWeekBounds } from '@/lib/utils/date';
 import {
@@ -231,20 +230,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if creator is an admin (email header from client, or username on player row)
     const creatorEmail = request.headers.get('x-user-email');
-    let isAdminCreator = checkAdminPermission(creatorEmail || undefined);
-    if (!isAdminCreator) {
-      const player = await getPlayerByWallet(sanitizedWalletAddress);
-      if (player?.username && isAdminUsername(player.username)) {
-        isAdminCreator = true;
-      }
-    }
 
     // Resolve city from coordinates (and fall back to context JSON if present)
     const resolvedCity = resolveCityFromCoordinates(parsedLat, parsedLon);
 
-    // Insert the new location (visible for admins, hidden for regular users)
+    // New locations are public on the map as long as place_id is unique (checked above)
     const locationInsertPayload = {
       place_id: sanitizedPlaceId,
       name: sanitizedName,
@@ -258,7 +249,7 @@ export async function POST(request: NextRequest) {
       creator_wallet_address: sanitizedWalletAddress,
       creator_username: sanitizedUsername,
       coin_image_url: normalizedLocationImage,
-      is_visible: isAdminCreator,
+      is_visible: true,
       city: resolvedCity,
       context: JSON.stringify({
         created_at: new Date().toISOString(),
