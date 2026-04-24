@@ -30,9 +30,9 @@ function getMetadataBase(): URL {
 const metadataBase = getMetadataBase();
 const baseUrl = metadataBase.origin;
 
-// Add cache-busting parameter to force Twitter to refresh cached images
-// Increment the version number when you update the image
-const imageUrl = `${baseUrl}/irl-share.png?v=2`;
+// Add cache-busting when you change the default link-preview asset (OG / X)
+const linkPreviewFile = 'IRL WEB PREVIEW_01.png';
+const imageUrl = `${baseUrl}/link-preview/${encodeURIComponent(linkPreviewFile)}?v=1`;
 
 export const metadata: Metadata = {
   metadataBase,

@@ -6,7 +6,14 @@ import { useParams } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2, Trash2, ChevronUp, ChevronDown, Upload } from 'lucide-react';
+import {
+  Eye,
+  Loader2,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+  Upload,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -301,6 +308,31 @@ export default function AdminGuideEditPage() {
       : `/city-guides/${slug.trim()}`;
   }, [guide, slug]);
 
+  const openPreview = useCallback(async () => {
+    if (!adminEmail) {
+      toast.error('Not signed in');
+      return;
+    }
+    try {
+      const response = await fetch(`/api/admin/guides/${id}/preview-link`, {
+        headers: { 'x-user-email': adminEmail },
+      });
+      const responseData = await response.json();
+      const data = responseData.data || responseData;
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Could not open preview');
+      }
+      const url = data.url as string;
+      if (!url) {
+        throw new Error('No preview URL returned');
+      }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Could not open preview';
+      toast.error(message);
+    }
+  }, [adminEmail, id]);
+
   const uploadMapImage = async (file: File) => {
     setMapImageUploading(true);
     try {
@@ -553,6 +585,16 @@ export default function AdminGuideEditPage() {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void openPreview()}
+            className="gap-1"
+          >
+            <Eye className="size-4" aria-hidden />
+            Preview
+          </Button>
           <Button
             type="button"
             variant="destructive"
