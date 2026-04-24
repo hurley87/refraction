@@ -8,12 +8,23 @@ type PreviewPayload = {
   exp: number;
 };
 
+/**
+ * Prefer `GUIDE_PREVIEW_SECRET` when set. In production, derive a dedicated
+ * HMAC key from `PRIVY_APP_SECRET` so guide preview works on deploy without
+ * adding another Vercel variable (most apps already set Privy).
+ */
 function getSecret(): string | null {
   if (process.env.GUIDE_PREVIEW_SECRET?.trim()) {
     return process.env.GUIDE_PREVIEW_SECRET.trim();
   }
   if (process.env.NODE_ENV === 'development') {
     return 'dev-guide-preview-secret';
+  }
+  const privy = process.env.PRIVY_APP_SECRET?.trim();
+  if (privy) {
+    return createHmac('sha256', privy)
+      .update('irl:guide-preview-token-v1')
+      .digest('hex');
   }
   return null;
 }

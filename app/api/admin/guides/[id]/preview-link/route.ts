@@ -18,7 +18,8 @@ function readHrefForGuide(
 
 /**
  * Returns a time-limited preview URL (with `?preview=…` token) for an unpublished or published guide.
- * Requires `x-user-email` for an admin and `GUIDE_PREVIEW_SECRET` in production.
+ * Requires `x-user-email` for an admin. Signing uses `GUIDE_PREVIEW_SECRET` or, in production, a
+ * key derived from `PRIVY_APP_SECRET`.
  */
 export async function GET(
   request: NextRequest,
@@ -32,7 +33,7 @@ export async function GET(
 
     if (!isGuidePreviewSecretConfigured()) {
       return apiError(
-        'Guide preview is not configured (set GUIDE_PREVIEW_SECRET)',
+        'Guide preview is not configured (set GUIDE_PREVIEW_SECRET or PRIVY_APP_SECRET)',
         500
       );
     }
