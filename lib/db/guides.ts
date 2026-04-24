@@ -620,6 +620,14 @@ export async function replaceGuideContributors(
   guideId: string,
   rows: ContributorInput[]
 ): Promise<void> {
+  const { data: previousRows, error: prevErr } = await supabase
+    .from('guide_contributors')
+    .select(
+      'guide_id, position, name, bio, photo_url, photo_alt, instagram_href'
+    )
+    .eq('guide_id', guideId);
+  if (prevErr) throw prevErr;
+
   const { error: delErr } = await supabase
     .from('guide_contributors')
     .delete()
@@ -639,7 +647,29 @@ export async function replaceGuideContributors(
       instagram_href: r.instagram_href,
     }))
   );
-  if (insErr) throw insErr;
+  if (insErr) {
+    const snapshot = (previousRows ?? []) as {
+      guide_id: string;
+      position: number;
+      name: string;
+      bio: string | null;
+      photo_url: string | null;
+      photo_alt: string | null;
+      instagram_href: string | null;
+    }[];
+    if (snapshot.length > 0) {
+      const { error: restoreErr } = await supabase
+        .from('guide_contributors')
+        .insert(snapshot);
+      if (restoreErr) {
+        console.error(
+          '[guides] replaceGuideContributors: insert failed and restore failed',
+          restoreErr
+        );
+      }
+    }
+    throw insErr;
+  }
 }
 
 export async function ensureUniqueGuideSlug(
