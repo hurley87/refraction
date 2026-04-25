@@ -51,7 +51,7 @@ describe('Locations Database Module', () => {
     it('should return existing location if place_id exists', async () => {
       const mockSelectChain = {
         eq: vi.fn(() => ({
-          single: vi
+          maybeSingle: vi
             .fn()
             .mockResolvedValue({ data: sampleLocation, error: null }),
         })),
@@ -80,11 +80,11 @@ describe('Locations Database Module', () => {
       // First call for select - returns no existing location
       const mockSelectFirst = {
         eq: vi.fn(() => ({
-          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
         })),
       };
-      // Second call for upsert
-      const mockUpsertChain = {
+      // Second call for insert
+      const mockInsertChain = {
         select: vi.fn(() => ({
           single: vi.fn().mockResolvedValue({ data: newLocation, error: null }),
         })),
@@ -97,7 +97,7 @@ describe('Locations Database Module', () => {
           return { select: vi.fn(() => mockSelectFirst) };
         }
         return {
-          upsert: vi.fn(() => mockUpsertChain),
+          insert: vi.fn(() => mockInsertChain),
         };
       });
 
@@ -114,15 +114,65 @@ describe('Locations Database Module', () => {
       expect(result).toEqual(newLocation);
     });
 
+    it('should return existing row on unique violation (concurrent insert)', async () => {
+      const concurrentWinner = { ...sampleLocation, id: 99 };
+
+      const mockSelectFirst = {
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        })),
+      };
+      const mockInsertChain = {
+        select: vi.fn(() => ({
+          single: vi.fn().mockResolvedValue({
+            data: null,
+            error: { code: '23505', message: 'duplicate key' },
+          }),
+        })),
+      };
+      const mockSelectAfterRace = {
+        eq: vi.fn(() => ({
+          maybeSingle: vi
+            .fn()
+            .mockResolvedValue({ data: concurrentWinner, error: null }),
+        })),
+      };
+
+      let callCount = 0;
+      mockFrom.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return { select: vi.fn(() => mockSelectFirst) };
+        }
+        if (callCount === 2) {
+          return {
+            insert: vi.fn(() => mockInsertChain),
+          };
+        }
+        return { select: vi.fn(() => mockSelectAfterRace) };
+      });
+
+      const locationData = {
+        name: 'Test Venue',
+        latitude: 40.7128,
+        longitude: -74.006,
+        place_id: 'race-place',
+        points_value: 100,
+      };
+
+      const result = await createOrGetLocation(locationData);
+      expect(result).toEqual(concurrentWinner);
+    });
+
     it('should throw error on insert failure', async () => {
       // First call returns no existing
       const mockSelectFirst = {
         eq: vi.fn(() => ({
-          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
         })),
       };
-      // Second call (upsert) fails
-      const mockUpsertChain = {
+      // Second call (insert) fails
+      const mockInsertChain = {
         select: vi.fn(() => ({
           single: vi.fn().mockResolvedValue({
             data: null,
@@ -138,7 +188,7 @@ describe('Locations Database Module', () => {
           return { select: vi.fn(() => mockSelectFirst) };
         }
         return {
-          upsert: vi.fn(() => mockUpsertChain),
+          insert: vi.fn(() => mockInsertChain),
         };
       });
 
