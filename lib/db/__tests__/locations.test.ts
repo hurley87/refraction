@@ -51,7 +51,7 @@ describe('Locations Database Module', () => {
     it('should return existing location if place_id exists', async () => {
       const mockSelectChain = {
         eq: vi.fn(() => ({
-          single: vi
+          maybeSingle: vi
             .fn()
             .mockResolvedValue({ data: sampleLocation, error: null }),
         })),
@@ -74,13 +74,40 @@ describe('Locations Database Module', () => {
       expect(mockFrom).toHaveBeenCalledWith('locations');
     });
 
+    it('should throw when lookup fails with a real database error', async () => {
+      const mockSelectChain = {
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: null,
+            error: { code: 'PGRST500', message: 'Lookup failed' },
+          }),
+        })),
+      };
+      mockFrom.mockReturnValue({
+        select: vi.fn(() => mockSelectChain),
+      });
+
+      const locationData = {
+        name: 'Test Venue',
+        latitude: 40.7128,
+        longitude: -74.006,
+        place_id: 'test-place-123',
+        points_value: 100,
+      };
+
+      await expect(createOrGetLocation(locationData)).rejects.toEqual({
+        code: 'PGRST500',
+        message: 'Lookup failed',
+      });
+    });
+
     it('should create new location if place_id does not exist', async () => {
       const newLocation = { ...sampleLocation, id: 2 };
 
       // First call for select - returns no existing location
       const mockSelectFirst = {
         eq: vi.fn(() => ({
-          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
         })),
       };
       // Second call for upsert
@@ -118,7 +145,7 @@ describe('Locations Database Module', () => {
       // First call returns no existing
       const mockSelectFirst = {
         eq: vi.fn(() => ({
-          single: vi.fn().mockResolvedValue({ data: null, error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
         })),
       };
       // Second call (upsert) fails
