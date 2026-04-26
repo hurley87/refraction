@@ -34,12 +34,16 @@ const LOCATION_COLUMNS = `
 export const createOrGetLocation = async (
   locationData: Omit<Location, 'id' | 'created_at'>
 ) => {
-  // First try to find existing location
-  const { data: existingLocation } = await supabase
+  // First try to find existing location (maybeSingle: 0 rows = null, no error)
+  const { data: existingLocation, error: lookupError } = await supabase
     .from('locations')
     .select(LOCATION_COLUMNS)
     .eq('place_id', locationData.place_id)
-    .single();
+    .maybeSingle();
+
+  if (lookupError) {
+    throw lookupError;
+  }
 
   if (existingLocation) {
     return existingLocation;
