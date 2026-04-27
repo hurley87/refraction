@@ -32,6 +32,14 @@ import {
   type EditorialContentBlock,
 } from '@/lib/guides/block-schema';
 import { CityGuidesHubCardImage } from '@/components/city-guides/city-guides-hub-card-image';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const GUIDES_ADMIN_KEY = ['admin-guides'] as const;
 
@@ -164,6 +172,8 @@ export default function AdminGuideEditPage() {
     number | null
   >(null);
   const [blocks, setBlocks] = useState<EditorialContentBlock[]>([]);
+  const [previewWarningOpen, setPreviewWarningOpen] = useState(false);
+  const [previewOpening, setPreviewOpening] = useState(false);
 
   useEffect(() => {
     if (!guide) return;
@@ -311,10 +321,10 @@ export default function AdminGuideEditPage() {
       : `/city-guides/${slug.trim()}`;
   }, [guide, slug]);
 
-  const openPreview = useCallback(async () => {
+  const openPreviewInNewTab = useCallback(async (): Promise<boolean> => {
     if (!adminEmail) {
       toast.error('Not signed in');
-      return;
+      return false;
     }
     try {
       const response = await fetch(`/api/admin/guides/${id}/preview-link`, {
@@ -330,11 +340,23 @@ export default function AdminGuideEditPage() {
         throw new Error('No preview URL returned');
       }
       window.open(url, '_blank', 'noopener,noreferrer');
+      return true;
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Could not open preview';
       toast.error(message);
+      return false;
     }
   }, [adminEmail, id]);
+
+  const handleConfirmPreview = useCallback(async () => {
+    setPreviewOpening(true);
+    try {
+      const ok = await openPreviewInNewTab();
+      if (ok) setPreviewWarningOpen(false);
+    } finally {
+      setPreviewOpening(false);
+    }
+  }, [openPreviewInNewTab]);
 
   const uploadMapImage = async (file: File) => {
     setMapImageUploading(true);
@@ -592,7 +614,7 @@ export default function AdminGuideEditPage() {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => void openPreview()}
+            onClick={() => setPreviewWarningOpen(true)}
             className="gap-1"
           >
             <Eye className="size-4" aria-hidden />
@@ -1395,6 +1417,49 @@ export default function AdminGuideEditPage() {
           ))}
         </section>
       )}
+
+      <Dialog
+        open={previewWarningOpen}
+        onOpenChange={(open) => {
+          if (!open && previewOpening) return;
+          setPreviewWarningOpen(open);
+        }}
+      >
+        <DialogContent className="max-w-md border-2 border-neutral-300 bg-white text-neutral-950 shadow-2xl">
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="text-xl font-semibold tracking-tight text-neutral-950">
+              Preview shows saved content only
+            </DialogTitle>
+            <DialogDescription className="text-base leading-relaxed text-neutral-800 [&>strong]:font-semibold [&>strong]:text-neutral-950">
+              The preview loads the version stored on the server. Edits you have{' '}
+              <strong>not saved yet</strong> will not appear. Save first if you
+              need to see them, or continue to open a preview of the last saved
+              version.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPreviewWarningOpen(false)}
+              disabled={previewOpening}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="bg-black text-white hover:bg-black/85"
+              onClick={() => void handleConfirmPreview()}
+              disabled={previewOpening}
+            >
+              {previewOpening ? (
+                <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+              ) : null}
+              Open preview
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
