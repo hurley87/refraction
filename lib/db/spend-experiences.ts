@@ -167,6 +167,9 @@ export async function updateSpendExperience(
   updates: UpdateSpendExperienceInput
 ): Promise<SpendExperience> {
   const patch = buildSpendExperiencePatch(updates);
+  if (Object.keys(patch).length === 0) {
+    throw new Error('No fields to update');
+  }
 
   const { data, error } = await supabase
     .from('spend_experiences')
