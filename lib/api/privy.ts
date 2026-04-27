@@ -49,6 +49,24 @@ export async function verifyCallerIdentity(
 }
 
 /**
+ * Return the Privy `userId` for a valid Bearer token, or null.
+ */
+export async function getPrivyUserIdFromRequest(
+  req: NextRequest
+): Promise<string | null> {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7);
+  try {
+    const privy = getPrivyClient();
+    const verifiedClaims = await privy.verifyAuthToken(token);
+    return verifiedClaims.userId;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Verify the caller is authenticated with Privy and owns the provided wallet.
  */
 export async function verifyWalletOwnership(

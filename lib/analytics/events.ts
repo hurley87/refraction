@@ -35,6 +35,11 @@ export const ANALYTICS_EVENTS = {
 
   // Page Views (automatically tracked)
   PAGE_VIEW: '$pageview',
+
+  // Spend pilot (IRL points → USDC)
+  SPEND_EXPERIENCE_QR_VIEWED_BY_ADMIN: 'spend_experience_qr_viewed_by_admin',
+  SPEND_EXPERIENCE_QR_SCANNED: 'spend_experience_qr_scanned',
+  SPEND_SESSION_CREATED: 'spend_session_created',
 } as const;
 
 export type AnalyticsEventName =

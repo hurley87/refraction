@@ -101,3 +101,14 @@ export interface CityMilestoneProperties {
   spot_count: number;
   milestone: number;
 }
+
+/** Spend pilot: session / QR analytics */
+export interface SpendPilotSessionEventProperties {
+  spend_experience_id: string;
+  event_id?: string | null;
+  user_id: string;
+  wallet_address: string;
+  spend_session_id?: string;
+  /** True when the session row was newly inserted (not idempotent return). */
+  created?: boolean;
+}

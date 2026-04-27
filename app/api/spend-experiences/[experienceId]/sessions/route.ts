@@ -1,0 +1,90 @@
+import { NextRequest } from 'next/server';
+import {
+  getPrivyUserIdFromRequest,
+  verifyWalletOwnership,
+} from '@/lib/api/privy';
+import { getSpendExperienceById } from '@/lib/db/spend-experiences';
+import { createOrGetSpendSession } from '@/lib/db/spend-sessions';
+import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
+import { createSpendSessionBodySchema } from '@/lib/schemas/spend-session';
+import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
+import {
+  trackSpendSessionCreated,
+  resolveServerIdentity,
+} from '@/lib/analytics/server';
+
+export const dynamic = 'force-dynamic';
+
+type RouteParams = { params: { experienceId: string } };
+
+/**
+ * POST /api/spend-experiences/{experienceId}/sessions
+ * Creates or returns a user-specific spend session (Privy + wallet ownership).
+ */
+export async function POST(request: NextRequest, { params }: RouteParams) {
+  const experienceId = params.experienceId;
+  if (!experienceId) {
+    return apiError('Missing experience id', 400);
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return apiError('Invalid JSON body', 400);
+  }
+
+  const parsed = createSpendSessionBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return apiValidationError(parsed.error);
+  }
+
+  const { walletAddress } = parsed.data;
+  const auth = await verifyWalletOwnership(request, walletAddress);
+  if (!auth.authorized || !auth.userId) {
+    return apiError(auth.error ?? 'Unauthorized', 401);
+  }
+
+  const tokenUser = await getPrivyUserIdFromRequest(request);
+  if (!tokenUser || tokenUser !== auth.userId) {
+    return apiError('Unauthorized', 401);
+  }
+
+  const experience = await getSpendExperienceById(experienceId);
+  const gate = assertSpendExperienceOpenForSessions(experience);
+  if (!gate.ok) {
+    return apiError(gate.error, gate.httpStatus);
+  }
+
+  try {
+    const { session, created } = await createOrGetSpendSession({
+      spendExperience: experience!,
+      userId: auth.userId,
+      walletAddress: walletAddress.trim(),
+    });
+
+    if (created) {
+      const distinctId = resolveServerIdentity({
+        privyUserId: auth.userId,
+        walletAddress: walletAddress.trim().toLowerCase(),
+      });
+      trackSpendSessionCreated(distinctId, {
+        spend_experience_id: experienceId,
+        event_id: experience!.event_id,
+        user_id: auth.userId,
+        wallet_address: walletAddress.trim().toLowerCase(),
+        spend_session_id: session.id,
+        created: true,
+      });
+    }
+
+    return apiSuccess(
+      { session, spendExperience: experience, created },
+      created ? 'Spend session created' : 'Spend session returned'
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Failed to create session';
+    console.error('POST spend session:', e);
+    return apiError(msg, 500);
+  }
+}

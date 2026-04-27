@@ -1,60 +1,42 @@
 import { NextRequest } from 'next/server';
-import { getSpendItemById, createPendingSpendRedemption } from '@/lib/db/spend';
-import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
-import { spendPointsSchema } from '@/lib/schemas/spend';
-import { verifyWalletOwnership } from '@/lib/api/privy';
-import { ZodError } from 'zod';
+import { getSpendItemById } from '@/lib/db/spend';
+import { getSpendExperienceById } from '@/lib/db/spend-experiences';
+import { apiSuccess, apiError } from '@/lib/api/response';
 
-// GET /api/spend/[id] - Get a single spend item
+/**
+ * GET /api/spend/[id]
+ * Resolves a legacy spend item id vs a spend pilot experience id for `/spend/[id]`.
+ */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  try {
-    const item = await getSpendItemById(params.id);
-    return apiSuccess({ item });
-  } catch (error: any) {
-    console.error('Error fetching spend item:', error);
-    if (error?.code === 'PGRST116') {
-      return apiError('Spend item not found', 404);
-    }
-    return apiError('Failed to fetch spend item', 500);
+  const id = params.id;
+  if (!id) {
+    return apiError('Missing id', 400);
   }
-}
 
-// POST /api/spend/[id] - Create a pending redemption (no deduction). User verifies later to deduct points.
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
   try {
-    const body = await request.json();
-
-    const validated = spendPointsSchema.parse({
-      spendItemId: params.id,
-      walletAddress: body.walletAddress,
-    });
-
-    const auth = await verifyWalletOwnership(request, validated.walletAddress);
-    if (!auth.authorized) {
-      return apiError(auth.error ?? 'Unauthorized', 401);
+    const experience = await getSpendExperienceById(id);
+    if (experience) {
+      return apiSuccess({
+        kind: 'spend_experience' as const,
+        spendExperience: experience,
+      });
     }
+  } catch (e) {
+    console.error('getSpendExperienceById in /api/spend/[id]:', e);
+  }
 
-    const redemption = await createPendingSpendRedemption(
-      validated.spendItemId,
-      validated.walletAddress
-    );
-    return apiSuccess(
-      { redemption },
-      'Redemption created. Verify at the bar to use it.'
-    );
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return apiValidationError(error);
+  try {
+    const item = await getSpendItemById(id);
+    return apiSuccess({ kind: 'spend_item' as const, item });
+  } catch (error: unknown) {
+    const anyErr = error as { code?: string };
+    if (anyErr?.code === 'PGRST116') {
+      return apiError('Not found', 404);
     }
-    const message =
-      error instanceof Error ? error.message : 'Failed to create redemption';
-    console.error('Error creating spend redemption:', error);
-    return apiError(message, 400);
+    console.error('GET /api/spend/[id] spend item error:', error);
+    return apiError('Failed to resolve spend route', 500);
   }
 }

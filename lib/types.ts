@@ -286,3 +286,96 @@ export type SpendExperience = {
   created_at: string;
   updated_at: string;
 };
+
+export type SpendSessionStatus =
+  | 'created'
+  | 'conversion_pending'
+  | 'conversion_complete'
+  | 'payment_pending'
+  | 'payment_complete'
+  | 'failed'
+  | 'expired';
+
+/**
+ * Per-user session for a spend experience (created on QR scan / open).
+ */
+export type SpendSession = {
+  id: string;
+  spend_experience_id: string;
+  user_id: string;
+  wallet_address: string;
+  status: SpendSessionStatus;
+  qr_token_hash: string | null;
+  created_at: string;
+  expires_at: string;
+  completed_at: string | null;
+};
+
+export type PointConversionStatus =
+  | 'pending'
+  | 'points_deducted'
+  | 'funding_pending'
+  | 'funded'
+  | 'failed';
+
+export type PointConversion = {
+  id: string;
+  spend_experience_id: string;
+  spend_session_id: string;
+  user_id: string;
+  points_deducted: number;
+  usdc_amount: number;
+  status: PointConversionStatus;
+  treasury_wallet_address: string;
+  user_wallet_address: string;
+  funding_tx_hash: string | null;
+  idempotency_key: string | null;
+  created_at: string;
+  completed_at: string | null;
+  failed_reason: string | null;
+};
+
+export type SpendTransactionStatus =
+  | 'pending'
+  | 'submitted'
+  | 'confirmed'
+  | 'failed';
+
+export type SpendTransaction = {
+  id: string;
+  spend_experience_id: string;
+  spend_session_id: string;
+  user_id: string;
+  usdc_amount: number;
+  from_wallet_address: string;
+  to_wallet_address: string;
+  status: SpendTransactionStatus;
+  payment_tx_hash: string | null;
+  idempotency_key: string | null;
+  created_at: string;
+  completed_at: string | null;
+  failed_reason: string | null;
+};
+
+export type TreasuryTransactionType =
+  | 'fund_user'
+  | 'receive_payment'
+  | 'admin_recovery';
+
+export type TreasuryTransactionRowStatus =
+  | 'pending'
+  | 'submitted'
+  | 'confirmed'
+  | 'failed';
+
+export type TreasuryTransaction = {
+  id: string;
+  spend_experience_id: string | null;
+  transaction_type: TreasuryTransactionType;
+  amount: number;
+  from_wallet_address: string | null;
+  to_wallet_address: string | null;
+  tx_hash: string | null;
+  status: TreasuryTransactionRowStatus;
+  created_at: string;
+};

@@ -11,6 +11,7 @@ import type {
   SpendRedemptionStartedProperties,
   SpendRedemptionCompletedProperties,
   CityMilestoneProperties,
+  SpendPilotSessionEventProperties,
 } from './types';
 import { ANALYTICS_EVENTS } from './events';
 import { resolveDistinctId, type IdentityInput } from './identity';
@@ -242,4 +243,25 @@ export function trackCityMilestone(
   properties: CityMilestoneProperties
 ): void {
   trackEvent(distinctId, ANALYTICS_EVENTS.CITY_MILESTONE, properties);
+}
+
+export function trackSpendSessionCreated(
+  distinctId: string,
+  properties: SpendPilotSessionEventProperties
+): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.SPEND_SESSION_CREATED, properties);
+}
+
+export function trackSpendExperienceQrViewedByAdmin(
+  distinctId: string,
+  properties: {
+    spend_experience_id: string;
+    event_id?: string | null;
+  }
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPEND_EXPERIENCE_QR_VIEWED_BY_ADMIN,
+    properties
+  );
 }

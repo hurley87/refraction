@@ -23,7 +23,9 @@ export function useSpendItem(id?: string) {
     queryKey: ['spend-item', id],
     queryFn: async () => {
       if (!id) throw new Error('No ID provided');
-      const data = await apiClient<{ item: SpendItem }>(`/api/spend/${id}`);
+      const data = await apiClient<{ item: SpendItem }>(
+        `/api/spend/items/${id}`
+      );
       return data.item;
     },
     enabled: !!id,
@@ -47,7 +49,7 @@ export function useSpendPoints() {
       accessToken: string;
     }) => {
       const data = await apiClient<{ redemption: SpendRedemption }>(
-        `/api/spend/${spendItemId}`,
+        `/api/spend/items/${spendItemId}`,
         {
           method: 'POST',
           headers: {

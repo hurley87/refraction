@@ -16,7 +16,7 @@ vi.mock('@/lib/db/spend-experiences', () => ({
     mockUpdateSpendExperience(...args),
 }));
 
-import { PATCH } from '../route';
+import { PATCH, GET } from '../route';
 
 const existing = {
   id: 'exp-1',
@@ -44,6 +44,44 @@ function patchRequest(body: Record<string, unknown>, email?: string) {
     { method: 'PATCH', headers, body: JSON.stringify(body) }
   );
 }
+
+describe('GET /api/admin/spend-experiences/[experienceId]', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('returns 200 with spend experience when admin', async () => {
+    mockRequireAdmin.mockResolvedValue({
+      isValid: true,
+      user: { email: 'admin@example.com' },
+    });
+    mockGetSpendExperienceById.mockResolvedValue(existing);
+    const headers = new Headers();
+    headers.set('x-user-email', 'admin@example.com');
+    const req = new NextRequest(
+      'http://localhost:3000/api/admin/spend-experiences/exp-1',
+      { method: 'GET', headers }
+    );
+    const res = await GET(req, { params: { experienceId: 'exp-1' } });
+    const j = await res.json();
+    expect(res.status).toBe(200);
+    expect(j.data.spendExperience).toEqual(existing);
+  });
+
+  it('returns 404 for GET when missing', async () => {
+    mockRequireAdmin.mockResolvedValue({
+      isValid: true,
+      user: { email: 'admin@example.com' },
+    });
+    mockGetSpendExperienceById.mockResolvedValue(null);
+    const headers = new Headers();
+    headers.set('x-user-email', 'admin@example.com');
+    const req = new NextRequest(
+      'http://localhost:3000/api/admin/spend-experiences/missing',
+      { method: 'GET', headers }
+    );
+    const res = await GET(req, { params: { experienceId: 'missing' } });
+    expect(res.status).toBe(404);
+  });
+});
 
 describe('PATCH /api/admin/spend-experiences/[experienceId]', () => {
   beforeEach(() => vi.clearAllMocks());
