@@ -122,6 +122,7 @@ export type GuideHubListItem = {
   imageSrc: string;
   imageAlt: string;
   readHref: string;
+  featuredPeople: string[];
 };
 
 export type GuideFeaturedPayload = {
@@ -162,6 +163,7 @@ function toHubListItem(row: GuideRow): GuideHubListItem {
     row.updated_at ??
     row.created_at ??
     new Date().toISOString();
+  const people = row.featured_people?.filter((p) => p.trim()) ?? [];
   return {
     id: row.id,
     slug: row.slug,
@@ -173,6 +175,7 @@ function toHubListItem(row: GuideRow): GuideHubListItem {
     imageSrc: row.card_image_url?.trim() || row.hero_image_url || '',
     imageAlt: row.card_image_alt?.trim() || row.hero_image_alt || '',
     readHref: readHrefFor(row),
+    featuredPeople: people,
   };
 }
 

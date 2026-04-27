@@ -26,6 +26,40 @@ export function defaultReadLabel(kind: GuideKind): string {
   return kind === 'city-guide' ? 'Read guide' : 'Read editorial';
 }
 
+export function GuideFeaturingContributors({ names }: { names: string[] }) {
+  const people = names.map((n) => n.trim()).filter(Boolean);
+  if (people.length === 0) return null;
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      <p className="label-small uppercase tracking-wide text-[#757575]">
+        Featuring
+      </p>
+      <ul className="flex min-h-0 min-w-0 flex-1 list-none flex-row flex-wrap content-start items-center gap-2">
+        {people.map((name, index) => (
+          <li
+            key={`${name}-${index}`}
+            className="flex h-5 w-fit min-w-0 max-w-full shrink-0 items-center gap-1 py-0.5 pl-1 pr-1"
+            style={{
+              border: '1px solid var(--Borders-Heavy-Border, #454545)',
+            }}
+          >
+            <Image
+              src="/city-guides/user-icon.svg"
+              alt=""
+              width={12}
+              height={12}
+              className="size-3 shrink-0"
+            />
+            <span className="min-w-0 label-small leading-none text-[#171717]">
+              {name}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /**
  * Featured editorial / city guide — square hero (max `393px` wide, same hub column as
  * list rail) with image under `MapNav`; summary uses the 361px hub rail; list cards
@@ -104,35 +138,7 @@ export default function FeaturedEditorialHeroCard({
             </span>
           </div>
 
-          {featuredPeople.length > 0 ? (
-            <>
-              <p className="label-small uppercase tracking-wide text-[#757575]">
-                Featuring
-              </p>
-              <ul className="flex min-h-0 flex-1 list-none flex-row flex-wrap content-start items-center gap-2">
-                {featuredPeople.map((name, index) => (
-                  <li
-                    key={`${name}-${index}`}
-                    className="flex h-5 w-fit min-w-0 max-w-full shrink-0 items-center gap-1 py-0.5 pl-1 pr-1"
-                    style={{
-                      border: '1px solid var(--Borders-Heavy-Border, #454545)',
-                    }}
-                  >
-                    <Image
-                      src="/city-guides/user-icon.svg"
-                      alt=""
-                      width={12}
-                      height={12}
-                      className="size-3 shrink-0"
-                    />
-                    <span className="min-w-0  label-small leading-none text-[#171717]">
-                      {name}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : null}
+          <GuideFeaturingContributors names={featuredPeople} />
 
           <div className="shrink-0 pt-1">
             <Link

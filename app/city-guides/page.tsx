@@ -58,6 +58,7 @@ export default async function CityGuidesHomePage() {
                   imageSrc={item.imageSrc}
                   imageAlt={item.imageAlt}
                   readHref={item.readHref}
+                  featuredPeople={item.featuredPeople}
                   className={index === 0 ? 'border-t-0' : undefined}
                 />
               ))

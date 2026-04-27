@@ -5,6 +5,7 @@ import { CityGuidesHubCardImage } from '@/components/city-guides/city-guides-hub
 import {
   defaultReadLabel,
   guideKindLabel,
+  GuideFeaturingContributors,
   type GuideKind,
 } from '@/components/city-guides/featured-editorial-hero-card';
 
@@ -16,6 +17,7 @@ export interface CityGuideListCardProps {
   imageSrc: string;
   imageAlt: string;
   readHref: string;
+  featuredPeople: string[];
   className?: string;
 }
 
@@ -50,6 +52,7 @@ export default function CityGuideListCard({
   imageSrc,
   imageAlt,
   readHref,
+  featuredPeople,
   className,
 }: CityGuideListCardProps) {
   const readLabel = defaultReadLabel(guideKind);
@@ -106,6 +109,8 @@ export default function CityGuideListCard({
       </div>
 
       <h2 className="title1 min-h-8 text-[#171717]">{title}</h2>
+
+      <GuideFeaturingContributors names={featuredPeople} />
 
       <p className="body-small line-clamp-2 min-h-10 text-[#757575]">
         {preview}
