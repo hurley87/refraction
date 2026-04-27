@@ -118,6 +118,32 @@ export type UpdateSpendExperienceInput = Partial<{
   end_time: string;
 }>;
 
+const UPDATE_SPEND_EXPERIENCE_KEYS: (keyof UpdateSpendExperienceInput)[] = [
+  'title',
+  'description',
+  'event_id',
+  'status',
+  'points_to_usdc_rate',
+  'max_usdc_per_user',
+  'treasury_wallet_address',
+  'receiving_wallet_address',
+  'start_time',
+  'end_time',
+];
+
+function buildSpendExperiencePatch(
+  updates: UpdateSpendExperienceInput
+): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  for (const key of UPDATE_SPEND_EXPERIENCE_KEYS) {
+    const value = updates[key];
+    if (value !== undefined) {
+      patch[key] = value;
+    }
+  }
+  return patch;
+}
+
 export async function getSpendExperienceById(
   id: string
 ): Promise<SpendExperience | null> {
@@ -140,22 +166,7 @@ export async function updateSpendExperience(
   id: string,
   updates: UpdateSpendExperienceInput
 ): Promise<SpendExperience> {
-  const patch: Record<string, unknown> = {};
-  if (updates.title !== undefined) patch.title = updates.title;
-  if (updates.description !== undefined)
-    patch.description = updates.description;
-  if (updates.event_id !== undefined) patch.event_id = updates.event_id;
-  if (updates.status !== undefined) patch.status = updates.status;
-  if (updates.points_to_usdc_rate !== undefined)
-    patch.points_to_usdc_rate = updates.points_to_usdc_rate;
-  if (updates.max_usdc_per_user !== undefined)
-    patch.max_usdc_per_user = updates.max_usdc_per_user;
-  if (updates.treasury_wallet_address !== undefined)
-    patch.treasury_wallet_address = updates.treasury_wallet_address;
-  if (updates.receiving_wallet_address !== undefined)
-    patch.receiving_wallet_address = updates.receiving_wallet_address;
-  if (updates.start_time !== undefined) patch.start_time = updates.start_time;
-  if (updates.end_time !== undefined) patch.end_time = updates.end_time;
+  const patch = buildSpendExperiencePatch(updates);
 
   const { data, error } = await supabase
     .from('spend_experiences')
