@@ -37,3 +37,5 @@ export async function requireAdmin(
 
   return { isValid: true, user: { email: user.email } };
 }
+  /* Bounty contribution */
+}
