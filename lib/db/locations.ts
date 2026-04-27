@@ -1,6 +1,12 @@
 import { supabase } from './client';
 import type { Location, LocationOption } from '../types';
 
+const isUniqueViolation = (error: unknown): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  (error as { code?: string }).code === '23505';
+
 // Select specific columns for location queries
 const LOCATION_COLUMNS = `
   id,
@@ -28,35 +34,46 @@ const LOCATION_COLUMNS = `
 
 /**
  * Create a location or return existing one by place_id.
- * Uses upsert to prevent race conditions when multiple requests
- * try to create the same location simultaneously.
+ * On unique conflict (concurrent creators), returns the existing row without
+ * updating it — `upsert` would overwrite fields like `is_visible` and
+ * `creator_wallet_address`, breaking moderation and the hidden-location gate.
  */
 export const createOrGetLocation = async (
   locationData: Omit<Location, 'id' | 'created_at'>
 ) => {
-  // First try to find existing location
-  const { data: existingLocation } = await supabase
+  const { data: existingLocation, error: selectError } = await supabase
     .from('locations')
     .select(LOCATION_COLUMNS)
     .eq('place_id', locationData.place_id)
-    .single();
+    .maybeSingle();
 
+  if (selectError) throw selectError;
   if (existingLocation) {
     return existingLocation;
   }
 
-  // Use upsert to handle race conditions - if another request created
-  // the location between our select and insert, this will just return it
-  const { data, error } = await supabase
+  const { data: inserted, error: insertError } = await supabase
     .from('locations')
-    .upsert(locationData, {
-      onConflict: 'place_id',
-    })
+    .insert(locationData)
     .select(LOCATION_COLUMNS)
     .single();
 
-  if (error) throw error;
-  return data;
+  if (!insertError) {
+    return inserted;
+  }
+
+  if (isUniqueViolation(insertError)) {
+    const { data: afterRace, error: fetchError } = await supabase
+      .from('locations')
+      .select(LOCATION_COLUMNS)
+      .eq('place_id', locationData.place_id)
+      .maybeSingle();
+
+    if (fetchError) throw fetchError;
+    if (afterRace) return afterRace;
+  }
+
+  throw insertError;
 };
 
 /**
