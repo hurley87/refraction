@@ -64,10 +64,13 @@ function interactiveMapLaunchHref(returnPath: string) {
 function contributorLineForLocation(
   placeId: string,
   overrides: Map<string, string>,
+  sectionDefaultContributor: string | null,
   guideContributors: readonly string[]
 ): string {
   const fromOverride = overrides.get(placeId)?.trim();
   if (fromOverride) return fromOverride;
+  const sectionName = sectionDefaultContributor?.trim();
+  if (sectionName) return sectionName;
   if (guideContributors.length === 0) return '';
   if (guideContributors.length === 1) return guideContributors[0];
   return guideContributors.join(', ');
@@ -89,9 +92,16 @@ export default async function CityGuideBySlugPage({
     row,
     contributors,
     contributorNames,
-    locations,
+    locationSections,
     locationContributorByPlaceId,
   } = data;
+  const nonEmptyLocationSections = locationSections.filter(
+    (s) => s.locations.length > 0
+  );
+  const totalVenueCount = nonEmptyLocationSections.reduce(
+    (n, s) => n + s.locations.length,
+    0
+  );
   const returnPath = `/city-guides/${row.slug}`;
   const mapHeading = 'In This Guide';
   const leadParagraphs = row.lead_paragraphs?.filter((p) => p.trim()) ?? [];
@@ -160,37 +170,53 @@ export default async function CityGuideBySlugPage({
             </section>
           ) : null}
 
-          {locations.length === 0 ? (
+          {totalVenueCount === 0 ? (
             <p className="body-medium mt-6 text-[#757575]">
-              No venues linked to this guide yet. Choose a location list in
-              Admin → Guides, or add venues in Admin → Location Lists.
+              No venues linked to this guide yet. Assign a location list on the
+              guide or per contributor in Admin → Guides, or add venues in Admin
+              → Location Lists.
             </p>
           ) : (
-            locations.map((entry, index) => {
-              const loc = entry.location;
-              const description =
-                loc.description?.trim() || loc.address?.trim() || '—';
-              const isLast = index === locations.length - 1;
+            nonEmptyLocationSections.map((section, sectionIndex) => {
+              const isLastSection =
+                sectionIndex === nonEmptyLocationSections.length - 1;
               return (
-                <CityGuideLocationCard
-                  key={entry.membership_id}
-                  name={loc.name}
-                  description={description}
-                  imageSrc={loc.coin_image_url ?? null}
-                  imageAlt={`${loc.name} — location photo`}
-                  contributorName={contributorLineForLocation(
-                    loc.place_id,
-                    locationContributorByPlaceId,
-                    contributorNames
-                  )}
-                  mapHref={interactiveMapHrefForLocation(
-                    returnPath,
-                    loc.place_id,
-                    loc.latitude,
-                    loc.longitude
-                  )}
-                  isLast={isLast}
-                />
+                <div key={`venue-section-${sectionIndex}`}>
+                  {section.heading ? (
+                    <h3 className="title3 mb-3 mt-2 text-[#171717]">
+                      {section.heading}
+                    </h3>
+                  ) : null}
+                  {section.locations.map((entry, index) => {
+                    const loc = entry.location;
+                    const description =
+                      loc.description?.trim() || loc.address?.trim() || '—';
+                    const isLast =
+                      isLastSection && index === section.locations.length - 1;
+                    return (
+                      <CityGuideLocationCard
+                        key={entry.membership_id}
+                        name={loc.name}
+                        description={description}
+                        imageSrc={loc.coin_image_url ?? null}
+                        imageAlt={`${loc.name} — location photo`}
+                        contributorName={contributorLineForLocation(
+                          loc.place_id,
+                          locationContributorByPlaceId,
+                          section.defaultContributorName,
+                          contributorNames
+                        )}
+                        mapHref={interactiveMapHrefForLocation(
+                          returnPath,
+                          loc.place_id,
+                          loc.latitude,
+                          loc.longitude
+                        )}
+                        isLast={isLast}
+                      />
+                    );
+                  })}
+                </div>
               );
             })
           )}

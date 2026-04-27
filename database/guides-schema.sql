@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS guide_contributors (
   photo_url TEXT,
   photo_alt TEXT,
   instagram_href TEXT,
+  location_list_id UUID REFERENCES location_lists (id) ON DELETE SET NULL,
   PRIMARY KEY (guide_id, position),
   CONSTRAINT guide_contributors_position_non_negative CHECK (position >= 0)
 );

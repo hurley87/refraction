@@ -40,6 +40,7 @@ export type GuideContributorRow = {
   photo_url: string | null;
   photo_alt: string | null;
   instagram_href: string | null;
+  location_list_id: string | null;
 };
 
 /** Raw row from `guides` (snake_case as returned by Supabase). */
@@ -280,7 +281,7 @@ async function fetchContributorsForGuide(
   const { data, error } = await supabase
     .from('guide_contributors')
     .select(
-      'guide_id, position, name, bio, photo_url, photo_alt, instagram_href'
+      'guide_id, position, name, bio, photo_url, photo_alt, instagram_href, location_list_id'
     )
     .eq('guide_id', guideId)
     .order('position', { ascending: true });
@@ -327,11 +328,19 @@ async function fetchGuideById(guideId: string): Promise<GuideRow | null> {
   return (data as unknown as GuideRow | null) ?? null;
 }
 
+export type CityGuideLocationSection = {
+  /** Shown above this group of venue cards when the guide has multiple contributors */
+  heading: string | null;
+  /** Default byline for venues in this section when no per-location override */
+  defaultContributorName: string | null;
+  locations: LocationListLocation[];
+};
+
 export type CityGuidePageData = {
   row: GuideRow;
   contributors: GuideContributorUi[];
   contributorNames: string[];
-  locations: LocationListLocation[];
+  locationSections: CityGuideLocationSection[];
   locationContributorByPlaceId: Map<string, string>;
 };
 
@@ -356,19 +365,57 @@ async function buildCityGuidePageDataFromRow(
   const contributors = contribRows.map(toGuideContributorUi);
   const contributorNames = contributors.map((c) => c.name);
 
-  let locations: LocationListLocation[] = [];
-  if (row.location_list_id) {
+  const hasPerContributorLists = contribRows.some((r) =>
+    r.location_list_id?.trim()
+  );
+
+  let locationSections: CityGuideLocationSection[] = [];
+
+  if (hasPerContributorLists) {
+    const showSectionHeadings = contributorNames.length > 1;
+    const withLists = contribRows.filter((r) => r.location_list_id?.trim());
+    locationSections = await Promise.all(
+      withLists.map(async (r) => {
+        const listId = r.location_list_id!.trim();
+        const nm = r.name.trim();
+        const sectionBase: CityGuideLocationSection = {
+          heading: showSectionHeadings ? nm : null,
+          defaultContributorName: nm,
+          locations: [],
+        };
+        try {
+          const locOrTimeout = await withQueryTimeout(
+            getLocationsForList(listId, { membershipOrder: 'asc' })
+          );
+          if (locOrTimeout === GUIDE_QUERY_TIMEOUT) {
+            logTimeout('getCityGuidePageData.locations');
+            return sectionBase;
+          }
+          return { ...sectionBase, locations: locOrTimeout ?? [] };
+        } catch {
+          return sectionBase;
+        }
+      })
+    );
+  } else if (row.location_list_id) {
     try {
       const locOrTimeout = await withQueryTimeout(
         getLocationsForList(row.location_list_id, { membershipOrder: 'asc' })
       );
       if (locOrTimeout === GUIDE_QUERY_TIMEOUT) {
         logTimeout('getCityGuidePageData.locations');
+        locationSections = [];
       } else {
-        locations = locOrTimeout ?? [];
+        locationSections = [
+          {
+            heading: null,
+            defaultContributorName: null,
+            locations: locOrTimeout ?? [],
+          },
+        ];
       }
     } catch {
-      locations = [];
+      locationSections = [];
     }
   }
 
@@ -399,10 +446,12 @@ async function buildCityGuidePageDataFromRow(
         byLocId.set(o.location_id, o.contributor_name.trim());
       }
     }
-    for (const entry of locations) {
-      const name = byLocId.get(entry.location_id);
-      if (name) {
-        locationContributorByPlaceId.set(entry.location.place_id, name);
+    for (const section of locationSections) {
+      for (const entry of section.locations) {
+        const name = byLocId.get(entry.location_id);
+        if (name) {
+          locationContributorByPlaceId.set(entry.location.place_id, name);
+        }
       }
     }
   }
@@ -411,7 +460,7 @@ async function buildCityGuidePageDataFromRow(
     row,
     contributors,
     contributorNames,
-    locations,
+    locationSections,
     locationContributorByPlaceId,
   };
 }
@@ -562,7 +611,7 @@ export async function adminGetGuide(
   const { data: contributors, error: cErr } = await supabase
     .from('guide_contributors')
     .select(
-      'guide_id, position, name, bio, photo_url, photo_alt, instagram_href'
+      'guide_id, position, name, bio, photo_url, photo_alt, instagram_href, location_list_id'
     )
     .eq('guide_id', id)
     .order('position', { ascending: true });
@@ -681,6 +730,7 @@ export type ContributorInput = {
   photo_url: string | null;
   photo_alt: string | null;
   instagram_href: string | null;
+  location_list_id: string | null;
 };
 
 export async function replaceGuideContributors(
@@ -704,6 +754,7 @@ export async function replaceGuideContributors(
       photo_url: r.photo_url,
       photo_alt: r.photo_alt,
       instagram_href: r.instagram_href,
+      location_list_id: r.location_list_id,
     }))
   );
   if (insErr) throw insErr;
