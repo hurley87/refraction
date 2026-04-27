@@ -264,3 +264,25 @@ export type Checkpoint = {
   created_at?: string;
   updated_at?: string;
 };
+
+export type SpendExperienceStatus = 'draft' | 'active' | 'ended';
+
+/**
+ * Admin-configured spend pilot experience (points → USDC conversion window).
+ */
+export type SpendExperience = {
+  id: string;
+  title: string;
+  description: string | null;
+  event_id: string | null;
+  status: SpendExperienceStatus;
+  points_to_usdc_rate: number;
+  max_usdc_per_user: number;
+  treasury_wallet_address: string;
+  receiving_wallet_address: string;
+  start_time: string;
+  end_time: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
