@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { formatLocationCategory } from '@/lib/utils/format-location-category';
+import { buildDeepLinkMarkerFromQueryCoords } from '@/lib/utils/map-deep-link-marker';
 
 interface MarkerData {
   latitude: number;
@@ -492,48 +493,72 @@ export default function InteractiveMap({
   // Handle deep link to specific location via placeId URL param
   const deepLinkHandledRef = useRef(false);
   useEffect(() => {
-    if (!initialPlaceId || markers.length === 0 || deepLinkHandledRef.current)
+    if (!initialPlaceId || deepLinkHandledRef.current) return;
+
+    const matchedMarker = markers.find((m) => m.place_id === initialPlaceId);
+    const coordsFromQuery =
+      initialLatitude != null &&
+      initialLongitude != null &&
+      !Number.isNaN(initialLatitude) &&
+      !Number.isNaN(initialLongitude);
+
+    const syntheticMarker =
+      deepLinkMapCardOnly && coordsFromQuery
+        ? buildDeepLinkMarkerFromQueryCoords(
+            initialPlaceId,
+            initialLatitude,
+            initialLongitude
+          )
+        : null;
+
+    // Wait for /api/locations before using query lat/lng fallback so we do not open a stub
+    // marker when the real pin would appear on the next markers update.
+    const targetMarker =
+      matchedMarker ?? (markers.length > 0 ? syntheticMarker : null);
+
+    if (!targetMarker) {
+      if (markers.length === 0) return;
       return;
+    }
 
-    const targetMarker = markers.find((m) => m.place_id === initialPlaceId);
-    if (targetMarker) {
-      deepLinkHandledRef.current = true;
-      const targetZoom = Math.max(viewState.zoom ?? 12, 15);
-      const bottomPaddingPx =
-        typeof window !== 'undefined'
-          ? Math.min(360, Math.max(200, Math.round(window.innerHeight * 0.34)))
-          : 280;
+    deepLinkHandledRef.current = true;
+    const targetZoom = Math.max(viewState.zoom ?? 12, 15);
+    const bottomPaddingPx =
+      typeof window !== 'undefined'
+        ? Math.min(360, Math.max(200, Math.round(window.innerHeight * 0.34)))
+        : 280;
 
-      mapRef.current?.flyTo?.({
-        center: [targetMarker.longitude, targetMarker.latitude],
-        zoom: targetZoom,
-        duration: 1200,
-        padding: { top: 0, bottom: bottomPaddingPx, left: 0, right: 0 },
-      });
+    mapRef.current?.flyTo?.({
+      center: [targetMarker.longitude, targetMarker.latitude],
+      zoom: targetZoom,
+      duration: 1200,
+      padding: { top: 0, bottom: bottomPaddingPx, left: 0, right: 0 },
+    });
 
-      setTimeout(() => {
-        const bounds = calculateMapBounds();
-        if (bounds) {
-          setMapBounds(bounds);
-        }
-      }, 1300);
-
-      if (deepLinkMapCardOnly) {
-        setPopupInfo(targetMarker);
-        setSelectedMarker(targetMarker);
-        setPendingMapCreateMarker(null);
-      } else {
-        setCheckInTarget(targetMarker);
-        setCheckInComment('');
-        setCheckInSuccess(false);
-        setLocationCheckins([]);
-        setLocationCheckinsError(null);
-        setShowCheckInModal(true);
-        void loadLocationCheckins(targetMarker.place_id);
+    setTimeout(() => {
+      const bounds = calculateMapBounds();
+      if (bounds) {
+        setMapBounds(bounds);
       }
+    }, 1300);
+
+    if (deepLinkMapCardOnly) {
+      setPopupInfo(targetMarker);
+      setSelectedMarker(targetMarker);
+      setPendingMapCreateMarker(null);
+    } else {
+      setCheckInTarget(targetMarker);
+      setCheckInComment('');
+      setCheckInSuccess(false);
+      setLocationCheckins([]);
+      setLocationCheckinsError(null);
+      setShowCheckInModal(true);
+      void loadLocationCheckins(targetMarker.place_id);
     }
   }, [
     initialPlaceId,
+    initialLatitude,
+    initialLongitude,
     markers,
     viewState.zoom,
     calculateMapBounds,
