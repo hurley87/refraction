@@ -1,11 +1,11 @@
 import { supabase } from './client';
+import { computeSpendSessionExpiresAt } from '@/lib/spend-experience-guard';
 import type {
   PointConversion,
+  SpendExperience,
   SpendSession,
   SpendSessionStatus,
 } from '@/lib/types';
-import { computeSpendSessionExpiresAt } from '@/lib/spend-experience-guard';
-import type { SpendExperience } from '@/lib/types';
 
 const SESSION_COLS = `
   id,

@@ -51,6 +51,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   const experience = await getSpendExperienceById(experienceId);
+  if (!experience) {
+    return apiError('Spend experience not found', 404);
+  }
+
   const gate = assertSpendExperienceOpenForSessions(experience);
   if (!gate.ok) {
     return apiError(gate.error, gate.httpStatus);
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   try {
     const { session, created } = await createOrGetSpendSession({
-      spendExperience: experience!,
+      spendExperience: experience,
       userId: auth.userId,
       walletAddress: walletAddress.trim(),
     });
@@ -70,7 +74,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
       trackSpendSessionCreated(distinctId, {
         spend_experience_id: experienceId,
-        event_id: experience!.event_id,
+        event_id: experience.event_id,
         user_id: auth.userId,
         wallet_address: walletAddress.trim().toLowerCase(),
         spend_session_id: session.id,

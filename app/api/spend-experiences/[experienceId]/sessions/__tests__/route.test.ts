@@ -89,6 +89,18 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
     mockResolve.mockReturnValue('privy-1');
   });
 
+  it('returns 404 when experience not found', async () => {
+    mockGetExperience.mockResolvedValue(null);
+    const res = await POST(postRequest({ walletAddress: wallet }), {
+      params: { experienceId: 'exp-uuid' },
+    });
+    const j = await res.json();
+    expect(res.status).toBe(404);
+    expect(j.error).toContain('not found');
+    expect(mockAssert).not.toHaveBeenCalled();
+    expect(mockCreateOrGet).not.toHaveBeenCalled();
+  });
+
   it('returns 400 when experience not open', async () => {
     mockAssert.mockReturnValue({
       ok: false,
