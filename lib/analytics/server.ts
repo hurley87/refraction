@@ -12,6 +12,7 @@ import type {
   SpendRedemptionCompletedProperties,
   CityMilestoneProperties,
   SpendPilotSessionEventProperties,
+  SpendPilotConversionEventProperties,
 } from './types';
 import { ANALYTICS_EVENTS } from './events';
 import { resolveDistinctId, type IdentityInput } from './identity';
@@ -262,6 +263,39 @@ export function trackSpendExperienceQrViewedByAdmin(
   trackEvent(
     distinctId,
     ANALYTICS_EVENTS.SPEND_EXPERIENCE_QR_VIEWED_BY_ADMIN,
+    properties
+  );
+}
+
+export function trackSpendConversionPreviewed(
+  distinctId: string,
+  properties: SpendPilotConversionEventProperties
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPEND_CONVERSION_PREVIEWED,
+    properties
+  );
+}
+
+export function trackSpendUserAlreadyConverted(
+  distinctId: string,
+  properties: SpendPilotConversionEventProperties
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPEND_USER_ALREADY_CONVERTED,
+    properties
+  );
+}
+
+export function trackSpendTreasuryInsufficientFunds(
+  distinctId: string,
+  properties: SpendPilotConversionEventProperties
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPEND_TREASURY_INSUFFICIENT_FUNDS,
     properties
   );
 }

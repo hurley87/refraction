@@ -112,3 +112,15 @@ export interface SpendPilotSessionEventProperties {
   /** True when the session row was newly inserted (not idempotent return). */
   created?: boolean;
 }
+
+/** Spend pilot: conversion preview / eligibility analytics */
+export interface SpendPilotConversionEventProperties {
+  spend_experience_id: string;
+  event_id?: string | null;
+  user_id: string;
+  wallet_address: string;
+  points_amount: number;
+  usdc_amount: number;
+  status: string;
+  error_reason?: string;
+}

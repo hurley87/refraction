@@ -9,6 +9,7 @@ import type { SpendExperience, SpendSession } from '@/lib/types';
 import { initMixpanel, trackEvent } from '@/lib/analytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 import { apiClient } from '@/lib/api/client';
+import { SPEND_ELIGIBILITY_MESSAGES } from '@/lib/spend-eligibility-messages';
 
 type SpendExperiencePageProps = {
   experienceId: string;
@@ -19,6 +20,23 @@ type SessionResponse = {
   session: SpendSession;
   spendExperience: SpendExperience;
   created: boolean;
+};
+
+type ConversionPreviewResponse = {
+  eligibility: {
+    status: string;
+    message: string;
+    preview: {
+      pointsRequired: number;
+      usdcAmount: number;
+      receivingWalletAddress: string;
+      treasuryWalletAddress: string;
+      userPointsBalance: number | null;
+      treasuryUsdcBalance: number | null;
+    } | null;
+  };
+  spendExperience: SpendExperience;
+  session: Pick<SpendSession, 'id' | 'status' | 'expires_at'>;
 };
 
 /**
@@ -32,7 +50,11 @@ export function SpendExperiencePage({
   const walletAddress = user?.wallet?.address;
   const [trackedScan, setTrackedScan] = useState(false);
 
-  const { data: sessionPayload, isFetching } = useQuery({
+  const {
+    data: sessionPayload,
+    isFetching,
+    isError: sessionError,
+  } = useQuery({
     queryKey: ['spend-session', experienceId, user?.id, walletAddress] as const,
     queryFn: async () => {
       const token = await getAccessToken();
@@ -52,6 +74,36 @@ export function SpendExperiencePage({
       );
     },
     enabled: Boolean(user && walletAddress),
+    retry: false,
+  });
+
+  const sessionId = sessionPayload?.session?.id;
+
+  const { data: previewPayload, isFetching: previewLoading } = useQuery({
+    queryKey: [
+      'spend-conversion-preview',
+      sessionId,
+      user?.id,
+      walletAddress,
+    ] as const,
+    queryFn: async () => {
+      const token = await getAccessToken();
+      if (!token || !walletAddress || !sessionId) {
+        throw new Error('Missing auth or session');
+      }
+      return apiClient<ConversionPreviewResponse>(
+        `/api/spend-sessions/${sessionId}/conversion/preview`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ walletAddress }),
+        }
+      );
+    },
+    enabled: Boolean(user && walletAddress && sessionId && !isFetching),
     retry: false,
   });
 
@@ -82,6 +134,10 @@ export function SpendExperiencePage({
 
   const experience = sessionPayload?.spendExperience ?? initialExperience;
   const session = sessionPayload?.session;
+  const elig = previewPayload?.eligibility;
+  const preview = elig?.preview;
+  const showSessionError = user && walletAddress && sessionError;
+  const showWalletBlock = user && !walletAddress;
 
   return (
     <div className="container mx-auto max-w-lg p-6">
@@ -117,9 +173,9 @@ export function SpendExperiencePage({
         </Button>
       )}
 
-      {user && !walletAddress && (
+      {showWalletBlock && (
         <p className="text-sm text-amber-800">
-          Add or connect a wallet in your profile to use this spend experience.
+          {SPEND_ELIGIBILITY_MESSAGES.wallet_unavailable}
         </p>
       )}
 
@@ -132,11 +188,70 @@ export function SpendExperiencePage({
             </div>
           )}
 
-          {session && !isFetching && (
-            <p className="text-sm text-neutral-700">
-              You are connected to this spend experience. Session:{' '}
-              <span className="font-mono text-xs">{session.id}</span>
+          {showSessionError && !isFetching && (
+            <p className="text-sm text-red-800">
+              {SPEND_ELIGIBILITY_MESSAGES.experience_inactive}
             </p>
+          )}
+
+          {session && !isFetching && !showSessionError && (
+            <>
+              {previewLoading && (
+                <div className="flex items-center gap-2 text-sm text-neutral-600">
+                  <Loader2 className="size-4 animate-spin" />
+                  Checking your balance and event funds…
+                </div>
+              )}
+
+              {elig && !previewLoading && (
+                <div className="space-y-3">
+                  {preview && (
+                    <div className="space-y-2 rounded-lg border border-neutral-200 bg-white p-4 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">You will use</span>
+                        <span className="font-medium">
+                          {preview.pointsRequired.toLocaleString()} points
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">
+                          You will receive
+                        </span>
+                        <span className="font-medium">
+                          ${preview.usdcAmount.toFixed(2)} USDC
+                        </span>
+                      </div>
+                      {preview.userPointsBalance != null && (
+                        <div className="flex justify-between text-neutral-500">
+                          <span>Your points balance</span>
+                          <span>
+                            {Number(preview.userPointsBalance).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="border-t border-neutral-100 pt-2">
+                        <p className="text-xs text-neutral-500">
+                          Pay to (IRL / event)
+                        </p>
+                        <p className="break-all font-mono text-xs text-[#171717]">
+                          {preview.receivingWalletAddress}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  <p
+                    className={
+                      elig.status === 'eligible'
+                        ? 'text-sm text-emerald-800'
+                        : 'text-sm text-amber-900'
+                    }
+                  >
+                    {elig.message}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
