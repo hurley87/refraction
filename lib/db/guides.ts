@@ -6,6 +6,10 @@ import {
   type EditorialContentBlock,
 } from '@/lib/guides/block-schema';
 import { verifyGuidePreviewToken } from '@/lib/guides/preview-token';
+import {
+  normalizeContributorInstagramForDb,
+  resolveContributorInstagramProfileUrl,
+} from '@/lib/guides/contributor-instagram';
 import type { GuideKind } from '@/components/city-guides/featured-editorial-hero-card';
 
 const GUIDES_QUERY_MS = 12_000;
@@ -87,7 +91,7 @@ export function toGuideContributorUi(
     bio: row.bio?.trim() ?? '',
     photoSrc: row.photo_url?.trim() || '/city-guides/user-icon.svg',
     photoAlt: row.photo_alt?.trim() || row.name,
-    instagramHref: row.instagram_href?.trim() ?? '',
+    instagramHref: resolveContributorInstagramProfileUrl(row.instagram_href),
   };
 }
 
@@ -753,7 +757,7 @@ export async function replaceGuideContributors(
       bio: r.bio,
       photo_url: r.photo_url,
       photo_alt: r.photo_alt,
-      instagram_href: r.instagram_href,
+      instagram_href: normalizeContributorInstagramForDb(r.instagram_href),
       location_list_id: r.location_list_id,
     }))
   );

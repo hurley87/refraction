@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { AdminGuideDetail } from '@/lib/db/guides';
+import { normalizeContributorInstagramForDb } from '@/lib/guides/contributor-instagram';
 import type { LocationListWithCount } from '@/lib/types';
 import {
   parseEditorialBlocks,
@@ -204,7 +205,8 @@ export default function AdminGuideEditPage() {
         bio: r.bio ?? '',
         photo_url: r.photo_url ?? '',
         photo_alt: r.photo_alt ?? '',
-        instagram_href: r.instagram_href ?? '',
+        instagram_href:
+          normalizeContributorInstagramForDb(r.instagram_href) ?? '',
         location_list_id: r.location_list_id ?? '',
       })) ?? [];
     setContributors(c);
@@ -235,7 +237,7 @@ export default function AdminGuideEditPage() {
         bio: c.bio.trim() || null,
         photo_url: c.photo_url.trim() || null,
         photo_alt: c.photo_alt.trim() || null,
-        instagram_href: c.instagram_href.trim() || null,
+        instagram_href: normalizeContributorInstagramForDb(c.instagram_href),
         location_list_id: c.location_list_id.trim() || null,
       }));
 
@@ -957,7 +959,7 @@ export default function AdminGuideEditPage() {
                 }}
               />
               <Input
-                placeholder="Instagram URL"
+                placeholder="@username"
                 value={c.instagram_href}
                 onChange={(e) => {
                   const v = e.target.value;
