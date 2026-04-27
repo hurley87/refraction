@@ -1,4 +1,5 @@
-import { Loader2, Pencil, Plus } from 'lucide-react';
+import Link from 'next/link';
+import { Loader2, Pencil, Plus, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { SpendExperience } from '@/lib/types';
 
@@ -62,16 +63,30 @@ export function SpendExperienceList({
                   /spend/{exp.id}
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="shrink-0 gap-1"
-                onClick={() => onEdit(exp)}
-              >
-                <Pencil className="size-3.5" />
-                Edit
-              </Button>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  asChild
+                >
+                  <Link href={`/admin/spend-experiences/${exp.id}/qr`}>
+                    <QrCode className="size-3.5" />
+                    QR
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => onEdit(exp)}
+                >
+                  <Pencil className="size-3.5" />
+                  Edit
+                </Button>
+              </div>
             </li>
           ))}
         </ul>

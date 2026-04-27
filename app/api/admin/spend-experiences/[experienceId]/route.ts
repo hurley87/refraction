@@ -11,6 +11,26 @@ interface RouteParams {
   params: { experienceId: string };
 }
 
+/** GET /api/admin/spend-experiences/{experienceId} */
+export async function GET(_request: NextRequest, { params }: RouteParams) {
+  try {
+    const adminCheck = await requireAdmin(_request);
+    if (!adminCheck.isValid) {
+      return apiError('Unauthorized - Admin access required', 403);
+    }
+
+    const existing = await getSpendExperienceById(params.experienceId);
+    if (!existing) {
+      return apiError('Spend experience not found', 404);
+    }
+
+    return apiSuccess({ spendExperience: existing });
+  } catch (error) {
+    console.error('Error fetching spend experience:', error);
+    return apiError('Failed to fetch spend experience', 500);
+  }
+}
+
 /** PATCH /api/admin/spend-experiences/{experienceId} */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {

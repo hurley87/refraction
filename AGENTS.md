@@ -1,6 +1,6 @@
 # Contributor Guide
 
-This file guides contributors and AI agents (e.g. Cursor) working in this repo. For persistent coding rules, see **.cursorrules**.
+This file guides contributors and AI agents (e.g. Cursor) working in this repo. For persistent coding rules, see **.cursorrules**. Optional agent skills live under **`.cursor/skills/`** (e.g. **code simplifier**: `.cursor/skills/code-simplifier/SKILL.md`).
 
 ## Project in one line
 

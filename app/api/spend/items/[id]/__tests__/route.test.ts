@@ -18,7 +18,7 @@ const validWallet = '0x1234567890abcdef1234567890abcdef12345678';
 const validItemId = '550e8400-e29b-41d4-a716-446655440000';
 
 function createPostRequest(body: unknown, itemId: string = validItemId) {
-  return new NextRequest(`http://localhost:3000/api/spend/${itemId}`, {
+  return new NextRequest(`http://localhost:3000/api/spend/items/${itemId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -26,12 +26,12 @@ function createPostRequest(body: unknown, itemId: string = validItemId) {
 }
 
 function createGetRequest(itemId: string = validItemId) {
-  return new NextRequest(`http://localhost:3000/api/spend/${itemId}`, {
+  return new NextRequest(`http://localhost:3000/api/spend/items/${itemId}`, {
     method: 'GET',
   });
 }
 
-describe('GET /api/spend/[id]', () => {
+describe('GET /api/spend/items/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(verifyWalletOwnership).mockResolvedValue({ authorized: true });
@@ -65,7 +65,7 @@ describe('GET /api/spend/[id]', () => {
   });
 });
 
-describe('POST /api/spend/[id]', () => {
+describe('POST /api/spend/items/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(verifyWalletOwnership).mockResolvedValue({ authorized: true });
