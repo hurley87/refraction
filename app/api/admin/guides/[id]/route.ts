@@ -18,6 +18,7 @@ const contributorSchema = z.object({
   photo_url: z.string().nullable().optional(),
   photo_alt: z.string().nullable().optional(),
   instagram_href: z.string().nullable().optional(),
+  location_list_id: z.string().uuid().nullable().optional(),
 });
 
 const patchSchema = z.object({
@@ -113,6 +114,7 @@ export async function PATCH(
           photo_url: c.photo_url ?? null,
           photo_alt: c.photo_alt ?? null,
           instagram_href: c.instagram_href ?? null,
+          location_list_id: c.location_list_id ?? null,
         }))
       );
     }

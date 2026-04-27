@@ -42,6 +42,7 @@ type ContributorForm = {
   photo_url: string;
   photo_alt: string;
   instagram_href: string;
+  location_list_id: string;
 };
 
 function emptyBlock(
@@ -194,6 +195,7 @@ export default function AdminGuideEditPage() {
         photo_url: r.photo_url ?? '',
         photo_alt: r.photo_alt ?? '',
         instagram_href: r.instagram_href ?? '',
+        location_list_id: r.location_list_id ?? '',
       })) ?? [];
     setContributors(c);
 
@@ -224,6 +226,7 @@ export default function AdminGuideEditPage() {
         photo_url: c.photo_url.trim() || null,
         photo_alt: c.photo_alt.trim() || null,
         instagram_href: c.instagram_href.trim() || null,
+        location_list_id: c.location_list_id.trim() || null,
       }));
 
       const body: Record<string, unknown> = {
@@ -888,6 +891,7 @@ export default function AdminGuideEditPage() {
                   photo_url: '',
                   photo_alt: '',
                   instagram_href: '',
+                  location_list_id: '',
                 },
               ])
             }
@@ -895,6 +899,13 @@ export default function AdminGuideEditPage() {
             Add contributor
           </Button>
         </div>
+        {guide.kind === 'city_guide' ? (
+          <p className="text-xs text-neutral-500">
+            Optional: assign a venue list per contributor for multi-author city
+            guides. If any contributor has a list, the guide-level default list
+            below is ignored for venue cards.
+          </p>
+        ) : null}
         {contributors.map((c, i) => (
           <div
             key={i}
@@ -1043,6 +1054,34 @@ export default function AdminGuideEditPage() {
                 </div>
               </div>
             </div>
+            {guide.kind === 'city_guide' ? (
+              <div>
+                <Label>Contributor venue list</Label>
+                <Select
+                  value={c.location_list_id || '__none__'}
+                  onValueChange={(v) => {
+                    const next = v === '__none__' ? '' : v;
+                    setContributors((prev) =>
+                      prev.map((x, j) =>
+                        j === i ? { ...x, location_list_id: next } : x
+                      )
+                    );
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="None (use guide default)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
+                    {lists.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.title} ({l.slug})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
           </div>
         ))}
       </section>
@@ -1051,7 +1090,11 @@ export default function AdminGuideEditPage() {
         <section className="space-y-4 rounded-lg border border-neutral-200 bg-white p-4">
           <h2 className="text-lg font-semibold">City guide map & venues</h2>
           <div>
-            <Label>Location list</Label>
+            <Label>Default location list (fallback)</Label>
+            <p className="mb-2 text-xs text-neutral-500">
+              Used when no contributor has a venue list above. Leave contributor
+              lists empty to use only this list.
+            </p>
             <Select
               value={locationListId || '__none__'}
               onValueChange={(v) =>
