@@ -37,7 +37,7 @@ For v1, "only spendable inside IRL" is enforced through the app flow and UX, not
 2. Admin opens `/admin/spend-experiences/{experienceId}/qr`.
 3. Admin displays the QR code at the event.
 4. User scans the QR code.
-5. App opens the spend experience at `/spend/{experienceId}` or the existing scanner route with a spend experience query param.
+5. App opens the dedicated spend experience at `/spend/{experienceId}`.
 6. Backend validates the spend experience and creates a user-specific `SpendSession`.
 7. App checks wallet readiness, point balance, one-time conversion status, active window, and treasury USDC balance.
 8. User sees points required, USDC amount, receiving wallet, and event/spend experience details.
@@ -55,7 +55,7 @@ For v1, "only spendable inside IRL" is enforced through the app flow and UX, not
 Admins should have a stable QR display URL:
 
 - Admin display URL: `/admin/spend-experiences/{experienceId}/qr`
-- User scan URL: prefer `/spend/{experienceId}` for a dedicated IRL spend flow; reuse `/walletconnect?spendExperienceId={experienceId}` only if implementation speed outweighs UX clarity.
+- User scan URL: `/spend/{experienceId}`
 
 The admin URL should not change after each activation. The backend controls whether the spend experience is draft, active, ended, expired, or out of funds. The QR should open a URL/deep link into the app, not a raw payment QR. Each scan creates or returns a backend `SpendSession` for that authenticated user.
 
@@ -430,7 +430,6 @@ Backend logs should include enough detail to debug failed conversion/payment sta
 
 ## 19. Open Questions
 
-- Should the first implementation use `/spend/{experienceId}` or reuse `/walletconnect?spendExperienceId={experienceId}`?
 - Should QR payloads be signed in v1, or is a stable experience ID with server-side validation enough for the pilot?
 - Does the existing points system ledger need to be expanded for points deductions, or is the existing player balance plus conversion audit record sufficient?
 - Should the receiving wallet be the main IRL treasury wallet or a separate event wallet for the pilot?
