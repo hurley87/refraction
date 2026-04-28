@@ -227,13 +227,18 @@ export async function runSpendConversionConfirm(
   }
 
   const serverWalletAddress = getSpendServerWalletAddress(spendExperience);
-  if (!serverWalletAddress || !spendExperience.privy_server_wallet_id) {
+  if (
+    !serverWalletAddress ||
+    !isEvmAddress(serverWalletAddress) ||
+    !spendExperience.privy_server_wallet_id
+  ) {
     return {
       ok: false,
       httpStatus: 500,
       error: 'Conversion is not configured correctly. Please contact support.',
     };
   }
+  const serverWalletAddressHex = serverWalletAddress as `0x${string}`;
 
   if (!isEvmAddress(session.wallet_address.trim())) {
     return {
@@ -244,7 +249,7 @@ export async function runSpendConversionConfirm(
   }
 
   const userRecipient = recipientUsdcAddressForSpendTransfer({
-    serverWalletAddress,
+    serverWalletAddress: serverWalletAddressHex,
     sessionWalletTrimmed: session.wallet_address.trim(),
     normalizedWalletLower: normalizedWallet,
   });
@@ -258,7 +263,7 @@ export async function runSpendConversionConfirm(
       spendExperienceId: spendExperience.id,
       pointsToDeduct: pointsRequired,
       usdcAmount,
-      treasuryWalletAddress: serverWalletAddress,
+      treasuryWalletAddress: serverWalletAddressHex,
       userWalletAddress: session.wallet_address,
     });
   } catch (e) {
@@ -316,7 +321,7 @@ export async function runSpendConversionConfirm(
 
   const sub = await submitTreasuryUsdcTransfer({
     serverWalletId: spendExperience.privy_server_wallet_id,
-    serverWalletAddress,
+    serverWalletAddress: serverWalletAddressHex,
     recipientAddress: userRecipient,
     usdcAmount,
   });
@@ -415,7 +420,7 @@ export async function runSpendConversionConfirm(
   void insertTreasuryFundUserLedgerIfAbsent({
     spendExperienceId: spendExperience.id,
     amount: completed.usdc_amount,
-    fromWalletAddress: serverWalletAddress,
+    fromWalletAddress: serverWalletAddressHex,
     toWalletAddress: completed.user_wallet_address,
     txHash,
   });
@@ -459,7 +464,11 @@ async function fundOrResumeUsdc(input: {
   } = input;
 
   const serverWalletAddress = getSpendServerWalletAddress(spendExperience);
-  if (!serverWalletAddress || !spendExperience.privy_server_wallet_id) {
+  if (
+    !serverWalletAddress ||
+    !isEvmAddress(serverWalletAddress) ||
+    !spendExperience.privy_server_wallet_id
+  ) {
     return {
       error: {
         ok: false,
@@ -469,18 +478,19 @@ async function fundOrResumeUsdc(input: {
       },
     };
   }
+  const serverWalletAddressHex = serverWalletAddress as `0x${string}`;
 
   let conv = pointConversion;
   if (conv.status === 'points_deducted' && !conv.funding_tx_hash) {
     const userRecipient = recipientUsdcAddressForSpendTransfer({
-      serverWalletAddress,
+      serverWalletAddress: serverWalletAddressHex,
       sessionWalletTrimmed: session.wallet_address.trim(),
       normalizedWalletLower: normalizedWallet,
     });
 
     const sub = await submitTreasuryUsdcTransfer({
       serverWalletId: spendExperience.privy_server_wallet_id,
-      serverWalletAddress,
+      serverWalletAddress: serverWalletAddressHex,
       recipientAddress: userRecipient,
       usdcAmount,
     });
@@ -575,7 +585,7 @@ async function fundOrResumeUsdc(input: {
   void insertTreasuryFundUserLedgerIfAbsent({
     spendExperienceId: spendExperience.id,
     amount: done.usdc_amount,
-    fromWalletAddress: serverWalletAddress,
+    fromWalletAddress: serverWalletAddressHex,
     toWalletAddress: done.user_wallet_address,
     txHash: hash,
   });

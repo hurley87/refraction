@@ -251,5 +251,6 @@ export function fetchServerWalletUsdcBalanceSafe(
     'server_wallet_address' | 'treasury_wallet_address'
   >
 ): Promise<number | null> {
-  return fetchTreasuryUsdcBalanceSafe(getSpendServerWalletAddress(experience));
+  const walletAddress = getSpendServerWalletAddress(experience);
+  return fetchTreasuryUsdcBalanceSafe(walletAddress);
 }

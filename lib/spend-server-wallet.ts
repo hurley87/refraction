@@ -85,6 +85,24 @@ export async function getServerWalletFundingStatus(params: {
   };
 }
 
+export function fetchServerWalletUsdcBalanceSafe(
+  experience: Pick<
+    SpendExperience,
+    'server_wallet_address' | 'treasury_wallet_address'
+  >
+): Promise<number | null> {
+  const walletAddress = spendServerWalletAddress(experience);
+  if (!walletAddress || !isEvmAddress(walletAddress)) {
+    return Promise.resolve(null);
+  }
+  return fetchUsdcBalanceOnBase(walletAddress as `0x${string}`).catch(
+    (error) => {
+      console.error('fetchServerWalletUsdcBalanceSafe:', error);
+      return null;
+    }
+  );
+}
+
 export function buildSpendUsdcTransferTx(params: {
   fromAddress: `0x${string}`;
   recipientAddress: `0x${string}`;

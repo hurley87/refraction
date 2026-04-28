@@ -103,7 +103,7 @@ export default function AdminSpendExperiencesPage() {
     setEditing(null);
   }, []);
 
-  const saveMutation = useMutation({
+  const saveMutation = useMutation<CreateSpendExperienceResponse, Error>({
     mutationFn: async () => {
       const payload = {
         title: form.title.trim(),
