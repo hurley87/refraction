@@ -6,6 +6,7 @@ const mockGetPrivyUserId = vi.fn();
 const mockGetSession = vi.fn();
 const mockGetExperience = vi.fn();
 const mockLoadEligibility = vi.fn();
+const mockFinalizePending = vi.fn();
 const mockTrackPreview = vi.fn();
 const mockTrackAlready = vi.fn();
 const mockTrackTreasury = vi.fn();
@@ -28,6 +29,11 @@ vi.mock('@/lib/spend-conversion-preview', () => ({
   computeConversionAmounts: () => ({ usdcAmount: 5, pointsRequired: 5000 }),
   loadSpendEligibilityForSession: (...a: unknown[]) =>
     mockLoadEligibility(...a),
+}));
+
+vi.mock('@/lib/spend-conversion-confirm', () => ({
+  tryFinalizePendingSpendConversion: (...a: unknown[]) =>
+    mockFinalizePending(...a),
 }));
 
 vi.mock('@/lib/analytics/server', () => ({
@@ -72,6 +78,7 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/preview', () => {
     mockGetPrivyUserId.mockResolvedValue('privy-1');
     mockGetSession.mockResolvedValue(session);
     mockGetExperience.mockResolvedValue(experience);
+    mockFinalizePending.mockResolvedValue(null);
     mockResolve.mockReturnValue('distinct-1');
     mockLoadEligibility.mockResolvedValue({
       status: 'eligible',
@@ -118,6 +125,39 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/preview', () => {
     expect(res.status).toBe(200);
     expect(j.data.eligibility.status).toBe('eligible');
     expect(mockTrackPreview).toHaveBeenCalled();
+  });
+
+  it('returns finalized state when a pending conversion completes on poll', async () => {
+    mockGetSession.mockResolvedValueOnce(session).mockResolvedValueOnce({
+      ...session,
+      status: 'conversion_complete',
+    });
+    mockFinalizePending.mockResolvedValue({
+      id: 'conv-1',
+      status: 'funded',
+    });
+
+    const req = new NextRequest(
+      'http://localhost:3000/api/spend-sessions/sess-1/conversion/preview',
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer t' },
+        body: JSON.stringify({
+          walletAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+        }),
+      }
+    );
+
+    const res = await POST(req, { params: { sessionId: 'sess-1' } });
+    const j = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(j.data.session.status).toBe('conversion_complete');
+    expect(mockLoadEligibility).toHaveBeenCalledWith(
+      expect.objectContaining({
+        session: expect.objectContaining({ status: 'conversion_complete' }),
+      })
+    );
   });
 
   it('fires spend_user_already_converted when applicable', async () => {

@@ -211,6 +211,10 @@ export function SpendExperiencePage({
       );
     },
     enabled: Boolean(user && walletAddress && sessionId && !isFetching),
+    refetchInterval: (query) => {
+      const status = query.state.data?.eligibility.status;
+      return status === 'conversion_in_progress' ? 3_000 : false;
+    },
     retry: false,
   });
 
