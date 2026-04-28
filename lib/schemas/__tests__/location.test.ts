@@ -143,10 +143,10 @@ describe('Location Schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject description over 1000 characters', () => {
+    it('should reject description over 500 characters', () => {
       const result = createLocationSchema.safeParse({
         ...validLocation,
-        description: 'a'.repeat(1001),
+        description: 'a'.repeat(501),
       });
       expect(result.success).toBe(false);
     });

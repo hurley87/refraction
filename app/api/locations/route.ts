@@ -8,7 +8,11 @@ import {
 import { trackCityMilestone } from '@/lib/analytics/server';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { checkAdminPermission } from '@/lib/db/admin';
-import { MAX_LOCATIONS_PER_WEEK, SUPABASE_ERROR_CODES } from '@/lib/constants';
+import {
+  MAX_LOCATION_DESCRIPTION_LENGTH,
+  MAX_LOCATIONS_PER_WEEK,
+  SUPABASE_ERROR_CODES,
+} from '@/lib/constants';
 import { getUtcWeekBounds } from '@/lib/utils/date';
 import {
   sanitizeVarchar,
@@ -154,7 +158,10 @@ export async function POST(request: NextRequest) {
     const sanitizedAddress = address
       ? sanitizeOptionalVarchar(address)
       : sanitizedName; // Fallback to name if address not provided
-    const sanitizedDescription = sanitizeOptionalVarchar(description);
+    const sanitizedDescription = sanitizeOptionalVarchar(
+      description,
+      MAX_LOCATION_DESCRIPTION_LENGTH
+    );
     const sanitizedType =
       typeof type === 'string' && type.trim()
         ? sanitizeVarchar(type)

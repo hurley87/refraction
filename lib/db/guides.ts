@@ -10,6 +10,7 @@ import {
   normalizeContributorInstagramForDb,
   resolveContributorInstagramProfileUrl,
 } from '@/lib/guides/contributor-instagram';
+import { cityGuideDisplayTitle } from '@/lib/guides/city-guide-title';
 import type { GuideKind } from '@/components/city-guides/featured-editorial-hero-card';
 
 const GUIDES_QUERY_MS = 12_000;
@@ -101,9 +102,8 @@ export function guideKindToUi(kind: GuideKindDb): GuideKind {
 
 export function hubListTitle(row: GuideRow): string {
   if (row.kind === 'city_guide') {
-    const p = row.title_prefix?.trim() ?? '';
-    const c = row.city_name?.trim() ?? '';
-    return [p, c].filter(Boolean).join(' ').trim() || row.slug;
+    const t = cityGuideDisplayTitle(row).trim();
+    return t || row.slug;
   }
   const primary = row.title_primary?.trim() ?? '';
   const secondary = row.title_secondary?.trim();
@@ -145,10 +145,8 @@ function readHrefFor(row: GuideRow): string {
 
 function featuredTitleLines(row: GuideRow): { line1: string; line2: string } {
   if (row.kind === 'city_guide') {
-    return {
-      line1: row.title_prefix?.trim() ?? '',
-      line2: row.city_name?.trim() ?? '',
-    };
+    const merged = cityGuideDisplayTitle(row);
+    return { line1: merged, line2: '' };
   }
   return {
     line1: row.title_primary?.trim() ?? '',
@@ -401,26 +399,6 @@ async function buildCityGuidePageDataFromRow(
         }
       })
     );
-  } else if (row.location_list_id) {
-    try {
-      const locOrTimeout = await withQueryTimeout(
-        getLocationsForList(row.location_list_id, { membershipOrder: 'asc' })
-      );
-      if (locOrTimeout === GUIDE_QUERY_TIMEOUT) {
-        logTimeout('getCityGuidePageData.locations');
-        locationSections = [];
-      } else {
-        locationSections = [
-          {
-            heading: null,
-            defaultContributorName: null,
-            locations: locOrTimeout ?? [],
-          },
-        ];
-      }
-    } catch {
-      locationSections = [];
-    }
   }
 
   const overridesOrTimeout = await withQueryTimeout(
@@ -638,8 +616,8 @@ export async function createGuide(input: CreateGuideInput): Promise<GuideRow> {
   const defaults =
     input.kind === 'city_guide'
       ? {
-          title_prefix: 'The IRL Guide to',
-          city_name: 'New City',
+          title_prefix: 'New city guide',
+          city_name: null,
           title_primary: null,
           title_secondary: null,
         }

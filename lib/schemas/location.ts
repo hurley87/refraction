@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { MAX_LOCATION_DESCRIPTION_LENGTH } from '@/lib/constants';
+
 /**
  * Validates latitude (-90 to 90)
  */
@@ -16,7 +18,11 @@ export const longitudeSchema = z.number().min(-180).max(180);
 export const createLocationSchema = z.object({
   name: z.string().min(1).max(200),
   address: z.string().max(500).nullable().optional(),
-  description: z.string().max(1000).nullable().optional(),
+  description: z
+    .string()
+    .max(MAX_LOCATION_DESCRIPTION_LENGTH)
+    .nullable()
+    .optional(),
   latitude: latitudeSchema,
   longitude: longitudeSchema,
   place_id: z.string().min(1),

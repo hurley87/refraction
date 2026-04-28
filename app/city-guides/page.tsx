@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import CityGuideListCard from '@/components/city-guides/city-guide-list-card';
-import CityGuidesContentFilterRow from '@/components/city-guides/city-guides-content-filter-row';
+import { CityGuidesHubSection } from '@/components/city-guides/city-guides-hub-section';
 import FeaturedEditorialHeroCard from '@/components/city-guides/featured-editorial-hero-card';
 import { getFeaturedGuide, getPublishedGuides } from '@/lib/db/guides';
 
@@ -40,29 +39,7 @@ export default async function CityGuidesHomePage() {
 
       <section className="w-full border-t border-[#E5E5E5] bg-white">
         <div className="mx-auto w-full max-w-[393px] px-4 pb-16">
-          <CityGuidesContentFilterRow />
-
-          <div className="flex flex-col">
-            {listRows.length === 0 ? (
-              <p className="body-medium py-8 text-center text-[#757575]">
-                No additional guides to show yet.
-              </p>
-            ) : (
-              listRows.map((item, index) => (
-                <CityGuideListCard
-                  key={item.id}
-                  guideKind={item.guideKind}
-                  title={item.title}
-                  preview={item.preview}
-                  publishedAt={item.publishedAt}
-                  imageSrc={item.imageSrc}
-                  imageAlt={item.imageAlt}
-                  readHref={item.readHref}
-                  className={index === 0 ? 'border-t-0' : undefined}
-                />
-              ))
-            )}
-          </div>
+          <CityGuidesHubSection entries={listRows} />
         </div>
       </section>
     </main>
