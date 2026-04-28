@@ -2,6 +2,7 @@ import {
   encodeFunctionData,
   erc20Abi,
   http,
+  hexToBigInt,
   parseAbiItem,
   parseUnits,
 } from 'viem';
@@ -52,17 +53,37 @@ async function findRecentTreasuryTransferHash(params: {
       ? params.fromBlock
       : fallbackFrom;
 
+  /** For ERC-20 Transfer, `value` is the only field in `data` (from/to are indexed in topics). */
+  const getTransferValue = (log: { data: `0x${string}` }) => {
+    try {
+      if (!log.data || log.data.length < 66) return null;
+      return hexToBigInt(log.data);
+    } catch {
+      return null;
+    }
+  };
+
   const buildMatching = (
     chunk: Awaited<ReturnType<typeof publicClient.getLogs>>
-  ) =>
-    chunk
-      .filter((log) => log.args.value === rawAmount)
+  ) => {
+    const withValue = chunk
+      .map((log) => {
+        const value = getTransferValue(log);
+        if (value === null || value !== rawAmount) return null;
+        return { log, value };
+      })
+      .filter(
+        (x): x is { log: (typeof chunk)[number]; value: bigint } => x !== null
+      );
+    return withValue
       .sort((a, b) => {
-        const aBlock = a.blockNumber ?? 0n;
-        const bBlock = b.blockNumber ?? 0n;
+        const aBlock = a.log.blockNumber ?? 0n;
+        const bBlock = b.log.blockNumber ?? 0n;
         if (aBlock === bBlock) return 0;
         return aBlock > bBlock ? -1 : 1;
-      });
+      })
+      .map(({ log }) => log);
+  };
 
   // Newest first so the first non-empty chunk yields the most recent transfer.
   let chunkTo = latest;
