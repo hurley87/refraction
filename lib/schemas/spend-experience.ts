@@ -1,6 +1,4 @@
 import { z } from 'zod';
-import { walletAddressSchema } from './player';
-
 export const spendExperienceStatusSchema = z.enum(['draft', 'active', 'ended']);
 
 /**
@@ -14,11 +12,11 @@ export const createSpendExperienceRequestSchema = z
     status: spendExperienceStatusSchema.default('draft'),
     points_to_usdc_rate: z.coerce.number().positive().max(1e15),
     max_usdc_per_user: z.coerce.number().positive().max(1e9),
-    treasury_wallet_address: walletAddressSchema,
-    receiving_wallet_address: walletAddressSchema,
     start_time: z.string().datetime({ offset: true }),
     end_time: z.string().datetime({ offset: true }),
+    idempotency_key: z.string().min(8).max(256).optional(),
   })
+  .strict()
   .refine((data) => new Date(data.end_time) > new Date(data.start_time), {
     message: 'end_time must be after start_time',
     path: ['end_time'],
@@ -32,11 +30,10 @@ export const updateSpendExperienceRequestSchema = z
     status: spendExperienceStatusSchema.optional(),
     points_to_usdc_rate: z.coerce.number().positive().max(1e15).optional(),
     max_usdc_per_user: z.coerce.number().positive().max(1e9).optional(),
-    treasury_wallet_address: walletAddressSchema.optional(),
-    receiving_wallet_address: walletAddressSchema.optional(),
     start_time: z.string().datetime({ offset: true }).optional(),
     end_time: z.string().datetime({ offset: true }).optional(),
   })
+  .strict()
   .refine((data) => Object.keys(data).length > 0, {
     message: 'At least one field is required',
   })

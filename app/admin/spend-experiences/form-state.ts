@@ -7,8 +7,6 @@ export type SpendExperienceFormState = {
   status: SpendExperienceStatus;
   points_to_usdc_rate: string;
   max_usdc_per_user: string;
-  treasury_wallet_address: string;
-  receiving_wallet_address: string;
   start_time_local: string;
   end_time_local: string;
 };
@@ -37,8 +35,6 @@ export function experienceToForm(e: SpendExperience): SpendExperienceFormState {
     status: e.status,
     points_to_usdc_rate: String(e.points_to_usdc_rate),
     max_usdc_per_user: String(e.max_usdc_per_user),
-    treasury_wallet_address: e.treasury_wallet_address,
-    receiving_wallet_address: e.receiving_wallet_address,
     start_time_local: isoToDatetimeLocalValue(e.start_time),
     end_time_local: isoToDatetimeLocalValue(e.end_time),
   };
@@ -53,8 +49,6 @@ export function emptySpendExperienceForm(): SpendExperienceFormState {
     status: 'draft',
     points_to_usdc_rate: '1000',
     max_usdc_per_user: '5',
-    treasury_wallet_address: '',
-    receiving_wallet_address: '',
     start_time_local: isoToDatetimeLocalValue(start),
     end_time_local: isoToDatetimeLocalValue(end),
   };

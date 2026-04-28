@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { PrivyClient } from '@privy-io/server-auth';
+import type { SpendServerWalletMetadata } from '@/lib/spend-server-wallet';
 
 // Lazy-initialized singleton shared across all API routes
 let privyClient: PrivyClient | null = null;
@@ -99,5 +100,26 @@ export async function verifyWalletOwnership(
     return { authorized: true, userId: verifiedClaims.userId };
   } catch {
     return { authorized: false, error: 'Invalid or expired token' };
+  }
+}
+
+export async function createSpendPrivyServerWallet(params: {
+  idempotencyKey: string;
+}): Promise<SpendServerWalletMetadata> {
+  try {
+    const wallet = await getPrivyClient().walletApi.createWallet({
+      chainType: 'ethereum',
+      idempotencyKey: params.idempotencyKey,
+    });
+
+    return {
+      privy_server_wallet_id: wallet.id,
+      server_wallet_address: wallet.address,
+      server_wallet_chain: 'base-mainnet',
+      server_wallet_created_at: wallet.createdAt.toISOString(),
+    };
+  } catch (error) {
+    console.error('createSpendPrivyServerWallet:', error);
+    throw new Error('Privy server wallet could not be created');
   }
 }

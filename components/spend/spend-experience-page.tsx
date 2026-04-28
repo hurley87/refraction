@@ -478,14 +478,6 @@ export function SpendExperiencePage({
                           </span>
                         </div>
                       )}
-                      <div className="border-t border-neutral-100 pt-2">
-                        <p className="text-xs text-neutral-500">
-                          Event wallet (USDC on Base)
-                        </p>
-                        <p className="break-all font-mono text-xs text-[#171717]">
-                          {preview.receivingWalletAddress}
-                        </p>
-                      </div>
                     </div>
                   )}
 

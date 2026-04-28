@@ -2,11 +2,11 @@ import {
   SPEND_ELIGIBILITY_MESSAGES,
   type SpendEligibilityStatus,
 } from '@/lib/spend-eligibility-messages';
-import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import {
-  fetchUsdcBalanceOnBase,
-  isEvmAddress,
-} from '@/lib/walletconnect-poster-direct-usdc';
+  fetchServerWalletUsdcBalanceSafe,
+  getSpendServerWalletAddress,
+} from '@/lib/spend-server-wallet';
+import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import type {
   PointConversion,
   Player,
@@ -93,8 +93,8 @@ export function buildSpendEligibilityPreview(
   const basePreview = (): SpendConversionPreview => ({
     pointsRequired,
     usdcAmount,
-    receivingWalletAddress: spendExperience.receiving_wallet_address,
-    treasuryWalletAddress: spendExperience.treasury_wallet_address,
+    receivingWalletAddress: getSpendServerWalletAddress(spendExperience),
+    treasuryWalletAddress: getSpendServerWalletAddress(spendExperience),
     userPointsBalance:
       player?.total_points != null ? Number(player.total_points) : null,
     treasuryUsdcBalance,
@@ -183,24 +183,6 @@ export function buildSpendEligibilityPreview(
   };
 }
 
-/**
- * Reads treasury USDC on Base; returns null if address invalid or RPC fails (caller may treat as insufficient).
- */
-export async function fetchTreasuryUsdcBalanceSafe(
-  treasuryWalletAddress: string
-): Promise<number | null> {
-  const trimmed = treasuryWalletAddress.trim();
-  if (!isEvmAddress(trimmed)) {
-    return null;
-  }
-  try {
-    return await fetchUsdcBalanceOnBase(trimmed as `0x${string}`);
-  } catch (e) {
-    console.error('fetchTreasuryUsdcBalanceSafe:', e);
-    return null;
-  }
-}
-
 type LoadEligibilityInput = {
   session: SpendSession;
   spendExperience: SpendExperience;
@@ -225,7 +207,7 @@ export async function loadSpendEligibilityForSession(
         spendExperience.id,
         session.user_id
       ),
-      fetchTreasuryUsdcBalanceSafe(spendExperience.treasury_wallet_address),
+      fetchServerWalletUsdcBalanceSafe(spendExperience),
       getSpendTransactionBySessionId(session.id),
     ]);
 

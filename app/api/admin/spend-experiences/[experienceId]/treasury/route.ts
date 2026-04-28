@@ -1,10 +1,14 @@
 import { NextRequest } from 'next/server';
 import { getSpendExperienceById } from '@/lib/db/spend-experiences';
-import { fetchTreasuryUsdcBalanceSafe } from '@/lib/spend-conversion-preview';
 import { listTreasuryTransactionsForExperience } from '@/lib/db/treasury-transactions';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
 import type { TreasuryTransaction } from '@/lib/types';
+import {
+  fetchServerWalletUsdcBalanceSafe,
+  getSpendServerWalletAddress,
+  spendServerWalletFundingMetadata,
+} from '@/lib/spend-server-wallet';
 
 interface RouteParams {
   params: { experienceId: string };
@@ -31,7 +35,7 @@ function ledgerTotalsFromRows(rows: TreasuryTransaction[]): {
 
 /**
  * GET /api/admin/spend-experiences/{experienceId}/treasury
- * Treasury + receiving addresses, live USDC balance, optional ledger (PRD §12).
+ * Server wallet address, live USDC balance, optional ledger (PRD §12).
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
@@ -45,21 +49,30 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       return apiError('Spend experience not found', 404);
     }
 
-    const treasuryWalletAddress = experience.treasury_wallet_address.trim();
-    const receivingWalletAddress = experience.receiving_wallet_address.trim();
+    const serverWalletAddress = getSpendServerWalletAddress(experience).trim();
 
-    const [treasuryUsdcBalance, ledger] = await Promise.all([
-      fetchTreasuryUsdcBalanceSafe(treasuryWalletAddress),
+    const [serverWalletUsdcBalance, ledger] = await Promise.all([
+      fetchServerWalletUsdcBalanceSafe(experience),
       listTreasuryTransactionsForExperience(experience.id),
     ]);
 
     const ledgerTotals = ledgerTotalsFromRows(ledger);
+    const funding = spendServerWalletFundingMetadata(
+      experience,
+      serverWalletUsdcBalance
+    );
 
     return apiSuccess({
       spendExperienceId: experience.id,
-      treasuryWalletAddress,
-      receivingWalletAddress,
-      treasuryUsdcBalance,
+      serverWalletAddress,
+      privyServerWalletId: experience.privy_server_wallet_id,
+      serverWalletChain: experience.server_wallet_chain,
+      serverWalletCreatedAt: experience.server_wallet_created_at,
+      serverWalletUsdcBalance,
+      funding,
+      treasuryWalletAddress: serverWalletAddress,
+      receivingWalletAddress: serverWalletAddress,
+      treasuryUsdcBalance: serverWalletUsdcBalance,
       ledger,
       ledgerTotals,
     });

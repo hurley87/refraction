@@ -15,8 +15,14 @@ import {
 } from './form-state';
 import { SpendExperienceFormPanel } from './spend-experience-form-panel';
 import { SpendExperienceList } from './spend-experience-list';
+import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
 
 const QUERY_KEY = ['admin-spend-experiences'] as const;
+
+type CreateSpendExperienceResponse = {
+  spendExperience: SpendExperience;
+  funding?: SpendServerWalletFundingMetadata;
+};
 
 export default function AdminSpendExperiencesPage() {
   const { user, login } = usePrivy();
@@ -25,6 +31,9 @@ export default function AdminSpendExperiencesPage() {
   const [adminLoading, setAdminLoading] = useState(true);
   const [panelOpen, setPanelOpen] = useState(false);
   const [editing, setEditing] = useState<SpendExperience | null>(null);
+  const [createdFunding, setCreatedFunding] = useState<
+    CreateSpendExperienceResponse['funding'] | null
+  >(null);
   const [form, setForm] = useState<SpendExperienceFormState>(
     emptySpendExperienceForm
   );
@@ -89,7 +98,7 @@ export default function AdminSpendExperiencesPage() {
     setEditing(null);
   }, []);
 
-  const saveMutation = useMutation({
+  const saveMutation = useMutation<CreateSpendExperienceResponse, Error>({
     mutationFn: async () => {
       const payload = {
         title: form.title.trim(),
@@ -98,8 +107,6 @@ export default function AdminSpendExperiencesPage() {
         status: form.status,
         points_to_usdc_rate: Number(form.points_to_usdc_rate),
         max_usdc_per_user: Number(form.max_usdc_per_user),
-        treasury_wallet_address: form.treasury_wallet_address.trim(),
-        receiving_wallet_address: form.receiving_wallet_address.trim(),
         start_time: datetimeLocalToIso(form.start_time_local),
         end_time: datetimeLocalToIso(form.end_time_local),
       };
@@ -113,25 +120,32 @@ export default function AdminSpendExperiencesPage() {
         if (!response.ok) {
           throw new Error(j.error || j.message || 'Update failed');
         }
-        return j.data?.spendExperience ?? j.spendExperience;
+        const spendExperience = j.data?.spendExperience ?? j.spendExperience;
+        return { spendExperience } satisfies CreateSpendExperienceResponse;
       }
 
       const response = await fetch('/api/admin/spend-experiences', {
         method: 'POST',
-        headers,
+        headers: {
+          ...headers,
+          'Idempotency-Key': crypto.randomUUID(),
+        },
         body: JSON.stringify(payload),
       });
       const j = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(j.error || j.message || 'Create failed');
       }
-      return j.data?.spendExperience ?? j.spendExperience;
+      return (j.data ?? j) as CreateSpendExperienceResponse;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       void queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       toast.success(
         editing ? 'Spend experience updated' : 'Spend experience created'
       );
+      if (!editing && result.funding) {
+        setCreatedFunding(result.funding);
+      }
       setPanelOpen(false);
       setEditing(null);
       setForm(emptySpendExperienceForm());
@@ -141,12 +155,14 @@ export default function AdminSpendExperiencesPage() {
 
   const openCreate = useCallback(() => {
     setEditing(null);
+    setCreatedFunding(null);
     setForm(emptySpendExperienceForm());
     setPanelOpen(true);
   }, []);
 
   const openEdit = useCallback((e: SpendExperience) => {
     setEditing(e);
+    setCreatedFunding(null);
     setForm(experienceToForm(e));
     setPanelOpen(true);
   }, []);
@@ -186,6 +202,35 @@ export default function AdminSpendExperiencesPage() {
 
   return (
     <div className="mx-auto max-w-3xl p-6 font-grotesk">
+      {createdFunding && (
+        <section className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <div className="font-semibold">Fund the server wallet</div>
+          <p className="mt-1">
+            Send at least ${createdFunding.minimumUsdc.toFixed(2)} USDC on Base
+            to activate this spend experience. Fund enough USDC for expected
+            redemptions.
+          </p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <code className="flex-1 break-all rounded bg-white/80 px-2 py-1 text-xs">
+              {createdFunding.serverWalletAddress}
+            </code>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                void navigator.clipboard.writeText(
+                  createdFunding.serverWalletAddress
+                );
+                toast.success('Server wallet copied');
+              }}
+            >
+              Copy
+            </Button>
+          </div>
+        </section>
+      )}
+
       <SpendExperienceList
         experiences={spendExperiences}
         isLoading={isLoading}

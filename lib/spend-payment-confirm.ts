@@ -12,6 +12,7 @@ import { insertTreasuryReceivePaymentLedgerIfAbsent } from '@/lib/db/treasury-tr
 import { computeConversionAmounts } from '@/lib/spend-conversion-preview';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import { verifySpendUsdcPaymentTx } from '@/lib/spend-payment-verify';
+import { getSpendServerWalletAddress } from '@/lib/spend-server-wallet';
 import { isEvmAddress } from '@/lib/walletconnect-poster-direct-usdc';
 import type {
   SpendExperience,
@@ -180,7 +181,7 @@ export async function runSpendPaymentConfirm(input: {
     };
   }
 
-  const receiving = spendExperience.receiving_wallet_address.trim();
+  const receiving = getSpendServerWalletAddress(spendExperience).trim();
   if (!isEvmAddress(receiving)) {
     return {
       ok: false,

@@ -5,7 +5,13 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
-import { Loader2, ArrowLeft, ExternalLink, RefreshCw } from 'lucide-react';
+import {
+  Loader2,
+  ArrowLeft,
+  ExternalLink,
+  RefreshCw,
+  Copy,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type {
   PointConversion,
@@ -14,6 +20,7 @@ import type {
   SpendTransaction,
   TreasuryTransaction,
 } from '@/lib/types';
+import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
 
 type ActivityTotals = {
   usersConverted: number;
@@ -39,6 +46,12 @@ type ActivityPayload = {
 
 type TreasuryPayload = {
   spendExperienceId: string;
+  serverWalletAddress: string;
+  privyServerWalletId: string | null;
+  serverWalletChain: string | null;
+  serverWalletCreatedAt: string | null;
+  serverWalletUsdcBalance: number | null;
+  funding: SpendServerWalletFundingMetadata;
   treasuryWalletAddress: string;
   receivingWalletAddress: string;
   treasuryUsdcBalance: number | null;
@@ -68,6 +81,10 @@ function shortenAddr(a: string): string {
 function baseScanTxUrl(hash: string): string {
   const h = hash.trim().toLowerCase();
   return `https://basescan.org/tx/${h}`;
+}
+
+async function copyText(value: string): Promise<void> {
+  await navigator.clipboard.writeText(value);
 }
 
 function TxHashShortLink({
@@ -279,6 +296,7 @@ export default function SpendExperienceDetailPage() {
   const treasuryData = treasuryQuery.data;
   const totals = activityData?.totals;
   const mixpanelUrl = activityData?.mixpanelInsightUrl;
+  const funding = treasuryData?.funding;
   const ledgerTotalsSuffix =
     treasuryData && treasuryData.ledgerTotals.admin_recovery_usdc > 0
       ? ` · admin_recovery ${fmtUsdc(treasuryData.ledgerTotals.admin_recovery_usdc)}`
@@ -344,6 +362,35 @@ export default function SpendExperienceDetailPage() {
         </p>
       )}
 
+      {funding && !funding.funded && (
+        <section className="mb-8 rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">
+                Fund server wallet before activation
+              </h2>
+              <p className="mt-1">
+                Send at least {fmtUsdc(funding.minimumUsdc)} USDC on Base now,
+                and enough USDC for expected redemptions.
+              </p>
+              <code className="mt-3 block break-all rounded bg-white/70 p-2 text-xs text-neutral-900">
+                {funding.serverWalletAddress}
+              </code>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1 bg-white"
+              onClick={() => void copyText(funding.serverWalletAddress)}
+            >
+              <Copy className="size-3.5" />
+              Copy
+            </Button>
+          </div>
+        </section>
+      )}
+
       {totals && treasuryData && (
         <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg border border-neutral-200 bg-white p-4">
@@ -364,7 +411,7 @@ export default function SpendExperienceDetailPage() {
           </div>
           <div className="rounded-lg border border-neutral-200 bg-white p-4">
             <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-              USDC at event wallet
+              USDC received
             </div>
             <div className="mt-1 text-2xl font-semibold tabular-nums">
               {fmtUsdc(totals.totalUsdcReceivedAtEventWallet)}
@@ -372,7 +419,7 @@ export default function SpendExperienceDetailPage() {
           </div>
           <div className="rounded-lg border border-neutral-200 bg-white p-4">
             <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-              Treasury USDC (live)
+              Server wallet USDC
             </div>
             <div className="mt-1 text-2xl font-semibold tabular-nums">
               {fmtUsdc(treasuryData.treasuryUsdcBalance)}
@@ -383,19 +430,21 @@ export default function SpendExperienceDetailPage() {
 
       {treasuryData && (
         <section className="mb-8 rounded-lg border border-neutral-200 bg-white p-5">
-          <h2 className="text-lg font-semibold text-[#171717]">Treasury</h2>
+          <h2 className="text-lg font-semibold text-[#171717]">
+            Server wallet
+          </h2>
           <div className="mt-3 grid gap-4 text-sm sm:grid-cols-2">
             <div>
-              <div className="text-neutral-500">Treasury wallet</div>
+              <div className="text-neutral-500">Wallet address</div>
               <code className="mt-0.5 block break-all text-xs text-neutral-800">
-                {treasuryData.treasuryWalletAddress}
+                {treasuryData.serverWalletAddress}
               </code>
             </div>
             <div>
-              <div className="text-neutral-500">Receiving (event) wallet</div>
-              <code className="mt-0.5 block break-all text-xs text-neutral-800">
-                {treasuryData.receivingWalletAddress}
-              </code>
+              <div className="text-neutral-500">Base USDC balance</div>
+              <div className="mt-0.5 text-neutral-800">
+                {fmtUsdc(treasuryData.serverWalletUsdcBalance)}
+              </div>
             </div>
           </div>
           {treasuryData.ledger.length > 0 && (

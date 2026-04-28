@@ -15,8 +15,14 @@ CREATE TABLE IF NOT EXISTS spend_experiences (
         CHECK (points_to_usdc_rate > 0),
     max_usdc_per_user NUMERIC(24, 8) NOT NULL
         CHECK (max_usdc_per_user > 0),
+    -- Legacy columns retained for existing RPC/ledger compatibility; new rows mirror server_wallet_address.
     treasury_wallet_address TEXT NOT NULL,
     receiving_wallet_address TEXT NOT NULL,
+    privy_server_wallet_id TEXT,
+    server_wallet_address TEXT,
+    server_wallet_chain TEXT NOT NULL DEFAULT 'base-mainnet',
+    server_wallet_created_at TIMESTAMPTZ,
+    spend_create_idempotency_key TEXT,
     start_time TIMESTAMPTZ NOT NULL,
     end_time TIMESTAMPTZ NOT NULL,
     created_by VARCHAR(255),
@@ -39,7 +45,15 @@ CREATE INDEX IF NOT EXISTS idx_spend_experiences_event_id
 CREATE INDEX IF NOT EXISTS idx_spend_experiences_created_at
     ON spend_experiences (created_at DESC);
 
-COMMENT ON TABLE spend_experiences IS 'Admin spend pilot configuration: conversion rate, caps, wallets, active window.';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_spend_experiences_privy_server_wallet_id
+    ON spend_experiences (privy_server_wallet_id)
+    WHERE privy_server_wallet_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_spend_experiences_create_idempotency_key
+    ON spend_experiences (spend_create_idempotency_key)
+    WHERE spend_create_idempotency_key IS NOT NULL;
+
+COMMENT ON TABLE spend_experiences IS 'Admin spend pilot configuration: conversion rate, caps, Privy server wallet, active window.';
 
 CREATE OR REPLACE FUNCTION update_spend_experiences_updated_at()
 RETURNS TRIGGER AS $$

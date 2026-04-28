@@ -17,6 +17,11 @@ const exp = (over: Partial<SpendExperience> = {}): SpendExperience => ({
   max_usdc_per_user: 5,
   treasury_wallet_address: '0x1111111111111111111111111111111111111111',
   receiving_wallet_address: '0x2222222222222222222222222222222222222222',
+  privy_server_wallet_id: 'wallet_e1',
+  server_wallet_address: '0x4444444444444444444444444444444444444444',
+  server_wallet_chain: 'base-mainnet',
+  server_wallet_created_at: '2026-01-01T00:00:00.000Z',
+  spend_create_idempotency_key: 'idem-e1',
   start_time: '2026-01-01T00:00:00.000Z',
   end_time: '2030-01-01T00:00:00.000Z',
   created_by: null,
@@ -65,6 +70,12 @@ describe('buildSpendEligibilityPreview', () => {
     expect(r.status).toBe('eligible');
     expect(r.preview?.pointsRequired).toBe(5000);
     expect(r.preview?.usdcAmount).toBe(5);
+    expect(r.preview?.treasuryWalletAddress).toBe(
+      '0x4444444444444444444444444444444444444444'
+    );
+    expect(r.preview?.receivingWalletAddress).toBe(
+      '0x4444444444444444444444444444444444444444'
+    );
   });
 
   it('returns insufficient_points', () => {

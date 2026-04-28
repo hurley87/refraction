@@ -15,10 +15,15 @@ vi.mock('@/lib/db/spend-experiences', () => ({
     mockGetSpendExperienceById(...args),
 }));
 
-vi.mock('@/lib/spend-conversion-preview', () => ({
-  fetchTreasuryUsdcBalanceSafe: (...args: unknown[]) =>
-    mockFetchBalance(...args),
-}));
+vi.mock('@/lib/spend-server-wallet', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/lib/spend-server-wallet')>();
+  return {
+    ...actual,
+    fetchServerWalletUsdcBalanceSafe: (...args: unknown[]) =>
+      mockFetchBalance(...args),
+  };
+});
 
 vi.mock('@/lib/db/treasury-transactions', () => ({
   listTreasuryTransactionsForExperience: (...args: unknown[]) =>
@@ -37,6 +42,11 @@ const experience = {
   max_usdc_per_user: 5,
   treasury_wallet_address: '0x1111111111111111111111111111111111111111',
   receiving_wallet_address: '0x2222222222222222222222222222222222222222',
+  privy_server_wallet_id: 'privy-wallet-1',
+  server_wallet_address: '0x3333333333333333333333333333333333333333',
+  server_wallet_chain: 'base-mainnet',
+  server_wallet_created_at: '2026-04-01T00:00:00Z',
+  spend_create_idempotency_key: 'idem-1',
   start_time: '2026-05-01T12:00:00.000Z',
   end_time: '2026-05-08T12:00:00.000Z',
   created_by: 'a@b.com',
@@ -78,7 +88,13 @@ describe('GET /api/admin/spend-experiences/[experienceId]/treasury', () => {
     const j = await res.json();
 
     expect(res.status).toBe(200);
-    expect(j.data.treasuryUsdcBalance).toBe(123.45);
+    expect(mockFetchBalance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        server_wallet_address: '0x3333333333333333333333333333333333333333',
+      })
+    );
+    expect(j.data.serverWalletUsdcBalance).toBe(123.45);
+    expect(j.data.funding.funded).toBe(true);
     expect(j.data.ledgerTotals.fund_user_usdc).toBe(5);
   });
 });

@@ -12,15 +12,17 @@ import { getSpendExperienceById } from '@/lib/db/spend-experiences';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import {
   computeConversionAmounts,
-  fetchTreasuryUsdcBalanceSafe,
   loadSpendEligibilityForSession,
 } from '@/lib/spend-conversion-preview';
 import { SPEND_ELIGIBILITY_MESSAGES } from '@/lib/spend-eligibility-messages';
 import {
-  getServerWalletAddress,
   submitTreasuryUsdcTransfer,
   waitForTreasuryTxReceipt,
 } from '@/lib/spend-treasury-usdc-transfer';
+import {
+  fetchServerWalletUsdcBalanceSafe,
+  getSpendServerWalletTransferConfig,
+} from '@/lib/spend-server-wallet';
 import { insertTreasuryFundUserLedgerIfAbsent } from '@/lib/db/treasury-transactions';
 import type {
   PointConversion,
@@ -41,6 +43,8 @@ const RESUMABLE: PointConversion['status'][] = [
   'points_deducted',
   'funding_pending',
 ];
+const MISCONFIGURED_CONVERSION_ERROR =
+  'Conversion is not configured correctly. Please contact support.';
 
 type ConfirmContext = {
   session: SpendSession;
@@ -52,45 +56,18 @@ type ConfirmContext = {
   pointsRequired: number;
 };
 
-function assertServerTreasuryMatchesExperience(
-  experience: SpendExperience
-):
-  | { ok: true; serverAddress: `0x${string}` }
-  | { ok: false; userMessage: string } {
-  const serverAddress = getServerWalletAddress();
-  if (!serverAddress) {
-    return { ok: false, userMessage: 'Conversion is temporarily unavailable.' };
-  }
-  const expected = experience.treasury_wallet_address.trim().toLowerCase();
-  const actual = serverAddress.toLowerCase();
-  if (expected !== actual) {
-    console.error(
-      'Treasury address mismatch: experience expects',
-      expected,
-      'server key derives',
-      actual
-    );
-    return {
-      ok: false,
-      userMessage:
-        'Conversion is not configured correctly. Please contact support.',
-    };
-  }
-  return { ok: true, serverAddress };
-}
-
 /**
- * Treasury-funded USDC goes to the session embedded wallet. If session wallet equals treasury
+ * Server-wallet-funded USDC goes to the session embedded wallet. If session wallet equals the server wallet
  * (misconfiguration), fall back to the normalized embedded address from auth.
  */
 function recipientUsdcAddressForSpendTransfer(params: {
-  treasuryWalletAddress: string;
+  serverWalletAddress: string;
   sessionWalletTrimmed: string;
   normalizedWalletLower: string;
 }): `0x${string}` {
-  const treasuryLower = params.treasuryWalletAddress.trim().toLowerCase();
+  const serverWalletLower = params.serverWalletAddress.trim().toLowerCase();
   const sessionLower = params.sessionWalletTrimmed.toLowerCase();
-  if (treasuryLower === sessionLower) {
+  if (serverWalletLower === sessionLower) {
     return params.normalizedWalletLower as `0x${string}`;
   }
   return params.sessionWalletTrimmed as `0x${string}`;
@@ -239,9 +216,7 @@ export async function runSpendConversionConfirm(
     };
   }
 
-  const bal = await fetchTreasuryUsdcBalanceSafe(
-    spendExperience.treasury_wallet_address
-  );
+  const bal = await fetchServerWalletUsdcBalanceSafe(spendExperience);
   if (bal === null || bal < usdcAmount) {
     trackSpendTreasuryInsufficientFunds(distinctId, {
       ...baseAnalytics,
@@ -255,12 +230,12 @@ export async function runSpendConversionConfirm(
     };
   }
 
-  const treasuryCheck = assertServerTreasuryMatchesExperience(spendExperience);
-  if (!treasuryCheck.ok) {
+  const serverWallet = getSpendServerWalletTransferConfig(spendExperience);
+  if (!serverWallet) {
     return {
       ok: false,
       httpStatus: 500,
-      error: treasuryCheck.userMessage,
+      error: MISCONFIGURED_CONVERSION_ERROR,
     };
   }
 
@@ -273,7 +248,7 @@ export async function runSpendConversionConfirm(
   }
 
   const userRecipient = recipientUsdcAddressForSpendTransfer({
-    treasuryWalletAddress: spendExperience.treasury_wallet_address,
+    serverWalletAddress: serverWallet.address,
     sessionWalletTrimmed: session.wallet_address.trim(),
     normalizedWalletLower: normalizedWallet,
   });
@@ -287,7 +262,7 @@ export async function runSpendConversionConfirm(
       spendExperienceId: spendExperience.id,
       pointsToDeduct: pointsRequired,
       usdcAmount,
-      treasuryWalletAddress: spendExperience.treasury_wallet_address,
+      treasuryWalletAddress: serverWallet.address,
       userWalletAddress: session.wallet_address,
     });
   } catch (e) {
@@ -344,6 +319,8 @@ export async function runSpendConversionConfirm(
   }
 
   const sub = await submitTreasuryUsdcTransfer({
+    serverWalletId: serverWallet.walletId,
+    serverWalletAddress: serverWallet.address,
     recipientAddress: userRecipient,
     usdcAmount,
   });
@@ -442,7 +419,7 @@ export async function runSpendConversionConfirm(
   void insertTreasuryFundUserLedgerIfAbsent({
     spendExperienceId: spendExperience.id,
     amount: completed.usdc_amount,
-    fromWalletAddress: spendExperience.treasury_wallet_address,
+    fromWalletAddress: serverWallet.address,
     toWalletAddress: completed.user_wallet_address,
     txHash,
   });
@@ -485,13 +462,13 @@ async function fundOrResumeUsdc(input: {
     baseAnalytics,
   } = input;
 
-  const tre = assertServerTreasuryMatchesExperience(spendExperience);
-  if (!tre.ok) {
+  const serverWallet = getSpendServerWalletTransferConfig(spendExperience);
+  if (!serverWallet) {
     return {
       error: {
         ok: false,
         httpStatus: 500,
-        error: tre.userMessage,
+        error: MISCONFIGURED_CONVERSION_ERROR,
       },
     };
   }
@@ -499,12 +476,14 @@ async function fundOrResumeUsdc(input: {
   let conv = pointConversion;
   if (conv.status === 'points_deducted' && !conv.funding_tx_hash) {
     const userRecipient = recipientUsdcAddressForSpendTransfer({
-      treasuryWalletAddress: spendExperience.treasury_wallet_address,
+      serverWalletAddress: serverWallet.address,
       sessionWalletTrimmed: session.wallet_address.trim(),
       normalizedWalletLower: normalizedWallet,
     });
 
     const sub = await submitTreasuryUsdcTransfer({
+      serverWalletId: serverWallet.walletId,
+      serverWalletAddress: serverWallet.address,
       recipientAddress: userRecipient,
       usdcAmount,
     });
@@ -599,7 +578,7 @@ async function fundOrResumeUsdc(input: {
   void insertTreasuryFundUserLedgerIfAbsent({
     spendExperienceId: spendExperience.id,
     amount: done.usdc_amount,
-    fromWalletAddress: spendExperience.treasury_wallet_address,
+    fromWalletAddress: serverWallet.address,
     toWalletAddress: done.user_wallet_address,
     txHash: hash,
   });

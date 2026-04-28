@@ -167,36 +167,19 @@ export function SpendExperienceFormPanel({
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="se-treasury">Treasury wallet (funds users)</Label>
-            <Input
-              id="se-treasury"
-              className="font-mono text-sm"
-              value={form.treasury_wallet_address}
-              onChange={(ev) =>
-                setForm((f) => ({
-                  ...f,
-                  treasury_wallet_address: ev.target.value,
-                }))
-              }
-              placeholder="0x…"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="se-receive">Receiving wallet (event / IRL)</Label>
-            <Input
-              id="se-receive"
-              className="font-mono text-sm"
-              value={form.receiving_wallet_address}
-              onChange={(ev) =>
-                setForm((f) => ({
-                  ...f,
-                  receiving_wallet_address: ev.target.value,
-                }))
-              }
-              placeholder="0x…"
-            />
-          </div>
+          {editing?.server_wallet_address && (
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
+              <div className="font-medium text-blue-950">
+                Privy server wallet
+              </div>
+              <p className="mt-1 text-blue-900">
+                Backend-managed on Base. Admins do not edit wallet addresses.
+              </p>
+              <code className="mt-2 block break-all text-xs text-blue-950">
+                {editing.server_wallet_address}
+              </code>
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="se-start">Start (local)</Label>
