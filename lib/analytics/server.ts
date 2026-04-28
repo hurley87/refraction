@@ -299,3 +299,32 @@ export function trackSpendTreasuryInsufficientFunds(
     properties
   );
 }
+
+export function trackSpendConversionConfirmed(
+  distinctId: string,
+  properties: SpendPilotConversionEventProperties
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPEND_CONVERSION_CONFIRMED,
+    properties
+  );
+}
+
+export function trackSpendConversionCompleted(
+  distinctId: string,
+  properties: SpendPilotConversionEventProperties
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPEND_CONVERSION_COMPLETED,
+    properties
+  );
+}
+
+export function trackSpendConversionFailed(
+  distinctId: string,
+  properties: SpendPilotConversionEventProperties
+): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.SPEND_CONVERSION_FAILED, properties);
+}

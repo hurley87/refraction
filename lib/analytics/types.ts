@@ -123,4 +123,9 @@ export interface SpendPilotConversionEventProperties {
   usdc_amount: number;
   status: string;
   error_reason?: string;
+  /** Point conversion row */
+  point_conversion_id?: string;
+  spend_session_id?: string;
+  /** On-chain USDC funding tx */
+  funding_tx_hash?: string | null;
 }
