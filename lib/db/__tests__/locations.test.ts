@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { LOCATION_OPTIONS_MAX_ROWS } from '@/lib/constants';
 import type { Location, LocationOption } from '@/lib/types';
 
 // Mock the supabase client - use any for complex mock chains
@@ -452,64 +453,86 @@ describe('Locations Database Module', () => {
       expect(mockFrom).toHaveBeenCalledWith('locations');
     });
 
-    it('should apply search filter with ilike', async () => {
-      const filteredOptions = [sampleLocationOption];
+    it('should apply search filter with ilike on name and address (merged)', async () => {
+      const filteredOption = sampleLocationOption;
 
-      const mockIlikeFn = vi
+      const mockLimit = vi
         .fn()
-        .mockResolvedValue({ data: filteredOptions, error: null });
+        .mockResolvedValueOnce({ data: [filteredOption], error: null })
+        .mockResolvedValueOnce({ data: [], error: null });
 
-      mockFrom.mockReturnValue({
-        select: vi.fn(() => ({
-          order: vi.fn(() => ({
-            limit: vi.fn(() => ({
-              ilike: mockIlikeFn,
-            })),
-          })),
+      const mockIlike = vi.fn(() => ({
+        order: vi.fn(() => ({
+          limit: mockLimit,
         })),
-      });
+      }));
+
+      mockFrom.mockImplementation(() => ({
+        select: vi.fn(() => ({
+          ilike: mockIlike,
+        })),
+      }));
 
       const result = await listLocationOptions('Test');
 
-      expect(result).toEqual(filteredOptions);
-      expect(mockIlikeFn).toHaveBeenCalledWith('name', '%Test%');
+      expect(result).toEqual([filteredOption]);
+      expect(mockIlike).toHaveBeenCalledTimes(2);
+      expect(mockIlike).toHaveBeenNthCalledWith(1, 'name', '%Test%');
+      expect(mockIlike).toHaveBeenNthCalledWith(2, 'address', '%Test%');
     });
 
     it('should sanitize special characters in search (% and _)', async () => {
-      const mockIlikeFn = vi.fn().mockResolvedValue({ data: [], error: null });
-
-      mockFrom.mockReturnValue({
-        select: vi.fn(() => ({
-          order: vi.fn(() => ({
-            limit: vi.fn(() => ({
-              ilike: mockIlikeFn,
-            })),
-          })),
+      const mockLimit = vi
+        .fn()
+        .mockResolvedValueOnce({ data: [], error: null })
+        .mockResolvedValueOnce({ data: [], error: null });
+      const mockIlike = vi.fn(() => ({
+        order: vi.fn(() => ({
+          limit: mockLimit,
         })),
-      });
+      }));
+
+      mockFrom.mockImplementation(() => ({
+        select: vi.fn(() => ({
+          ilike: mockIlike,
+        })),
+      }));
 
       await listLocationOptions('test%_special');
 
-      // % and _ should be escaped to prevent SQL injection
-      expect(mockIlikeFn).toHaveBeenCalledWith('name', '%test\\%\\_special%');
+      expect(mockIlike).toHaveBeenNthCalledWith(
+        1,
+        'name',
+        '%test\\%\\_special%'
+      );
+      expect(mockIlike).toHaveBeenNthCalledWith(
+        2,
+        'address',
+        '%test\\%\\_special%'
+      );
     });
 
     it('should trim whitespace from search term', async () => {
-      const mockIlikeFn = vi.fn().mockResolvedValue({ data: [], error: null });
-
-      mockFrom.mockReturnValue({
-        select: vi.fn(() => ({
-          order: vi.fn(() => ({
-            limit: vi.fn(() => ({
-              ilike: mockIlikeFn,
-            })),
-          })),
+      const mockLimit = vi
+        .fn()
+        .mockResolvedValueOnce({ data: [], error: null })
+        .mockResolvedValueOnce({ data: [], error: null });
+      const mockIlike = vi.fn(() => ({
+        order: vi.fn(() => ({
+          limit: mockLimit,
         })),
-      });
+      }));
+
+      mockFrom.mockImplementation(() => ({
+        select: vi.fn(() => ({
+          ilike: mockIlike,
+        })),
+      }));
 
       await listLocationOptions('  test  ');
 
-      expect(mockIlikeFn).toHaveBeenCalledWith('name', '%test%');
+      expect(mockIlike).toHaveBeenNthCalledWith(1, 'name', '%test%');
+      expect(mockIlike).toHaveBeenNthCalledWith(2, 'address', '%test%');
     });
 
     it('should not apply filter for empty search string', async () => {
@@ -560,7 +583,7 @@ describe('Locations Database Module', () => {
       expect(mockLimitFn).toHaveBeenCalledWith(50);
     });
 
-    it('should use default limit of 250', async () => {
+    it('should use default limit of LOCATION_OPTIONS_MAX_ROWS', async () => {
       const mockLimitFn = vi.fn().mockResolvedValue({ data: [], error: null });
 
       mockFrom.mockReturnValue({
@@ -573,7 +596,7 @@ describe('Locations Database Module', () => {
 
       await listLocationOptions();
 
-      expect(mockLimitFn).toHaveBeenCalledWith(250);
+      expect(mockLimitFn).toHaveBeenCalledWith(LOCATION_OPTIONS_MAX_ROWS);
     });
 
     it('should return empty array when data is null', async () => {

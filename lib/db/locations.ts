@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { LOCATION_OPTIONS_MAX_ROWS } from '../constants';
 import type { Location, LocationOption } from '../types';
 
 const isUniqueViolation = (error: unknown): boolean =>
@@ -170,27 +171,92 @@ export const deleteLocationById = async (
   return data != null;
 };
 
+const LOCATION_OPTION_COLUMNS =
+  'id, name, address, latitude, longitude, place_id';
+
+function mergeLocationOptionsByIdNameFirst(
+  primary: LocationOption[],
+  secondary: LocationOption[],
+  max: number
+): LocationOption[] {
+  const seen = new Set<number>();
+  const out: LocationOption[] = [];
+
+  for (const row of primary) {
+    const id = row.id;
+    if (typeof id !== 'number') continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(row);
+    if (out.length >= max) return out;
+  }
+
+  for (const row of secondary) {
+    const id = row.id;
+    if (typeof id !== 'number') continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(row);
+    if (out.length >= max) return out;
+  }
+
+  return out;
+}
+
 /**
- * List location options for search/dropdowns with optional search filter
+ * List location options for search/dropdowns with optional search filter.
+ * Without a search term, returns the newest locations (by `created_at`).
+ * With a search term, matches `name` OR `address` (case-insensitive).
  */
 export const listLocationOptions = async (
   search?: string,
-  limit: number = 250
+  limit: number = LOCATION_OPTIONS_MAX_ROWS
 ): Promise<LocationOption[]> => {
-  let query = supabase
-    .from('locations')
-    .select('id, name, address, latitude, longitude, place_id')
-    .order('created_at', { ascending: false })
-    .limit(limit);
+  const lim = Math.min(Math.max(limit, 1), LOCATION_OPTIONS_MAX_ROWS);
 
-  if (search && search.trim() !== '') {
-    const sanitized = search.trim().replace(/%/g, '\\%').replace(/_/g, '\\_');
-    query = query.ilike('name', `%${sanitized}%`);
+  const trimmed = search?.trim() ?? '';
+
+  if (trimmed === '') {
+    const { data, error } = await supabase
+      .from('locations')
+      .select(LOCATION_OPTION_COLUMNS)
+      .order('created_at', { ascending: false })
+      .limit(lim);
+
+    if (error) throw error;
+    return (data || []) as LocationOption[];
   }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data || []) as LocationOption[];
+  const sanitized = trimmed.replace(/%/g, '\\%').replace(/_/g, '\\_');
+  const pattern = `%${sanitized}%`;
+
+  const nameQuery = supabase
+    .from('locations')
+    .select(LOCATION_OPTION_COLUMNS)
+    .ilike('name', pattern)
+    .order('created_at', { ascending: false })
+    .limit(lim);
+
+  const addressQuery = supabase
+    .from('locations')
+    .select(LOCATION_OPTION_COLUMNS)
+    .ilike('address', pattern)
+    .order('created_at', { ascending: false })
+    .limit(lim);
+
+  const [
+    { data: nameRows, error: nameErr },
+    { data: addrRows, error: addrErr },
+  ] = await Promise.all([nameQuery, addressQuery]);
+
+  if (nameErr) throw nameErr;
+  if (addrErr) throw addrErr;
+
+  return mergeLocationOptionsByIdNameFirst(
+    (nameRows || []) as LocationOption[],
+    (addrRows || []) as LocationOption[],
+    lim
+  );
 };
 
 export type CityMetric = {
