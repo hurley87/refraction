@@ -46,6 +46,10 @@ export const ANALYTICS_EVENTS = {
   SPEND_CONVERSION_CONFIRMED: 'spend_conversion_confirmed',
   SPEND_CONVERSION_COMPLETED: 'spend_conversion_completed',
   SPEND_CONVERSION_FAILED: 'spend_conversion_failed',
+  SPEND_PAYMENT_CONFIRMED: 'spend_payment_confirmed',
+  SPEND_PAYMENT_COMPLETED: 'spend_payment_completed',
+  SPEND_PAYMENT_FAILED: 'spend_payment_failed',
+  SPEND_RECEIPT_VIEWED: 'spend_receipt_viewed',
 } as const;
 
 export type AnalyticsEventName =

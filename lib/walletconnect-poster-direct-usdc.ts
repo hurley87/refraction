@@ -5,12 +5,12 @@ import {
   formatUnits,
   http,
   parseUnits,
-} from "viem";
-import { base } from "viem/chains";
+} from 'viem';
+import { base } from 'viem/chains';
 
 /** Official USDC on Base mainnet (same chain as Privy `supportedChains` in providers). */
 export const POSTER_CHECKOUT_USDC_ADDRESS_BASE =
-  "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
+  '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const;
 
 export const POSTER_CHECKOUT_CHAIN = base;
 export const POSTER_CHECKOUT_CHAIN_ID = base.id;
@@ -28,10 +28,19 @@ export function isEvmAddress(value: string): boolean {
 export function encodePosterUsdcTransferData(
   recipient: `0x${string}`
 ): `0x${string}` {
+  return encodeUsdcTransferData(recipient, 1);
+}
+
+/** ERC-20 `transfer` calldata for USDC (6 decimals) on Base. */
+export function encodeUsdcTransferData(
+  recipient: `0x${string}`,
+  /** Human-readable USDC amount (e.g. 5.25). */
+  usdcAmount: number
+): `0x${string}` {
   return encodeFunctionData({
     abi: erc20Abi,
-    functionName: "transfer",
-    args: [recipient, parseUnits("1", 6)],
+    functionName: 'transfer',
+    args: [recipient, parseUnits(usdcAmount.toFixed(6), 6)],
   });
 }
 
@@ -49,7 +58,7 @@ export async function fetchUsdcBalanceOnBase(
   const raw = await client.readContract({
     address: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
     abi: erc20Abi,
-    functionName: "balanceOf",
+    functionName: 'balanceOf',
     args: [walletAddress],
   });
   return parseFloat(formatUnits(raw, 6));

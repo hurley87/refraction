@@ -14,6 +14,7 @@ vi.mock('@/lib/api/privy', () => ({
 vi.mock('@/lib/db/spend-sessions', () => ({
   getSpendSessionById: (...a: unknown[]) => mockGetSession(...a),
   getPointConversionBySessionId: (...a: unknown[]) => mockGetConversion(...a),
+  getSpendTransactionBySessionId: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('@/lib/db/spend-experiences', () => ({
@@ -23,6 +24,11 @@ vi.mock('@/lib/db/spend-experiences', () => ({
 vi.mock('@/lib/spend-conversion-preview', () => ({
   loadSpendEligibilityForSession: (...a: unknown[]) =>
     mockLoadEligibility(...a),
+}));
+
+vi.mock('@/lib/analytics/server', () => ({
+  resolveServerIdentity: () => 'distinct-1',
+  trackSpendReceiptViewed: vi.fn(),
 }));
 
 import { GET } from '../route';
