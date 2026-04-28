@@ -30,8 +30,7 @@ export const SPEND_ELIGIBILITY_MESSAGES: Record<
     'The event wallet is temporarily out of USDC. Please try again later or ask an event host.',
   wallet_unavailable:
     'Wallet unavailable. Add or connect your embedded wallet in your profile.',
-  ready_for_payment:
-    'Your points were converted to USDC. Send payment to the event wallet below to finish.',
+  ready_for_payment: 'Your points were converted to USDC.',
   payment_failed:
     'Your last payment could not be verified on-chain. You can try sending payment again.',
   payment_complete:
