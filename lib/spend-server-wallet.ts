@@ -1,5 +1,4 @@
 import {
-  encodeUsdcTransferData,
   fetchUsdcBalanceOnBase,
   isEvmAddress,
 } from '@/lib/walletconnect-poster-direct-usdc';
@@ -15,7 +14,20 @@ export type SpendServerWalletMetadata = {
   server_wallet_created_at: string;
 };
 
-export function spendServerWalletAddress(
+export type SpendServerWalletFundingMetadata = {
+  serverWalletAddress: string;
+  chain: string;
+  minimumUsdc: number;
+  usdcBalance: number | null;
+  funded: boolean;
+};
+
+export type SpendServerWalletTransferConfig = {
+  walletId: string;
+  address: `0x${string}`;
+};
+
+export function getSpendServerWalletAddress(
   experience: Pick<
     SpendExperience,
     'server_wallet_address' | 'treasury_wallet_address'
@@ -27,36 +39,16 @@ export function spendServerWalletAddress(
   );
 }
 
-export const getSpendServerWalletAddress = spendServerWalletAddress;
-
-export function spendPaymentRecipientAddress(
-  experience: Pick<
-    SpendExperience,
-    'server_wallet_address' | 'receiving_wallet_address'
-  >
-): string {
-  return (
-    experience.server_wallet_address?.trim() ||
-    experience.receiving_wallet_address.trim()
-  );
-}
-
 export function spendServerWalletFundingMetadata(
   experience: Pick<
     SpendExperience,
     'server_wallet_address' | 'treasury_wallet_address' | 'max_usdc_per_user'
   >,
   usdcBalance: number | null
-): {
-  serverWalletAddress: string;
-  chain: string;
-  minimumUsdc: number;
-  usdcBalance: number | null;
-  funded: boolean;
-} {
+): SpendServerWalletFundingMetadata {
   const minimumUsdc = Number(experience.max_usdc_per_user);
   return {
-    serverWalletAddress: spendServerWalletAddress(experience),
+    serverWalletAddress: getSpendServerWalletAddress(experience),
     chain: SPEND_SERVER_WALLET_CHAIN,
     minimumUsdc,
     usdcBalance,
@@ -64,20 +56,48 @@ export function spendServerWalletFundingMetadata(
   };
 }
 
+export function getSpendServerWalletTransferConfig(
+  experience: Pick<
+    SpendExperience,
+    | 'privy_server_wallet_id'
+    | 'server_wallet_address'
+    | 'treasury_wallet_address'
+  >
+): SpendServerWalletTransferConfig | null {
+  const address = getSpendServerWalletAddress(experience);
+  const walletId = experience.privy_server_wallet_id?.trim();
+  if (!walletId || !isEvmAddress(address)) {
+    return null;
+  }
+
+  return { walletId, address: address as `0x${string}` };
+}
+
+async function fetchUsdcBalanceSafe(
+  walletAddress: string | null | undefined,
+  logContext: string
+): Promise<number | null> {
+  const trimmed = walletAddress?.trim();
+  if (!trimmed || !isEvmAddress(trimmed)) {
+    return null;
+  }
+
+  try {
+    return await fetchUsdcBalanceOnBase(trimmed as `0x${string}`);
+  } catch (error) {
+    console.error(`${logContext}:`, error);
+    return null;
+  }
+}
+
 export async function getServerWalletFundingStatus(params: {
   walletAddress: string | null;
   minUsdcRequired: number;
 }): Promise<{ usdcBalance: number | null; isFunded: boolean }> {
-  const walletAddress = params.walletAddress?.trim();
-  if (!walletAddress || !isEvmAddress(walletAddress)) {
-    return { usdcBalance: null, isFunded: false };
-  }
-  let usdcBalance: number | null = null;
-  try {
-    usdcBalance = await fetchUsdcBalanceOnBase(walletAddress as `0x${string}`);
-  } catch (error) {
-    console.error('getServerWalletFundingStatus:', error);
-  }
+  const usdcBalance = await fetchUsdcBalanceSafe(
+    params.walletAddress,
+    'getServerWalletFundingStatus'
+  );
   return {
     usdcBalance,
     isFunded:
@@ -91,26 +111,8 @@ export function fetchServerWalletUsdcBalanceSafe(
     'server_wallet_address' | 'treasury_wallet_address'
   >
 ): Promise<number | null> {
-  const walletAddress = spendServerWalletAddress(experience);
-  if (!walletAddress || !isEvmAddress(walletAddress)) {
-    return Promise.resolve(null);
-  }
-  return fetchUsdcBalanceOnBase(walletAddress as `0x${string}`).catch(
-    (error) => {
-      console.error('fetchServerWalletUsdcBalanceSafe:', error);
-      return null;
-    }
+  return fetchUsdcBalanceSafe(
+    getSpendServerWalletAddress(experience),
+    'fetchServerWalletUsdcBalanceSafe'
   );
-}
-
-export function buildSpendUsdcTransferTx(params: {
-  fromAddress: `0x${string}`;
-  recipientAddress: `0x${string}`;
-  usdcAmount: number;
-}): { from: `0x${string}`; to: `0x${string}`; data: `0x${string}` } {
-  return {
-    from: params.fromAddress,
-    to: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-    data: encodeUsdcTransferData(params.recipientAddress, params.usdcAmount),
-  };
 }

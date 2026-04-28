@@ -2,12 +2,11 @@ import {
   SPEND_ELIGIBILITY_MESSAGES,
   type SpendEligibilityStatus,
 } from '@/lib/spend-eligibility-messages';
-import { getSpendServerWalletAddress } from '@/lib/spend-server-wallet';
-import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import {
-  fetchUsdcBalanceOnBase,
-  isEvmAddress,
-} from '@/lib/walletconnect-poster-direct-usdc';
+  fetchServerWalletUsdcBalanceSafe,
+  getSpendServerWalletAddress,
+} from '@/lib/spend-server-wallet';
+import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import type {
   PointConversion,
   Player,
@@ -184,24 +183,6 @@ export function buildSpendEligibilityPreview(
   };
 }
 
-/**
- * Reads server wallet USDC on Base; returns null if address invalid or RPC fails.
- */
-export async function fetchTreasuryUsdcBalanceSafe(
-  treasuryWalletAddress: string
-): Promise<number | null> {
-  const trimmed = treasuryWalletAddress.trim();
-  if (!isEvmAddress(trimmed)) {
-    return null;
-  }
-  try {
-    return await fetchUsdcBalanceOnBase(trimmed as `0x${string}`);
-  } catch (e) {
-    console.error('fetchTreasuryUsdcBalanceSafe:', e);
-    return null;
-  }
-}
-
 type LoadEligibilityInput = {
   session: SpendSession;
   spendExperience: SpendExperience;
@@ -243,14 +224,4 @@ export async function loadSpendEligibilityForSession(
     treasuryUsdcBalance,
     now,
   });
-}
-
-export function fetchServerWalletUsdcBalanceSafe(
-  experience: Pick<
-    SpendExperience,
-    'server_wallet_address' | 'treasury_wallet_address'
-  >
-): Promise<number | null> {
-  const walletAddress = getSpendServerWalletAddress(experience);
-  return fetchTreasuryUsdcBalanceSafe(walletAddress);
 }

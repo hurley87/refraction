@@ -20,6 +20,7 @@ import type {
   SpendTransaction,
   TreasuryTransaction,
 } from '@/lib/types';
+import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
 
 type ActivityTotals = {
   usersConverted: number;
@@ -50,13 +51,7 @@ type TreasuryPayload = {
   serverWalletChain: string | null;
   serverWalletCreatedAt: string | null;
   serverWalletUsdcBalance: number | null;
-  funding: {
-    serverWalletAddress: string;
-    chain: string;
-    minimumUsdc: number;
-    usdcBalance: number | null;
-    funded: boolean;
-  };
+  funding: SpendServerWalletFundingMetadata;
   treasuryWalletAddress: string;
   receivingWalletAddress: string;
   treasuryUsdcBalance: number | null;

@@ -8,9 +8,10 @@ import { createSpendExperienceRequestSchema } from '@/lib/schemas/spend-experien
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
 import { createSpendPrivyServerWallet } from '@/lib/api/privy';
-import { spendServerWalletAddress } from '@/lib/spend-server-wallet';
-
-const DEFAULT_SPEND_WALLET_CHAIN = 'base-mainnet';
+import {
+  SPEND_SERVER_WALLET_CHAIN,
+  spendServerWalletFundingMetadata,
+} from '@/lib/spend-server-wallet';
 
 function createIdempotencyKey(request: NextRequest): string {
   return (
@@ -61,13 +62,7 @@ export async function POST(request: NextRequest) {
       return apiSuccess(
         {
           spendExperience: existing,
-          funding: {
-            serverWalletAddress: spendServerWalletAddress(existing),
-            chain: existing.server_wallet_chain,
-            minimumUsdc: existing.max_usdc_per_user,
-            usdcBalance: null,
-            funded: false,
-          },
+          funding: spendServerWalletFundingMetadata(existing, null),
         },
         'Spend experience already created'
       );
@@ -80,7 +75,7 @@ export async function POST(request: NextRequest) {
       status: 'draft',
       privy_server_wallet_id: wallet.privy_server_wallet_id,
       server_wallet_address: wallet.server_wallet_address,
-      server_wallet_chain: DEFAULT_SPEND_WALLET_CHAIN,
+      server_wallet_chain: SPEND_SERVER_WALLET_CHAIN,
       server_wallet_created_at: wallet.server_wallet_created_at,
       spend_create_idempotency_key: idempotencyKey,
       created_by: adminEmail ?? null,
@@ -89,13 +84,7 @@ export async function POST(request: NextRequest) {
     return apiSuccess(
       {
         spendExperience,
-        funding: {
-          serverWalletAddress: wallet.server_wallet_address,
-          chain: DEFAULT_SPEND_WALLET_CHAIN,
-          minimumUsdc: spendExperience.max_usdc_per_user,
-          usdcBalance: null,
-          funded: false,
-        },
+        funding: spendServerWalletFundingMetadata(spendExperience, null),
       },
       'Spend experience created successfully'
     );

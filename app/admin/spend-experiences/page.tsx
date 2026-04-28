@@ -15,18 +15,13 @@ import {
 } from './form-state';
 import { SpendExperienceFormPanel } from './spend-experience-form-panel';
 import { SpendExperienceList } from './spend-experience-list';
+import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
 
 const QUERY_KEY = ['admin-spend-experiences'] as const;
 
 type CreateSpendExperienceResponse = {
   spendExperience: SpendExperience;
-  funding?: {
-    serverWalletAddress: string;
-    chain: string;
-    minimumUsdc: number;
-    usdcBalance: number | null;
-    funded: boolean;
-  };
+  funding?: SpendServerWalletFundingMetadata;
 };
 
 export default function AdminSpendExperiencesPage() {
