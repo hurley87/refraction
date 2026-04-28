@@ -3,10 +3,15 @@ import { getPrivyUserIdFromRequest } from '@/lib/api/privy';
 import {
   getSpendSessionById,
   getPointConversionBySessionId,
+  getSpendTransactionBySessionId,
 } from '@/lib/db/spend-sessions';
 import { getSpendExperienceById } from '@/lib/db/spend-experiences';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { loadSpendEligibilityForSession } from '@/lib/spend-conversion-preview';
+import {
+  resolveServerIdentity,
+  trackSpendReceiptViewed,
+} from '@/lib/analytics/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,10 +41,12 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     return apiError('Forbidden', 403);
   }
 
-  const [spendExperience, pointConversion] = await Promise.all([
-    getSpendExperienceById(session.spend_experience_id),
-    getPointConversionBySessionId(sessionId),
-  ]);
+  const [spendExperience, pointConversion, spendTransaction] =
+    await Promise.all([
+      getSpendExperienceById(session.spend_experience_id),
+      getPointConversionBySessionId(sessionId),
+      getSpendTransactionBySessionId(sessionId),
+    ]);
 
   if (!spendExperience) {
     return apiError('Spend experience not found', 404);
@@ -51,10 +58,29 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       spendExperience,
     });
 
+    const distinctId = resolveServerIdentity({
+      privyUserId: userId,
+      walletAddress: session.wallet_address.toLowerCase(),
+    });
+    trackSpendReceiptViewed(distinctId, {
+      spend_experience_id: spendExperience.id,
+      event_id: spendExperience.event_id,
+      user_id: userId,
+      wallet_address: session.wallet_address.toLowerCase(),
+      points_amount: pointConversion?.points_deducted ?? 0,
+      usdc_amount: pointConversion?.usdc_amount ?? 0,
+      status: session.status,
+      spend_session_id: session.id,
+      point_conversion_id: pointConversion?.id,
+      spend_transaction_id: spendTransaction?.id,
+      payment_tx_hash: spendTransaction?.payment_tx_hash ?? null,
+    });
+
     return apiSuccess({
       session,
       spendExperience,
       pointConversion,
+      spendTransaction,
       eligibility,
     });
   } catch (e) {

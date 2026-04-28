@@ -5,6 +5,7 @@ import type {
   SpendExperience,
   SpendSession,
   SpendSessionStatus,
+  SpendTransaction,
 } from '@/lib/types';
 
 const SESSION_COLS = `
@@ -36,6 +37,22 @@ const CONVERSION_COLS = `
   failed_reason
 `;
 
+const SPEND_TX_COLS = `
+  id,
+  spend_experience_id,
+  spend_session_id,
+  user_id,
+  usdc_amount,
+  from_wallet_address,
+  to_wallet_address,
+  status,
+  payment_tx_hash,
+  idempotency_key,
+  created_at,
+  completed_at,
+  failed_reason
+`;
+
 function toNum(v: unknown): number {
   if (typeof v === 'number' && !Number.isNaN(v)) return v;
   if (typeof v === 'string') {
@@ -56,6 +73,26 @@ function rowToSession(row: Record<string, unknown>): SpendSession {
     created_at: String(row.created_at),
     expires_at: String(row.expires_at),
     completed_at: row.completed_at == null ? null : String(row.completed_at),
+  };
+}
+
+function rowToSpendTransaction(row: Record<string, unknown>): SpendTransaction {
+  return {
+    id: String(row.id),
+    spend_experience_id: String(row.spend_experience_id),
+    spend_session_id: String(row.spend_session_id),
+    user_id: String(row.user_id),
+    usdc_amount: toNum(row.usdc_amount),
+    from_wallet_address: String(row.from_wallet_address),
+    to_wallet_address: String(row.to_wallet_address),
+    status: row.status as SpendTransaction['status'],
+    payment_tx_hash:
+      row.payment_tx_hash == null ? null : String(row.payment_tx_hash),
+    idempotency_key:
+      row.idempotency_key == null ? null : String(row.idempotency_key),
+    created_at: String(row.created_at),
+    completed_at: row.completed_at == null ? null : String(row.completed_at),
+    failed_reason: row.failed_reason == null ? null : String(row.failed_reason),
   };
 }
 
@@ -95,6 +132,23 @@ export async function getSpendSessionById(
   }
   if (!data) return null;
   return rowToSession(data as Record<string, unknown>);
+}
+
+export async function getSpendTransactionBySessionId(
+  sessionId: string
+): Promise<SpendTransaction | null> {
+  const { data, error } = await supabase
+    .from('spend_transactions')
+    .select(SPEND_TX_COLS)
+    .eq('spend_session_id', sessionId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('getSpendTransactionBySessionId error:', error);
+    throw new Error(error.message || 'Failed to load spend transaction');
+  }
+  if (!data) return null;
+  return rowToSpendTransaction(data as Record<string, unknown>);
 }
 
 export async function getPointConversionBySessionId(
@@ -294,17 +348,118 @@ export async function updatePointConversionFields(
 
 export async function updateSpendSessionStatus(
   sessionId: string,
-  status: SpendSessionStatus
+  status: SpendSessionStatus,
+  extra?: { completed_at?: string | null }
 ): Promise<void> {
+  const patch: { status: SpendSessionStatus; completed_at?: string | null } = {
+    status,
+  };
+  if (extra?.completed_at !== undefined) {
+    patch.completed_at = extra.completed_at;
+  }
   const { error } = await supabase
     .from('spend_sessions')
-    .update({ status })
+    .update(patch)
     .eq('id', sessionId);
 
   if (error) {
     console.error('updateSpendSessionStatus:', error);
     throw new Error(error.message || 'Failed to update spend session');
   }
+}
+
+export async function insertSpendTransactionSubmitted(input: {
+  spendExperienceId: string;
+  spendSessionId: string;
+  userId: string;
+  usdcAmount: number;
+  fromWalletAddress: string;
+  toWalletAddress: string;
+  paymentTxHash: string;
+}): Promise<SpendTransaction | 'session_duplicate'> {
+  const idempotencyKey = `spend_payment:${input.spendSessionId}`;
+  const row = {
+    spend_experience_id: input.spendExperienceId,
+    spend_session_id: input.spendSessionId,
+    user_id: input.userId,
+    usdc_amount: input.usdcAmount,
+    from_wallet_address: input.fromWalletAddress,
+    to_wallet_address: input.toWalletAddress,
+    status: 'submitted' as const,
+    payment_tx_hash: input.paymentTxHash,
+    idempotency_key: idempotencyKey,
+  };
+
+  const { data, error } = await supabase
+    .from('spend_transactions')
+    .insert(row)
+    .select(SPEND_TX_COLS)
+    .single();
+
+  if (!error && data) {
+    return rowToSpendTransaction(data as Record<string, unknown>);
+  }
+
+  if (
+    error?.code === '23505' ||
+    error?.message?.toLowerCase().includes('duplicate')
+  ) {
+    return 'session_duplicate';
+  }
+
+  console.error('insertSpendTransactionSubmitted:', error);
+  throw new Error(error?.message || 'Failed to record spend transaction');
+}
+
+export async function updateSpendTransactionFields(
+  spendTransactionId: string,
+  patch: Partial<
+    Pick<
+      SpendTransaction,
+      'status' | 'payment_tx_hash' | 'completed_at' | 'failed_reason'
+    >
+  >
+): Promise<SpendTransaction> {
+  const { data, error } = await supabase
+    .from('spend_transactions')
+    .update(patch)
+    .eq('id', spendTransactionId)
+    .select(SPEND_TX_COLS)
+    .single();
+
+  if (error || !data) {
+    console.error('updateSpendTransactionFields:', error);
+    throw new Error(error?.message || 'Failed to update spend transaction');
+  }
+  return rowToSpendTransaction(data as Record<string, unknown>);
+}
+
+/**
+ * Atomically moves a row from `submitted` → `confirmed` when still submitted (idempotent under concurrency).
+ * Returns the updated row, or null if no row matched (already confirmed or wrong state).
+ */
+export async function confirmSpendTransactionIfSubmitted(
+  spendTransactionId: string
+): Promise<SpendTransaction | null> {
+  const completedAt = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('spend_transactions')
+    .update({
+      status: 'confirmed',
+      completed_at: completedAt,
+      failed_reason: null,
+    })
+    .eq('id', spendTransactionId)
+    .eq('status', 'submitted')
+    .select(SPEND_TX_COLS)
+    .maybeSingle();
+
+  if (error) {
+    console.error('confirmSpendTransactionIfSubmitted:', error);
+    throw new Error(error.message || 'Failed to confirm spend transaction');
+  }
+  if (!data) return null;
+  return rowToSpendTransaction(data as Record<string, unknown>);
 }
 
 /**

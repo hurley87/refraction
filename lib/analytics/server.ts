@@ -13,6 +13,7 @@ import type {
   CityMilestoneProperties,
   SpendPilotSessionEventProperties,
   SpendPilotConversionEventProperties,
+  SpendPilotPaymentEventProperties,
 } from './types';
 import { ANALYTICS_EVENTS } from './events';
 import { resolveDistinctId, type IdentityInput } from './identity';
@@ -327,4 +328,32 @@ export function trackSpendConversionFailed(
   properties: SpendPilotConversionEventProperties
 ): void {
   trackEvent(distinctId, ANALYTICS_EVENTS.SPEND_CONVERSION_FAILED, properties);
+}
+
+export function trackSpendPaymentConfirmed(
+  distinctId: string,
+  properties: SpendPilotPaymentEventProperties
+): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.SPEND_PAYMENT_CONFIRMED, properties);
+}
+
+export function trackSpendPaymentCompleted(
+  distinctId: string,
+  properties: SpendPilotPaymentEventProperties
+): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.SPEND_PAYMENT_COMPLETED, properties);
+}
+
+export function trackSpendPaymentFailed(
+  distinctId: string,
+  properties: SpendPilotPaymentEventProperties
+): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.SPEND_PAYMENT_FAILED, properties);
+}
+
+export function trackSpendReceiptViewed(
+  distinctId: string,
+  properties: SpendPilotPaymentEventProperties
+): void {
+  trackEvent(distinctId, ANALYTICS_EVENTS.SPEND_RECEIPT_VIEWED, properties);
 }

@@ -12,11 +12,13 @@ import type {
   Player,
   SpendExperience,
   SpendSession,
+  SpendTransaction,
 } from '@/lib/types';
 import { getPlayerByWallet } from '@/lib/db/players';
 import {
   getFundedPointConversionForUserExperience,
   getPointConversionBySessionId,
+  getSpendTransactionBySessionId,
 } from '@/lib/db/spend-sessions';
 
 export type { SpendEligibilityStatus } from '@/lib/spend-eligibility-messages';
@@ -48,6 +50,7 @@ type BuildPreviewInput = {
   spendExperience: SpendExperience;
   player: Player | null;
   pointConversion: PointConversion | null;
+  spendTransaction: SpendTransaction | null;
   /** Funded conversion for same user+experience on a different session (one per user). */
   fundedConversionForOtherSession: PointConversion | null;
   treasuryUsdcBalance: number | null;
@@ -78,6 +81,7 @@ export function buildSpendEligibilityPreview(
     spendExperience,
     player,
     pointConversion,
+    spendTransaction,
     fundedConversionForOtherSession,
     treasuryUsdcBalance,
     now,
@@ -113,10 +117,35 @@ export function buildSpendEligibilityPreview(
     };
   }
 
-  if (fundedConversionForOtherSession || pointConversion?.status === 'funded') {
+  if (fundedConversionForOtherSession) {
     return {
       status: 'already_converted',
       message: SPEND_ELIGIBILITY_MESSAGES.already_converted,
+      preview: basePreview(),
+    };
+  }
+
+  if (pointConversion?.status === 'funded') {
+    if (
+      spendTransaction?.status === 'confirmed' ||
+      session.status === 'payment_complete'
+    ) {
+      return {
+        status: 'payment_complete',
+        message: SPEND_ELIGIBILITY_MESSAGES.payment_complete,
+        preview: basePreview(),
+      };
+    }
+    if (spendTransaction?.status === 'failed') {
+      return {
+        status: 'payment_failed',
+        message: SPEND_ELIGIBILITY_MESSAGES.payment_failed,
+        preview: basePreview(),
+      };
+    }
+    return {
+      status: 'ready_for_payment',
+      message: SPEND_ELIGIBILITY_MESSAGES.ready_for_payment,
       preview: basePreview(),
     };
   }
@@ -188,7 +217,7 @@ export async function loadSpendEligibilityForSession(
   const session = input.session;
   const spendExperience = input.spendExperience;
 
-  const [player, pointConversion, fundedOther, treasuryUsdcBalance] =
+  const [player, pointConversion, fundedOther, treasuryUsdcBalance, spendTx] =
     await Promise.all([
       getPlayerByWallet(session.wallet_address),
       getPointConversionBySessionId(session.id),
@@ -197,6 +226,7 @@ export async function loadSpendEligibilityForSession(
         session.user_id
       ),
       fetchTreasuryUsdcBalanceSafe(spendExperience.treasury_wallet_address),
+      getSpendTransactionBySessionId(session.id),
     ]);
 
   return buildSpendEligibilityPreview({
@@ -204,6 +234,7 @@ export async function loadSpendEligibilityForSession(
     spendExperience,
     player,
     pointConversion,
+    spendTransaction: spendTx,
     fundedConversionForOtherSession:
       fundedOther && fundedOther.spend_session_id !== session.id
         ? fundedOther

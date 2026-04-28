@@ -57,6 +57,7 @@ describe('buildSpendEligibilityPreview', () => {
       spendExperience: exp(),
       player: player(6000),
       pointConversion: null,
+      spendTransaction: null,
       fundedConversionForOtherSession: null,
       treasuryUsdcBalance: 10,
       now,
@@ -72,6 +73,7 @@ describe('buildSpendEligibilityPreview', () => {
       spendExperience: exp(),
       player: player(100),
       pointConversion: null,
+      spendTransaction: null,
       fundedConversionForOtherSession: null,
       treasuryUsdcBalance: 100,
       now,
@@ -85,6 +87,7 @@ describe('buildSpendEligibilityPreview', () => {
       spendExperience: exp(),
       player: player(6000),
       pointConversion: null,
+      spendTransaction: null,
       fundedConversionForOtherSession: null,
       treasuryUsdcBalance: 2,
       now,
@@ -114,10 +117,85 @@ describe('buildSpendEligibilityPreview', () => {
       spendExperience: exp(),
       player: player(6000),
       pointConversion: null,
+      spendTransaction: null,
       fundedConversionForOtherSession: funded,
       treasuryUsdcBalance: 100,
       now,
     });
     expect(r.status).toBe('already_converted');
+  });
+
+  it('returns ready_for_payment when conversion funded and no spend tx', () => {
+    const conv: PointConversion = {
+      id: 'c1',
+      spend_experience_id: 'e1',
+      spend_session_id: 's1',
+      user_id: 'u1',
+      points_deducted: 5000,
+      usdc_amount: 5,
+      status: 'funded',
+      treasury_wallet_address: '0x1',
+      user_wallet_address: '0x3',
+      funding_tx_hash: '0xabc',
+      idempotency_key: null,
+      created_at: '',
+      completed_at: '',
+      failed_reason: null,
+    };
+    const r = buildSpendEligibilityPreview({
+      session: sess({ status: 'conversion_complete' }),
+      spendExperience: exp(),
+      player: player(1000),
+      pointConversion: conv,
+      spendTransaction: null,
+      fundedConversionForOtherSession: null,
+      treasuryUsdcBalance: 100,
+      now,
+    });
+    expect(r.status).toBe('ready_for_payment');
+  });
+
+  it('returns payment_complete when spend transaction confirmed', () => {
+    const conv: PointConversion = {
+      id: 'c1',
+      spend_experience_id: 'e1',
+      spend_session_id: 's1',
+      user_id: 'u1',
+      points_deducted: 5000,
+      usdc_amount: 5,
+      status: 'funded',
+      treasury_wallet_address: '0x1',
+      user_wallet_address: '0x3',
+      funding_tx_hash: '0xabc',
+      idempotency_key: null,
+      created_at: '',
+      completed_at: '',
+      failed_reason: null,
+    };
+    const r = buildSpendEligibilityPreview({
+      session: sess({ status: 'payment_complete' }),
+      spendExperience: exp(),
+      player: player(1000),
+      pointConversion: conv,
+      spendTransaction: {
+        id: 't1',
+        spend_experience_id: 'e1',
+        spend_session_id: 's1',
+        user_id: 'u1',
+        usdc_amount: 5,
+        from_wallet_address: '0x3',
+        to_wallet_address: '0x2',
+        status: 'confirmed',
+        payment_tx_hash: '0x' + 'a'.repeat(64),
+        idempotency_key: 'k',
+        created_at: '',
+        completed_at: '',
+        failed_reason: null,
+      },
+      fundedConversionForOtherSession: null,
+      treasuryUsdcBalance: 100,
+      now,
+    });
+    expect(r.status).toBe('payment_complete');
   });
 });

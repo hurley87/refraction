@@ -1,18 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { usePrivy } from '@privy-io/react-auth';
-import { Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { ExternalLink, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import type { SpendExperience, SpendSession } from '@/lib/types';
+import type {
+  PointConversion,
+  SpendExperience,
+  SpendSession,
+  SpendTransaction,
+} from '@/lib/types';
 import { initMixpanel, trackEvent } from '@/lib/analytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
-import { apiClient } from '@/lib/api/client';
+import { apiClient, ApiError } from '@/lib/api/client';
 import {
   SPEND_ELIGIBILITY_MESSAGES,
   type SpendEligibilityStatus,
 } from '@/lib/spend-eligibility-messages';
+import {
+  encodeUsdcTransferData,
+  isEvmAddress,
+  POSTER_CHECKOUT_CHAIN_ID,
+  POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+} from '@/lib/walletconnect-poster-direct-usdc';
+import type { BrowserProvider } from '@/lib/walletconnect-pay/sign-wallet-rpc-action';
 
 type SpendExperiencePageProps = {
   experienceId: string;
@@ -42,11 +55,64 @@ type ConversionPreviewResponse = {
   session: Pick<SpendSession, 'id' | 'status' | 'expires_at'>;
 };
 
-/** POST with Bearer token + `{ walletAddress }` body (session + preview APIs). */
+type ConversionConfirmResponse = {
+  pointConversion: PointConversion;
+  session: Pick<SpendSession, 'id' | 'status' | 'expires_at'>;
+  spendExperience: {
+    id: string;
+    title: string;
+    pointsRequired: number;
+    usdcAmount: number;
+  };
+  resumed: boolean;
+};
+
+type PaymentConfirmResponse = {
+  spendTransaction: SpendTransaction;
+  session: Pick<SpendSession, 'id' | 'status' | 'expires_at' | 'completed_at'>;
+  resumed: boolean;
+};
+
+type ReceiptResponse = {
+  session: SpendSession;
+  spendExperience: SpendExperience;
+  pointConversion: PointConversion | null;
+  spendTransaction: SpendTransaction | null;
+  eligibility: ConversionPreviewResponse['eligibility'];
+};
+
+const WALLET_STEP_TIMEOUT_MS = 180_000;
+
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const id = window.setTimeout(() => {
+      reject(
+        new Error(
+          `${label} timed out. Check your wallet or network, then try again.`
+        )
+      );
+    }, ms);
+    promise
+      .then((v) => {
+        clearTimeout(id);
+        resolve(v);
+      })
+      .catch((e) => {
+        clearTimeout(id);
+        reject(e);
+      });
+  });
+}
+
+/** POST with Bearer token + JSON body. */
 async function spendAuthedPost<T>(
   token: string,
-  walletAddress: string,
-  path: string
+  path: string,
+  body: Record<string, unknown>
 ): Promise<T> {
   return apiClient<T>(path, {
     method: 'POST',
@@ -54,8 +120,19 @@ async function spendAuthedPost<T>(
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ walletAddress }),
+    body: JSON.stringify(body),
   });
+}
+
+async function spendAuthedGet<T>(token: string, path: string): Promise<T> {
+  return apiClient<T>(path, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+function toEvmHexAddress(value: string | undefined): `0x${string}` | null {
+  return value && isEvmAddress(value) ? (value as `0x${string}`) : null;
 }
 
 /**
@@ -66,8 +143,21 @@ export function SpendExperiencePage({
   initialExperience,
 }: SpendExperiencePageProps) {
   const { user, login, getAccessToken } = usePrivy();
+  const { wallets } = useWallets();
+  const queryClient = useQueryClient();
   const walletAddress = user?.wallet?.address;
   const [trackedScan, setTrackedScan] = useState(false);
+
+  const address = walletAddress;
+  const evmWallet = useMemo(() => {
+    if (!address) return null;
+    const lower = address.toLowerCase();
+    return (
+      wallets.find((w) => w.address.toLowerCase() === lower) ??
+      wallets[0] ??
+      null
+    );
+  }, [address, wallets]);
 
   const {
     data: sessionPayload,
@@ -82,8 +172,8 @@ export function SpendExperiencePage({
       }
       return spendAuthedPost<SessionResponse>(
         token,
-        walletAddress,
-        `/api/spend-experiences/${experienceId}/sessions`
+        `/api/spend-experiences/${experienceId}/sessions`,
+        { walletAddress }
       );
     },
     enabled: Boolean(user && walletAddress),
@@ -106,13 +196,134 @@ export function SpendExperiencePage({
       }
       return spendAuthedPost<ConversionPreviewResponse>(
         token,
-        walletAddress,
-        `/api/spend-sessions/${sessionId}/conversion/preview`
+        `/api/spend-sessions/${sessionId}/conversion/preview`,
+        { walletAddress }
       );
     },
     enabled: Boolean(user && walletAddress && sessionId && !isFetching),
     retry: false,
   });
+
+  const sessionStatus = previewPayload?.session?.status;
+
+  const { data: receiptPayload } = useQuery({
+    queryKey: ['spend-receipt', sessionId, user?.id, walletAddress] as const,
+    queryFn: async () => {
+      const token = await getAccessToken();
+      if (!token || !walletAddress || !sessionId) {
+        throw new Error('Missing auth or session');
+      }
+      return spendAuthedGet<ReceiptResponse>(
+        token,
+        `/api/spend-sessions/${sessionId}/receipt`
+      );
+    },
+    enabled: Boolean(
+      user && walletAddress && sessionId && sessionStatus === 'payment_complete'
+    ),
+    retry: false,
+  });
+
+  const invalidateSpendQueries = useCallback(async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ['spend-conversion-preview', sessionId],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ['spend-session', experienceId],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ['spend-receipt', sessionId],
+    });
+  }, [queryClient, sessionId, experienceId]);
+
+  const conversionMutation = useMutation({
+    mutationFn: async () => {
+      const token = await getAccessToken();
+      if (!token || !walletAddress || !sessionId) {
+        throw new Error('Missing auth or session');
+      }
+      return spendAuthedPost<ConversionConfirmResponse>(
+        token,
+        `/api/spend-sessions/${sessionId}/conversion/confirm`,
+        { walletAddress }
+      );
+    },
+    onSuccess: async () => {
+      toast.success('USDC is on the way to your wallet.');
+      await invalidateSpendQueries();
+    },
+    onError: (e) => {
+      const msg = e instanceof ApiError ? e.message : String(e);
+      toast.error(msg);
+    },
+  });
+
+  const paymentMutation = useMutation({
+    mutationFn: async (paymentTxHash: string) => {
+      const token = await getAccessToken();
+      if (!token || !walletAddress || !sessionId) {
+        throw new Error('Missing auth or session');
+      }
+      return spendAuthedPost<PaymentConfirmResponse>(
+        token,
+        `/api/spend-sessions/${sessionId}/payment/confirm`,
+        { walletAddress, paymentTxHash }
+      );
+    },
+    onSuccess: async () => {
+      toast.success('Payment recorded. Thank you!');
+      await invalidateSpendQueries();
+    },
+    onError: (e) => {
+      const msg = e instanceof ApiError ? e.message : String(e);
+      toast.error(msg);
+    },
+  });
+
+  const sendUsdcPayment = useCallback(async () => {
+    if (!address || !evmWallet || !previewPayload?.eligibility.preview) {
+      toast.error('Wallet not ready');
+      return;
+    }
+    const preview = previewPayload.eligibility.preview;
+    const recipient = toEvmHexAddress(preview.receivingWalletAddress);
+    if (!recipient) {
+      toast.error('Invalid receiving wallet');
+      return;
+    }
+
+    try {
+      await withTimeout(
+        evmWallet.switchChain(POSTER_CHECKOUT_CHAIN_ID),
+        WALLET_STEP_TIMEOUT_MS,
+        'Switching to Base in your wallet'
+      );
+      const provider = await evmWallet.getEthereumProvider();
+      if (!provider) {
+        throw new Error('Could not connect to your wallet');
+      }
+      const data = encodeUsdcTransferData(recipient, preview.usdcAmount);
+      const hash = await withTimeout(
+        (provider as unknown as BrowserProvider).request({
+          method: 'eth_sendTransaction',
+          params: [
+            {
+              from: address,
+              to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+              data,
+            },
+          ],
+        }) as Promise<string>,
+        WALLET_STEP_TIMEOUT_MS,
+        'Confirm the USDC payment in your wallet'
+      );
+      const txHash = typeof hash === 'string' ? hash : String(hash);
+      await paymentMutation.mutateAsync(txHash);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(msg);
+    }
+  }, [address, evmWallet, previewPayload, paymentMutation]);
 
   useEffect(() => {
     const fireScan = async () => {
@@ -145,6 +356,25 @@ export function SpendExperiencePage({
   const preview = elig?.preview;
   const showSessionError = user && walletAddress && sessionError;
   const showWalletBlock = user && !walletAddress;
+
+  const showConvert =
+    elig?.status === 'eligible' &&
+    preview &&
+    (sessionStatus === 'created' || sessionStatus === 'conversion_pending');
+
+  const showPay =
+    (elig?.status === 'ready_for_payment' ||
+      elig?.status === 'payment_failed') &&
+    preview &&
+    isEvmAddress(preview.receivingWalletAddress);
+
+  const receiptSession = receiptPayload?.session ?? session;
+
+  const displayReceipt =
+    elig?.status === 'payment_complete' || sessionStatus === 'payment_complete';
+
+  const basescanUrl = (hash: string) =>
+    `https://basescan.org/tx/${hash.trim()}`;
 
   return (
     <div className="container mx-auto max-w-lg p-6">
@@ -238,7 +468,7 @@ export function SpendExperiencePage({
                       )}
                       <div className="border-t border-neutral-100 pt-2">
                         <p className="text-xs text-neutral-500">
-                          Pay to (IRL / event)
+                          Event wallet (USDC on Base)
                         </p>
                         <p className="break-all font-mono text-xs text-[#171717]">
                           {preview.receivingWalletAddress}
@@ -249,13 +479,99 @@ export function SpendExperiencePage({
 
                   <p
                     className={
-                      elig.status === 'eligible'
+                      elig.status === 'eligible' ||
+                      elig.status === 'ready_for_payment' ||
+                      elig.status === 'payment_complete'
                         ? 'text-sm text-emerald-800'
                         : 'text-sm text-amber-900'
                     }
                   >
                     {elig.message}
                   </p>
+
+                  {showConvert && (
+                    <Button
+                      className="w-full"
+                      disabled={conversionMutation.isPending}
+                      onClick={() => conversionMutation.mutate()}
+                    >
+                      {conversionMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                          Converting…
+                        </>
+                      ) : (
+                        'Convert points to USDC'
+                      )}
+                    </Button>
+                  )}
+
+                  {showPay && (
+                    <Button
+                      className="w-full"
+                      disabled={paymentMutation.isPending}
+                      onClick={() => void sendUsdcPayment()}
+                    >
+                      {paymentMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                          Pay with USDC…
+                        </>
+                      ) : (
+                        `Send $${preview!.usdcAmount.toFixed(2)} USDC on Base`
+                      )}
+                    </Button>
+                  )}
+
+                  {displayReceipt && (
+                    <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-[#171717]">
+                      <p className="font-semibold text-emerald-900">
+                        Payment complete
+                      </p>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-neutral-600">Amount</span>
+                        <span className="font-medium">
+                          $
+                          {(
+                            receiptPayload?.pointConversion?.usdc_amount ??
+                            preview?.usdcAmount ??
+                            0
+                          ).toFixed(2)}{' '}
+                          USDC
+                        </span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-neutral-600">Points used</span>
+                        <span className="font-medium">
+                          {Number(
+                            receiptPayload?.pointConversion?.points_deducted ??
+                              preview?.pointsRequired ??
+                              0
+                          ).toLocaleString()}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-xs text-neutral-600">Session</p>
+                        <p className="break-all font-mono text-xs">
+                          {receiptSession?.id}
+                        </p>
+                      </div>
+                      {(receiptPayload?.spendTransaction?.payment_tx_hash ??
+                        null) && (
+                        <a
+                          href={basescanUrl(
+                            receiptPayload!.spendTransaction!.payment_tx_hash!
+                          )}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-sm font-medium text-emerald-900 underline"
+                        >
+                          View payment on BaseScan
+                          <ExternalLink className="size-3.5" />
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </>

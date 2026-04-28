@@ -129,3 +129,19 @@ export interface SpendPilotConversionEventProperties {
   /** On-chain USDC funding tx */
   funding_tx_hash?: string | null;
 }
+
+/** Spend pilot: user payment to receiving wallet (PRD §13). */
+export interface SpendPilotPaymentEventProperties {
+  spend_experience_id: string;
+  event_id?: string | null;
+  user_id: string;
+  wallet_address: string;
+  points_amount: number;
+  usdc_amount: number;
+  status: string;
+  error_reason?: string;
+  spend_session_id?: string;
+  point_conversion_id?: string;
+  spend_transaction_id?: string;
+  payment_tx_hash?: string | null;
+}
