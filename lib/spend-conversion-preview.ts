@@ -113,15 +113,7 @@ export function buildSpendEligibilityPreview(
     };
   }
 
-  if (fundedConversionForOtherSession) {
-    return {
-      status: 'already_converted',
-      message: SPEND_ELIGIBILITY_MESSAGES.already_converted,
-      preview: basePreview(),
-    };
-  }
-
-  if (pointConversion?.status === 'funded') {
+  if (fundedConversionForOtherSession || pointConversion?.status === 'funded') {
     return {
       status: 'already_converted',
       message: SPEND_ELIGIBILITY_MESSAGES.already_converted,
@@ -147,15 +139,7 @@ export function buildSpendEligibilityPreview(
     };
   }
 
-  if (treasuryUsdcBalance === null) {
-    return {
-      status: 'treasury_insufficient',
-      message: SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient,
-      preview: basePreview(),
-    };
-  }
-
-  if (treasuryUsdcBalance < usdcAmount) {
+  if (treasuryUsdcBalance === null || treasuryUsdcBalance < usdcAmount) {
     return {
       status: 'treasury_insufficient',
       message: SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient,

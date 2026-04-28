@@ -9,7 +9,10 @@ import type { SpendExperience, SpendSession } from '@/lib/types';
 import { initMixpanel, trackEvent } from '@/lib/analytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 import { apiClient } from '@/lib/api/client';
-import { SPEND_ELIGIBILITY_MESSAGES } from '@/lib/spend-eligibility-messages';
+import {
+  SPEND_ELIGIBILITY_MESSAGES,
+  type SpendEligibilityStatus,
+} from '@/lib/spend-eligibility-messages';
 
 type SpendExperiencePageProps = {
   experienceId: string;
@@ -24,7 +27,7 @@ type SessionResponse = {
 
 type ConversionPreviewResponse = {
   eligibility: {
-    status: string;
+    status: SpendEligibilityStatus;
     message: string;
     preview: {
       pointsRequired: number;
@@ -38,6 +41,22 @@ type ConversionPreviewResponse = {
   spendExperience: SpendExperience;
   session: Pick<SpendSession, 'id' | 'status' | 'expires_at'>;
 };
+
+/** POST with Bearer token + `{ walletAddress }` body (session + preview APIs). */
+async function spendAuthedPost<T>(
+  token: string,
+  walletAddress: string,
+  path: string
+): Promise<T> {
+  return apiClient<T>(path, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ walletAddress }),
+  });
+}
 
 /**
  * Spend pilot: opens from QR at `/spend/{experienceId}`; creates/returns a session when authed.
@@ -61,16 +80,10 @@ export function SpendExperiencePage({
       if (!token || !walletAddress) {
         throw new Error('Missing auth');
       }
-      return apiClient<SessionResponse>(
-        `/api/spend-experiences/${experienceId}/sessions`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ walletAddress }),
-        }
+      return spendAuthedPost<SessionResponse>(
+        token,
+        walletAddress,
+        `/api/spend-experiences/${experienceId}/sessions`
       );
     },
     enabled: Boolean(user && walletAddress),
@@ -91,16 +104,10 @@ export function SpendExperiencePage({
       if (!token || !walletAddress || !sessionId) {
         throw new Error('Missing auth or session');
       }
-      return apiClient<ConversionPreviewResponse>(
-        `/api/spend-sessions/${sessionId}/conversion/preview`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ walletAddress }),
-        }
+      return spendAuthedPost<ConversionPreviewResponse>(
+        token,
+        walletAddress,
+        `/api/spend-sessions/${sessionId}/conversion/preview`
       );
     },
     enabled: Boolean(user && walletAddress && sessionId && !isFetching),

@@ -45,6 +45,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   const walletAddress = parsed.data.walletAddress.trim();
+  const normalizedWallet = walletAddress.toLowerCase();
+
   const auth = await verifyWalletOwnership(request, walletAddress);
   if (!auth.authorized || !auth.userId) {
     return apiError(auth.error ?? 'Unauthorized', 401);
@@ -64,7 +66,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return apiError('Forbidden', 403);
   }
 
-  if (session.wallet_address.toLowerCase() !== walletAddress.toLowerCase()) {
+  if (session.wallet_address.toLowerCase() !== normalizedWallet) {
     return apiError('Wallet does not match this session', 400);
   }
 
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   const distinctId = resolveServerIdentity({
     privyUserId: auth.userId,
-    walletAddress: walletAddress.toLowerCase(),
+    walletAddress: normalizedWallet,
   });
 
   const { usdcAmount, pointsRequired } =
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       spend_experience_id: spendExperience.id,
       event_id: spendExperience.event_id,
       user_id: auth.userId,
-      wallet_address: walletAddress.toLowerCase(),
+      wallet_address: normalizedWallet,
       points_amount: pointsRequired,
       usdc_amount: usdcAmount,
       status: eligibility.status,
