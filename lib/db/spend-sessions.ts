@@ -114,6 +114,29 @@ export async function getPointConversionBySessionId(
   return rowToConversion(data as Record<string, unknown>);
 }
 
+/**
+ * Returns a funded conversion for (experience, user) if one exists (one per user per experience).
+ */
+export async function getFundedPointConversionForUserExperience(
+  spendExperienceId: string,
+  userId: string
+): Promise<PointConversion | null> {
+  const { data, error } = await supabase
+    .from('point_conversions')
+    .select(CONVERSION_COLS)
+    .eq('spend_experience_id', spendExperienceId)
+    .eq('user_id', userId)
+    .eq('status', 'funded')
+    .maybeSingle();
+
+  if (error) {
+    console.error('getFundedPointConversionForUserExperience error:', error);
+    throw new Error(error.message || 'Failed to load point conversion');
+  }
+  if (!data) return null;
+  return rowToConversion(data as Record<string, unknown>);
+}
+
 type CreateSessionInput = {
   spendExperience: SpendExperience;
   userId: string;

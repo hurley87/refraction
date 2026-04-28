@@ -40,6 +40,9 @@ export const ANALYTICS_EVENTS = {
   SPEND_EXPERIENCE_QR_VIEWED_BY_ADMIN: 'spend_experience_qr_viewed_by_admin',
   SPEND_EXPERIENCE_QR_SCANNED: 'spend_experience_qr_scanned',
   SPEND_SESSION_CREATED: 'spend_session_created',
+  SPEND_CONVERSION_PREVIEWED: 'spend_conversion_previewed',
+  SPEND_USER_ALREADY_CONVERTED: 'spend_user_already_converted',
+  SPEND_TREASURY_INSUFFICIENT_FUNDS: 'spend_treasury_insufficient_funds',
 } as const;
 
 export type AnalyticsEventName =
