@@ -21,6 +21,7 @@ import {
   submitTreasuryUsdcTransfer,
   waitForTreasuryTxReceipt,
 } from '@/lib/spend-treasury-usdc-transfer';
+import { insertTreasuryFundUserLedgerIfAbsent } from '@/lib/db/treasury-transactions';
 import type {
   PointConversion,
   SpendExperience,
@@ -438,6 +439,13 @@ export async function runSpendConversionConfirm(
     status: 'funded',
     completed_at: new Date().toISOString(),
   });
+  void insertTreasuryFundUserLedgerIfAbsent({
+    spendExperienceId: spendExperience.id,
+    amount: completed.usdc_amount,
+    fromWalletAddress: spendExperience.treasury_wallet_address,
+    toWalletAddress: completed.user_wallet_address,
+    txHash,
+  });
   await markSessionAfterFunding(session.id);
   trackSpendConversionCompleted(distinctId, {
     ...baseAnalytics,
@@ -587,6 +595,13 @@ async function fundOrResumeUsdc(input: {
   const done = await updatePointConversionFields(conv.id, {
     status: 'funded',
     completed_at: new Date().toISOString(),
+  });
+  void insertTreasuryFundUserLedgerIfAbsent({
+    spendExperienceId: spendExperience.id,
+    amount: done.usdc_amount,
+    fromWalletAddress: spendExperience.treasury_wallet_address,
+    toWalletAddress: done.user_wallet_address,
+    txHash: hash,
   });
   await markSessionAfterFunding(session.id);
   trackSpendConversionCompleted(distinctId, {
