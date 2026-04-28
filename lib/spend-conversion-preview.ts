@@ -6,6 +6,10 @@ import {
   fetchServerWalletUsdcBalanceSafe,
   getSpendServerWalletAddress,
 } from '@/lib/spend-server-wallet';
+import {
+  fetchUsdcBalanceOnBase,
+  isEvmAddress,
+} from '@/lib/walletconnect-poster-direct-usdc';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import type {
   PointConversion,
@@ -36,6 +40,8 @@ export type SpendConversionPreview = {
   receivingWalletAddress: string;
   treasuryWalletAddress: string;
   userPointsBalance: number | null;
+  /** Embedded wallet USDC on Base (null if unavailable). */
+  userUsdcBalance: number | null;
   treasuryUsdcBalance: number | null;
 };
 
@@ -54,6 +60,7 @@ type BuildPreviewInput = {
   /** Funded conversion for same user+experience on a different session (one per user). */
   fundedConversionForOtherSession: PointConversion | null;
   treasuryUsdcBalance: number | null;
+  userUsdcBalance: number | null;
   now: Date;
 };
 
@@ -84,6 +91,7 @@ export function buildSpendEligibilityPreview(
     spendTransaction,
     fundedConversionForOtherSession,
     treasuryUsdcBalance,
+    userUsdcBalance,
     now,
   } = input;
 
@@ -97,6 +105,7 @@ export function buildSpendEligibilityPreview(
     treasuryWalletAddress: getSpendServerWalletAddress(spendExperience),
     userPointsBalance:
       player?.total_points != null ? Number(player.total_points) : null,
+    userUsdcBalance,
     treasuryUsdcBalance,
   });
 
@@ -158,6 +167,16 @@ export function buildSpendEligibilityPreview(
     };
   }
 
+  const userHasEnoughUsdc =
+    userUsdcBalance !== null && userUsdcBalance >= usdcAmount;
+  if (userHasEnoughUsdc) {
+    return {
+      status: 'ready_for_payment_own_usdc',
+      message: SPEND_ELIGIBILITY_MESSAGES.ready_for_payment_own_usdc,
+      preview: basePreview(),
+    };
+  }
+
   const balance =
     player?.total_points != null ? Number(player.total_points) : 0;
   if (balance < pointsRequired) {
@@ -192,6 +211,19 @@ type LoadEligibilityInput = {
 /**
  * Loads player, treasury balance, conversions, and builds eligibility (for API routes).
  */
+export async function fetchUserUsdcBalanceSafe(
+  walletAddress: string
+): Promise<number | null> {
+  const trimmed = walletAddress.trim();
+  if (!isEvmAddress(trimmed)) return null;
+  try {
+    return await fetchUsdcBalanceOnBase(trimmed as `0x${string}`);
+  } catch (e) {
+    console.error('fetchUserUsdcBalanceSafe:', e);
+    return null;
+  }
+}
+
 export async function loadSpendEligibilityForSession(
   input: LoadEligibilityInput
 ): Promise<SpendEligibilityResult> {
@@ -199,17 +231,24 @@ export async function loadSpendEligibilityForSession(
   const session = input.session;
   const spendExperience = input.spendExperience;
 
-  const [player, pointConversion, fundedOther, treasuryUsdcBalance, spendTx] =
-    await Promise.all([
-      getPlayerByWallet(session.wallet_address),
-      getPointConversionBySessionId(session.id),
-      getFundedPointConversionForUserExperience(
-        spendExperience.id,
-        session.user_id
-      ),
-      fetchServerWalletUsdcBalanceSafe(spendExperience),
-      getSpendTransactionBySessionId(session.id),
-    ]);
+  const [
+    player,
+    pointConversion,
+    fundedOther,
+    treasuryUsdcBalance,
+    spendTx,
+    userUsdcBalance,
+  ] = await Promise.all([
+    getPlayerByWallet(session.wallet_address),
+    getPointConversionBySessionId(session.id),
+    getFundedPointConversionForUserExperience(
+      spendExperience.id,
+      session.user_id
+    ),
+    fetchServerWalletUsdcBalanceSafe(spendExperience),
+    getSpendTransactionBySessionId(session.id),
+    fetchUserUsdcBalanceSafe(session.wallet_address),
+  ]);
 
   return buildSpendEligibilityPreview({
     session,
@@ -222,6 +261,7 @@ export async function loadSpendEligibilityForSession(
         ? fundedOther
         : null,
     treasuryUsdcBalance,
+    userUsdcBalance,
     now,
   });
 }

@@ -65,11 +65,13 @@ describe('buildSpendEligibilityPreview', () => {
       spendTransaction: null,
       fundedConversionForOtherSession: null,
       treasuryUsdcBalance: 10,
+      userUsdcBalance: null,
       now,
     });
     expect(r.status).toBe('eligible');
     expect(r.preview?.pointsRequired).toBe(5000);
     expect(r.preview?.usdcAmount).toBe(5);
+    expect(r.preview?.userUsdcBalance).toBeNull();
     expect(r.preview?.treasuryWalletAddress).toBe(
       '0x4444444444444444444444444444444444444444'
     );
@@ -87,6 +89,7 @@ describe('buildSpendEligibilityPreview', () => {
       spendTransaction: null,
       fundedConversionForOtherSession: null,
       treasuryUsdcBalance: 100,
+      userUsdcBalance: null,
       now,
     });
     expect(r.status).toBe('insufficient_points');
@@ -101,6 +104,7 @@ describe('buildSpendEligibilityPreview', () => {
       spendTransaction: null,
       fundedConversionForOtherSession: null,
       treasuryUsdcBalance: 2,
+      userUsdcBalance: null,
       now,
     });
     expect(r.status).toBe('treasury_insufficient');
@@ -131,6 +135,7 @@ describe('buildSpendEligibilityPreview', () => {
       spendTransaction: null,
       fundedConversionForOtherSession: funded,
       treasuryUsdcBalance: 100,
+      userUsdcBalance: null,
       now,
     });
     expect(r.status).toBe('already_converted');
@@ -161,6 +166,7 @@ describe('buildSpendEligibilityPreview', () => {
       spendTransaction: null,
       fundedConversionForOtherSession: null,
       treasuryUsdcBalance: 100,
+      userUsdcBalance: null,
       now,
     });
     expect(r.status).toBe('ready_for_payment');
@@ -205,8 +211,24 @@ describe('buildSpendEligibilityPreview', () => {
       },
       fundedConversionForOtherSession: null,
       treasuryUsdcBalance: 100,
+      userUsdcBalance: null,
       now,
     });
     expect(r.status).toBe('payment_complete');
+  });
+
+  it('returns ready_for_payment_own_usdc when wallet has enough USDC (no conversion)', () => {
+    const r = buildSpendEligibilityPreview({
+      session: sess(),
+      spendExperience: exp(),
+      player: player(0),
+      pointConversion: null,
+      spendTransaction: null,
+      fundedConversionForOtherSession: null,
+      treasuryUsdcBalance: 0,
+      userUsdcBalance: 5.5,
+      now,
+    });
+    expect(r.status).toBe('ready_for_payment_own_usdc');
   });
 });
