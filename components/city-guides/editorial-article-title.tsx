@@ -10,7 +10,7 @@ export interface EditorialArticleTitleProps {
 
 /**
  * Editorial article hero title: one or two lines in the `title1` scale; primary bold;
- * optional secondary line medium with the last word highlighted (same IRL yellow as `CityGuideArticleTitle`).
+ * optional secondary line medium with the last word highlighted (IRL yellow accent).
  */
 export function EditorialArticleTitle({
   primary,

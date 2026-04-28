@@ -1,6 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
@@ -25,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cityGuideDisplayTitle } from '@/lib/guides/city-guide-title';
 import type { AdminGuideDetail } from '@/lib/db/guides';
 import { normalizeContributorInstagramForDb } from '@/lib/guides/contributor-instagram';
 import type { LocationListWithCount } from '@/lib/types';
@@ -69,6 +77,59 @@ function emptyBlock(
     default:
       return { type: 'paragraph', text: '' };
   }
+}
+
+/** Same rules as backend `ensureUniqueGuideSlug` (segment before uniqueness suffix). */
+function slugifyFromTitleText(raw: string): string {
+  return raw
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function suggestedSlugFromTitles(
+  kind: 'city_guide' | 'editorial',
+  titlePrefix: string,
+  titlePrimary: string,
+  titleSecondary: string
+): string {
+  if (kind === 'city_guide') {
+    return slugifyFromTitleText(titlePrefix.trim());
+  }
+  const primary = titlePrimary.trim();
+  const secondary = titleSecondary.trim();
+  const line =
+    primary && secondary
+      ? `${primary} ${secondary}`
+      : primary || secondary || '';
+  return slugifyFromTitleText(line);
+}
+
+/** Creation API uses these generic slugs before the editor sets real titles */
+const GENERIC_NEW_GUIDE_SLUGS = new Set(['city-guide', 'editorial']);
+
+function computeSlugFollowsTitles(
+  currentSlug: string,
+  kind: 'city_guide' | 'editorial',
+  titlePrefix: string,
+  titlePrimary: string,
+  titleSecondary: string
+): boolean {
+  const suggestedFromPersistence = suggestedSlugFromTitles(
+    kind,
+    titlePrefix,
+    titlePrimary,
+    titleSecondary
+  );
+  if (
+    suggestedFromPersistence &&
+    currentSlug.toLowerCase() === suggestedFromPersistence
+  ) {
+    return true;
+  }
+  return GENERIC_NEW_GUIDE_SLUGS.has(currentSlug);
 }
 
 export default function AdminGuideEditPage() {
@@ -143,14 +204,12 @@ export default function AdminGuideEditPage() {
 
   const [slug, setSlug] = useState('');
   const [titlePrefix, setTitlePrefix] = useState('');
-  const [cityName, setCityName] = useState('');
   const [titlePrimary, setTitlePrimary] = useState('');
   const [titleSecondary, setTitleSecondary] = useState('');
   const [heroUrl, setHeroUrl] = useState('');
   const [heroAlt, setHeroAlt] = useState('');
   const [leadHeadline, setLeadHeadline] = useState('');
   const [leadParagraphsText, setLeadParagraphsText] = useState('');
-  const [locationListId, setLocationListId] = useState<string>('');
   const [mapUrl, setMapUrl] = useState('');
   const [mapAlt, setMapAlt] = useState('');
   const [mapImageUploading, setMapImageUploading] = useState(false);
@@ -176,18 +235,52 @@ export default function AdminGuideEditPage() {
   const [previewWarningOpen, setPreviewWarningOpen] = useState(false);
   const [previewOpening, setPreviewOpening] = useState(false);
 
-  useEffect(() => {
+  /** When true, slug is derived from title fields until the user edits the slug. */
+  const slugFollowsTitlesRef = useRef(true);
+
+  useLayoutEffect(() => {
     if (!guide) return;
-    setSlug(guide.slug);
-    setTitlePrefix(guide.title_prefix ?? '');
-    setCityName(guide.city_name ?? '');
-    setTitlePrimary(guide.title_primary ?? '');
-    setTitleSecondary(guide.title_secondary ?? '');
+
+    const tp = guide.title_prefix ?? '';
+    const cn = guide.city_name ?? '';
+    const t1 = guide.title_primary ?? '';
+    const t2 = guide.title_secondary ?? '';
+
+    /** City guides store one headline in `title_prefix` on save; merge legacy splits for edit + slug sync. */
+    const cityHeadlineForSlug =
+      guide.kind === 'city_guide'
+        ? cityGuideDisplayTitle({ title_prefix: tp, city_name: cn })
+        : tp;
+
+    const pins = computeSlugFollowsTitles(
+      guide.slug,
+      guide.kind,
+      cityHeadlineForSlug,
+      t1,
+      t2
+    );
+    slugFollowsTitlesRef.current = pins;
+
+    const suggestedFromGuide = suggestedSlugFromTitles(
+      guide.kind,
+      cityHeadlineForSlug,
+      t1,
+      t2
+    );
+
+    setSlug(pins && suggestedFromGuide ? suggestedFromGuide : guide.slug);
+
+    setTitlePrefix(
+      guide.kind === 'city_guide'
+        ? cityGuideDisplayTitle({ title_prefix: tp, city_name: cn })
+        : tp
+    );
+    setTitlePrimary(t1);
+    setTitleSecondary(t2);
     setHeroUrl(guide.hero_image_url ?? '');
     setHeroAlt(guide.hero_image_alt ?? '');
     setLeadHeadline(guide.lead_headline ?? '');
     setLeadParagraphsText((guide.lead_paragraphs ?? []).join('\n\n'));
-    setLocationListId(guide.location_list_id ?? '');
     setMapUrl(guide.map_image_url ?? '');
     setMapAlt(guide.map_image_alt ?? '');
     setCardPreview(guide.card_preview ?? '');
@@ -219,6 +312,19 @@ export default function AdminGuideEditPage() {
     }
   }, [guide, detail?.contributors]);
 
+  useEffect(() => {
+    if (!guide) return;
+    if (!slugFollowsTitlesRef.current) return;
+    const suggested = suggestedSlugFromTitles(
+      guide.kind,
+      titlePrefix,
+      titlePrimary,
+      titleSecondary
+    );
+    if (!suggested) return;
+    setSlug(suggested);
+  }, [guide?.id, guide?.kind, titlePrefix, titlePrimary, titleSecondary]);
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!guide) throw new Error('No guide');
@@ -244,7 +350,10 @@ export default function AdminGuideEditPage() {
       const body: Record<string, unknown> = {
         slug: slug.trim(),
         title_prefix: titlePrefix.trim() || null,
-        city_name: cityName.trim() || null,
+        city_name:
+          guide.kind === 'city_guide'
+            ? null
+            : (guide.city_name?.trim() ?? null) || null,
         title_primary: titlePrimary.trim() || null,
         title_secondary: titleSecondary.trim() || null,
         hero_image_url: heroUrl.trim(),
@@ -267,7 +376,7 @@ export default function AdminGuideEditPage() {
       }
 
       if (guide.kind === 'city_guide') {
-        body.location_list_id = locationListId || null;
+        body.location_list_id = null;
         body.map_image_url = mapUrl.trim() || null;
         body.map_image_alt = mapAlt.trim() || null;
         body.blocks = null;
@@ -653,9 +762,15 @@ export default function AdminGuideEditPage() {
             <Input
               id="slug"
               value={slug}
-              onChange={(e) => setSlug(e.target.value)}
+              onChange={(e) => {
+                slugFollowsTitlesRef.current = false;
+                setSlug(e.target.value);
+              }}
               className="font-mono text-sm"
             />
+            <p className="mt-1 text-xs text-neutral-500">
+              Derived from title fields until you edit this field.
+            </p>
           </div>
           <div>
             <Label>Published at</Label>
@@ -685,23 +800,13 @@ export default function AdminGuideEditPage() {
           </label>
         </div>
         {guide.kind === 'city_guide' ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label>Title prefix</Label>
-              <Input
-                value={titlePrefix}
-                onChange={(e) => setTitlePrefix(e.target.value)}
-                placeholder="The IRL Guide to"
-              />
-            </div>
-            <div>
-              <Label>City name</Label>
-              <Input
-                value={cityName}
-                onChange={(e) => setCityName(e.target.value)}
-                placeholder="Berlin"
-              />
-            </div>
+          <div>
+            <Label>Guide title</Label>
+            <Input
+              value={titlePrefix}
+              onChange={(e) => setTitlePrefix(e.target.value)}
+              placeholder="e.g. The IRL Guide to Berlin"
+            />
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -925,9 +1030,8 @@ export default function AdminGuideEditPage() {
         </div>
         {guide.kind === 'city_guide' ? (
           <p className="text-xs text-neutral-500">
-            Optional: assign a venue list per contributor for multi-author city
-            guides. If any contributor has a list, the guide-level default list
-            below is ignored for venue cards.
+            Assign each contributor a venue list to show venues on the public
+            guide (single- or multi-author).
           </p>
         ) : null}
         {contributors.map((c, i) => (
@@ -1093,7 +1197,7 @@ export default function AdminGuideEditPage() {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="None (use guide default)" />
+                    <SelectValue placeholder="Choose venue list" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">None</SelectItem>
@@ -1113,31 +1217,6 @@ export default function AdminGuideEditPage() {
       {guide.kind === 'city_guide' ? (
         <section className="space-y-4 rounded-lg border border-neutral-200 bg-white p-4">
           <h2 className="text-lg font-semibold">City guide map & venues</h2>
-          <div>
-            <Label>Default location list (fallback)</Label>
-            <p className="mb-2 text-xs text-neutral-500">
-              Used when no contributor has a venue list above. Leave contributor
-              lists empty to use only this list.
-            </p>
-            <Select
-              value={locationListId || '__none__'}
-              onValueChange={(v) =>
-                setLocationListId(v === '__none__' ? '' : v)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose list" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">None</SelectItem>
-                {lists.map((l) => (
-                  <SelectItem key={l.id} value={l.id}>
-                    {l.title} ({l.slug})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
           <div className="space-y-3">
             <div>
               <Label>Map image</Label>

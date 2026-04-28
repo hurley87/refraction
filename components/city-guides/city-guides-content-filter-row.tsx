@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 export type CityGuidesContentFilter = 'all' | 'guides' | 'editorials';
@@ -33,17 +32,23 @@ function FilterIcon() {
   );
 }
 
+export interface CityGuidesContentFilterRowProps {
+  selectedFilter: CityGuidesContentFilter;
+  sortOrder: CityGuidesSortOrder;
+  onFilterChange: (filter: CityGuidesContentFilter) => void;
+  onSortToggle: () => void;
+}
+
 /**
  * Sorting/filter row: segmented control (298px) + 16px gap + sort (55×52).
+ * Controlled by parent so filtering applies to the guides list.
  */
-export default function CityGuidesContentFilterRow() {
-  const [selected, setSelected] = useState<CityGuidesContentFilter>('all');
-  const [sortOrder, setSortOrder] = useState<CityGuidesSortOrder>('date-desc');
-
-  const toggleSort = () => {
-    setSortOrder((prev) => (prev === 'date-desc' ? 'date-asc' : 'date-desc'));
-  };
-
+export default function CityGuidesContentFilterRow({
+  selectedFilter,
+  sortOrder,
+  onFilterChange,
+  onSortToggle,
+}: CityGuidesContentFilterRowProps) {
   return (
     <div
       className="mx-auto flex h-[52px] w-full max-w-[369px] items-stretch gap-4 border-b border-[#E5E5E5]"
@@ -56,12 +61,12 @@ export default function CityGuidesContentFilterRow() {
         aria-label="Filter by content type"
       >
         {OPTIONS.map(({ key, label }) => {
-          const isSelected = selected === key;
+          const isSelected = selectedFilter === key;
           return (
             <button
               key={key}
               type="button"
-              onClick={() => setSelected(key)}
+              onClick={() => onFilterChange(key)}
               aria-pressed={isSelected}
               className={cn(
                 'flex min-h-0 min-w-0 flex-1 flex-row items-center justify-center gap-2 border-0 py-1 text-base font-medium font-grotesk leading-4 tracking-[-0.08em] outline-none transition-colors',
@@ -79,7 +84,7 @@ export default function CityGuidesContentFilterRow() {
 
       <button
         type="button"
-        onClick={toggleSort}
+        onClick={onSortToggle}
         className={cn(
           'box-border flex h-[52px] w-[55px] shrink-0 items-center justify-center p-4 outline-none transition-colors',
           'focus-visible:ring-2 focus-visible:ring-[#171717] focus-visible:ring-offset-2'

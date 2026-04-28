@@ -10,8 +10,9 @@ import { CityGuideTexturedImage } from '@/components/city-guides/city-guide-text
 import { CityGuideArticleMetaRow } from '@/components/city-guides/city-guide-article-meta-row';
 import { CityGuideArticleTitle } from '@/components/city-guides/city-guide-article-title';
 import { GuideArticleContributorsSection } from '@/components/city-guides/guide-article-contributors-section';
-import { getCityGuidePageData, hubListTitle } from '@/lib/db/guides';
 import { DraftPreviewBanner } from '@/components/city-guides/draft-preview-banner';
+import { getCityGuidePageData, hubListTitle } from '@/lib/db/guides';
+import { cityGuideDisplayTitle } from '@/lib/guides/city-guide-title';
 
 export const revalidate = 60;
 
@@ -117,8 +118,10 @@ export default async function CityGuideBySlugPage({
 
         <article className="px-4 pb-16 pt-2">
           <CityGuideArticleTitle
-            titlePrefix={row.title_prefix?.trim() ?? ''}
-            cityName={row.city_name?.trim() ?? ''}
+            title={cityGuideDisplayTitle({
+              title_prefix: row.title_prefix,
+              city_name: row.city_name,
+            })}
             contributors={contributorNames}
             className="mb-4"
           />
@@ -172,9 +175,9 @@ export default async function CityGuideBySlugPage({
 
           {totalVenueCount === 0 ? (
             <p className="body-medium mt-6 text-[#757575]">
-              No venues linked to this guide yet. Assign a location list on the
-              guide or per contributor in Admin → Guides, or add venues in Admin
-              → Location Lists.
+              No venues linked to this guide yet. Assign each contributor a
+              venue list in Admin → Guides, or add venues in Admin → Location
+              Lists.
             </p>
           ) : (
             nonEmptyLocationSections.map((section, sectionIndex) => {

@@ -42,6 +42,13 @@ export default function FeaturedEditorialHeroCard({
   className,
 }: FeaturedEditorialHeroCardProps) {
   const resolvedReadLabel = readLabel ?? defaultReadLabel(guideKind);
+  const subtitle = titleLine2.trim();
+  const twoLineFeaturedTitle = subtitle.length > 0;
+
+  const ariaFeaturedTitle =
+    titleLine1 && subtitle
+      ? `${titleLine1} ${subtitle}`
+      : titleLine1 || titleLine2;
 
   return (
     <section
@@ -53,7 +60,7 @@ export default function FeaturedEditorialHeroCard({
           <Link
             href={readHref}
             className="absolute inset-0 z-[1] block bg-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400"
-            aria-label={`${resolvedReadLabel}: ${titleLine1} ${titleLine2}`}
+            aria-label={`${resolvedReadLabel}: ${ariaFeaturedTitle}`}
           >
             <Image
               src={heroImageSrc}
@@ -96,12 +103,20 @@ export default function FeaturedEditorialHeroCard({
           </div>
 
           <div id="featured-guide-title" className="flex flex-col gap-0.5">
-            <h4 className=" font-semibold leading-tight text-[#171717]">
-              {titleLine1}
-            </h4>
-            <span className="display1 font-bold uppercase tracking-tight text-[#171717] md:leading-none">
-              {titleLine2}
-            </span>
+            {twoLineFeaturedTitle ? (
+              <>
+                <div className="title1 font-semibold leading-tight text-[#171717]">
+                  {titleLine1}
+                </div>
+                <span className="title1 font-bold uppercase tracking-tight text-[#171717] md:leading-none">
+                  {titleLine2}
+                </span>
+              </>
+            ) : (
+              <div className="title1 font-bold uppercase tracking-tight text-[#171717] md:leading-none">
+                {titleLine1}
+              </div>
+            )}
           </div>
 
           {featuredPeople.length > 0 ? (
