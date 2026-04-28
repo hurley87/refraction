@@ -1,27 +1,91 @@
 import { supabase } from './client';
 import type { SpendExperience, SpendExperienceStatus } from '@/lib/types';
 
-const SPEND_EXPERIENCE_COLUMNS = `
-  id,
-  title,
-  description,
-  event_id,
-  status,
-  points_to_usdc_rate,
-  max_usdc_per_user,
-  treasury_wallet_address,
-  receiving_wallet_address,
-  privy_server_wallet_id,
-  server_wallet_address,
-  server_wallet_chain,
-  server_wallet_created_at,
-  spend_create_idempotency_key,
-  start_time,
-  end_time,
-  created_by,
-  created_at,
-  updated_at
-`;
+const LEGACY_SPEND_EXPERIENCE_COLUMN_NAMES = [
+  'id',
+  'title',
+  'description',
+  'event_id',
+  'status',
+  'points_to_usdc_rate',
+  'max_usdc_per_user',
+  'treasury_wallet_address',
+  'receiving_wallet_address',
+  'start_time',
+  'end_time',
+  'created_by',
+  'created_at',
+  'updated_at',
+] as const;
+
+const SERVER_WALLET_COLUMN_NAMES = [
+  'privy_server_wallet_id',
+  'server_wallet_address',
+  'server_wallet_chain',
+  'server_wallet_created_at',
+  'spend_create_idempotency_key',
+] as const;
+
+const SPEND_EXPERIENCE_COLUMNS = [
+  ...LEGACY_SPEND_EXPERIENCE_COLUMN_NAMES,
+  ...SERVER_WALLET_COLUMN_NAMES,
+].join(', ');
+
+const LEGACY_SPEND_EXPERIENCE_COLUMNS =
+  LEGACY_SPEND_EXPERIENCE_COLUMN_NAMES.join(', ');
+
+type SupabaseErrorLike = {
+  code?: string;
+  message?: string;
+};
+
+type SupabaseResult<T> = {
+  data: T | null;
+  error: SupabaseErrorLike | null;
+};
+
+const SPEND_EXPERIENCES_TABLE = 'spend_experiences';
+
+const spendExperiencesTable = () =>
+  supabase.from(SPEND_EXPERIENCES_TABLE) as ReturnType<typeof supabase.from>;
+
+const isMissingServerWalletColumnError = (
+  error: SupabaseErrorLike | null
+): boolean =>
+  error?.code === '42703' &&
+  SERVER_WALLET_COLUMN_NAMES.some((columnName) =>
+    error.message?.includes(columnName)
+  );
+
+async function runSpendExperienceRead<T>(
+  operation: string,
+  query: (columns: string) => PromiseLike<unknown>
+): Promise<T | null> {
+  const result = (await query(SPEND_EXPERIENCE_COLUMNS)) as SupabaseResult<T>;
+  if (!isMissingServerWalletColumnError(result.error)) {
+    if (result.error) {
+      console.error(`${operation} error:`, result.error);
+      throw new Error(
+        result.error.message || 'Failed to load spend experience'
+      );
+    }
+    return result.data;
+  }
+
+  console.warn(
+    `${operation} retrying without server wallet columns; apply the spend_experiences server wallet migration.`
+  );
+  const legacyResult = (await query(
+    LEGACY_SPEND_EXPERIENCE_COLUMNS
+  )) as SupabaseResult<T>;
+  if (legacyResult.error) {
+    console.error(`${operation} error:`, legacyResult.error);
+    throw new Error(
+      legacyResult.error.message || 'Failed to load spend experience'
+    );
+  }
+  return legacyResult.data;
+}
 
 const toNumber = (value: unknown): number => {
   if (typeof value === 'number' && !Number.isNaN(value)) return value;
@@ -68,19 +132,15 @@ const normalizeRow = (row: Record<string, unknown>): SpendExperience => ({
 });
 
 export async function listSpendExperiences(): Promise<SpendExperience[]> {
-  const { data, error } = await supabase
-    .from('spend_experiences')
-    .select(SPEND_EXPERIENCE_COLUMNS)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error('listSpendExperiences error:', error);
-    throw new Error(error.message || 'Failed to list spend experiences');
-  }
-
-  return (data || []).map((row) =>
-    normalizeRow(row as Record<string, unknown>)
+  const data = await runSpendExperienceRead<Record<string, unknown>[]>(
+    'listSpendExperiences',
+    (columns) =>
+      spendExperiencesTable()
+        .select(columns)
+        .order('created_at', { ascending: false })
   );
+
+  return (data || []).map(normalizeRow);
 }
 
 export type CreateSpendExperienceInput = {
@@ -122,8 +182,7 @@ export async function createSpendExperience(
     created_by: input.created_by ?? null,
   };
 
-  const { data, error } = await supabase
-    .from('spend_experiences')
+  const { data, error } = await spendExperiencesTable()
     .insert(insertRow)
     .select(SPEND_EXPERIENCE_COLUMNS)
     .single();
@@ -139,7 +198,7 @@ export async function createSpendExperience(
     throw new Error(error.message || 'Failed to create spend experience');
   }
 
-  return normalizeRow(data as Record<string, unknown>);
+  return normalizeRow(data as unknown as Record<string, unknown>);
 }
 
 export type UpdateSpendExperienceInput = Partial<{
@@ -180,37 +239,30 @@ function buildSpendExperiencePatch(
 export async function getSpendExperienceById(
   id: string
 ): Promise<SpendExperience | null> {
-  const { data, error } = await supabase
-    .from('spend_experiences')
-    .select(SPEND_EXPERIENCE_COLUMNS)
-    .eq('id', id)
-    .maybeSingle();
-
-  if (error) {
-    console.error('getSpendExperienceById error:', error);
-    throw new Error(error.message || 'Failed to load spend experience');
-  }
+  const data = await runSpendExperienceRead<Record<string, unknown>>(
+    'getSpendExperienceById',
+    (columns) =>
+      spendExperiencesTable().select(columns).eq('id', id).maybeSingle()
+  );
 
   if (!data) return null;
-  return normalizeRow(data as Record<string, unknown>);
+  return normalizeRow(data as unknown as Record<string, unknown>);
 }
 
 export async function getSpendExperienceByCreateIdempotencyKey(
   idempotencyKey: string
 ): Promise<SpendExperience | null> {
-  const { data, error } = await supabase
-    .from('spend_experiences')
-    .select(SPEND_EXPERIENCE_COLUMNS)
-    .eq('spend_create_idempotency_key', idempotencyKey)
-    .maybeSingle();
-
-  if (error) {
-    console.error('getSpendExperienceByCreateIdempotencyKey error:', error);
-    throw new Error(error.message || 'Failed to load spend experience');
-  }
+  const data = await runSpendExperienceRead<Record<string, unknown>>(
+    'getSpendExperienceByCreateIdempotencyKey',
+    (columns) =>
+      spendExperiencesTable()
+        .select(columns)
+        .eq('spend_create_idempotency_key', idempotencyKey)
+        .maybeSingle()
+  );
 
   if (!data) return null;
-  return normalizeRow(data as Record<string, unknown>);
+  return normalizeRow(data as unknown as Record<string, unknown>);
 }
 
 export async function updateSpendExperience(
@@ -222,8 +274,7 @@ export async function updateSpendExperience(
     throw new Error('No fields to update');
   }
 
-  const { data, error } = await supabase
-    .from('spend_experiences')
+  const { data, error } = await spendExperiencesTable()
     .update(patch)
     .eq('id', id)
     .select(SPEND_EXPERIENCE_COLUMNS)
@@ -234,5 +285,5 @@ export async function updateSpendExperience(
     throw new Error(error.message || 'Failed to update spend experience');
   }
 
-  return normalizeRow(data as Record<string, unknown>);
+  return normalizeRow(data as unknown as Record<string, unknown>);
 }
