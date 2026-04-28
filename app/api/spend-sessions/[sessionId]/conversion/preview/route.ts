@@ -10,6 +10,7 @@ import {
   computeConversionAmounts,
   loadSpendEligibilityForSession,
 } from '@/lib/spend-conversion-preview';
+import { tryFinalizePendingSpendConversion } from '@/lib/spend-conversion-confirm';
 import {
   trackSpendConversionPreviewed,
   trackSpendTreasuryInsufficientFunds,
@@ -86,8 +87,28 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     computeConversionAmounts(spendExperience);
 
   try {
-    const eligibility = await loadSpendEligibilityForSession({
+    const finalizedConversion = await tryFinalizePendingSpendConversion({
       session,
+      spendExperience,
+      pointConversion: null,
+      normalizedWallet,
+      distinctId,
+      baseAnalytics: {
+        spend_experience_id: spendExperience.id,
+        event_id: spendExperience.event_id,
+        user_id: auth.userId,
+        wallet_address: normalizedWallet,
+        points_amount: pointsRequired,
+        usdc_amount: usdcAmount,
+        status: 'confirm',
+      },
+    });
+    const responseSession = finalizedConversion
+      ? ((await getSpendSessionById(session.id)) ?? session)
+      : session;
+
+    const eligibility = await loadSpendEligibilityForSession({
+      session: responseSession,
       spendExperience,
     });
 
@@ -116,9 +137,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       eligibility,
       spendExperience,
       session: {
-        id: session.id,
-        status: session.status,
-        expires_at: session.expires_at,
+        id: responseSession.id,
+        status: responseSession.status,
+        expires_at: responseSession.expires_at,
       },
     });
   } catch (e) {
