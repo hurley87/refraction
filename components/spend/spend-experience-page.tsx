@@ -514,7 +514,7 @@ export function SpendExperiencePage({
                           Pay with USDC…
                         </>
                       ) : (
-                        `Send $${preview.usdcAmount.toFixed(2)} USDC on Base`
+                        `Spend $${preview.usdcAmount.toFixed(2)} UDSC`
                       )}
                     </Button>
                   )}
