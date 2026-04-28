@@ -4,6 +4,8 @@ import { NextRequest } from 'next/server';
 const mockRequireAdmin = vi.fn();
 const mockListSpendExperiences = vi.fn();
 const mockCreateSpendExperience = vi.fn();
+const mockGetSpendExperienceByCreateIdempotencyKey = vi.fn();
+const mockCreateSpendPrivyServerWallet = vi.fn();
 
 vi.mock('@/lib/auth', () => ({
   requireAdmin: (...args: unknown[]) => mockRequireAdmin(...args),
@@ -14,6 +16,13 @@ vi.mock('@/lib/db/spend-experiences', () => ({
     mockListSpendExperiences(...args),
   createSpendExperience: (...args: unknown[]) =>
     mockCreateSpendExperience(...args),
+  getSpendExperienceByCreateIdempotencyKey: (...args: unknown[]) =>
+    mockGetSpendExperienceByCreateIdempotencyKey(...args),
+}));
+
+vi.mock('@/lib/api/privy', () => ({
+  createSpendPrivyServerWallet: (...args: unknown[]) =>
+    mockCreateSpendPrivyServerWallet(...args),
 }));
 
 import { GET, POST } from '../route';
@@ -78,7 +87,16 @@ describe('GET /api/admin/spend-experiences', () => {
 });
 
 describe('POST /api/admin/spend-experiences', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetSpendExperienceByCreateIdempotencyKey.mockResolvedValue(null);
+    mockCreateSpendPrivyServerWallet.mockResolvedValue({
+      privy_server_wallet_id: 'wallet-1',
+      server_wallet_address: '0x9999999999999999999999999999999999999999',
+      server_wallet_chain: 'base-mainnet',
+      server_wallet_created_at: '2026-04-28T00:00:00.000Z',
+    });
+  });
 
   it('returns 400 on validation failure', async () => {
     mockRequireAdmin.mockResolvedValue({
@@ -93,9 +111,6 @@ describe('POST /api/admin/spend-experiences', () => {
           title: '',
           points_to_usdc_rate: 1000,
           max_usdc_per_user: 5,
-          treasury_wallet_address: '0x1111111111111111111111111111111111111111',
-          receiving_wallet_address:
-            '0x2222222222222222222222222222222222222222',
           start_time: '2026-05-01T12:00:00.000Z',
           end_time: '2026-05-08T12:00:00.000Z',
         },
@@ -117,9 +132,6 @@ describe('POST /api/admin/spend-experiences', () => {
           title: 'Ok',
           points_to_usdc_rate: 1000,
           max_usdc_per_user: 5,
-          treasury_wallet_address: '0x1111111111111111111111111111111111111111',
-          receiving_wallet_address:
-            '0x2222222222222222222222222222222222222222',
           start_time: '2026-05-01T12:00:00.000Z',
           end_time: '2026-05-08T12:00:00.000Z',
         },
@@ -127,6 +139,109 @@ describe('POST /api/admin/spend-experiences', () => {
       )
     );
     expect(res.status).toBe(403);
+    expect(mockCreateSpendExperience).not.toHaveBeenCalled();
+  });
+
+  it('creates a Privy server wallet before inserting the spend experience', async () => {
+    mockRequireAdmin.mockResolvedValue({
+      isValid: true,
+      user: { email: 'admin@example.com' },
+    });
+    mockCreateSpendExperience.mockImplementation(async (input) => ({
+      id: 'exp-1',
+      title: input.title,
+      description: input.description,
+      event_id: input.event_id,
+      status: input.status,
+      points_to_usdc_rate: input.points_to_usdc_rate,
+      max_usdc_per_user: input.max_usdc_per_user,
+      treasury_wallet_address: input.server_wallet_address,
+      receiving_wallet_address: input.server_wallet_address,
+      privy_server_wallet_id: input.privy_server_wallet_id,
+      server_wallet_address: input.server_wallet_address,
+      server_wallet_chain: input.server_wallet_chain,
+      server_wallet_created_at: input.server_wallet_created_at,
+      spend_create_idempotency_key: input.spend_create_idempotency_key,
+      start_time: input.start_time,
+      end_time: input.end_time,
+      created_by: input.created_by,
+      created_at: '2026-04-28T00:00:00.000Z',
+      updated_at: '2026-04-28T00:00:00.000Z',
+    }));
+
+    const res = await POST(
+      jsonRequest(
+        'POST',
+        {
+          title: 'Ok',
+          points_to_usdc_rate: 1000,
+          max_usdc_per_user: 5,
+          status: 'active',
+          start_time: '2026-05-01T12:00:00.000Z',
+          end_time: '2026-05-08T12:00:00.000Z',
+        },
+        'admin@example.com'
+      )
+    );
+    const j = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(mockCreateSpendPrivyServerWallet).toHaveBeenCalledOnce();
+    expect(mockCreateSpendExperience).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'draft',
+        privy_server_wallet_id: 'wallet-1',
+        server_wallet_address: '0x9999999999999999999999999999999999999999',
+      })
+    );
+    expect(j.data.funding.serverWalletAddress).toBe(
+      '0x9999999999999999999999999999999999999999'
+    );
+  });
+
+  it('returns existing experience for repeated idempotency key', async () => {
+    mockRequireAdmin.mockResolvedValue({
+      isValid: true,
+      user: { email: 'admin@example.com' },
+    });
+    mockGetSpendExperienceByCreateIdempotencyKey.mockResolvedValue({
+      id: 'exp-existing',
+      title: 'Existing',
+      description: null,
+      event_id: null,
+      status: 'draft',
+      points_to_usdc_rate: 1000,
+      max_usdc_per_user: 5,
+      treasury_wallet_address: '0x9999999999999999999999999999999999999999',
+      receiving_wallet_address: '0x9999999999999999999999999999999999999999',
+      privy_server_wallet_id: 'wallet-1',
+      server_wallet_address: '0x9999999999999999999999999999999999999999',
+      server_wallet_chain: 'base-mainnet',
+      server_wallet_created_at: '2026-04-28T00:00:00.000Z',
+      spend_create_idempotency_key: 'idem-1',
+      start_time: '2026-05-01T12:00:00.000Z',
+      end_time: '2026-05-08T12:00:00.000Z',
+      created_by: 'admin@example.com',
+      created_at: '2026-04-28T00:00:00.000Z',
+      updated_at: '2026-04-28T00:00:00.000Z',
+    });
+
+    const req = jsonRequest(
+      'POST',
+      {
+        title: 'Ok',
+        points_to_usdc_rate: 1000,
+        max_usdc_per_user: 5,
+        start_time: '2026-05-01T12:00:00.000Z',
+        end_time: '2026-05-08T12:00:00.000Z',
+      },
+      'admin@example.com'
+    );
+    req.headers.set('Idempotency-Key', 'idem-1');
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(mockCreateSpendPrivyServerWallet).not.toHaveBeenCalled();
     expect(mockCreateSpendExperience).not.toHaveBeenCalled();
   });
 });

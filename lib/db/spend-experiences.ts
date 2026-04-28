@@ -11,6 +11,11 @@ const SPEND_EXPERIENCE_COLUMNS = `
   max_usdc_per_user,
   treasury_wallet_address,
   receiving_wallet_address,
+  privy_server_wallet_id,
+  server_wallet_address,
+  server_wallet_chain,
+  server_wallet_created_at,
+  spend_create_idempotency_key,
   start_time,
   end_time,
   created_by,
@@ -37,6 +42,24 @@ const normalizeRow = (row: Record<string, unknown>): SpendExperience => ({
   max_usdc_per_user: toNumber(row.max_usdc_per_user),
   treasury_wallet_address: String(row.treasury_wallet_address),
   receiving_wallet_address: String(row.receiving_wallet_address),
+  privy_server_wallet_id:
+    row.privy_server_wallet_id == null
+      ? null
+      : String(row.privy_server_wallet_id),
+  server_wallet_address:
+    row.server_wallet_address == null
+      ? null
+      : String(row.server_wallet_address),
+  server_wallet_chain:
+    row.server_wallet_chain == null ? null : String(row.server_wallet_chain),
+  server_wallet_created_at:
+    row.server_wallet_created_at == null
+      ? null
+      : String(row.server_wallet_created_at),
+  spend_create_idempotency_key:
+    row.spend_create_idempotency_key == null
+      ? null
+      : String(row.spend_create_idempotency_key),
   start_time: String(row.start_time),
   end_time: String(row.end_time),
   created_by: row.created_by == null ? null : String(row.created_by),
@@ -67,8 +90,11 @@ export type CreateSpendExperienceInput = {
   status: SpendExperienceStatus;
   points_to_usdc_rate: number;
   max_usdc_per_user: number;
-  treasury_wallet_address: string;
-  receiving_wallet_address: string;
+  privy_server_wallet_id: string;
+  server_wallet_address: string;
+  server_wallet_chain: string;
+  server_wallet_created_at: string;
+  spend_create_idempotency_key: string;
   start_time: string;
   end_time: string;
   created_by?: string | null;
@@ -84,8 +110,13 @@ export async function createSpendExperience(
     status: input.status,
     points_to_usdc_rate: input.points_to_usdc_rate,
     max_usdc_per_user: input.max_usdc_per_user,
-    treasury_wallet_address: input.treasury_wallet_address,
-    receiving_wallet_address: input.receiving_wallet_address,
+    treasury_wallet_address: input.server_wallet_address,
+    receiving_wallet_address: input.server_wallet_address,
+    privy_server_wallet_id: input.privy_server_wallet_id,
+    server_wallet_address: input.server_wallet_address,
+    server_wallet_chain: input.server_wallet_chain,
+    server_wallet_created_at: input.server_wallet_created_at,
+    spend_create_idempotency_key: input.spend_create_idempotency_key,
     start_time: input.start_time,
     end_time: input.end_time,
     created_by: input.created_by ?? null,
@@ -98,6 +129,12 @@ export async function createSpendExperience(
     .single();
 
   if (error) {
+    if (error.code === '23505' && input.spend_create_idempotency_key) {
+      const existing = await getSpendExperienceByCreateIdempotencyKey(
+        input.spend_create_idempotency_key
+      );
+      if (existing) return existing;
+    }
     console.error('createSpendExperience error:', error);
     throw new Error(error.message || 'Failed to create spend experience');
   }
@@ -112,8 +149,6 @@ export type UpdateSpendExperienceInput = Partial<{
   status: SpendExperienceStatus;
   points_to_usdc_rate: number;
   max_usdc_per_user: number;
-  treasury_wallet_address: string;
-  receiving_wallet_address: string;
   start_time: string;
   end_time: string;
 }>;
@@ -125,8 +160,6 @@ const UPDATE_SPEND_EXPERIENCE_KEYS: (keyof UpdateSpendExperienceInput)[] = [
   'status',
   'points_to_usdc_rate',
   'max_usdc_per_user',
-  'treasury_wallet_address',
-  'receiving_wallet_address',
   'start_time',
   'end_time',
 ];
@@ -155,6 +188,24 @@ export async function getSpendExperienceById(
 
   if (error) {
     console.error('getSpendExperienceById error:', error);
+    throw new Error(error.message || 'Failed to load spend experience');
+  }
+
+  if (!data) return null;
+  return normalizeRow(data as Record<string, unknown>);
+}
+
+export async function getSpendExperienceByCreateIdempotencyKey(
+  idempotencyKey: string
+): Promise<SpendExperience | null> {
+  const { data, error } = await supabase
+    .from('spend_experiences')
+    .select(SPEND_EXPERIENCE_COLUMNS)
+    .eq('spend_create_idempotency_key', idempotencyKey)
+    .maybeSingle();
+
+  if (error) {
+    console.error('getSpendExperienceByCreateIdempotencyKey error:', error);
     throw new Error(error.message || 'Failed to load spend experience');
   }
 

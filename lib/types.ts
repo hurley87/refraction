@@ -280,6 +280,11 @@ export type SpendExperience = {
   max_usdc_per_user: number;
   treasury_wallet_address: string;
   receiving_wallet_address: string;
+  privy_server_wallet_id: string | null;
+  server_wallet_address: string | null;
+  server_wallet_chain: string | null;
+  server_wallet_created_at: string | null;
+  spend_create_idempotency_key: string | null;
   start_time: string;
   end_time: string;
   created_by: string | null;

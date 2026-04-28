@@ -6,6 +6,7 @@ import {
 import { updateSpendExperienceRequestSchema } from '@/lib/schemas/spend-experience';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
+import { getServerWalletFundingStatus } from '@/lib/spend-server-wallet';
 
 interface RouteParams {
   params: { experienceId: string };
@@ -54,6 +55,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const nextEnd = validation.data.end_time ?? existing.end_time;
     if (new Date(nextEnd) <= new Date(nextStart)) {
       return apiError('end_time must be after start_time', 400);
+    }
+
+    if (validation.data.status === 'active') {
+      const funding = await getServerWalletFundingStatus({
+        walletAddress: existing.server_wallet_address,
+        minUsdcRequired:
+          validation.data.max_usdc_per_user ?? existing.max_usdc_per_user,
+      });
+      if (!funding.isFunded) {
+        return apiError(
+          'Server wallet must be funded with at least max_usdc_per_user USDC before activation.',
+          400
+        );
+      }
     }
 
     const spendExperience = await updateSpendExperience(

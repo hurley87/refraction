@@ -1,12 +1,6 @@
-import {
-  createPublicClient,
-  createWalletClient,
-  erc20Abi,
-  http,
-  parseUnits,
-} from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
-import { getServerPrivateKey } from '@/lib/server-private-key';
+import { encodeFunctionData, erc20Abi, http, parseUnits } from 'viem';
+import { getPrivyClient } from '@/lib/api/privy';
+import { SPEND_SERVER_WALLET_CAIP2 } from '@/lib/spend-server-wallet';
 import {
   POSTER_CHECKOUT_USDC_ADDRESS_BASE,
   POSTER_CHECKOUT_CHAIN,
@@ -21,47 +15,32 @@ export type TreasuryUsdcSubmitResult =
  * so the caller can persist it before awaiting confirmation.
  */
 export async function submitTreasuryUsdcTransfer(params: {
+  serverWalletId: string;
+  serverWalletAddress: `0x${string}`;
   recipientAddress: `0x${string}`;
   /** Human-readable USDC amount (6 decimals). */
   usdcAmount: number;
 }): Promise<TreasuryUsdcSubmitResult> {
-  const rpcUrl = process.env.NEXT_PUBLIC_BASE_RPC?.trim();
-  if (!rpcUrl) {
-    return { ok: false, error: 'RPC not configured' };
-  }
-
-  const pk = getServerPrivateKey();
-  if (!pk) {
-    return { ok: false, error: 'Server wallet not configured' };
-  }
-
-  const trimmedPk = pk.startsWith('0x') ? pk : `0x${pk}`;
-  let account;
-  try {
-    account = privateKeyToAccount(trimmedPk as `0x${string}`);
-  } catch {
-    return { ok: false, error: 'Invalid server wallet key' };
-  }
-
-  const transport = http(rpcUrl);
-  const walletClient = createWalletClient({
-    account,
-    chain: POSTER_CHECKOUT_CHAIN,
-    transport,
-  });
-
   const rawAmount = parseUnits(params.usdcAmount.toFixed(6), 6);
 
   try {
-    const hash = await walletClient.writeContract({
-      account,
-      address: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
-      abi: erc20Abi,
-      functionName: 'transfer',
-      args: [params.recipientAddress, rawAmount],
-      chain: POSTER_CHECKOUT_CHAIN,
+    const result = await getPrivyClient().walletApi.ethereum.sendTransaction({
+      walletId: params.serverWalletId,
+      caip2: SPEND_SERVER_WALLET_CAIP2,
+      sponsor: true,
+      transaction: {
+        from: params.serverWalletAddress,
+        to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+        chainId: POSTER_CHECKOUT_CHAIN.id,
+        data: encodeFunctionData({
+          abi: erc20Abi,
+          functionName: 'transfer',
+          args: [params.recipientAddress, rawAmount],
+        }),
+        value: '0x0',
+      },
     });
-    return { ok: true, txHash: hash };
+    return { ok: true, txHash: result.hash as `0x${string}` };
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'USDC transfer failed';
     console.error('submitTreasuryUsdcTransfer:', e);
@@ -76,6 +55,7 @@ export async function waitForTreasuryTxReceipt(
   if (!rpcUrl) {
     throw new Error('RPC not configured');
   }
+  const { createPublicClient } = await import('viem');
   const publicClient = createPublicClient({
     chain: POSTER_CHECKOUT_CHAIN,
     transport: http(rpcUrl),
@@ -84,18 +64,4 @@ export async function waitForTreasuryTxReceipt(
     hash: txHash,
     timeout: 120_000,
   });
-}
-
-/**
- * Address derived from `SERVER_WALLET_PRIVATE_KEY` / `SERVER_PRIVATE_KEY`, or null if missing/invalid.
- */
-export function getServerWalletAddress(): `0x${string}` | null {
-  const pk = getServerPrivateKey();
-  if (!pk) return null;
-  const trimmed = pk.startsWith('0x') ? pk : `0x${pk}`;
-  try {
-    return privateKeyToAccount(trimmed as `0x${string}`).address;
-  } catch {
-    return null;
-  }
 }

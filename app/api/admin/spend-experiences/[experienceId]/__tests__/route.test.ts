@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 const mockRequireAdmin = vi.fn();
 const mockGetSpendExperienceById = vi.fn();
 const mockUpdateSpendExperience = vi.fn();
+const mockGetFundingStatus = vi.fn();
 
 vi.mock('@/lib/auth', () => ({
   requireAdmin: (...args: unknown[]) => mockRequireAdmin(...args),
@@ -14,6 +15,11 @@ vi.mock('@/lib/db/spend-experiences', () => ({
     mockGetSpendExperienceById(...args),
   updateSpendExperience: (...args: unknown[]) =>
     mockUpdateSpendExperience(...args),
+}));
+
+vi.mock('@/lib/spend-server-wallet', () => ({
+  getServerWalletFundingStatus: (...args: unknown[]) =>
+    mockGetFundingStatus(...args),
 }));
 
 import { PATCH, GET } from '../route';
@@ -28,6 +34,11 @@ const existing = {
   max_usdc_per_user: 5,
   treasury_wallet_address: '0x1111111111111111111111111111111111111111',
   receiving_wallet_address: '0x2222222222222222222222222222222222222222',
+  privy_server_wallet_id: 'wallet-1',
+  server_wallet_address: '0x1111111111111111111111111111111111111111',
+  server_wallet_chain: 'base-mainnet',
+  server_wallet_created_at: '2026-04-01T00:00:00Z',
+  spend_create_idempotency_key: 'idem-1',
   start_time: '2026-05-01T12:00:00.000Z',
   end_time: '2026-05-08T12:00:00.000Z',
   created_by: 'a@b.com',
@@ -130,5 +141,51 @@ describe('PATCH /api/admin/spend-experiences/[experienceId]', () => {
     expect(j.success).toBe(false);
     expect(j.error).toContain('end_time');
     expect(mockUpdateSpendExperience).not.toHaveBeenCalled();
+  });
+
+  it('blocks activation until the server wallet has max USDC per user', async () => {
+    mockRequireAdmin.mockResolvedValue({
+      isValid: true,
+      user: { email: 'admin@example.com' },
+    });
+    mockGetSpendExperienceById.mockResolvedValue(existing);
+    mockGetFundingStatus.mockResolvedValue({ usdcBalance: 2, isFunded: false });
+
+    const res = await PATCH(
+      patchRequest({ status: 'active' }, 'admin@example.com'),
+      { params: { experienceId: 'exp-1' } }
+    );
+    const j = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(j.error).toContain('Server wallet');
+    expect(mockUpdateSpendExperience).not.toHaveBeenCalled();
+  });
+
+  it('allows activation when the server wallet is funded', async () => {
+    mockRequireAdmin.mockResolvedValue({
+      isValid: true,
+      user: { email: 'admin@example.com' },
+    });
+    mockGetSpendExperienceById.mockResolvedValue(existing);
+    mockGetFundingStatus.mockResolvedValue({ usdcBalance: 6, isFunded: true });
+    mockUpdateSpendExperience.mockResolvedValue({
+      ...existing,
+      status: 'active',
+    });
+
+    const res = await PATCH(
+      patchRequest({ status: 'active' }, 'admin@example.com'),
+      { params: { experienceId: 'exp-1' } }
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockGetFundingStatus).toHaveBeenCalledWith({
+      walletAddress: existing.server_wallet_address,
+      minUsdcRequired: existing.max_usdc_per_user,
+    });
+    expect(mockUpdateSpendExperience).toHaveBeenCalledWith('exp-1', {
+      status: 'active',
+    });
   });
 });
