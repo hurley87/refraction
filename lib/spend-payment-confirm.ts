@@ -8,6 +8,7 @@ import {
   updateSpendTransactionFields,
   confirmSpendTransactionIfSubmitted,
 } from '@/lib/db/spend-sessions';
+import { insertTreasuryReceivePaymentLedgerIfAbsent } from '@/lib/db/treasury-transactions';
 import { computeConversionAmounts } from '@/lib/spend-conversion-preview';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import { verifySpendUsdcPaymentTx } from '@/lib/spend-payment-verify';
@@ -348,6 +349,16 @@ export async function runSpendPaymentConfirm(input: {
     getSpendTransactionBySessionId(session.id),
     getSpendSessionById(session.id),
   ]);
+
+  if (updatedTx?.status === 'confirmed' && updatedTx.payment_tx_hash) {
+    void insertTreasuryReceivePaymentLedgerIfAbsent({
+      spendExperienceId: spendExperience.id,
+      amount: updatedTx.usdc_amount,
+      fromWalletAddress: updatedTx.from_wallet_address,
+      toWalletAddress: updatedTx.to_wallet_address,
+      txHash: updatedTx.payment_tx_hash,
+    });
+  }
 
   if (!didWinRace && updatedTx?.status === 'confirmed') {
     return {

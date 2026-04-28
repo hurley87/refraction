@@ -64,6 +64,11 @@ export function SpendExperienceList({
                 </div>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <Link href={`/admin/spend-experiences/${exp.id}`}>
+                    Activity
+                  </Link>
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
