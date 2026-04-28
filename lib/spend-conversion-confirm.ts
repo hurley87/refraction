@@ -16,8 +16,8 @@ import {
   loadSpendEligibilityForSession,
 } from '@/lib/spend-conversion-preview';
 import { SPEND_ELIGIBILITY_MESSAGES } from '@/lib/spend-eligibility-messages';
-import { getServerWalletAddress } from '@/lib/spend-treasury-usdc-transfer';
 import {
+  getServerWalletAddress,
   submitTreasuryUsdcTransfer,
   waitForTreasuryTxReceipt,
 } from '@/lib/spend-treasury-usdc-transfer';
@@ -76,6 +76,51 @@ function assertServerTreasuryMatchesExperience(
     };
   }
   return { ok: true, serverAddress };
+}
+
+/**
+ * Treasury-funded USDC goes to the session embedded wallet. If session wallet equals treasury
+ * (misconfiguration), fall back to the normalized embedded address from auth.
+ */
+function recipientUsdcAddressForSpendTransfer(params: {
+  treasuryWalletAddress: string;
+  sessionWalletTrimmed: string;
+  normalizedWalletLower: string;
+}): `0x${string}` {
+  const treasuryLower = params.treasuryWalletAddress.trim().toLowerCase();
+  const sessionLower = params.sessionWalletTrimmed.toLowerCase();
+  if (treasuryLower === sessionLower) {
+    return params.normalizedWalletLower as `0x${string}`;
+  }
+  return params.sessionWalletTrimmed as `0x${string}`;
+}
+
+function restoreTierAfterRefund(params: {
+  authUserId: string;
+  normalizedWallet: string;
+  balanceAfterDeduction: number;
+  pointsRestored: number;
+}): void {
+  void checkAndTrackTierProgression(
+    resolveServerIdentity({
+      privyUserId: params.authUserId,
+      walletAddress: params.normalizedWallet,
+    }),
+    params.balanceAfterDeduction,
+    params.balanceAfterDeduction + params.pointsRestored
+  );
+}
+
+function restoreTierAfterRefundResumeOnlyWallet(params: {
+  normalizedWallet: string;
+  balanceNow: number;
+  pointsRestored: number;
+}): void {
+  void checkAndTrackTierProgression(
+    resolveServerIdentity({ walletAddress: params.normalizedWallet }),
+    params.balanceNow,
+    params.balanceNow + params.pointsRestored
+  );
 }
 
 /**
@@ -226,7 +271,11 @@ export async function runSpendConversionConfirm(
     };
   }
 
-  const recipient = session.wallet_address.trim() as `0x${string}`;
+  const userRecipient = recipientUsdcAddressForSpendTransfer({
+    treasuryWalletAddress: spendExperience.treasury_wallet_address,
+    sessionWalletTrimmed: session.wallet_address.trim(),
+    normalizedWalletLower: normalizedWallet,
+  });
 
   let rpc: Awaited<ReturnType<typeof confirmSpendConversionAtomic>>;
   try {
@@ -293,12 +342,6 @@ export async function runSpendConversionConfirm(
     await updateSpendSessionStatus(session.id, 'conversion_pending');
   }
 
-  const userRecipient =
-    spendExperience.treasury_wallet_address.trim().toLowerCase() ===
-    recipient.toLowerCase()
-      ? (normalizedWallet as `0x${string}`)
-      : recipient;
-
   const sub = await submitTreasuryUsdcTransfer({
     recipientAddress: userRecipient,
     usdcAmount,
@@ -328,15 +371,12 @@ export async function runSpendConversionConfirm(
     });
 
     if (failedConv.user_id === authUserId) {
-      const distinct = resolveServerIdentity({
-        privyUserId: authUserId,
-        walletAddress: normalizedWallet,
+      restoreTierAfterRefund({
+        authUserId,
+        normalizedWallet,
+        balanceAfterDeduction: newPoints,
+        pointsRestored: pointsRequired,
       });
-      void checkAndTrackTierProgression(
-        distinct,
-        newPoints,
-        newPoints + pointsRequired
-      );
     }
 
     return {
@@ -379,15 +419,12 @@ export async function runSpendConversionConfirm(
     });
 
     if (after.user_id === authUserId) {
-      const distinct = resolveServerIdentity({
-        privyUserId: authUserId,
-        walletAddress: normalizedWallet,
+      restoreTierAfterRefund({
+        authUserId,
+        normalizedWallet,
+        balanceAfterDeduction: newPoints,
+        pointsRestored: pointsRequired,
       });
-      void checkAndTrackTierProgression(
-        distinct,
-        newPoints,
-        newPoints + pointsRequired
-      );
     }
     return {
       ok: false,
@@ -453,12 +490,11 @@ async function fundOrResumeUsdc(input: {
 
   let conv = pointConversion;
   if (conv.status === 'points_deducted' && !conv.funding_tx_hash) {
-    const recipient = session.wallet_address.trim() as `0x${string}`;
-    const userRecipient =
-      spendExperience.treasury_wallet_address.trim().toLowerCase() ===
-      recipient.toLowerCase()
-        ? (normalizedWallet as `0x${string}`)
-        : recipient;
+    const userRecipient = recipientUsdcAddressForSpendTransfer({
+      treasuryWalletAddress: spendExperience.treasury_wallet_address,
+      sessionWalletTrimmed: session.wallet_address.trim(),
+      normalizedWalletLower: normalizedWallet,
+    });
 
     const sub = await submitTreasuryUsdcTransfer({
       recipientAddress: userRecipient,
@@ -488,11 +524,12 @@ async function fundOrResumeUsdc(input: {
       const p = await getPlayerByWallet(normalizedWallet);
       if (p) {
         const cur = Number(p.total_points ?? 0);
-        void checkAndTrackTierProgression(
-          resolveServerIdentity({ walletAddress: normalizedWallet }),
-          cur,
-          cur + Math.ceil(Number(conv.points_deducted))
-        );
+        const refunded = Math.ceil(Number(conv.points_deducted));
+        restoreTierAfterRefundResumeOnlyWallet({
+          normalizedWallet,
+          balanceNow: cur,
+          pointsRestored: refunded,
+        });
       }
       return {
         error: {
