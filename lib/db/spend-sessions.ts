@@ -208,3 +208,129 @@ export async function createOrGetSpendSession(
   console.error('createOrGetSpendSession error:', insertError);
   throw new Error(insertError?.message || 'Failed to create spend session');
 }
+
+export type ConfirmSpendConversionRpcResult = {
+  outcome: 'created' | 'already_exists';
+  conversionId: string;
+  playerTotalPoints: number;
+};
+
+/**
+ * Atomically deduct points and create `point_conversions` (status `points_deducted`), or return existing
+ * conversion for the session. Requires `confirm_spend_conversion_atomic` in the database.
+ */
+export async function confirmSpendConversionAtomic(input: {
+  spendSessionId: string;
+  userId: string;
+  walletAddress: string;
+  spendExperienceId: string;
+  pointsToDeduct: number;
+  usdcAmount: number;
+  treasuryWalletAddress: string;
+  userWalletAddress: string;
+}): Promise<ConfirmSpendConversionRpcResult> {
+  const { data, error } = await supabase.rpc(
+    'confirm_spend_conversion_atomic',
+    {
+      p_spend_session_id: input.spendSessionId,
+      p_user_id: input.userId,
+      p_wallet_address: input.walletAddress,
+      p_spend_experience_id: input.spendExperienceId,
+      p_points_to_deduct: input.pointsToDeduct,
+      p_usdc_amount: input.usdcAmount,
+      p_treasury_wallet_address: input.treasuryWalletAddress,
+      p_user_wallet_address: input.userWalletAddress,
+    }
+  );
+
+  if (error) {
+    throw new Error(error.message || 'confirm_spend_conversion_atomic failed');
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  const outcome = row?.outcome as string | undefined;
+  const conversionId = row?.conversion_id as string | undefined;
+  const playerTotalPoints = row?.player_total_points;
+
+  if (
+    (outcome !== 'created' && outcome !== 'already_exists') ||
+    !conversionId ||
+    typeof playerTotalPoints !== 'number'
+  ) {
+    throw new Error(
+      'Unexpected RPC response from confirm_spend_conversion_atomic'
+    );
+  }
+
+  return {
+    outcome,
+    conversionId,
+    playerTotalPoints,
+  };
+}
+
+export async function updatePointConversionFields(
+  conversionId: string,
+  patch: Partial<
+    Pick<
+      PointConversion,
+      'status' | 'funding_tx_hash' | 'completed_at' | 'failed_reason'
+    >
+  >
+): Promise<PointConversion> {
+  const { data, error } = await supabase
+    .from('point_conversions')
+    .update(patch)
+    .eq('id', conversionId)
+    .select(CONVERSION_COLS)
+    .single();
+
+  if (error || !data) {
+    console.error('updatePointConversionFields:', error);
+    throw new Error(error?.message || 'Failed to update point conversion');
+  }
+  return rowToConversion(data as Record<string, unknown>);
+}
+
+export async function updateSpendSessionStatus(
+  sessionId: string,
+  status: SpendSessionStatus
+): Promise<void> {
+  const { error } = await supabase
+    .from('spend_sessions')
+    .update({ status })
+    .eq('id', sessionId);
+
+  if (error) {
+    console.error('updateSpendSessionStatus:', error);
+    throw new Error(error.message || 'Failed to update spend session');
+  }
+}
+
+/**
+ * If USDC transfer fails after points were deducted, refund points and mark conversion `failed`.
+ */
+export async function refundSpendConversionOnFundingFailure(input: {
+  conversionId: string;
+  userId: string;
+  spendSessionId: string;
+  pointsToRefund: number;
+  failedReason: string;
+}): Promise<void> {
+  const { error } = await supabase.rpc(
+    'refund_spend_conversion_on_funding_failure',
+    {
+      p_conversion_id: input.conversionId,
+      p_user_id: input.userId,
+      p_spend_session_id: input.spendSessionId,
+      p_points_to_refund: input.pointsToRefund,
+      p_failed_reason: input.failedReason,
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      error.message || 'refund_spend_conversion_on_funding_failure failed'
+    );
+  }
+}

@@ -43,6 +43,9 @@ export const ANALYTICS_EVENTS = {
   SPEND_CONVERSION_PREVIEWED: 'spend_conversion_previewed',
   SPEND_USER_ALREADY_CONVERTED: 'spend_user_already_converted',
   SPEND_TREASURY_INSUFFICIENT_FUNDS: 'spend_treasury_insufficient_funds',
+  SPEND_CONVERSION_CONFIRMED: 'spend_conversion_confirmed',
+  SPEND_CONVERSION_COMPLETED: 'spend_conversion_completed',
+  SPEND_CONVERSION_FAILED: 'spend_conversion_failed',
 } as const;
 
 export type AnalyticsEventName =
