@@ -11,6 +11,8 @@ export type SpendEligibilityStatus =
   | 'treasury_insufficient'
   | 'wallet_unavailable'
   | 'ready_for_payment'
+  /** Same payment step as `ready_for_payment`, but user already holds enough USDC (no points conversion). */
+  | 'ready_for_payment_own_usdc'
   | 'payment_failed'
   | 'payment_complete';
 
@@ -31,6 +33,8 @@ export const SPEND_ELIGIBILITY_MESSAGES: Record<
   wallet_unavailable:
     'Wallet unavailable. Add or connect your embedded wallet in your profile.',
   ready_for_payment: 'Your points were converted to USDC.',
+  ready_for_payment_own_usdc:
+    'You have enough USDC in your wallet to complete this payment.',
   payment_failed:
     'Your last payment could not be verified on-chain. You can try sending payment again.',
   payment_complete:

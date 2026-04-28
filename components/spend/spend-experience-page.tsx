@@ -48,6 +48,7 @@ type ConversionPreviewResponse = {
       receivingWalletAddress: string;
       treasuryWalletAddress: string;
       userPointsBalance: number | null;
+      userUsdcBalance: number | null;
       treasuryUsdcBalance: number | null;
     } | null;
   };
@@ -139,6 +140,7 @@ function eligibilityToneClass(status: SpendEligibilityStatus): string {
   if (
     status === 'eligible' ||
     status === 'ready_for_payment' ||
+    status === 'ready_for_payment_own_usdc' ||
     status === 'payment_complete'
   ) {
     return 'text-sm text-emerald-800';
@@ -371,6 +373,8 @@ export function SpendExperiencePage({
   const showSessionError = user && walletAddress && sessionError;
   const showWalletBlock = user && !walletAddress;
 
+  const showPayDirectUsdc = elig?.status === 'ready_for_payment_own_usdc';
+
   const showConvert =
     elig?.status === 'eligible' &&
     preview &&
@@ -378,6 +382,7 @@ export function SpendExperiencePage({
 
   const showPay =
     (elig?.status === 'ready_for_payment' ||
+      elig?.status === 'ready_for_payment_own_usdc' ||
       elig?.status === 'payment_failed') &&
     preview &&
     isEvmAddress(preview.receivingWalletAddress);
@@ -460,27 +465,52 @@ export function SpendExperiencePage({
                 <div className="space-y-3">
                   {preview && (
                     <div className="space-y-2 rounded-lg border border-neutral-200 bg-white p-4 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">You will use</span>
-                        <span className="font-medium">
-                          {preview.pointsRequired.toLocaleString()} points
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-neutral-600">
-                          You will receive
-                        </span>
-                        <span className="font-medium">
-                          ${preview.usdcAmount.toFixed(2)} USDC
-                        </span>
-                      </div>
-                      {preview.userPointsBalance != null && (
-                        <div className="flex justify-between text-neutral-500">
-                          <span>Your points balance</span>
-                          <span>
-                            {Number(preview.userPointsBalance).toLocaleString()}
-                          </span>
-                        </div>
+                      {showPayDirectUsdc ? (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600">Pay</span>
+                            <span className="font-medium">
+                              ${preview.usdcAmount.toFixed(2)} USDC
+                            </span>
+                          </div>
+                          {preview.userUsdcBalance != null && (
+                            <div className="flex justify-between text-neutral-500">
+                              <span>Your wallet (Base)</span>
+                              <span>
+                                ${preview.userUsdcBalance.toFixed(2)} USDC
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600">
+                              You will use
+                            </span>
+                            <span className="font-medium">
+                              {preview.pointsRequired.toLocaleString()} points
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-neutral-600">
+                              You will receive
+                            </span>
+                            <span className="font-medium">
+                              ${preview.usdcAmount.toFixed(2)} USDC
+                            </span>
+                          </div>
+                          {preview.userPointsBalance != null && (
+                            <div className="flex justify-between text-neutral-500">
+                              <span>Your points balance</span>
+                              <span>
+                                {Number(
+                                  preview.userPointsBalance
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}
@@ -518,7 +548,7 @@ export function SpendExperiencePage({
                           Pay with USDC…
                         </>
                       ) : (
-                        `Spend $${preview.usdcAmount.toFixed(2)} UDSC`
+                        `Spend $${preview.usdcAmount.toFixed(2)} USDC`
                       )}
                     </Button>
                   )}
@@ -545,8 +575,9 @@ export function SpendExperiencePage({
                         <span className="font-medium">
                           {Number(
                             receiptConversion?.points_deducted ??
-                              preview?.pointsRequired ??
-                              0
+                              (displayReceipt && !receiptConversion
+                                ? 0
+                                : (preview?.pointsRequired ?? 0))
                           ).toLocaleString()}
                         </span>
                       </div>

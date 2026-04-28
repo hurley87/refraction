@@ -9,7 +9,10 @@ import {
   confirmSpendTransactionIfSubmitted,
 } from '@/lib/db/spend-sessions';
 import { insertTreasuryReceivePaymentLedgerIfAbsent } from '@/lib/db/treasury-transactions';
-import { computeConversionAmounts } from '@/lib/spend-conversion-preview';
+import {
+  computeConversionAmounts,
+  fetchUserUsdcBalanceSafe,
+} from '@/lib/spend-conversion-preview';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import { verifySpendUsdcPaymentTx } from '@/lib/spend-payment-verify';
 import { getSpendServerWalletAddress } from '@/lib/spend-server-wallet';
@@ -173,12 +176,21 @@ export async function runSpendPaymentConfirm(input: {
   }
 
   const pointConversion = await getPointConversionBySessionId(session.id);
-  if (!pointConversion || pointConversion.status !== 'funded') {
-    return {
-      ok: false,
-      error: 'Conversion must be completed before payment',
-      httpStatus: 400,
-    };
+  const fundedConversion =
+    pointConversion?.status === 'funded' ? pointConversion : null;
+
+  let payingWithOwnUsdc = false;
+  if (!fundedConversion) {
+    const userUsdc = await fetchUserUsdcBalanceSafe(normalizedWallet);
+    if (userUsdc !== null && userUsdc >= input.usdcAmount) {
+      payingWithOwnUsdc = true;
+    } else {
+      return {
+        ok: false,
+        error: 'Conversion must be completed before payment',
+        httpStatus: 400,
+      };
+    }
   }
 
   const receiving = getSpendServerWalletAddress(spendExperience).trim();
@@ -200,18 +212,22 @@ export async function runSpendPaymentConfirm(input: {
     event_id: spendExperience.event_id,
     user_id: authUserId,
     wallet_address: normalizedWallet,
-    points_amount: pointConversion.points_deducted,
+    points_amount: fundedConversion ? fundedConversion.points_deducted : 0,
     usdc_amount: usdcAmount,
     status: 'submitted',
     spend_session_id: session.id,
-    point_conversion_id: pointConversion.id,
+    point_conversion_id: fundedConversion?.id,
     payment_tx_hash: txHash,
   };
 
-  if (
-    session.status !== 'conversion_complete' &&
-    session.status !== 'payment_pending'
-  ) {
+  const sessionReadyForFundedConversion =
+    session.status === 'conversion_complete' ||
+    session.status === 'payment_pending';
+  const sessionReadyForOwnUsdc =
+    payingWithOwnUsdc &&
+    (session.status === 'created' || session.status === 'payment_pending');
+
+  if (!sessionReadyForFundedConversion && !sessionReadyForOwnUsdc) {
     if (session.status === 'payment_complete') {
       const existing = await getSpendTransactionBySessionId(session.id);
       if (existing?.status === 'confirmed') {
