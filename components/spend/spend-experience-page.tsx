@@ -135,6 +135,17 @@ function toEvmHexAddress(value: string | undefined): `0x${string}` | null {
   return value && isEvmAddress(value) ? (value as `0x${string}`) : null;
 }
 
+function eligibilityToneClass(status: SpendEligibilityStatus): string {
+  if (
+    status === 'eligible' ||
+    status === 'ready_for_payment' ||
+    status === 'payment_complete'
+  ) {
+    return 'text-sm text-emerald-800';
+  }
+  return 'text-sm text-amber-900';
+}
+
 /**
  * Spend pilot: opens from QR at `/spend/{experienceId}`; creates/returns a session when authed.
  */
@@ -148,16 +159,15 @@ export function SpendExperiencePage({
   const walletAddress = user?.wallet?.address;
   const [trackedScan, setTrackedScan] = useState(false);
 
-  const address = walletAddress;
   const evmWallet = useMemo(() => {
-    if (!address) return null;
-    const lower = address.toLowerCase();
+    if (!walletAddress) return null;
+    const lower = walletAddress.toLowerCase();
     return (
       wallets.find((w) => w.address.toLowerCase() === lower) ??
       wallets[0] ??
       null
     );
-  }, [address, wallets]);
+  }, [walletAddress, wallets]);
 
   const {
     data: sessionPayload,
@@ -281,7 +291,7 @@ export function SpendExperiencePage({
   });
 
   const sendUsdcPayment = useCallback(async () => {
-    if (!address || !evmWallet || !previewPayload?.eligibility.preview) {
+    if (!walletAddress || !evmWallet || !previewPayload?.eligibility.preview) {
       toast.error('Wallet not ready');
       return;
     }
@@ -308,7 +318,7 @@ export function SpendExperiencePage({
           method: 'eth_sendTransaction',
           params: [
             {
-              from: address,
+              from: walletAddress,
               to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
               data,
             },
@@ -323,7 +333,7 @@ export function SpendExperiencePage({
       const msg = e instanceof Error ? e.message : String(e);
       toast.error(msg);
     }
-  }, [address, evmWallet, previewPayload, paymentMutation]);
+  }, [walletAddress, evmWallet, previewPayload, paymentMutation]);
 
   useEffect(() => {
     const fireScan = async () => {
@@ -369,6 +379,8 @@ export function SpendExperiencePage({
     isEvmAddress(preview.receivingWalletAddress);
 
   const receiptSession = receiptPayload?.session ?? session;
+  const receiptConversion = receiptPayload?.pointConversion;
+  const receiptPaymentHash = receiptPayload?.spendTransaction?.payment_tx_hash;
 
   const displayReceipt =
     elig?.status === 'payment_complete' || sessionStatus === 'payment_complete';
@@ -477,15 +489,7 @@ export function SpendExperiencePage({
                     </div>
                   )}
 
-                  <p
-                    className={
-                      elig.status === 'eligible' ||
-                      elig.status === 'ready_for_payment' ||
-                      elig.status === 'payment_complete'
-                        ? 'text-sm text-emerald-800'
-                        : 'text-sm text-amber-900'
-                    }
-                  >
+                  <p className={eligibilityToneClass(elig.status)}>
                     {elig.message}
                   </p>
 
@@ -518,7 +522,7 @@ export function SpendExperiencePage({
                           Pay with USDC…
                         </>
                       ) : (
-                        `Send $${preview!.usdcAmount.toFixed(2)} USDC on Base`
+                        `Send $${preview.usdcAmount.toFixed(2)} USDC on Base`
                       )}
                     </Button>
                   )}
@@ -533,7 +537,7 @@ export function SpendExperiencePage({
                         <span className="font-medium">
                           $
                           {(
-                            receiptPayload?.pointConversion?.usdc_amount ??
+                            receiptConversion?.usdc_amount ??
                             preview?.usdcAmount ??
                             0
                           ).toFixed(2)}{' '}
@@ -544,7 +548,7 @@ export function SpendExperiencePage({
                         <span className="text-neutral-600">Points used</span>
                         <span className="font-medium">
                           {Number(
-                            receiptPayload?.pointConversion?.points_deducted ??
+                            receiptConversion?.points_deducted ??
                               preview?.pointsRequired ??
                               0
                           ).toLocaleString()}
@@ -556,12 +560,9 @@ export function SpendExperiencePage({
                           {receiptSession?.id}
                         </p>
                       </div>
-                      {(receiptPayload?.spendTransaction?.payment_tx_hash ??
-                        null) && (
+                      {receiptPaymentHash && (
                         <a
-                          href={basescanUrl(
-                            receiptPayload!.spendTransaction!.payment_tx_hash!
-                          )}
+                          href={basescanUrl(receiptPaymentHash)}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 text-sm font-medium text-emerald-900 underline"

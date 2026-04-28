@@ -52,12 +52,10 @@ export async function verifySpendUsdcPaymentTx(params: {
   const expectedRaw = parseUnits(params.expectedUsdcAmount.toFixed(6), 6);
   const fromLower = params.expectedFrom.toLowerCase();
   const toLower = params.expectedTo.toLowerCase();
+  const usdcLower = POSTER_CHECKOUT_USDC_ADDRESS_BASE.toLowerCase();
 
   for (const log of receipt.logs) {
-    if (
-      log.address.toLowerCase() !==
-      POSTER_CHECKOUT_USDC_ADDRESS_BASE.toLowerCase()
-    ) {
+    if (log.address.toLowerCase() !== usdcLower) {
       continue;
     }
     try {

@@ -30,6 +30,16 @@ function normalizeTxHash(raw: string): `0x${string}` | null {
   return t as `0x${string}`;
 }
 
+/** Submitted row already bound to another tx hash (idempotent resubmit uses same hash). */
+function submittedPaymentHashConflicts(
+  spendTx: SpendTransaction,
+  requestedHashLower: string
+): boolean {
+  if (spendTx.status !== 'submitted') return false;
+  const existing = (spendTx.payment_tx_hash ?? '').toLowerCase();
+  return existing.length > 0 && existing !== requestedHashLower;
+}
+
 /** HTTP statuses allowed by `apiError` for spend pilot routes. */
 export type SpendPilotApiHttpStatus = 400 | 401 | 403 | 404 | 409 | 429 | 500;
 
@@ -63,6 +73,12 @@ export type SpendPaymentConfirmResult =
       resumed: boolean;
     }
   | { ok: false; error: string; httpStatus: SpendPilotApiHttpStatus };
+
+const PAYMENT_HASH_CONFLICT: SpendPaymentConfirmResult = {
+  ok: false,
+  error: 'A different payment is already in progress for this session',
+  httpStatus: 409,
+};
 
 async function finalizeSuccess(params: {
   spendTransactionId: string;
@@ -175,6 +191,7 @@ export async function runSpendPaymentConfirm(input: {
   const fromAddr = normalizedWallet as `0x${string}`;
   const toAddr = receiving as `0x${string}`;
   const usdcAmount = input.usdcAmount;
+  const requestedHashLower = txHash.toLowerCase();
 
   const baseAnalytics: SpendPilotPaymentEventProperties = {
     spend_experience_id: spendExperience.id,
@@ -223,15 +240,8 @@ export async function runSpendPaymentConfirm(input: {
     };
   }
 
-  if (spendTx?.status === 'submitted') {
-    const existingHash = spendTx.payment_tx_hash?.toLowerCase() ?? '';
-    if (existingHash && existingHash !== txHash.toLowerCase()) {
-      return {
-        ok: false,
-        error: 'A different payment is already in progress for this session',
-        httpStatus: 409,
-      };
-    }
+  if (spendTx && submittedPaymentHashConflicts(spendTx, requestedHashLower)) {
+    return PAYMENT_HASH_CONFLICT;
   }
 
   if (spendTx?.status === 'failed') {
@@ -272,15 +282,8 @@ export async function runSpendPaymentConfirm(input: {
     };
   }
 
-  if (
-    spendTx.status === 'submitted' &&
-    spendTx.payment_tx_hash?.toLowerCase() !== txHash.toLowerCase()
-  ) {
-    return {
-      ok: false,
-      error: 'A different payment is already in progress for this session',
-      httpStatus: 409,
-    };
+  if (submittedPaymentHashConflicts(spendTx, requestedHashLower)) {
+    return PAYMENT_HASH_CONFLICT;
   }
 
   if (spendTx.status === 'pending') {
@@ -298,11 +301,11 @@ export async function runSpendPaymentConfirm(input: {
     }
   }
 
-  const idempotentResubmit =
+  const isSameSubmittedHash =
     spendTx.status === 'submitted' &&
-    spendTx.payment_tx_hash?.toLowerCase() === txHash.toLowerCase();
+    (spendTx.payment_tx_hash ?? '').toLowerCase() === requestedHashLower;
 
-  if (!idempotentResubmit) {
+  if (!isSameSubmittedHash) {
     trackSpendPaymentConfirmed(distinctId, {
       ...baseAnalytics,
       spend_transaction_id: spendTx.id,
@@ -363,6 +366,6 @@ export async function runSpendPaymentConfirm(input: {
       status: 'payment_complete',
       completed_at: new Date().toISOString(),
     },
-    resumed: resumed || idempotentResubmit,
+    resumed: resumed || isSameSubmittedHash,
   };
 }
