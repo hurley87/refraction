@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import LocationSearch from '@/components/shared/location-search';
+import { LOCATION_OPTIONS_MAX_ROWS } from '@/lib/constants';
 import Image from 'next/image';
 import { deriveDisplayNameAndAddress } from '@/lib/utils/location-autofill';
 import type {
@@ -223,9 +224,18 @@ export default function AdminLocationListsPage() {
     isActive: true,
   });
   const [locationSearch, setLocationSearch] = useState('');
+  const [debouncedLocationSearch, setDebouncedLocationSearch] = useState('');
   const [selectedLocationId, setSelectedLocationId] = useState<number | null>(
     null
   );
+
+  /** Debounced so we query the API with server-side search instead of filtering a capped client list only. */
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setDebouncedLocationSearch(locationSearch.trim());
+    }, 350);
+    return () => window.clearTimeout(id);
+  }, [locationSearch]);
   const [removalTarget, setRemovalTarget] = useState<number | null>(null);
   const [newLocationForm, setNewLocationForm] = useState<NewLocationFormState>({
     placeId: '',
@@ -419,26 +429,34 @@ export default function AdminLocationListsPage() {
     enabled: !!isAdmin,
   });
 
-  const { data: locationOptions = [], isLoading: locationOptionsLoading } =
-    useQuery<LocationOption[]>({
-      queryKey: LOCATION_OPTIONS_KEY,
-      queryFn: async () => {
-        const response = await fetch(
-          '/api/admin/location-lists/location-options',
-          {
-            headers: { 'x-user-email': adminEmail },
-          }
-        );
-        if (!response.ok) {
-          throw new Error('Failed to fetch location options');
+  const {
+    data: locationOptions = [],
+    isLoading: locationOptionsLoading,
+    isFetching: locationOptionsFetching,
+  } = useQuery<LocationOption[]>({
+    queryKey: [...LOCATION_OPTIONS_KEY, debouncedLocationSearch] as const,
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.set('limit', String(LOCATION_OPTIONS_MAX_ROWS));
+      if (debouncedLocationSearch) {
+        params.set('q', debouncedLocationSearch);
+      }
+      const response = await fetch(
+        `/api/admin/location-lists/location-options?${params.toString()}`,
+        {
+          headers: { 'x-user-email': adminEmail },
         }
-        const responseData = await response.json();
-        // Unwrap the apiSuccess wrapper
-        const data = responseData.data || responseData;
-        return data.locations ?? [];
-      },
-      enabled: !!isAdmin,
-    });
+      );
+      if (!response.ok) {
+        throw new Error('Failed to fetch location options');
+      }
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
+      return data.locations ?? [];
+    },
+    enabled: !!isAdmin,
+  });
 
   const selectedList = useMemo(
     () => lists.find((list) => list.id === selectedListId) ?? null,
@@ -878,16 +896,6 @@ export default function AdminLocationListsPage() {
       toast.error(error.message || 'Unable to update location');
     },
   });
-
-  const visibleLocationOptions = useMemo(() => {
-    const normalized = locationSearch.trim().toLowerCase();
-    if (!normalized) return locationOptions;
-
-    return locationOptions.filter((option) => {
-      const name = option.name?.toLowerCase() || '';
-      return name.includes(normalized);
-    });
-  }, [locationOptions, locationSearch]);
 
   const handleCreateList = (event: FormEvent) => {
     event.preventDefault();
@@ -1525,15 +1533,22 @@ export default function AdminLocationListsPage() {
                   <div>
                     <p className="font-semibold">Add locations</p>
                     <p className="text-sm text-gray-500">
-                      Search by name and attach to this list.
+                      Search by name or address; results load from the server
+                      (up to {LOCATION_OPTIONS_MAX_ROWS} matches).
                     </p>
                   </div>
 
                   <Input
-                    placeholder="Search locations"
+                    placeholder="Search by name or address"
                     value={locationSearch}
                     onChange={(event) => setLocationSearch(event.target.value)}
+                    autoComplete="off"
                   />
+                  {locationSearch.trim() !== debouncedLocationSearch ? (
+                    <p className="text-xs text-gray-500" aria-live="polite">
+                      Searching…
+                    </p>
+                  ) : null}
 
                   <Select
                     value={
@@ -1551,7 +1566,9 @@ export default function AdminLocationListsPage() {
                         placeholder={
                           locationOptionsLoading
                             ? 'Loading options...'
-                            : 'Choose a location'
+                            : locationOptionsFetching
+                              ? 'Updating…'
+                              : 'Choose a location'
                         }
                       />
                     </SelectTrigger>
@@ -1560,12 +1577,14 @@ export default function AdminLocationListsPage() {
                         <div className="px-3 py-2 text-sm text-gray-500">
                           Loading locations...
                         </div>
-                      ) : visibleLocationOptions.length === 0 ? (
+                      ) : locationOptions.length === 0 ? (
                         <div className="px-3 py-2 text-sm text-gray-500">
-                          No matches
+                          {debouncedLocationSearch
+                            ? 'No matches'
+                            : 'No locations in database yet'}
                         </div>
                       ) : (
-                        visibleLocationOptions.slice(0, 50).map((option) => (
+                        locationOptions.map((option) => (
                           <SelectItem key={option.id} value={String(option.id)}>
                             <div>
                               <p className="text-sm font-medium">

@@ -21,6 +21,12 @@ export const MAX_VARCHAR_LENGTH = 255;
 // Location system constants
 export const MAX_LOCATIONS_PER_WEEK = 300;
 
+/**
+ * Max rows per request for admin location dropdown options (`listLocationOptions`).
+ * Align with PostgREST `max_rows` (Supabase Dashboard → Project Settings → API).
+ */
+export const LOCATION_OPTIONS_MAX_ROWS = 1000;
+
 // Supabase/PostgreSQL error codes
 export const SUPABASE_ERROR_CODES = {
   NOT_FOUND: 'PGRST116',

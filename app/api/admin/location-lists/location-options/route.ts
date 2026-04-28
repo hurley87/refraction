@@ -1,25 +1,31 @@
-import { NextRequest } from "next/server";
-import { z } from "zod";
-import { checkAdminPermission } from "@/lib/db/admin";
-import { listLocationOptions } from "@/lib/db/locations";
-import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
+import { LOCATION_OPTIONS_MAX_ROWS } from '@/lib/constants';
+import { checkAdminPermission } from '@/lib/db/admin';
+import { listLocationOptions } from '@/lib/db/locations';
+import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 
 const querySchema = z.object({
   query: z.string().min(1).max(120).optional(),
-  limit: z.coerce.number().int().min(1).max(500).optional(),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(LOCATION_OPTIONS_MAX_ROWS)
+    .optional(),
 });
 
 export async function GET(request: NextRequest) {
   try {
-    const adminEmail = request.headers.get("x-user-email") || undefined;
+    const adminEmail = request.headers.get('x-user-email') || undefined;
     if (!checkAdminPermission(adminEmail)) {
-      return apiError("Unauthorized", 403);
+      return apiError('Unauthorized', 403);
     }
 
     const { searchParams } = new URL(request.url);
     const parsed = querySchema.parse({
-      query: searchParams.get("q") || undefined,
-      limit: searchParams.get("limit") || undefined,
+      query: searchParams.get('q') || undefined,
+      limit: searchParams.get('limit') || undefined,
     });
 
     const locations = await listLocationOptions(parsed.query, parsed.limit);
@@ -29,7 +35,7 @@ export async function GET(request: NextRequest) {
       return apiValidationError(error);
     }
 
-    console.error("Failed to fetch location options", error);
-    return apiError("Failed to fetch location options", 500);
+    console.error('Failed to fetch location options', error);
+    return apiError('Failed to fetch location options', 500);
   }
 }
