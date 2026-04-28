@@ -20,7 +20,9 @@ const EVM_TX_HASH_RE = /^0x[a-fA-F0-9]{64}$/;
 const TRANSFER_EVENT = parseAbiItem(
   'event Transfer(address indexed from, address indexed to, uint256 value)'
 );
-const FALLBACK_SCAN_BLOCKS = 1_200n;
+const FALLBACK_SCAN_BLOCKS = 1_000n;
+/** Coinbase (and other) Base RPCs reject eth_getLogs when the range exceeds 1000 blocks. */
+const MAX_LOG_BLOCK_SPAN = 1_000n;
 
 function rpcUrl(): string {
   return process.env.NEXT_PUBLIC_BASE_RPC?.trim() || 'https://mainnet.base.org';
@@ -45,32 +47,47 @@ async function findRecentTreasuryTransferHash(params: {
   const rawAmount = parseUnits(params.usdcAmount.toFixed(6), 6);
   const fallbackFrom =
     latest > FALLBACK_SCAN_BLOCKS ? latest - FALLBACK_SCAN_BLOCKS : 0n;
-  const fromBlock =
+  const scanFrom =
     params.fromBlock != null && params.fromBlock < latest
       ? params.fromBlock
       : fallbackFrom;
 
-  const logs = await publicClient.getLogs({
-    address: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
-    event: TRANSFER_EVENT,
-    args: {
-      from: params.serverWalletAddress,
-      to: params.recipientAddress,
-    },
-    fromBlock,
-    toBlock: 'latest',
-  });
+  const buildMatching = (
+    chunk: Awaited<ReturnType<typeof publicClient.getLogs>>
+  ) =>
+    chunk
+      .filter((log) => log.args.value === rawAmount)
+      .sort((a, b) => {
+        const aBlock = a.blockNumber ?? 0n;
+        const bBlock = b.blockNumber ?? 0n;
+        if (aBlock === bBlock) return 0;
+        return aBlock > bBlock ? -1 : 1;
+      });
 
-  const matching = logs
-    .filter((log) => log.args.value === rawAmount)
-    .sort((a, b) => {
-      const aBlock = a.blockNumber ?? 0n;
-      const bBlock = b.blockNumber ?? 0n;
-      if (aBlock === bBlock) return 0;
-      return aBlock > bBlock ? -1 : 1;
+  // Newest first so the first non-empty chunk yields the most recent transfer.
+  let chunkTo = latest;
+  while (chunkTo >= scanFrom) {
+    const maxFrom = chunkTo - (MAX_LOG_BLOCK_SPAN - 1n);
+    const fromBlock = maxFrom > scanFrom ? maxFrom : scanFrom;
+    const logs = await publicClient.getLogs({
+      address: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+      event: TRANSFER_EVENT,
+      args: {
+        from: params.serverWalletAddress,
+        to: params.recipientAddress,
+      },
+      fromBlock,
+      toBlock: chunkTo,
     });
+    const matching = buildMatching(logs);
+    if (matching.length > 0) {
+      return matching[0]!.transactionHash;
+    }
+    if (fromBlock === 0n) break;
+    chunkTo = fromBlock - 1n;
+  }
 
-  return matching[0]?.transactionHash ?? null;
+  return null;
 }
 
 export function isEvmTxHash(value: unknown): value is `0x${string}` {
