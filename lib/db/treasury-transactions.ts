@@ -32,76 +32,82 @@ function rowToTreasury(row: Record<string, unknown>): TreasuryTransaction {
   };
 }
 
-/**
- * Optional audit row for treasury → user USDC (matches `point_conversions.funding_tx_hash` when confirmed).
- */
-export async function insertTreasuryFundUserLedgerIfAbsent(input: {
+type TreasuryLedgerInsertType = Extract<
+  TreasuryTransaction['transaction_type'],
+  'fund_user' | 'receive_payment'
+>;
+
+async function insertTreasuryLedgerRowIfAbsent(params: {
   spendExperienceId: string;
+  transactionType: TreasuryLedgerInsertType;
   amount: number;
   fromWalletAddress: string;
   toWalletAddress: string;
   txHash: string;
 }): Promise<void> {
-  const txLower = input.txHash.trim().toLowerCase();
+  const txLower = params.txHash.trim().toLowerCase();
   const { data: existing } = await supabase
     .from('treasury_transactions')
     .select('id')
-    .eq('spend_experience_id', input.spendExperienceId)
-    .eq('transaction_type', 'fund_user')
+    .eq('spend_experience_id', params.spendExperienceId)
+    .eq('transaction_type', params.transactionType)
     .eq('tx_hash', txLower)
     .maybeSingle();
 
   if (existing) return;
 
   const { error } = await supabase.from('treasury_transactions').insert({
-    spend_experience_id: input.spendExperienceId,
-    transaction_type: 'fund_user',
-    amount: input.amount,
-    from_wallet_address: input.fromWalletAddress.trim().toLowerCase(),
-    to_wallet_address: input.toWalletAddress.trim().toLowerCase(),
+    spend_experience_id: params.spendExperienceId,
+    transaction_type: params.transactionType,
+    amount: params.amount,
+    from_wallet_address: params.fromWalletAddress.trim().toLowerCase(),
+    to_wallet_address: params.toWalletAddress.trim().toLowerCase(),
     tx_hash: txLower,
     status: 'confirmed',
   });
 
   if (error) {
-    console.error('insertTreasuryFundUserLedgerIfAbsent:', error);
+    console.error(
+      `insertTreasuryLedgerRowIfAbsent (${params.transactionType}):`,
+      error
+    );
   }
 }
 
-/**
- * Optional audit row for user → receiving wallet USDC (matches `spend_transactions.payment_tx_hash` when confirmed).
- */
-export async function insertTreasuryReceivePaymentLedgerIfAbsent(input: {
+/** Optional audit row: treasury → user USDC (matches funded `point_conversions.funding_tx_hash`). */
+export function insertTreasuryFundUserLedgerIfAbsent(input: {
   spendExperienceId: string;
   amount: number;
   fromWalletAddress: string;
   toWalletAddress: string;
   txHash: string;
 }): Promise<void> {
-  const txLower = input.txHash.trim().toLowerCase();
-  const { data: existing } = await supabase
-    .from('treasury_transactions')
-    .select('id')
-    .eq('spend_experience_id', input.spendExperienceId)
-    .eq('transaction_type', 'receive_payment')
-    .eq('tx_hash', txLower)
-    .maybeSingle();
-
-  if (existing) return;
-
-  const { error } = await supabase.from('treasury_transactions').insert({
-    spend_experience_id: input.spendExperienceId,
-    transaction_type: 'receive_payment',
+  return insertTreasuryLedgerRowIfAbsent({
+    spendExperienceId: input.spendExperienceId,
+    transactionType: 'fund_user',
     amount: input.amount,
-    from_wallet_address: input.fromWalletAddress.trim().toLowerCase(),
-    to_wallet_address: input.toWalletAddress.trim().toLowerCase(),
-    tx_hash: txLower,
-    status: 'confirmed',
+    fromWalletAddress: input.fromWalletAddress,
+    toWalletAddress: input.toWalletAddress,
+    txHash: input.txHash,
   });
+}
 
-  if (error) {
-    console.error('insertTreasuryReceivePaymentLedgerIfAbsent:', error);
-  }
+/** Optional audit row: user → event wallet USDC (matches confirmed `spend_transactions.payment_tx_hash`). */
+export function insertTreasuryReceivePaymentLedgerIfAbsent(input: {
+  spendExperienceId: string;
+  amount: number;
+  fromWalletAddress: string;
+  toWalletAddress: string;
+  txHash: string;
+}): Promise<void> {
+  return insertTreasuryLedgerRowIfAbsent({
+    spendExperienceId: input.spendExperienceId,
+    transactionType: 'receive_payment',
+    amount: input.amount,
+    fromWalletAddress: input.fromWalletAddress,
+    toWalletAddress: input.toWalletAddress,
+    txHash: input.txHash,
+  });
 }
 
 export async function listTreasuryTransactionsForExperience(

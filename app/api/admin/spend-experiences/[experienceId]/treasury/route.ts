@@ -4,22 +4,29 @@ import { fetchTreasuryUsdcBalanceSafe } from '@/lib/spend-conversion-preview';
 import { listTreasuryTransactionsForExperience } from '@/lib/db/treasury-transactions';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
+import type { TreasuryTransaction } from '@/lib/types';
 
 interface RouteParams {
   params: { experienceId: string };
 }
 
-function sumLedgerAmount(
-  rows: { transaction_type: string; amount: number }[],
-  type: string
-): number {
-  let s = 0;
+function ledgerTotalsFromRows(rows: TreasuryTransaction[]): {
+  fund_user_usdc: number;
+  receive_payment_usdc: number;
+  admin_recovery_usdc: number;
+} {
+  let fund_user_usdc = 0;
+  let receive_payment_usdc = 0;
+  let admin_recovery_usdc = 0;
   for (const r of rows) {
-    if (r.transaction_type === type && Number.isFinite(r.amount)) {
-      s += r.amount;
-    }
+    if (!Number.isFinite(r.amount)) continue;
+    if (r.transaction_type === 'fund_user') fund_user_usdc += r.amount;
+    else if (r.transaction_type === 'receive_payment')
+      receive_payment_usdc += r.amount;
+    else if (r.transaction_type === 'admin_recovery')
+      admin_recovery_usdc += r.amount;
   }
-  return s;
+  return { fund_user_usdc, receive_payment_usdc, admin_recovery_usdc };
 }
 
 /**
@@ -46,17 +53,15 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       listTreasuryTransactionsForExperience(experience.id),
     ]);
 
+    const ledgerTotals = ledgerTotalsFromRows(ledger);
+
     return apiSuccess({
       spendExperienceId: experience.id,
       treasuryWalletAddress,
       receivingWalletAddress,
       treasuryUsdcBalance,
       ledger,
-      ledgerTotals: {
-        fund_user_usdc: sumLedgerAmount(ledger, 'fund_user'),
-        receive_payment_usdc: sumLedgerAmount(ledger, 'receive_payment'),
-        admin_recovery_usdc: sumLedgerAmount(ledger, 'admin_recovery'),
-      },
+      ledgerTotals,
     });
   } catch (error) {
     console.error('admin spend treasury:', error);

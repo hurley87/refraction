@@ -166,16 +166,16 @@ export async function getSpendPilotAdminTotals(
 
   const fundedRows = fundedAgg.data ?? [];
   const userIds = new Set(fundedRows.map((r) => String(r.user_id)));
-  let totalUsdcDistributed = 0;
-  for (const r of fundedRows) {
-    totalUsdcDistributed += toNum(r.usdc_amount);
-  }
+  const totalUsdcDistributed = fundedRows.reduce<number>(
+    (sum, r) => sum + toNum(r.usdc_amount),
+    0
+  );
 
   const paymentRows = confirmedPaymentsAgg.data ?? [];
-  let totalUsdcReceivedAtEventWallet = 0;
-  for (const r of paymentRows) {
-    totalUsdcReceivedAtEventWallet += toNum(r.usdc_amount);
-  }
+  const totalUsdcReceivedAtEventWallet = paymentRows.reduce<number>(
+    (sum, r) => sum + toNum(r.usdc_amount),
+    0
+  );
 
   return {
     usersConverted: userIds.size,

@@ -70,6 +70,77 @@ function baseScanTxUrl(hash: string): string {
   return `https://basescan.org/tx/${h}`;
 }
 
+function TxHashShortLink({
+  hash,
+  className,
+}: {
+  hash: string;
+  className?: string;
+}) {
+  return (
+    <a
+      href={baseScanTxUrl(hash)}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={
+        className ??
+        'inline-flex items-center gap-0.5 text-blue-700 hover:underline'
+      }
+    >
+      {shortenAddr(hash)}
+      <ExternalLink className="size-3" />
+    </a>
+  );
+}
+
+function SessionConversionCell({
+  conversion,
+}: {
+  conversion: PointConversion | null;
+}) {
+  if (!conversion) {
+    return <span className="text-neutral-400">—</span>;
+  }
+  return (
+    <>
+      <div>{conversion.status}</div>
+      <div className="text-neutral-600">{fmtUsdc(conversion.usdc_amount)}</div>
+      {conversion.funding_tx_hash && (
+        <a
+          href={baseScanTxUrl(conversion.funding_tx_hash)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          Tx
+        </a>
+      )}
+    </>
+  );
+}
+
+function SessionPaymentCell({ payment }: { payment: SpendTransaction | null }) {
+  if (!payment) {
+    return <span className="text-neutral-400">—</span>;
+  }
+  return (
+    <>
+      <div>{payment.status}</div>
+      <div className="text-neutral-600">{fmtUsdc(payment.usdc_amount)}</div>
+      {payment.payment_tx_hash && (
+        <a
+          href={baseScanTxUrl(payment.payment_tx_hash)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          Tx
+        </a>
+      )}
+    </>
+  );
+}
+
 export default function SpendExperienceDetailPage() {
   const params = useParams<{ experienceId: string }>();
   const experienceId = params.experienceId;
@@ -204,8 +275,14 @@ export default function SpendExperienceDetailPage() {
   }
 
   const exp = experienceQuery.data;
-  const totals = activityQuery.data?.totals;
-  const mixpanelUrl = activityQuery.data?.mixpanelInsightUrl;
+  const activityData = activityQuery.data;
+  const treasuryData = treasuryQuery.data;
+  const totals = activityData?.totals;
+  const mixpanelUrl = activityData?.mixpanelInsightUrl;
+  const ledgerTotalsSuffix =
+    treasuryData && treasuryData.ledgerTotals.admin_recovery_usdc > 0
+      ? ` · admin_recovery ${fmtUsdc(treasuryData.ledgerTotals.admin_recovery_usdc)}`
+      : '';
 
   return (
     <div className="mx-auto max-w-4xl p-6 font-grotesk">
@@ -237,7 +314,7 @@ export default function SpendExperienceDetailPage() {
               variant="outline"
               size="sm"
               className="gap-1"
-              onClick={() => refetchAll()}
+              onClick={refetchAll}
               disabled={
                 activityQuery.isFetching ||
                 treasuryQuery.isFetching ||
@@ -267,7 +344,7 @@ export default function SpendExperienceDetailPage() {
         </p>
       )}
 
-      {totals && treasuryQuery.data && (
+      {totals && treasuryData && (
         <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg border border-neutral-200 bg-white p-4">
             <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">
@@ -298,42 +375,40 @@ export default function SpendExperienceDetailPage() {
               Treasury USDC (live)
             </div>
             <div className="mt-1 text-2xl font-semibold tabular-nums">
-              {fmtUsdc(treasuryQuery.data.treasuryUsdcBalance)}
+              {fmtUsdc(treasuryData.treasuryUsdcBalance)}
             </div>
           </div>
         </section>
       )}
 
-      {treasuryQuery.data && (
+      {treasuryData && (
         <section className="mb-8 rounded-lg border border-neutral-200 bg-white p-5">
           <h2 className="text-lg font-semibold text-[#171717]">Treasury</h2>
           <div className="mt-3 grid gap-4 text-sm sm:grid-cols-2">
             <div>
               <div className="text-neutral-500">Treasury wallet</div>
               <code className="mt-0.5 block break-all text-xs text-neutral-800">
-                {treasuryQuery.data.treasuryWalletAddress}
+                {treasuryData.treasuryWalletAddress}
               </code>
             </div>
             <div>
               <div className="text-neutral-500">Receiving (event) wallet</div>
               <code className="mt-0.5 block break-all text-xs text-neutral-800">
-                {treasuryQuery.data.receivingWalletAddress}
+                {treasuryData.receivingWalletAddress}
               </code>
             </div>
           </div>
-          {treasuryQuery.data.ledger.length > 0 && (
+          {treasuryData.ledger.length > 0 && (
             <div className="mt-4 border-t border-neutral-100 pt-4">
               <div className="text-xs text-neutral-500">
                 Ledger totals (optional audit rows): fund_user{' '}
-                {fmtUsdc(treasuryQuery.data.ledgerTotals.fund_user_usdc)} ·
+                {fmtUsdc(treasuryData.ledgerTotals.fund_user_usdc)} ·
                 receive_payment{' '}
-                {fmtUsdc(treasuryQuery.data.ledgerTotals.receive_payment_usdc)}
-                {treasuryQuery.data.ledgerTotals.admin_recovery_usdc > 0
-                  ? ` · admin_recovery ${fmtUsdc(treasuryQuery.data.ledgerTotals.admin_recovery_usdc)}`
-                  : ''}
+                {fmtUsdc(treasuryData.ledgerTotals.receive_payment_usdc)}
+                {ledgerTotalsSuffix}
               </div>
               <ul className="mt-3 max-h-48 overflow-auto text-xs">
-                {treasuryQuery.data.ledger.slice(0, 50).map((row) => (
+                {treasuryData.ledger.slice(0, 50).map((row) => (
                   <li
                     key={row.id}
                     className="flex flex-wrap items-baseline justify-between gap-2 border-b border-neutral-50 py-1.5 last:border-0"
@@ -343,15 +418,10 @@ export default function SpendExperienceDetailPage() {
                       {fmtUsdc(row.amount)}
                     </span>
                     {row.tx_hash ? (
-                      <a
-                        href={baseScanTxUrl(row.tx_hash)}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <TxHashShortLink
+                        hash={row.tx_hash}
                         className="inline-flex items-center gap-0.5 font-mono text-blue-600 hover:underline"
-                      >
-                        {shortenAddr(row.tx_hash)}
-                        <ExternalLink className="size-3" />
-                      </a>
+                      />
                     ) : (
                       <span className="text-neutral-400">—</span>
                     )}
@@ -378,9 +448,9 @@ export default function SpendExperienceDetailPage() {
         </p>
       )}
 
-      {activityQuery.data &&
-        (activityQuery.data.failedConversions.length > 0 ||
-          activityQuery.data.failedPayments.length > 0) && (
+      {activityData &&
+        (activityData.failedConversions.length > 0 ||
+          activityData.failedPayments.length > 0) && (
           <section className="mb-8 rounded-lg border border-red-200 bg-red-50/80 p-5">
             <h2 className="text-lg font-semibold text-red-900">
               Failed transactions
@@ -390,13 +460,13 @@ export default function SpendExperienceDetailPage() {
               full detail.
             </p>
             <div className="mt-4 grid gap-6 md:grid-cols-2">
-              {activityQuery.data.failedConversions.length > 0 && (
+              {activityData.failedConversions.length > 0 && (
                 <div>
                   <h3 className="text-sm font-medium text-red-900">
-                    Conversions ({activityQuery.data.failedConversions.length})
+                    Conversions ({activityData.failedConversions.length})
                   </h3>
                   <ul className="mt-2 space-y-2 text-xs">
-                    {activityQuery.data.failedConversions.map((c) => (
+                    {activityData.failedConversions.map((c) => (
                       <li
                         key={c.id}
                         className="rounded border border-red-100 bg-white/80 p-2"
@@ -408,28 +478,22 @@ export default function SpendExperienceDetailPage() {
                           {c.failed_reason ?? 'Unknown'}
                         </div>
                         {c.funding_tx_hash && (
-                          <a
-                            href={baseScanTxUrl(c.funding_tx_hash)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 inline-flex items-center gap-0.5 text-blue-700 hover:underline"
-                          >
-                            {shortenAddr(c.funding_tx_hash)}
-                            <ExternalLink className="size-3" />
-                          </a>
+                          <div className="mt-1">
+                            <TxHashShortLink hash={c.funding_tx_hash} />
+                          </div>
                         )}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
-              {activityQuery.data.failedPayments.length > 0 && (
+              {activityData.failedPayments.length > 0 && (
                 <div>
                   <h3 className="text-sm font-medium text-red-900">
-                    Payments ({activityQuery.data.failedPayments.length})
+                    Payments ({activityData.failedPayments.length})
                   </h3>
                   <ul className="mt-2 space-y-2 text-xs">
-                    {activityQuery.data.failedPayments.map((p) => (
+                    {activityData.failedPayments.map((p) => (
                       <li
                         key={p.id}
                         className="rounded border border-red-100 bg-white/80 p-2"
@@ -441,15 +505,9 @@ export default function SpendExperienceDetailPage() {
                           {p.failed_reason ?? 'Unknown'}
                         </div>
                         {p.payment_tx_hash && (
-                          <a
-                            href={baseScanTxUrl(p.payment_tx_hash)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 inline-flex items-center gap-0.5 text-blue-700 hover:underline"
-                          >
-                            {shortenAddr(p.payment_tx_hash)}
-                            <ExternalLink className="size-3" />
-                          </a>
+                          <div className="mt-1">
+                            <TxHashShortLink hash={p.payment_tx_hash} />
+                          </div>
                         )}
                       </li>
                     ))}
@@ -460,11 +518,11 @@ export default function SpendExperienceDetailPage() {
           </section>
         )}
 
-      {activityQuery.data && (
+      {activityData && (
         <section className="rounded-lg border border-neutral-200 bg-white">
           <div className="border-b border-neutral-100 px-4 py-3">
             <h2 className="font-semibold text-[#171717]">
-              Recent sessions ({activityQuery.data.sessions.length} shown)
+              Recent sessions ({activityData.sessions.length} shown)
             </h2>
             <p className="text-xs text-neutral-500">
               Newest first. Conversion and payment rows when present.
@@ -481,7 +539,7 @@ export default function SpendExperienceDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {activityQuery.data.sessions.map(
+                {activityData.sessions.map(
                   ({ session, conversion, payment }) => (
                     <tr
                       key={session.id}
@@ -497,48 +555,10 @@ export default function SpendExperienceDetailPage() {
                         {session.status.replace(/_/g, ' ')}
                       </td>
                       <td className="px-3 py-2 align-top text-xs">
-                        {conversion ? (
-                          <>
-                            <div>{conversion.status}</div>
-                            <div className="text-neutral-600">
-                              {fmtUsdc(conversion.usdc_amount)}
-                            </div>
-                            {conversion.funding_tx_hash && (
-                              <a
-                                href={baseScanTxUrl(conversion.funding_tx_hash)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                              >
-                                Tx
-                              </a>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-neutral-400">—</span>
-                        )}
+                        <SessionConversionCell conversion={conversion} />
                       </td>
                       <td className="px-3 py-2 align-top text-xs">
-                        {payment ? (
-                          <>
-                            <div>{payment.status}</div>
-                            <div className="text-neutral-600">
-                              {fmtUsdc(payment.usdc_amount)}
-                            </div>
-                            {payment.payment_tx_hash && (
-                              <a
-                                href={baseScanTxUrl(payment.payment_tx_hash)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                              >
-                                Tx
-                              </a>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-neutral-400">—</span>
-                        )}
+                        <SessionPaymentCell payment={payment} />
                       </td>
                     </tr>
                   )
