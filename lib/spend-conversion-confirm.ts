@@ -19,6 +19,7 @@ import {
   submitTreasuryUsdcTransfer,
   waitForTreasuryTxReceipt,
 } from '@/lib/spend-treasury-usdc-transfer';
+import { waitForPeerFundingTxHash } from '@/lib/spend-conversion-peer-funding-wait';
 import {
   fetchServerWalletUsdcBalanceSafe,
   getSpendServerWalletTransferConfig,
@@ -43,6 +44,7 @@ const RESUMABLE: PointConversion['status'][] = [
   'points_deducted',
   'funding_pending',
 ];
+
 const MISCONFIGURED_CONVERSION_ERROR =
   'Conversion is not configured correctly. Please contact support.';
 
@@ -294,7 +296,60 @@ export async function runSpendConversionConfirm(
     throw e;
   }
 
-  let conv = (await getPointConversionBySessionId(session.id))!;
+  let conv = await getPointConversionBySessionId(session.id);
+  if (!conv) {
+    return {
+      ok: false,
+      httpStatus: 500,
+      error: 'Conversion record missing after confirm.',
+    };
+  }
+
+  if (rpc.outcome === 'already_exists') {
+    if (conv.status === 'funded' || conv.status === 'failed') {
+      if (conv.status === 'funded') {
+        await markSessionAfterFunding(session.id);
+      }
+      const freshSession = await getSpendSessionById(session.id);
+      return {
+        ok: true,
+        pointConversion: conv,
+        session: freshSession ?? session,
+        resumed: true,
+      };
+    }
+
+    if (RESUMABLE.includes(conv.status)) {
+      if (conv.status === 'points_deducted' && !conv.funding_tx_hash) {
+        conv = (await waitForPeerFundingTxHash(session.id)) ?? conv;
+      }
+      const fundResult = await fundOrResumeUsdc({
+        pointConversion: conv,
+        session,
+        spendExperience,
+        normalizedWallet,
+        usdcAmount,
+        distinctId,
+        baseAnalytics,
+      });
+      if (fundResult.error) {
+        return fundResult.error;
+      }
+      return {
+        ok: true,
+        pointConversion: fundResult.conversion,
+        session: (await getSpendSessionById(session.id)) ?? session,
+        resumed: true,
+      };
+    }
+
+    return {
+      ok: false,
+      httpStatus: 500,
+      error: 'Unexpected conversion state after confirm.',
+    };
+  }
+
   const previousPoints = preRpcPoints;
   const newPoints = rpc.playerTotalPoints;
 
@@ -436,7 +491,7 @@ export async function runSpendConversionConfirm(
     ok: true,
     pointConversion: completed,
     session: (await getSpendSessionById(session.id)) ?? session,
-    resumed: rpc.outcome === 'already_exists',
+    resumed: false,
   };
 }
 
