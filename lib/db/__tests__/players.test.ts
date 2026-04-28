@@ -135,6 +135,25 @@ describe('Players Database Module', () => {
       expect(mockSingle).toHaveBeenCalledTimes(2);
     });
 
+    it('prefers the checksummed EVM row before lowercase duplicates', async () => {
+      const rawLower = '0x4d418f71c531465337b65127b207aa849fa5a9e3';
+      const checksummed = getAddress(rawLower as `0x${string}`);
+      const mockPlayer: Player = {
+        id: 2,
+        wallet_address: checksummed,
+        username: 'checksummed',
+        total_points: 16000,
+      };
+
+      mockSingle.mockResolvedValueOnce({ data: mockPlayer, error: null });
+
+      const result = await getPlayerByWallet(rawLower);
+
+      expect(result).toEqual(mockPlayer);
+      expect(mockEq).toHaveBeenCalledWith('wallet_address', checksummed);
+      expect(mockSingle).toHaveBeenCalledTimes(1);
+    });
+
     it('should return null when not found (PGRST116)', async () => {
       mockSingle
         .mockResolvedValueOnce({

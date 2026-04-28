@@ -119,6 +119,7 @@ export type SpendConversionConfirmResult =
       ok: false;
       httpStatus: 400 | 401 | 403 | 404 | 409 | 500;
       error: string;
+      capture?: boolean;
     };
 
 /**
@@ -182,7 +183,7 @@ export async function runSpendConversionConfirm(
     };
   }
 
-  const player = await getPlayerByWallet(normalizedWallet);
+  const player = await getPlayerByWallet(session.wallet_address);
   const preRpcPoints = player != null ? Number(player.total_points ?? 0) : 0;
 
   if (now > new Date(session.expires_at)) {
@@ -258,7 +259,7 @@ export async function runSpendConversionConfirm(
     rpc = await confirmSpendConversionAtomic({
       spendSessionId: session.id,
       userId: authUserId,
-      walletAddress: normalizedWallet,
+      walletAddress: session.wallet_address,
       spendExperienceId: spendExperience.id,
       pointsToDeduct: pointsRequired,
       usdcAmount,
@@ -278,7 +279,7 @@ export async function runSpendConversionConfirm(
       msg.includes('Insufficient points') ||
       msg.includes('Player not found')
     ) {
-      return { ok: false, httpStatus: 400, error: msg };
+      return { ok: false, httpStatus: 400, error: msg, capture: true };
     }
     if (
       msg.includes('PGRST202') ||
@@ -508,7 +509,7 @@ async function fundOrResumeUsdc(input: {
         error_reason: 'funding_submission_failed',
       });
 
-      const p = await getPlayerByWallet(normalizedWallet);
+      const p = await getPlayerByWallet(session.wallet_address);
       if (p) {
         const cur = Number(p.total_points ?? 0);
         const refunded = Math.ceil(Number(conv.points_deducted));

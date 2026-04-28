@@ -6,6 +6,7 @@ const mockGetPrivyUserId = vi.fn();
 const mockGetSpendContext = vi.fn();
 const mockRunConfirm = vi.fn();
 const mockResolve = vi.fn();
+const mockCaptureHandledException = vi.fn();
 
 vi.mock('@/lib/api/privy', () => ({
   getPrivyUserIdFromRequest: (...a: unknown[]) => mockGetPrivyUserId(...a),
@@ -19,6 +20,11 @@ vi.mock('@/lib/spend-conversion-confirm', () => ({
 
 vi.mock('@/lib/analytics/server', () => ({
   resolveServerIdentity: (...a: unknown[]) => mockResolve(...a),
+}));
+
+vi.mock('@/lib/monitoring/capture-handled-exception', () => ({
+  captureHandledException: (...a: unknown[]) =>
+    mockCaptureHandledException(...a),
 }));
 
 import { POST } from '../route';
@@ -119,5 +125,47 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/confirm', () => {
     };
     expect(json.success).toBe(true);
     expect(json.data.pointConversion.status).toBe('funded');
+  });
+
+  it('captures handled conversion failures when requested by domain logic', async () => {
+    mockVerifyWallet.mockResolvedValue({
+      authorized: true,
+      userId: 'privy-1',
+    });
+    mockGetPrivyUserId.mockResolvedValue('privy-1');
+    mockGetSpendContext.mockResolvedValue({
+      session,
+      spendExperience,
+      usdcAmount: 5,
+      pointsRequired: 5000,
+    });
+    mockResolve.mockReturnValue('distinct-1');
+    mockRunConfirm.mockResolvedValue({
+      ok: false,
+      httpStatus: 400,
+      error: 'Insufficient points',
+      capture: true,
+    });
+
+    const req = new NextRequest(
+      'http://localhost:3000/api/spend-sessions/sess-1/conversion/confirm',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          walletAddress: session.wallet_address,
+        }),
+      }
+    );
+
+    const res = await POST(req, { params: { sessionId: 'sess-1' } });
+    expect(res.status).toBe(400);
+    expect(mockCaptureHandledException).toHaveBeenCalledWith(
+      expect.any(Error),
+      expect.objectContaining({
+        route: '/api/spend-sessions/[sessionId]/conversion/confirm',
+        operation: 'spend_conversion_confirm',
+        statusCode: 400,
+      })
+    );
   });
 });

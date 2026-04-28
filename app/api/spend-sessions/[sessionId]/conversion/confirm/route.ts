@@ -4,6 +4,7 @@ import {
   verifyWalletOwnership,
 } from '@/lib/api/privy';
 import { apiError, apiSuccess, apiValidationError } from '@/lib/api/response';
+import { captureHandledException } from '@/lib/monitoring/capture-handled-exception';
 import { resolveServerIdentity } from '@/lib/analytics/server';
 import {
   getSpendContextOr404,
@@ -82,6 +83,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!result.ok) {
+      if (result.capture) {
+        captureHandledException(new Error(result.error), {
+          route: '/api/spend-sessions/[sessionId]/conversion/confirm',
+          operation: 'spend_conversion_confirm',
+          statusCode: result.httpStatus,
+          extra: {
+            sessionId,
+            spendExperienceId: spendExperience.id,
+            userId: auth.userId,
+            walletAddressSuffix: normalizedWallet.slice(-8),
+          },
+        });
+      }
+
       return apiError(result.error, result.httpStatus);
     }
 
