@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { formatPrivyResponseForLog, getPrivyClient } from '@/lib/api/privy';
 import { getSpendExperienceById } from '@/lib/db/spend-experiences';
 import { insertTreasuryAdminRecoveryLedgerIfAbsent } from '@/lib/db/treasury-transactions';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
@@ -13,6 +14,7 @@ import {
   submitTreasuryUsdcTransfer,
   waitForTreasuryTxReceipt,
 } from '@/lib/spend-treasury-usdc-transfer';
+import { SPEND_SERVER_WALLET_CAIP2 } from '@/lib/spend-server-wallet';
 
 interface RouteParams {
   params: { experienceId: string };
@@ -95,6 +97,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const withdrawAmount = withdrawMicro / 1e6;
 
+    try {
+      const privy = getPrivyClient();
+      const wallet = await privy.walletApi.getWallet({
+        id: walletConfig.walletId,
+      });
+      console.info('treasury withdraw Privy preflight', {
+        walletId: walletConfig.walletId,
+        walletAddress: wallet.address,
+        caip2: SPEND_SERVER_WALLET_CAIP2,
+        sponsor: true,
+        privyWalletSummary: formatPrivyResponseForLog(wallet),
+      });
+    } catch (preflightErr) {
+      console.error(
+        'treasury withdraw Privy wallet preflight failed:',
+        preflightErr
+      );
+      return apiError(
+        'Could not load Privy server wallet for withdrawal. Check privy_server_wallet_id and credentials.',
+        500
+      );
+    }
+
     const submit = await submitTreasuryUsdcTransfer({
       serverWalletId: walletConfig.walletId,
       serverWalletAddress: walletConfig.address,
@@ -105,6 +130,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (!submit.ok) {
       return apiError(submit.error || 'USDC transfer failed', 500);
     }
+
+    console.info('treasury withdraw Privy sendTransaction result', {
+      walletId: walletConfig.walletId,
+      walletAddress: walletConfig.address,
+      caip2: SPEND_SERVER_WALLET_CAIP2,
+      sponsor: true,
+      txHash: submit.txHash,
+      privyResponseShape: submit.privySendSummary,
+    });
 
     try {
       await waitForTreasuryTxReceipt(submit.txHash);

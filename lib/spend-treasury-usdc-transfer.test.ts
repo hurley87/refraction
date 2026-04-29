@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockPrivyRpc = vi.fn();
+const mockSendTransaction = vi.fn();
+const mockGetWallet = vi.fn();
 const mockGetTransaction = vi.fn();
 const mockGetBlockNumber = vi.fn();
 const mockGetLogs = vi.fn();
@@ -9,7 +10,8 @@ vi.mock('@privy-io/server-auth', () => ({
   PrivyClient: vi.fn(function PrivyClient() {
     return {
       walletApi: {
-        rpc: mockPrivyRpc,
+        ethereum: { sendTransaction: mockSendTransaction },
+        getWallet: mockGetWallet,
         getTransaction: mockGetTransaction,
       },
     };
@@ -27,7 +29,10 @@ vi.mock('viem', async (importOriginal) => {
   };
 });
 
-import { submitTreasuryUsdcTransfer } from './spend-treasury-usdc-transfer';
+import {
+  mapInsufficientNativeGasPrivyError,
+  submitTreasuryUsdcTransfer,
+} from './spend-treasury-usdc-transfer';
 
 const txHash =
   '0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
@@ -39,16 +44,55 @@ describe('submitTreasuryUsdcTransfer', () => {
     process.env.PRIVY_APP_SECRET = 'app-secret';
     mockGetBlockNumber.mockResolvedValue(123n);
     mockGetLogs.mockResolvedValue([]);
+    mockGetWallet.mockResolvedValue({
+      id: 'wallet-1',
+      address: '0x1111111111111111111111111111111111111111',
+      chainType: 'ethereum',
+    });
   });
 
-  it('uses Privy RPC transaction ids to recover hashes for sponsored sends', async () => {
-    mockPrivyRpc.mockResolvedValue({
-      method: 'eth_sendTransaction',
-      data: {
-        hash: '',
+  it('uses walletApi.ethereum.sendTransaction with sponsor and resolves tx hash', async () => {
+    mockSendTransaction.mockResolvedValue({
+      hash: txHash,
+      caip2: 'eip155:8453',
+    });
+
+    await expect(
+      submitTreasuryUsdcTransfer({
+        serverWalletId: 'wallet-1',
+        serverWalletAddress: '0x1111111111111111111111111111111111111111',
+        recipientAddress: '0x2222222222222222222222222222222222222222',
+        usdcAmount: 1,
+      })
+    ).resolves.toEqual(
+      expect.objectContaining({
+        ok: true,
+        txHash,
+        privySendSummary: expect.any(Object),
+      })
+    );
+
+    expect(mockGetWallet).toHaveBeenCalledWith({ id: 'wallet-1' });
+    expect(mockSendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        walletId: 'wallet-1',
         caip2: 'eip155:8453',
-        transaction_id: 'privy-tx-1',
-      },
+        sponsor: true,
+        transaction: expect.objectContaining({
+          to: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+          chainId: 8453,
+          value: '0x0',
+        }),
+      })
+    );
+    expect(mockGetTransaction).not.toHaveBeenCalled();
+  });
+
+  it('uses Privy getTransaction when send returns only a transaction id', async () => {
+    mockSendTransaction.mockResolvedValue({
+      hash: '',
+      caip2: 'eip155:8453',
+      transactionId: 'privy-tx-1',
     });
     mockGetTransaction.mockResolvedValue({
       id: 'privy-tx-1',
@@ -63,15 +107,37 @@ describe('submitTreasuryUsdcTransfer', () => {
         recipientAddress: '0x2222222222222222222222222222222222222222',
         usdcAmount: 1,
       })
-    ).resolves.toEqual({ ok: true, txHash });
+    ).resolves.toEqual(expect.objectContaining({ ok: true, txHash }));
 
-    expect(mockPrivyRpc).toHaveBeenCalledWith(
-      expect.objectContaining({
-        walletId: 'wallet-1',
-        method: 'eth_sendTransaction',
-        sponsor: true,
-      })
-    );
     expect(mockGetTransaction).toHaveBeenCalledWith({ id: 'privy-tx-1' });
+  });
+
+  it('rejects when Privy wallet address does not match server_wallet_address', async () => {
+    mockGetWallet.mockResolvedValue({
+      id: 'wallet-1',
+      address: '0x9999999999999999999999999999999999999999',
+      chainType: 'ethereum',
+    });
+
+    await expect(
+      submitTreasuryUsdcTransfer({
+        serverWalletId: 'wallet-1',
+        serverWalletAddress: '0x1111111111111111111111111111111111111111',
+        recipientAddress: '0x2222222222222222222222222222222222222222',
+        usdcAmount: 1,
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      error: expect.stringContaining('mismatch'),
+    });
+    expect(mockSendTransaction).not.toHaveBeenCalled();
+  });
+
+  it('maps insufficient native gas errors to sponsorship troubleshooting text', () => {
+    expect(
+      mapInsufficientNativeGasPrivyError(
+        'Transaction creation failed. Details: insufficient funds for gas * price + value'
+      )
+    ).toContain('Privy gas sponsorship was not applied');
   });
 });

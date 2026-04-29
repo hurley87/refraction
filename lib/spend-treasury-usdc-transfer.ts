@@ -7,6 +7,7 @@ import {
   parseUnits,
 } from 'viem';
 import {
+  formatPrivyResponseForLog,
   getPrivyClient,
   resolvePrivyServerTransactionHash,
 } from '@/lib/api/privy';
@@ -17,7 +18,12 @@ import {
 } from '@/lib/walletconnect-poster-direct-usdc';
 
 export type TreasuryUsdcSubmitResult =
-  | { ok: true; txHash: `0x${string}` }
+  | {
+      ok: true;
+      txHash: `0x${string}`;
+      /** Safe summary of Privy sendTransaction response for server logs only. */
+      privySendSummary?: Record<string, unknown>;
+    }
   | { ok: false; error: string };
 
 const EVM_TX_HASH_RE = /^0x[a-fA-F0-9]{64}$/;
@@ -28,18 +34,27 @@ const FALLBACK_SCAN_BLOCKS = 1_000n;
 /** Coinbase (and other) Base RPCs reject eth_getLogs when the range exceeds 1000 blocks. */
 const MAX_LOG_BLOCK_SPAN = 1_000n;
 
-type PrivyEthSendTransactionRpcResponse = {
-  method?: 'eth_sendTransaction';
-  data?: {
-    hash?: string;
-    transactionId?: string;
-    transaction_id?: string;
-    caip2?: string;
-  };
-  error?: {
-    message?: string;
-  };
-};
+const INSUFFICIENT_NATIVE_GAS_RE =
+  /insufficient\s+funds\s+for\s+gas|insufficient\s+funds/i;
+
+/**
+ * If Privy/the RPC reports missing native ETH for gas, explain that sponsorship
+ * likely did not apply (funding ETH is not the intended fix).
+ */
+export function mapInsufficientNativeGasPrivyError(message: string): string {
+  const trimmed = message.trim();
+  if (!INSUFFICIENT_NATIVE_GAS_RE.test(trimmed)) {
+    return trimmed;
+  }
+  return [
+    'Privy gas sponsorship was not applied: the transaction was treated as if the wallet must pay native ETH for gas.',
+    'Verify production NEXT_PUBLIC_PRIVY_APP_ID and PRIVY_APP_SECRET match the Privy app where Base gas sponsorship is enabled.',
+    'Confirm Base (eip155:8453) is enabled for sponsorship and credits are available.',
+    'Ensure privy_server_wallet_id and server_wallet_address match the Privy server wallet (no mismatch with treasury_wallet_address).',
+    'Confirm server sends via walletApi.ethereum.sendTransaction with sponsor: true (not a raw path that skips sponsorship).',
+    'If issues persist, confirm your Privy plan supports TEE/native gas sponsorship for server wallets on Base.',
+  ].join(' ');
+}
 
 function rpcUrl(): string {
   return process.env.NEXT_PUBLIC_BASE_RPC?.trim() || 'https://mainnet.base.org';
@@ -161,9 +176,34 @@ export async function submitTreasuryUsdcTransfer(params: {
     fromBlock = null;
   }
 
+  const walletId = params.serverWalletId.trim();
+  const expectedAddress = params.serverWalletAddress.trim().toLowerCase();
+  if (!walletId || !expectedAddress) {
+    return {
+      ok: false,
+      error:
+        'Treasury transfer requires both privy_server_wallet_id and server_wallet_address.',
+    };
+  }
+
   try {
+    const privy = getPrivyClient();
+    const privyWallet = await privy.walletApi.getWallet({ id: walletId });
+    const privyAddress = privyWallet.address?.trim().toLowerCase();
+    if (!privyAddress) {
+      return {
+        ok: false,
+        error: 'Privy wallet response did not include an address.',
+      };
+    }
+    if (privyAddress !== expectedAddress) {
+      return {
+        ok: false,
+        error: `Privy wallet address mismatch: wallet ${walletId} is ${privyWallet.address} but server_wallet_address is ${params.serverWalletAddress}. Sponsored sends require matching IDs and addresses.`,
+      };
+    }
+
     const transaction = {
-      from: params.serverWalletAddress,
       to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
       chainId: POSTER_CHECKOUT_CHAIN.id,
       data: encodeFunctionData({
@@ -176,29 +216,21 @@ export async function submitTreasuryUsdcTransfer(params: {
       }),
       value: '0x0' as const,
     };
-    const result = (await getPrivyClient().walletApi.rpc({
-      walletId: params.serverWalletId,
-      method: 'eth_sendTransaction',
+
+    const sendResult = await privy.walletApi.ethereum.sendTransaction({
+      walletId,
       caip2: SPEND_SERVER_WALLET_CAIP2,
       sponsor: true,
-      params: {
-        transaction,
-      },
-    } as Parameters<
-      ReturnType<typeof getPrivyClient>['walletApi']['rpc']
-    >[0])) as PrivyEthSendTransactionRpcResponse;
-    if (result.error) {
-      return {
-        ok: false,
-        error: result.error.message ?? 'USDC transfer failed',
-      };
-    }
+      transaction,
+    });
+
+    const privySendSummary = formatPrivyResponseForLog(sendResult);
 
     const txHash = normalizeEvmTxHash(
-      await resolvePrivyServerTransactionHash(result)
+      await resolvePrivyServerTransactionHash(sendResult)
     );
     if (txHash) {
-      return { ok: true, txHash };
+      return { ok: true, txHash, privySendSummary };
     }
 
     const fallbackHash = await findRecentTreasuryTransferHash({
@@ -209,7 +241,7 @@ export async function submitTreasuryUsdcTransfer(params: {
     });
 
     if (fallbackHash) {
-      return { ok: true, txHash: fallbackHash };
+      return { ok: true, txHash: fallbackHash, privySendSummary };
     }
 
     return {
@@ -217,7 +249,8 @@ export async function submitTreasuryUsdcTransfer(params: {
       error: 'USDC transfer hash was not returned by wallet provider.',
     };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'USDC transfer failed';
+    const rawMsg = e instanceof Error ? e.message : 'USDC transfer failed';
+    const msg = mapInsufficientNativeGasPrivyError(rawMsg);
     console.error('submitTreasuryUsdcTransfer:', e);
     return { ok: false, error: msg };
   }
