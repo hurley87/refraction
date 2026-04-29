@@ -108,7 +108,7 @@ export default function MapNav({
         <button
           type="button"
           onClick={handleNavigationMenuClick}
-          className="relative z-10 flex size-[40px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#ffffff] transition-colors hover:bg-[#5a5a5a]"
+          className="relative z-10 flex size-[40px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#ffffff] shadow-md transition-colors hover:bg-[#5a5a5a]"
         >
           <Image
             src="/menu/HAMBURGER-MENU.svg"
