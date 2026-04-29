@@ -64,13 +64,13 @@ export function getSpendServerWalletTransferConfig(
     | 'treasury_wallet_address'
   >
 ): SpendServerWalletTransferConfig | null {
-  const address = getSpendServerWalletAddress(experience);
   const walletId = experience.privy_server_wallet_id?.trim();
-  if (!walletId || !isEvmAddress(address)) {
+  const serverAddr = experience.server_wallet_address?.trim();
+  if (!walletId || !serverAddr || !isEvmAddress(serverAddr)) {
     return null;
   }
 
-  return { walletId, address: address as `0x${string}` };
+  return { walletId, address: serverAddr as `0x${string}` };
 }
 
 async function fetchUsdcBalanceSafe(

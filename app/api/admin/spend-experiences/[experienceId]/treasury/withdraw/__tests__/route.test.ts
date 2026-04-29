@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const { mockPrivyGetWallet } = vi.hoisted(() => ({
+  mockPrivyGetWallet: vi.fn(),
+}));
+
 const mockRequireAdmin = vi.fn();
 const mockGetSpendExperienceById = vi.fn();
 const mockFetchBalance = vi.fn();
@@ -34,6 +38,18 @@ vi.mock('@/lib/spend-treasury-usdc-transfer', () => ({
   submitTreasuryUsdcTransfer: (...args: unknown[]) =>
     mockSubmitTransfer(...args),
   waitForTreasuryTxReceipt: (...args: unknown[]) => mockWaitReceipt(...args),
+}));
+
+vi.mock('@/lib/api/privy', () => ({
+  formatPrivyResponseForLog: (value: unknown) => ({
+    keys:
+      value !== null && typeof value === 'object'
+        ? Object.keys(value as object)
+        : [],
+  }),
+  getPrivyClient: () => ({
+    walletApi: { getWallet: mockPrivyGetWallet },
+  }),
 }));
 
 vi.mock('@/lib/db/treasury-transactions', () => ({
@@ -82,9 +98,16 @@ describe('POST /api/admin/spend-experiences/[experienceId]/treasury/withdraw', (
       ok: true,
       txHash:
         '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      privySendSummary: {
+        hash: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      },
     });
     mockWaitReceipt.mockResolvedValue(undefined);
     mockInsertLedger.mockResolvedValue(undefined);
+    mockPrivyGetWallet.mockResolvedValue({
+      id: 'privy-wallet-1',
+      address: experience.server_wallet_address,
+    });
   });
 
   it('returns 400 when destination equals server wallet', async () => {

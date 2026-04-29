@@ -202,6 +202,39 @@ export async function verifyWalletOwnership(
   }
 }
 
+/**
+ * Summarize a Privy API response for logs without dumping large or sensitive payloads.
+ */
+export function formatPrivyResponseForLog(
+  value: unknown
+): Record<string, unknown> {
+  if (value === null || value === undefined) {
+    return { type: typeof value };
+  }
+  if (typeof value !== 'object') {
+    return { type: typeof value, preview: String(value).slice(0, 200) };
+  }
+  const record = value as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(record).slice(0, 20)) {
+    const v = record[key];
+    if (v === null || v === undefined) {
+      out[key] = v;
+    } else if (typeof v === 'string') {
+      out[key] = v.length > 120 ? `${v.slice(0, 120)}…` : v;
+    } else if (typeof v === 'number' || typeof v === 'boolean') {
+      out[key] = v;
+    } else if (Array.isArray(v)) {
+      out[key] = `[array length ${v.length}]`;
+    } else if (typeof v === 'object') {
+      out[key] = '[object]';
+    } else {
+      out[key] = String(v).slice(0, 80);
+    }
+  }
+  return out;
+}
+
 export async function createSpendPrivyServerWallet(params: {
   idempotencyKey: string;
 }): Promise<SpendServerWalletMetadata> {
