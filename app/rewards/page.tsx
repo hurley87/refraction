@@ -516,15 +516,8 @@ export default function PerksPage() {
     : false;
 
   return (
-    <div
-      style={{
-        background: '#FFE600',
-        padding: '16px',
-        paddingBottom: '0',
-      }}
-      className="min-h-screen font-grotesk"
-    >
-      <div className="max-w-md mx-auto">
+    <div className="min-h-screen bg-white px-4 pb-0 pt-4 font-grotesk">
+      <div className="mx-auto max-w-md">
         {/* Status Bar with Header */}
         <div className="flex justify-between items-center">
           <div className="min-w-0 flex-1">
@@ -534,27 +527,25 @@ export default function PerksPage() {
 
         {/* Main Content */}
         <div className="px-0 pt-2 space-y-1">
-          {/* Rewards Intro Card */}
-          <div className="bg-white rounded-[26px] p-4 mb-1">
-            <div className="flex flex-col gap-2">
-              <h2 className="title2 text-[#313131] font-grotesk font-bold">
-                Rewards
-              </h2>
-              <p className="body-medium text-[#7D7D7D] font-grotesk">
-                Rewards are just getting started — your points will unlock perks
-                like drinks, tickets, and more as we roll out new cities with
-                local partners.
-              </p>
-            </div>
-          </div>
-
           {/* LATEST REWARD Section */}
           {latestReward && !perksLoading && (
             <div className="mb-1">
+              {/* Edge-to-edge: ignores page px-4 gutter */}
+              {latestReward.thumbnail_url && (
+                <div className="relative left-1/2 mb-4 aspect-[86/79] w-screen max-w-[100vw] -translate-x-1/2 overflow-hidden ">
+                  <Image
+                    src={latestReward.hero_image || latestReward.thumbnail_url!}
+                    alt={latestReward.title}
+                    fill
+                    className="object-cover"
+                    sizes="100vw"
+                  />
+                </div>
+              )}
               <div
                 style={{
                   display: 'flex',
-                  padding: '24px',
+                  padding: latestReward.thumbnail_url ? '0 0 24px 0' : '24px',
                   flexDirection: 'column',
                   alignItems: 'flex-start',
                   gap: '8px',
@@ -565,80 +556,43 @@ export default function PerksPage() {
                     'linear-gradient(180deg, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0.92) 100%)',
                 }}
               >
-                {/* Latest Reward Title */}
-                <h1 className="text-black body-small font-monument-grotesk mb-4">
+                <p className="label-small self-stretch text-left text-black">
                   LATEST REWARD
-                </h1>
-
-                {/* Thumbnail for Featured Reward */}
-                {latestReward.thumbnail_url && (
-                  <div className="w-full mb-4">
-                    <Image
-                      src={
-                        latestReward.hero_image || latestReward.thumbnail_url!
-                      }
-                      alt={latestReward.title}
-                      width={400}
-                      height={203}
-                      className="w-full"
-                      style={{
-                        height: '203px',
-                        alignSelf: 'stretch',
-                        aspectRatio: '47/29',
-                        borderRadius: '8px',
-                        background: `url(${latestReward.thumbnail_url}) lightgray 50% / cover no-repeat`,
-                        objectFit: 'cover',
-                      }}
-                    />
-                  </div>
-                )}
+                </p>
 
                 {/* Reward Title */}
-                <h2 className="text-black title2 font-grotesk w-full text-left">
+                <h2 className="text-[#171717] self-stretch font-medium w-full text-left">
                   {latestReward.title}
                 </h2>
 
                 {/* Description */}
                 {latestReward.description && (
-                  <p className="text-[#4F4F4F] body-medium font-grotesk w-full text-left mb-4">
+                  <p className="text-[#757575] body-small  w-full text-left mb-4">
                     {latestReward.description.split(/[.!?]+/)[0].trim()}
                     {latestReward.description.match(/[.!?]/) ? '.' : ''}
                   </p>
                 )}
 
                 {/* Points, Location, and Date */}
-                <div className="flex w-full gap-2 mb-2">
-                  {/* Points Pill */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      padding: '6px 8px',
-                      height: '28px',
-                      alignItems: 'center',
-                      gap: '8px',
-                      alignSelf: 'stretch',
-                      flex: '1 1 0%',
-                      borderRadius: '1000px',
-                      border: '1px solid #EDEDED',
-                    }}
-                    className="text-black body-small uppercase whitespace-nowrap font-abc-monument-regular"
-                  >
+                <div className="flex  gap-2 mb-2">
+                  {/* Points Pill — tight horizontal inset; start-aligned so flex-1 width doesn’t float content in the middle */}
+                  <div className="flex flex-1 basis-0 items-left justify-center gap-1 self-stretch  border border-[#171717] px-1 py-1 text-[#171717] label-small uppercase whitespace-nowrap">
                     {address &&
                       (latestRewardAffordable ? (
                         <Image
                           src="/tier-eligible.svg"
                           alt="Eligible for Tier"
-                          width={12}
-                          height={12}
-                          className="inline-block mr-1"
+                          width={8}
+                          height={8}
+                          className="inline-block shrink-0"
                         />
                       ) : (
                         <Image
                           src="/tier-ineligible.svg"
                           alt="Not Eligible for Tier"
-                          width={12}
-                          height={12}
-                          className="inline-block mr-1"
+                          width={8}
+                          height={8}
+                          className="inline-block shrink-0"
                         />
                       ))}
                     {
@@ -664,7 +618,7 @@ export default function PerksPage() {
                     }}
                     className="text-black body-small uppercase font-abc-monument-regular"
                   >
-                    <Clock className="w-4 h-4 flex-shrink-0" />
+                    
                     <span className="whitespace-nowrap">{dateLabel}</span>
                   </div>
 
