@@ -12,7 +12,10 @@ import {
   RefreshCw,
   Copy,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type {
   PointConversion,
   SpendExperience,
@@ -164,6 +167,8 @@ export default function SpendExperienceDetailPage() {
   const { user, login } = usePrivy();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
+  const [withdrawDestination, setWithdrawDestination] = useState('');
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
 
   const checkAdminStatus = useCallback(async () => {
     if (!user?.email?.address) return false;
@@ -257,6 +262,37 @@ export default function SpendExperienceDetailPage() {
     void activityQuery.refetch();
     void treasuryQuery.refetch();
   }, [experienceQuery, activityQuery, treasuryQuery]);
+
+  async function handleWithdrawServerWallet() {
+    const trimmed = withdrawDestination.trim();
+    if (!trimmed) {
+      toast.error('Enter the wallet address that will receive the funds.');
+      return;
+    }
+    setWithdrawSubmitting(true);
+    try {
+      const response = await fetch(
+        `/api/admin/spend-experiences/${experienceId}/treasury/withdraw`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ destinationAddress: trimmed }),
+        }
+      );
+      const j = await response.json();
+      if (!response.ok) {
+        toast.error(j.error ?? 'Withdrawal failed');
+        return;
+      }
+      toast.success(j.message ?? 'Withdrawal confirmed.');
+      setWithdrawDestination('');
+      refetchAll();
+    } catch {
+      toast.error('Withdrawal failed');
+    } finally {
+      setWithdrawSubmitting(false);
+    }
+  }
 
   if (adminLoading || (user && isAdmin === null)) {
     return (
@@ -445,6 +481,55 @@ export default function SpendExperienceDetailPage() {
               <div className="mt-0.5 text-neutral-800">
                 {fmtUsdc(treasuryData.serverWalletUsdcBalance)}
               </div>
+            </div>
+          </div>
+          <div className="mt-5 border-t border-neutral-100 pt-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Label
+                  htmlFor="withdraw-destination"
+                  className="text-neutral-500"
+                >
+                  Withdraw to address
+                </Label>
+                <Input
+                  id="withdraw-destination"
+                  type="text"
+                  placeholder="0x…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={withdrawDestination}
+                  onChange={(e) => setWithdrawDestination(e.target.value)}
+                  disabled={withdrawSubmitting}
+                  className="font-mono text-xs"
+                />
+                <p className="text-xs text-neutral-500">
+                  Withdraws the full Base USDC balance (6 decimals). Gas is
+                  sponsored.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0"
+                disabled={
+                  withdrawSubmitting ||
+                  treasuryData.serverWalletUsdcBalance === null ||
+                  treasuryData.serverWalletUsdcBalance <= 0
+                }
+                onClick={() => {
+                  void handleWithdrawServerWallet();
+                }}
+              >
+                {withdrawSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Withdrawing…
+                  </>
+                ) : (
+                  'Withdraw USDC'
+                )}
+              </Button>
             </div>
           </div>
           {treasuryData.ledger.length > 0 && (
