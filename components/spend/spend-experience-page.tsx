@@ -26,13 +26,6 @@ import {
   POSTER_CHECKOUT_USDC_ADDRESS_BASE,
 } from '@/lib/walletconnect-poster-direct-usdc';
 
-/** Privy supports `sponsor` at runtime for gas sponsorship; `@privy-io/react-auth` types omit it. */
-type PrivySendTransactionOptions = NonNullable<
-  Parameters<ReturnType<typeof useSendTransaction>['sendTransaction']>[1]
-> & {
-  sponsor?: boolean;
-};
-
 type SpendExperiencePageProps = {
   experienceId: string;
   initialExperience: SpendExperience;
@@ -352,12 +345,11 @@ export function SpendExperiencePage({
       // Client-side gas sponsorship requires Privy Dashboard → Gas sponsorship → Allow transactions from the client to be enabled for Base.
       let hash: string;
       try {
-        const sendOptions: PrivySendTransactionOptions = {
-          address: evmWallet.address,
-          sponsor: true,
-        };
         const result = await withTimeout(
-          sendTransaction(transactionRequest, sendOptions),
+          sendTransaction(transactionRequest, {
+            address: evmWallet.address,
+            sponsor: true,
+          }),
           WALLET_STEP_TIMEOUT_MS,
           'Confirm the USDC payment in your wallet'
         );
