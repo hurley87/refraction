@@ -7,6 +7,7 @@ import {
   parseUnits,
 } from 'viem';
 import {
+  extractPrivyTransactionId,
   formatPrivyResponseForLog,
   getPrivyClient,
   resolvePrivyServerTransactionHash,
@@ -22,6 +23,13 @@ export type TreasuryUsdcSubmitResult =
       ok: true;
       txHash: `0x${string}`;
       /** Safe summary of Privy sendTransaction response for server logs only. */
+      privySendSummary?: Record<string, unknown>;
+    }
+  | {
+      ok: true;
+      /** Privy accepted the send but no on-chain hash yet (poll timeout); reconcile later. */
+      submittedPending: true;
+      privyTransactionId: string;
       privySendSummary?: Record<string, unknown>;
     }
   | { ok: false; error: string };
@@ -168,6 +176,8 @@ export async function submitTreasuryUsdcTransfer(params: {
   recipientAddress: `0x${string}`;
   /** Human-readable USDC amount (6 decimals). */
   usdcAmount: number;
+  /** Override Privy hash polling (e.g. tests). */
+  privyHashResolveOptions?: { timeoutMs?: number; pollIntervalMs?: number };
 }): Promise<TreasuryUsdcSubmitResult> {
   let fromBlock: bigint | null = null;
   try {
@@ -224,12 +234,25 @@ export async function submitTreasuryUsdcTransfer(params: {
       transaction,
     });
 
+    console.info('submitTreasuryUsdcTransfer send_transaction_success', {
+      step: 'send_transaction_success',
+      walletId,
+      privySendRawSummary: formatPrivyResponseForLog(sendResult),
+    });
+
     const privySendSummary = formatPrivyResponseForLog(sendResult);
 
-    const txHash = normalizeEvmTxHash(
-      await resolvePrivyServerTransactionHash(sendResult)
+    const resolvedHashRaw = await resolvePrivyServerTransactionHash(
+      sendResult,
+      params.privyHashResolveOptions ?? {}
     );
+    const txHash = normalizeEvmTxHash(resolvedHashRaw);
     if (txHash) {
+      console.info('submitTreasuryUsdcTransfer tx_hash_resolved', {
+        step: 'tx_hash_resolved',
+        walletId,
+        source: 'privy_resolve',
+      });
       return { ok: true, txHash, privySendSummary };
     }
 
@@ -241,7 +264,27 @@ export async function submitTreasuryUsdcTransfer(params: {
     });
 
     if (fallbackHash) {
+      console.info('submitTreasuryUsdcTransfer tx_hash_resolved', {
+        step: 'tx_hash_resolved',
+        walletId,
+        source: 'chain_log_fallback',
+      });
       return { ok: true, txHash: fallbackHash, privySendSummary };
+    }
+
+    const privyTransactionId = extractPrivyTransactionId(sendResult);
+    if (privyTransactionId) {
+      console.info('submitTreasuryUsdcTransfer tx_hash_pending_privy_id', {
+        step: 'tx_hash_pending',
+        walletId,
+        privyTransactionId,
+      });
+      return {
+        ok: true,
+        submittedPending: true,
+        privyTransactionId,
+        privySendSummary,
+      };
     }
 
     return {

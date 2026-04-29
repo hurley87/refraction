@@ -102,7 +102,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const wallet = await privy.walletApi.getWallet({
         id: walletConfig.walletId,
       });
-      console.info('treasury withdraw Privy preflight', {
+      console.info('treasury withdraw preflight_success', {
+        step: 'preflight_success',
         walletId: walletConfig.walletId,
         walletAddress: wallet.address,
         caip2: SPEND_SERVER_WALLET_CAIP2,
@@ -131,7 +132,28 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return apiError(submit.error || 'USDC transfer failed', 500);
     }
 
-    console.info('treasury withdraw Privy sendTransaction result', {
+    if ('submittedPending' in submit && submit.submittedPending) {
+      console.info('treasury withdraw submitted_pending_no_hash', {
+        step: 'tx_hash_pending',
+        privyTransactionId: submit.privyTransactionId,
+        privyResponseShape: submit.privySendSummary,
+      });
+      return apiSuccess(
+        {
+          status: 'submitted' as const,
+          privyTransactionId: submit.privyTransactionId,
+          amountUsdc: withdrawAmount,
+          destinationAddress,
+          message:
+            'Withdrawal was submitted to Privy; on-chain hash is not available yet. Confirmation is pending—reconcile or refresh shortly.',
+        },
+        'Withdrawal submitted; confirmation pending.',
+        202
+      );
+    }
+
+    console.info('treasury withdraw send_transaction_success', {
+      step: 'send_transaction_success',
       walletId: walletConfig.walletId,
       walletAddress: walletConfig.address,
       caip2: SPEND_SERVER_WALLET_CAIP2,
@@ -142,16 +164,36 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     try {
       await waitForTreasuryTxReceipt(submit.txHash);
+      console.info('treasury withdraw receipt_confirmed', {
+        step: 'receipt_confirmed',
+        txHash: submit.txHash,
+      });
     } catch (waitErr) {
       const msg =
         waitErr instanceof Error ? waitErr.message : 'Confirmation failed';
-      console.error('treasury withdraw waitForReceipt:', waitErr);
-      return apiError(
-        `${msg}. Transaction was submitted: ${submit.txHash}`,
-        500
+      console.warn('treasury withdraw receipt_wait_timeout_or_error', {
+        step: 'receipt_wait_timeout_or_error',
+        txHash: submit.txHash,
+        error: msg,
+      });
+      return apiSuccess(
+        {
+          status: 'submitted' as const,
+          txHash: submit.txHash,
+          amountUsdc: withdrawAmount,
+          destinationAddress,
+          message:
+            'Withdrawal was submitted on-chain; receipt confirmation is still pending or timed out. Check the transaction status on a block explorer.',
+        },
+        'Withdrawal submitted; confirmation pending.',
+        202
       );
     }
 
+    console.info('treasury withdraw ledger_insert_attempted', {
+      step: 'ledger_insert_attempted',
+      txHash: submit.txHash,
+    });
     await insertTreasuryAdminRecoveryLedgerIfAbsent({
       spendExperienceId: experience.id,
       amount: withdrawAmount,
@@ -162,6 +204,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return apiSuccess(
       {
+        status: 'confirmed' as const,
         txHash: submit.txHash,
         amountUsdc: withdrawAmount,
         destinationAddress,

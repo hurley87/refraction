@@ -15,9 +15,11 @@ import {
   loadSpendEligibilityForSession,
 } from '@/lib/spend-conversion-preview';
 import { SPEND_ELIGIBILITY_MESSAGES } from '@/lib/spend-eligibility-messages';
+import { resolvePrivyServerTransactionHash } from '@/lib/api/privy';
 import {
   findRecentTreasuryUsdcTransfer,
   getTreasuryTxReceiptStatus,
+  isEvmTxHash,
   submitTreasuryUsdcTransfer,
 } from '@/lib/spend-treasury-usdc-transfer';
 import {
@@ -489,6 +491,22 @@ export async function runSpendConversionConfirm(
     };
   }
 
+  if ('submittedPending' in sub && sub.submittedPending) {
+    const fundingPlaceholder = `pending:${sub.privyTransactionId}`;
+    conv = await updatePointConversionFields(conv.id, {
+      status: 'funding_pending',
+      funding_tx_hash: fundingPlaceholder,
+    });
+    await updateSpendSessionStatus(session.id, 'conversion_pending');
+
+    return {
+      ok: true,
+      pointConversion: conv,
+      session: (await getSpendSessionById(session.id)) ?? session,
+      resumed: rpc.outcome === 'already_exists',
+    };
+  }
+
   const txHash = sub.txHash;
   conv = await updatePointConversionFields(conv.id, {
     status: 'funding_pending',
@@ -591,15 +609,49 @@ async function fundOrResumeUsdc(input: {
         },
       };
     }
-    const txHash = sub.txHash;
-    conv = await updatePointConversionFields(conv.id, {
-      status: 'funding_pending',
-      funding_tx_hash: txHash,
-    });
-    await updateSpendSessionStatus(session.id, 'conversion_pending');
+    if ('submittedPending' in sub && sub.submittedPending) {
+      conv = await updatePointConversionFields(conv.id, {
+        status: 'funding_pending',
+        funding_tx_hash: `pending:${sub.privyTransactionId}`,
+      });
+      await updateSpendSessionStatus(session.id, 'conversion_pending');
+    } else {
+      const txHash = sub.txHash;
+      conv = await updatePointConversionFields(conv.id, {
+        status: 'funding_pending',
+        funding_tx_hash: txHash,
+      });
+      await updateSpendSessionStatus(session.id, 'conversion_pending');
+    }
   }
 
   let hash = conv.funding_tx_hash?.trim() as `0x${string}` | undefined;
+  const pendingPrefix = 'pending:';
+  const trimmedFunding = conv.funding_tx_hash?.trim() ?? '';
+  if (
+    !hash &&
+    trimmedFunding.startsWith(pendingPrefix) &&
+    conv.status === 'funding_pending'
+  ) {
+    const privyId = trimmedFunding.slice(pendingPrefix.length).trim();
+    if (privyId) {
+      try {
+        const polled = await resolvePrivyServerTransactionHash(
+          { transactionId: privyId },
+          { timeoutMs: 120_000, pollIntervalMs: 1_000 }
+        );
+        const normalized = polled?.trim();
+        if (normalized && isEvmTxHash(normalized)) {
+          hash = normalized as `0x${string}`;
+          conv = await updatePointConversionFields(conv.id, {
+            funding_tx_hash: hash,
+          });
+        }
+      } catch (e) {
+        console.warn('fundOrResumeUsdc pending privy id resolve failed:', e);
+      }
+    }
+  }
   if (!hash && conv.status === 'funding_pending') {
     const recovered = await findRecentTreasuryUsdcTransfer({
       serverWalletAddress: serverWallet.address,

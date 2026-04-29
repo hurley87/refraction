@@ -12,12 +12,71 @@ vi.mock('@privy-io/server-auth', () => ({
   }),
 }));
 
-import { resolvePrivyServerTransactionHash } from './privy';
+import {
+  extractPrivyTransactionHash,
+  extractPrivyTransactionId,
+  resolvePrivyServerTransactionHash,
+} from './privy';
 
 const directHash =
   '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const polledHash =
   '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+
+describe('extractPrivyTransactionHash', () => {
+  it('reads txHash and snake_case variants at root and under data', () => {
+    const h =
+      '0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd';
+    expect(extractPrivyTransactionHash({ txHash: h })).toBe(h);
+    expect(extractPrivyTransactionHash({ tx_hash: h })).toBe(h);
+    expect(extractPrivyTransactionHash({ data: { transaction_hash: h } })).toBe(
+      h
+    );
+  });
+
+  it('reads nested receipt and transaction objects', () => {
+    const h =
+      '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
+    expect(
+      extractPrivyTransactionHash({
+        receipt: { transactionHash: h },
+      })
+    ).toBe(h);
+    expect(
+      extractPrivyTransactionHash({
+        transaction: { hash: h },
+      })
+    ).toBe(h);
+    expect(
+      extractPrivyTransactionHash({
+        data: { receipt: { transactionHash: h } },
+      })
+    ).toBe(h);
+  });
+});
+
+describe('extractPrivyTransactionId', () => {
+  it('prefers explicit transaction id fields over generic id', () => {
+    expect(
+      extractPrivyTransactionId({
+        id: 'wallet-ish-id',
+        transactionId: 'tx-abc',
+      })
+    ).toBe('tx-abc');
+  });
+
+  it('uses root id when it is not an EVM tx hash', () => {
+    expect(extractPrivyTransactionId({ id: 'privy-internal-1' })).toBe(
+      'privy-internal-1'
+    );
+  });
+
+  it('does not treat 64-hex id as transaction id', () => {
+    const looksLikeHash =
+      '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    expect(extractPrivyTransactionId({ id: looksLikeHash })).toBeNull();
+  });
+});
 
 describe('resolvePrivyServerTransactionHash', () => {
   beforeEach(() => {

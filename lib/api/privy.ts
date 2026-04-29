@@ -6,7 +6,16 @@ import type { SpendServerWalletMetadata } from '@/lib/spend-server-wallet';
 let privyClient: PrivyClient | null = null;
 
 const PRIVY_TRANSACTION_POLL_INTERVAL_MS = 1_000;
-const PRIVY_TRANSACTION_HASH_TIMEOUT_MS = 30_000;
+/** Longer poll window so slow Base / Privy indexing still resolves the on-chain hash. */
+const PRIVY_TRANSACTION_HASH_TIMEOUT_MS = 120_000;
+
+const EVM_TX_HASH_RE = /^0x[a-fA-F0-9]{64}$/;
+
+function normalizeEvmTxHashString(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return EVM_TX_HASH_RE.test(trimmed) ? trimmed : null;
+}
 const PRIVY_TRANSACTION_FAILED_STATUSES = new Set([
   'execution_reverted',
   'failed',
@@ -36,27 +45,111 @@ function getStringField(
   return null;
 }
 
-function extractPrivyTransactionHash(value: unknown): string | null {
-  const direct = getStringField(value, [
-    'hash',
-    'transactionHash',
-    'transaction_hash',
-  ]);
-  if (direct) return direct;
+const TX_HASH_STRING_KEYS = [
+  'hash',
+  'txHash',
+  'transactionHash',
+  'transaction_hash',
+  'tx_hash',
+] as const;
 
-  const data = getRecord(value)?.data;
-  return getStringField(data, ['hash', 'transactionHash', 'transaction_hash']);
+/**
+ * Reads an EVM tx hash from a plain object using common Privy / REST field names.
+ */
+function readTxHashFromRecord(
+  record: Record<string, unknown> | null
+): string | null {
+  if (!record) return null;
+  for (const key of TX_HASH_STRING_KEYS) {
+    const h = normalizeEvmTxHashString(record[key]);
+    if (h) return h;
+  }
+  return null;
 }
 
-function extractPrivyTransactionId(value: unknown): string | null {
-  const direct = getStringField(value, ['transactionId', 'transaction_id']);
-  if (direct) return direct;
+function readTxHashFromNestedTransaction(
+  container: Record<string, unknown> | null
+): string | null {
+  if (!container) return null;
+  const tx =
+    getRecord(container.transaction) ??
+    getRecord(container.tx) ??
+    getRecord(container.result);
+  if (!tx) return null;
+  return (
+    readTxHashFromRecord(tx) ??
+    normalizeEvmTxHashString(tx.hash) ??
+    normalizeEvmTxHashString(tx.transactionHash)
+  );
+}
 
-  const data = getRecord(value)?.data;
-  const dataId = getStringField(data, ['transactionId', 'transaction_id']);
-  if (dataId) return dataId;
+function readTxHashFromNestedReceipt(
+  container: Record<string, unknown> | null
+): string | null {
+  if (!container) return null;
+  const receipt =
+    getRecord(container.receipt) ?? getRecord(container.transactionReceipt);
+  if (!receipt) return null;
+  return (
+    readTxHashFromRecord(receipt) ??
+    normalizeEvmTxHashString(receipt.transactionHash)
+  );
+}
 
-  return getStringField(value, ['id']);
+/**
+ * Extracts an on-chain tx hash from Privy sendTransaction / getTransaction payloads
+ * across documented and observed response shapes.
+ */
+export function extractPrivyTransactionHash(value: unknown): string | null {
+  const root = getRecord(value);
+  const fromRoot =
+    readTxHashFromRecord(root) ??
+    readTxHashFromNestedReceipt(root) ??
+    readTxHashFromNestedTransaction(root);
+  if (fromRoot) return fromRoot;
+
+  const data = root ? getRecord(root.data) : null;
+  const fromData =
+    readTxHashFromRecord(data) ??
+    readTxHashFromNestedReceipt(data) ??
+    readTxHashFromNestedTransaction(data);
+  if (fromData) return fromData;
+
+  for (const rec of [root, data]) {
+    if (!rec) continue;
+    const maybeFromId =
+      normalizeEvmTxHashString(rec.transaction_id) ??
+      normalizeEvmTxHashString(rec.transactionId);
+    if (maybeFromId) return maybeFromId;
+  }
+
+  return null;
+}
+
+/**
+ * Privy transaction id for polling getTransaction when the hash is not inline yet.
+ * Avoid treating a root `id` that is a 0x-prefixed 32-byte string as a tx hash.
+ */
+export function extractPrivyTransactionId(value: unknown): string | null {
+  const tryRecord = (rec: Record<string, unknown> | null): string | null => {
+    if (!rec) return null;
+    const explicit = getStringField(rec, ['transactionId', 'transaction_id']);
+    if (explicit) return explicit;
+
+    const idVal = rec.id;
+    if (typeof idVal === 'string' && idVal.trim()) {
+      const t = idVal.trim();
+      if (!normalizeEvmTxHashString(t)) return t;
+    }
+    return null;
+  };
+
+  const root = getRecord(value);
+  const fromRoot = tryRecord(root);
+  if (fromRoot) return fromRoot;
+
+  const data = root ? getRecord(root.data) : null;
+  return tryRecord(data);
 }
 
 function delay(ms: number): Promise<void> {
