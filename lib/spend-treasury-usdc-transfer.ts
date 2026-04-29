@@ -6,7 +6,10 @@ import {
   parseAbiItem,
   parseUnits,
 } from 'viem';
-import { getPrivyClient } from '@/lib/api/privy';
+import {
+  getPrivyClient,
+  resolvePrivyServerTransactionHash,
+} from '@/lib/api/privy';
 import { SPEND_SERVER_WALLET_CAIP2 } from '@/lib/spend-server-wallet';
 import {
   POSTER_CHECKOUT_USDC_ADDRESS_BASE,
@@ -165,7 +168,9 @@ export async function submitTreasuryUsdcTransfer(params: {
         value: '0x0',
       },
     });
-    const txHash = normalizeEvmTxHash(result.hash);
+    const txHash = normalizeEvmTxHash(
+      await resolvePrivyServerTransactionHash(result)
+    );
     if (txHash) {
       return { ok: true, txHash };
     }
