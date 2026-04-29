@@ -5,6 +5,64 @@ import type { SpendServerWalletMetadata } from '@/lib/spend-server-wallet';
 // Lazy-initialized singleton shared across all API routes
 let privyClient: PrivyClient | null = null;
 
+const PRIVY_TRANSACTION_POLL_INTERVAL_MS = 1_000;
+const PRIVY_TRANSACTION_HASH_TIMEOUT_MS = 30_000;
+const PRIVY_TRANSACTION_FAILED_STATUSES = new Set([
+  'execution_reverted',
+  'failed',
+  'provider_error',
+]);
+
+function getRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object'
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function getStringField(
+  value: unknown,
+  keys: readonly string[]
+): string | null {
+  const record = getRecord(value);
+  if (!record) return null;
+
+  for (const key of keys) {
+    const field = record[key];
+    if (typeof field === 'string' && field.trim()) {
+      return field.trim();
+    }
+  }
+
+  return null;
+}
+
+function extractPrivyTransactionHash(value: unknown): string | null {
+  const direct = getStringField(value, [
+    'hash',
+    'transactionHash',
+    'transaction_hash',
+  ]);
+  if (direct) return direct;
+
+  const data = getRecord(value)?.data;
+  return getStringField(data, ['hash', 'transactionHash', 'transaction_hash']);
+}
+
+function extractPrivyTransactionId(value: unknown): string | null {
+  const direct = getStringField(value, ['transactionId', 'transaction_id']);
+  if (direct) return direct;
+
+  const data = getRecord(value)?.data;
+  const dataId = getStringField(data, ['transactionId', 'transaction_id']);
+  if (dataId) return dataId;
+
+  return getStringField(value, ['id']);
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function getPrivyClient(): PrivyClient {
   if (!privyClient) {
     const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
@@ -19,6 +77,47 @@ export function getPrivyClient(): PrivyClient {
     privyClient = new PrivyClient(appId, appSecret);
   }
   return privyClient;
+}
+
+/**
+ * Privy may return only a transaction id for server-wallet sends. Poll Privy's
+ * transaction API so callers can persist the on-chain hash before resuming work.
+ */
+export async function resolvePrivyServerTransactionHash(
+  response: unknown,
+  options: {
+    timeoutMs?: number;
+    pollIntervalMs?: number;
+  } = {}
+): Promise<string | null> {
+  const directHash = extractPrivyTransactionHash(response);
+  if (directHash) return directHash;
+
+  const transactionId = extractPrivyTransactionId(response);
+  if (!transactionId) return null;
+
+  const timeoutMs = options.timeoutMs ?? PRIVY_TRANSACTION_HASH_TIMEOUT_MS;
+  const pollIntervalMs =
+    options.pollIntervalMs ?? PRIVY_TRANSACTION_POLL_INTERVAL_MS;
+  const deadline = Date.now() + timeoutMs;
+
+  do {
+    const transaction = await getPrivyClient().walletApi.getTransaction({
+      id: transactionId,
+    });
+    const hash = extractPrivyTransactionHash(transaction);
+    if (hash) return hash;
+
+    const status = getStringField(transaction, ['status']);
+    if (status && PRIVY_TRANSACTION_FAILED_STATUSES.has(status)) {
+      throw new Error(`Privy transaction ${transactionId} ${status}`);
+    }
+
+    if (Date.now() >= deadline) break;
+    await delay(Math.min(pollIntervalMs, Math.max(deadline - Date.now(), 0)));
+  } while (Date.now() <= deadline);
+
+  return null;
 }
 
 /**
