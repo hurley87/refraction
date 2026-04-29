@@ -484,34 +484,32 @@ export default function SpendExperienceDetailPage() {
             </div>
           </div>
           <div className="mt-5 border-t border-neutral-100 pt-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="min-w-0 flex-1 space-y-1.5">
-                <Label
-                  htmlFor="withdraw-destination"
-                  className="text-neutral-500"
-                >
-                  Withdraw to address
-                </Label>
-                <Input
-                  id="withdraw-destination"
-                  type="text"
-                  placeholder="0x…"
-                  autoComplete="off"
-                  spellCheck={false}
-                  value={withdrawDestination}
-                  onChange={(e) => setWithdrawDestination(e.target.value)}
-                  disabled={withdrawSubmitting}
-                  className="font-mono text-xs"
-                />
-                <p className="text-xs text-neutral-500">
-                  Withdraws the full Base USDC balance (6 decimals). Gas is
-                  sponsored.
-                </p>
-              </div>
+            <div className="flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-3 sm:gap-y-1.5">
+              <Label
+                htmlFor="withdraw-destination"
+                className="order-1 text-neutral-500 sm:col-start-1 sm:row-start-1"
+              >
+                Withdraw to address
+              </Label>
+              <Input
+                id="withdraw-destination"
+                type="text"
+                placeholder="0x…"
+                autoComplete="off"
+                spellCheck={false}
+                value={withdrawDestination}
+                onChange={(e) => setWithdrawDestination(e.target.value)}
+                disabled={withdrawSubmitting}
+                className="order-2 w-full font-mono text-xs sm:col-start-1 sm:row-start-2"
+              />
+              <p className="order-3 text-xs text-neutral-500 sm:col-start-1 sm:row-start-3">
+                Withdraws the full Base USDC balance (6 decimals). Gas is
+                sponsored.
+              </p>
               <Button
                 type="button"
                 variant="outline"
-                className="shrink-0"
+                className="order-4 w-full shrink-0 whitespace-nowrap sm:order-none sm:col-start-2 sm:row-start-2 sm:w-auto sm:self-end"
                 disabled={
                   withdrawSubmitting ||
                   treasuryData.serverWalletUsdcBalance === null ||
