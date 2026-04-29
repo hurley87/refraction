@@ -155,6 +155,58 @@ describe('POST /api/admin/spend-experiences/[experienceId]/treasury/withdraw', (
         usdcAmount: 2.0001,
       })
     );
+    expect(j.data.status).toBe('confirmed');
     expect(mockInsertLedger).toHaveBeenCalled();
+  });
+
+  it('returns 202 without ledger when receipt wait times out', async () => {
+    mockWaitReceipt.mockRejectedValue(new Error('Timed out'));
+    const headers = new Headers();
+    headers.set('Content-Type', 'application/json');
+    headers.set('x-user-email', 'admin@example.com');
+    const dest = '0x4444444444444444444444444444444444444444';
+    const req = new NextRequest(
+      'http://localhost:3000/api/admin/spend-experiences/exp-1/treasury/withdraw',
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ destinationAddress: dest }),
+      }
+    );
+    const res = await POST(req, { params: { experienceId: 'exp-1' } });
+    const j = await res.json();
+    expect(res.status).toBe(202);
+    expect(j.success).toBe(true);
+    expect(j.data.status).toBe('submitted');
+    expect(j.data.txHash).toBeDefined();
+    expect(mockInsertLedger).not.toHaveBeenCalled();
+  });
+
+  it('returns 202 when submit is pending without on-chain hash', async () => {
+    mockSubmitTransfer.mockResolvedValue({
+      ok: true,
+      submittedPending: true,
+      privyTransactionId: 'privy-pending-1',
+      privySendSummary: { keys: ['transactionId'] },
+    });
+    const headers = new Headers();
+    headers.set('Content-Type', 'application/json');
+    headers.set('x-user-email', 'admin@example.com');
+    const dest = '0x4444444444444444444444444444444444444444';
+    const req = new NextRequest(
+      'http://localhost:3000/api/admin/spend-experiences/exp-1/treasury/withdraw',
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ destinationAddress: dest }),
+      }
+    );
+    const res = await POST(req, { params: { experienceId: 'exp-1' } });
+    const j = await res.json();
+    expect(res.status).toBe(202);
+    expect(j.data.status).toBe('submitted');
+    expect(j.data.privyTransactionId).toBe('privy-pending-1');
+    expect(mockWaitReceipt).not.toHaveBeenCalled();
+    expect(mockInsertLedger).not.toHaveBeenCalled();
   });
 });

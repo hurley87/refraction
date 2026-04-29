@@ -106,10 +106,38 @@ describe('submitTreasuryUsdcTransfer', () => {
         serverWalletAddress: '0x1111111111111111111111111111111111111111',
         recipientAddress: '0x2222222222222222222222222222222222222222',
         usdcAmount: 1,
+        privyHashResolveOptions: { timeoutMs: 100, pollIntervalMs: 1 },
       })
     ).resolves.toEqual(expect.objectContaining({ ok: true, txHash }));
 
     expect(mockGetTransaction).toHaveBeenCalledWith({ id: 'privy-tx-1' });
+  });
+
+  it('returns submittedPending when only Privy id is known after poll timeout', async () => {
+    mockSendTransaction.mockResolvedValue({
+      transactionId: 'privy-tx-slow',
+    });
+    mockGetTransaction.mockResolvedValue({
+      id: 'privy-tx-slow',
+      status: 'broadcasted',
+      transactionHash: null,
+    });
+
+    await expect(
+      submitTreasuryUsdcTransfer({
+        serverWalletId: 'wallet-1',
+        serverWalletAddress: '0x1111111111111111111111111111111111111111',
+        recipientAddress: '0x2222222222222222222222222222222222222222',
+        usdcAmount: 1,
+        privyHashResolveOptions: { timeoutMs: 50, pollIntervalMs: 5 },
+      })
+    ).resolves.toEqual(
+      expect.objectContaining({
+        ok: true,
+        submittedPending: true,
+        privyTransactionId: 'privy-tx-slow',
+      })
+    );
   });
 
   it('rejects when Privy wallet address does not match server_wallet_address', async () => {
