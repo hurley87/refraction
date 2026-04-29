@@ -11,7 +11,8 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui",
-    "prepare": "husky"
+    "prepare": "husky",
+    "env:pull": "vercel env pull .env.local"
   },
   "dependencies": {
     "@campnetwork/sdk": "^1.2.15",
@@ -103,6 +104,7 @@
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5",
+    "vercel": "^52.0.0",
     "vitest": "^4.0.16"
   },
   "resolutions": {
