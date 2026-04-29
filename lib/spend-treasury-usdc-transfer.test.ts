@@ -1,34 +1,44 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockSendTransaction = vi.fn();
 const mockGetWallet = vi.fn();
-const mockGetTransaction = vi.fn();
-const mockGetBlockNumber = vi.fn();
-const mockGetLogs = vi.fn();
+const mockSignAndSend = vi.fn();
+const mockWaitForTransaction = vi.fn();
+
+const { MockPrivyTimeout } = vi.hoisted(() => {
+  class PrivyRestTransactionTimeoutError extends Error {
+    lastStatus: string | null = null;
+    constructor(public transactionId: string) {
+      super(
+        `Privy transaction ${transactionId} did not return a final hash within the timeout`
+      );
+      this.name = 'PrivyRestTransactionTimeoutError';
+    }
+  }
+  return { MockPrivyTimeout: PrivyRestTransactionTimeoutError };
+});
 
 vi.mock('@privy-io/server-auth', () => ({
   PrivyClient: vi.fn(function PrivyClient() {
     return {
       walletApi: {
-        ethereum: { sendTransaction: mockSendTransaction },
         getWallet: mockGetWallet,
-        getTransaction: mockGetTransaction,
       },
     };
   }),
 }));
 
-vi.mock('viem', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('viem')>();
-  return {
-    ...actual,
-    createPublicClient: vi.fn(() => ({
-      getBlockNumber: mockGetBlockNumber,
-      getLogs: mockGetLogs,
-    })),
-  };
-});
-
+vi.mock('@/lib/privy-server-rest', () => ({
+  signAndSendTransaction: (...args: unknown[]) => mockSignAndSend(...args),
+  waitForTransaction: (...args: unknown[]) => mockWaitForTransaction(...args),
+  PrivyRestTransactionTimeoutError: MockPrivyTimeout,
+  PrivyRestApiError: class extends Error {
+    name = 'PrivyRestApiError';
+  },
+  PrivyRestTransactionFailedError: class extends Error {
+    name = 'PrivyRestTransactionFailedError';
+  },
+  getPrivyRestTransaction: vi.fn(),
+}));
 import {
   mapInsufficientNativeGasPrivyError,
   submitTreasuryUsdcTransfer,
@@ -42,8 +52,6 @@ describe('submitTreasuryUsdcTransfer', () => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'app-id';
     process.env.PRIVY_APP_SECRET = 'app-secret';
-    mockGetBlockNumber.mockResolvedValue(123n);
-    mockGetLogs.mockResolvedValue([]);
     mockGetWallet.mockResolvedValue({
       id: 'wallet-1',
       address: '0x1111111111111111111111111111111111111111',
@@ -51,10 +59,16 @@ describe('submitTreasuryUsdcTransfer', () => {
     });
   });
 
-  it('uses walletApi.ethereum.sendTransaction with sponsor and resolves tx hash', async () => {
-    mockSendTransaction.mockResolvedValue({
-      hash: txHash,
-      caip2: 'eip155:8453',
+  it('calls Privy REST sign and wait; empty initial hash is not a failure', async () => {
+    mockSignAndSend.mockResolvedValue({
+      transactionId: 'privy-tx-1',
+      userOperationHash: '0x' + 'a'.repeat(64),
+      hash: '',
+    });
+    mockWaitForTransaction.mockResolvedValue({
+      transactionHash: txHash as `0x${string}`,
+      status: 'finalized',
+      userOperationHash: '0x' + 'a'.repeat(64),
     });
 
     await expect(
@@ -68,60 +82,41 @@ describe('submitTreasuryUsdcTransfer', () => {
       expect.objectContaining({
         ok: true,
         txHash,
-        privySendSummary: expect.any(Object),
+        privyTransactionId: 'privy-tx-1',
+        privyStatus: 'finalized',
       })
     );
 
     expect(mockGetWallet).toHaveBeenCalledWith({ id: 'wallet-1' });
-    expect(mockSendTransaction).toHaveBeenCalledWith(
+    expect(mockSignAndSend).toHaveBeenCalledWith(
       expect.objectContaining({
         walletId: 'wallet-1',
-        caip2: 'eip155:8453',
         sponsor: true,
-        transaction: expect.objectContaining({
-          to: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-          chainId: 8453,
-          value: '0x0',
-        }),
+        to: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        value: '0x0',
+        referenceId: expect.any(String),
       })
     );
-    expect(mockGetTransaction).not.toHaveBeenCalled();
-  });
-
-  it('uses Privy getTransaction when send returns only a transaction id', async () => {
-    mockSendTransaction.mockResolvedValue({
-      hash: '',
-      caip2: 'eip155:8453',
-      transactionId: 'privy-tx-1',
-    });
-    mockGetTransaction.mockResolvedValue({
-      id: 'privy-tx-1',
-      status: 'confirmed',
-      transactionHash: txHash,
-    });
-
-    await expect(
-      submitTreasuryUsdcTransfer({
-        serverWalletId: 'wallet-1',
-        serverWalletAddress: '0x1111111111111111111111111111111111111111',
-        recipientAddress: '0x2222222222222222222222222222222222222222',
-        usdcAmount: 1,
-        privyHashResolveOptions: { timeoutMs: 100, pollIntervalMs: 1 },
+    expect((mockSignAndSend.mock.calls[0][0] as { data: string }).data).toMatch(
+      /^0x/
+    );
+    expect(mockWaitForTransaction).toHaveBeenCalledWith(
+      'privy-tx-1',
+      expect.objectContaining({
+        timeoutMs: 30_000,
       })
-    ).resolves.toEqual(expect.objectContaining({ ok: true, txHash }));
-
-    expect(mockGetTransaction).toHaveBeenCalledWith({ id: 'privy-tx-1' });
+    );
   });
 
-  it('returns submittedPending when only Privy id is known after poll timeout', async () => {
-    mockSendTransaction.mockResolvedValue({
+  it('returns submittedPending when Privy poll times out (30s)', async () => {
+    const err = new MockPrivyTimeout('privy-tx-slow');
+    err.lastStatus = 'broadcasted';
+    mockSignAndSend.mockResolvedValue({
       transactionId: 'privy-tx-slow',
+      userOperationHash: null,
+      hash: '',
     });
-    mockGetTransaction.mockResolvedValue({
-      id: 'privy-tx-slow',
-      status: 'broadcasted',
-      transactionHash: null,
-    });
+    mockWaitForTransaction.mockRejectedValue(err);
 
     await expect(
       submitTreasuryUsdcTransfer({
@@ -136,6 +131,7 @@ describe('submitTreasuryUsdcTransfer', () => {
         ok: true,
         submittedPending: true,
         privyTransactionId: 'privy-tx-slow',
+        lastPrivyStatus: 'broadcasted',
       })
     );
   });
@@ -158,7 +154,7 @@ describe('submitTreasuryUsdcTransfer', () => {
       ok: false,
       error: expect.stringContaining('mismatch'),
     });
-    expect(mockSendTransaction).not.toHaveBeenCalled();
+    expect(mockSignAndSend).not.toHaveBeenCalled();
   });
 
   it('maps insufficient native gas errors to sponsorship troubleshooting text', () => {

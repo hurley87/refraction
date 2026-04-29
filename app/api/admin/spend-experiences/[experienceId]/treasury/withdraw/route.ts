@@ -126,6 +126,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       serverWalletAddress: walletConfig.address,
       recipientAddress: destinationAddress as `0x${string}`,
       usdcAmount: withdrawAmount,
+      withdrawTelemetry: true,
     });
 
     if (!submit.ok) {
@@ -136,6 +137,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       console.info('treasury withdraw submitted_pending_no_hash', {
         step: 'tx_hash_pending',
         privyTransactionId: submit.privyTransactionId,
+        referenceId: submit.referenceId,
+        userOperationHash: submit.userOperationHash,
+        lastPrivyStatus: submit.lastPrivyStatus,
         privyResponseShape: submit.privySendSummary,
       });
       return apiSuccess(
@@ -144,8 +148,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           privyTransactionId: submit.privyTransactionId,
           amountUsdc: withdrawAmount,
           destinationAddress,
+          userOperationHash: submit.userOperationHash,
+          referenceId: submit.referenceId,
+          lastPrivyStatus: submit.lastPrivyStatus,
           message:
-            'Withdrawal was submitted to Privy; on-chain hash is not available yet. Confirmation is pending—reconcile or refresh shortly.',
+            'Withdrawal was accepted by Privy; on-chain hash is not available yet. Re-check shortly or use the block explorer with this transaction id.',
         },
         'Withdrawal submitted; confirmation pending.',
         202
@@ -156,9 +163,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return apiError('Unexpected treasury submit response.', 500);
     }
 
-    const { txHash, privySendSummary } = submit;
+    const {
+      txHash,
+      privySendSummary,
+      privyTransactionId,
+      userOperationHash,
+      referenceId,
+      privyStatus,
+    } = submit;
 
-    console.info('treasury withdraw send_transaction_success', {
+    console.info('withdraw_privy_send_success', {
       step: 'send_transaction_success',
       walletId: walletConfig.walletId,
       walletAddress: walletConfig.address,
@@ -170,9 +184,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     try {
       await waitForTreasuryTxReceipt(txHash);
-      console.info('treasury withdraw receipt_confirmed', {
-        step: 'receipt_confirmed',
+      console.info('withdraw_confirmed', {
         txHash,
+        privyTransactionId,
+        userOperationHash,
+        referenceId,
+        privyStatus,
       });
     } catch (waitErr) {
       const msg =
@@ -186,10 +203,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         {
           status: 'submitted' as const,
           txHash,
+          privyTransactionId,
+          userOperationHash,
+          referenceId,
           amountUsdc: withdrawAmount,
           destinationAddress,
           message:
-            'Withdrawal was submitted on-chain; receipt confirmation is still pending or timed out. Check the transaction status on a block explorer.',
+            'Withdrawal was included on-chain; full receipt confirmation is still pending or timed out. Check the block explorer for this transaction hash.',
         },
         'Withdrawal submitted; confirmation pending.',
         202
@@ -212,6 +232,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       {
         status: 'confirmed' as const,
         txHash,
+        privyTransactionId,
+        userOperationHash,
+        referenceId,
         amountUsdc: withdrawAmount,
         destinationAddress,
       },
