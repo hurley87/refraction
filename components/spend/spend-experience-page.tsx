@@ -319,10 +319,12 @@ export function SpendExperiencePage({
         'Switching to Base in your wallet'
       );
       const data = encodeUsdcTransferData(recipient, preview.usdcAmount);
+      // Explicit gas avoids Privy/RPC preflight estimation errors in the sponsored ERC20 transfer modal.
       const transactionRequest = {
         to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
         data,
         chainId: POSTER_CHECKOUT_CHAIN_ID,
+        gas: 100000n,
       };
       const spendPaymentDebug = process.env.NODE_ENV !== 'production';
       if (spendPaymentDebug) {
@@ -427,6 +429,15 @@ export function SpendExperiencePage({
   const showSessionError = user && walletAddress && sessionError;
   const showWalletBlock = user && !walletAddress;
 
+  const receiptSession = receiptPayload?.session ?? session;
+  const receiptConversion = receiptPayload?.pointConversion;
+  const receiptPaymentHash = receiptPayload?.spendTransaction?.payment_tx_hash;
+
+  const isPaymentComplete =
+    elig?.status === 'payment_complete' ||
+    sessionStatus === 'payment_complete' ||
+    Boolean(receiptPaymentHash);
+
   const showPayDirectUsdc = elig?.status === 'ready_for_payment_own_usdc';
 
   const showConvert =
@@ -435,18 +446,14 @@ export function SpendExperiencePage({
     (sessionStatus === 'created' || sessionStatus === 'conversion_pending');
 
   const showPay =
+    !isPaymentComplete &&
     (elig?.status === 'ready_for_payment' ||
       elig?.status === 'ready_for_payment_own_usdc' ||
       elig?.status === 'payment_failed') &&
     preview &&
     isEvmAddress(preview.receivingWalletAddress);
 
-  const receiptSession = receiptPayload?.session ?? session;
-  const receiptConversion = receiptPayload?.pointConversion;
-  const receiptPaymentHash = receiptPayload?.spendTransaction?.payment_tx_hash;
-
-  const displayReceipt =
-    elig?.status === 'payment_complete' || sessionStatus === 'payment_complete';
+  const displayReceipt = isPaymentComplete;
 
   const basescanUrl = (hash: string) =>
     `https://basescan.org/tx/${hash.trim()}`;
