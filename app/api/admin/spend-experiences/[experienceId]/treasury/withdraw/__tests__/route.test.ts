@@ -98,6 +98,10 @@ describe('POST /api/admin/spend-experiences/[experienceId]/treasury/withdraw', (
       ok: true,
       txHash:
         '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      privyTransactionId: 'privy-tx-1',
+      userOperationHash: null,
+      referenceId: 'ref-1',
+      privyStatus: 'finalized',
       privySendSummary: {
         hash: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       },
@@ -153,9 +157,11 @@ describe('POST /api/admin/spend-experiences/[experienceId]/treasury/withdraw', (
       expect.objectContaining({
         recipientAddress: dest,
         usdcAmount: 2.0001,
+        withdrawTelemetry: true,
       })
     );
     expect(j.data.status).toBe('confirmed');
+    expect(j.data.privyTransactionId).toBeDefined();
     expect(mockInsertLedger).toHaveBeenCalled();
   });
 

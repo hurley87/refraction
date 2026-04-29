@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import {
   encodeFunctionData,
   erc20Abi,
@@ -6,13 +7,14 @@ import {
   parseAbiItem,
   parseUnits,
 } from 'viem';
+import { getPrivyClient } from '@/lib/api/privy';
 import {
-  extractPrivyTransactionId,
-  formatPrivyResponseForLog,
-  getPrivyClient,
-  resolvePrivyServerTransactionHash,
-} from '@/lib/api/privy';
-import { SPEND_SERVER_WALLET_CAIP2 } from '@/lib/spend-server-wallet';
+  PrivyRestApiError,
+  PrivyRestTransactionFailedError,
+  PrivyRestTransactionTimeoutError,
+  signAndSendTransaction,
+  waitForTransaction,
+} from '@/lib/privy-server-rest';
 import {
   POSTER_CHECKOUT_USDC_ADDRESS_BASE,
   POSTER_CHECKOUT_CHAIN,
@@ -22,15 +24,23 @@ export type TreasuryUsdcSubmitResult =
   | {
       ok: true;
       txHash: `0x${string}`;
-      /** Safe summary of Privy sendTransaction response for server logs only. */
+      /** Safe summary of Privy REST send for server logs. */
       privySendSummary?: Record<string, unknown>;
+      privyTransactionId: string;
+      userOperationHash?: string | null;
+      referenceId?: string;
+      /** Present when waitForTransaction returned (Privy poll confirmed). */
+      privyStatus?: string;
     }
   | {
       ok: true;
-      /** Privy accepted the send but no on-chain hash yet (poll timeout); reconcile later. */
+      /** Privy accepted the send but no on-chain hash after poll timeout; reconcile later. */
       submittedPending: true;
       privyTransactionId: string;
+      userOperationHash?: string | null;
+      referenceId?: string;
       privySendSummary?: Record<string, unknown>;
+      lastPrivyStatus?: string | null;
     }
   | { ok: false; error: string };
 
@@ -59,7 +69,7 @@ export function mapInsufficientNativeGasPrivyError(message: string): string {
     'Verify production NEXT_PUBLIC_PRIVY_APP_ID and PRIVY_APP_SECRET match the Privy app where Base gas sponsorship is enabled.',
     'Confirm Base (eip155:8453) is enabled for sponsorship and credits are available.',
     'Ensure privy_server_wallet_id and server_wallet_address match the Privy server wallet (no mismatch with treasury_wallet_address).',
-    'Confirm server sends via walletApi.ethereum.sendTransaction with sponsor: true (not a raw path that skips sponsorship).',
+    'Confirm server sends via Privy REST `eth_sendTransaction` with `sponsor: true` (see `lib/privy-server-rest.ts`).',
     'If issues persist, confirm your Privy plan supports TEE/native gas sponsorship for server wallets on Base.',
   ].join(' ');
 }
@@ -176,16 +186,13 @@ export async function submitTreasuryUsdcTransfer(params: {
   recipientAddress: `0x${string}`;
   /** Human-readable USDC amount (6 decimals). */
   usdcAmount: number;
-  /** Override Privy hash polling (e.g. tests). */
+  /** Override Privy poll (e.g. tests). */
   privyHashResolveOptions?: { timeoutMs?: number; pollIntervalMs?: number };
+  /** Optional Privy `reference_id` (default: random UUID). */
+  referenceId?: string;
+  /** When true, emit `withdraw_privy_*` logs for the admin withdraw route. */
+  withdrawTelemetry?: boolean;
 }): Promise<TreasuryUsdcSubmitResult> {
-  let fromBlock: bigint | null = null;
-  try {
-    fromBlock = await (await publicBaseClient()).getBlockNumber();
-  } catch {
-    fromBlock = null;
-  }
-
   const walletId = params.serverWalletId.trim();
   const expectedAddress = params.serverWalletAddress.trim().toLowerCase();
   if (!walletId || !expectedAddress) {
@@ -195,6 +202,12 @@ export async function submitTreasuryUsdcTransfer(params: {
         'Treasury transfer requires both privy_server_wallet_id and server_wallet_address.',
     };
   }
+
+  const referenceId = params.referenceId?.trim() || randomUUID();
+  const pollOpts = params.privyHashResolveOptions ?? {};
+  const timeoutMs = pollOpts.timeoutMs ?? 30_000;
+  const initialPollMs = pollOpts.pollIntervalMs ?? 500;
+  const logWithdraw = params.withdrawTelemetry === true;
 
   try {
     const privy = getPrivyClient();
@@ -213,85 +226,111 @@ export async function submitTreasuryUsdcTransfer(params: {
       };
     }
 
-    const transaction = {
+    const transferData = encodeFunctionData({
+      abi: erc20Abi,
+      functionName: 'transfer',
+      args: [
+        params.recipientAddress,
+        parseUnits(params.usdcAmount.toFixed(6), 6),
+      ],
+    });
+
+    const sent = await signAndSendTransaction({
+      walletId,
       to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
-      chainId: POSTER_CHECKOUT_CHAIN.id,
-      data: encodeFunctionData({
-        abi: erc20Abi,
-        functionName: 'transfer',
-        args: [
-          params.recipientAddress,
-          parseUnits(params.usdcAmount.toFixed(6), 6),
-        ],
-      }),
-      value: '0x0' as const,
+      data: transferData,
+      value: '0x0',
+      sponsor: true,
+      referenceId,
+    });
+
+    const privySendSummary: Record<string, unknown> = {
+      transactionId: sent.transactionId,
+      userOperationHash: sent.userOperationHash,
+      hash: sent.hash,
+      referenceId,
     };
 
-    const sendResult = await privy.walletApi.ethereum.sendTransaction({
-      walletId,
-      caip2: SPEND_SERVER_WALLET_CAIP2,
-      sponsor: true,
-      transaction,
-    });
-
-    console.info('submitTreasuryUsdcTransfer send_transaction_success', {
-      step: 'send_transaction_success',
-      walletId,
-      privySendRawSummary: formatPrivyResponseForLog(sendResult),
-    });
-
-    const privySendSummary = formatPrivyResponseForLog(sendResult);
-
-    const resolvedHashRaw = await resolvePrivyServerTransactionHash(
-      sendResult,
-      params.privyHashResolveOptions ?? {}
-    );
-    const txHash = normalizeEvmTxHash(resolvedHashRaw);
-    if (txHash) {
-      console.info('submitTreasuryUsdcTransfer tx_hash_resolved', {
-        step: 'tx_hash_resolved',
+    if (logWithdraw) {
+      console.info('withdraw_privy_send_success', {
         walletId,
-        source: 'privy_resolve',
+        userOperationHash: sent.userOperationHash,
+        initialHash: sent.hash,
+        referenceId,
       });
-      return { ok: true, txHash, privySendSummary };
+      console.info('withdraw_privy_transaction_id', {
+        privyTransactionId: sent.transactionId,
+        referenceId,
+      });
     }
 
-    const fallbackHash = await findRecentTreasuryTransferHash({
-      serverWalletAddress: params.serverWalletAddress,
-      recipientAddress: params.recipientAddress,
-      usdcAmount: params.usdcAmount,
-      fromBlock,
+    console.info('submitTreasuryUsdcTransfer privy_rest_send', {
+      walletId,
+      transactionId: sent.transactionId,
+      userOperationHash: sent.userOperationHash,
+      hashEmpty: !sent.hash,
+      referenceId,
     });
 
-    if (fallbackHash) {
-      console.info('submitTreasuryUsdcTransfer tx_hash_resolved', {
-        step: 'tx_hash_resolved',
-        walletId,
-        source: 'chain_log_fallback',
+    try {
+      const waited = await waitForTransaction(sent.transactionId, {
+        timeoutMs,
+        initialPollMs,
+        maxPollMs: 2_000,
       });
-      return { ok: true, txHash: fallbackHash, privySendSummary };
-    }
 
-    const privyTransactionId = extractPrivyTransactionId(sendResult);
-    if (privyTransactionId) {
-      console.info('submitTreasuryUsdcTransfer tx_hash_pending_privy_id', {
-        step: 'tx_hash_pending',
-        walletId,
-        privyTransactionId,
-      });
+      if (logWithdraw) {
+        console.info('withdraw_privy_poll_confirmed', {
+          privyTransactionId: sent.transactionId,
+          privyStatus: waited.status,
+          transactionHash: waited.transactionHash,
+        });
+      }
+
       return {
         ok: true,
-        submittedPending: true,
-        privyTransactionId,
+        txHash: waited.transactionHash,
         privySendSummary,
+        privyTransactionId: sent.transactionId,
+        userOperationHash: sent.userOperationHash,
+        referenceId,
+        privyStatus: waited.status,
       };
+    } catch (pollErr) {
+      if (pollErr instanceof PrivyRestTransactionTimeoutError) {
+        const last = pollErr.lastStatus;
+        if (logWithdraw) {
+          console.warn('withdraw_privy_poll_timeout', {
+            privyTransactionId: pollErr.transactionId,
+            referenceId,
+            lastStatus: last ?? null,
+          });
+        }
+        return {
+          ok: true,
+          submittedPending: true,
+          privyTransactionId: sent.transactionId,
+          userOperationHash: sent.userOperationHash,
+          referenceId,
+          privySendSummary,
+          lastPrivyStatus: last ?? null,
+        };
+      }
+      if (pollErr instanceof PrivyRestTransactionFailedError) {
+        return {
+          ok: false,
+          error: `Privy transaction failed with status ${pollErr.status}.`,
+        };
+      }
+      throw pollErr;
     }
-
-    return {
-      ok: false,
-      error: 'USDC transfer hash was not returned by wallet provider.',
-    };
   } catch (e) {
+    if (e instanceof PrivyRestApiError) {
+      const rawMsg = e.message;
+      const msg = mapInsufficientNativeGasPrivyError(e.body || rawMsg);
+      console.error('submitTreasuryUsdcTransfer PrivyRestApiError:', e);
+      return { ok: false, error: msg };
+    }
     const rawMsg = e instanceof Error ? e.message : 'USDC transfer failed';
     const msg = mapInsufficientNativeGasPrivyError(rawMsg);
     console.error('submitTreasuryUsdcTransfer:', e);

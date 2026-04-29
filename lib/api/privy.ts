@@ -328,6 +328,16 @@ export function formatPrivyResponseForLog(
   return out;
 }
 
+/**
+ * Re-exports: Privy REST RPC for server wallets (sponsored sends, transaction polling).
+ * Prefer importing from `@/lib/privy-server-rest` in new code.
+ */
+export {
+  signAndSendTransaction,
+  waitForTransaction,
+  getPrivyRestTransaction,
+} from '@/lib/privy-server-rest';
+
 export async function createSpendPrivyServerWallet(params: {
   idempotencyKey: string;
 }): Promise<SpendServerWalletMetadata> {
