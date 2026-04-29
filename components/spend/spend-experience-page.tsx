@@ -315,23 +315,71 @@ export function SpendExperiencePage({
         'Switching to Base in your wallet'
       );
       const data = encodeUsdcTransferData(recipient, preview.usdcAmount);
-      // Client-side gas sponsorship requires Privy Dashboard → Gas sponsorship → Allow transactions from the client to be enabled for Base.
-      const { hash } = await withTimeout(
-        sendTransaction(
-          {
-            to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
-            data,
-            value: 0n,
-            chainId: POSTER_CHECKOUT_CHAIN_ID,
+      const spendPaymentDebug = process.env.NODE_ENV !== 'production';
+      if (spendPaymentDebug) {
+        console.debug('[spend payment]', {
+          step: 'spend_payment_send_requested',
+          walletAddress,
+          evmWallet: {
+            address: evmWallet.address,
+            walletClientType: evmWallet.walletClientType,
           },
-          {
-            address: walletAddress,
+          chainId: POSTER_CHECKOUT_CHAIN_ID,
+          sponsor: true,
+          to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+          hasData: Boolean(data),
+          dataLength: data.length,
+          includesValueField: false,
+        });
+      }
+      // Client-side gas sponsorship requires Privy Dashboard → Gas sponsorship → Allow transactions from the client to be enabled for Base.
+      let hash: string;
+      try {
+        const result = await withTimeout(
+          sendTransaction(
+            {
+              to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+              data,
+              value: 0n,
+              chainId: POSTER_CHECKOUT_CHAIN_ID,
+            },
+            {
+              address: walletAddress,
+              sponsor: true,
+            } as Parameters<typeof sendTransaction>[1]
+          ),
+          WALLET_STEP_TIMEOUT_MS,
+          'Confirm the USDC payment in your wallet'
+        );
+        hash = result.hash;
+      } catch (sendErr) {
+        if (spendPaymentDebug) {
+          const message =
+            sendErr instanceof Error ? sendErr.message : String(sendErr);
+          const name =
+            sendErr instanceof Error ? sendErr.name : 'NonErrorThrown';
+          console.debug('[spend payment]', {
+            step: 'spend_payment_send_failed',
+            message,
+            name,
+            walletAddress,
+            evmWallet: {
+              address: evmWallet.address,
+              walletClientType: evmWallet.walletClientType,
+            },
             sponsor: true,
-          } as Parameters<typeof sendTransaction>[1]
-        ),
-        WALLET_STEP_TIMEOUT_MS,
-        'Confirm the USDC payment in your wallet'
-      );
+          });
+        }
+        throw sendErr;
+      }
+      if (spendPaymentDebug) {
+        console.debug('[spend payment]', {
+          step: 'spend_payment_send_success',
+          hash,
+          walletAddress,
+          sponsor: true,
+        });
+      }
       await paymentMutation.mutateAsync(hash);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
