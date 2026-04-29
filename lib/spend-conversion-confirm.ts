@@ -507,6 +507,14 @@ export async function runSpendConversionConfirm(
     };
   }
 
+  if (!('txHash' in sub)) {
+    return {
+      ok: false,
+      httpStatus: 500,
+      error: 'Unexpected treasury submit response.',
+    };
+  }
+
   const txHash = sub.txHash;
   conv = await updatePointConversionFields(conv.id, {
     status: 'funding_pending',
@@ -616,6 +624,15 @@ async function fundOrResumeUsdc(input: {
       });
       await updateSpendSessionStatus(session.id, 'conversion_pending');
     } else {
+      if (!('txHash' in sub)) {
+        return {
+          error: {
+            ok: false,
+            httpStatus: 500,
+            error: 'Unexpected treasury submit response.',
+          },
+        };
+      }
       const txHash = sub.txHash;
       conv = await updatePointConversionFields(conv.id, {
         status: 'funding_pending',

@@ -152,34 +152,40 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    if (!('txHash' in submit)) {
+      return apiError('Unexpected treasury submit response.', 500);
+    }
+
+    const { txHash, privySendSummary } = submit;
+
     console.info('treasury withdraw send_transaction_success', {
       step: 'send_transaction_success',
       walletId: walletConfig.walletId,
       walletAddress: walletConfig.address,
       caip2: SPEND_SERVER_WALLET_CAIP2,
       sponsor: true,
-      txHash: submit.txHash,
-      privyResponseShape: submit.privySendSummary,
+      txHash,
+      privyResponseShape: privySendSummary,
     });
 
     try {
-      await waitForTreasuryTxReceipt(submit.txHash);
+      await waitForTreasuryTxReceipt(txHash);
       console.info('treasury withdraw receipt_confirmed', {
         step: 'receipt_confirmed',
-        txHash: submit.txHash,
+        txHash,
       });
     } catch (waitErr) {
       const msg =
         waitErr instanceof Error ? waitErr.message : 'Confirmation failed';
       console.warn('treasury withdraw receipt_wait_timeout_or_error', {
         step: 'receipt_wait_timeout_or_error',
-        txHash: submit.txHash,
+        txHash,
         error: msg,
       });
       return apiSuccess(
         {
           status: 'submitted' as const,
-          txHash: submit.txHash,
+          txHash,
           amountUsdc: withdrawAmount,
           destinationAddress,
           message:
@@ -192,20 +198,20 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     console.info('treasury withdraw ledger_insert_attempted', {
       step: 'ledger_insert_attempted',
-      txHash: submit.txHash,
+      txHash,
     });
     await insertTreasuryAdminRecoveryLedgerIfAbsent({
       spendExperienceId: experience.id,
       amount: withdrawAmount,
       fromWalletAddress: walletConfig.address,
       toWalletAddress: destinationAddress,
-      txHash: submit.txHash,
+      txHash,
     });
 
     return apiSuccess(
       {
         status: 'confirmed' as const,
-        txHash: submit.txHash,
+        txHash,
         amountUsdc: withdrawAmount,
         destinationAddress,
       },
