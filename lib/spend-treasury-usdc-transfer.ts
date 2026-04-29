@@ -200,6 +200,9 @@ export async function waitForTreasuryTxReceipt(
   const receipt = await publicClient.waitForTransactionReceipt({
     hash: txHash,
     timeout,
+    /** Privy / some RPCs lag indexing `eth_getTransactionByHash`; default viem retries are too low. */
+    retryCount: 25,
+    retryDelay: ({ count }) => ~~(1 << Math.min(count, 6)) * 250,
   });
   if (receipt.status !== 'success') {
     throw new Error('Funding transaction reverted');

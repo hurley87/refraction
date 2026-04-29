@@ -484,8 +484,8 @@ export default function SpendExperienceDetailPage() {
             </div>
           </div>
           <div className="mt-5 border-t border-neutral-100 pt-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <div className="min-w-0 flex-1 space-y-1.5">
+            <div className="flex max-w-xl flex-col gap-3">
+              <div className="min-w-0 space-y-1.5">
                 <Label
                   htmlFor="withdraw-destination"
                   className="text-neutral-500"
@@ -511,7 +511,7 @@ export default function SpendExperienceDetailPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="shrink-0"
+                className="w-full shrink-0 sm:w-auto"
                 disabled={
                   withdrawSubmitting ||
                   treasuryData.serverWalletUsdcBalance === null ||

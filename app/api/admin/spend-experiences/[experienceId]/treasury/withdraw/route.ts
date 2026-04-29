@@ -1,4 +1,8 @@
 import { NextRequest } from 'next/server';
+import {
+  TransactionNotFoundError,
+  WaitForTransactionReceiptTimeoutError,
+} from 'viem';
 import { getSpendExperienceById } from '@/lib/db/spend-experiences';
 import { insertTreasuryAdminRecoveryLedgerIfAbsent } from '@/lib/db/treasury-transactions';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
@@ -10,6 +14,7 @@ import {
   getSpendServerWalletTransferConfig,
 } from '@/lib/spend-server-wallet';
 import {
+  findRecentTreasuryUsdcTransfer,
   submitTreasuryUsdcTransfer,
   waitForTreasuryTxReceipt,
 } from '@/lib/spend-treasury-usdc-transfer';
@@ -106,16 +111,73 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return apiError(submit.error || 'USDC transfer failed', 500);
     }
 
+    const destHex = destinationAddress as `0x${string}`;
+    const serverHex = walletConfig.address;
+    let confirmedTxHash = submit.txHash;
+
+    const isLikelyIndexingLag = (err: unknown) =>
+      err instanceof TransactionNotFoundError ||
+      err instanceof WaitForTransactionReceiptTimeoutError ||
+      (err instanceof Error && /could not be found/i.test(err.message));
+
     try {
-      await waitForTreasuryTxReceipt(submit.txHash);
+      await waitForTreasuryTxReceipt(confirmedTxHash);
     } catch (waitErr) {
-      const msg =
-        waitErr instanceof Error ? waitErr.message : 'Confirmation failed';
-      console.error('treasury withdraw waitForReceipt:', waitErr);
-      return apiError(
-        `${msg}. Transaction was submitted: ${submit.txHash}`,
-        500
+      if (!isLikelyIndexingLag(waitErr)) {
+        const msg =
+          waitErr instanceof Error ? waitErr.message : 'Confirmation failed';
+        console.error('treasury withdraw waitForReceipt:', waitErr);
+        return apiError(
+          `${msg}. Transaction was submitted: ${confirmedTxHash}`,
+          500
+        );
+      }
+
+      console.warn(
+        'treasury withdraw: receipt wait failed (possible RPC lag), resolving via logs:',
+        waitErr
       );
+
+      const logResolveDeadline = Date.now() + 120_000;
+      let fromLogs: `0x${string}` | null = null;
+      while (Date.now() < logResolveDeadline) {
+        fromLogs = await findRecentTreasuryUsdcTransfer({
+          serverWalletAddress: serverHex,
+          recipientAddress: destHex,
+          usdcAmount: withdrawAmount,
+        });
+        if (fromLogs) break;
+        await new Promise((r) => setTimeout(r, 2_000));
+      }
+
+      if (!fromLogs) {
+        const msg =
+          waitErr instanceof Error ? waitErr.message : 'Confirmation failed';
+        console.error(
+          'treasury withdraw waitForReceipt (no log match):',
+          waitErr
+        );
+        return apiError(
+          `${msg}. Transaction was submitted: ${confirmedTxHash}`,
+          500
+        );
+      }
+
+      confirmedTxHash = fromLogs;
+      try {
+        await waitForTreasuryTxReceipt(confirmedTxHash);
+      } catch (finalErr) {
+        const msg =
+          finalErr instanceof Error ? finalErr.message : 'Confirmation failed';
+        console.error(
+          'treasury withdraw waitForReceipt (after log resolve):',
+          finalErr
+        );
+        return apiError(
+          `${msg}. Transaction was submitted: ${confirmedTxHash}`,
+          500
+        );
+      }
     }
 
     await insertTreasuryAdminRecoveryLedgerIfAbsent({
@@ -123,12 +185,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       amount: withdrawAmount,
       fromWalletAddress: walletConfig.address,
       toWalletAddress: destinationAddress,
-      txHash: submit.txHash,
+      txHash: confirmedTxHash,
     });
 
     return apiSuccess(
       {
-        txHash: submit.txHash,
+        txHash: confirmedTxHash,
         amountUsdc: withdrawAmount,
         destinationAddress,
       },
