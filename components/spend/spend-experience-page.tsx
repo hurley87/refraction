@@ -26,6 +26,13 @@ import {
   POSTER_CHECKOUT_USDC_ADDRESS_BASE,
 } from '@/lib/walletconnect-poster-direct-usdc';
 
+/** Privy supports `sponsor` at runtime for gas sponsorship; `@privy-io/react-auth` types omit it. */
+type PrivySendTransactionOptions = NonNullable<
+  Parameters<ReturnType<typeof useSendTransaction>['sendTransaction']>[1]
+> & {
+  sponsor?: boolean;
+};
+
 type SpendExperiencePageProps = {
   experienceId: string;
   initialExperience: SpendExperience;
@@ -164,6 +171,10 @@ export function SpendExperiencePage({
   const evmWallet = useMemo(() => {
     if (!walletAddress) return null;
     const lower = walletAddress.toLowerCase();
+    const privyEmbedded = wallets.find(
+      (w) => w.walletClientType === 'privy' && w.address.toLowerCase() === lower
+    );
+    if (privyEmbedded) return privyEmbedded;
     return (
       wallets.find((w) => w.address.toLowerCase() === lower) ??
       wallets[0] ??
@@ -315,39 +326,38 @@ export function SpendExperiencePage({
         'Switching to Base in your wallet'
       );
       const data = encodeUsdcTransferData(recipient, preview.usdcAmount);
+      const transactionRequest = {
+        to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+        data,
+        chainId: POSTER_CHECKOUT_CHAIN_ID,
+      };
       const spendPaymentDebug = process.env.NODE_ENV !== 'production';
       if (spendPaymentDebug) {
         console.debug('[spend payment]', {
           step: 'spend_payment_send_requested',
           walletAddress,
-          evmWallet: {
-            address: evmWallet.address,
-            walletClientType: evmWallet.walletClientType,
-          },
+          evmWalletAddress: evmWallet.address,
+          evmWalletClientType: evmWallet.walletClientType,
           chainId: POSTER_CHECKOUT_CHAIN_ID,
           sponsor: true,
           to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
           hasData: Boolean(data),
           dataLength: data.length,
-          includesValueField: false,
+          includesValueField: Object.prototype.hasOwnProperty.call(
+            transactionRequest,
+            'value'
+          ),
         });
       }
       // Client-side gas sponsorship requires Privy Dashboard → Gas sponsorship → Allow transactions from the client to be enabled for Base.
       let hash: string;
       try {
+        const sendOptions: PrivySendTransactionOptions = {
+          address: evmWallet.address,
+          sponsor: true,
+        };
         const result = await withTimeout(
-          sendTransaction(
-            {
-              to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
-              data,
-              value: 0n,
-              chainId: POSTER_CHECKOUT_CHAIN_ID,
-            },
-            {
-              address: walletAddress,
-              sponsor: true,
-            } as Parameters<typeof sendTransaction>[1]
-          ),
+          sendTransaction(transactionRequest, sendOptions),
           WALLET_STEP_TIMEOUT_MS,
           'Confirm the USDC payment in your wallet'
         );
@@ -363,10 +373,8 @@ export function SpendExperiencePage({
             message,
             name,
             walletAddress,
-            evmWallet: {
-              address: evmWallet.address,
-              walletClientType: evmWallet.walletClientType,
-            },
+            evmWalletAddress: evmWallet.address,
+            evmWalletClientType: evmWallet.walletClientType,
             sponsor: true,
           });
         }
@@ -377,6 +385,8 @@ export function SpendExperiencePage({
           step: 'spend_payment_send_success',
           hash,
           walletAddress,
+          evmWalletAddress: evmWallet.address,
+          evmWalletClientType: evmWallet.walletClientType,
           sponsor: true,
         });
       }
