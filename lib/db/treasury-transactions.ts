@@ -34,7 +34,7 @@ function rowToTreasury(row: Record<string, unknown>): TreasuryTransaction {
 
 type TreasuryLedgerInsertType = Extract<
   TreasuryTransaction['transaction_type'],
-  'fund_user' | 'receive_payment'
+  'fund_user' | 'receive_payment' | 'admin_recovery'
 >;
 
 async function insertTreasuryLedgerRowIfAbsent(params: {
@@ -103,6 +103,24 @@ export function insertTreasuryReceivePaymentLedgerIfAbsent(input: {
   return insertTreasuryLedgerRowIfAbsent({
     spendExperienceId: input.spendExperienceId,
     transactionType: 'receive_payment',
+    amount: input.amount,
+    fromWalletAddress: input.fromWalletAddress,
+    toWalletAddress: input.toWalletAddress,
+    txHash: input.txHash,
+  });
+}
+
+/** Optional audit row: admin withdrawal from server wallet to an external address. */
+export function insertTreasuryAdminRecoveryLedgerIfAbsent(input: {
+  spendExperienceId: string;
+  amount: number;
+  fromWalletAddress: string;
+  toWalletAddress: string;
+  txHash: string;
+}): Promise<void> {
+  return insertTreasuryLedgerRowIfAbsent({
+    spendExperienceId: input.spendExperienceId,
+    transactionType: 'admin_recovery',
     amount: input.amount,
     fromWalletAddress: input.fromWalletAddress,
     toWalletAddress: input.toWalletAddress,
