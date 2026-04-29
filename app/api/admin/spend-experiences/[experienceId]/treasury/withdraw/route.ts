@@ -18,18 +18,6 @@ interface RouteParams {
   params: { experienceId: string };
 }
 
-function normalizeAddr(a: string): string {
-  return a.trim().toLowerCase();
-}
-
-function balanceToMicroUsdc(balance: number): number {
-  return Math.floor(balance * 1e6);
-}
-
-function microUsdcToAmount(micro: number): number {
-  return micro / 1e6;
-}
-
 /**
  * POST /api/admin/spend-experiences/{experienceId}/treasury/withdraw
  * Sends USDC from the experience server wallet to an admin-provided address on Base.
@@ -67,10 +55,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const { destinationAddress, amountUsdc } = validation.data;
-    const destNorm = normalizeAddr(destinationAddress);
-    const serverNorm = normalizeAddr(getSpendServerWalletAddress(experience));
+    const destLower = destinationAddress.toLowerCase();
+    const serverLower = getSpendServerWalletAddress(experience)
+      .trim()
+      .toLowerCase();
 
-    if (destNorm === serverNorm) {
+    if (destLower === serverLower) {
       return apiError(
         'Destination must differ from the server wallet address.',
         400
@@ -82,7 +72,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return apiError('Could not read server wallet USDC balance.', 500);
     }
 
-    const maxMicro = balanceToMicroUsdc(balance);
+    const maxMicro = Math.floor(balance * 1e6);
     let withdrawMicro: number;
     if (amountUsdc != null && amountUsdc > 0) {
       withdrawMicro = Math.floor(amountUsdc * 1e6);
@@ -91,7 +81,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
       if (withdrawMicro > maxMicro) {
         return apiError(
-          `Amount exceeds available balance (${microUsdcToAmount(maxMicro).toFixed(6)} USDC).`,
+          `Amount exceeds available balance (${(maxMicro / 1e6).toFixed(6)} USDC).`,
           400
         );
       }
@@ -103,12 +93,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return apiError('No USDC available to withdraw.', 400);
     }
 
-    const withdrawAmount = microUsdcToAmount(withdrawMicro);
+    const withdrawAmount = withdrawMicro / 1e6;
 
     const submit = await submitTreasuryUsdcTransfer({
       serverWalletId: walletConfig.walletId,
       serverWalletAddress: walletConfig.address,
-      recipientAddress: destinationAddress.trim() as `0x${string}`,
+      recipientAddress: destinationAddress as `0x${string}`,
       usdcAmount: withdrawAmount,
     });
 
@@ -132,7 +122,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       spendExperienceId: experience.id,
       amount: withdrawAmount,
       fromWalletAddress: walletConfig.address,
-      toWalletAddress: destinationAddress.trim(),
+      toWalletAddress: destinationAddress,
       txHash: submit.txHash,
     });
 
@@ -140,7 +130,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       {
         txHash: submit.txHash,
         amountUsdc: withdrawAmount,
-        destinationAddress: destinationAddress.trim(),
+        destinationAddress,
       },
       'Withdrawal confirmed.'
     );

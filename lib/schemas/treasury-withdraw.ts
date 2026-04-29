@@ -7,7 +7,7 @@ export const treasuryWithdrawRequestSchema = z.object({
     .trim()
     .min(1, 'Destination address is required')
     .refine((v) => isEvmAddress(v), 'Invalid Ethereum address'),
-  /** Omit or null to withdraw the full USDC balance (minus rounding). */
+  /** Omit or null to withdraw the full USDC balance at max precision (6 decimals). */
   amountUsdc: z.number().positive().finite().optional().nullable(),
 });
 

@@ -263,7 +263,7 @@ export default function SpendExperienceDetailPage() {
     void treasuryQuery.refetch();
   }, [experienceQuery, activityQuery, treasuryQuery]);
 
-  const handleWithdrawServerWallet = useCallback(async () => {
+  async function handleWithdrawServerWallet() {
     const trimmed = withdrawDestination.trim();
     if (!trimmed) {
       toast.error('Enter the wallet address that will receive the funds.');
@@ -292,7 +292,7 @@ export default function SpendExperienceDetailPage() {
     } finally {
       setWithdrawSubmitting(false);
     }
-  }, [experienceId, headers, refetchAll, withdrawDestination]);
+  }
 
   if (adminLoading || (user && isAdmin === null)) {
     return (
@@ -504,8 +504,8 @@ export default function SpendExperienceDetailPage() {
                   className="font-mono text-xs"
                 />
                 <p className="text-xs text-neutral-500">
-                  Sends the full Base USDC balance (whole micro-USDC units) to
-                  this address. Gas is sponsored.
+                  Withdraws the full Base USDC balance (6 decimals). Gas is
+                  sponsored.
                 </p>
               </div>
               <Button
@@ -517,7 +517,9 @@ export default function SpendExperienceDetailPage() {
                   treasuryData.serverWalletUsdcBalance === null ||
                   treasuryData.serverWalletUsdcBalance <= 0
                 }
-                onClick={() => void handleWithdrawServerWallet()}
+                onClick={() => {
+                  void handleWithdrawServerWallet();
+                }}
               >
                 {withdrawSubmitting ? (
                   <>
