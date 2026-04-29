@@ -28,6 +28,19 @@ const FALLBACK_SCAN_BLOCKS = 1_000n;
 /** Coinbase (and other) Base RPCs reject eth_getLogs when the range exceeds 1000 blocks. */
 const MAX_LOG_BLOCK_SPAN = 1_000n;
 
+type PrivyEthSendTransactionRpcResponse = {
+  method?: 'eth_sendTransaction';
+  data?: {
+    hash?: string;
+    transactionId?: string;
+    transaction_id?: string;
+    caip2?: string;
+  };
+  error?: {
+    message?: string;
+  };
+};
+
 function rpcUrl(): string {
   return process.env.NEXT_PUBLIC_BASE_RPC?.trim() || 'https://mainnet.base.org';
 }
@@ -149,25 +162,38 @@ export async function submitTreasuryUsdcTransfer(params: {
   }
 
   try {
-    const result = await getPrivyClient().walletApi.ethereum.sendTransaction({
+    const transaction = {
+      from: params.serverWalletAddress,
+      to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+      chainId: POSTER_CHECKOUT_CHAIN.id,
+      data: encodeFunctionData({
+        abi: erc20Abi,
+        functionName: 'transfer',
+        args: [
+          params.recipientAddress,
+          parseUnits(params.usdcAmount.toFixed(6), 6),
+        ],
+      }),
+      value: '0x0' as const,
+    };
+    const result = (await getPrivyClient().walletApi.rpc({
       walletId: params.serverWalletId,
+      method: 'eth_sendTransaction',
       caip2: SPEND_SERVER_WALLET_CAIP2,
       sponsor: true,
-      transaction: {
-        from: params.serverWalletAddress,
-        to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
-        chainId: POSTER_CHECKOUT_CHAIN.id,
-        data: encodeFunctionData({
-          abi: erc20Abi,
-          functionName: 'transfer',
-          args: [
-            params.recipientAddress,
-            parseUnits(params.usdcAmount.toFixed(6), 6),
-          ],
-        }),
-        value: '0x0',
+      params: {
+        transaction,
       },
-    });
+    } as Parameters<
+      ReturnType<typeof getPrivyClient>['walletApi']['rpc']
+    >[0])) as PrivyEthSendTransactionRpcResponse;
+    if (result.error) {
+      return {
+        ok: false,
+        error: result.error.message ?? 'USDC transfer failed',
+      };
+    }
+
     const txHash = normalizeEvmTxHash(
       await resolvePrivyServerTransactionHash(result)
     );
