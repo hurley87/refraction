@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy, useSendTransaction, useWallets } from '@privy-io/react-auth';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,6 @@ import {
   POSTER_CHECKOUT_CHAIN_ID,
   POSTER_CHECKOUT_USDC_ADDRESS_BASE,
 } from '@/lib/walletconnect-poster-direct-usdc';
-import type { BrowserProvider } from '@/lib/walletconnect-pay/sign-wallet-rpc-action';
 
 type SpendExperiencePageProps = {
   experienceId: string;
@@ -156,6 +155,7 @@ export function SpendExperiencePage({
   initialExperience,
 }: SpendExperiencePageProps) {
   const { user, login, getAccessToken } = usePrivy();
+  const { sendTransaction } = useSendTransaction();
   const { wallets } = useWallets();
   const queryClient = useQueryClient();
   const walletAddress = user?.wallet?.address;
@@ -314,32 +314,36 @@ export function SpendExperiencePage({
         WALLET_STEP_TIMEOUT_MS,
         'Switching to Base in your wallet'
       );
-      const provider = await evmWallet.getEthereumProvider();
-      if (!provider) {
-        throw new Error('Could not connect to your wallet');
-      }
       const data = encodeUsdcTransferData(recipient, preview.usdcAmount);
-      const hash = await withTimeout(
-        (provider as unknown as BrowserProvider).request({
-          method: 'eth_sendTransaction',
-          params: [
-            {
-              from: walletAddress,
-              to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
-              data,
-            },
-          ],
-        }) as Promise<string>,
+      // Client-side gas sponsorship requires Privy Dashboard → Gas sponsorship → Allow transactions from the client to be enabled for Base.
+      const { hash } = await withTimeout(
+        sendTransaction(
+          {
+            to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+            data,
+            value: 0n,
+            chainId: POSTER_CHECKOUT_CHAIN_ID,
+          },
+          {
+            address: walletAddress,
+            sponsor: true,
+          } as Parameters<typeof sendTransaction>[1]
+        ),
         WALLET_STEP_TIMEOUT_MS,
         'Confirm the USDC payment in your wallet'
       );
-      const txHash = typeof hash === 'string' ? hash : String(hash);
-      await paymentMutation.mutateAsync(txHash);
+      await paymentMutation.mutateAsync(hash);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast.error(msg);
     }
-  }, [walletAddress, evmWallet, previewPayload, paymentMutation]);
+  }, [
+    walletAddress,
+    evmWallet,
+    previewPayload,
+    paymentMutation,
+    sendTransaction,
+  ]);
 
   useEffect(() => {
     const fireScan = async () => {
