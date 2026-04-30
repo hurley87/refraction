@@ -1,13 +1,10 @@
 import { cn } from '@/lib/utils';
-import {
-  CityGuideTexturedImage,
-  DEFAULT_PAPER_TEXTURE_SRC,
-} from '@/components/city-guides/city-guide-textured-image';
+import { CityGuideTexturedImage } from '@/components/city-guides/city-guide-textured-image';
 
 export interface CityGuideArticleHeroImageProps {
   src: string;
   alt: string;
-  /** Paper grit overlay; set `null` to disable. */
+  /** Paper grit overlay; defaults off. */
   textureSrc?: string | null;
   /** Texture layer opacity (0–1). @default 0.48 */
   textureOpacity?: number;
@@ -19,13 +16,12 @@ export interface CityGuideArticleHeroImageProps {
 }
 
 /**
- * Article hero: 361×361 image with optional paper texture. (Earlier comps used 114px empty space
- * below the photo; that is omitted so body copy can sit ~20px under the image.)
+ * Article hero: 361×361 image; optional paper texture via `textureSrc`.
  */
 export function CityGuideArticleHeroImage({
   src,
   alt,
-  textureSrc = DEFAULT_PAPER_TEXTURE_SRC,
+  textureSrc = null,
   textureOpacity = 0.48,
   textureBlendMode = 'lighten',
   className,

@@ -11,7 +11,7 @@ export interface CityGuideTexturedImageProps {
   priority?: boolean;
   containerClassName?: string;
   className?: string;
-  /** Paper grit overlay; set `null` to disable. */
+  /** Paper grit overlay; defaults off. Pass {@link DEFAULT_PAPER_TEXTURE_SRC} to enable. */
   textureSrc?: string | null;
   /** Texture layer opacity (0–1). @default 0.52 */
   textureOpacity?: number;
@@ -25,7 +25,7 @@ export interface CityGuideTexturedImageProps {
 }
 
 /**
- * Base image with optional paper texture overlay for city guide visuals.
+ * Base image with optional paper texture overlay (opt-in via `textureSrc`).
  */
 export function CityGuideTexturedImage({
   src,
@@ -34,7 +34,7 @@ export function CityGuideTexturedImage({
   priority = false,
   containerClassName,
   className,
-  textureSrc = DEFAULT_PAPER_TEXTURE_SRC,
+  textureSrc = null,
   textureOpacity = 0.52,
   textureBlendMode = 'soft-light',
   textureClassName,

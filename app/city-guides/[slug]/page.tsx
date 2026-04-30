@@ -159,7 +159,6 @@ export default async function CityGuideBySlugPage({
                   alt={row.map_image_alt ?? 'Map for this guide'}
                   sizes="361px"
                   containerClassName="h-full w-full"
-                  textureSrc={null}
                 />
               </div>
             </section>
@@ -177,7 +176,6 @@ export default async function CityGuideBySlugPage({
                 sectionIndex === nonEmptyLocationSections.length - 1;
               return (
                 <div key={`venue-section-${sectionIndex}`}>
-                 
                   {section.locations.map((entry, index) => {
                     const loc = entry.location;
                     const description =
