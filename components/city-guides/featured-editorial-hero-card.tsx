@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import MapNav from '@/components/map/mapnav';
-import { cn } from '@/lib/utils';
+import { cn, splitTitleLastWord } from '@/lib/utils';
 
 export type GuideKind = 'city-guide' | 'editorial';
 
@@ -44,6 +44,9 @@ export default function FeaturedEditorialHeroCard({
   const resolvedReadLabel = readLabel ?? defaultReadLabel(guideKind);
   const subtitle = titleLine2.trim();
   const twoLineFeaturedTitle = subtitle.length > 0;
+
+  const { beforeLastWord: line1BeforeLastWord, lastWord: line1LastWord } =
+    splitTitleLastWord(titleLine1);
 
   const ariaFeaturedTitle =
     titleLine1 && subtitle
@@ -106,7 +109,12 @@ export default function FeaturedEditorialHeroCard({
             {twoLineFeaturedTitle ? (
               <>
                 <div className="title1 font-semibold leading-tight text-[#171717]">
-                  {titleLine1}
+                  {line1BeforeLastWord ? `${line1BeforeLastWord} ` : null}
+                  {line1LastWord ? (
+                    <span className="box-decoration-clone bg-[#FFE600] px-1 py-0">
+                      {line1LastWord}
+                    </span>
+                  ) : null}
                 </div>
                 <span className="title1 font-bold uppercase tracking-tight text-[#171717] md:leading-none">
                   {titleLine2}
@@ -114,7 +122,12 @@ export default function FeaturedEditorialHeroCard({
               </>
             ) : (
               <div className="title1 font-bold uppercase tracking-tight text-[#171717] md:leading-none">
-                {titleLine1}
+                {line1BeforeLastWord ? `${line1BeforeLastWord} ` : null}
+                {line1LastWord ? (
+                  <span className="box-decoration-clone bg-[#FFE600] px-1 py-0">
+                    {line1LastWord}
+                  </span>
+                ) : null}
               </div>
             )}
           </div>

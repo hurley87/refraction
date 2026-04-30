@@ -56,7 +56,7 @@ export function CityGuidesHubSection({
 
   const emptyMessage =
     entries.length === 0
-      ? 'No additional guides to show yet.'
+      ? 'No guides to show yet.'
       : 'No guides match this filter.';
 
   return (

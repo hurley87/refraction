@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Calendar } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, splitTitleLastWord } from '@/lib/utils';
 import { CityGuidesHubCardImage } from '@/components/city-guides/city-guides-hub-card-image';
 import {
   defaultReadLabel,
@@ -53,6 +53,7 @@ export default function CityGuideListCard({
   className,
 }: CityGuideListCardProps) {
   const readLabel = defaultReadLabel(guideKind);
+  const { beforeLastWord, lastWord } = splitTitleLastWord(title);
 
   return (
     <article
@@ -105,7 +106,14 @@ export default function CityGuideListCard({
         </div>
       </div>
 
-      <h2 className="title1 min-h-8 text-[#171717]">{title}</h2>
+      <h2 className="title1 min-h-8 text-[#171717]">
+        {beforeLastWord ? `${beforeLastWord} ` : null}
+        {lastWord ? (
+          <span className="box-decoration-clone bg-[#FFE600] px-1 py-0">
+            {lastWord}
+          </span>
+        ) : null}
+      </h2>
 
       <p className="body-small line-clamp-2 min-h-10 text-[#757575]">
         {preview}

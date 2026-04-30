@@ -13,9 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function CityGuidesHomePage() {
   const featured = await getFeaturedGuide();
-  const listRows = await getPublishedGuides({
-    excludeId: featured?.id,
-  });
+  const listRows = await getPublishedGuides();
 
   return (
     <main className="min-h-screen w-full bg-[#F5F5F5] font-grotesk">

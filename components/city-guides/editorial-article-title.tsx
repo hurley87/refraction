@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn, splitTitleLastWord } from '@/lib/utils';
 
 export interface EditorialArticleTitleProps {
   /** First line — `title1`, bold (700). Usually a short phrase (a few words). */
@@ -18,12 +18,8 @@ export function EditorialArticleTitle({
   className,
 }: EditorialArticleTitleProps) {
   const sub = secondary?.trim() ?? '';
-  const secondaryWords = sub ? sub.split(/\s+/).filter(Boolean) : [];
-  const secondaryLast = secondaryWords.length
-    ? secondaryWords[secondaryWords.length - 1]!
-    : '';
-  const secondaryBeforeLast =
-    secondaryWords.length > 1 ? secondaryWords.slice(0, -1).join(' ') : '';
+  const { beforeLastWord: secondaryBeforeLast, lastWord: secondaryLast } =
+    splitTitleLastWord(sub);
 
   return (
     <div className={cn('w-full max-w-[361px]', className)}>
