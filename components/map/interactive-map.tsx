@@ -139,6 +139,49 @@ function zoomForMapboxSearchFeature(featureType?: string): number {
   }
 }
 
+const SEARCH_NEARBY_MATCH_MAX_METERS = 120;
+
+/** Great-circle distance in meters between two WGS84 points. */
+function haversineDistanceMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const rad = Math.PI / 180;
+  const φ1 = lat1 * rad;
+  const φ2 = lat2 * rad;
+  const Δφ = (lat2 - lat1) * rad;
+  const Δλ = (lon2 - lon1) * rad;
+  const a =
+    Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** Best map pin within ~`maxMeters` of the search coords (distinct Mapbox IDs for same venue). */
+function findNearestIrLMarker(
+  list: MarkerData[],
+  latitude: number,
+  longitude: number,
+  maxMeters = SEARCH_NEARBY_MATCH_MAX_METERS
+): MarkerData | null {
+  let best: MarkerData | null = null;
+  let bestD = Infinity;
+  for (const m of list) {
+    const d = haversineDistanceMeters(
+      latitude,
+      longitude,
+      m.latitude,
+      m.longitude
+    );
+    if (d <= maxMeters && d < bestD) {
+      best = m;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
 export default function InteractiveMap({
   initialPlaceId,
   initialLatitude,
@@ -755,15 +798,37 @@ export default function InteractiveMap({
     placeFormatted?: string;
     featureType?: string;
   }) => {
-    setPendingMapCreateMarker(null);
-    const { longitude, latitude, featureType, name } = picked;
-    const zoom = zoomForMapboxSearchFeature(featureType);
-    const newViewState = { longitude, latitude, zoom };
+    const { longitude, latitude, name, placeFormatted, id } = picked;
+
+    const matchedMarker =
+      findExistingMarker(id) ??
+      findNearestIrLMarker(markers, latitude, longitude);
+
+    // Match tapping a pin: street-level zoom and bottom padding so the MapCard does not obscure the target.
+    const targetZoom = Math.max(viewState.zoom ?? 12, 15);
+
+    const bottomPaddingPx =
+      typeof window !== 'undefined'
+        ? Math.min(360, Math.max(200, Math.round(window.innerHeight * 0.34)))
+        : 280;
+
+    mapRef.current?.flyTo?.({
+      center: [longitude, latitude],
+      zoom: targetZoom,
+      duration: 1200,
+      padding: { top: 0, bottom: bottomPaddingPx, left: 0, right: 0 },
+    });
+
+    const newViewState = { longitude, latitude, zoom: targetZoom };
     setViewState(newViewState);
 
-    console.log('[MapBounds] Search selected:', { longitude, latitude, name });
-    // Update bounds immediately using the new viewState, then again after map settles
-    // First update uses the new coordinates for fallback calculation
+    console.log('[MapBounds] Search selected:', {
+      longitude,
+      latitude,
+      name,
+      matchedIrL: Boolean(matchedMarker),
+    });
+
     const immediateBounds = calculateMapBounds(newViewState);
     if (immediateBounds) {
       console.log(
@@ -773,7 +838,6 @@ export default function InteractiveMap({
       setMapBounds(immediateBounds);
     }
 
-    // Update again after map has fully moved to get accurate bounds from map instance
     setTimeout(() => {
       console.log('[MapBounds] Recalculating bounds after search delay');
       const bounds = calculateMapBounds();
@@ -783,9 +847,61 @@ export default function InteractiveMap({
       }
     }, 500);
 
-    // Search only recenters the map — never open MapCard or pending-create from a suggestion.
+    setTimeout(() => {
+      const bounds = calculateMapBounds();
+      if (bounds) setMapBounds(bounds);
+    }, 1300);
+
+    if (matchedMarker) {
+      setPendingMapCreateMarker(null);
+      setPopupInfo(matchedMarker);
+      setSelectedMarker(matchedMarker);
+      return;
+    }
+
+    // No IRL listing at this suggestion: flow mirrors map click (wallet) or drawer-style fallback card.
+    if (walletAddress) {
+      const newMarker: MarkerData = {
+        latitude,
+        longitude,
+        place_id: id,
+        name: name?.trim() || 'Selected location',
+        address:
+          placeFormatted?.trim() ||
+          name?.trim() ||
+          `Near ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+      };
+      setPopupInfo(null);
+      setSelectedMarker(newMarker);
+      setFormData({
+        name: newMarker.name,
+        address: newMarker.address || newMarker.name,
+        description: '',
+        locationImage: null,
+        checkInComment: '',
+      });
+      setFormStep('business-details');
+      setPendingMapCreateMarker(newMarker);
+      return;
+    }
+
+    setPendingMapCreateMarker(null);
     setSelectedMarker(null);
-    setPopupInfo(null);
+    setPopupInfo({
+      latitude,
+      longitude,
+      place_id: id || `search-${latitude.toFixed(5)}-${longitude.toFixed(5)}`,
+      name: name?.trim() || 'Selected location',
+      address:
+        placeFormatted?.trim() ||
+        name?.trim() ||
+        `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+      imageUrl: null,
+      creator_wallet_address: null,
+      creator_username: null,
+      type: 'location',
+      event_url: null,
+    });
   };
 
   const handleMarkerClick = (marker: MarkerData) => {
