@@ -108,37 +108,6 @@ interface InteractiveMapProps {
   guideReturnHref?: string | null;
 }
 
-/**
- * Zoom after a Mapbox Search Box selection. Cities/places use ~10 so the
- * viewport stays wide enough for Explore list bounds; addresses/POIs stay tight.
- */
-function zoomForMapboxSearchFeature(featureType?: string): number {
-  switch (featureType?.toLowerCase() ?? '') {
-    case 'country':
-      return 4;
-    case 'region':
-      return 6;
-    case 'postcode':
-    case 'district':
-      return 10;
-    case 'place':
-      return 10;
-    case 'locality':
-      return 11;
-    case 'neighborhood':
-      return 12;
-    case 'street':
-      return 14;
-    case 'address':
-    case 'poi':
-      return 15;
-    case 'category':
-      return 14;
-    default:
-      return 11;
-  }
-}
-
 const SEARCH_NEARBY_MATCH_MAX_METERS = 120;
 
 /** Great-circle distance in meters between two WGS84 points. */
