@@ -193,6 +193,22 @@ export async function runSpendPaymentConfirm(input: {
     }
   }
 
+  // Do not accept direct USDC payment while a points conversion is still in flight for this
+  // session (points may already be deducted and treasury funding may complete). Otherwise the
+  // user could receive treasury-funded USDC and still pass payment confirm with the same wallet.
+  if (
+    payingWithOwnUsdc &&
+    pointConversion &&
+    pointConversion.status !== 'failed'
+  ) {
+    return {
+      ok: false,
+      error:
+        'Points conversion is still in progress. Complete or wait for conversion before paying with your wallet.',
+      httpStatus: 400,
+    };
+  }
+
   const receiving = getSpendServerWalletAddress(spendExperience).trim();
   if (!isEvmAddress(receiving)) {
     return {
