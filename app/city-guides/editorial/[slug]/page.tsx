@@ -65,7 +65,6 @@ export default async function EditorialBySlugPage({
         <article className="px-4 pb-16 pt-2">
           <EditorialArticleTitle
             primary={row.title_primary?.trim() ?? ''}
-            secondary={row.title_secondary?.trim() || undefined}
             className="mb-4"
           />
 
@@ -88,14 +87,14 @@ export default async function EditorialBySlugPage({
             />
           ) : null}
 
+          <EditorialArticleBlocks blocks={blocks} />
+
           {contributors.length > 0 ? (
             <GuideArticleContributorsSection
               contributors={contributors}
-              className="mb-10"
+              className="mt-10"
             />
           ) : null}
-
-          <EditorialArticleBlocks blocks={blocks} />
         </article>
       </div>
     </div>

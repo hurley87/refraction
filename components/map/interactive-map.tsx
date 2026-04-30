@@ -7,6 +7,8 @@ import Map, { Marker } from 'react-map-gl/mapbox';
 import LocationSearch from '@/components/shared/location-search';
 import {
   MapboxGeocodeFeature,
+  getSearchResultFlyToZoom,
+  isMapSearchGeneralAreaFeatureType,
   mergePoiAndAddressReverseGeocode,
   mergeSearchBoxReverseFeatures,
 } from '@/lib/utils/location-autofill';
@@ -767,14 +769,19 @@ export default function InteractiveMap({
     placeFormatted?: string;
     featureType?: string;
   }) => {
-    const { longitude, latitude, name, placeFormatted, id } = picked;
+    const { longitude, latitude, name, placeFormatted, id, featureType } =
+      picked;
 
-    const matchedMarker =
-      findExistingMarker(id) ??
-      findNearestIrLMarker(markers, latitude, longitude);
+    const isGeneralArea = isMapSearchGeneralAreaFeatureType(featureType);
+    const matchedMarker = isGeneralArea
+      ? null
+      : (findExistingMarker(id) ??
+        findNearestIrLMarker(markers, latitude, longitude));
 
-    // Match tapping a pin: street-level zoom and bottom padding so the MapCard does not obscure the target.
-    const targetZoom = Math.max(viewState.zoom ?? 12, 15);
+    const targetZoom = getSearchResultFlyToZoom(
+      featureType,
+      viewState.zoom ?? 12
+    );
 
     const bottomPaddingPx =
       typeof window !== 'undefined'
@@ -820,6 +827,13 @@ export default function InteractiveMap({
       const bounds = calculateMapBounds();
       if (bounds) setMapBounds(bounds);
     }, 1300);
+
+    if (isGeneralArea) {
+      setPopupInfo(null);
+      setPendingMapCreateMarker(null);
+      setSelectedMarker(null);
+      return;
+    }
 
     if (matchedMarker) {
       setPendingMapCreateMarker(null);
@@ -1482,6 +1496,38 @@ export default function InteractiveMap({
         </div>
       </div>
 
+      {showLocationForm && (
+        <button
+          type="button"
+          onClick={handleCloseLocationForm}
+          disabled={isCreatingLocation}
+          className="pointer-events-auto absolute z-[85] flex h-10 w-10 shrink-0 items-center justify-center gap-4 rounded-[179px] border border-[#DBDBDB] bg-[var(--Backgrounds-Background,#FFF)] p-2 disabled:pointer-events-none disabled:opacity-50"
+          style={{
+            left: 'max(8px, env(safe-area-inset-left, 0px))',
+            top: 'calc(env(safe-area-inset-top, 0px) + 5.5rem + 8px)',
+          }}
+          aria-label="Close create location form"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width={24}
+            height={24}
+            viewBox="0 0 24 24"
+            fill="none"
+            className="shrink-0"
+            aria-hidden
+          >
+            <path
+              d="M6 18L18 6M6 6l12 12"
+              stroke="#171717"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      )}
+
       {/* Mobile: locate control (lower right) */}
       <div className="pointer-events-none absolute bottom-4 right-4 z-10 md:hidden">
         <button
@@ -1675,6 +1721,7 @@ export default function InteractiveMap({
         onLocationFocus={handleFocusLocationFromList}
         mapBounds={mapBounds}
         userLocation={userLocation}
+        collapseForMapCard={Boolean(popupInfo || pendingMapCreateMarker)}
       />
 
       {/* Map */}

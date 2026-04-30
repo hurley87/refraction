@@ -122,7 +122,6 @@ export default async function CityGuideBySlugPage({
               title_prefix: row.title_prefix,
               city_name: row.city_name,
             })}
-            contributors={contributorNames}
             className="mb-4"
           />
 
@@ -142,13 +141,6 @@ export default async function CityGuideBySlugPage({
             <CityGuideArticleDescription
               headline={headline}
               paragraphs={leadParagraphs}
-              className="mb-10"
-            />
-          ) : null}
-
-          {contributors.length > 0 ? (
-            <GuideArticleContributorsSection
-              contributors={contributors}
               className="mb-10"
             />
           ) : null}
@@ -247,6 +239,13 @@ export default async function CityGuideBySlugPage({
               </svg>
             </Link>
           </div>
+
+          {contributors.length > 0 ? (
+            <GuideArticleContributorsSection
+              contributors={contributors}
+              className="mt-10"
+            />
+          ) : null}
         </article>
       </div>
     </div>

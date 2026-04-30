@@ -44,7 +44,7 @@ VALUES (
   NULL,
   true,
   NOW(),
-  true,
+  false,
   $card$Boiler Room, CTM, and the clubs that still feel like the edge of the map - Berlin through Michail Stangl's lens.$card$,
   '/city-guides/berlin/michail/michail-stangl-hero.jpg',
   'Berlin - Michail Stangl city guide',

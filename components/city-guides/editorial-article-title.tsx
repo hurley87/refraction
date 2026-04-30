@@ -1,36 +1,28 @@
 import { cn, splitTitleLastWord } from '@/lib/utils';
 
 export interface EditorialArticleTitleProps {
-  /** First line — `title1`, bold (700). Usually a short phrase (a few words). */
+  /** Headline — `title1` scale; last word on IRL yellow (same pattern as city guides). */
   primary: string;
-  /** Second line — same `title1` scale, medium (500). Last word gets `#FFE600` highlight like city guides. */
-  secondary?: string;
   className?: string;
 }
 
 /**
- * Editorial article hero title: one or two lines in the `title1` scale; primary bold;
- * optional secondary line medium with the last word highlighted (IRL yellow accent).
+ * Editorial article hero title: single `title1` line; last word highlighted.
  */
 export function EditorialArticleTitle({
   primary,
-  secondary,
   className,
 }: EditorialArticleTitleProps) {
-  const sub = secondary?.trim() ?? '';
-  const { beforeLastWord: secondaryBeforeLast, lastWord: secondaryLast } =
-    splitTitleLastWord(sub);
+  const title = primary.trim();
+  const { beforeLastWord, lastWord } = splitTitleLastWord(title);
 
   return (
     <div className={cn('w-full max-w-[361px]', className)}>
-      <h1 className="flex flex-col gap-2 text-[#313131]">
-        <span className="title1 font-boldblock">{primary.trim()}</span>
-        {sub ? (
-          <span className="title1 block font-medium">
-            {secondaryBeforeLast ? `${secondaryBeforeLast} ` : null}
-            <span className="box-decoration-clone bg-[#FFE600] px-1 py-0">
-              {secondaryLast}
-            </span>
+      <h1 className="title1 font-bold text-[#313131]">
+        {beforeLastWord ? `${beforeLastWord} ` : null}
+        {lastWord ? (
+          <span className="box-decoration-clone bg-[#FFF200] px-1 py-0 text-[#171717]">
+            {lastWord}
           </span>
         ) : null}
       </h1>

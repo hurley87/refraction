@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import {
   // MapPin, CheckCircle2,
   ChevronDown,
@@ -51,6 +51,8 @@ interface LocationListsDrawerProps {
   onLocationFocus?: (location: DrawerLocationSummary) => void;
   mapBounds?: MapBounds | null; // Current map viewport bounds (what's visible on screen)
   userLocation?: UserLocation | null; // Not used for filtering, kept for potential future use
+  /** Collapse list content while the map location card is open to avoid overlapping UI. */
+  collapseForMapCard?: boolean;
 }
 
 /**
@@ -185,10 +187,13 @@ export default function LocationListsDrawer({
   onLocationFocus,
   mapBounds,
   userLocation,
+  collapseForMapCard = false,
 }: LocationListsDrawerProps) {
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
+  const prevHasVisibleLocationsRef = useRef(false);
+  const prevCollapseForMapCardRef = useRef(collapseForMapCard);
   // const [visitedLocationIds, setVisitedLocationIds] = useState<Set<number>>(
   //   new Set(),
   // );
@@ -347,14 +352,37 @@ export default function LocationListsDrawer({
   }, [lists, isLoadingLists]);
 
   useEffect(() => {
-    if (hasVisibleLocations) {
+    if (collapseForMapCard) {
+      setIsExpanded(false);
+    }
+  }, [collapseForMapCard]);
+
+  useEffect(() => {
+    const wasCollapsedForMap = prevCollapseForMapCardRef.current;
+    if (wasCollapsedForMap && !collapseForMapCard && hasVisibleLocations) {
       setIsExpanded(true);
     }
-  }, [hasVisibleLocations]);
+    prevCollapseForMapCardRef.current = collapseForMapCard;
+  }, [collapseForMapCard, hasVisibleLocations]);
+
+  useEffect(() => {
+    if (
+      hasVisibleLocations &&
+      !prevHasVisibleLocationsRef.current &&
+      !collapseForMapCard
+    ) {
+      setIsExpanded(true);
+    }
+    prevHasVisibleLocationsRef.current = hasVisibleLocations;
+  }, [hasVisibleLocations, collapseForMapCard]);
 
   if (isLoadingLists || !hasAnyListLocations || !hasVisibleLocations) {
     return null;
   }
+
+  /** Sync in render so the drawer shrinks immediately; effects alone run after paint. */
+  const showDiscoverBody = !collapseForMapCard;
+  const listGridOpen = showDiscoverBody && isExpanded;
 
   return (
     <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex justify-center px-3 pb-3">
@@ -365,96 +393,104 @@ export default function LocationListsDrawer({
           onClick={() => setIsExpanded((prev) => !prev)}
           className="group flex w-full items-center justify-center py-2"
           aria-label={
-            isExpanded ? 'Collapse lists drawer' : 'Expand lists drawer'
+            collapseForMapCard
+              ? 'Discover minimized while a location is open'
+              : isExpanded
+                ? 'Collapse lists drawer'
+                : 'Expand lists drawer'
           }
         >
           <span className="h-[3px] w-8 rounded-full bg-black/10 transition-colors group-hover:bg-black/20" />
         </button>
 
-        <div className="px-4 pb-3">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <p className="text-[15px]  font-medium tracking-[-0.3px] text-[#1a1a1a] title3">
-                Explore
-              </p>
-              <p className="text-xs font-anonymous text-[#888]">
-                Discover spots nearby
-              </p>
+        {showDiscoverBody && (
+          <div className="px-4 pb-3">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-[15px]  font-medium tracking-[-0.3px] text-[#1a1a1a] title3">
+                  Explore
+                </p>
+                <p className="text-xs font-anonymous text-[#888]">
+                  Discover spots nearby
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsExpanded((prev) => !prev)}
+                className="flex items-center gap-1.5 rounded-full bg-black/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[1px] text-[#1a1a1a] transition-all hover:bg-black/[0.08] active:scale-95"
+              >
+                {isExpanded ? 'Hide' : 'View'}
+                {isExpanded ? (
+                  <ChevronDown className="h-2.5 w-2.5" />
+                ) : (
+                  <ChevronUp className="h-2.5 w-2.5" />
+                )}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsExpanded((prev) => !prev)}
-              className="flex items-center gap-1.5 rounded-full bg-black/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[1px] text-[#1a1a1a] transition-all hover:bg-black/[0.08] active:scale-95"
-            >
-              {isExpanded ? 'Hide' : 'View'}
-              {isExpanded ? (
-                <ChevronDown className="h-2.5 w-2.5" />
-              ) : (
-                <ChevronUp className="h-2.5 w-2.5" />
-              )}
-            </button>
-          </div>
 
-          {/* Expandable content */}
-          <div
-            className={`grid transition-all duration-300 ease-out ${
-              isExpanded
-                ? 'mt-3 grid-rows-[1fr] opacity-100'
-                : 'grid-rows-[0fr] opacity-0'
-            }`}
-          >
-            <div className="overflow-hidden">
-              <div className="max-h-64 overflow-y-auto space-y-4">
-                {listsWithSpotsInView.map((list) => {
-                  const visibleCount = list.locations?.length ?? 0;
-                  return (
-                    <div key={list.id} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h3 className=" text-[#1a1a1a] title3">{list.title}</h3>
-                        <span className="text-[10px] font-anonymous text-[#999]">
-                          {`${visibleCount} spots`}
-                        </span>
+            {/* Expandable content */}
+            <div
+              className={`grid transition-all duration-300 ease-out ${
+                listGridOpen
+                  ? 'mt-3 grid-rows-[1fr] opacity-100'
+                  : 'grid-rows-[0fr] opacity-0'
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div className="max-h-64 overflow-y-auto space-y-4">
+                  {listsWithSpotsInView.map((list) => {
+                    const visibleCount = list.locations?.length ?? 0;
+                    return (
+                      <div key={list.id} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h3 className=" text-[#1a1a1a] title3">
+                            {list.title}
+                          </h3>
+                          <span className="text-[10px] font-anonymous text-[#999]">
+                            {`${visibleCount} spots`}
+                          </span>
+                        </div>
+                        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                          {(list.locations ?? []).map((location) => (
+                            <article
+                              key={location.membershipId}
+                              onClick={() => onLocationFocus?.(location)}
+                              className="group relative flex w-36 flex-shrink-0 flex-col rounded-xl bg-black/[0.02] p-1.5 transition-all hover:bg-black/[0.04] active:scale-[0.98] cursor-pointer"
+                            >
+                              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
+                                {location.coin_image_url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={location.coin_image_url}
+                                    alt={location.name}
+                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center bg-black/[0.04] text-[10px] font-anonymous text-[#999]">
+                                    No image
+                                  </div>
+                                )}
+                              </div>
+                              <div className="mt-1.5 px-0.5">
+                                <p className=" text-[#1a1a1a] truncate leading-tight title3">
+                                  {location.name}
+                                </p>
+                                <p className="text-[9px] font-anonymous text-[#888] truncate mt-0.5">
+                                  {location.description || location.name}
+                                </p>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                        {(list.locations ?? []).map((location) => (
-                          <article
-                            key={location.membershipId}
-                            onClick={() => onLocationFocus?.(location)}
-                            className="group relative flex w-36 flex-shrink-0 flex-col rounded-xl bg-black/[0.02] p-1.5 transition-all hover:bg-black/[0.04] active:scale-[0.98] cursor-pointer"
-                          >
-                            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
-                              {location.coin_image_url ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={location.coin_image_url}
-                                  alt={location.name}
-                                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center bg-black/[0.04] text-[10px] font-anonymous text-[#999]">
-                                  No image
-                                </div>
-                              )}
-                            </div>
-                            <div className="mt-1.5 px-0.5">
-                              <p className=" text-[#1a1a1a] truncate leading-tight title3">
-                                {location.name}
-                              </p>
-                              <p className="text-[9px] font-anonymous text-[#888] truncate mt-0.5">
-                                {location.description || location.name}
-                              </p>
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

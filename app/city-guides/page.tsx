@@ -14,6 +14,7 @@ export const dynamic = 'force-dynamic';
 export default async function CityGuidesHomePage() {
   const featured = await getFeaturedGuide();
   const listRows = await getPublishedGuides();
+  const hasPublishedGuides = listRows.length > 0;
 
   return (
     <main className="min-h-screen w-full bg-[#F5F5F5] font-grotesk">
@@ -21,19 +22,18 @@ export default async function CityGuidesHomePage() {
         <FeaturedEditorialHeroCard
           guideKind={featured.guideKind}
           titleLine1={featured.titleLine1}
-          titleLine2={featured.titleLine2}
           featuredPeople={featured.featuredPeople}
           heroImageSrc={featured.heroImageSrc}
           heroImageAlt={featured.heroImageAlt}
           readHref={featured.readHref}
         />
-      ) : (
+      ) : !hasPublishedGuides ? (
         <section className="mx-auto flex min-h-[200px] w-full max-w-[393px] items-center justify-center bg-neutral-900 px-4 py-12 text-center">
           <p className="body-medium text-white/80">
             No published guides yet. Add and publish guides in Admin → Guides.
           </p>
         </section>
-      )}
+      ) : null}
 
       <section className="w-full border-t border-[#E5E5E5] bg-white">
         <div className="mx-auto w-full max-w-[393px] px-4 pb-16">

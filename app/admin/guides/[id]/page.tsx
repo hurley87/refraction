@@ -92,19 +92,12 @@ function slugifyFromTitleText(raw: string): string {
 function suggestedSlugFromTitles(
   kind: 'city_guide' | 'editorial',
   titlePrefix: string,
-  titlePrimary: string,
-  titleSecondary: string
+  titlePrimary: string
 ): string {
   if (kind === 'city_guide') {
     return slugifyFromTitleText(titlePrefix.trim());
   }
-  const primary = titlePrimary.trim();
-  const secondary = titleSecondary.trim();
-  const line =
-    primary && secondary
-      ? `${primary} ${secondary}`
-      : primary || secondary || '';
-  return slugifyFromTitleText(line);
+  return slugifyFromTitleText(titlePrimary.trim());
 }
 
 /** Creation API uses these generic slugs before the editor sets real titles */
@@ -114,14 +107,12 @@ function computeSlugFollowsTitles(
   currentSlug: string,
   kind: 'city_guide' | 'editorial',
   titlePrefix: string,
-  titlePrimary: string,
-  titleSecondary: string
+  titlePrimary: string
 ): boolean {
   const suggestedFromPersistence = suggestedSlugFromTitles(
     kind,
     titlePrefix,
-    titlePrimary,
-    titleSecondary
+    titlePrimary
   );
   if (
     suggestedFromPersistence &&
@@ -205,7 +196,6 @@ export default function AdminGuideEditPage() {
   const [slug, setSlug] = useState('');
   const [titlePrefix, setTitlePrefix] = useState('');
   const [titlePrimary, setTitlePrimary] = useState('');
-  const [titleSecondary, setTitleSecondary] = useState('');
   const [heroUrl, setHeroUrl] = useState('');
   const [heroAlt, setHeroAlt] = useState('');
   const [leadHeadline, setLeadHeadline] = useState('');
@@ -244,7 +234,6 @@ export default function AdminGuideEditPage() {
     const tp = guide.title_prefix ?? '';
     const cn = guide.city_name ?? '';
     const t1 = guide.title_primary ?? '';
-    const t2 = guide.title_secondary ?? '';
 
     /** City guides store one headline in `title_prefix` on save; merge legacy splits for edit + slug sync. */
     const cityHeadlineForSlug =
@@ -256,16 +245,14 @@ export default function AdminGuideEditPage() {
       guide.slug,
       guide.kind,
       cityHeadlineForSlug,
-      t1,
-      t2
+      t1
     );
     slugFollowsTitlesRef.current = pins;
 
     const suggestedFromGuide = suggestedSlugFromTitles(
       guide.kind,
       cityHeadlineForSlug,
-      t1,
-      t2
+      t1
     );
 
     setSlug(pins && suggestedFromGuide ? suggestedFromGuide : guide.slug);
@@ -276,7 +263,6 @@ export default function AdminGuideEditPage() {
         : tp
     );
     setTitlePrimary(t1);
-    setTitleSecondary(t2);
     setHeroUrl(guide.hero_image_url ?? '');
     setHeroAlt(guide.hero_image_alt ?? '');
     setLeadHeadline(guide.lead_headline ?? '');
@@ -318,12 +304,11 @@ export default function AdminGuideEditPage() {
     const suggested = suggestedSlugFromTitles(
       guide.kind,
       titlePrefix,
-      titlePrimary,
-      titleSecondary
+      titlePrimary
     );
     if (!suggested) return;
     setSlug(suggested);
-  }, [guide?.id, guide?.kind, titlePrefix, titlePrimary, titleSecondary]);
+  }, [guide?.id, guide?.kind, titlePrefix, titlePrimary]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -355,7 +340,7 @@ export default function AdminGuideEditPage() {
             ? null
             : (guide.city_name?.trim() ?? null) || null,
         title_primary: titlePrimary.trim() || null,
-        title_secondary: titleSecondary.trim() || null,
+        title_secondary: null,
         hero_image_url: heroUrl.trim(),
         hero_image_alt: heroAlt.trim(),
         lead_headline: leadHeadline.trim() || null,
@@ -809,21 +794,13 @@ export default function AdminGuideEditPage() {
             />
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label>Title primary (bold)</Label>
-              <Input
-                value={titlePrimary}
-                onChange={(e) => setTitlePrimary(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>Title secondary (optional)</Label>
-              <Input
-                value={titleSecondary}
-                onChange={(e) => setTitleSecondary(e.target.value)}
-              />
-            </div>
+          <div>
+            <Label>Editorial title</Label>
+            <Input
+              value={titlePrimary}
+              onChange={(e) => setTitlePrimary(e.target.value)}
+              placeholder="Headline shown on the article and hub"
+            />
           </div>
         )}
         <div className="space-y-3">
