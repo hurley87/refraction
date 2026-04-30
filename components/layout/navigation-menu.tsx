@@ -42,7 +42,7 @@ export default function NavigationMenu({
   const allMenuItems: MenuItem[] = [
     { label: 'Map', path: '/interactive-map' },
     { label: 'Dashboard', path: '/dashboard' },
-    { label: 'City Guides', path: '/city-guides', hidden: true },
+    { label: 'City Guides', path: '/city-guides' },
     { label: 'Leaderboard', path: '/leaderboard', hidden: true },
     { label: 'Events', path: '/events' },
     { label: 'Rewards', path: '/rewards' },
