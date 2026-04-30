@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   DEFAULT_MAX_POI_NAME_DISTANCE_M,
   deriveDisplayNameAndAddress,
+  getSearchResultFlyToZoom,
+  isMapSearchGeneralAreaFeatureType,
   mergePoiAndAddressReverseGeocode,
   mergeSearchBoxReverseFeatures,
   type SearchBoxReverseFeature,
@@ -368,5 +370,30 @@ describe('deriveDisplayNameAndAddress', () => {
       expect(result.displayName).toBe('Coffee');
       expect(result.address).toBe('coffee, 123 Main St'); // Case-sensitive, so not stripped
     });
+  });
+});
+
+describe('isMapSearchGeneralAreaFeatureType / getSearchResultFlyToZoom', () => {
+  it('classifies admin areas as general', () => {
+    expect(isMapSearchGeneralAreaFeatureType('country')).toBe(true);
+    expect(isMapSearchGeneralAreaFeatureType('place')).toBe(true);
+    expect(isMapSearchGeneralAreaFeatureType('neighborhood')).toBe(true);
+    expect(isMapSearchGeneralAreaFeatureType('PLACE')).toBe(true);
+    expect(isMapSearchGeneralAreaFeatureType(undefined)).toBe(false);
+  });
+
+  it('does not classify poi or address as general', () => {
+    expect(isMapSearchGeneralAreaFeatureType('poi')).toBe(false);
+    expect(isMapSearchGeneralAreaFeatureType('address')).toBe(false);
+  });
+
+  it('uses coarse zoom for general areas', () => {
+    expect(getSearchResultFlyToZoom('country', 12)).toBe(4);
+    expect(getSearchResultFlyToZoom('neighborhood', 12)).toBe(13);
+  });
+
+  it('uses street zoom floor for venues and unknown types', () => {
+    expect(getSearchResultFlyToZoom('poi', 12)).toBe(15);
+    expect(getSearchResultFlyToZoom(undefined, 12)).toBe(15);
   });
 });

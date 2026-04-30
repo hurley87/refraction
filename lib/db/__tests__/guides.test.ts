@@ -40,7 +40,7 @@ describe('guides helpers', () => {
     expect(hubListTitle(row)).toBe('only-slug');
   });
 
-  it('hubListTitle joins editorial primary and secondary', () => {
+  it('hubListTitle uses editorial primary only', () => {
     const row = {
       kind: 'editorial',
       title_prefix: null,
@@ -49,7 +49,7 @@ describe('guides helpers', () => {
       title_secondary: 'World',
       slug: 'x',
     } as GuideRow;
-    expect(hubListTitle(row)).toBe('Hello : World');
+    expect(hubListTitle(row)).toBe('Hello');
   });
 
   it('guideKindToUi maps DB kind', () => {

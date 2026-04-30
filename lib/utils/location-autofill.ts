@@ -146,6 +146,59 @@ export type SearchBoxPlaceProperties = {
   coordinates?: { latitude?: number; longitude?: number };
 };
 
+/** Mapbox Search Box `feature_type` values for admin / area results — not addresses or POIs. */
+const MAP_SEARCH_GENERAL_AREA_FEATURE_TYPES = new Set([
+  'country',
+  'region',
+  'district',
+  'place',
+  'locality',
+  'neighborhood',
+  'postcode',
+]);
+
+/**
+ * True when a search suggestion is a coarse geographic area (country, city, neighborhood, etc.)
+ * rather than a check-in–scale place (address, POI, …).
+ */
+export function isMapSearchGeneralAreaFeatureType(
+  featureType: string | null | undefined
+): boolean {
+  if (!featureType) return false;
+  return MAP_SEARCH_GENERAL_AREA_FEATURE_TYPES.has(
+    featureType.toLowerCase().trim()
+  );
+}
+
+/** Zoom for `flyTo` after a search pick: wide for countries, tighter for neighborhoods; street for POI/address. */
+export function getSearchResultFlyToZoom(
+  featureType: string | undefined,
+  viewFallbackZoom: number
+): number {
+  if (!isMapSearchGeneralAreaFeatureType(featureType)) {
+    return Math.max(viewFallbackZoom, 15);
+  }
+  const t = featureType!.toLowerCase().trim();
+  switch (t) {
+    case 'country':
+      return 4;
+    case 'region':
+      return 6;
+    case 'district':
+      return 8;
+    case 'place':
+      return 11;
+    case 'locality':
+      return 12;
+    case 'neighborhood':
+      return 13;
+    case 'postcode':
+      return 13;
+    default:
+      return 10;
+  }
+}
+
 /** Search Box `/reverse` GeoJSON feature (geometry + properties). */
 export type SearchBoxReverseFeature = {
   geometry?: { type?: string; coordinates?: [number, number] };

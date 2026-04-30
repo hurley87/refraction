@@ -9,7 +9,6 @@ export interface FeaturedEditorialHeroCardProps {
   /** Static for now; later from CMS */
   guideKind: GuideKind;
   titleLine1: string;
-  titleLine2: string;
   featuredPeople: string[];
   heroImageSrc: string;
   heroImageAlt: string;
@@ -34,7 +33,6 @@ export function defaultReadLabel(kind: GuideKind): string {
 export default function FeaturedEditorialHeroCard({
   guideKind,
   titleLine1,
-  titleLine2,
   featuredPeople,
   heroImageSrc,
   readHref,
@@ -42,16 +40,11 @@ export default function FeaturedEditorialHeroCard({
   className,
 }: FeaturedEditorialHeroCardProps) {
   const resolvedReadLabel = readLabel ?? defaultReadLabel(guideKind);
-  const subtitle = titleLine2.trim();
-  const twoLineFeaturedTitle = subtitle.length > 0;
 
   const { beforeLastWord: line1BeforeLastWord, lastWord: line1LastWord } =
     splitTitleLastWord(titleLine1);
 
-  const ariaFeaturedTitle =
-    titleLine1 && subtitle
-      ? `${titleLine1} ${subtitle}`
-      : titleLine1 || titleLine2;
+  const ariaFeaturedTitle = titleLine1.trim() || resolvedReadLabel;
 
   return (
     <section
@@ -105,31 +98,15 @@ export default function FeaturedEditorialHeroCard({
             </span>
           </div>
 
-          <div id="featured-guide-title" className="flex flex-col gap-0.5">
-            {twoLineFeaturedTitle ? (
-              <>
-                <div className="title1 font-semibold leading-tight text-[#171717]">
-                  {line1BeforeLastWord ? `${line1BeforeLastWord} ` : null}
-                  {line1LastWord ? (
-                    <span className="box-decoration-clone bg-[#FFE600] px-1 py-0">
-                      {line1LastWord}
-                    </span>
-                  ) : null}
-                </div>
-                <span className="title1 font-bold uppercase tracking-tight text-[#171717] md:leading-none">
-                  {titleLine2}
+          <div id="featured-guide-title">
+            <div className="title1 font-bold uppercase tracking-tight text-[#171717] md:leading-none">
+              {line1BeforeLastWord ? `${line1BeforeLastWord} ` : null}
+              {line1LastWord ? (
+                <span className="box-decoration-clone bg-[#FFF200] px-1 py-0 text-[#171717]">
+                  {line1LastWord}
                 </span>
-              </>
-            ) : (
-              <div className="title1 font-bold uppercase tracking-tight text-[#171717] md:leading-none">
-                {line1BeforeLastWord ? `${line1BeforeLastWord} ` : null}
-                {line1LastWord ? (
-                  <span className="box-decoration-clone bg-[#FFE600] px-1 py-0">
-                    {line1LastWord}
-                  </span>
-                ) : null}
-              </div>
-            )}
+              ) : null}
+            </div>
           </div>
 
           {featuredPeople.length > 0 ? (

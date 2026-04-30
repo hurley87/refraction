@@ -106,8 +106,6 @@ export function hubListTitle(row: GuideRow): string {
     return t || row.slug;
   }
   const primary = row.title_primary?.trim() ?? '';
-  const secondary = row.title_secondary?.trim();
-  if (primary && secondary) return `${primary} : ${secondary}`;
   return primary || row.slug;
 }
 
@@ -130,7 +128,6 @@ export type GuideFeaturedPayload = {
   kind: GuideKindDb;
   guideKind: GuideKind;
   titleLine1: string;
-  titleLine2: string;
   featuredPeople: string[];
   heroImageSrc: string;
   heroImageAlt: string;
@@ -143,15 +140,11 @@ function readHrefFor(row: GuideRow): string {
     : `/city-guides/${row.slug}`;
 }
 
-function featuredTitleLines(row: GuideRow): { line1: string; line2: string } {
+function featuredTitleLine(row: GuideRow): string {
   if (row.kind === 'city_guide') {
-    const merged = cityGuideDisplayTitle(row);
-    return { line1: merged, line2: '' };
+    return cityGuideDisplayTitle(row);
   }
-  return {
-    line1: row.title_primary?.trim() ?? '',
-    line2: row.title_secondary?.trim() ?? '',
-  };
+  return row.title_primary?.trim() ?? '';
 }
 
 function toHubListItem(row: GuideRow): GuideHubListItem {
@@ -175,15 +168,14 @@ function toHubListItem(row: GuideRow): GuideHubListItem {
 }
 
 function toFeaturedPayload(row: GuideRow): GuideFeaturedPayload {
-  const { line1, line2 } = featuredTitleLines(row);
+  const titleLine1 = featuredTitleLine(row);
   const people = row.featured_people?.filter((p) => p.trim()) ?? [];
   return {
     id: row.id,
     slug: row.slug,
     kind: row.kind,
     guideKind: guideKindToUi(row.kind),
-    titleLine1: line1,
-    titleLine2: line2,
+    titleLine1,
     featuredPeople: people,
     heroImageSrc: row.hero_image_url || '',
     heroImageAlt: row.hero_image_alt || '',
@@ -242,6 +234,30 @@ async function fetchPublishedGuideRows(
 }
 
 /**
+ * The single hub hero: newest-updated among published rows with `is_featured`
+ * (city guide or editorial). Avoids picking the wrong row when `published_at`
+ * order differs from which guide was last marked featured in admin.
+ */
+async function fetchFeaturedPublishedGuideRow(): Promise<GuideRow | null> {
+  const { data, error } = await supabase
+    .from('guides')
+    .select(GUIDE_LIST_COLUMNS)
+    .eq('is_published', true)
+    .eq('is_featured', true)
+    .order('updated_at', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[guides] fetchFeaturedPublishedGuideRow:', error.message);
+    }
+    return null;
+  }
+  return (data as unknown as GuideRow) ?? null;
+}
+
+/**
  * All published guides for the hub list (newest first).
  */
 export async function getPublishedGuides(options?: {
@@ -263,18 +279,18 @@ export async function getPublishedGuides(options?: {
 }
 
 /**
- * Featured hero: `is_featured` published guide, else newest published.
+ * Featured hub hero: one published row with `is_featured` — either kind
+ * (`city_guide` or `editorial`). If several are flagged (data glitch), the
+ * most recently updated row wins. Returns null when none are featured.
  */
 export async function getFeaturedGuide(): Promise<GuideFeaturedPayload | null> {
-  const rowsOrTimeout = await withQueryTimeout(fetchPublishedGuideRows());
-  if (rowsOrTimeout === GUIDE_QUERY_TIMEOUT) {
+  const rowOrTimeout = await withQueryTimeout(fetchFeaturedPublishedGuideRow());
+  if (rowOrTimeout === GUIDE_QUERY_TIMEOUT) {
     logTimeout('getFeaturedGuide');
     return null;
   }
-  const rows = rowsOrTimeout ?? [];
-  if (rows.length === 0) return null;
-  const featured = rows.find((r) => r.is_featured);
-  return toFeaturedPayload(featured ?? rows[0]);
+  if (!rowOrTimeout) return null;
+  return toFeaturedPayload(rowOrTimeout);
 }
 
 async function fetchContributorsForGuide(
