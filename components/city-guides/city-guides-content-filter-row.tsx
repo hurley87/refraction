@@ -8,7 +8,7 @@ export type CityGuidesSortOrder = 'date-desc' | 'date-asc';
 
 const OPTIONS: { key: CityGuidesContentFilter; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'guides', label: 'Guides' },
+  { key: 'guides', label: 'City Guides' },
   { key: 'editorials', label: 'Editorials' },
 ];
 
