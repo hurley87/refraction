@@ -13,7 +13,9 @@ export const dynamic = 'force-dynamic';
 
 export default async function CityGuidesHomePage() {
   const featured = await getFeaturedGuide();
-  const listRows = await getPublishedGuides();
+  const listRows = await getPublishedGuides(
+    featured ? { excludeId: featured.id } : undefined
+  );
   const hasPublishedGuides = listRows.length > 0;
 
   return (
@@ -35,11 +37,21 @@ export default async function CityGuidesHomePage() {
         </section>
       ) : null}
 
-      <section className="w-full border-t border-[#E5E5E5] bg-white">
-        <div className="mx-auto w-full max-w-[393px] px-4 pb-16">
-          <CityGuidesHubSection entries={listRows} />
-        </div>
-      </section>
+      {hasPublishedGuides ? (
+        featured ? (
+          <div className="w-full bg-white">
+            <div className="mx-auto w-full max-w-[393px] px-4 pb-16">
+              <CityGuidesHubSection entries={listRows} />
+            </div>
+          </div>
+        ) : (
+          <section className="w-full border-t border-[#E5E5E5] bg-white">
+            <div className="mx-auto w-full max-w-[393px] px-4 pb-16">
+              <CityGuidesHubSection entries={listRows} />
+            </div>
+          </section>
+        )
+      ) : null}
     </main>
   );
 }

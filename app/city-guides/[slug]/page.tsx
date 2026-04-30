@@ -177,11 +177,7 @@ export default async function CityGuideBySlugPage({
                 sectionIndex === nonEmptyLocationSections.length - 1;
               return (
                 <div key={`venue-section-${sectionIndex}`}>
-                  {section.heading ? (
-                    <h3 className="title3 mb-3 mt-2 text-[#171717]">
-                      {section.heading}
-                    </h3>
-                  ) : null}
+                 
                   {section.locations.map((entry, index) => {
                     const loc = entry.location;
                     const description =
