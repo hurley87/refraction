@@ -257,6 +257,26 @@ async function fetchFeaturedPublishedGuideRow(): Promise<GuideRow | null> {
   return (data as unknown as GuideRow) ?? null;
 }
 
+/** Newest by `published_at` (then `updated_at`) when nothing is explicitly featured. */
+async function fetchNewestPublishedGuideRow(): Promise<GuideRow | null> {
+  const { data, error } = await supabase
+    .from('guides')
+    .select(GUIDE_LIST_COLUMNS)
+    .eq('is_published', true)
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .order('updated_at', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[guides] fetchNewestPublishedGuideRow:', error.message);
+    }
+    return null;
+  }
+  return (data as unknown as GuideRow) ?? null;
+}
+
 /**
  * All published guides for the hub list (newest first).
  */
@@ -279,18 +299,31 @@ export async function getPublishedGuides(options?: {
 }
 
 /**
- * Featured hub hero: one published row with `is_featured` — either kind
- * (`city_guide` or `editorial`). If several are flagged (data glitch), the
- * most recently updated row wins. Returns null when none are featured.
+ * Hub hero: published row with `is_featured` (either kind), breaking ties by
+ * `updated_at` desc. If none are flagged in Supabase, uses the most recently
+ * published guide/editorial (`published_at` desc, then `updated_at` desc).
  */
 export async function getFeaturedGuide(): Promise<GuideFeaturedPayload | null> {
-  const rowOrTimeout = await withQueryTimeout(fetchFeaturedPublishedGuideRow());
-  if (rowOrTimeout === GUIDE_QUERY_TIMEOUT) {
+  const featuredOrTimeout = await withQueryTimeout(
+    fetchFeaturedPublishedGuideRow()
+  );
+  if (featuredOrTimeout === GUIDE_QUERY_TIMEOUT) {
     logTimeout('getFeaturedGuide');
     return null;
   }
-  if (!rowOrTimeout) return null;
-  return toFeaturedPayload(rowOrTimeout);
+  if (featuredOrTimeout) {
+    return toFeaturedPayload(featuredOrTimeout);
+  }
+
+  const newestOrTimeout = await withQueryTimeout(
+    fetchNewestPublishedGuideRow()
+  );
+  if (newestOrTimeout === GUIDE_QUERY_TIMEOUT) {
+    logTimeout('getFeaturedGuide');
+    return null;
+  }
+  if (!newestOrTimeout) return null;
+  return toFeaturedPayload(newestOrTimeout);
 }
 
 async function fetchContributorsForGuide(
