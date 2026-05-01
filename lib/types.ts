@@ -185,6 +185,7 @@ export type UserProfile = {
   towns_handle?: string;
   farcaster_handle?: string;
   telegram_handle?: string;
+  instagram_handle?: string;
   profile_picture_url?: string;
   created_at?: string;
   updated_at?: string;

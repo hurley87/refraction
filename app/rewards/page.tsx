@@ -15,7 +15,8 @@ import {
   Copy,
 } from 'lucide-react';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
@@ -83,9 +84,10 @@ const TimeLeft = ({
   return <span className={className}>{timeLeft.text}</span>;
 };
 
-export default function PerksPage() {
+function PerksPageInner() {
   const { user } = usePrivy();
   const address = user?.wallet?.address;
+  const searchParams = useSearchParams();
   const { trackEvent, trackPage } = useAnalytics();
 
   // Track page view on mount
@@ -145,6 +147,12 @@ export default function PerksPage() {
   const [sortOption, setSortOption] = useState<'date-desc' | 'date-asc'>(
     'date-desc'
   );
+
+  useEffect(() => {
+    if (searchParams.get('tab') === 'tiers') {
+      setViewMode('tiers');
+    }
+  }, [searchParams]);
 
   const toggleSort = () => {
     setSortOption((prev) => (prev === 'date-desc' ? 'date-asc' : 'date-desc'));
@@ -1401,5 +1409,13 @@ export default function PerksPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function PerksPage() {
+  return (
+    <Suspense fallback={null}>
+      <PerksPageInner />
+    </Suspense>
   );
 }

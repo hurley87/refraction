@@ -18,6 +18,7 @@ const PROFILE_COLUMNS = `
   towns_handle,
   farcaster_handle,
   telegram_handle,
+  instagram_handle,
   profile_picture_url,
   total_points,
   created_at,
@@ -48,6 +49,7 @@ export const createOrUpdateUserProfile = async (
         towns_handle: profile.towns_handle,
         farcaster_handle: profile.farcaster_handle,
         telegram_handle: profile.telegram_handle,
+        instagram_handle: profile.instagram_handle,
         profile_picture_url:
           profile.profile_picture_url || existingProfile.profile_picture_url,
       })

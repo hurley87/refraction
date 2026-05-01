@@ -1,44 +1,49 @@
-import { NextRequest } from "next/server";
+import { NextRequest } from 'next/server';
 
-export const dynamic = "force-dynamic";
-import { getUserProfile, createOrUpdateUserProfile, awardProfileFieldPoints } from "@/lib/db/profiles";
-import type { UserProfile } from "@/lib/types";
-import { apiSuccess, apiError } from "@/lib/api/response";
+export const dynamic = 'force-dynamic';
+import {
+  getUserProfile,
+  createOrUpdateUserProfile,
+  awardProfileFieldPoints,
+} from '@/lib/db/profiles';
+import type { UserProfile } from '@/lib/types';
+import { apiSuccess, apiError } from '@/lib/api/response';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const walletAddress = searchParams.get("wallet_address");
+    const walletAddress = searchParams.get('wallet_address');
 
-    console.log("walletAddress", walletAddress);
+    console.log('walletAddress', walletAddress);
 
     if (!walletAddress) {
-      return apiError("Wallet address is required", 400);
+      return apiError('Wallet address is required', 400);
     }
 
     const profile = await getUserProfile(walletAddress);
 
-    console.log("profile", profile);
+    console.log('profile', profile);
 
     if (!profile) {
       return apiSuccess({
         wallet_address: walletAddress,
-        email: "",
-        name: "",
-        username: "",
-        website: "",
-        twitter_handle: "",
-        towns_handle: "",
-        farcaster_handle: "",
-        telegram_handle: "",
-        profile_picture_url: "",
+        email: '',
+        name: '',
+        username: '',
+        website: '',
+        twitter_handle: '',
+        towns_handle: '',
+        farcaster_handle: '',
+        telegram_handle: '',
+        instagram_handle: '',
+        profile_picture_url: '',
       });
     }
 
     return apiSuccess(profile);
   } catch (error) {
-    console.error("Error fetching profile:", error);
-    return apiError("Failed to fetch profile", 500);
+    console.error('Error fetching profile:', error);
+    return apiError('Failed to fetch profile', 500);
   }
 }
 
@@ -48,7 +53,7 @@ export async function PUT(request: NextRequest) {
     const { wallet_address, ...profileData } = body;
 
     if (!wallet_address) {
-      return apiError("Wallet address is required", 400);
+      return apiError('Wallet address is required', 400);
     }
 
     // Validate social handles
@@ -63,22 +68,27 @@ export async function PUT(request: NextRequest) {
     // Social handles - remove @ symbols if present and validate
     if (profileData.twitter_handle) {
       validatedData.twitter_handle = profileData.twitter_handle
-        .replace(/^@/, "")
+        .replace(/^@/, '')
         .trim();
     }
     if (profileData.towns_handle) {
       validatedData.towns_handle = profileData.towns_handle
-        .replace(/^@/, "")
+        .replace(/^@/, '')
         .trim();
     }
     if (profileData.farcaster_handle) {
       validatedData.farcaster_handle = profileData.farcaster_handle
-        .replace(/^@/, "")
+        .replace(/^@/, '')
         .trim();
     }
     if (profileData.telegram_handle) {
       validatedData.telegram_handle = profileData.telegram_handle
-        .replace(/^@/, "")
+        .replace(/^@/, '')
+        .trim();
+    }
+    if (profileData.instagram_handle) {
+      validatedData.instagram_handle = profileData.instagram_handle
+        .replace(/^@/, '')
         .trim();
     }
     if (profileData.profile_picture_url) {
@@ -96,15 +106,16 @@ export async function PUT(request: NextRequest) {
 
     // Award points for new fields that were filled out
     const profileFieldsMap = {
-      email: "profile_field_email",
-      name: "profile_field_name",
-      username: "profile_field_username",
-      website: "profile_field_website",
-      twitter_handle: "profile_field_twitter",
-      towns_handle: "profile_field_towns",
-      farcaster_handle: "profile_field_farcaster",
-      telegram_handle: "profile_field_telegram",
-      profile_picture_url: "profile_field_picture",
+      email: 'profile_field_email',
+      name: 'profile_field_name',
+      username: 'profile_field_username',
+      website: 'profile_field_website',
+      twitter_handle: 'profile_field_twitter',
+      towns_handle: 'profile_field_towns',
+      farcaster_handle: 'profile_field_farcaster',
+      telegram_handle: 'profile_field_telegram',
+      instagram_handle: 'profile_field_instagram',
+      profile_picture_url: 'profile_field_picture',
     };
 
     const pointsAwarded: Array<{
@@ -146,7 +157,7 @@ export async function PUT(request: NextRequest) {
       pointsAwarded,
     });
   } catch (error) {
-    console.error("Error updating profile:", error);
-    return apiError("Failed to update profile", 500);
+    console.error('Error updating profile:', error);
+    return apiError('Failed to update profile', 500);
   }
 }

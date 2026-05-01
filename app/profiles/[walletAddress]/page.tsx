@@ -1,12 +1,12 @@
-import { notFound } from "next/navigation";
-import type { UserProfile } from "@/lib/types";
-import Link from "next/link";
-import Image from "next/image";
-import PointsActivity from "@/components/perks/points-activity";
-import ProfileAvatar from "@/components/profile-avatar";
-import { getUserProfile } from "@/lib/db/profiles";
-import { getPlayerByWallet } from "@/lib/db/players";
-import { supabase } from "@/lib/db/client";
+import { notFound } from 'next/navigation';
+import type { UserProfile } from '@/lib/types';
+import Link from 'next/link';
+import Image from 'next/image';
+import PointsActivity from '@/components/perks/points-activity';
+import ProfileAvatar from '@/components/profile-avatar';
+import { getUserProfile } from '@/lib/db/profiles';
+import { getPlayerByWallet } from '@/lib/db/players';
+import { supabase } from '@/lib/db/client';
 
 interface ProfilePageProps {
   params: {
@@ -23,7 +23,7 @@ async function getProfile(walletAddress: string): Promise<UserProfile | null> {
     }
 
     // Debug: Log profile data to see what fields are available
-    console.log("[ProfilePage] Profile data:", {
+    console.log('[ProfilePage] Profile data:', {
       wallet_address: profile.wallet_address,
       profile_picture_url: profile.profile_picture_url,
       hasProfilePicture: !!profile.profile_picture_url,
@@ -38,14 +38,14 @@ async function getProfile(walletAddress: string): Promise<UserProfile | null> {
       !profile.twitter_handle &&
       !profile.towns_handle &&
       !profile.farcaster_handle &&
-      !profile.telegram_handle
+      !profile.instagram_handle
     ) {
       return null;
     }
 
     return profile;
   } catch (error) {
-    console.error("Error fetching profile:", error);
+    console.error('Error fetching profile:', error);
     return null;
   }
 }
@@ -61,9 +61,9 @@ async function getUserStats(walletAddress: string) {
 
     // Get all players ordered the same way as leaderboard
     const { data: allPlayers } = await supabase
-      .from("players")
-      .select("id, total_points")
-      .order("id", { ascending: true });
+      .from('players')
+      .select('id, total_points')
+      .order('id', { ascending: true });
 
     // Sort players the same way as the leaderboard function
     const sortedPlayers = (allPlayers || []).sort((a, b) => {
@@ -101,7 +101,7 @@ async function getUserStats(walletAddress: string) {
       total_points: userPoints,
     };
   } catch (error) {
-    console.error("Error fetching user stats:", error);
+    console.error('Error fetching user stats:', error);
     return { rank: 999, total_points: 0 };
   }
 }
@@ -110,28 +110,30 @@ function getOrdinalSuffix(num: number): string {
   const j = num % 10;
   const k = num % 100;
   if (j === 1 && k !== 11) {
-    return "st";
+    return 'st';
   }
   if (j === 2 && k !== 12) {
-    return "nd";
+    return 'nd';
   }
   if (j === 3 && k !== 13) {
-    return "rd";
+    return 'rd';
   }
-  return "th";
+  return 'th';
 }
 
 function getSocialUrl(platform: string, handle: string) {
   if (!handle) return null;
-  const handleClean = handle.replace(/^@/, "");
+  const handleClean = handle.replace(/^@/, '');
   switch (platform) {
-    case "twitter":
+    case 'twitter':
       return `https://twitter.com/${handleClean}`;
-    case "farcaster":
+    case 'farcaster':
       return `https://warpcast.com/${handleClean}`;
-    case "telegram":
+    case 'telegram':
       return `https://t.me/${handleClean}`;
-    case "towns":
+    case 'instagram':
+      return `https://www.instagram.com/${handleClean}/`;
+    case 'towns':
       return `https://towns.com/${handleClean}`;
     default:
       return null;
@@ -185,7 +187,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
             {/* Row 2: Username */}
             <div className="text-black body-large font-medium">
-              @{profile.username || "username"}
+              @{profile.username || 'username'}
             </div>
           </div>
 
@@ -217,7 +219,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                       width={39}
                       height={18}
                       className="mb-1"
-                      style={{ width: "auto", height: "auto" }}
+                      style={{ width: 'auto', height: 'auto' }}
                     />
                   </div>
                 </div>
@@ -228,9 +230,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             <div
               className="h-px bg-gray-300 my-4"
               style={{
-                marginLeft: "-1rem",
-                marginRight: "-1rem",
-                width: "calc(100% + 2rem)",
+                marginLeft: '-1rem',
+                marginRight: '-1rem',
+                width: 'calc(100% + 2rem)',
               }}
             ></div>
 
@@ -266,7 +268,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                         width={39}
                         height={18}
                         className="mb-1"
-                        style={{ width: "auto", height: "auto" }}
+                        style={{ width: 'auto', height: 'auto' }}
                       />
                     </div>
                   </div>
@@ -287,7 +289,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             profile.twitter_handle ||
             profile.towns_handle ||
             profile.farcaster_handle ||
-            profile.telegram_handle) && (
+            profile.instagram_handle) && (
             <div className="w-full bg-white rounded-3xl border border-gray-200 p-4 space-y-4">
               {/* Row 1: WEBSITE Header */}
               {profile.website && (
@@ -308,7 +310,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   {/* Row 2: Website Button */}
                   <a
                     href={
-                      profile.website.startsWith("http")
+                      profile.website.startsWith('http')
                         ? profile.website
                         : `https://${profile.website}`
                     }
@@ -322,19 +324,19 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               )}
 
               {/* Row 3: Dashed Line Separator */}
-              {(profile.website &&
+              {profile.website &&
                 (profile.twitter_handle ||
                   profile.towns_handle ||
                   profile.farcaster_handle ||
-                  profile.telegram_handle)) && (
-                <div className="w-full border-t border-dashed border-gray-300"></div>
-              )}
+                  profile.instagram_handle) && (
+                  <div className="w-full border-t border-dashed border-gray-300"></div>
+                )}
 
               {/* Row 4: FOLLOW Header */}
               {(profile.twitter_handle ||
                 profile.towns_handle ||
                 profile.farcaster_handle ||
-                profile.telegram_handle) && (
+                profile.instagram_handle) && (
                 <>
                   <div className="flex items-center gap-2">
                     <Image
@@ -351,9 +353,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
                   {/* Row 5: Social Icons */}
                   <div className="flex items-center justify-between w-full">
-                    {getSocialUrl("twitter", profile.twitter_handle || "") && (
+                    {getSocialUrl('twitter', profile.twitter_handle || '') && (
                       <a
-                        href={getSocialUrl("twitter", profile.twitter_handle || "")!}
+                        href={
+                          getSocialUrl('twitter', profile.twitter_handle || '')!
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:opacity-70 transition-opacity flex items-center justify-center"
@@ -372,9 +376,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                         </svg>
                       </a>
                     )}
-                    {getSocialUrl("towns", profile.towns_handle || "") && (
+                    {getSocialUrl('towns', profile.towns_handle || '') && (
                       <a
-                        href={getSocialUrl("towns", profile.towns_handle || "")!}
+                        href={
+                          getSocialUrl('towns', profile.towns_handle || '')!
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:opacity-70 transition-opacity flex items-center justify-center"
@@ -393,9 +399,17 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                         </svg>
                       </a>
                     )}
-                    {getSocialUrl("farcaster", profile.farcaster_handle || "") && (
+                    {getSocialUrl(
+                      'farcaster',
+                      profile.farcaster_handle || ''
+                    ) && (
                       <a
-                        href={getSocialUrl("farcaster", profile.farcaster_handle || "")!}
+                        href={
+                          getSocialUrl(
+                            'farcaster',
+                            profile.farcaster_handle || ''
+                          )!
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:opacity-70 transition-opacity flex items-center justify-center"
@@ -414,20 +428,35 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                         </svg>
                       </a>
                     )}
-                    {getSocialUrl("telegram", profile.telegram_handle || "") && (
+                    {getSocialUrl(
+                      'instagram',
+                      profile.instagram_handle || ''
+                    ) && (
                       <a
-                        href={getSocialUrl("telegram", profile.telegram_handle || "")!}
+                        href={
+                          getSocialUrl(
+                            'instagram',
+                            profile.instagram_handle || ''
+                          )!
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:opacity-70 transition-opacity flex items-center justify-center"
+                        aria-label="Instagram"
                       >
-                        <Image
-                          src="/telegram-black.svg"
-                          alt="Telegram"
-                          width={24}
-                          height={24}
-                          className="w-6 h-6"
-                        />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          aria-hidden
+                        >
+                          <path
+                            fill="#313131"
+                            d="M12 2.163c3.204 0 3.584.012 4.85.07 1.255.058 2.118.288 2.863.616a5.43 5.43 0 0 1 1.968 1.282 5.43 5.43 0 0 1 1.282 1.968c.328.745.558 1.608.616 2.863.058 1.266.07 1.646.07 4.85s-.012 3.584-.07 4.85c-.058 1.255-.288 2.118-.616 2.863a5.43 5.43 0 0 1-1.282 1.968 5.43 5.43 0 0 1-1.968 1.282c-.745.328-1.608.558-2.863.616-1.266.058-1.646.07-4.85.07s-3.584-.012-4.85-.07c-1.255-.058-2.118-.288-2.863-.616a5.43 5.43 0 0 1-1.968-1.282 5.43 5.43 0 0 1-1.282-1.968c-.328-.745-.558-1.608-.616-2.863-.058-1.266-.07-1.646-.07-4.85s.012-3.584.07-4.85c.058-1.255.288-2.118.616-2.863a5.43 5.43 0 0 1 1.282-1.968 5.43 5.43 0 0 1 1.968-1.282c.745-.328 1.608-.558 2.863-.616 1.266-.058 1.646-.07 4.85-.07zM12 0C8.741 0 8.333.014 7.053.072 5.775.13 4.902.38 4.14.748a7.43 7.43 0 0 0-2.686 1.748 7.43 7.43 0 0 0-1.748 2.686C.38 4.902.13 5.775.072 7.053.014 8.333 0 8.741 0 12c0 3.259.014 3.667.072 4.947.058 1.278.308 2.152.748 2.914a7.43 7.43 0 0 0 1.748 2.686 7.43 7.43 0 0 0 2.686 1.748c.762.44 1.636.69 2.914.748 1.28.058 1.688.072 4.947.072s3.667-.014 4.947-.072c1.278-.058 2.152-.308 2.914-.748a7.43 7.43 0 0 0 2.686-1.748 7.43 7.43 0 0 0 1.748-2.686c.44-.762.69-1.636.748-2.914.058-1.28.072-1.688.072-4.947s-.014-3.667-.072-4.947c-.058-1.278-.308-2.152-.748-2.914a7.43 7.43 0 0 0-1.748-2.686 7.43 7.43 0 0 0-2.686-1.748c-.762-.44-1.636-.69-2.914-.748C15.667.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"
+                          />
+                        </svg>
                       </a>
                     )}
                   </div>

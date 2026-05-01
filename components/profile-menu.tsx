@@ -180,6 +180,7 @@ export default function ProfileMenu({
     towns_handle: '',
     farcaster_handle: '',
     telegram_handle: '',
+    instagram_handle: '',
     profile_picture_url: '',
   });
   const [saving, setSaving] = useState(false);
@@ -227,6 +228,7 @@ export default function ProfileMenu({
         towns_handle: data.towns_handle || '',
         farcaster_handle: data.farcaster_handle || '',
         telegram_handle: data.telegram_handle || '',
+        instagram_handle: data.instagram_handle || '',
         profile_picture_url: data.profile_picture_url || '',
       });
     } catch (error) {
@@ -961,23 +963,23 @@ export default function ProfileMenu({
                   </div>
                 </div>
 
-                {/* Telegram */}
+                {/* Instagram */}
                 <div className="space-y-2">
                   <Label
-                    htmlFor="telegram"
+                    htmlFor="instagram"
                     className="text-black body-small uppercase"
                   >
-                    TELEGRAM
+                    INSTAGRAM
                   </Label>
                   <div
                     className="flex items-center gap-2"
                     onMouseDown={(e) => {
-                      if (editingField === 'telegram_handle') {
+                      if (editingField === 'instagram_handle') {
                         e.preventDefault();
                       }
                     }}
                     onTouchStart={(e) => {
-                      if (editingField === 'telegram_handle') {
+                      if (editingField === 'instagram_handle') {
                         e.stopPropagation();
                       }
                     }}
@@ -987,24 +989,27 @@ export default function ProfileMenu({
                     ) : (
                       <>
                         <Input
-                          id="telegram"
+                          id="instagram"
                           type="text"
-                          placeholder="Your Telegram handle"
-                          value={profile.telegram_handle}
+                          placeholder="Your Instagram handle"
+                          value={profile.instagram_handle}
                           onChange={(e) =>
-                            handleInputChange('telegram_handle', e.target.value)
+                            handleInputChange(
+                              'instagram_handle',
+                              e.target.value
+                            )
                           }
-                          onFocus={() => setEditingField('telegram_handle')}
+                          onFocus={() => setEditingField('instagram_handle')}
                           onBlur={() => {
                             // Don't clear on blur, let user click checkmark or save
                           }}
                           className={`body-large px-4 h-10 flex-1 ${
-                            editingField === 'telegram_handle'
+                            editingField === 'instagram_handle'
                               ? 'border-[#313131] bg-white'
                               : 'bg-white border-gray-300'
                           } text-black placeholder:text-gray-500`}
                           style={
-                            editingField === 'telegram_handle'
+                            editingField === 'instagram_handle'
                               ? {
                                   borderRadius: '1000px',
                                   border: '1px solid #313131',
@@ -1018,14 +1023,14 @@ export default function ProfileMenu({
                                 }
                           }
                         />
-                        {editingField === 'telegram_handle' ? (
+                        {editingField === 'instagram_handle' ? (
                           <CheckmarkIcon
-                            onClick={() => handleSave('telegram_handle')}
+                            onClick={() => handleSave('instagram_handle')}
                             isLoading={saving}
                           />
                         ) : (
                           <PencilIcon
-                            onClick={() => setEditingField('telegram_handle')}
+                            onClick={() => setEditingField('instagram_handle')}
                             isLoading={false}
                           />
                         )}
