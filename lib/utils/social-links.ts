@@ -1,4 +1,9 @@
-export type SocialPlatform = 'twitter' | 'farcaster' | 'telegram' | 'towns';
+export type SocialPlatform =
+  | 'twitter'
+  | 'farcaster'
+  | 'telegram'
+  | 'towns'
+  | 'instagram';
 
 export function getSocialUrl(
   platform: SocialPlatform,
@@ -15,6 +20,8 @@ export function getSocialUrl(
       return `https://t.me/${handleClean}`;
     case 'towns':
       return `https://towns.com/${handleClean}`;
+    case 'instagram':
+      return `https://www.instagram.com/${handleClean}/`;
     default:
       return null;
   }

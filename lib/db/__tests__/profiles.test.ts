@@ -33,6 +33,7 @@ describe('Profiles Database Module', () => {
     towns_handle: null,
     farcaster_handle: null,
     telegram_handle: null,
+    instagram_handle: null,
     profile_picture_url: 'https://example.com/pic.jpg',
     total_points: 100,
     created_at: '2024-01-01T00:00:00Z',
@@ -48,12 +49,16 @@ describe('Profiles Database Module', () => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: sampleProfile, error: null }),
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: sampleProfile, error: null }),
           })),
         })),
       });
 
-      const result = await getUserProfile('0x1234567890abcdef1234567890abcdef12345678');
+      const result = await getUserProfile(
+        '0x1234567890abcdef1234567890abcdef12345678'
+      );
 
       expect(result).toEqual(sampleProfile);
       expect(mockFrom).toHaveBeenCalledWith('players');
@@ -107,7 +112,9 @@ describe('Profiles Database Module', () => {
           return {
             select: vi.fn(() => ({
               eq: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({ data: sampleProfile, error: null }),
+                single: vi
+                  .fn()
+                  .mockResolvedValue({ data: sampleProfile, error: null }),
               })),
             })),
           };
@@ -117,7 +124,9 @@ describe('Profiles Database Module', () => {
           update: vi.fn(() => ({
             eq: vi.fn(() => ({
               select: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({ data: updatedProfile, error: null }),
+                single: vi
+                  .fn()
+                  .mockResolvedValue({ data: updatedProfile, error: null }),
               })),
             })),
           })),
@@ -151,7 +160,9 @@ describe('Profiles Database Module', () => {
         return {
           insert: vi.fn(() => ({
             select: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({ data: sampleProfile, error: null }),
+              single: vi
+                .fn()
+                .mockResolvedValue({ data: sampleProfile, error: null }),
             })),
           })),
         };
@@ -174,7 +185,9 @@ describe('Profiles Database Module', () => {
           return {
             select: vi.fn(() => ({
               eq: vi.fn(() => ({
-                single: vi.fn().mockResolvedValue({ data: sampleProfile, error: null }),
+                single: vi
+                  .fn()
+                  .mockResolvedValue({ data: sampleProfile, error: null }),
               })),
             })),
           };
@@ -243,7 +256,9 @@ describe('Profiles Database Module', () => {
         update: vi.fn(() => ({
           eq: vi.fn(() => ({
             select: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({ data: updatedProfile, error: null }),
+              single: vi
+                .fn()
+                .mockResolvedValue({ data: updatedProfile, error: null }),
             })),
           })),
         })),
@@ -307,7 +322,9 @@ describe('Profiles Database Module', () => {
         return {
           insert: vi.fn(() => ({
             select: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({ data: mockActivity, error: null }),
+              single: vi
+                .fn()
+                .mockResolvedValue({ data: mockActivity, error: null }),
             })),
           })),
         };

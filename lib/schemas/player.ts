@@ -57,6 +57,7 @@ export const updateUserProfileSchema = z.object({
   towns_handle: z.string().min(1).max(50).optional(),
   farcaster_handle: z.string().min(1).max(50).optional(),
   telegram_handle: z.string().min(1).max(50).optional(),
+  instagram_handle: z.string().min(1).max(50).optional(),
   profile_picture_url: z.string().url().optional(),
 });
 
