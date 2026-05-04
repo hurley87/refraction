@@ -31,21 +31,3 @@ export async function GET(request: NextRequest) {
     return apiError("Failed to fetch perks", 500);
   }
 }
-
-// POST /api/perks
-export async function POST(request: NextRequest) {
-  try {
-    const perk = await request.json();
-    const { data, error } = await supabase
-      .from("perks")
-      .insert(perk)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return apiSuccess({ perk: data });
-  } catch (error) {
-    console.error("POST /api/perks error:", error);
-    return apiError("Failed to create perk", 500);
-  }
-}
