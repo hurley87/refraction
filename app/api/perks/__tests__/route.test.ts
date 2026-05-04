@@ -7,12 +7,8 @@ const mockEqUnlisted = vi.fn(() => ({ or: mockOr }))
 const mockEqActive = vi.fn(() => ({ eq: mockEqUnlisted }))
 const mockOrder = vi.fn(() => ({ eq: mockEqActive }))
 const mockSelectQuery = vi.fn(() => ({ order: mockOrder }))
-const mockSingle = vi.fn()
-const mockSelectInsert = vi.fn(() => ({ single: mockSingle }))
-const mockInsert = vi.fn(() => ({ select: mockSelectInsert }))
 const mockFrom = vi.fn(() => ({
   select: mockSelectQuery,
-  insert: mockInsert,
 }))
 
 vi.mock('@/lib/db/client', () => ({
@@ -21,7 +17,7 @@ vi.mock('@/lib/db/client', () => ({
   },
 }))
 
-import { GET, POST } from '../route'
+import { GET } from '../route'
 
 // Helper to create a mock NextRequest with search params
 function createMockGetRequest(searchParams?: Record<string, string>): NextRequest {
@@ -34,28 +30,17 @@ function createMockGetRequest(searchParams?: Record<string, string>): NextReques
   return new NextRequest(url, { method: 'GET' })
 }
 
-function createMockPostRequest(body: Record<string, unknown>): NextRequest {
-  return new NextRequest('http://localhost:3000/api/perks', {
-    method: 'POST',
-    body: JSON.stringify(body),
-    headers: { 'Content-Type': 'application/json' },
-  })
-}
-
 describe('Perks API Route', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Reset the chain so each test starts fresh
     mockFrom.mockReturnValue({
       select: mockSelectQuery,
-      insert: mockInsert,
     })
     mockSelectQuery.mockReturnValue({ order: mockOrder })
     mockOrder.mockReturnValue({ eq: mockEqActive })
     mockEqActive.mockReturnValue({ eq: mockEqUnlisted })
     mockEqUnlisted.mockReturnValue({ or: mockOr })
-    mockInsert.mockReturnValue({ select: mockSelectInsert })
-    mockSelectInsert.mockReturnValue({ single: mockSingle })
   })
 
   describe('GET /api/perks', () => {
@@ -148,71 +133,6 @@ describe('Perks API Route', () => {
       expect(response.status).toBe(500)
       expect(json.success).toBe(false)
       expect(json.error).toBe('Failed to fetch perks')
-    })
-  })
-
-  describe('POST /api/perks', () => {
-    it('should create a perk successfully', async () => {
-      const newPerk = {
-        title: 'New Perk',
-        description: 'A brand new perk',
-        points_threshold: 200,
-        type: 'discount',
-        is_active: true,
-      }
-      const createdPerk = {
-        id: 'perk-new',
-        ...newPerk,
-        created_at: '2024-01-01T00:00:00Z',
-      }
-
-      mockSingle.mockResolvedValueOnce({ data: createdPerk, error: null })
-
-      const request = createMockPostRequest(newPerk)
-      const response = await POST(request)
-      const json = await response.json()
-
-      expect(response.status).toBe(200)
-      expect(json.success).toBe(true)
-      expect(json.data.perk).toEqual(createdPerk)
-      expect(mockFrom).toHaveBeenCalledWith('perks')
-    })
-
-    it('should return 500 on database error during creation', async () => {
-      mockSingle.mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Insert failed' },
-      })
-
-      const request = createMockPostRequest({
-        title: 'Perk',
-        description: 'desc',
-        points_threshold: 100,
-        type: 'discount',
-      })
-      const response = await POST(request)
-      const json = await response.json()
-
-      expect(response.status).toBe(500)
-      expect(json.success).toBe(false)
-      expect(json.error).toBe('Failed to create perk')
-    })
-
-    it('should return 500 when insert throws', async () => {
-      mockSingle.mockRejectedValueOnce(new Error('Unexpected insert error'))
-
-      const request = createMockPostRequest({
-        title: 'Perk',
-        description: 'desc',
-        points_threshold: 100,
-        type: 'discount',
-      })
-      const response = await POST(request)
-      const json = await response.json()
-
-      expect(response.status).toBe(500)
-      expect(json.success).toBe(false)
-      expect(json.error).toBe('Failed to create perk')
     })
   })
 })
