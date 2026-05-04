@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   useSpendItem,
@@ -12,6 +12,11 @@ import {
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { usePrivy } from '@privy-io/react-auth';
 import type { SpendRedemption } from '@/lib/types';
+import {
+  SpendPageShell,
+  spendPrimaryCtaClass,
+} from '@/components/spend/spend-page-shell';
+import { cn } from '@/lib/utils';
 
 type SpendItemPageProps = {
   itemId: string;
@@ -82,97 +87,142 @@ export function SpendItemPage({ itemId }: SpendItemPageProps) {
 
   if (itemLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        Loading...
-      </div>
+      <SpendPageShell>
+        <div className="flex min-h-[40vh] items-center justify-center rounded-2xl bg-white p-8">
+          <Loader2 className="size-8 animate-spin text-gray-400" />
+        </div>
+      </SpendPageShell>
     );
   }
 
   if (!item) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Item not found</p>
-      </div>
+      <SpendPageShell>
+        <div className="rounded-2xl bg-white p-8 text-center">
+          <p className="font-inktrap text-sm text-gray-600">Item not found</p>
+        </div>
+      </SpendPageShell>
     );
   }
 
   return (
-    <div className="container mx-auto max-w-lg p-6">
+    <SpendPageShell>
       {item.image_url && (
-        <div className="mb-6">
-          <Image
-            src={item.image_url}
-            alt={item.name}
-            width={600}
-            height={400}
-            className="w-full rounded-lg object-cover"
-          />
+        <div className="overflow-hidden rounded-2xl bg-white p-2">
+          <div className="relative aspect-[3/2] w-full overflow-hidden rounded-xl bg-gray-100">
+            <Image
+              src={item.image_url}
+              alt={item.name}
+              fill
+              className="object-cover"
+              sizes="(max-width: 512px) 100vw, 512px"
+            />
+          </div>
         </div>
       )}
 
-      <h1 className="mb-2 text-2xl font-bold">{item.name}</h1>
+      <div className="rounded-2xl bg-white p-4">
+        <h1 className="mb-2 text-xl font-bold text-black font-inktrap">
+          {item.name}
+        </h1>
+        {item.description && (
+          <p className="mb-4 text-sm leading-relaxed text-gray-600 font-inktrap">
+            {item.description}
+          </p>
+        )}
 
-      {item.description && (
-        <p className="mb-4 text-gray-600">{item.description}</p>
-      )}
-
-      <div className="mb-6 space-y-2 rounded-lg bg-gray-50 p-4">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Cost</span>
-          <span className="font-semibold">
-            {item.points_cost.toLocaleString()} points
-          </span>
-        </div>
-        {walletAddress && (
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Your Balance</span>
-            <span className="font-semibold">
-              {currentPoints.toLocaleString()} points
+        <div className="space-y-3 rounded-2xl border-2 border-gray-100 bg-gray-50/90 p-4">
+          <div className="flex justify-between gap-2 text-sm font-inktrap">
+            <span className="text-gray-600">Cost</span>
+            <span className="font-semibold text-black">
+              {item.points_cost.toLocaleString()} points
             </span>
           </div>
-        )}
+          {walletAddress && (
+            <div className="flex justify-between gap-2 text-sm font-inktrap">
+              <span className="text-gray-600">Your balance</span>
+              <span className="font-semibold text-black">
+                {currentPoints.toLocaleString()} points
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {!user ? (
-        <Button className="w-full" onClick={login}>
-          Login to Get Drink Ticket
-        </Button>
+        <div className="rounded-2xl bg-white p-4">
+          <button
+            type="button"
+            onClick={login}
+            className={cn(spendPrimaryCtaClass, 'bg-black text-white hover:bg-gray-800')}
+          >
+            Login to get drink ticket
+          </button>
+        </div>
       ) : (
         <>
-          <Button
-            className="mb-6 w-full"
-            onClick={() => void handleGetTicket()}
-            disabled={createMutation.isPending}
-          >
-            {createMutation.isPending ? 'Creating...' : 'Get Drink Ticket'}
-          </Button>
+          <div className="rounded-2xl bg-white p-4">
+            <button
+              type="button"
+              className={cn(
+                spendPrimaryCtaClass,
+                createMutation.isPending
+                  ? 'bg-gray-100 text-gray-500'
+                  : 'bg-black text-white hover:bg-gray-800'
+              )}
+              onClick={() => void handleGetTicket()}
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin" />
+                  Creating…
+                </span>
+              ) : (
+                'Get drink ticket'
+              )}
+            </button>
+          </div>
 
           {pending.length > 0 && (
-            <div className="mb-4">
-              <h2 className="mb-2 text-sm font-semibold text-gray-700">
+            <div className="rounded-2xl bg-white p-4">
+              <p className="mb-3 text-xs font-inktrap font-bold uppercase tracking-wide text-black">
                 Pending – verify at the bar
-              </h2>
-              <ul className="space-y-2">
+              </p>
+              <ul className="space-y-3">
                 {pending.map((r) => (
                   <li
                     key={r.id}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3"
+                    className="flex flex-col gap-3 rounded-2xl border-2 border-orange-200 bg-orange-50/90 p-4 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <span className="text-sm">
+                    <span className="text-sm text-gray-800 font-inktrap">
                       {r.points_spent} points – not yet verified
                     </span>
-                    <Button
-                      size="sm"
+                    <button
+                      type="button"
+                      className={cn(
+                        spendPrimaryCtaClass,
+                        'shrink-0 px-6 py-2 sm:w-auto',
+                        verifyMutation.isPending ||
+                          currentPoints < r.points_spent
+                          ? 'bg-gray-100 text-gray-500'
+                          : 'bg-black text-white hover:bg-gray-800'
+                      )}
                       onClick={() => void handleVerify(r.id!)}
                       disabled={
                         verifyMutation.isPending ||
                         currentPoints < r.points_spent
                       }
                     >
-                      {verifyMutation.isPending
-                        ? 'Verifying...'
-                        : 'Verify at bar'}
-                    </Button>
+                      {verifyMutation.isPending ? (
+                        <span className="inline-flex items-center gap-2">
+                          <Loader2 className="size-4 animate-spin" />
+                          Verifying…
+                        </span>
+                      ) : (
+                        'Verify at bar'
+                      )}
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -180,15 +230,15 @@ export function SpendItemPage({ itemId }: SpendItemPageProps) {
           )}
 
           {verified.length > 0 && (
-            <div>
-              <h2 className="mb-2 text-sm font-semibold text-gray-700">
+            <div className="rounded-2xl bg-white p-4">
+              <p className="mb-3 text-xs font-inktrap font-bold uppercase tracking-wide text-black">
                 Verified
-              </h2>
-              <ul className="space-y-2">
+              </p>
+              <ul className="space-y-3">
                 {verified.map((r) => (
                   <li
                     key={r.id}
-                    className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-gray-600"
+                    className="flex items-center justify-between gap-2 rounded-2xl border-2 border-green-200 bg-green-50/90 p-4 text-sm font-inktrap text-gray-800"
                   >
                     <span>
                       {r.points_spent} points
@@ -196,7 +246,7 @@ export function SpendItemPage({ itemId }: SpendItemPageProps) {
                         ? ` · ${new Date(r.fulfilled_at).toLocaleDateString()}`
                         : ''}
                     </span>
-                    <span className="font-medium text-green-700">Verified</span>
+                    <span className="font-semibold text-green-800">Verified</span>
                   </li>
                 ))}
               </ul>
@@ -204,6 +254,6 @@ export function SpendItemPage({ itemId }: SpendItemPageProps) {
           )}
         </>
       )}
-    </div>
+    </SpendPageShell>
   );
 }

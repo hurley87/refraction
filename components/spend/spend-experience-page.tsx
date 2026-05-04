@@ -5,7 +5,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy, useSendTransaction, useWallets } from '@privy-io/react-auth';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import {
+  SpendPageShell,
+  spendPrimaryCtaClass,
+} from '@/components/spend/spend-page-shell';
+import { cn } from '@/lib/utils';
 import type {
   PointConversion,
   SpendExperience,
@@ -142,9 +146,9 @@ function eligibilityToneClass(status: SpendEligibilityStatus): string {
     status === 'ready_for_payment_own_usdc' ||
     status === 'payment_complete'
   ) {
-    return 'text-sm text-emerald-800';
+    return 'text-sm font-inktrap text-emerald-800';
   }
-  return 'text-sm text-amber-900';
+  return 'text-sm font-inktrap text-amber-900';
 }
 
 /**
@@ -459,169 +463,214 @@ export function SpendExperiencePage({
     `https://basescan.org/tx/${hash.trim()}`;
 
   return (
-    <div className="container mx-auto max-w-lg p-6">
-      <h1 className="mb-2 text-2xl font-bold text-[#171717]">
-        {experience.title}
-      </h1>
-      {experience.description && (
-        <p className="mb-4 text-neutral-600">{experience.description}</p>
-      )}
+    <SpendPageShell>
+      <div className="rounded-2xl bg-white p-4">
+        <h1 className="mb-2 text-xl font-bold text-black font-inktrap">
+          {experience.title}
+        </h1>
+        {experience.description && (
+          <p className="text-sm leading-relaxed text-gray-600 font-inktrap">
+            {experience.description}
+          </p>
+        )}
+      </div>
 
-      <div className="mb-6 space-y-2 rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm">
-        <div className="flex justify-between">
-          <span className="text-neutral-600">Status</span>
-          <span className="font-medium capitalize">{experience.status}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-neutral-600">Max USDC / user</span>
-          <span className="font-medium">
-            ${Number(experience.max_usdc_per_user).toFixed(2)}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-neutral-600">Points per $1 USDC</span>
-          <span className="font-medium">
-            {Number(experience.points_to_usdc_rate).toLocaleString()} pts
-          </span>
+      <div className="rounded-2xl bg-white p-4">
+        <p className="mb-3 text-xs font-inktrap font-bold uppercase tracking-wide text-black">
+          Experience details
+        </p>
+        <div className="space-y-3 rounded-2xl border-2 border-gray-100 bg-gray-50/90 p-4 text-sm font-inktrap">
+          <div className="flex justify-between gap-2">
+            <span className="text-gray-600">Status</span>
+            <span className="font-semibold capitalize text-black">
+              {experience.status}
+            </span>
+          </div>
+          <div className="flex justify-between gap-2">
+            <span className="text-gray-600">Max USDC / user</span>
+            <span className="font-semibold text-black">
+              ${Number(experience.max_usdc_per_user).toFixed(2)}
+            </span>
+          </div>
+          <div className="flex justify-between gap-2">
+            <span className="text-gray-600">Points per $1 USDC</span>
+            <span className="font-semibold text-black">
+              {Number(experience.points_to_usdc_rate).toLocaleString()} pts
+            </span>
+          </div>
         </div>
       </div>
 
       {!user && (
-        <Button className="w-full" onClick={login}>
-          Log in to continue
-        </Button>
+        <div className="rounded-2xl bg-white p-4">
+          <button
+            type="button"
+            onClick={login}
+            className={cn(
+              spendPrimaryCtaClass,
+              'bg-black text-white hover:bg-gray-800'
+            )}
+          >
+            Log in to continue
+          </button>
+        </div>
       )}
 
       {showWalletBlock && (
-        <p className="text-sm text-amber-800">
-          {SPEND_ELIGIBILITY_MESSAGES.wallet_unavailable}
-        </p>
+        <div className="rounded-2xl border-2 border-amber-200 bg-amber-50/90 p-4">
+          <p className="text-sm font-inktrap text-amber-900">
+            {SPEND_ELIGIBILITY_MESSAGES.wallet_unavailable}
+          </p>
+        </div>
       )}
 
       {user && walletAddress && (
         <div className="space-y-4">
           {isFetching && (
-            <div className="flex items-center gap-2 text-sm text-neutral-600">
-              <Loader2 className="size-4 animate-spin" />
+            <div className="flex items-center gap-2 rounded-2xl bg-white p-4 text-sm text-gray-600 font-inktrap">
+              <Loader2 className="size-4 shrink-0 animate-spin" />
               Starting your session…
             </div>
           )}
 
           {showSessionError && !isFetching && (
-            <p className="text-sm text-red-800">
-              {SPEND_ELIGIBILITY_MESSAGES.experience_inactive}
-            </p>
+            <div className="rounded-2xl border-2 border-red-200 bg-red-50/90 p-4">
+              <p className="text-sm font-inktrap text-red-800">
+                {SPEND_ELIGIBILITY_MESSAGES.experience_inactive}
+              </p>
+            </div>
           )}
 
           {session && !isFetching && !showSessionError && (
             <>
               {previewLoading && (
-                <div className="flex items-center gap-2 text-sm text-neutral-600">
-                  <Loader2 className="size-4 animate-spin" />
+                <div className="flex items-center gap-2 rounded-2xl bg-white p-4 text-sm text-gray-600 font-inktrap">
+                  <Loader2 className="size-4 shrink-0 animate-spin" />
                   Checking your balance and event funds…
                 </div>
               )}
 
               {elig && !previewLoading && (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {preview && (
-                    <div className="space-y-2 rounded-lg border border-neutral-200 bg-white p-4 text-sm">
-                      {showPayDirectUsdc ? (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600">Pay</span>
-                            <span className="font-medium">
-                              ${preview.usdcAmount.toFixed(2)} USDC
-                            </span>
-                          </div>
-                          {preview.userUsdcBalance != null && (
-                            <div className="flex justify-between text-neutral-500">
-                              <span>Your wallet (Base)</span>
-                              <span>
-                                ${preview.userUsdcBalance.toFixed(2)} USDC
+                    <div className="rounded-2xl bg-white p-4">
+                      <p className="mb-3 text-xs font-inktrap font-bold uppercase tracking-wide text-black">
+                        {showPayDirectUsdc ? 'Payment' : 'Conversion'}
+                      </p>
+                      <div className="space-y-3 rounded-2xl border-2 border-gray-100 bg-gray-50/90 p-4 text-sm font-inktrap">
+                        {showPayDirectUsdc ? (
+                          <>
+                            <div className="flex justify-between gap-2">
+                              <span className="text-gray-600">Pay</span>
+                              <span className="font-semibold text-black">
+                                ${preview.usdcAmount.toFixed(2)} USDC
                               </span>
                             </div>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600">
-                              You will use
-                            </span>
-                            <span className="font-medium">
-                              {preview.pointsRequired.toLocaleString()} points
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600">
-                              You will receive
-                            </span>
-                            <span className="font-medium">
-                              ${preview.usdcAmount.toFixed(2)} USDC
-                            </span>
-                          </div>
-                          {preview.userPointsBalance != null && (
-                            <div className="flex justify-between text-neutral-500">
-                              <span>Your points balance</span>
-                              <span>
-                                {Number(
-                                  preview.userPointsBalance
-                                ).toLocaleString()}
+                            {preview.userUsdcBalance != null && (
+                              <div className="flex justify-between gap-2 text-gray-600">
+                                <span>Your wallet (Base)</span>
+                                <span>
+                                  ${preview.userUsdcBalance.toFixed(2)} USDC
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex justify-between gap-2">
+                              <span className="text-gray-600">You will use</span>
+                              <span className="font-semibold text-black">
+                                {preview.pointsRequired.toLocaleString()} points
                               </span>
                             </div>
-                          )}
-                        </>
-                      )}
+                            <div className="flex justify-between gap-2">
+                              <span className="text-gray-600">
+                                You will receive
+                              </span>
+                              <span className="font-semibold text-black">
+                                ${preview.usdcAmount.toFixed(2)} USDC
+                              </span>
+                            </div>
+                            {preview.userPointsBalance != null && (
+                              <div className="flex justify-between gap-2 text-gray-600">
+                                <span>Your points balance</span>
+                                <span>
+                                  {Number(
+                                    preview.userPointsBalance
+                                  ).toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
 
-                  <p className={eligibilityToneClass(elig.status)}>
-                    {elig.message}
-                  </p>
+                  <div className="rounded-2xl bg-white p-4">
+                    <p className={eligibilityToneClass(elig.status)}>
+                      {elig.message}
+                    </p>
+                  </div>
 
                   {showConvert && (
-                    <Button
-                      className="w-full"
-                      disabled={conversionMutation.isPending}
-                      onClick={() => conversionMutation.mutate()}
-                    >
-                      {conversionMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 size-4 animate-spin" />
-                          Converting…
-                        </>
-                      ) : (
-                        'Convert points to USDC'
-                      )}
-                    </Button>
+                    <div className="rounded-2xl bg-white p-4">
+                      <button
+                        type="button"
+                        className={cn(
+                          spendPrimaryCtaClass,
+                          'inline-flex items-center justify-center gap-2',
+                          conversionMutation.isPending
+                            ? 'bg-gray-100 text-gray-500'
+                            : 'bg-black text-white hover:bg-gray-800'
+                        )}
+                        disabled={conversionMutation.isPending}
+                        onClick={() => conversionMutation.mutate()}
+                      >
+                        {conversionMutation.isPending ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" />
+                            Converting…
+                          </>
+                        ) : (
+                          'Convert points to USDC'
+                        )}
+                      </button>
+                    </div>
                   )}
 
                   {showPay && (
-                    <Button
-                      className="w-full"
-                      disabled={paymentMutation.isPending}
-                      onClick={() => void sendUsdcPayment()}
-                    >
-                      {paymentMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 size-4 animate-spin" />
-                          Pay with USDC…
-                        </>
-                      ) : (
-                        `Spend $${preview.usdcAmount.toFixed(2)} USDC`
-                      )}
-                    </Button>
+                    <div className="rounded-2xl bg-white p-4">
+                      <button
+                        type="button"
+                        className={cn(
+                          spendPrimaryCtaClass,
+                          'inline-flex items-center justify-center gap-2',
+                          paymentMutation.isPending
+                            ? 'bg-gray-100 text-gray-500'
+                            : 'bg-black text-white hover:bg-gray-800'
+                        )}
+                        disabled={paymentMutation.isPending}
+                        onClick={() => void sendUsdcPayment()}
+                      >
+                        {paymentMutation.isPending ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" />
+                            Pay with USDC…
+                          </>
+                        ) : (
+                          `Spend $${preview.usdcAmount.toFixed(2)} USDC`
+                        )}
+                      </button>
+                    </div>
                   )}
 
                   {displayReceipt && (
-                    <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-[#171717]">
-                      <p className="font-semibold text-emerald-900">
-                        Payment complete
-                      </p>
+                    <div className="space-y-3 rounded-2xl border-2 border-green-200 bg-green-50/90 p-4 text-sm text-black font-inktrap">
+                      <p className="font-bold text-green-900">Payment complete</p>
                       <div className="flex justify-between gap-2">
-                        <span className="text-neutral-600">Amount</span>
-                        <span className="font-medium">
+                        <span className="text-gray-600">Amount</span>
+                        <span className="font-semibold">
                           $
                           {(
                             receiptConversion?.usdc_amount ??
@@ -632,8 +681,8 @@ export function SpendExperiencePage({
                         </span>
                       </div>
                       <div className="flex justify-between gap-2">
-                        <span className="text-neutral-600">Points used</span>
-                        <span className="font-medium">
+                        <span className="text-gray-600">Points used</span>
+                        <span className="font-semibold">
                           {Number(
                             receiptConversion?.points_deducted ??
                               (displayReceipt && !receiptConversion
@@ -643,8 +692,10 @@ export function SpendExperiencePage({
                         </span>
                       </div>
                       <div>
-                        <p className="text-xs text-neutral-600">Session</p>
-                        <p className="break-all font-mono text-xs">
+                        <p className="text-xs uppercase tracking-wide text-gray-600">
+                          Session
+                        </p>
+                        <p className="break-all font-mono text-xs text-gray-800">
                           {receiptSession?.id}
                         </p>
                       </div>
@@ -653,7 +704,7 @@ export function SpendExperiencePage({
                           href={basescanUrl(receiptPaymentHash)}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-sm font-medium text-emerald-900 underline"
+                          className="inline-flex items-center gap-1 text-sm font-semibold text-green-800 underline"
                         >
                           View payment on BaseScan
                           <ExternalLink className="size-3.5" />
@@ -667,6 +718,6 @@ export function SpendExperiencePage({
           )}
         </div>
       )}
-    </div>
+    </SpendPageShell>
   );
 }
