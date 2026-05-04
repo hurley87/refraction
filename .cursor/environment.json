@@ -1,3 +1,7 @@
 {
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
   "install": "yarn install --frozen-lockfile"
 }
