@@ -34,6 +34,9 @@ export default function UserMenu({
     telegram_handle: '',
     instagram_handle: '',
     profile_picture_url: '',
+    city: '',
+    country: '',
+    bio: '',
   });
   const [isMenuMounted, setIsMenuMounted] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -107,6 +110,9 @@ export default function UserMenu({
           telegram_handle: data.telegram_handle || '',
           instagram_handle: data.instagram_handle || '',
           profile_picture_url: data.profile_picture_url || '',
+          city: data.city || '',
+          country: data.country || '',
+          bio: data.bio || '',
         });
       } else {
         // If profile doesn't exist or API returns error, use defaults
@@ -122,6 +128,9 @@ export default function UserMenu({
           telegram_handle: '',
           instagram_handle: '',
           profile_picture_url: '',
+          city: '',
+          country: '',
+          bio: '',
         });
       }
     } catch (error) {
@@ -139,6 +148,9 @@ export default function UserMenu({
         telegram_handle: '',
         instagram_handle: '',
         profile_picture_url: '',
+        city: '',
+        country: '',
+        bio: '',
       });
     } finally {
       setIsLoadingProfile(false);

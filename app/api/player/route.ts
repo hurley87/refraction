@@ -1,5 +1,9 @@
 import { NextRequest } from 'next/server';
 import { createOrUpdatePlayer, getPlayerByWallet } from '@/lib/db/players';
+import {
+  isUsernameTakenByOther,
+  isPostgresUniqueUsernameViolation,
+} from '@/lib/db/profiles';
 import type { Player } from '@/lib/types';
 import {
   createPlayerRequestSchema,
@@ -22,6 +26,15 @@ export async function POST(request: NextRequest) {
     }
 
     const { walletAddress, email, username } = validationResult.data;
+    const normalizedUsername = username.trim().toLowerCase();
+
+    const taken = await isUsernameTakenByOther(
+      normalizedUsername,
+      walletAddress
+    );
+    if (taken) {
+      return apiError('Username is already taken', 409);
+    }
 
     // Check if player already exists
     const existingPlayer = await getPlayerByWallet(walletAddress);
@@ -31,11 +44,19 @@ export async function POST(request: NextRequest) {
     const playerData: Omit<Player, 'id' | 'created_at' | 'updated_at'> = {
       wallet_address: walletAddress,
       email: email || undefined,
-      username: username.trim(),
+      username: normalizedUsername,
       total_points: 0,
     };
 
-    const player = await createOrUpdatePlayer(playerData);
+    let player;
+    try {
+      player = await createOrUpdatePlayer(playerData);
+    } catch (err: unknown) {
+      if (isPostgresUniqueUsernameViolation(err)) {
+        return apiError('Username is already taken', 409);
+      }
+      throw err;
+    }
 
     const distinctId = resolveServerIdentity({
       email,
@@ -86,7 +107,7 @@ export async function POST(request: NextRequest) {
       try {
         await addCampaignMonitorSubscriber({
           email,
-          username: username.trim(),
+          username: normalizedUsername,
         });
       } catch (campaignMonitorError) {
         console.error(
@@ -157,6 +178,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { walletAddress, username } = validationResult.data;
+    const normalizedUsername = username.trim().toLowerCase();
 
     // Get existing player
     const existingPlayer = await getPlayerByWallet(walletAddress);
@@ -165,15 +187,36 @@ export async function PATCH(request: NextRequest) {
       return apiError('Player not found', 404);
     }
 
+    if (
+      normalizedUsername !==
+      (existingPlayer.username ?? '').trim().toLowerCase()
+    ) {
+      const taken = await isUsernameTakenByOther(
+        normalizedUsername,
+        walletAddress
+      );
+      if (taken) {
+        return apiError('Username is already taken', 409);
+      }
+    }
+
     // Update player
     const playerData: Omit<Player, 'id' | 'created_at' | 'updated_at'> = {
       wallet_address: walletAddress,
       email: existingPlayer.email,
-      username: username.trim(),
+      username: normalizedUsername,
       total_points: existingPlayer.total_points,
     };
 
-    const updatedPlayer = await createOrUpdatePlayer(playerData);
+    let updatedPlayer;
+    try {
+      updatedPlayer = await createOrUpdatePlayer(playerData);
+    } catch (err: unknown) {
+      if (isPostgresUniqueUsernameViolation(err)) {
+        return apiError('Username is already taken', 409);
+      }
+      throw err;
+    }
 
     return apiSuccess(
       { player: updatedPlayer },

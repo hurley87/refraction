@@ -5,6 +5,8 @@ import {
   getUserProfile,
   createOrUpdateUserProfile,
   awardProfileFieldPoints,
+  isUsernameTakenByOther,
+  isPostgresUniqueUsernameViolation,
 } from '@/lib/db/profiles';
 import type { UserProfile } from '@/lib/types';
 import { apiSuccess, apiError } from '@/lib/api/response';
@@ -37,6 +39,9 @@ export async function GET(request: NextRequest) {
         telegram_handle: '',
         instagram_handle: '',
         profile_picture_url: '',
+        city: '',
+        country: '',
+        bio: '',
       });
     }
 
@@ -61,8 +66,20 @@ export async function PUT(request: NextRequest) {
 
     if (profileData.email) validatedData.email = profileData.email.trim();
     if (profileData.name) validatedData.name = profileData.name.trim();
-    if (profileData.username)
-      validatedData.username = profileData.username.trim();
+    if (
+      typeof profileData.username === 'string' &&
+      profileData.username.trim() !== ''
+    ) {
+      const normalizedUsername = profileData.username.trim().toLowerCase();
+      validatedData.username = normalizedUsername;
+      const taken = await isUsernameTakenByOther(
+        normalizedUsername,
+        wallet_address
+      );
+      if (taken) {
+        return apiError('Username is already taken', 409);
+      }
+    }
     if (profileData.website) validatedData.website = profileData.website.trim();
 
     // Social handles - remove @ symbols if present and validate
@@ -96,13 +113,34 @@ export async function PUT(request: NextRequest) {
         profileData.profile_picture_url.trim();
     }
 
+    if (typeof profileData.city === 'string') {
+      const t = profileData.city.trim();
+      validatedData.city = t.length > 120 ? t.slice(0, 120) : t;
+    }
+    if (typeof profileData.country === 'string') {
+      const t = profileData.country.trim();
+      validatedData.country = t.length > 120 ? t.slice(0, 120) : t;
+    }
+    if (typeof profileData.bio === 'string') {
+      const t = profileData.bio.trim();
+      validatedData.bio = t.length > 500 ? t.slice(0, 500) : t;
+    }
+
     // Get the current profile to compare what's new
     const currentProfile = await getUserProfile(wallet_address);
 
-    const updatedProfile = await createOrUpdateUserProfile({
-      wallet_address,
-      ...validatedData,
-    });
+    let updatedProfile;
+    try {
+      updatedProfile = await createOrUpdateUserProfile({
+        wallet_address,
+        ...validatedData,
+      });
+    } catch (err: unknown) {
+      if (isPostgresUniqueUsernameViolation(err)) {
+        return apiError('Username is already taken', 409);
+      }
+      throw err;
+    }
 
     // Award points for new fields that were filled out
     const profileFieldsMap = {
