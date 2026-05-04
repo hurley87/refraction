@@ -8,6 +8,11 @@ vi.mock('@/lib/db/players', () => ({
   getPlayerByWallet: vi.fn(),
 }));
 
+vi.mock('@/lib/db/profiles', () => ({
+  isUsernameTakenByOther: vi.fn().mockResolvedValue(false),
+  isPostgresUniqueUsernameViolation: vi.fn(() => false),
+}));
+
 // Mock analytics
 vi.mock('@/lib/analytics', async () => {
   const actual =
@@ -20,6 +25,7 @@ vi.mock('@/lib/analytics', async () => {
 });
 
 import { createOrUpdatePlayer, getPlayerByWallet } from '@/lib/db/players';
+import { isUsernameTakenByOther } from '@/lib/db/profiles';
 import { trackAccountCreated } from '@/lib/analytics';
 
 // Helper to create a mock NextRequest
@@ -81,6 +87,23 @@ describe('Player API Route', () => {
           has_email: true,
         })
       );
+    });
+
+    it('should return 409 when username is already taken', async () => {
+      vi.mocked(isUsernameTakenByOther).mockResolvedValueOnce(true);
+
+      const request = createMockRequest('POST', {
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        username: 'takenuser',
+      });
+
+      const response = await POST(request);
+      const json = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(json.success).toBe(false);
+      expect(json.error).toBe('Username is already taken');
+      expect(createOrUpdatePlayer).not.toHaveBeenCalled();
     });
 
     it('should update existing player without tracking new account', async () => {
@@ -223,6 +246,31 @@ describe('Player API Route', () => {
   });
 
   describe('PATCH /api/player', () => {
+    it('should return 409 when PATCH username is taken by another wallet', async () => {
+      const existingPlayer = {
+        id: '123',
+        wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+        username: 'olduser',
+        email: 'test@example.com',
+        total_points: 500,
+      };
+
+      vi.mocked(getPlayerByWallet).mockResolvedValueOnce(existingPlayer);
+      vi.mocked(isUsernameTakenByOther).mockResolvedValueOnce(true);
+
+      const request = createMockRequest('PATCH', {
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        username: 'takenuser',
+      });
+
+      const response = await PATCH(request);
+      const json = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(json.error).toBe('Username is already taken');
+      expect(createOrUpdatePlayer).not.toHaveBeenCalled();
+    });
+
     it('should update player username successfully', async () => {
       const existingPlayer = {
         id: '123',

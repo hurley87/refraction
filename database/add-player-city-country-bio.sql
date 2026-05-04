@@ -1,0 +1,4 @@
+-- Location and bio on players (profile)
+ALTER TABLE players ADD COLUMN IF NOT EXISTS city VARCHAR(120);
+ALTER TABLE players ADD COLUMN IF NOT EXISTS country VARCHAR(120);
+ALTER TABLE players ADD COLUMN IF NOT EXISTS bio TEXT;

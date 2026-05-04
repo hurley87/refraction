@@ -333,6 +333,10 @@ describe('Player Schemas', () => {
         farcaster_handle: 'testuser',
         telegram_handle: 'testuser',
         profile_picture_url: 'https://example.com/pic.jpg',
+        instagram_handle: 'testuser',
+        city: 'Brooklyn',
+        country: 'USA',
+        bio: 'Builder and music fan.',
       };
       const result = updateUserProfileSchema.safeParse(validUpdate);
       expect(result.success).toBe(true);

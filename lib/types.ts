@@ -187,6 +187,12 @@ export type UserProfile = {
   telegram_handle?: string;
   instagram_handle?: string;
   profile_picture_url?: string;
+  /** Display city (free text) */
+  city?: string | null;
+  /** Display country (free text) */
+  country?: string | null;
+  /** Short user-written bio */
+  bio?: string | null;
   created_at?: string;
   updated_at?: string;
 };

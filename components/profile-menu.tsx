@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { X, LogOut, Check } from 'lucide-react';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import type { UserProfile } from '@/lib/types';
 import { toast } from 'sonner';
+import { invalidateProfileRelatedQueries } from '@/lib/invalidate-profile-queries';
 
 // Reusable Pencil Icon Component
 const PencilIcon = ({
@@ -170,6 +173,7 @@ export default function ProfileMenu({
   onReturnToUserMenu,
 }: ProfileMenuProps) {
   const { user, logout } = usePrivy();
+  const queryClient = useQueryClient();
   const [profile, setProfile] = useState<UserProfile>({
     wallet_address: '',
     email: '',
@@ -182,6 +186,9 @@ export default function ProfileMenu({
     telegram_handle: '',
     instagram_handle: '',
     profile_picture_url: '',
+    city: '',
+    country: '',
+    bio: '',
   });
   const [saving, setSaving] = useState(false);
   const [isMenuMounted, setIsMenuMounted] = useState(false);
@@ -230,6 +237,9 @@ export default function ProfileMenu({
         telegram_handle: data.telegram_handle || '',
         instagram_handle: data.instagram_handle || '',
         profile_picture_url: data.profile_picture_url || '',
+        city: data.city || '',
+        country: data.country || '',
+        bio: data.bio || '',
       });
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -262,20 +272,38 @@ export default function ProfileMenu({
         }),
       });
 
+      const result = await response.json().catch(() => ({}));
+
       if (!response.ok) {
-        throw new Error('Failed to update profile');
+        toast.error(
+          typeof result === 'object' &&
+            result !== null &&
+            'error' in result &&
+            typeof (result as { error?: string }).error === 'string'
+            ? (result as { error: string }).error
+            : 'Error saving profile'
+        );
+        return;
       }
 
-      const result = await response.json();
+      const payload =
+        typeof result === 'object' &&
+        result !== null &&
+        'data' in result &&
+        (result as { data?: unknown }).data != null
+          ? (result as { data: { pointsAwarded?: unknown[] } }).data
+          : (result as { pointsAwarded?: unknown[] });
 
       // Show success feedback with points info
       let successMessage = 'Profile updated successfully';
-      if (result.pointsAwarded && result.pointsAwarded.length > 0) {
-        const totalPoints = result.pointsAwarded.length * 5;
+      if (payload?.pointsAwarded && payload.pointsAwarded.length > 0) {
+        const totalPoints = payload.pointsAwarded.length * 5;
         successMessage += ` - Earned ${totalPoints} points!`;
       }
 
       toast.success(successMessage);
+
+      invalidateProfileRelatedQueries(queryClient, user.wallet.address);
 
       // Clear editing state after successful save
       if (field) {
@@ -348,12 +376,22 @@ export default function ProfileMenu({
         }),
       });
 
+      const profilePutBody = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error('Failed to update profile');
+        toast.error(
+          typeof profilePutBody === 'object' &&
+            profilePutBody !== null &&
+            'error' in profilePutBody &&
+            typeof (profilePutBody as { error?: string }).error === 'string'
+            ? (profilePutBody as { error: string }).error
+            : 'Failed to update profile'
+        );
+        return;
       }
 
       setProfile(updatedProfile);
       toast.success('Profile picture updated successfully');
+      invalidateProfileRelatedQueries(queryClient, user.wallet.address);
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error(
@@ -666,73 +704,66 @@ export default function ProfileMenu({
                 </div>
               </div>
 
-              {/* Social Handles */}
-              <div className="space-y-4">
-                {/* Website */}
+              {/* City & country */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label
-                    htmlFor="website"
+                    htmlFor="city"
                     className="text-black body-small uppercase"
                   >
-                    WEBSITE
+                    CITY
                   </Label>
                   <div
                     className="flex items-center gap-2"
                     onMouseDown={(e) => {
-                      if (editingField === 'website') {
-                        e.preventDefault();
-                      }
+                      if (editingField === 'city') e.preventDefault();
                     }}
                     onTouchStart={(e) => {
-                      if (editingField === 'website') {
-                        e.stopPropagation();
-                      }
+                      if (editingField === 'city') e.stopPropagation();
                     }}
                   >
                     {isLoadingProfile ? (
-                      <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
+                      <div className="h-10 flex-1 animate-pulse rounded-full bg-gray-200" />
                     ) : (
                       <>
                         <Input
-                          id="website"
+                          id="city"
                           type="text"
-                          placeholder="www.yourwebsite.com"
-                          value={profile.website || ''}
+                          placeholder="City"
+                          maxLength={120}
+                          value={profile.city || ''}
                           onChange={(e) =>
-                            handleInputChange('website', e.target.value)
+                            handleInputChange('city', e.target.value)
                           }
-                          onFocus={() => setEditingField('website')}
-                          onBlur={() => {
-                            // Don't clear on blur, let user click checkmark or save
-                          }}
-                          className={`body-large px-4 h-10 flex-1 ${
-                            editingField === 'website'
+                          onFocus={() => setEditingField('city')}
+                          className={`body-large h-10 flex-1 px-4 ${
+                            editingField === 'city'
                               ? 'border-[#313131] bg-white'
-                              : 'bg-white border-gray-300'
+                              : 'border-gray-300 bg-white'
                           } text-black placeholder:text-gray-500`}
                           style={
-                            editingField === 'website'
+                            editingField === 'city'
                               ? {
                                   borderRadius: '1000px',
                                   border: '1px solid #313131',
                                   background: '#FFF',
                                   boxShadow: '0 0 0 2px #FFE600',
-                                  fontSize: '16px', // Prevent mobile zoom
+                                  fontSize: '16px',
                                 }
                               : {
                                   borderRadius: '1000px',
-                                  fontSize: '16px', // Prevent mobile zoom
+                                  fontSize: '16px',
                                 }
                           }
                         />
-                        {editingField === 'website' ? (
+                        {editingField === 'city' ? (
                           <CheckmarkIcon
-                            onClick={() => handleSave('website')}
+                            onClick={() => handleSave('city')}
                             isLoading={saving}
                           />
                         ) : (
                           <PencilIcon
-                            onClick={() => setEditingField('website')}
+                            onClick={() => setEditingField('city')}
                             isLoading={false}
                           />
                         )}
@@ -740,72 +771,64 @@ export default function ProfileMenu({
                     )}
                   </div>
                 </div>
-
-                {/* X (Twitter) */}
                 <div className="space-y-2">
                   <Label
-                    htmlFor="twitter"
+                    htmlFor="country"
                     className="text-black body-small uppercase"
                   >
-                    X
+                    COUNTRY
                   </Label>
                   <div
                     className="flex items-center gap-2"
                     onMouseDown={(e) => {
-                      if (editingField === 'twitter_handle') {
-                        e.preventDefault();
-                      }
+                      if (editingField === 'country') e.preventDefault();
                     }}
                     onTouchStart={(e) => {
-                      if (editingField === 'twitter_handle') {
-                        e.stopPropagation();
-                      }
+                      if (editingField === 'country') e.stopPropagation();
                     }}
                   >
                     {isLoadingProfile ? (
-                      <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
+                      <div className="h-10 flex-1 animate-pulse rounded-full bg-gray-200" />
                     ) : (
                       <>
                         <Input
-                          id="twitter"
+                          id="country"
                           type="text"
-                          placeholder="Your X handle"
-                          value={profile.twitter_handle}
+                          placeholder="Country"
+                          maxLength={120}
+                          value={profile.country || ''}
                           onChange={(e) =>
-                            handleInputChange('twitter_handle', e.target.value)
+                            handleInputChange('country', e.target.value)
                           }
-                          onFocus={() => setEditingField('twitter_handle')}
-                          onBlur={() => {
-                            // Don't clear on blur, let user click checkmark or save
-                          }}
-                          className={`body-large px-4 h-10 flex-1 ${
-                            editingField === 'twitter_handle'
+                          onFocus={() => setEditingField('country')}
+                          className={`body-large h-10 flex-1 px-4 ${
+                            editingField === 'country'
                               ? 'border-[#313131] bg-white'
-                              : 'bg-white border-gray-300'
+                              : 'border-gray-300 bg-white'
                           } text-black placeholder:text-gray-500`}
                           style={
-                            editingField === 'twitter_handle'
+                            editingField === 'country'
                               ? {
                                   borderRadius: '1000px',
                                   border: '1px solid #313131',
                                   background: '#FFF',
                                   boxShadow: '0 0 0 2px #FFE600',
-                                  fontSize: '16px', // Prevent mobile zoom
+                                  fontSize: '16px',
                                 }
                               : {
                                   borderRadius: '1000px',
-                                  fontSize: '16px', // Prevent mobile zoom
+                                  fontSize: '16px',
                                 }
                           }
                         />
-                        {editingField === 'twitter_handle' ? (
+                        {editingField === 'country' ? (
                           <CheckmarkIcon
-                            onClick={() => handleSave('twitter_handle')}
+                            onClick={() => handleSave('country')}
                             isLoading={saving}
                           />
                         ) : (
                           <PencilIcon
-                            onClick={() => setEditingField('twitter_handle')}
+                            onClick={() => setEditingField('country')}
                             isLoading={false}
                           />
                         )}
@@ -813,230 +836,68 @@ export default function ProfileMenu({
                     )}
                   </div>
                 </div>
+              </div>
 
-                {/* Towns */}
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="towns"
-                    className="text-black body-small uppercase"
-                  >
-                    TOWNS
-                  </Label>
-                  <div
-                    className="flex items-center gap-2"
-                    onMouseDown={(e) => {
-                      if (editingField === 'towns_handle') {
-                        e.preventDefault();
-                      }
-                    }}
-                    onTouchStart={(e) => {
-                      if (editingField === 'towns_handle') {
-                        e.stopPropagation();
-                      }
-                    }}
-                  >
-                    {isLoadingProfile ? (
-                      <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
-                    ) : (
-                      <>
-                        <Input
-                          id="towns"
-                          type="text"
-                          placeholder="Your Towns handle"
-                          value={profile.towns_handle}
-                          onChange={(e) =>
-                            handleInputChange('towns_handle', e.target.value)
-                          }
-                          onFocus={() => setEditingField('towns_handle')}
-                          onBlur={() => {
-                            // Don't clear on blur, let user click checkmark or save
-                          }}
-                          className={`body-large px-4 h-10 flex-1 ${
-                            editingField === 'towns_handle'
-                              ? 'border-[#313131] bg-white'
-                              : 'bg-white border-gray-300'
-                          } text-black placeholder:text-gray-500`}
-                          style={
-                            editingField === 'towns_handle'
-                              ? {
-                                  borderRadius: '1000px',
-                                  border: '1px solid #313131',
-                                  background: '#FFF',
-                                  boxShadow: '0 0 0 2px #FFE600',
-                                  fontSize: '16px', // Prevent mobile zoom
-                                }
-                              : {
-                                  borderRadius: '1000px',
-                                  fontSize: '16px', // Prevent mobile zoom
-                                }
-                          }
-                        />
-                        {editingField === 'towns_handle' ? (
+              {/* Bio */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="bio"
+                  className="text-black body-small uppercase"
+                >
+                  BIO
+                </Label>
+                <div
+                  className="flex items-start gap-2"
+                  onMouseDown={(e) => {
+                    if (editingField === 'bio') e.preventDefault();
+                  }}
+                  onTouchStart={(e) => {
+                    if (editingField === 'bio') e.stopPropagation();
+                  }}
+                >
+                  {isLoadingProfile ? (
+                    <div className="min-h-[80px] flex-1 animate-pulse rounded-2xl bg-gray-200" />
+                  ) : (
+                    <>
+                      <Textarea
+                        id="bio"
+                        placeholder="A few words about you"
+                        maxLength={500}
+                        value={profile.bio || ''}
+                        onChange={(e) =>
+                          handleInputChange('bio', e.target.value)
+                        }
+                        onFocus={() => setEditingField('bio')}
+                        rows={4}
+                        className={`body-large min-h-[100px] flex-1 resize-y rounded-2xl border px-4 py-3 ${
+                          editingField === 'bio'
+                            ? 'border-[#313131] bg-white'
+                            : 'border-gray-300 bg-white'
+                        } text-black placeholder:text-gray-500`}
+                        style={
+                          editingField === 'bio'
+                            ? {
+                                boxShadow: '0 0 0 2px #FFE600',
+                                fontSize: '16px',
+                              }
+                            : { fontSize: '16px' }
+                        }
+                      />
+                      <div className="flex shrink-0 flex-col gap-2 pt-1">
+                        {editingField === 'bio' ? (
                           <CheckmarkIcon
-                            onClick={() => handleSave('towns_handle')}
+                            onClick={() => handleSave('bio')}
                             isLoading={saving}
                           />
                         ) : (
                           <PencilIcon
-                            onClick={() => setEditingField('towns_handle')}
+                            onClick={() => setEditingField('bio')}
                             isLoading={false}
                           />
                         )}
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Farcaster */}
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="farcaster"
-                    className="text-black body-small uppercase"
-                  >
-                    FARCASTER
-                  </Label>
-                  <div
-                    className="flex items-center gap-2"
-                    onMouseDown={(e) => {
-                      if (editingField === 'farcaster_handle') {
-                        e.preventDefault();
-                      }
-                    }}
-                    onTouchStart={(e) => {
-                      if (editingField === 'farcaster_handle') {
-                        e.stopPropagation();
-                      }
-                    }}
-                  >
-                    {isLoadingProfile ? (
-                      <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
-                    ) : (
-                      <>
-                        <Input
-                          id="farcaster"
-                          type="text"
-                          placeholder="Your Farcaster handle"
-                          value={profile.farcaster_handle}
-                          onChange={(e) =>
-                            handleInputChange(
-                              'farcaster_handle',
-                              e.target.value
-                            )
-                          }
-                          onFocus={() => setEditingField('farcaster_handle')}
-                          onBlur={() => {
-                            // Don't clear on blur, let user click checkmark or save
-                          }}
-                          className={`body-large px-4 h-10 flex-1 ${
-                            editingField === 'farcaster_handle'
-                              ? 'border-[#313131] bg-white'
-                              : 'bg-white border-gray-300'
-                          } text-black placeholder:text-gray-500`}
-                          style={
-                            editingField === 'farcaster_handle'
-                              ? {
-                                  borderRadius: '1000px',
-                                  border: '1px solid #313131',
-                                  background: '#FFF',
-                                  boxShadow: '0 0 0 2px #FFE600',
-                                  fontSize: '16px', // Prevent mobile zoom
-                                }
-                              : {
-                                  borderRadius: '1000px',
-                                  fontSize: '16px', // Prevent mobile zoom
-                                }
-                          }
-                        />
-                        {editingField === 'farcaster_handle' ? (
-                          <CheckmarkIcon
-                            onClick={() => handleSave('farcaster_handle')}
-                            isLoading={saving}
-                          />
-                        ) : (
-                          <PencilIcon
-                            onClick={() => setEditingField('farcaster_handle')}
-                            isLoading={false}
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Instagram */}
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="instagram"
-                    className="text-black body-small uppercase"
-                  >
-                    INSTAGRAM
-                  </Label>
-                  <div
-                    className="flex items-center gap-2"
-                    onMouseDown={(e) => {
-                      if (editingField === 'instagram_handle') {
-                        e.preventDefault();
-                      }
-                    }}
-                    onTouchStart={(e) => {
-                      if (editingField === 'instagram_handle') {
-                        e.stopPropagation();
-                      }
-                    }}
-                  >
-                    {isLoadingProfile ? (
-                      <div className="h-10 flex-1 bg-gray-200 animate-pulse rounded-full"></div>
-                    ) : (
-                      <>
-                        <Input
-                          id="instagram"
-                          type="text"
-                          placeholder="Your Instagram handle"
-                          value={profile.instagram_handle}
-                          onChange={(e) =>
-                            handleInputChange(
-                              'instagram_handle',
-                              e.target.value
-                            )
-                          }
-                          onFocus={() => setEditingField('instagram_handle')}
-                          onBlur={() => {
-                            // Don't clear on blur, let user click checkmark or save
-                          }}
-                          className={`body-large px-4 h-10 flex-1 ${
-                            editingField === 'instagram_handle'
-                              ? 'border-[#313131] bg-white'
-                              : 'bg-white border-gray-300'
-                          } text-black placeholder:text-gray-500`}
-                          style={
-                            editingField === 'instagram_handle'
-                              ? {
-                                  borderRadius: '1000px',
-                                  border: '1px solid #313131',
-                                  background: '#FFF',
-                                  boxShadow: '0 0 0 2px #FFE600',
-                                  fontSize: '16px', // Prevent mobile zoom
-                                }
-                              : {
-                                  borderRadius: '1000px',
-                                  fontSize: '16px', // Prevent mobile zoom
-                                }
-                          }
-                        />
-                        {editingField === 'instagram_handle' ? (
-                          <CheckmarkIcon
-                            onClick={() => handleSave('instagram_handle')}
-                            isLoading={saving}
-                          />
-                        ) : (
-                          <PencilIcon
-                            onClick={() => setEditingField('instagram_handle')}
-                            isLoading={false}
-                          />
-                        )}
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

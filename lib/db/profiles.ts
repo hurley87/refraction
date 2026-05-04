@@ -20,6 +20,9 @@ const PROFILE_COLUMNS = `
   telegram_handle,
   instagram_handle,
   profile_picture_url,
+  city,
+  country,
+  bio,
   total_points,
   created_at,
   updated_at
@@ -52,6 +55,12 @@ export const createOrUpdateUserProfile = async (
         instagram_handle: profile.instagram_handle,
         profile_picture_url:
           profile.profile_picture_url || existingProfile.profile_picture_url,
+        city: profile.city !== undefined ? profile.city : existingProfile.city,
+        country:
+          profile.country !== undefined
+            ? profile.country
+            : existingProfile.country,
+        bio: profile.bio !== undefined ? profile.bio : existingProfile.bio,
       })
       .eq('wallet_address', profile.wallet_address)
       .select(PROFILE_COLUMNS)
@@ -69,6 +78,43 @@ export const createOrUpdateUserProfile = async (
     if (error) throw error;
     return data;
   }
+};
+
+/** True when Supabase/Postgres reports a unique violation on `players.username`. */
+export function isPostgresUniqueUsernameViolation(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) return false;
+  const code = 'code' in err ? String((err as { code: unknown }).code) : '';
+  if (code !== '23505') return false;
+  const message =
+    'message' in err ? String((err as { message: unknown }).message) : '';
+  const details =
+    'details' in err ? String((err as { details: unknown }).details) : '';
+  const haystack = `${message} ${details}`.toLowerCase();
+  return (
+    haystack.includes('username') ||
+    haystack.includes('idx_players_username_unique')
+  );
+}
+
+/**
+ * Returns true if another player already owns this username (exact match; store lowercase).
+ */
+export const isUsernameTakenByOther = async (
+  normalizedUsername: string,
+  excludeWalletAddress: string
+): Promise<boolean> => {
+  const key = normalizedUsername.trim().toLowerCase();
+  if (!key) return false;
+
+  const { data, error } = await supabase
+    .from('players')
+    .select('wallet_address')
+    .eq('username', key)
+    .neq('wallet_address', excludeWalletAddress)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  return data != null;
 };
 
 /**
