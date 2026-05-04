@@ -104,7 +104,7 @@ export function SpendItemPage({ itemId }: SpendItemPageProps) {
   }
 
   return (
-    <SpendPageShell eyebrow="Drink ticket">
+    <SpendPageShell>
       <div className="flex flex-col gap-6">
         {item.image_url && (
           <div className="relative aspect-[3/2] w-full overflow-hidden rounded-sm border border-[rgba(0,0,0,0.08)] bg-[#f5f5f5]">
