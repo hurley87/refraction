@@ -75,10 +75,13 @@ Copy `.env.local.example` to `.env.local` for local config. The app runs without
 - Dynamic imports where code-splitting helps.
 - Small, focused components; document non-obvious decisions in code or PR.
 
-## Cursor Cloud / single-process setup
+## Cursor Cloud specific instructions
 
 - Only local process: Next.js dev server (`yarn dev`). Supabase, Privy, Mapbox, Mixpanel, RPCs are external; no Docker or local DB.
 - **Gotchas:** Optional `canvas` build warnings are safe to ignore. Use `yarn test` (Vitest); ignore docs that mention Jest. Lint may show known `<img>` vs `<Image />` warnings; they are non-blocking.
+- **Pre-existing test failures:** `components/location-search.test.tsx`, `components/layout/user-menu.test.tsx`, and `lib/db/__tests__/admin.test.ts` have known failures on `main`. Do not treat these as regressions unless your changes touch those files.
+- **Pre-commit hook:** `.husky/pre-commit` runs `yarn build`, which takes time. The build will produce `canvas` warnings — these are safe to ignore.
+- **Environment:** Copy `.env.local.example` → `.env.local`. The app renders pages without real credentials, but auth/database flows require valid Privy/Supabase keys.
 
 ## References
 
