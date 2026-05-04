@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
+import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,7 @@ type CreateSpendExperienceResponse = {
 };
 
 export default function AdminSpendExperiencesPage() {
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
@@ -43,8 +44,11 @@ export default function AdminSpendExperiencesPage() {
     try {
       const response = await fetch('/api/admin/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email.address }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await adminApiAuthHeaders(getAccessToken)),
+        },
+        body: JSON.stringify({}),
       });
       const responseData = await response.json();
       const data = responseData.data || responseData;
@@ -52,7 +56,7 @@ export default function AdminSpendExperiencesPage() {
     } catch {
       return false;
     }
-  }, [user?.email?.address]);
+  }, [user?.email?.address, getAccessToken]);
 
   useEffect(() => {
     const verify = async () => {
@@ -67,30 +71,21 @@ export default function AdminSpendExperiencesPage() {
     void verify();
   }, [user, checkAdminStatus]);
 
-  const adminEmail = user?.email?.address || '';
-
-  const headers = useMemo(
-    () => ({
-      'Content-Type': 'application/json',
-      'x-user-email': adminEmail,
-    }),
-    [adminEmail]
-  );
-
   const { data: spendExperiences = [], isLoading } = useQuery<
     SpendExperience[]
   >({
     queryKey: QUERY_KEY,
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/spend-experiences', {
-        headers: { 'x-user-email': adminEmail },
+        headers: auth,
       });
       if (!response.ok) throw new Error('Failed to load spend experiences');
       const responseData = await response.json();
       const data = responseData.data || responseData;
       return data.spendExperiences ?? [];
     },
-    enabled: !!isAdmin && !!adminEmail,
+    enabled: !!isAdmin && !!user?.email?.address,
   });
 
   const closePanel = useCallback(() => {
@@ -111,10 +106,13 @@ export default function AdminSpendExperiencesPage() {
         end_time: datetimeLocalToIso(form.end_time_local),
       };
 
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const jsonHeaders = { 'Content-Type': 'application/json', ...auth };
+
       if (editing) {
         const response = await fetch(
           `/api/admin/spend-experiences/${encodeURIComponent(editing.id)}`,
-          { method: 'PATCH', headers, body: JSON.stringify(payload) }
+          { method: 'PATCH', headers: jsonHeaders, body: JSON.stringify(payload) }
         );
         const j = await response.json().catch(() => ({}));
         if (!response.ok) {
@@ -127,7 +125,7 @@ export default function AdminSpendExperiencesPage() {
       const response = await fetch('/api/admin/spend-experiences', {
         method: 'POST',
         headers: {
-          ...headers,
+          ...jsonHeaders,
           'Idempotency-Key': crypto.randomUUID(),
         },
         body: JSON.stringify(payload),

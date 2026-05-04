@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { LOCATION_OPTIONS_MAX_ROWS } from '@/lib/constants';
-import { checkAdminPermission } from '@/lib/db/admin';
 import { listLocationOptions } from '@/lib/db/locations';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
 const querySchema = z.object({
   query: z.string().min(1).max(120).optional(),
@@ -17,8 +17,8 @@ const querySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const adminEmail = request.headers.get('x-user-email') || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized', 403);
     }
 

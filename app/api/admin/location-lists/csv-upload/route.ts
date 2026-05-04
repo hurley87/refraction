@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
-import { checkAdminPermission } from "@/lib/db/admin";
 import { supabase } from "@/lib/db/client";
-import { getPrivyClient } from "@/lib/api/privy";
+import { getAuthenticatedAdminEmail } from "@/lib/auth";
 import { apiSuccess, apiError } from "@/lib/api/response";
 import { trackLocationCreated, resolveServerIdentity } from "@/lib/analytics";
 import { lookup } from "node:dns/promises";
@@ -101,27 +100,6 @@ async function geocodeAddress(
     const center = data.features?.[0]?.center;
     if (!center || center.length < 2) return null;
     return [center[0], center[1]];
-  } catch {
-    return null;
-  }
-}
-
-async function getAuthenticatedAdminEmail(
-  request: NextRequest
-): Promise<string | null> {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) return null;
-
-  const token = authHeader.slice(7).trim();
-  if (!token) return null;
-
-  try {
-    const privy = getPrivyClient();
-    const verifiedClaims = await privy.verifyAuthToken(token);
-    const user = await privy.getUser(verifiedClaims.userId);
-    const email = user.email?.address?.trim().toLowerCase();
-    if (!email) return null;
-    return checkAdminPermission(email) ? email : null;
   } catch {
     return null;
   }

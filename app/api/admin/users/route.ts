@@ -1,15 +1,12 @@
 import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
-import { checkAdminPermission } from "@/lib/db/admin";
 import { apiSuccess, apiError } from "@/lib/api/response";
+import { getAuthenticatedAdminEmail } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    // Get email from header (set by middleware or client)
-    const email = request.headers.get("x-user-email");
-
-    // Check admin permission
-    if (!checkAdminPermission(email || undefined)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError("Unauthorized - Admin access required", 403);
     }
 
@@ -83,12 +80,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST endpoint to check admin status
+// POST endpoint to check admin status (verified Privy session only)
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
-
-    const isAdmin = checkAdminPermission(email);
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    const isAdmin = Boolean(adminEmail);
 
     return apiSuccess({ isAdmin });
   } catch (error) {

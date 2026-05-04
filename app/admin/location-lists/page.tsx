@@ -9,6 +9,7 @@ import {
   type FormEvent,
 } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
+import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -315,8 +316,11 @@ export default function AdminLocationListsPage() {
     try {
       const response = await fetch('/api/admin/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email.address }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await adminApiAuthHeaders(getAccessToken)),
+        },
+        body: JSON.stringify({}),
       });
       const responseData = await response.json();
       // Unwrap the apiSuccess wrapper
@@ -326,7 +330,7 @@ export default function AdminLocationListsPage() {
       console.error('Error checking admin status', error);
       return false;
     }
-  }, [user?.email?.address]);
+  }, [user?.email?.address, getAccessToken]);
 
   useEffect(() => {
     const verify = async () => {
@@ -415,8 +419,9 @@ export default function AdminLocationListsPage() {
   >({
     queryKey: LISTS_KEY,
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/location-lists', {
-        headers: { 'x-user-email': adminEmail },
+        headers: auth,
       });
       if (!response.ok) {
         throw new Error('Failed to fetch location lists');
@@ -426,10 +431,8 @@ export default function AdminLocationListsPage() {
       const data = responseData.data || responseData;
       return data.lists ?? [];
     },
-    enabled: !!isAdmin,
+    enabled: !!isAdmin && !!user?.email?.address,
   });
-
-  const {
     data: locationOptions = [],
     isLoading: locationOptionsLoading,
     isFetching: locationOptionsFetching,
@@ -441,10 +444,11 @@ export default function AdminLocationListsPage() {
       if (debouncedLocationSearch) {
         params.set('q', debouncedLocationSearch);
       }
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(
         `/api/admin/location-lists/location-options?${params.toString()}`,
         {
-          headers: { 'x-user-email': adminEmail },
+          headers: auth,
         }
       );
       if (!response.ok) {
@@ -455,7 +459,7 @@ export default function AdminLocationListsPage() {
       const data = responseData.data || responseData;
       return data.locations ?? [];
     },
-    enabled: !!isAdmin,
+    enabled: !!isAdmin && !!user?.email?.address,
   });
 
   const selectedList = useMemo(
@@ -488,10 +492,11 @@ export default function AdminLocationListsPage() {
     useQuery<LocationListLocation[]>({
       queryKey: listLocationsKey,
       queryFn: async () => {
+        const auth = await adminApiAuthHeaders(getAccessToken);
         const response = await fetch(
           `/api/admin/location-lists/${selectedListId}/locations`,
           {
-            headers: { 'x-user-email': adminEmail },
+            headers: auth,
           }
         );
         if (!response.ok) {
@@ -502,16 +507,17 @@ export default function AdminLocationListsPage() {
         const data = responseData.data || responseData;
         return data.locations ?? [];
       },
-      enabled: !!selectedListId && !!isAdmin,
+      enabled: !!selectedListId && !!isAdmin && !!user?.email?.address,
     });
 
   const createListMutation = useMutation({
     mutationFn: async (payload: z.infer<typeof createListSchema>) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/location-lists', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-email': adminEmail,
+          ...auth,
         },
         body: JSON.stringify(payload),
       });
@@ -549,11 +555,12 @@ export default function AdminLocationListsPage() {
       listId: string;
       payload: z.infer<typeof updateListSchema>;
     }) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(`/api/admin/location-lists/${listId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-email': adminEmail,
+          ...auth,
         },
         body: JSON.stringify(payload),
       });
@@ -587,13 +594,14 @@ export default function AdminLocationListsPage() {
       listId: string;
       locationId: number;
     }) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(
         `/api/admin/location-lists/${listId}/locations`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-email': adminEmail,
+            ...auth,
           },
           body: JSON.stringify({ locationId }),
         }
@@ -629,13 +637,12 @@ export default function AdminLocationListsPage() {
       listId: string;
       locationId: number;
     }) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(
         `/api/admin/location-lists/${listId}/locations?locationId=${locationId}`,
         {
           method: 'DELETE',
-          headers: {
-            'x-user-email': adminEmail,
-          },
+          headers: auth,
         }
       );
 
@@ -668,9 +675,10 @@ export default function AdminLocationListsPage() {
 
   const deleteListMutation = useMutation({
     mutationFn: async (listId: string) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(`/api/admin/location-lists/${listId}`, {
         method: 'DELETE',
-        headers: { 'x-user-email': adminEmail },
+        headers: auth,
       });
       if (!response.ok) throw new Error('Failed to delete list');
       return response.json();
@@ -697,7 +705,6 @@ export default function AdminLocationListsPage() {
       const response = await fetch('/api/admin/location-lists/csv-upload', {
         method: 'POST',
         headers: {
-          'x-user-email': adminEmail,
           Authorization: `Bearer ${token}`,
         },
         body: formData,
@@ -768,11 +775,12 @@ export default function AdminLocationListsPage() {
         throw new Error('Upload succeeded but no image URL was returned');
       }
 
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/locations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-email': user?.email?.address || '',
+          ...auth,
         },
         body: JSON.stringify({
           place_id: placeId,
@@ -862,7 +870,6 @@ export default function AdminLocationListsPage() {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
-          'x-user-email': adminEmail,
         },
         body: JSON.stringify({
           placeId: payload.placeId,

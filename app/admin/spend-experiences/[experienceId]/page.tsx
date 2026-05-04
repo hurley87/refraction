@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
+import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import {
   Loader2,
   ArrowLeft,
@@ -164,7 +165,7 @@ function SessionPaymentCell({ payment }: { payment: SpendTransaction | null }) {
 export default function SpendExperienceDetailPage() {
   const params = useParams<{ experienceId: string }>();
   const experienceId = params.experienceId;
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
   const [withdrawDestination, setWithdrawDestination] = useState('');
@@ -175,8 +176,11 @@ export default function SpendExperienceDetailPage() {
     try {
       const response = await fetch('/api/admin/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email.address }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await adminApiAuthHeaders(getAccessToken)),
+        },
+        body: JSON.stringify({}),
       });
       const responseData = await response.json();
       const data = responseData.data || responseData;
@@ -184,7 +188,7 @@ export default function SpendExperienceDetailPage() {
     } catch {
       return false;
     }
-  }, [user?.email?.address]);
+  }, [user?.email?.address, getAccessToken]);
 
   useEffect(() => {
     const verify = async () => {
@@ -199,22 +203,14 @@ export default function SpendExperienceDetailPage() {
     void verify();
   }, [user, checkAdminStatus]);
 
-  const adminEmail = user?.email?.address || '';
-
-  const headers = useMemo(
-    () => ({
-      'Content-Type': 'application/json',
-      'x-user-email': adminEmail,
-    }),
-    [adminEmail]
-  );
-
   const experienceQuery = useQuery<SpendExperience>({
-    queryKey: ['admin-spend-experience', experienceId, adminEmail],
+    queryKey: ['admin-spend-experience', experienceId, isAdmin],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const jsonHeaders = { 'Content-Type': 'application/json', ...auth };
       const response = await fetch(
         `/api/admin/spend-experiences/${experienceId}`,
-        { headers }
+        { headers: jsonHeaders }
       );
       if (!response.ok) throw new Error('Failed to load experience');
       const j = await response.json();
@@ -224,37 +220,41 @@ export default function SpendExperienceDetailPage() {
       if (!exp) throw new Error('Missing experience');
       return exp;
     },
-    enabled: Boolean(experienceId && isAdmin && adminEmail),
+    enabled: Boolean(experienceId && isAdmin && user?.email?.address),
   });
 
   const activityQuery = useQuery<ActivityPayload>({
-    queryKey: ['admin-spend-activity', experienceId, adminEmail],
+    queryKey: ['admin-spend-activity', experienceId, isAdmin],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const jsonHeaders = { 'Content-Type': 'application/json', ...auth };
       const response = await fetch(
         `/api/admin/spend-experiences/${experienceId}/activity`,
-        { headers }
+        { headers: jsonHeaders }
       );
       if (!response.ok) throw new Error('Failed to load activity');
       const j = await response.json();
       const data = j.data ?? j;
       return data as ActivityPayload;
     },
-    enabled: Boolean(experienceId && isAdmin && adminEmail),
+    enabled: Boolean(experienceId && isAdmin && user?.email?.address),
   });
 
   const treasuryQuery = useQuery<TreasuryPayload>({
-    queryKey: ['admin-spend-treasury', experienceId, adminEmail],
+    queryKey: ['admin-spend-treasury', experienceId, isAdmin],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const jsonHeaders = { 'Content-Type': 'application/json', ...auth };
       const response = await fetch(
         `/api/admin/spend-experiences/${experienceId}/treasury`,
-        { headers }
+        { headers: jsonHeaders }
       );
       if (!response.ok) throw new Error('Failed to load treasury');
       const j = await response.json();
       const data = j.data ?? j;
       return data as TreasuryPayload;
     },
-    enabled: Boolean(experienceId && isAdmin && adminEmail),
+    enabled: Boolean(experienceId && isAdmin && user?.email?.address),
   });
 
   const refetchAll = useCallback(() => {
@@ -271,11 +271,13 @@ export default function SpendExperienceDetailPage() {
     }
     setWithdrawSubmitting(true);
     try {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const jsonHeaders = { 'Content-Type': 'application/json', ...auth };
       const response = await fetch(
         `/api/admin/spend-experiences/${experienceId}/treasury/withdraw`,
         {
           method: 'POST',
-          headers,
+          headers: jsonHeaders,
           body: JSON.stringify({ destinationAddress: trimmed }),
         }
       );

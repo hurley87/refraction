@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { checkAdminPermission } from "@/lib/db/admin";
 import {
   addLocationToList,
   getLocationsForList,
   removeLocationFromList,
 } from "@/lib/db/location-lists";
 import { apiSuccess, apiError, apiValidationError } from "@/lib/api/response";
+import { getAuthenticatedAdminEmail } from "@/lib/auth";
 
 const addSchema = z.object({
   locationId: z.coerce.number().int().positive(),
@@ -27,8 +27,8 @@ export async function GET(
   { params }: { params: { listId: string } },
 ) {
   try {
-    const adminEmail = request.headers.get("x-user-email") || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError("Unauthorized", 403);
     }
 
@@ -45,8 +45,8 @@ export async function POST(
   { params }: { params: { listId: string } },
 ) {
   try {
-    const adminEmail = request.headers.get("x-user-email") || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError("Unauthorized", 403);
     }
 
@@ -74,8 +74,8 @@ export async function DELETE(
   { params }: { params: { listId: string } },
 ) {
   try {
-    const adminEmail = request.headers.get("x-user-email") || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError("Unauthorized", 403);
     }
 

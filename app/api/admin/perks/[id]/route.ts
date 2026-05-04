@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { updatePerk, deletePerk } from '@/lib/db/perks';
 import type { Perk } from '@/lib/types';
 import { apiSuccess, apiError } from '@/lib/api/response';
-import { checkAdminPermission } from '@/lib/db/admin';
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +12,8 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const adminEmail = request.headers.get('x-user-email') || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized - Admin access required', 403);
     }
 
@@ -43,8 +43,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const adminEmail = request.headers.get('x-user-email') || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized - Admin access required', 403);
     }
 

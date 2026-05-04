@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server';
-import { checkAdminPermission } from '@/lib/db/admin';
 import {
   getAnalyticsSummary,
   getAnalyticsTimeSeries,
@@ -8,28 +7,7 @@ import {
   getTopLocations,
 } from '@/lib/db/analytics';
 import { apiSuccess, apiError } from '@/lib/api/response';
-import { getPrivyClient } from '@/lib/api/privy';
-
-async function getAuthenticatedAdminEmail(
-  request: NextRequest
-): Promise<string | null> {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-
-  const token = authHeader.slice(7).trim();
-  if (!token) return null;
-
-  try {
-    const privy = getPrivyClient();
-    const verifiedClaims = await privy.verifyAuthToken(token);
-    const user = await privy.getUser(verifiedClaims.userId);
-    const email = user.email?.address?.trim().toLowerCase();
-    if (!email) return null;
-    return checkAdminPermission(email) ? email : null;
-  } catch {
-    return null;
-  }
-}
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {

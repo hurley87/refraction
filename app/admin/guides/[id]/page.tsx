@@ -11,6 +11,7 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
+import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -126,7 +127,7 @@ function computeSlugFollowsTitles(
 export default function AdminGuideEditPage() {
   const params = useParams();
   const id = typeof params.id === 'string' ? params.id : '';
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
@@ -136,8 +137,11 @@ export default function AdminGuideEditPage() {
     try {
       const response = await fetch('/api/admin/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email.address }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await adminApiAuthHeaders(getAccessToken)),
+        },
+        body: JSON.stringify({}),
       });
       const responseData = await response.json();
       const data = responseData.data || responseData;
@@ -145,7 +149,7 @@ export default function AdminGuideEditPage() {
     } catch {
       return false;
     }
-  }, [user?.email?.address]);
+  }, [user?.email?.address, getAccessToken]);
 
   useEffect(() => {
     const verify = async () => {
@@ -165,22 +169,24 @@ export default function AdminGuideEditPage() {
   const { data: lists = [] } = useQuery<LocationListWithCount[]>({
     queryKey: ['admin-location-lists'],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/location-lists', {
-        headers: { 'x-user-email': adminEmail },
+        headers: auth,
       });
       if (!response.ok) throw new Error('Failed to load lists');
       const responseData = await response.json();
       const data = responseData.data || responseData;
       return data.lists ?? [];
     },
-    enabled: !!isAdmin,
+    enabled: !!isAdmin && !!user?.email?.address,
   });
 
   const { data: detail, isLoading } = useQuery<AdminGuideDetail | null>({
     queryKey: ['admin-guide', id],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(`/api/admin/guides/${id}`, {
-        headers: { 'x-user-email': adminEmail },
+        headers: auth,
       });
       if (response.status === 404) return null;
       if (!response.ok) throw new Error('Failed to load guide');
@@ -188,7 +194,7 @@ export default function AdminGuideEditPage() {
       const data = responseData.data || responseData;
       return data as AdminGuideDetail;
     },
-    enabled: !!isAdmin && !!id,
+    enabled: !!isAdmin && !!id && !!user?.email?.address,
   });
 
   const guide = detail?.guide ?? null;
@@ -372,11 +378,12 @@ export default function AdminGuideEditPage() {
         body.map_image_alt = null;
       }
 
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(`/api/admin/guides/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-email': adminEmail,
+          ...auth,
         },
         body: JSON.stringify(body),
       });
@@ -396,9 +403,10 @@ export default function AdminGuideEditPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(`/api/admin/guides/${id}`, {
         method: 'DELETE',
-        headers: { 'x-user-email': adminEmail },
+        headers: auth,
       });
       if (!response.ok) throw new Error('Delete failed');
       return response.json();
@@ -423,8 +431,9 @@ export default function AdminGuideEditPage() {
       return false;
     }
     try {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(`/api/admin/guides/${id}/preview-link`, {
-        headers: { 'x-user-email': adminEmail },
+        headers: auth,
       });
       const responseData = await response.json();
       const data = responseData.data || responseData;
@@ -442,7 +451,7 @@ export default function AdminGuideEditPage() {
       toast.error(message);
       return false;
     }
-  }, [adminEmail, id]);
+  }, [user?.email?.address, id, getAccessToken]);
 
   const handleConfirmPreview = useCallback(async () => {
     setPreviewOpening(true);

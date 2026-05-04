@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
+import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Loader2, Trash2 } from 'lucide-react';
@@ -27,8 +28,11 @@ export default function AdminLocationsPage() {
     try {
       const response = await fetch('/api/admin/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email.address }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await adminApiAuthHeaders(getAccessToken)),
+        },
+        body: JSON.stringify({}),
       });
       const responseData = await response.json();
       // Unwrap the apiSuccess wrapper
@@ -38,7 +42,7 @@ export default function AdminLocationsPage() {
       console.error('Error checking admin status', error);
       return false;
     }
-  }, [user?.email?.address]);
+  }, [user?.email?.address, getAccessToken]);
 
   useEffect(() => {
     const verify = async () => {
@@ -59,8 +63,9 @@ export default function AdminLocationsPage() {
   const { data: allLocations = [], isLoading: locationsLoading } = useQuery({
     queryKey: [...LOCATIONS_KEY, 'all'],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const res = await fetch(`/api/locations?includeHidden=true`, {
-        headers: { 'x-user-email': user?.email?.address || '' },
+        headers: auth,
       });
       if (!res.ok) throw new Error('Failed to fetch locations');
       const responseData = await res.json();
@@ -70,8 +75,6 @@ export default function AdminLocationsPage() {
     },
     enabled: !!isAdmin && !!user?.email?.address,
   });
-
-  // Filter client-side based on showApproved checkbox
   const filteredLocations = allLocations.filter((loc: Location) =>
     showApproved ? true : !loc.is_visible
   );
@@ -110,7 +113,6 @@ export default function AdminLocationsPage() {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
-          'x-user-email': user?.email?.address || '',
         },
         body: JSON.stringify({ isVisible }),
       });
@@ -137,7 +139,6 @@ export default function AdminLocationsPage() {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
-          'x-user-email': user?.email?.address || '',
         },
       });
       const body = await res.json().catch(() => ({}));

@@ -1,14 +1,14 @@
 import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
-import { checkAdminPermission } from "@/lib/db/admin";
 import { apiSuccess, apiError } from "@/lib/api/response";
+import { getAuthenticatedAdminEmail } from "@/lib/auth";
 
 // GET endpoint to fetch pending points
 export async function GET(request: NextRequest) {
   try {
-    const adminEmail = request.headers.get("x-user-email");
+    const adminEmail = await getAuthenticatedAdminEmail(request);
 
-    if (!checkAdminPermission(adminEmail || undefined)) {
+    if (!adminEmail) {
       return apiError("Unauthorized - Admin access required", 403);
     }
 
@@ -50,9 +50,9 @@ export async function GET(request: NextRequest) {
 // DELETE endpoint to remove pending points
 export async function DELETE(request: NextRequest) {
   try {
-    const adminEmail = request.headers.get("x-user-email");
+    const adminEmail = await getAuthenticatedAdminEmail(request);
 
-    if (!checkAdminPermission(adminEmail || undefined)) {
+    if (!adminEmail) {
       return apiError("Unauthorized - Admin access required", 403);
     }
 

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
+import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
 import { Eye, Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import type { AdminGuideSummary } from '@/lib/db/guides';
 const GUIDES_ADMIN_KEY = ['admin-guides'] as const;
 
 export default function AdminGuidesListPage() {
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
@@ -22,8 +23,11 @@ export default function AdminGuidesListPage() {
     try {
       const response = await fetch('/api/admin/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email.address }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await adminApiAuthHeaders(getAccessToken)),
+        },
+        body: JSON.stringify({}),
       });
       const responseData = await response.json();
       const data = responseData.data || responseData;
@@ -31,7 +35,7 @@ export default function AdminGuidesListPage() {
     } catch {
       return false;
     }
-  }, [user?.email?.address]);
+  }, [user?.email?.address, getAccessToken]);
 
   useEffect(() => {
     const verify = async () => {
@@ -51,15 +55,16 @@ export default function AdminGuidesListPage() {
   const { data: guides = [], isLoading } = useQuery<AdminGuideSummary[]>({
     queryKey: GUIDES_ADMIN_KEY,
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/guides', {
-        headers: { 'x-user-email': adminEmail },
+        headers: auth,
       });
       if (!response.ok) throw new Error('Failed to load guides');
       const responseData = await response.json();
       const data = responseData.data || responseData;
       return data.guides ?? [];
     },
-    enabled: !!isAdmin,
+    enabled: !!isAdmin && !!user?.email?.address,
   });
 
   const openPreview = useCallback(
@@ -69,9 +74,10 @@ export default function AdminGuidesListPage() {
         return;
       }
       try {
+        const auth = await adminApiAuthHeaders(getAccessToken);
         const response = await fetch(
           `/api/admin/guides/${guideId}/preview-link`,
-          { headers: { 'x-user-email': adminEmail } }
+          { headers: auth }
         );
         const responseData = await response.json();
         const data = responseData.data || responseData;
@@ -91,16 +97,17 @@ export default function AdminGuidesListPage() {
         toast.error(message);
       }
     },
-    [adminEmail]
+    [getAccessToken, user?.email?.address]
   );
 
   const createMutation = useMutation({
     mutationFn: async (kind: 'city_guide' | 'editorial') => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/guides', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-email': adminEmail,
+          ...auth,
         },
         body: JSON.stringify({ kind }),
       });
