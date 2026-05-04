@@ -412,8 +412,6 @@ export default function AdminLocationListsPage() {
     });
   }, [user?.wallet?.address, user?.email?.address]);
 
-  const adminEmail = user?.email?.address || '';
-
   const { data: lists = [], isLoading: listsLoading } = useQuery<
     LocationListWithCount[]
   >({
@@ -433,6 +431,8 @@ export default function AdminLocationListsPage() {
     },
     enabled: !!isAdmin && !!user?.email?.address,
   });
+
+  const {
     data: locationOptions = [],
     isLoading: locationOptionsLoading,
     isFetching: locationOptionsFetching,
