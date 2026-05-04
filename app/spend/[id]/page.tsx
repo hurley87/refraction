@@ -7,6 +7,7 @@ import { apiClient } from '@/lib/api/client';
 import type { SpendExperience, SpendItem } from '@/lib/types';
 import { SpendItemPage } from '@/components/spend/spend-item-page';
 import { SpendExperiencePage } from '@/components/spend/spend-experience-page';
+import { SpendPageShell } from '@/components/spend/spend-page-shell';
 
 type ResolveResponse =
   | { kind: 'spend_experience'; spendExperience: SpendExperience }
@@ -30,19 +31,21 @@ export default function SpendRoutePage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-neutral-500" />
-      </div>
+      <SpendPageShell showCard={false}>
+        <div className="flex min-h-[40vh] items-center justify-center px-4">
+          <Loader2 className="size-8 animate-spin text-white/70" aria-hidden />
+        </div>
+      </SpendPageShell>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-6">
-        <p className="text-center text-neutral-600">
+      <SpendPageShell>
+        <p className="body-medium font-grotesk text-center text-[#171717]">
           This spend link is not available.
         </p>
-      </div>
+      </SpendPageShell>
     );
   }
 
