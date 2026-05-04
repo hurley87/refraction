@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Trophy } from 'lucide-react';
 import MapNav, { MAP_NAV_SAFE_AREA_X } from '@/components/map/mapnav';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
