@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { checkAdminPermission } from '@/lib/db/admin';
 import {
   adminGetGuide,
   deleteGuide,
@@ -10,6 +9,7 @@ import {
 } from '@/lib/db/guides';
 import { editorialBlocksSchema } from '@/lib/guides/block-schema';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
 const contributorSchema = z.object({
   position: z.number().int().min(0),
@@ -55,8 +55,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const adminEmail = request.headers.get('x-user-email') || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized', 403);
     }
 
@@ -76,8 +76,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const adminEmail = request.headers.get('x-user-email') || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized', 403);
     }
 
@@ -135,8 +135,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const adminEmail = request.headers.get('x-user-email') || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized', 403);
     }
 

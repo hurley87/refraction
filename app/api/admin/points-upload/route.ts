@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { supabase } from "@/lib/db/client";
-import { checkAdminPermission } from "@/lib/db/admin";
 import { v4 as uuidv4 } from "uuid";
 import { apiSuccess, apiError } from "@/lib/api/response";
+import { getAuthenticatedAdminEmail } from "@/lib/auth";
 
 interface CSVRow {
   email: string;
@@ -21,11 +21,9 @@ interface UploadResult {
 
 export async function POST(request: NextRequest) {
   try {
-    // Get email from header
-    const adminEmail = request.headers.get("x-user-email");
+    const adminEmail = await getAuthenticatedAdminEmail(request);
 
-    // Check admin permission
-    if (!checkAdminPermission(adminEmail || undefined)) {
+    if (!adminEmail) {
       return apiError("Unauthorized - Admin access required", 403);
     }
 
@@ -222,9 +220,9 @@ export async function POST(request: NextRequest) {
 // GET endpoint to fetch upload history
 export async function GET(request: NextRequest) {
   try {
-    const adminEmail = request.headers.get("x-user-email");
+    const adminEmail = await getAuthenticatedAdminEmail(request);
 
-    if (!checkAdminPermission(adminEmail || undefined)) {
+    if (!adminEmail) {
       return apiError("Unauthorized - Admin access required", 403);
     }
 

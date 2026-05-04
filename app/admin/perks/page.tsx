@@ -24,20 +24,24 @@ import {
 import type { Perk, PerkDiscountCode } from "@/lib/types";
 import type { Tier } from "@/lib/types";
 import { usePrivy } from "@privy-io/react-auth";
+import { adminApiAuthHeaders } from "@/lib/admin-api-auth-headers";
 
 // Component to display discount code type for a perk
 function PerkCodeTypeInfo({
   perkId,
-  adminEmail,
+  getAccessToken,
+  isAdmin,
 }: {
   perkId: string;
-  adminEmail: string;
+  getAccessToken: () => Promise<string | null | undefined>;
+  isAdmin: boolean;
 }) {
   const { data: codes = [] } = useQuery<PerkDiscountCode[]>({
-    queryKey: ["perk-codes-preview", perkId, adminEmail],
+    queryKey: ["perk-codes-preview", perkId],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(`/api/admin/perks/${perkId}/codes`, {
-        headers: { "x-user-email": adminEmail },
+        headers: auth,
       });
       if (!response.ok) return [];
       const responseData = await response.json();
@@ -45,7 +49,7 @@ function PerkCodeTypeInfo({
       const data = responseData.data || responseData;
       return data.codes ?? [];
     },
-    enabled: !!adminEmail,
+    enabled: !!perkId && !!isAdmin,
   });
 
   if (codes.length === 0) return null;
@@ -75,7 +79,7 @@ function PerkCodeTypeInfo({
 }
 
 export default function AdminPerksPage() {
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
   const [selectedTierId, setSelectedTierId] = useState<string>("");
 
@@ -86,8 +90,11 @@ export default function AdminPerksPage() {
       try {
         const response = await fetch("/api/admin/auth", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: user.email.address }),
+          headers: {
+            "Content-Type": "application/json",
+            ...(await adminApiAuthHeaders(getAccessToken)),
+          },
+          body: JSON.stringify({}),
         });
         const responseData = await response.json();
         // Unwrap the apiSuccess wrapper
@@ -97,7 +104,7 @@ export default function AdminPerksPage() {
         console.error("Error checking admin status:", error);
         return false;
       }
-    }, [user?.email?.address]);
+    }, [user?.email?.address, getAccessToken]);
     const [editingPerk, setEditingPerk] = useState<Perk | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [formData, setFormData] = useState<Partial<Perk>>({
@@ -151,10 +158,11 @@ export default function AdminPerksPage() {
 
     // Fetch all perks
     const { data: perks = [], isLoading: perksLoading } = useQuery({
-      queryKey: ["admin-perks", adminEmail],
+      queryKey: ["admin-perks", isAdmin],
       queryFn: async () => {
+        const auth = await adminApiAuthHeaders(getAccessToken);
         const response = await fetch("/api/admin/perks?activeOnly=false", {
-          headers: { "x-user-email": adminEmail },
+          headers: auth,
         });
         if (!response.ok) throw new Error("Failed to fetch perks");
         const responseData = await response.json();
@@ -185,11 +193,12 @@ export default function AdminPerksPage() {
       mutationFn: async (
         perkData: Omit<Perk, "id" | "created_at" | "updated_at">,
       ) => {
+        const auth = await adminApiAuthHeaders(getAccessToken);
         const response = await fetch("/api/admin/perks", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-user-email": adminEmail,
+            ...auth,
           },
           body: JSON.stringify(perkData),
         });
@@ -219,11 +228,12 @@ export default function AdminPerksPage() {
         id: string;
         updates: Partial<Perk>;
       }) => {
+        const auth = await adminApiAuthHeaders(getAccessToken);
         const response = await fetch(`/api/admin/perks/${id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            "x-user-email": adminEmail,
+            ...auth,
           },
           body: JSON.stringify(updates),
         });
@@ -247,9 +257,10 @@ export default function AdminPerksPage() {
     // Delete perk mutation
     const deletePerkMutation = useMutation({
       mutationFn: async (id: string) => {
+        const auth = await adminApiAuthHeaders(getAccessToken);
         const response = await fetch(`/api/admin/perks/${id}`, {
           method: "DELETE",
-          headers: { "x-user-email": adminEmail },
+          headers: auth,
         });
         if (!response.ok) throw new Error("Failed to delete perk");
       },
@@ -274,11 +285,12 @@ export default function AdminPerksPage() {
         codes: string[];
         isUniversal: boolean;
       }) => {
+        const auth = await adminApiAuthHeaders(getAccessToken);
         const response = await fetch(`/api/admin/perks/${perkId}/codes`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-user-email": adminEmail,
+            ...auth,
           },
           body: JSON.stringify({ codes, is_universal: isUniversal }),
         });
@@ -305,9 +317,10 @@ export default function AdminPerksPage() {
     // Delete discount code mutation
     const deleteCodeMutation = useMutation({
       mutationFn: async (codeId: string) => {
+        const auth = await adminApiAuthHeaders(getAccessToken);
         const response = await fetch(`/api/admin/perks/codes/${codeId}`, {
           method: "DELETE",
-          headers: { "x-user-email": adminEmail },
+          headers: auth,
         });
         if (!response.ok) throw new Error("Failed to delete discount code");
       },
@@ -489,7 +502,10 @@ export default function AdminPerksPage() {
 
     const loadPerkCodes = async (perkId: string) => {
       try {
-        const response = await fetch(`/api/admin/perks/${perkId}/codes`);
+        const auth = await adminApiAuthHeaders(getAccessToken);
+        const response = await fetch(`/api/admin/perks/${perkId}/codes`, {
+          headers: auth,
+        });
         if (!response.ok) throw new Error("Failed to fetch discount codes");
         const responseData = await response.json();
         // Unwrap the apiSuccess wrapper
@@ -1028,7 +1044,7 @@ export default function AdminPerksPage() {
                         </div>
                       )}
                       {perk.id && adminEmail && (
-                        <PerkCodeTypeInfo perkId={perk.id} adminEmail={adminEmail} />
+                        <PerkCodeTypeInfo perkId={perk.id} getAccessToken={getAccessToken} isAdmin={!!isAdmin} />
                       )}
                     </div>
                   </div>

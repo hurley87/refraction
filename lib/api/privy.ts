@@ -249,11 +249,34 @@ export async function getPrivyUserIdFromRequest(
 ): Promise<string | null> {
   const authHeader = req.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
+  const token = authHeader.slice(7).trim();
+  if (!token) return null;
   try {
     const privy = getPrivyClient();
     const verifiedClaims = await privy.verifyAuthToken(token);
     return verifiedClaims.userId;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Verified login email from a Privy access token (`Authorization: Bearer`).
+ * Never trust client-supplied email headers for authorization.
+ */
+export async function getPrivyUserEmailFromRequest(
+  req: NextRequest
+): Promise<string | null> {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7).trim();
+  if (!token) return null;
+  try {
+    const privy = getPrivyClient();
+    const verifiedClaims = await privy.verifyAuthToken(token);
+    const user = await privy.getUser(verifiedClaims.userId);
+    const email = user.email?.address?.trim().toLowerCase();
+    return email && email.length > 0 ? email : null;
   } catch {
     return null;
   }

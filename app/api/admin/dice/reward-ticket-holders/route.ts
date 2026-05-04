@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { supabase } from '@/lib/db/client';
-import { checkAdminPermission } from '@/lib/db/admin';
 import { getPlayersByEmails, updatePlayerPoints } from '@/lib/db/players';
 import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import { fetchEventTicketHolders } from '@/lib/dice/client';
 import { apiSuccess, apiError } from '@/lib/api/response';
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
 const rewardBodySchema = z.object({
   eventId: z.string().min(1, 'eventId is required'),
@@ -22,8 +22,8 @@ const rewardBodySchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    const adminEmail = request.headers.get('x-user-email');
-    if (!checkAdminPermission(adminEmail || undefined)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized - Admin access required', 403);
     }
 

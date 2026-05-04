@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server';
 import { apiSuccess, apiError } from '@/lib/api/response';
+import { getPrivyUserEmailFromRequest } from '@/lib/api/privy';
 import { checkAdminPermission } from '@/lib/db/admin';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
-
+    const email = await getPrivyUserEmailFromRequest(request);
     if (!email) {
-      return apiError('Email is required', 400);
+      return apiError('Unauthorized', 403);
     }
 
     const isAdmin = checkAdminPermission(email);

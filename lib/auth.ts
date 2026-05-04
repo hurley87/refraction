@@ -1,25 +1,20 @@
 import { NextRequest } from 'next/server';
 import { checkAdminPermission } from '@/lib/db/admin';
+import { getPrivyUserEmailFromRequest } from '@/lib/api/privy';
 
 export { checkAdminPermission };
 
-// Extract user email from Privy token (simplified for now)
+/**
+ * Authenticated user (email from verified Privy JWT only).
+ */
 export async function getUserFromRequest(
   request: NextRequest
 ): Promise<{ email?: string } | null> {
-  try {
-    // For now, we'll use a simple approach - you can enhance this to properly verify Privy JWT tokens
-    const userEmail = request.headers.get('x-user-email'); // Frontend can send this after Privy auth
-
-    if (!userEmail) {
-      return null;
-    }
-
-    return { email: userEmail };
-  } catch (error) {
-    console.error('Error extracting user from request:', error);
+  const email = await getPrivyUserEmailFromRequest(request);
+  if (!email) {
     return null;
   }
+  return { email };
 }
 
 export async function requireAdmin(
@@ -36,4 +31,17 @@ export async function requireAdmin(
   }
 
   return { isValid: true, user: { email: user.email } };
+}
+
+/**
+ * Email of an admin user, or null if missing/invalid token or caller is not in {@link ADMIN_EMAILS}.
+ */
+export async function getAuthenticatedAdminEmail(
+  request: NextRequest
+): Promise<string | null> {
+  const email = await getPrivyUserEmailFromRequest(request);
+  if (!email || !checkAdminPermission(email)) {
+    return null;
+  }
+  return email;
 }

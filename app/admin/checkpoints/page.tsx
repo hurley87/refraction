@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import type { Checkpoint, ChainType, CheckpointMode } from '@/lib/types';
 import { usePrivy } from '@privy-io/react-auth';
+import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import Image from 'next/image';
 import GradientPicker from '@/components/ui/gradient-picker';
 import FontPicker from '@/components/ui/font-picker';
@@ -288,7 +289,7 @@ function CheckpointCard({
 // ---------------------------------------------------------------------------
 
 export default function AdminCheckpointsPage() {
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
 
   // Admin auth
@@ -297,8 +298,11 @@ export default function AdminCheckpointsPage() {
     try {
       const response = await fetch('/api/admin/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email.address }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await adminApiAuthHeaders(getAccessToken)),
+        },
+        body: JSON.stringify({}),
       });
       const responseData = await response.json();
       const data = responseData.data || responseData;
@@ -306,7 +310,7 @@ export default function AdminCheckpointsPage() {
     } catch {
       return false;
     }
-  }, [user?.email?.address]);
+  }, [user?.email?.address, getAccessToken]);
 
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
@@ -335,14 +339,15 @@ export default function AdminCheckpointsPage() {
   const { data: checkpoints = [], isLoading: checkpointsLoading } = useQuery<Checkpoint[]>({
     queryKey: ['admin-checkpoints'],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/checkpoints', {
-        headers: { 'x-user-email': user?.email?.address || '' },
+        headers: auth,
       });
       if (!response.ok) throw new Error('Failed to fetch checkpoints');
       const responseData = await response.json();
       return (responseData.data || responseData).checkpoints;
     },
-    enabled: !!isAdmin,
+    enabled: !!isAdmin && !!user?.email?.address,
   });
 
   // Mutations
@@ -372,9 +377,10 @@ export default function AdminCheckpointsPage() {
         if (checkpointData.cta_url) fd.append('cta_url', checkpointData.cta_url);
         fd.append('partner_image', imageFile);
 
+        const auth = await adminApiAuthHeaders(getAccessToken);
         const response = await fetch('/api/admin/checkpoints', {
           method: 'POST',
-          headers: { 'x-user-email': user?.email?.address || '' },
+          headers: auth,
           body: fd,
         });
         if (!response.ok) {
@@ -385,9 +391,10 @@ export default function AdminCheckpointsPage() {
         return rd.data || rd;
       }
 
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/checkpoints', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-email': user?.email?.address || '' },
+        headers: { 'Content-Type': 'application/json', ...auth },
         body: JSON.stringify(checkpointData),
       });
       if (!response.ok) {
@@ -442,15 +449,17 @@ export default function AdminCheckpointsPage() {
           fd.append(key, value === null ? '' : String(value));
         });
         fd.append('partner_image', imageFile);
+        const auth = await adminApiAuthHeaders(getAccessToken);
         response = await fetch(`/api/admin/checkpoints/${id}`, {
           method: 'PATCH',
-          headers: { 'x-user-email': user?.email?.address || '' },
+          headers: auth,
           body: fd,
         });
       } else {
+        const auth = await adminApiAuthHeaders(getAccessToken);
         response = await fetch(`/api/admin/checkpoints/${id}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'x-user-email': user?.email?.address || '' },
+          headers: { 'Content-Type': 'application/json', ...auth },
           body: JSON.stringify(updates),
         });
       }
@@ -473,9 +482,10 @@ export default function AdminCheckpointsPage() {
 
   const deleteCheckpointMutation = useMutation({
     mutationFn: async (id: string) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(`/api/admin/checkpoints/${id}`, {
         method: 'DELETE',
-        headers: { 'x-user-email': user?.email?.address || '' },
+        headers: auth,
       });
       if (!response.ok) throw new Error('Failed to delete checkpoint');
     },

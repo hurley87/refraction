@@ -1,31 +1,9 @@
 import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/db/client';
 import { apiSuccess, apiError } from '@/lib/api/response';
-import { checkAdminPermission } from '@/lib/db/admin';
-import { getPrivyClient } from '@/lib/api/privy';
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
-
-async function getAuthenticatedAdminEmail(
-  request: NextRequest
-): Promise<string | null> {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-
-  const token = authHeader.slice(7).trim();
-  if (!token) return null;
-
-  try {
-    const privy = getPrivyClient();
-    const verifiedClaims = await privy.verifyAuthToken(token);
-    const user = await privy.getUser(verifiedClaims.userId);
-    const email = user.email?.address?.trim().toLowerCase();
-    if (!email) return null;
-    return checkAdminPermission(email) ? email : null;
-  } catch {
-    return null;
-  }
-}
 
 // GET /api/perks/[id]
 export async function GET(

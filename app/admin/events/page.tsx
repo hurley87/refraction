@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { usePrivy } from '@privy-io/react-auth';
+import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import type { DiceEvent } from '@/lib/dice';
 import Image from 'next/image';
 import {
@@ -56,12 +57,12 @@ function RewardTicketHoldersDialog({
   event,
   open,
   onOpenChange,
-  adminEmail,
+  getAccessToken,
 }: {
   event: DiceEvent | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  adminEmail: string | undefined;
+  getAccessToken: () => Promise<string | null | undefined>;
 }) {
   const [pointsPerHolder, setPointsPerHolder] = useState(100);
   const [awarding, setAwarding] = useState(false);
@@ -69,13 +70,6 @@ function RewardTicketHoldersDialog({
   const [error, setError] = useState<string | null>(null);
 
   const eventId = event?.id ?? '';
-  const headers = useMemo(
-    () =>
-      adminEmail
-        ? { 'Content-Type': 'application/json', 'x-user-email': adminEmail }
-        : { 'Content-Type': 'application/json' },
-    [adminEmail]
-  );
 
   const {
     data: preview,
@@ -84,9 +78,10 @@ function RewardTicketHoldersDialog({
   } = useQuery<TicketHoldersPreview>({
     queryKey: ['dice-ticket-holders', eventId],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const res = await fetch(
         `/api/admin/dice/events/${encodeURIComponent(eventId)}/ticket-holders`,
-        { headers: headers as HeadersInit }
+        { headers: auth }
       );
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -95,17 +90,18 @@ function RewardTicketHoldersDialog({
       const body = await res.json();
       return body.data ?? body;
     },
-    enabled: open && !!eventId && !!adminEmail,
+    enabled: open && !!eventId,
   });
 
   const handleAward = async () => {
-    if (!eventId || !adminEmail) return;
+    if (!eventId) return;
     setAwarding(true);
     setError(null);
     try {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const res = await fetch('/api/admin/dice/reward-ticket-holders', {
         method: 'POST',
-        headers: headers as HeadersInit,
+        headers: { 'Content-Type': 'application/json', ...auth },
         body: JSON.stringify({
           eventId,
           pointsPerHolder,
@@ -298,7 +294,7 @@ function RewardTicketHoldersDialog({
 }
 
 export default function AdminEventsPage() {
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
 
   const checkAdminStatus = useCallback(async () => {
     if (!user?.email?.address) return false;
@@ -306,8 +302,11 @@ export default function AdminEventsPage() {
     try {
       const response = await fetch('/api/admin/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email.address }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await adminApiAuthHeaders(getAccessToken)),
+        },
+        body: JSON.stringify({}),
       });
       const responseData = await response.json();
       const data = responseData.data || responseData;
@@ -316,7 +315,7 @@ export default function AdminEventsPage() {
       console.error('Error checking admin status:', error);
       return false;
     }
-  }, [user?.email?.address]);
+  }, [user?.email?.address, getAccessToken]);
 
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
@@ -657,7 +656,7 @@ export default function AdminEventsPage() {
           event={rewardDialogEvent}
           open={rewardDialogOpen}
           onOpenChange={setRewardDialogOpen}
-          adminEmail={user?.email?.address}
+          getAccessToken={getAccessToken}
         />
       </div>
     </div>

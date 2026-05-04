@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server';
-import { checkAdminPermission } from '@/lib/db/admin';
 import { adminGetGuide } from '@/lib/db/guides';
 import {
   createGuidePreviewToken,
   isGuidePreviewSecretConfigured,
 } from '@/lib/guides/preview-token';
 import { apiSuccess, apiError } from '@/lib/api/response';
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
 function readHrefForGuide(
   slug: string,
@@ -18,7 +18,7 @@ function readHrefForGuide(
 
 /**
  * Returns a time-limited preview URL (with `?preview=…` token) for an unpublished or published guide.
- * Requires `x-user-email` for an admin. Signing uses `GUIDE_PREVIEW_SECRET` or, in production, a
+ * Requires a verified Privy admin session (`Authorization: Bearer`). Signing uses `GUIDE_PREVIEW_SECRET` or, in production, a
  * key derived from `PRIVY_APP_SECRET`.
  */
 export async function GET(
@@ -26,8 +26,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const adminEmail = request.headers.get('x-user-email') || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized', 403);
     }
 

@@ -7,7 +7,8 @@ import {
 } from '@/lib/analytics';
 import { trackCityMilestone } from '@/lib/analytics/server';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
-import { checkAdminPermission } from '@/lib/db/admin';
+import { getPrivyUserEmailFromRequest } from '@/lib/api/privy';
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
 import {
   MAX_LOCATION_DESCRIPTION_LENGTH,
   MAX_LOCATIONS_PER_WEEK,
@@ -28,10 +29,10 @@ export async function GET(request: NextRequest) {
     const walletAddress = searchParams.get('walletAddress');
     const includeHidden = searchParams.get('includeHidden') === 'true';
 
-    // Only allow includeHidden if admin
+    // Only allow includeHidden if admin (verified Privy token)
     if (includeHidden) {
-      const adminEmail = request.headers.get('x-user-email');
-      if (!checkAdminPermission(adminEmail || undefined)) {
+      const adminEmail = await getAuthenticatedAdminEmail(request);
+      if (!adminEmail) {
         return apiError('Unauthorized', 403);
       }
     }
@@ -237,7 +238,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const creatorEmail = request.headers.get('x-user-email');
+    const creatorEmail = await getPrivyUserEmailFromRequest(request);
 
     // Resolve city from coordinates (and fall back to context JSON if present)
     const resolvedCity = resolveCityFromCoordinates(parsedLat, parsedLon);

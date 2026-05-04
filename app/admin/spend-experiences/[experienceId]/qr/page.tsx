@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
+import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import QRCode from 'qrcode';
@@ -15,7 +16,7 @@ import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 export default function AdminSpendExperienceQrPage() {
   const params = useParams<{ experienceId: string }>();
   const experienceId = params.experienceId;
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -25,8 +26,11 @@ export default function AdminSpendExperienceQrPage() {
     try {
       const response = await fetch('/api/admin/auth', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email.address }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await adminApiAuthHeaders(getAccessToken)),
+        },
+        body: JSON.stringify({}),
       });
       const responseData = await response.json();
       const data = responseData.data || responseData;
@@ -34,7 +38,7 @@ export default function AdminSpendExperienceQrPage() {
     } catch {
       return false;
     }
-  }, [user?.email?.address]);
+  }, [user?.email?.address, getAccessToken]);
 
   useEffect(() => {
     const verify = async () => {
@@ -49,14 +53,13 @@ export default function AdminSpendExperienceQrPage() {
     void verify();
   }, [user, checkAdminStatus]);
 
-  const adminEmail = user?.email?.address || '';
-
   const { data, isLoading, error } = useQuery<SpendExperience>({
-    queryKey: ['admin-spend-experience', experienceId, adminEmail],
+    queryKey: ['admin-spend-experience', experienceId, isAdmin],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(
         `/api/admin/spend-experiences/${experienceId}`,
-        { headers: { 'x-user-email': adminEmail } }
+        { headers: auth }
       );
       if (!response.ok) throw new Error('Failed to load experience');
       const j = await response.json();
@@ -66,7 +69,7 @@ export default function AdminSpendExperienceQrPage() {
       if (!exp) throw new Error('Missing experience');
       return exp;
     },
-    enabled: Boolean(experienceId && isAdmin && adminEmail),
+    enabled: Boolean(experienceId && isAdmin && user?.email?.address),
   });
 
   const scanUrl = useMemo(() => {

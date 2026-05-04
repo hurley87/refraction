@@ -13,6 +13,7 @@ import {
   mergeSearchBoxReverseFeatures,
 } from '@/lib/utils/location-autofill';
 import { usePrivy } from '@privy-io/react-auth';
+import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
 import MapNav from '@/components/map/mapnav';
 import MapCard from '@/components/map/map-card';
@@ -167,7 +168,7 @@ export default function InteractiveMap({
   const effectiveGuideReturnHref =
     guideReturnHref ?? guideReturnPersistedRef.current;
 
-  const { user } = usePrivy();
+  const { user, getAccessToken } = usePrivy();
   const walletAddress = user?.wallet?.address;
   const [userUsername, setUserUsername] = useState<string | null>(null);
 
@@ -1160,14 +1161,20 @@ export default function InteractiveMap({
         }
       }
 
-      // Create location and award points
+      // Create location and award points (optional verified email for analytics)
+      let authHeaders: Record<string, string> = {};
+      if (user?.email?.address) {
+        try {
+          authHeaders = await adminApiAuthHeaders(getAccessToken);
+        } catch {
+          // Proceed without Bearer — location still created; server skips verified email
+        }
+      }
       const response = await fetch('/api/locations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(user?.email?.address
-            ? { 'x-user-email': user.email.address }
-            : {}),
+          ...authHeaders,
         },
         body: JSON.stringify({
           place_id: selectedMarker.place_id,

@@ -1,9 +1,8 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { checkAdminPermission } from '@/lib/db/admin';
 import { deleteLocationById, updateLocationById } from '@/lib/db/locations';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
-import { getPrivyClient } from '@/lib/api/privy';
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
 const updateLocationSchema = z.object({
   name: z.string().min(1).optional(),
@@ -19,27 +18,6 @@ const updateLocationSchema = z.object({
   eventUrl: z.string().url().nullable().optional(),
   isVisible: z.boolean().optional(),
 });
-
-async function getAuthenticatedAdminEmail(
-  request: NextRequest
-): Promise<string | null> {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-
-  const token = authHeader.slice(7).trim();
-  if (!token) return null;
-
-  try {
-    const privy = getPrivyClient();
-    const verifiedClaims = await privy.verifyAuthToken(token);
-    const user = await privy.getUser(verifiedClaims.userId);
-    const email = user.email?.address?.trim().toLowerCase();
-    if (!email) return null;
-    return checkAdminPermission(email) ? email : null;
-  } catch {
-    return null;
-  }
-}
 
 export async function PATCH(
   request: NextRequest,

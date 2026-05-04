@@ -2,15 +2,15 @@ import { NextRequest } from 'next/server';
 import { getAllPerks, createPerk } from '@/lib/db/perks';
 import type { Perk } from '@/lib/types';
 import { apiSuccess, apiError } from '@/lib/api/response';
-import { checkAdminPermission } from '@/lib/db/admin';
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/admin/perks - Get all perks
 export async function GET(request: NextRequest) {
   try {
-    const adminEmail = request.headers.get('x-user-email') || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized - Admin access required', 403);
     }
 
@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/perks - Create a new perk
 export async function POST(request: NextRequest) {
   try {
-    const adminEmail = request.headers.get('x-user-email') || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized - Admin access required', 403);
     }
 

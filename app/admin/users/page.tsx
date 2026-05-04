@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePrivy } from '@privy-io/react-auth';
+import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import {
   ArrowUpDown,
   Search,
@@ -91,7 +92,7 @@ interface PaginationInfo {
 }
 
 export default function AdminUsersPage() {
-  const { user, login } = usePrivy();
+  const { user, login, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -116,13 +117,14 @@ export default function AdminUsersPage() {
     if (!user?.email?.address) return false;
 
     try {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-email': user.email.address,
+          ...auth,
         },
-        body: JSON.stringify({ email: user.email.address }),
+        body: JSON.stringify({}),
       });
       const responseData = await response.json();
       // Unwrap the apiSuccess wrapper
@@ -132,7 +134,7 @@ export default function AdminUsersPage() {
       console.error('Error checking admin status:', error);
       return false;
     }
-  }, [user?.email?.address]);
+  }, [user?.email?.address, getAccessToken]);
 
   useEffect(() => {
     const verifyAdmin = async () => {
@@ -153,12 +155,11 @@ export default function AdminUsersPage() {
   const { data: usersData, isLoading: usersLoading } = useQuery({
     queryKey: ['admin-users', currentPage, itemsPerPage],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(
         `/api/admin/users?page=${currentPage}&limit=${itemsPerPage}`,
         {
-          headers: {
-            'x-user-email': user?.email?.address || '',
-          },
+          headers: auth,
         }
       );
       if (!response.ok) throw new Error('Failed to fetch users');
@@ -170,7 +171,7 @@ export default function AdminUsersPage() {
         pagination: data.pagination as PaginationInfo,
       };
     },
-    enabled: !!isAdmin,
+    enabled: !!isAdmin && !!user?.email?.address,
   });
 
   const users = useMemo(() => usersData?.users ?? [], [usersData?.users]);
@@ -185,10 +186,9 @@ export default function AdminUsersPage() {
   const { data: uploadHistory = [] } = useQuery({
     queryKey: ['upload-history'],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/points-upload', {
-        headers: {
-          'x-user-email': user?.email?.address || '',
-        },
+        headers: auth,
       });
       if (!response.ok) throw new Error('Failed to fetch upload history');
       const responseData = await response.json();
@@ -196,17 +196,16 @@ export default function AdminUsersPage() {
       const data = responseData.data || responseData;
       return data.uploads as UploadHistory[];
     },
-    enabled: !!isAdmin && showUploadHistory,
+    enabled: !!isAdmin && showUploadHistory && !!user?.email?.address,
   });
 
   // Fetch pending points
   const { data: pendingPointsData } = useQuery({
     queryKey: ['pending-points'],
     queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/pending-points', {
-        headers: {
-          'x-user-email': user?.email?.address || '',
-        },
+        headers: auth,
       });
       if (!response.ok) throw new Error('Failed to fetch pending points');
       const responseData = await response.json();
@@ -217,7 +216,7 @@ export default function AdminUsersPage() {
         summary: data.summary as PendingPointsSummary[],
       };
     },
-    enabled: !!isAdmin && showPendingPoints,
+    enabled: !!isAdmin && showPendingPoints && !!user?.email?.address,
   });
 
   // Upload mutation
@@ -226,11 +225,10 @@ export default function AdminUsersPage() {
       const formData = new FormData();
       formData.append('file', file);
 
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/points-upload', {
         method: 'POST',
-        headers: {
-          'x-user-email': user?.email?.address || '',
-        },
+        headers: auth,
         body: formData,
       });
 
@@ -335,10 +333,9 @@ export default function AdminUsersPage() {
       toast.info('Fetching all users for export...');
 
       // Fetch all users (using max limit of 1000)
+      const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(`/api/admin/users?page=1&limit=1000`, {
-        headers: {
-          'x-user-email': user?.email?.address || '',
-        },
+        headers: auth,
       });
 
       if (!response.ok) {

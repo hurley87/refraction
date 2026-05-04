@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { checkAdminPermission } from '@/lib/db/admin';
 import {
   adminListGuides,
   createGuide,
   ensureUniqueGuideSlug,
 } from '@/lib/db/guides';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
 const createSchema = z.object({
   kind: z.enum(['city_guide', 'editorial']),
@@ -31,8 +31,8 @@ function slugify(value: string): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const adminEmail = request.headers.get('x-user-email') || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized', 403);
     }
 
@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const adminEmail = request.headers.get('x-user-email') || undefined;
-    if (!checkAdminPermission(adminEmail)) {
+    const adminEmail = await getAuthenticatedAdminEmail(request);
+    if (!adminEmail) {
       return apiError('Unauthorized', 403);
     }
 
