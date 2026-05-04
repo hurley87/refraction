@@ -18,7 +18,7 @@ import { useTiers } from '@/hooks/useTiers';
 import type { Tier } from '@/lib/types';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
 import DashboardSocialLinks from '@/components/dashboard/dashboard-social-links';
-import Transactions from '@/components/transactions';
+import Transactions from '@/components/dashboard/transactions';
 
 /** Single dashboard shell background (hero + points gutter share this) */
 const DASHBOARD_HERO_GRADIENT =
@@ -82,7 +82,10 @@ export default function DashboardPage() {
   /** Avoid blank screen while Privy hydrates or during logout redirect */
   if (!ready) {
     return (
-      <div style={shellStyle} className="min-h-screen pt-2 pb-4 font-grotesk">
+      <div
+        style={shellStyle}
+        className="min-h-screen overflow-x-hidden pt-2 pb-4 font-grotesk"
+      >
         <div className="mx-auto flex min-h-[50vh] w-full max-w-md items-center justify-center px-4">
           <div
             className="h-9 w-9 animate-spin rounded-full border-2 border-white/30 border-t-white"
@@ -96,7 +99,10 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div style={shellStyle} className="min-h-screen pt-2 pb-4 font-grotesk">
+      <div
+        style={shellStyle}
+        className="min-h-screen overflow-x-hidden pt-2 pb-4 font-grotesk"
+      >
         <div className="mx-auto flex min-h-[50vh] w-full max-w-md flex-col items-center justify-center gap-3 px-4 text-center">
           <p className="body-small text-white/90">Redirecting…</p>
         </div>
@@ -116,7 +122,10 @@ export default function DashboardPage() {
       : null;
 
   return (
-    <div style={shellStyle} className="min-h-screen pt-2 pb-4 font-grotesk">
+    <div
+      style={shellStyle}
+      className="min-h-screen overflow-x-hidden pt-2 pb-4 font-grotesk"
+    >
       <div className="mx-auto w-full max-w-md px-4 md:px-2">
         {/* Navigation - Sticky Header */}
         <div
@@ -148,10 +157,10 @@ export default function DashboardPage() {
           </>
         )}
 
-        {/* Points block — gutter uses column padding only (same gradient as hero); inner 361×col white card */}
+        {/* Points block — full column width so gutter matches activity (shell px-4 + inner p-4 only; no extra inset from a narrower centered card) */}
         <div className="w-full pt-4">
           <div
-            className="mx-auto flex w-[361px] max-w-full flex-col items-start gap-0 p-4"
+            className="flex w-full max-w-full flex-col items-start gap-6 p-4"
             style={{
               background: 'var(--Backgrounds-Background, #FFF)',
             }}
@@ -176,7 +185,7 @@ export default function DashboardPage() {
                   <div className="h-[35px] w-24 max-w-full animate-pulse rounded bg-gray-200" />
                 ) : (
                   <div className="flex items-end gap-2">
-                    <div className="display2 text-[#171717]">
+                    <div className="display2 font-bold text-[#171717]">
                       {userStats?.total_points?.toLocaleString() || '0'}
                     </div>
                     <svg
@@ -198,14 +207,23 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Tier card */}
+            {/* Tier card — 24px gap from points block comes from parent gap-6 */}
             <div className="flex w-full flex-col items-left justify-start gap-2 self-stretch border-t border-[var(--Borders-Light-Border,#DBDBDB)] pt-4">
               <div className="flex items-start justify-start gap-2">
-                <Trophy
-                  className="h-4 w-4 shrink-0 text-[#757575]"
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="11"
+                  viewBox="0 0 12 11"
+                  fill="none"
                   aria-hidden
-                />
-                <span className="label-small uppercase tracking-wide text-[#757575]">
+                >
+                  <path
+                    d="M11.9235 2.39412C11.8035 1.99122 11.5423 1.6521 11.1893 1.4385C10.7274 1.1591 10.1889 1.13683 9.70781 1.34132C9.70075 0.878688 9.65637 0.429221 9.57872 0H2.42027C2.34261 0.428209 2.29824 0.877681 2.29118 1.34031C1.8091 1.13582 1.27056 1.15809 0.809664 1.43749C0.456684 1.65108 0.195478 1.99021 0.0754643 2.39311C-0.0536258 2.82334 -0.0163119 3.29913 0.181357 3.77087C0.70982 5.03019 2.92049 6.32898 4.16298 6.97889C4.57446 7.1935 4.88004 7.33826 4.98391 7.38584L5.38732 7.57312C5.2663 9.043 4.36065 10.033 3.62141 10.2102C3.48728 10.2426 3.39046 10.359 3.39046 10.4977V10.7052H5.76551V10.6991H6.23548V10.7052C6.23548 10.7052 8.61659 10.7052 8.61054 10.7052V10.4977C8.61054 10.359 8.51372 10.2426 8.37959 10.2102C7.64035 10.032 6.7347 9.04199 6.61368 7.57211L7.01708 7.38483C7.12096 7.33624 7.42654 7.19249 7.83802 6.97788C9.08152 6.32798 11.2922 5.02918 11.8196 3.76986C12.0173 3.29812 12.0536 2.82233 11.9255 2.3921L11.9235 2.39412ZM1.04566 3.40542C0.796553 2.8112 1.02347 2.41032 1.29274 2.24734C1.40973 2.17648 1.52571 2.14712 1.63867 2.14712C1.90996 2.14712 2.15704 2.32022 2.31437 2.51358L2.35673 2.56622C2.47271 3.51273 2.72887 4.45014 3.09093 5.27011C1.59732 4.3155 1.16769 3.69697 1.04465 3.40542H1.04566ZM10.9513 3.40542C10.8283 3.69697 10.3986 4.31651 8.90503 5.27011C9.26709 4.45014 9.52325 3.51273 9.63923 2.56622L9.68159 2.51358C9.90447 2.24025 10.3049 2.00641 10.7032 2.24734C10.9735 2.41032 11.2004 2.81221 10.9503 3.40542H10.9513Z"
+                    fill="#757575"
+                  />
+                </svg>
+                <span className="label-small font-semibold normal-case tracking-normal text-[#757575]">
                   YOUR TIER
                 </span>
               </div>
@@ -226,16 +244,17 @@ export default function DashboardPage() {
                         className="h-4 w-4"
                       />
                       <span className="label-small font-semibold normal-case tracking-normal text-[black]">
-                        {currentTier.min_points.toLocaleString()} &nbsp;&nbsp;NEEDED
+                        {currentTier.min_points.toLocaleString()}{' '}
+                        &nbsp;&nbsp;NEEDED
                       </span>
                     </div>
                   </div>
-                  <p className="body-small w-full text-center text-[#757575]">
+                  <p className="body-small w-full text-left text-[#757575] leading-tight">
                     {currentTier.description}
                   </p>
                   <Link
                     href="/rewards?tab=tiers"
-                    className="label-medium inline-flex items-center gap-1 text-[#171717] transition-opacity hover:opacity-80"
+                    className="label-medium inline-flex w-fit self-start items-center gap-1 border-b-2 border-[#171717] text-[#171717] transition-opacity hover:opacity-80 pt-2"
                   >
                     LEARN MORE
                     <svg
@@ -263,19 +282,21 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Activity stack — white sheet, rounded bottom only */}
-        <div className="mt-6 flex w-full flex-col gap-6 rounded-b-[26px] bg-[var(--Backgrounds-Background,#FFF)] px-4 pb-4 pt-2">
-          <DashboardSocialLinks profile={userProfile} />
-          <Transactions
-            activities={activities}
-            isLoading={isLoadingActivities}
-            error={activitiesError}
-            showEmptyStateAction={true}
-            emptyStateActionHref="/interactive-map"
-            emptyStateActionLabel="Explore Map"
-            maxHeight="400px"
-            embedded
-          />
+        {/* Activity stack — bleed past column px-4 so white meets shell edges (no grey strip beside this block) */}
+        <div className="relative -mx-4 mt-6 w-[calc(100%+2rem)] max-w-none rounded-b-[26px] bg-[var(--Backgrounds-Background,#FFF)] md:-mx-2 md:w-[calc(100%+1rem)]">
+          <div className="flex flex-col gap-6 px-4 pt-2 pb-4 md:px-2">
+            <DashboardSocialLinks profile={userProfile} />
+            <Transactions
+              activities={activities}
+              isLoading={isLoadingActivities}
+              error={activitiesError}
+              showEmptyStateAction={true}
+              emptyStateActionHref="/interactive-map"
+              emptyStateActionLabel="Explore Map"
+              maxHeight="400px"
+              embedded
+            />
+          </div>
         </div>
       </div>
     </div>

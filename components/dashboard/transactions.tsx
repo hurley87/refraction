@@ -65,7 +65,7 @@ export default function Transactions({
           className="w-4 h-4"
         />
         <h2 className="label-small text-[#7D7D7D]">
-          YOUR ACTIVITY
+          TRANSACTIONS
         </h2>
       </div>
 

@@ -44,12 +44,14 @@ export default function DashboardSocialLinks({
           >
             <path
               d="M11.2532 10.6667H0C0.746444 8.18309 3.03832 6.48657 5.60279 6.47662C8.17718 6.46667 10.4919 8.15224 11.2532 10.6667ZM5.62559 0C3.97905 0 2.64477 1.3393 2.64477 2.99204C2.64477 4.64478 3.97905 5.98408 5.62559 5.98408C7.27213 5.98408 8.60641 4.64478 8.60641 2.99204C8.60641 1.3393 7.27213 0 5.62559 0Z"
-              fill="white"
+              fill="#171717"
             />
           </svg>
-          <span className="label-small uppercase text-white">FOLLOW</span>
+          <span className="label-small uppercase text-[#171717]">
+        
+            FOLLOW</span>
         </div>
-        <div className="flex w-full items-center justify-between gap-1">
+        <div className="flex w-full items-center justify-left gap-1">
           {tw && (
             <a
               href={tw}
@@ -107,9 +109,9 @@ export default function DashboardSocialLinks({
             alt=""
             width={16}
             height={16}
-            className="h-4 w-4 shrink-0 brightness-0 invert"
+            className="h-4 w-4 shrink-0 brightness-0"
           />
-          <span className="label-small uppercase text-white">WEBSITE</span>
+          <span className="label-small uppercase text-[#171717]">WEBSITE</span>
         </div>
         {href ? (
           <a
@@ -118,15 +120,15 @@ export default function DashboardSocialLinks({
             rel="noopener noreferrer"
             className="flex min-w-0 max-w-full items-center gap-2 transition-opacity hover:opacity-80"
           >
-            <span className="label-small min-w-0 flex-1 truncate text-left text-white underline decoration-white/50">
+            <span className="label-small min-w-0 flex-1 border-b-2 border-[#171717] truncate text-left text-[#171717] underline decoration-white/50">
               {websiteLabel}
             </span>
             <Image
-              src="/home/arrow-right.svg"
+              src="/arrow-right.svg"
               alt=""
               width={16}
               height={16}
-              className="h-4 w-4 shrink-0 brightness-0 invert"
+              className="h-4 w-4 shrink-0 brightness-0"
             />
           </a>
         ) : (

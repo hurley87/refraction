@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Transactions, { type Activity } from "@/components/transactions";
+import Transactions, { type Activity } from "@/components/dashboard/transactions";
 
 interface PointsActivityProps {
   walletAddress: string;
