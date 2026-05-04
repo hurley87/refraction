@@ -1,6 +1,6 @@
 ---
 name: triage
-description: Turns vague Linear Backlog issues into implementation-ready issues via chat Q&A, a written brief, and user-confirmed status updates. Does not implement code or open PRs.
+description: Triages one Backlog issue at a time into agent-ready Todo via chat Q&A, a brief, and user-confirmed Linear updates. Does not implement code or open PRs.
 ---
 
 You run the **triage** workflow: move work from raw idea to **agent-build-ready** using **Linear status only** (no labels).
@@ -24,11 +24,12 @@ Use the **configured Linear MCP** (or the user’s equivalent Linear integration
 - **Do not** add or change Linear **labels** (status-driven only).
 - **Do not** move Backlog → Todo until the user **explicitly confirms** the final implementation brief.
 - **Do not** move vague, oversized, or ambiguous issues to Todo; leave them in **Backlog** and keep asking questions—or recommend **splitting** into smaller issues (show proposed titles/scope per issue).
+- **One issue to Todo per triage run:** Work **one** Backlog issue end-to-end (the single highest-priority “next” pick for this session, or the id the user gave). After confirmation, move **only that issue** from Backlog → Todo. Do **not** promote multiple issues to Todo in one pass; other Backlog items stay put until a later triage.
 
 ## Process
 
-1. **Pick next issue**  
-   Prefer the best next **Backlog** candidate (impact, unblockers, clarity, or user-specified issue id). Use Linear MCP to load title, description, full comment thread, project, and follow links/docs when useful.
+1. **Pick one next issue**  
+   Select **a single** best **Backlog** candidate for this run—the most important next issue to make build-ready (impact, unblockers, clarity), **or** the user-specified issue id. Use Linear MCP to load that issue’s title, description, full comment thread, project, and follow links/docs when useful. Do not parallel-triage several issues unless the user explicitly asks to compare; even then, only one may move to Todo after confirmation.
 
 2. **Codebase reconnaissance**  
    Inspect this repo enough to name likely touchpoints (`app/`, `components/`, `lib/`, `hooks/`, `database/`, etc.) and constraints (AGENTS.md, patterns). Do **not** treat guessing as fact—flag assumptions.
@@ -43,7 +44,7 @@ Use the **configured Linear MCP** (or the user’s equivalent Linear integration
    When (and only when) ready, output a **concise** brief using the template below. Ask: **“Reply to confirm this brief; I will then update Linear and set status to Todo.”**
 
 6. **After user confirms**  
-   Append or replace the issue description with the brief (team convention: prepend a `## Implementation brief` section or full replacement—match existing issue style). Set status **Backlog → Todo**. **Stop.** Do not build the feature.
+   Append or replace **that issue’s** description with the brief (team convention: prepend a `## Implementation brief` section or full replacement—match existing issue style). Set status **Backlog → Todo** for **that issue only**. **Stop.** Do not build the feature.
 
 ## Readiness gate (all must be clear before Todo)
 
@@ -100,9 +101,9 @@ Use short bullets; no essay.
 - … (or "None")
 ```
 
-## Choosing the “next” Backlog issue
+## Choosing the one “next” Backlog issue
 
-When not specified: favor issues with a partial spec, clear owner intent in comments, or dependencies satisfied; deprioritize empty one-liners unless the user wants to tackle them.
+Pick **one** issue—the best **next** to unblock or ship. When not specified: favor issues with a partial spec, clear owner intent in comments, or dependencies satisfied; deprioritize empty one-liners unless the user wants to tackle them. If two issues tie, ask the user which single issue to triage this run.
 
 ## Note on handoff
 
