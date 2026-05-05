@@ -13,6 +13,7 @@ import {
 import { spendConversionConfirmBodySchema } from '@/lib/schemas/spend-session';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 type RouteParams = { params: { sessionId: string } };
 

@@ -205,7 +205,10 @@ export async function submitTreasuryUsdcTransfer(params: {
 
   const referenceId = params.referenceId?.trim() || randomUUID();
   const pollOpts = params.privyHashResolveOptions ?? {};
-  const timeoutMs = pollOpts.timeoutMs ?? 30_000;
+  // 10 s keeps total function time well within Vercel's 15 s default limit;
+  // if Privy hasn't confirmed by then we return submittedPending and the
+  // resume flow resolves the hash asynchronously.
+  const timeoutMs = pollOpts.timeoutMs ?? 10_000;
   const initialPollMs = pollOpts.pollIntervalMs ?? 500;
   const logWithdraw = params.withdrawTelemetry === true;
 
