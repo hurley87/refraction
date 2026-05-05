@@ -580,24 +580,35 @@ export function SpendExperiencePage({
                           </>
                         ) : (
                           <>
-                            <div className="flex justify-between gap-4">
-                              <span className="body-small font-grotesk text-[#757575]">
-                                You will use
-                              </span>
-                              <span className="body-medium font-grotesk font-semibold text-[#171717]">
-                                {preview.pointsRequired.toLocaleString()} points
-                              </span>
-                            </div>
-                            <div className="flex justify-between gap-4 border-t border-[#ededed] pt-3">
-                              <span className="body-small font-grotesk text-[#757575]">
-                                You will receive
-                              </span>
-                              <span className="body-medium font-grotesk font-semibold text-[#171717]">
-                                ${preview.usdcAmount.toFixed(2)} USDC
-                              </span>
-                            </div>
+                            {!postPointsConversion && (
+                              <>
+                                <div className="flex justify-between gap-4">
+                                  <span className="body-small font-grotesk text-[#757575]">
+                                    You will use
+                                  </span>
+                                  <span className="body-medium font-grotesk font-semibold text-[#171717]">
+                                    {preview.pointsRequired.toLocaleString()}{' '}
+                                    points
+                                  </span>
+                                </div>
+                                <div className="flex justify-between gap-4 border-t border-[#ededed] pt-3">
+                                  <span className="body-small font-grotesk text-[#757575]">
+                                    You will receive
+                                  </span>
+                                  <span className="body-medium font-grotesk font-semibold text-[#171717]">
+                                    ${preview.usdcAmount.toFixed(2)} USDC
+                                  </span>
+                                </div>
+                              </>
+                            )}
                             {preview.userPointsBalance != null && (
-                              <div className="flex justify-between gap-4 border-t border-[#ededed] pt-3">
+                              <div
+                                className={
+                                  postPointsConversion
+                                    ? 'flex justify-between gap-4'
+                                    : 'flex justify-between gap-4 border-t border-[#ededed] pt-3'
+                                }
+                              >
                                 <span className="body-small font-grotesk text-[#757575]">
                                   {postPointsConversion
                                     ? 'Points remaining'
@@ -633,7 +644,9 @@ export function SpendExperiencePage({
                     )}
 
                     <p className={eligibilityToneClass(elig.status)}>
-                      {elig.message}
+                      {elig.status === 'ready_for_payment' && preview
+                        ? `${preview.pointsRequired.toLocaleString()} points were converted to ${preview.usdcAmount.toFixed(2)} USDC.`
+                        : elig.message}
                     </p>
 
                     {showConvert && (
