@@ -148,6 +148,16 @@ function eligibilityToneClass(status: SpendEligibilityStatus): string {
   return 'body-small font-grotesk text-amber-900';
 }
 
+/** After a points→USDC conversion (or that path through payment), balances reflect deducted points and funded USDC. */
+function isPostPointsConversionFlow(status: SpendEligibilityStatus): boolean {
+  return (
+    status === 'ready_for_payment' ||
+    status === 'conversion_in_progress' ||
+    status === 'payment_failed' ||
+    status === 'payment_complete'
+  );
+}
+
 /**
  * Spend pilot: opens from QR at `/spend/{experienceId}`; creates/returns a session when authed.
  */
@@ -441,6 +451,10 @@ export function SpendExperiencePage({
 
   const showPayDirectUsdc = elig?.status === 'ready_for_payment_own_usdc';
 
+  const postPointsConversion =
+    Boolean(elig?.status && isPostPointsConversionFlow(elig.status)) &&
+    !showPayDirectUsdc;
+
   const showConvert =
     elig?.status === 'eligible' &&
     preview &&
@@ -540,7 +554,7 @@ export function SpendExperiencePage({
                 {elig && !previewLoading && (
                   <div className="space-y-4">
                     {preview && (
-                      <div className="space-y-3 rounded-sm border border-[#ededed] bg-white p-4">
+                      <div className="space-y-3 rounded-sm border border-[#ededed] bg-[#fafafa] p-4">
                         {showPayDirectUsdc ? (
                           <>
                             <div className="flex justify-between gap-4">
@@ -583,15 +597,34 @@ export function SpendExperiencePage({
                             {preview.userPointsBalance != null && (
                               <div className="flex justify-between gap-4 border-t border-[#ededed] pt-3">
                                 <span className="body-small font-grotesk text-[#757575]">
-                                  Your points balance
+                                  {postPointsConversion
+                                    ? 'Points remaining'
+                                    : 'Your points balance'}
                                 </span>
-                                <span className="body-medium font-grotesk text-[#171717]">
+                                <span
+                                  className={
+                                    postPointsConversion
+                                      ? 'body-medium font-grotesk font-semibold text-[#171717]'
+                                      : 'body-medium font-grotesk text-[#171717]'
+                                  }
+                                >
                                   {Number(
                                     preview.userPointsBalance
                                   ).toLocaleString()}
                                 </span>
                               </div>
                             )}
+                            {postPointsConversion &&
+                              preview.userUsdcBalance != null && (
+                                <div className="flex justify-between gap-4 border-t border-[#ededed] pt-3">
+                                  <span className="body-small font-grotesk text-[#757575]">
+                                    USDC balance
+                                  </span>
+                                  <span className="body-medium font-grotesk font-semibold text-[#171717]">
+                                    ${preview.userUsdcBalance.toFixed(2)} USDC
+                                  </span>
+                                </div>
+                              )}
                           </>
                         )}
                       </div>
