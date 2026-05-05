@@ -485,35 +485,6 @@ export function SpendExperiencePage({
           )}
         </div>
 
-        {user && (
-          <div className="space-y-3 rounded-sm border border-[#ededed] bg-[#fafafa] p-4">
-            <div className="flex justify-between gap-4">
-              <span className="body-small font-grotesk text-[#757575]">
-                Status
-              </span>
-              <span className="body-medium font-grotesk font-semibold capitalize text-[#171717]">
-                {experience.status}
-              </span>
-            </div>
-            <div className="flex justify-between gap-4 border-t border-[#ededed] pt-3">
-              <span className="body-small font-grotesk text-[#757575]">
-                Max USDC / user
-              </span>
-              <span className="body-medium font-grotesk font-semibold text-[#171717]">
-                ${Number(experience.max_usdc_per_user).toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between gap-4 border-t border-[#ededed] pt-3">
-              <span className="body-small font-grotesk text-[#757575]">
-                Points per $1 USDC
-              </span>
-              <span className="body-medium font-grotesk font-semibold text-[#171717]">
-                {Number(experience.points_to_usdc_rate).toLocaleString()} pts
-              </span>
-            </div>
-          </div>
-        )}
-
         {!user && (
           <SpendPrimaryButton onClick={login}>
             Log in to continue
