@@ -103,7 +103,7 @@ describe('submitTreasuryUsdcTransfer', () => {
     expect(mockWaitForTransaction).toHaveBeenCalledWith(
       'privy-tx-1',
       expect.objectContaining({
-        timeoutMs: 30_000,
+        timeoutMs: 10_000,
       })
     );
   });
