@@ -122,6 +122,25 @@ export async function addCampaignMonitorSubscriber(
   }
 
   if (!res.ok) {
+    // Code 204 means the email is on the suppression list (unsubscribed/bounced).
+    // This is an expected business case — the user has opted out — not an error.
+    const cmCode =
+      parsedBody !== null &&
+      typeof parsedBody === 'object' &&
+      'Code' in (parsedBody as object)
+        ? (parsedBody as Record<string, unknown>).Code
+        : undefined;
+
+    if (cmCode === 204) {
+      logCampaignMonitor('warn', 'campaign_monitor_subscribe_suppressed', {
+        status: res.status,
+        email: redactEmailForLog(email),
+        listId: redactListIdForLog(listId),
+        cmCode,
+      });
+      return;
+    }
+
     const hint =
       res.status === 404
         ? '404 usually means wrong URL path or invalid list ID — confirm CAMPAIGN_MONITOR_LIST_ID matches List API ID in Campaign Monitor (Settings → list → bottom). Ensure no extra quotes/spaces in env.'
