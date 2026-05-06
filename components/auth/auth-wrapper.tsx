@@ -330,13 +330,11 @@ export default function AuthWrapper({
           <div className="relative w-full max-w-[430px] mx-auto flex flex-col min-h-dvh px-4">
             {/* Poster image (centered) */}
             {partnerImageUrl && (
-              <div className="flex justify-center mt-6 mb-10">
+              <div className="mt-6 mb-10 flex w-full justify-center">
                 <div
-                  className="rounded-lg overflow-hidden"
+                  className="w-full shrink-0 overflow-hidden rounded-lg aspect-[208/260] sm:aspect-auto sm:h-[260px] sm:w-[208px]"
                   style={{
                     boxShadow: '0px 0px 100px 30px rgba(255,255,255,1)',
-                    width: 208,
-                    height: 260,
                   }}
                 >
                   <Image
@@ -344,7 +342,8 @@ export default function AuthWrapper({
                     alt={title}
                     width={208}
                     height={260}
-                    className="object-cover w-full h-full"
+                    className="h-full w-full object-cover"
+                    sizes="(max-width: 639px) calc(100vw - 2rem), 208px"
                   />
                 </div>
               </div>
@@ -353,7 +352,7 @@ export default function AuthWrapper({
             {/* Hero text content */}
             <div className="flex flex-col gap-6 pb-8">
               <h1
-                className="text-[52px] leading-[0.81em] font-extrabold uppercase tracking-tighter text-left"
+                className="display0 sm:display0-sm font-extrabold uppercase tracking-tighter text-center"
                 style={{ color: textColor, ...fontStyle }}
               >
                 {title}
@@ -369,7 +368,7 @@ export default function AuthWrapper({
 
               <button
                 onClick={login}
-                className="w-full rounded-full py-3 px-4 flex items-center justify-between text-xl font-bold uppercase -tracking-[0.08em]"
+                className="w-full label-large py-3 px-4 flex items-center justify-between  uppercase"
                 style={{
                   backgroundColor: textColor,
                   color: brandBg,
@@ -377,16 +376,18 @@ export default function AuthWrapper({
               >
                 <span>{loginCtaText}</span>
                 <svg
-                  width="20"
-                  height="20"
+                  width={20}
+                  height={20}
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="shrink-0"
+                  aria-hidden
                 >
-                  <path d="M5 12h14M12 5l7 7-7 7" />
+                  <path
+                    d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                    fill="currentColor"
+                  />
                 </svg>
               </button>
             </div>
@@ -468,11 +469,11 @@ export default function AuthWrapper({
             <div className="w-full">
               <Button
                 onClick={login}
-                className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
+                className="bg-white text-black  hover:bg-white/90 w-full label-medium py-6 text-base flex items-center justify-between px-6"
               >
                 <span>{loginCtaText}</span>
                 <Image
-                  src="/home/arrow-right.svg"
+                  src="arrow-right.svg"
                   alt="arrow-right"
                   width={20}
                   height={20}

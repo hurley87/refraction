@@ -81,13 +81,11 @@ function CheckinSuccessView({
       <div className="w-full max-w-[430px] mx-auto flex flex-col justify-center min-h-dvh px-4 py-8">
         {/* Partner poster image (centered) */}
         {checkpoint.partner_image_url && (
-          <div className="flex justify-center mb-10">
+          <div className="mb-10 flex w-full justify-center">
             <div
-              className="rounded-lg overflow-hidden"
+              className="w-full shrink-0 overflow-hidden rounded-lg aspect-[208/260] sm:aspect-auto sm:h-[260px] sm:w-[208px]"
               style={{
                 boxShadow: '0px 0px 100px 30px rgba(255,255,255,1)',
-                width: 208,
-                height: 260,
               }}
             >
               <Image
@@ -95,7 +93,8 @@ function CheckinSuccessView({
                 alt={checkpoint.name}
                 width={208}
                 height={260}
-                className="object-cover w-full h-full"
+                className="h-full w-full object-cover"
+                sizes="(max-width: 639px) calc(100vw - 2rem), 208px"
                 priority
               />
             </div>

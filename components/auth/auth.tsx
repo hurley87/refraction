@@ -190,11 +190,11 @@ export default function Auth({ children }: AuthProps) {
             <div className="w-full">
               <Button
                 onClick={login}
-                className="bg-white text-black rounded-full hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
+                className="bg-white text-black  hover:bg-white/90 w-full font-inktrap py-6 text-base flex items-center justify-between px-6"
               >
                 <span>Check-in</span>
                 <Image
-                  src="/home/arrow-right.svg"
+                  src="arrow-right.svg"
                   alt="arrow-right"
                   width={20}
                   height={20}

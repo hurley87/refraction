@@ -162,7 +162,10 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
           ...fontStyle,
         }}
       >
-        <div className="display2 sm:display2-sm text-center" style={{ color: textColor }}>
+        <div
+          className="display2 sm:display2-sm text-center"
+          style={{ color: textColor }}
+        >
           Loading Redemption...
         </div>
       </div>
@@ -183,13 +186,11 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
       <div className="w-full max-w-[430px] mx-auto flex flex-col justify-center min-h-dvh px-4 py-8">
         {/* Partner poster image (centered) */}
         {checkpoint.partner_image_url && (
-          <div className="flex justify-center mb-10">
+          <div className="mb-10 flex w-full justify-center">
             <div
-              className="rounded-lg overflow-hidden"
+              className="w-full shrink-0 overflow-hidden rounded-lg aspect-[208/260] sm:aspect-auto sm:h-[260px] sm:w-[208px]"
               style={{
                 boxShadow: '0px 0px 100px 30px rgba(255,255,255,1)',
-                width: 208,
-                height: 260,
               }}
             >
               <Image
@@ -197,7 +198,8 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
                 alt={checkpoint.name}
                 width={208}
                 height={260}
-                className="object-cover w-full h-full"
+                className="h-full w-full object-cover"
+                sizes="(max-width: 639px) calc(100vw - 2rem), 208px"
                 priority
               />
             </div>
@@ -216,7 +218,7 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
               </h1>
 
               <h2
-                className="body-large sm:body-large uppercase text-center"
+                className="body-large sm:body-large-sm uppercase text-center"
                 style={{ color: textColor }}
               >
                 {checkpoint.name}
@@ -224,14 +226,14 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
 
               <div className="flex items-end justify-between">
                 <span
-                  className="label-medium uppercase tracking-[0.04em]"
-                  style={{ color: textColor }}
+                  className="body-large uppercase tracking-[0.04em]"
+                  style={{ color: '#ffffff' }}
                 >
                   You Spent
                 </span>
                 <div className="flex items-end gap-2">
                   <span
-                    className="display2 sm:display2-sm leading-[1em] font-normal -tracking-[0.065em]"
+                    className="display1 sm:display1-sm leading-[1em] font-normal -tracking-[0.065em]"
                     style={{ color: textColor }}
                   >
                     {spendItem.points_cost.toLocaleString()}
@@ -248,7 +250,7 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
               </div>
 
               <p
-                className="body-medium sm:body-small leading-[1.2] font-medium -tracking-[0.02em] text-center"
+                className="label-large sm:label-large-sm leading-[1.2] font-medium -tracking-[0.02em] text-center"
                 style={{ color: textColor }}
               >
                 This redemption is complete. Show this confirmation at pickup.
@@ -263,13 +265,12 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
                 }}
               >
                 <span className="min-w-0 truncate pr-2">Redeemed</span>
-                
               </div>
             </>
           ) : (
             <>
               <h1
-                className="display1 sm:display1-sm text-center uppercase "
+                className="display0 sm:display0-sm text-center uppercase "
                 style={{ color: textColor, ...fontStyle }}
               >
                 {checkpoint.name}
@@ -277,8 +278,8 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
 
               {checkpoint.description && (
                 <p
-                  className="label-medium text-[#eeeeee] leading-[1.2] font-medium -tracking-[0.02em] text-center"
-                  style={{ color: '#eeeeee' }}
+                  className="body-medium text-[#171717] leading-[1.2] font-medium -tracking-[0.02em] text-center"
+                  style={{ color: '#171717' }}
                 >
                   {checkpoint.description}
                 </p>
@@ -379,7 +380,7 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
               {!user ? (
                 <button
                   onClick={login}
-                  className="w-full rounded-full py-5 px-6 text-center text-xl font-bold uppercase -tracking-[0.08em]"
+                  className="w-full  py-5 px-6 text-center text-xl font-bold uppercase -tracking-[0.08em]"
                   style={{
                     backgroundColor: textColor,
                     color: brandBg,
@@ -392,7 +393,7 @@ export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
                   type="button"
                   onClick={() => redeemMutation.mutate()}
                   disabled={redeemMutation.isPending || !canAfford}
-                  className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between py-2 pl-4 pr-2 text-left transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between py-2 pl-4 pr-2 text-left transition-opacity hover:opacity-90 disabled:cursor-not-allowed uppercase disabled:opacity-40"
                   style={{
                     backgroundColor: textColor,
                     color: brandBg,
