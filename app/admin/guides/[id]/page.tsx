@@ -41,6 +41,7 @@ import {
   parseEditorialBlocks,
   type EditorialContentBlock,
 } from '@/lib/guides/block-schema';
+import { LeadParagraphsMarkdownReference } from '@/components/admin/lead-paragraphs-markdown-reference';
 import { CityGuidesHubCardImage } from '@/components/city-guides/city-guides-hub-card-image';
 import {
   Dialog,
@@ -981,10 +982,12 @@ export default function AdminGuideEditPage() {
         </div>
         <div>
           <Label>Paragraphs (blank line between)</Label>
+          <LeadParagraphsMarkdownReference />
           <Textarea
             value={leadParagraphsText}
             onChange={(e) => setLeadParagraphsText(e.target.value)}
             rows={8}
+            className="mt-3"
           />
         </div>
       </section>
@@ -1295,6 +1298,7 @@ export default function AdminGuideEditPage() {
               </SelectContent>
             </Select>
           </div>
+          <LeadParagraphsMarkdownReference placement="editorial-blocks" />
           {blocks.map((block, i) => (
             <div
               key={i}

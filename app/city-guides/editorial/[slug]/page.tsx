@@ -83,6 +83,7 @@ export default async function EditorialBySlugPage({
             <CityGuideArticleDescription
               headline={headline}
               paragraphs={leadParagraphs}
+              paragraphsAreMarkdown
               className="mb-10"
             />
           ) : null}
