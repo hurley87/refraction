@@ -12,6 +12,10 @@ import {
 } from '@/lib/schemas/api';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { trackAccountCreated, resolveServerIdentity } from '@/lib/analytics';
+import {
+  accountCreatedAttributionFromPayload,
+  signupAttributionPayloadHasData,
+} from '@/lib/analytics/attribution-core';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { addCampaignMonitorSubscriber } from '@/lib/campaign-monitor/subscribe';
 import { captureHandledException } from '@/lib/monitoring/capture-handled-exception';
@@ -25,7 +29,8 @@ export async function POST(request: NextRequest) {
       return apiValidationError(validationResult.error);
     }
 
-    const { walletAddress, email, username } = validationResult.data;
+    const { walletAddress, email, username, signup_attribution } =
+      validationResult.data;
     const normalizedUsername = username.trim().toLowerCase();
 
     const taken = await isUsernameTakenByOther(
@@ -71,10 +76,17 @@ export async function POST(request: NextRequest) {
     });
 
     if (isNewPlayer) {
+      const attributionProps =
+        signup_attribution &&
+        signupAttributionPayloadHasData(signup_attribution)
+          ? accountCreatedAttributionFromPayload(signup_attribution)
+          : {};
+
       trackAccountCreated(distinctId, {
         wallet_type: 'EVM',
         has_email: !!email,
         wallet_address: walletAddress,
+        ...attributionProps,
       });
     }
 

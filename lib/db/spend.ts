@@ -260,6 +260,8 @@ export const createPendingSpendRedemption = async (
       redemption_id: data.id,
       checkpoint_id: joinedItem?.checkpoint_id ?? null,
       flow: 'pending_create',
+      spend_source: 'event',
+      transaction_context: 'checkpoint',
     });
   }
 
@@ -369,6 +371,8 @@ export const verifySpendRedemption = async (
     checkpoint_id: fulfilledItem?.checkpoint_id ?? null,
     flow: 'pending_verify',
     verified_by: 'user',
+    spend_source: 'event',
+    transaction_context: 'checkpoint',
   });
 
   return updated;
@@ -492,6 +496,8 @@ export const redeemSpendItemOnce = async (
         checkpoint_id: item.checkpoint_id ?? null,
         flow: 'checkpoint_instant',
         verified_by: 'user',
+        spend_source: 'event',
+        transaction_context: 'checkpoint',
       });
     }
 
@@ -578,6 +584,8 @@ export const redeemSpendItemOnce = async (
       checkpoint_id: rpcItem?.checkpoint_id ?? null,
       flow: 'checkpoint_instant',
       verified_by: 'user',
+      spend_source: 'event',
+      transaction_context: 'checkpoint',
     });
   }
 
@@ -655,6 +663,8 @@ export const fulfillRedemption = async (redemptionId: string) => {
       checkpoint_id: adminItem?.checkpoint_id ?? null,
       flow: 'admin_fulfill',
       verified_by: 'admin',
+      spend_source: 'event',
+      transaction_context: 'checkpoint',
     });
   }
 

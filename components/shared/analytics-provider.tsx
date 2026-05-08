@@ -20,6 +20,10 @@ import {
   trackEvent as trackEventClient,
   resolveDistinctId,
 } from '@/lib/analytics';
+import {
+  captureSignupAttributionFromNavigation,
+  syncSignupAttributionSuperProperties,
+} from '@/lib/analytics/attribution';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useTiers } from '@/hooks/useTiers';
 import type { UserProperties } from '@/lib/analytics/types';
@@ -41,10 +45,17 @@ function PageViewTracker() {
 
   // Track pageviews on route changes
   useEffect(() => {
+    captureSignupAttributionFromNavigation({
+      pathname,
+      search: searchParams.toString(),
+    });
+
     // Wait for initialization to complete before tracking
     // This ensures we don't miss pageviews due to async initialization race condition
     waitForInitialization().then(() => {
       if (isInitialized()) {
+        syncSignupAttributionSuperProperties();
+
         const queryString = searchParams.toString();
 
         // Extract checkpoint_id from /c/[id] routes

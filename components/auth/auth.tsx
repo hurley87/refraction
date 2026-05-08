@@ -4,6 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { getSignupAttributionBodyFields } from '@/lib/analytics/attribution';
 
 interface AuthProps {
   children: React.ReactNode;
@@ -66,6 +67,7 @@ export default function Auth({ children }: AuthProps) {
           walletAddress: user.wallet.address,
           email: user.email?.address || '',
           username: username.trim(),
+          ...getSignupAttributionBodyFields(),
         }),
       });
 

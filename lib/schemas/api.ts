@@ -5,6 +5,7 @@ import {
   stellarWalletAddressSchema,
   aptosWalletAddressSchema,
 } from './player';
+import { signupAttributionSchema } from './signup-attribution';
 
 /**
  * Common query parameter schemas for pagination and filtering
@@ -31,6 +32,7 @@ export const createPlayerRequestSchema = z.object({
   walletAddress: walletAddressSchema,
   email: z.string().email().optional(),
   username: z.string().min(1).max(30),
+  signup_attribution: signupAttributionSchema.optional(),
 });
 
 /**

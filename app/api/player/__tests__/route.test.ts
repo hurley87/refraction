@@ -89,6 +89,117 @@ describe('Player API Route', () => {
       );
     });
 
+    it('passes signup attribution into account_created when provided', async () => {
+      const mockPlayer = {
+        id: '123',
+        wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+        username: 'testuser',
+        email: 'test@example.com',
+        total_points: 0,
+        created_at: '2024-01-01T00:00:00Z',
+      };
+
+      vi.mocked(getPlayerByWallet).mockResolvedValueOnce(null);
+      vi.mocked(createOrUpdatePlayer).mockResolvedValueOnce(mockPlayer);
+
+      const request = createMockRequest('POST', {
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        username: 'testuser',
+        email: 'test@example.com',
+        signup_attribution: {
+          initial_utm_source: 'instagram',
+          initial_utm_medium: 'social',
+          initial_utm_campaign: 'summer',
+          initial_landing_page: 'https://irl.energy/',
+          utm_source: 'instagram',
+          utm_medium: 'social',
+          landing_page: 'https://irl.energy/map',
+          current_path: '/interactive-map',
+        },
+      });
+
+      const response = await POST(request);
+      const json = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(json.success).toBe(true);
+      expect(trackAccountCreated).toHaveBeenCalledWith(
+        'test@example.com',
+        expect.objectContaining({
+          signup_source: 'instagram',
+          signup_channel: 'social',
+          initial_utm_source: 'instagram',
+          utm_source: 'instagram',
+          current_path: '/interactive-map',
+        })
+      );
+    });
+
+    it('normalizes checkpoint signup attribution on account_created', async () => {
+      const mockPlayer = {
+        id: '124',
+        wallet_address: '0x2234567890abcdef2234567890abcdef22345678',
+        username: 'cpuser',
+        email: 'cp@example.com',
+        total_points: 0,
+        created_at: '2024-01-01T00:00:00Z',
+      };
+
+      vi.mocked(getPlayerByWallet).mockResolvedValueOnce(null);
+      vi.mocked(createOrUpdatePlayer).mockResolvedValueOnce(mockPlayer);
+
+      const request = createMockRequest('POST', {
+        walletAddress: '0x2234567890abcdef2234567890abcdef22345678',
+        username: 'cpuser',
+        email: 'cp@example.com',
+        signup_attribution: {
+          checkpoint_id: 'chk-1',
+          initial_landing_page: 'https://irl.energy/c/chk-1',
+        },
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+
+      expect(trackAccountCreated).toHaveBeenCalledWith(
+        'cp@example.com',
+        expect.objectContaining({
+          signup_source: 'event',
+          signup_channel: 'checkpoint',
+          signup_context: 'physical_touchpoint',
+          checkpoint_id: 'chk-1',
+        })
+      );
+    });
+
+    it('does not attach signup attribution fields when signup_attribution is empty', async () => {
+      const mockPlayer = {
+        id: '125',
+        wallet_address: '0x3234567890abcdef3234567890abcdef32345678',
+        username: 'emptyattr',
+        email: 'empty@example.com',
+        total_points: 0,
+        created_at: '2024-01-01T00:00:00Z',
+      };
+
+      vi.mocked(getPlayerByWallet).mockResolvedValueOnce(null);
+      vi.mocked(createOrUpdatePlayer).mockResolvedValueOnce(mockPlayer);
+
+      const request = createMockRequest('POST', {
+        walletAddress: '0x3234567890abcdef3234567890abcdef32345678',
+        username: 'emptyattr',
+        email: 'empty@example.com',
+        signup_attribution: {},
+      });
+
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+
+      const props = vi.mocked(trackAccountCreated).mock.calls[0]?.[1];
+      expect(props?.signup_source).toBeUndefined();
+      expect(props?.wallet_type).toBe('EVM');
+    });
+
     it('should return 409 when username is already taken', async () => {
       vi.mocked(isUsernameTakenByOther).mockResolvedValueOnce(true);
 
