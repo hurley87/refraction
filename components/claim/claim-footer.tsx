@@ -1,29 +1,29 @@
 'use client';
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState } from 'react';
+import Image from 'next/image';
 
 export default function ClaimFooter() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<
-    "idle" | "success" | "error" | "already-subscribed"
-  >("idle");
-  const [message, setMessage] = useState("");
+    'idle' | 'success' | 'error' | 'already-subscribed'
+  >('idle');
+  const [message, setMessage] = useState('');
 
   const handleNewsletterSubmit = async (
-    e: React.FormEvent<HTMLFormElement>,
+    e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setSubmitStatus("idle");
-    setMessage("");
+    setSubmitStatus('idle');
+    setMessage('');
 
     try {
-      const response = await fetch("/api/newsletter", {
-        method: "POST",
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email }),
       });
@@ -32,22 +32,22 @@ export default function ClaimFooter() {
         const responseData = await response.json();
 
         if (responseData.alreadySubscribed) {
-          setSubmitStatus("already-subscribed");
-          setMessage("You are already subscribed!");
+          setSubmitStatus('already-subscribed');
+          setMessage('You are already subscribed!');
         } else {
-          setSubmitStatus("success");
-          setMessage("Thanks for subscribing!");
+          setSubmitStatus('success');
+          setMessage('Thanks for subscribing!');
         }
-        setEmail("");
+        setEmail('');
       } else {
         const errorData = await response.json();
-        setSubmitStatus("error");
-        setMessage(errorData.error || "Failed to subscribe. Please try again.");
+        setSubmitStatus('error');
+        setMessage(errorData.error || 'Failed to subscribe. Please try again.');
       }
     } catch (error) {
-      console.error("Newsletter error:", error);
-      setSubmitStatus("error");
-      setMessage("Network error. Please try again.");
+      console.error('Newsletter error:', error);
+      setSubmitStatus('error');
+      setMessage('Network error. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -62,7 +62,7 @@ export default function ClaimFooter() {
           </p>
           <div className="flex items-center justify-between gap-2">
             <a
-              href="https://x.com/refraction_irl"
+              href="https://x.com/irl_energy"
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-[#131313]/10"
@@ -126,8 +126,10 @@ export default function ClaimFooter() {
 
             <a
               target="_blank"
-              href="https://www.instagram.com/refraction_irl/"
+              rel="noopener noreferrer"
+              href="https://www.instagram.com/irl_energy/"
               className="flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-[#131313]/10"
+              aria-label="Follow us on Instagram"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -144,13 +146,41 @@ export default function ClaimFooter() {
             </a>
 
             <a
+              href="https://www.linkedin.com/company/irl-energy/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-[#131313]/10"
+              aria-label="Follow us on LinkedIn"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden
+                focusable={false}
+              >
+                <path
+                  d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"
+                  fill="#131313"
+                />
+              </svg>
+            </a>
+
+            <a
               href="https://t.me/irlnetwork"
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-[#131313]/10"
               aria-label="Join us on Telegram"
             >
-              <Image src="/telegram-black.svg" alt="Telegram" width={48} height={48} />
+              <Image
+                src="/telegram-black.svg"
+                alt="Telegram"
+                width={48}
+                height={48}
+              />
             </a>
           </div>
         </div>
@@ -202,18 +232,18 @@ export default function ClaimFooter() {
                 width={405}
                 height={298}
                 className="h-auto"
-                style={{ width: "405px", height: "298px", flexShrink: 0 }}
+                style={{ width: '405px', height: '298px', flexShrink: 0 }}
                 priority={false}
               />
             </div>
 
-            {submitStatus === "success" && (
+            {submitStatus === 'success' && (
               <p className="text-xs text-green-600">{message}</p>
             )}
-            {submitStatus === "already-subscribed" && (
+            {submitStatus === 'already-subscribed' && (
               <p className="text-xs text-blue-600">{message}</p>
             )}
-            {submitStatus === "error" && (
+            {submitStatus === 'error' && (
               <p className="text-xs text-red-600">{message}</p>
             )}
           </form>
