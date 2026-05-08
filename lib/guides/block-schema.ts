@@ -1,9 +1,13 @@
 import { z } from 'zod';
 
-/** One block in an editorial body stream (matches `EditorialArticleBlocks` renderer). */
+/**
+ * One block in an editorial body stream (matches `EditorialArticleBlocks` renderer).
+ * `paragraph` text is GitHub Flavored Markdown; other text blocks are plain.
+ */
 export const editorialContentBlockSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('paragraph'),
+    /** Markdown source (`remark-gfm`). */
     text: z.string(),
   }),
   z.object({
