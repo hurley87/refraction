@@ -101,4 +101,27 @@ describe('addCampaignMonitorSubscriber', () => {
       addCampaignMonitorSubscriber({ email: 'x@y.z' })
     ).rejects.toThrow('Campaign Monitor subscriber API failed');
   });
+
+  it('silently returns (no throw) when email is on the suppression list (Code 204)', async () => {
+    process.env.CAMPAIGN_MONITOR_API_KEY = 'k';
+    process.env.CAMPAIGN_MONITOR_LIST_ID = 'lid';
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      statusText: 'Bad Request',
+      text: async () =>
+        '{"Code":204,"Message":"Email Address exists in suppression list. Subscriber is not added."}',
+    });
+
+    await expect(
+      addCampaignMonitorSubscriber({ email: 'suppressed@example.com' })
+    ).resolves.toBeUndefined();
+
+    expect(console.warn).toHaveBeenCalledWith(
+      expect.stringContaining('campaign_monitor_subscribe_suppressed')
+    );
+    expect(console.error).not.toHaveBeenCalledWith(
+      expect.stringContaining('campaign_monitor_subscribe_http_error')
+    );
+  });
 });
