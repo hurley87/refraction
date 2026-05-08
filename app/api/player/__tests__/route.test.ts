@@ -85,6 +85,8 @@ describe('Player API Route', () => {
         expect.objectContaining({
           wallet_type: 'EVM',
           has_email: true,
+          signup_source: 'direct',
+          signup_channel: 'direct',
         })
       );
     });
@@ -172,7 +174,7 @@ describe('Player API Route', () => {
       );
     });
 
-    it('does not attach signup attribution fields when signup_attribution is empty', async () => {
+    it('defaults signup attribution to direct when signup_attribution is empty', async () => {
       const mockPlayer = {
         id: '125',
         wallet_address: '0x3234567890abcdef3234567890abcdef32345678',
@@ -196,7 +198,8 @@ describe('Player API Route', () => {
       expect(response.status).toBe(200);
 
       const props = vi.mocked(trackAccountCreated).mock.calls[0]?.[1];
-      expect(props?.signup_source).toBeUndefined();
+      expect(props?.signup_source).toBe('direct');
+      expect(props?.signup_channel).toBe('direct');
       expect(props?.wallet_type).toBe('EVM');
     });
 

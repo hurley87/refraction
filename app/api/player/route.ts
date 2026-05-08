@@ -80,7 +80,10 @@ export async function POST(request: NextRequest) {
         signup_attribution &&
         signupAttributionPayloadHasData(signup_attribution)
           ? accountCreatedAttributionFromPayload(signup_attribution)
-          : {};
+          : {
+              signup_source: 'direct',
+              signup_channel: 'direct',
+            };
 
       trackAccountCreated(distinctId, {
         wallet_type: 'EVM',
