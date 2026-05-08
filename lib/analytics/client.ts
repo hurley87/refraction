@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import type { UserProperties } from "./types";
+import type { UserProperties } from './types';
 
 let _mixpanelInitialized = false;
-let _mixpanelInstance: typeof import("mixpanel-browser").default | null = null;
+let _mixpanelInstance: typeof import('mixpanel-browser').default | null = null;
 let _initPromise: Promise<void> | null = null;
 
 /**
@@ -12,7 +12,7 @@ let _initPromise: Promise<void> | null = null;
  * Uses dynamic import to reduce initial bundle size
  */
 export async function initMixpanel(token: string): Promise<void> {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   if (_mixpanelInitialized) return;
 
   // If initialization is already in progress, return the existing promise
@@ -24,14 +24,14 @@ export async function initMixpanel(token: string): Promise<void> {
   // This only loads when analytics are actually enabled
   _initPromise = (async () => {
     if (!_mixpanelInstance) {
-      const mixpanelModule = await import("mixpanel-browser");
+      const mixpanelModule = await import('mixpanel-browser');
       _mixpanelInstance = mixpanelModule.default;
     }
 
     _mixpanelInstance.init(token, {
-      debug: process.env.NODE_ENV === "development",
+      debug: process.env.NODE_ENV === 'development',
       track_pageview: false, // We'll track pageviews manually via route changes for better control
-      persistence: "localStorage", // Recommended by Mixpanel for web
+      persistence: 'localStorage', // Recommended by Mixpanel for web
       autocapture: false, // Disabled - we track events manually for better control and privacy
     });
 
@@ -46,7 +46,7 @@ export async function initMixpanel(token: string): Promise<void> {
  */
 function getMixpanel() {
   if (!_mixpanelInstance) {
-    throw new Error("Mixpanel not initialized. Call initMixpanel() first.");
+    throw new Error('Mixpanel not initialized. Call initMixpanel() first.');
   }
   return _mixpanelInstance;
 }
@@ -56,9 +56,9 @@ function getMixpanel() {
  */
 export function identifyUser(
   distinctId: string,
-  properties?: UserProperties,
+  properties?: UserProperties
 ): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   if (!_mixpanelInitialized) return;
 
   const mixpanel = getMixpanel();
@@ -74,20 +74,60 @@ export function identifyUser(
  */
 export function trackEvent(
   eventName: string,
-  properties?: Record<string, any>,
+  properties?: Record<string, any>
 ): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   if (!_mixpanelInitialized) return;
 
   const mixpanel = getMixpanel();
   mixpanel.track(eventName, properties);
 }
 
+function compactMixpanelProps(
+  properties: Record<string, unknown>
+): Record<string, string | number | boolean> {
+  return Object.fromEntries(
+    Object.entries(properties).filter(
+      ([, v]) => v !== undefined && v !== null && v !== ''
+    )
+  ) as Record<string, string | number | boolean>;
+}
+
+/**
+ * Mixpanel super properties that persist for the session (updated on each call).
+ */
+export function registerSuperProperties(
+  properties: Record<string, unknown>
+): void {
+  if (typeof window === 'undefined') return;
+  if (!_mixpanelInitialized) return;
+
+  const mixpanel = getMixpanel();
+  const cleaned = compactMixpanelProps(properties);
+  if (Object.keys(cleaned).length === 0) return;
+  mixpanel.register(cleaned);
+}
+
+/**
+ * Register super properties only if not already set (first-touch friendly).
+ */
+export function registerSuperPropertiesOnce(
+  properties: Record<string, unknown>
+): void {
+  if (typeof window === 'undefined') return;
+  if (!_mixpanelInitialized) return;
+
+  const mixpanel = getMixpanel();
+  const cleaned = compactMixpanelProps(properties);
+  if (Object.keys(cleaned).length === 0) return;
+  mixpanel.register_once(cleaned);
+}
+
 /**
  * Set user properties (updates user profile)
  */
 export function setUserProperties(properties: UserProperties): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   if (!_mixpanelInitialized) return;
 
   const mixpanel = getMixpanel();
@@ -100,9 +140,9 @@ export function setUserProperties(properties: UserProperties): void {
  */
 export function trackPageView(
   pageName?: string,
-  properties?: Record<string, any>,
+  properties?: Record<string, any>
 ): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   if (!_mixpanelInitialized) return;
 
   const mixpanel = getMixpanel();
@@ -116,14 +156,14 @@ export function trackPageView(
     ...properties,
   };
 
-  mixpanel.track("$pageview", pageProperties);
+  mixpanel.track('$pageview', pageProperties);
 }
 
 /**
  * Reset user identity (on logout)
  */
 export function resetUser(): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   if (!_mixpanelInitialized) return;
 
   const mixpanel = getMixpanel();
@@ -135,7 +175,7 @@ export function resetUser(): void {
  * Call this when user opts out of analytics
  */
 export function optOutTracking(): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   if (!_mixpanelInitialized) return;
 
   const mixpanel = getMixpanel();
@@ -147,7 +187,7 @@ export function optOutTracking(): void {
  * Call this when user opts in to analytics after previously opting out
  */
 export function optInTracking(): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   if (!_mixpanelInitialized) return;
 
   const mixpanel = getMixpanel();
@@ -158,7 +198,7 @@ export function optInTracking(): void {
  * Check if user has opted out of tracking
  */
 export function hasOptedOutTracking(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === 'undefined') return false;
   if (!_mixpanelInitialized) return false;
 
   const mixpanel = getMixpanel();
@@ -169,7 +209,7 @@ export function hasOptedOutTracking(): boolean {
  * Check if Mixpanel is initialized
  */
 export function isInitialized(): boolean {
-  if (typeof window === "undefined") return false;
+  if (typeof window === 'undefined') return false;
   return _mixpanelInitialized;
 }
 
@@ -178,7 +218,7 @@ export function isInitialized(): boolean {
  * Useful for ensuring initialization is done before tracking events
  */
 export async function waitForInitialization(): Promise<void> {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   if (_mixpanelInitialized) return;
   if (_initPromise) {
     await _initPromise;

@@ -75,6 +75,34 @@ export interface AccountCreatedProperties {
   wallet_type: 'EVM' | 'Solana' | 'Stellar' | 'Aptos';
   has_email: boolean;
   wallet_address: string;
+
+  /** Normalized first-touch signup attribution */
+  signup_source?: string;
+  signup_channel?: string;
+  signup_context?: string;
+
+  /** Raw first-touch */
+  initial_utm_source?: string;
+  initial_utm_medium?: string;
+  initial_utm_campaign?: string;
+  initial_utm_term?: string;
+  initial_utm_content?: string;
+  initial_referrer?: string;
+  initial_landing_page?: string;
+
+  /** Raw current / last-touch */
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_term?: string;
+  utm_content?: string;
+  referrer?: string;
+  landing_page?: string;
+  current_path?: string;
+
+  checkpoint_id?: string;
+  event_id?: string;
+  location_id?: string;
 }
 
 export interface SpendRedemptionStartedProperties {
@@ -84,6 +112,10 @@ export interface SpendRedemptionStartedProperties {
   redemption_id: string;
   checkpoint_id?: string | null;
   flow: 'pending_create';
+  spend_source?: string;
+  transaction_context?: string;
+  event_id?: string | null;
+  location_id?: string | null;
 }
 
 export interface SpendRedemptionCompletedProperties {
@@ -94,6 +126,10 @@ export interface SpendRedemptionCompletedProperties {
   checkpoint_id?: string | null;
   flow: 'checkpoint_instant' | 'pending_verify' | 'admin_fulfill';
   verified_by: 'user' | 'admin';
+  spend_source?: string;
+  transaction_context?: string;
+  event_id?: string | null;
+  location_id?: string | null;
 }
 
 export interface CityMilestoneProperties {

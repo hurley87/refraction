@@ -16,6 +16,8 @@ export {
   optOutTracking,
   optInTracking,
   hasOptedOutTracking,
+  registerSuperProperties,
+  registerSuperPropertiesOnce,
 } from './client';
 
 // Identity resolver
