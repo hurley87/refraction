@@ -1,38 +1,37 @@
-"use client";
-import Image from "next/image";
-import { useEffect, useRef } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-
+'use client';
+import Image from 'next/image';
+import { useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 
 const carouselData = [
   {
     text: "Apply for membership, get your onboarding email, and claim your 'IN REAL LIFE' tee →",
 
-    image: "irl-shirt-4000x2250.png",
+    image: 'irl-shirt-4000x2250.png',
     width: 4000,
     height: 2250,
     step: 1,
-    stepText: "step one",
+    stepText: 'step one',
   },
   {
-    text: "Complete your profile on the IRL App →",
+    text: 'Complete your profile on the IRL App →',
 
-    image: "irl-app-6000x6857.png",
+    image: 'irl-app-6000x6857.png',
     //transform: "rotate(15deg)",
     width: 6000,
     height: 6857,
     step: 2,
-    stepText: "step two",
+    stepText: 'step two',
   },
   {
-    text: "Your IRL points are auto-applied to your account",
-    image: "plus.svg",
+    text: 'Your IRL points are auto-applied to your account',
+    image: 'plus.svg',
     width: 357,
     height: 253,
     step: 3,
-    stepText: "step three",
+    stepText: 'step three',
   },
 ];
 
@@ -66,7 +65,7 @@ export default function MembershipPage() {
 
       container.scrollTo({
         left: middleCardPosition,
-        behavior: "smooth",
+        behavior: 'smooth',
       });
     }
   }, []);
@@ -111,7 +110,7 @@ export default function MembershipPage() {
       <div className="flex flex-col items-center space-y-4">
         <Link href="/interactive-map">
           <button className="bg-white text-black px-8 py-4 h-16 flex items-center gap-2 rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase">
-            Earn your first points{" "}
+            Earn your first points{' '}
             <Image src="/arrow-right.svg" alt="IRL" width={20} height={20} />
           </button>
         </Link>
@@ -363,7 +362,7 @@ export default function MembershipPage() {
                     </h3>
                     <span className="text-xl text-white font-inktrap font-semibold">
                       <button className="bg-white text-black text-xs px-4 py-2 h-8 flex items-center gap-2 rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase whitespace-nowrap">
-                        Contact Us{" "}
+                        Contact Us{' '}
                         <Image
                           src="/arrow-right.svg"
                           alt="IRL"
@@ -661,7 +660,7 @@ export default function MembershipPage() {
                 <span className="text-xl text-white font-inktrap font-semibold">
                   <Link href="mailto:partnerships@refractionfestival.com">
                     <button className="bg-white text-black text-xs px-4 py-2 h-8 flex items-center gap-2 rounded-full hover:bg-gray-200 transition-colors duration-200 font-inktrap uppercase whitespace-nowrap">
-                      Contact Us{" "}
+                      Contact Us{' '}
                       <Image
                         src="/arrow-right.svg"
                         alt="IRL"
@@ -815,8 +814,8 @@ export default function MembershipPage() {
                   alt={`Step ${carouselData[currentIndex].step}`}
                   className={`object-contain w-full h-auto ${
                     carouselData[currentIndex].step === 3
-                      ? "max-h-48 lg:max-h-64"
-                      : "max-h-96 lg:max-h-[500px]"
+                      ? 'max-h-48 lg:max-h-64'
+                      : 'max-h-96 lg:max-h-[500px]'
                   }`}
                   onLoad={() => setImageLoading(false)}
                   unoptimized={true}
@@ -836,8 +835,8 @@ export default function MembershipPage() {
                 alt={`Step ${carouselData[currentIndex].step}`}
                 className={`object-contain w-full h-auto ${
                   carouselData[currentIndex].step === 3
-                    ? "max-h-40"
-                    : "max-h-80"
+                    ? 'max-h-40'
+                    : 'max-h-80'
                 }`}
                 onLoad={() => setImageLoading(false)}
                 unoptimized={true}
@@ -1010,7 +1009,7 @@ export default function MembershipPage() {
         <div className="flex justify-center gap-3 sm:gap-4 md:gap-6 flex-wrap">
           <Link
             target="_blank"
-            href="https://x.com/refraction_irl"
+            href="https://x.com/irl_energy"
             className="hover:opacity-80 transition-opacity"
           >
             <svg
@@ -1067,6 +1066,46 @@ export default function MembershipPage() {
           </Link>
           <Link
             target="_blank"
+            href="https://www.instagram.com/irl_energy/"
+            className="hover:opacity-80 transition-opacity"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 48 48"
+              fill="none"
+              className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12"
+            >
+              <path
+                d="M24 4.32187C30.4125 4.32187 31.1719 4.35 33.6281 4.4625C36.0844 4.575 37.1625 4.90312 37.8844 5.1375C38.8219 5.4375 39.5063 5.79687 40.2281 6.51562C40.9594 7.24375 41.3125 7.91875 41.6125 8.85625C41.8469 9.57812 42.175 10.6562 42.2875 13.1125C42.4 15.5688 42.4281 16.3281 42.4281 22.7406C42.4281 29.1531 42.4 29.9125 42.2875 32.3688C42.175 34.825 41.8469 35.9031 41.6125 36.625C41.3125 37.5625 40.9531 38.2469 40.2344 38.9688C39.5063 39.7 38.8313 40.0531 37.8938 40.3531C37.1719 40.5875 36.0938 40.9156 33.6375 41.0281C31.1813 41.1406 30.4219 41.1688 24.0094 41.1688C17.5969 41.1688 16.8375 41.1406 14.3813 41.0281C11.925 40.9156 10.8469 40.5875 10.125 40.3531C9.1875 40.0531 8.50312 39.6937 7.78125 38.975C7.05 38.2469 6.69687 37.5719 6.39687 36.6344C6.1625 35.9125 5.83437 34.8344 5.72187 32.3781C5.60937 29.9219 5.58125 29.1625 5.58125 22.75C5.58125 16.3375 5.60937 15.5781 5.72187 13.1219C5.83437 10.6656 6.1625 9.5875 6.39687 8.86562C6.69687 7.92812 7.05625 7.24375 7.775 6.52187C8.50312 5.79062 9.17812 5.4375 10.1156 5.1375C10.8375 4.90312 11.9156 4.575 14.3719 4.4625C16.8281 4.35 17.5875 4.32187 24 4.32187ZM24 12.2031C17.3438 12.2031 12.2031 17.3438 12.2031 24C12.2031 30.6562 17.3438 35.7969 24 35.7969C30.6562 35.7969 35.7969 30.6562 35.7969 24C35.7969 17.3438 30.6562 12.2031 24 12.2031ZM24 31.3125C19.8187 31.3125 16.4875 27.9813 16.4875 24C16.4875 20.0187 19.8187 16.6875 24 16.6875C28.1813 16.6875 31.5125 20.0187 31.5125 24C31.5125 27.9813 28.1813 31.3125 24 31.3125ZM37.8844 11.6531C37.8844 10.1625 36.6781 8.95625 35.1875 8.95625C33.6969 8.95625 32.4906 10.1625 32.4906 11.6531C32.4906 13.1438 33.6969 14.35 35.1875 14.35C36.6781 14.35 37.8844 13.1438 37.8844 11.6531Z"
+                fill="black"
+              />
+            </svg>
+          </Link>
+          <Link
+            target="_blank"
+            href="https://www.linkedin.com/company/irl-energy/"
+            className="hover:opacity-80 transition-opacity"
+            aria-label="Follow us on LinkedIn"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12"
+              aria-hidden
+            >
+              <path
+                d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"
+                fill="black"
+              />
+            </svg>
+          </Link>
+          <Link
+            target="_blank"
             href="https://t.me/irlnetwork"
             className="hover:opacity-80 transition-opacity"
           >
@@ -1080,26 +1119,6 @@ export default function MembershipPage() {
             >
               <path
                 d="M24 4C12.954 4 4 12.954 4 24C4 35.046 12.954 44 24 44C35.046 44 44 35.046 44 24C44 12.954 35.046 4 24 4ZM35.607 15.607L33.393 35.607C33.179 36.821 32.571 37.071 31.5 36.607L24 31.607L20.5 35C20.179 35.321 19.893 35.607 19.25 35.607L19.607 28.607L31.5 17.607C31.857 17.286 31.429 17.071 30.964 17.393L16.5 26.607L9.607 24.607C8.393 24.179 8.393 23.5 9.857 23.107L34.143 14.393C35.179 14.036 36.071 14.607 35.607 15.607Z"
-                fill="black"
-              />
-            </svg>
-          </Link>
-          
-          <Link
-            target="_blank"
-            href="https://www.instagram.com/refraction_irl/"
-            className="hover:opacity-80 transition-opacity"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="48"
-              height="48"
-              viewBox="0 0 48 48"
-              fill="none"
-              className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12"
-            >
-              <path
-                d="M24 4.32187C30.4125 4.32187 31.1719 4.35 33.6281 4.4625C36.0844 4.575 37.1625 4.90312 37.8844 5.1375C38.8219 5.4375 39.5063 5.79687 40.2281 6.51562C40.9594 7.24375 41.3125 7.91875 41.6125 8.85625C41.8469 9.57812 42.175 10.6562 42.2875 13.1125C42.4 15.5688 42.4281 16.3281 42.4281 22.7406C42.4281 29.1531 42.4 29.9125 42.2875 32.3688C42.175 34.825 41.8469 35.9031 41.6125 36.625C41.3125 37.5625 40.9531 38.2469 40.2344 38.9688C39.5063 39.7 38.8313 40.0531 37.8938 40.3531C37.1719 40.5875 36.0938 40.9156 33.6375 41.0281C31.1813 41.1406 30.4219 41.1688 24.0094 41.1688C17.5969 41.1688 16.8375 41.1406 14.3813 41.0281C11.925 40.9156 10.8469 40.5875 10.125 40.3531C9.1875 40.0531 8.50312 39.6937 7.78125 38.975C7.05 38.2469 6.69687 37.5719 6.39687 36.6344C6.1625 35.9125 5.83437 34.8344 5.72187 32.3781C5.60937 29.9219 5.58125 29.1625 5.58125 22.75C5.58125 16.3375 5.60937 15.5781 5.72187 13.1219C5.83437 10.6656 6.1625 9.5875 6.39687 8.86562C6.69687 7.92812 7.05625 7.24375 7.775 6.52187C8.50312 5.79062 9.17812 5.4375 10.1156 5.1375C10.8375 4.90312 11.9156 4.575 14.3719 4.4625C16.8281 4.35 17.5875 4.32187 24 4.32187ZM24 12.2031C17.3438 12.2031 12.2031 17.3438 12.2031 24C12.2031 30.6562 17.3438 35.7969 24 35.7969C30.6562 35.7969 35.7969 30.6562 35.7969 24C35.7969 17.3438 30.6562 12.2031 24 12.2031ZM24 31.3125C19.8187 31.3125 16.4875 27.9813 16.4875 24C16.4875 20.0187 19.8187 16.6875 24 16.6875C28.1813 16.6875 31.5125 20.0187 31.5125 24C31.5125 27.9813 28.1813 31.3125 24 31.3125ZM37.8844 11.6531C37.8844 10.1625 36.6781 8.95625 35.1875 8.95625C33.6969 8.95625 32.4906 10.1625 32.4906 11.6531C32.4906 13.1438 33.6969 14.35 35.1875 14.35C36.6781 14.35 37.8844 13.1438 37.8844 11.6531Z"
                 fill="black"
               />
             </svg>
