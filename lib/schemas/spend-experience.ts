@@ -37,10 +37,8 @@ export const updateSpendExperienceRequestSchema = z
     end_time: z.string().datetime({ offset: true }).optional(),
     spend_rail: z
       .never({
-        errorMap: () => ({
-          message:
-            'spend_rail cannot be changed after the spend experience is created',
-        }),
+        message:
+          'spend_rail cannot be changed after the spend experience is created',
       })
       .optional(),
   })

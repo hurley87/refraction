@@ -1,21 +1,12 @@
--- IRL-7: Canonical immutable spend rail per spend experience (base_usdc | stellar_usdc).
---
--- Enforcement (no ENUM; plain TEXT + CHECK):
--- - CHECK spend_experiences_spend_rail_check rejects invalid values on INSERT/UPDATE
---   that touch spend_rail.
--- - BEFORE UPDATE trigger spend_experiences_spend_rail_immutable rejects changing
---   spend_rail on an existing row (OLD IS DISTINCT FROM NEW). Direct SQL that sets
---   a different rail raises a clear exception.
--- - In-repo tests cover Zod and admin PATCH; there is no SQL test runner here—verify
---   CHECK/trigger against a real Postgres instance using the issue checklist.
+-- IRL-7: Immutable spend_rail (base_usdc | stellar_usdc). TEXT + CHECK (no ENUM).
+-- CHECK rejects invalid values; BEFORE UPDATE trigger blocks rail changes (IS DISTINCT FROM).
+-- No SQL tests in-repo—verify CHECK/trigger on Postgres when rolling out.
 
 ALTER TABLE spend_experiences
   ADD COLUMN IF NOT EXISTS spend_rail TEXT NOT NULL DEFAULT 'base_usdc'
   CONSTRAINT spend_experiences_spend_rail_check
     CHECK (spend_rail IN ('base_usdc', 'stellar_usdc'));
 
--- Idempotent backfill: new installs get DEFAULT; any legacy NULL (should not occur)
--- is normalized to Base.
 UPDATE spend_experiences
 SET spend_rail = 'base_usdc'
 WHERE spend_rail IS NULL;

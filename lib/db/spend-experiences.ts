@@ -101,8 +101,10 @@ const toNumber = (value: unknown): number => {
   return NaN;
 };
 
-const normalizeSpendRail = (value: unknown): SpendRail =>
-  value === 'stellar_usdc' ? 'stellar_usdc' : 'base_usdc';
+function normalizeSpendRail(value: unknown): SpendRail {
+  if (value === 'stellar_usdc') return 'stellar_usdc';
+  return 'base_usdc';
+}
 
 const normalizeRow = (row: Record<string, unknown>): SpendExperience => ({
   id: String(row.id),
