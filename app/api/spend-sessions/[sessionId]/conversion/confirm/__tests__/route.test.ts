@@ -44,6 +44,7 @@ const session = {
 const spendExperience = {
   id: 'exp-1',
   title: 'Event',
+  spend_rail: 'base_usdc' as const,
   points_to_usdc_rate: 1000,
   max_usdc_per_user: 5,
   treasury_wallet_address: '0x1111111111111111111111111111111111111111',
@@ -125,6 +126,10 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/confirm', () => {
     };
     expect(json.success).toBe(true);
     expect(json.data.pointConversion.status).toBe('funded');
+    expect(
+      (json as { data: { spendExperience: { spend_rail: string } } }).data
+        .spendExperience.spend_rail
+    ).toBe('base_usdc');
   });
 
   it('captures handled conversion failures when requested by domain logic', async () => {

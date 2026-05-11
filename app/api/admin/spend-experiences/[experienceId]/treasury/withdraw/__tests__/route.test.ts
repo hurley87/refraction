@@ -65,6 +65,7 @@ const experience = {
   description: null,
   event_id: null,
   status: 'active' as const,
+  spend_rail: 'base_usdc' as const,
   points_to_usdc_rate: 1000,
   max_usdc_per_user: 5,
   treasury_wallet_address: '0x1111111111111111111111111111111111111111',

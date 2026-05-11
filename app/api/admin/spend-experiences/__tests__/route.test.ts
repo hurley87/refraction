@@ -66,6 +66,7 @@ describe('GET /api/admin/spend-experiences', () => {
         description: null,
         event_id: null,
         status: 'draft',
+        spend_rail: 'base_usdc',
         points_to_usdc_rate: 1000,
         max_usdc_per_user: 5,
         treasury_wallet_address: '0x1111111111111111111111111111111111111111',
@@ -153,6 +154,7 @@ describe('POST /api/admin/spend-experiences', () => {
       description: input.description,
       event_id: input.event_id,
       status: input.status,
+      spend_rail: input.spend_rail,
       points_to_usdc_rate: input.points_to_usdc_rate,
       max_usdc_per_user: input.max_usdc_per_user,
       treasury_wallet_address: input.server_wallet_address,
@@ -190,12 +192,62 @@ describe('POST /api/admin/spend-experiences', () => {
     expect(mockCreateSpendExperience).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'draft',
+        spend_rail: 'base_usdc',
         privy_server_wallet_id: 'wallet-1',
         server_wallet_address: '0x9999999999999999999999999999999999999999',
       })
     );
     expect(j.data.funding.serverWalletAddress).toBe(
       '0x9999999999999999999999999999999999999999'
+    );
+  });
+
+  it('passes spend_rail stellar_usdc through to createSpendExperience', async () => {
+    mockRequireAdmin.mockResolvedValue({
+      isValid: true,
+      user: { email: 'admin@example.com' },
+    });
+    mockCreateSpendExperience.mockImplementation(async (input) => ({
+      id: 'exp-1',
+      title: input.title,
+      description: input.description,
+      event_id: input.event_id,
+      status: input.status,
+      spend_rail: input.spend_rail,
+      points_to_usdc_rate: input.points_to_usdc_rate,
+      max_usdc_per_user: input.max_usdc_per_user,
+      treasury_wallet_address: input.server_wallet_address,
+      receiving_wallet_address: input.server_wallet_address,
+      privy_server_wallet_id: input.privy_server_wallet_id,
+      server_wallet_address: input.server_wallet_address,
+      server_wallet_chain: input.server_wallet_chain,
+      server_wallet_created_at: input.server_wallet_created_at,
+      spend_create_idempotency_key: input.spend_create_idempotency_key,
+      start_time: input.start_time,
+      end_time: input.end_time,
+      created_by: input.created_by,
+      created_at: '2026-04-28T00:00:00.000Z',
+      updated_at: '2026-04-28T00:00:00.000Z',
+    }));
+
+    const res = await POST(
+      jsonRequest(
+        'POST',
+        {
+          title: 'Stellar pilot',
+          points_to_usdc_rate: 1000,
+          max_usdc_per_user: 5,
+          spend_rail: 'stellar_usdc',
+          start_time: '2026-05-01T12:00:00.000Z',
+          end_time: '2026-05-08T12:00:00.000Z',
+        },
+        'admin@example.com'
+      )
+    );
+
+    expect(res.status).toBe(200);
+    expect(mockCreateSpendExperience).toHaveBeenCalledWith(
+      expect.objectContaining({ spend_rail: 'stellar_usdc' })
     );
   });
 
@@ -210,6 +262,7 @@ describe('POST /api/admin/spend-experiences', () => {
       description: null,
       event_id: null,
       status: 'draft',
+      spend_rail: 'base_usdc',
       points_to_usdc_rate: 1000,
       max_usdc_per_user: 5,
       treasury_wallet_address: '0x9999999999999999999999999999999999999999',

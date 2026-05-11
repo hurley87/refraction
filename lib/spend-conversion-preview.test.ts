@@ -13,6 +13,7 @@ const exp = (over: Partial<SpendExperience> = {}): SpendExperience => ({
   description: null,
   event_id: null,
   status: 'active',
+  spend_rail: 'base_usdc',
   points_to_usdc_rate: 1000,
   max_usdc_per_user: 5,
   treasury_wallet_address: '0x1111111111111111111111111111111111111111',
