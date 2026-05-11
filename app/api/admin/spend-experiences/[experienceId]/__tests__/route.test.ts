@@ -30,6 +30,7 @@ const existing = {
   description: null,
   event_id: null,
   status: 'draft' as const,
+  spend_rail: 'base_usdc' as const,
   points_to_usdc_rate: 1000,
   max_usdc_per_user: 5,
   treasury_wallet_address: '0x1111111111111111111111111111111111111111',
@@ -187,5 +188,26 @@ describe('PATCH /api/admin/spend-experiences/[experienceId]', () => {
     expect(mockUpdateSpendExperience).toHaveBeenCalledWith('exp-1', {
       status: 'active',
     });
+  });
+
+  it('returns 400 when spend_rail is present in PATCH body', async () => {
+    mockRequireAdmin.mockResolvedValue({
+      isValid: true,
+      user: { email: 'admin@example.com' },
+    });
+    mockGetSpendExperienceById.mockResolvedValue(existing);
+
+    const res = await PATCH(
+      patchRequest(
+        { title: 'ok', spend_rail: 'stellar_usdc' },
+        'admin@example.com'
+      ),
+      { params: { experienceId: 'exp-1' } }
+    );
+    const j = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(j.success).toBe(false);
+    expect(mockUpdateSpendExperience).not.toHaveBeenCalled();
   });
 });

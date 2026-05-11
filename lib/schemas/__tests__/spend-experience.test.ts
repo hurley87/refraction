@@ -19,6 +19,26 @@ describe('createSpendExperienceRequestSchema', () => {
   it('accepts valid payload', () => {
     const r = createSpendExperienceRequestSchema.safeParse(validBase);
     expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.spend_rail).toBe('base_usdc');
+    }
+  });
+
+  it('accepts stellar_usdc on create', () => {
+    const r = createSpendExperienceRequestSchema.safeParse({
+      ...validBase,
+      spend_rail: 'stellar_usdc',
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.spend_rail).toBe('stellar_usdc');
+  });
+
+  it('rejects invalid spend_rail', () => {
+    const r = createSpendExperienceRequestSchema.safeParse({
+      ...validBase,
+      spend_rail: 'ethereum',
+    });
+    expect(r.success).toBe(false);
   });
 
   it('does not accept admin-managed wallet addresses', () => {
@@ -48,5 +68,18 @@ describe('updateSpendExperienceRequestSchema', () => {
   it('accepts partial update', () => {
     const r = updateSpendExperienceRequestSchema.safeParse({ title: 'x' });
     expect(r.success).toBe(true);
+  });
+
+  it('rejects spend_rail in PATCH body (immutable)', () => {
+    const r = updateSpendExperienceRequestSchema.safeParse({
+      title: 'x',
+      spend_rail: 'base_usdc',
+    });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error.issues.some((i) => i.path.includes('spend_rail'))).toBe(
+        true
+      );
+    }
   });
 });

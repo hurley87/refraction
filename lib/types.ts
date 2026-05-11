@@ -274,6 +274,9 @@ export type Checkpoint = {
 
 export type SpendExperienceStatus = 'draft' | 'active' | 'ended';
 
+/** Canonical spend / settlement rail for a spend experience (immutable after insert). */
+export type SpendRail = 'base_usdc' | 'stellar_usdc';
+
 /**
  * Admin-configured spend pilot experience (points → USDC conversion window).
  */
@@ -283,6 +286,7 @@ export type SpendExperience = {
   description: string | null;
   event_id: string | null;
   status: SpendExperienceStatus;
+  spend_rail: SpendRail;
   points_to_usdc_rate: number;
   max_usdc_per_user: number;
   treasury_wallet_address: string;

@@ -1,5 +1,9 @@
 import { supabase } from './client';
-import type { SpendExperience, SpendExperienceStatus } from '@/lib/types';
+import type {
+  SpendExperience,
+  SpendExperienceStatus,
+  SpendRail,
+} from '@/lib/types';
 
 const LEGACY_SPEND_EXPERIENCE_COLUMN_NAMES = [
   'id',
@@ -7,6 +11,7 @@ const LEGACY_SPEND_EXPERIENCE_COLUMN_NAMES = [
   'description',
   'event_id',
   'status',
+  'spend_rail',
   'points_to_usdc_rate',
   'max_usdc_per_user',
   'treasury_wallet_address',
@@ -96,12 +101,18 @@ const toNumber = (value: unknown): number => {
   return NaN;
 };
 
+function normalizeSpendRail(value: unknown): SpendRail {
+  if (value === 'stellar_usdc') return 'stellar_usdc';
+  return 'base_usdc';
+}
+
 const normalizeRow = (row: Record<string, unknown>): SpendExperience => ({
   id: String(row.id),
   title: String(row.title),
   description: row.description == null ? null : String(row.description),
   event_id: row.event_id == null ? null : String(row.event_id),
   status: row.status as SpendExperienceStatus,
+  spend_rail: normalizeSpendRail(row.spend_rail),
   points_to_usdc_rate: toNumber(row.points_to_usdc_rate),
   max_usdc_per_user: toNumber(row.max_usdc_per_user),
   treasury_wallet_address: String(row.treasury_wallet_address),
@@ -148,6 +159,7 @@ export type CreateSpendExperienceInput = {
   description?: string | null;
   event_id?: string | null;
   status: SpendExperienceStatus;
+  spend_rail: SpendRail;
   points_to_usdc_rate: number;
   max_usdc_per_user: number;
   privy_server_wallet_id: string;
@@ -168,6 +180,7 @@ export async function createSpendExperience(
     description: input.description ?? null,
     event_id: input.event_id ?? null,
     status: input.status,
+    spend_rail: input.spend_rail,
     points_to_usdc_rate: input.points_to_usdc_rate,
     max_usdc_per_user: input.max_usdc_per_user,
     treasury_wallet_address: input.server_wallet_address,

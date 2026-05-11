@@ -62,6 +62,7 @@ type ConversionConfirmResponse = {
   spendExperience: {
     id: string;
     title: string;
+    spend_rail: SpendExperience['spend_rail'];
     pointsRequired: number;
     usdcAmount: number;
   };

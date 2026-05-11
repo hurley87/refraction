@@ -4,7 +4,8 @@ const mockGetPointConversion = vi.fn();
 const mockFetchUserUsdc = vi.fn();
 
 vi.mock('@/lib/db/spend-sessions', () => ({
-  getPointConversionBySessionId: (...a: unknown[]) => mockGetPointConversion(...a),
+  getPointConversionBySessionId: (...a: unknown[]) =>
+    mockGetPointConversion(...a),
   getSpendSessionById: vi.fn(),
   getSpendTransactionBySessionId: vi.fn(),
   insertSpendTransactionSubmitted: vi.fn(),
@@ -18,7 +19,8 @@ vi.mock('@/lib/db/treasury-transactions', () => ({
 }));
 
 vi.mock('@/lib/spend-conversion-preview', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/lib/spend-conversion-preview')>();
+  const actual =
+    await importOriginal<typeof import('@/lib/spend-conversion-preview')>();
   return {
     ...actual,
     fetchUserUsdcBalanceSafe: (...a: unknown[]) => mockFetchUserUsdc(...a),
@@ -41,7 +43,11 @@ vi.mock('@/lib/analytics/server', () => ({
 }));
 
 import { runSpendPaymentConfirm } from '@/lib/spend-payment-confirm';
-import type { PointConversion, SpendExperience, SpendSession } from '@/lib/types';
+import type {
+  PointConversion,
+  SpendExperience,
+  SpendSession,
+} from '@/lib/types';
 
 const validHash =
   '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' as const;
@@ -65,6 +71,7 @@ const baseExperience: SpendExperience = {
   description: null,
   event_id: 'evt-1',
   status: 'active',
+  spend_rail: 'base_usdc',
   max_usdc_per_user: 5,
   points_to_usdc_rate: 1000,
   treasury_wallet_address: '0x3333333333333333333333333333333333333333',

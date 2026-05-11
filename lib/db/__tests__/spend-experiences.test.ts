@@ -72,6 +72,7 @@ describe('listSpendExperiences', () => {
       expect.objectContaining({
         id: 'exp-1',
         title: 'Pilot',
+        spend_rail: 'base_usdc',
         privy_server_wallet_id: null,
         server_wallet_address: null,
       }),
@@ -83,6 +84,7 @@ describe('listSpendExperiences', () => {
       data: [
         {
           ...legacySpendExperienceRow,
+          spend_rail: 'base_usdc',
           privy_server_wallet_id: 'wallet-1',
           server_wallet_address: '0x3333333333333333333333333333333333333333',
           server_wallet_chain: 'base-mainnet',
@@ -101,6 +103,7 @@ describe('listSpendExperiences', () => {
     );
     expect(experiences[0]).toEqual(
       expect.objectContaining({
+        spend_rail: 'base_usdc',
         privy_server_wallet_id: 'wallet-1',
         server_wallet_address: '0x3333333333333333333333333333333333333333',
         spend_create_idempotency_key: 'idem-1',

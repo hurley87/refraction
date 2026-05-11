@@ -111,6 +111,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       spendExperience: {
         id: spendExperience.id,
         title: spendExperience.title,
+        spend_rail: spendExperience.spend_rail,
         pointsRequired,
         usdcAmount,
       },
