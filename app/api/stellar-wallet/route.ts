@@ -1,11 +1,9 @@
 import { NextRequest } from 'next/server';
-import {
-  createOrUpdatePlayerForStellar,
-  getPlayerByEmail,
-} from '@/lib/db/players';
+import { getPlayerByEmail } from '@/lib/db/players';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { getPrivyClient, verifyCallerIdentity } from '@/lib/api/privy';
 import { captureHandledException } from '@/lib/monitoring/capture-handled-exception';
+import { ensureStellarRailUserWallet } from '@/lib/privy/stellar-rail-wallet';
 
 /**
  * GET - Get Stellar wallet for a user
@@ -89,59 +87,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const privy = getPrivyClient();
-
-    // Check if user already has a Stellar wallet
-    const user = await privy.getUser(privyUserId);
-    const existingStellarWallet = user.linkedAccounts?.find(
-      (account) =>
-        account.type === 'wallet' &&
-        'chainType' in account &&
-        account.chainType === 'stellar'
-    );
-
-    if (existingStellarWallet && 'address' in existingStellarWallet) {
-      // Ensure wallet is saved to database (in case it wasn't previously)
-      const email = user.email?.address ?? undefined;
-      const walletId =
-        'id' in existingStellarWallet ? existingStellarWallet.id : undefined;
-      await createOrUpdatePlayerForStellar(
-        existingStellarWallet.address,
-        email,
-        walletId ?? undefined
-      );
-
-      return apiSuccess(
-        {
-          address: existingStellarWallet.address,
-          walletId:
-            'id' in existingStellarWallet
-              ? existingStellarWallet.id
-              : undefined,
-        },
-        'Stellar wallet already exists'
-      );
-    }
-
-    // Create a new Stellar wallet (Tier 2 - server-managed)
-    // Note: Stellar wallets are created server-side without direct user ownership
-    // The wallet address is stored in our database linked to the user
-    const wallet = await privy.walletApi.create({
-      chainType: 'stellar',
-    });
-
-    // Get user's email for account linking
-    const email = user.email?.address ?? undefined;
-
-    // Save to database (creates player or links wallet to existing player by email)
-    await createOrUpdatePlayerForStellar(wallet.address, email, wallet.id);
+    const result = await ensureStellarRailUserWallet(privyUserId);
 
     return apiSuccess(
       {
-        address: wallet.address,
-        walletId: wallet.id,
+        address: result.address,
+        walletId: result.walletId,
       },
-      'Stellar wallet created successfully'
+      result.provisioned
+        ? 'Stellar wallet created successfully'
+        : 'Stellar wallet already exists'
     );
   } catch (error) {
     console.error('Error creating Stellar wallet:', error);

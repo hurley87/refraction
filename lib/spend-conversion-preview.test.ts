@@ -36,6 +36,8 @@ const sess = (over: Partial<SpendSession> = {}): SpendSession => ({
   spend_experience_id: 'e1',
   user_id: 'u1',
   wallet_address: '0x3333333333333333333333333333333333333333',
+  spend_rail: 'base_usdc',
+  rail_user_wallet_address: '0x3333333333333333333333333333333333333333',
   status: 'created',
   qr_token_hash: null,
   created_at: '2026-06-01T12:00:00.000Z',
