@@ -135,14 +135,6 @@ export function buildSpendEligibilityPreview(
     };
   }
 
-  if (!supportsSpendRailBasePrivyTreasuryFunding(spendExperience.spend_rail)) {
-    return {
-      status: 'conversion_unsupported',
-      message: SPEND_ELIGIBILITY_MESSAGES.conversion_unsupported,
-      preview: basePreview(),
-    };
-  }
-
   const gate = assertSpendExperienceOpenForSessions(spendExperience, now);
   if (!gate.ok) {
     return {
@@ -205,6 +197,19 @@ export function buildSpendEligibilityPreview(
 
   const balance =
     player?.total_points != null ? Number(player.total_points) : 0;
+
+  /** Points→USDC via Privy treasury exists only on `base_usdc` today. */
+  if (
+    !supportsSpendRailBasePrivyTreasuryFunding(spendExperience.spend_rail) &&
+    balance >= pointsRequired
+  ) {
+    return {
+      status: 'conversion_unsupported',
+      message: SPEND_ELIGIBILITY_MESSAGES.conversion_unsupported,
+      preview: basePreview(),
+    };
+  }
+
   if (balance < pointsRequired) {
     return {
       status: 'insufficient_points',
