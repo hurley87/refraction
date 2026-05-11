@@ -2,14 +2,19 @@ import {
   SPEND_ELIGIBILITY_MESSAGES,
   type SpendEligibilityStatus,
 } from '@/lib/spend-eligibility-messages';
-import {
-  fetchServerWalletUsdcBalanceSafe,
-  getSpendServerWalletAddress,
-} from '@/lib/spend-server-wallet';
+import { fetchServerWalletUsdcBalanceSafe } from '@/lib/spend-server-wallet';
 import {
   fetchUsdcBalanceOnBase,
   isEvmAddress,
 } from '@/lib/walletconnect-poster-direct-usdc';
+import {
+  getSpendRailBaseRpcUrl,
+  getSpendRailBaseUsdcContractAddress,
+  getSpendRailOperationalDiagnostics,
+  getSpendReceivingWalletAddress,
+  getSpendTreasuryWalletAddress,
+  supportsSpendRailBasePrivyTreasuryFunding,
+} from '@/lib/spend-rail-config';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import type {
   PointConversion,
@@ -101,8 +106,12 @@ export function buildSpendEligibilityPreview(
   const basePreview = (): SpendConversionPreview => ({
     pointsRequired,
     usdcAmount,
-    receivingWalletAddress: getSpendServerWalletAddress(spendExperience),
-    treasuryWalletAddress: getSpendServerWalletAddress(spendExperience),
+    receivingWalletAddress: getSpendReceivingWalletAddress(
+      spendExperience.spend_rail
+    ),
+    treasuryWalletAddress: getSpendTreasuryWalletAddress(
+      spendExperience.spend_rail
+    ),
     userPointsBalance:
       player?.total_points != null ? Number(player.total_points) : null,
     userUsdcBalance,
@@ -114,6 +123,15 @@ export function buildSpendEligibilityPreview(
       status: 'session_expired',
       message: SPEND_ELIGIBILITY_MESSAGES.session_expired,
       preview: null,
+    };
+  }
+
+  const railDiag = getSpendRailOperationalDiagnostics(session.spend_rail);
+  if (!railDiag.operational) {
+    return {
+      status: 'rail_unavailable',
+      message: SPEND_ELIGIBILITY_MESSAGES.rail_unavailable,
+      preview: basePreview(),
     };
   }
 
@@ -179,6 +197,19 @@ export function buildSpendEligibilityPreview(
 
   const balance =
     player?.total_points != null ? Number(player.total_points) : 0;
+
+  /** Points→USDC via Privy treasury exists only on `base_usdc` today. */
+  if (
+    !supportsSpendRailBasePrivyTreasuryFunding(spendExperience.spend_rail) &&
+    balance >= pointsRequired
+  ) {
+    return {
+      status: 'conversion_unsupported',
+      message: SPEND_ELIGIBILITY_MESSAGES.conversion_unsupported,
+      preview: basePreview(),
+    };
+  }
+
   if (balance < pointsRequired) {
     return {
       status: 'insufficient_points',
@@ -217,7 +248,10 @@ export async function fetchUserUsdcBalanceSafe(
   const trimmed = walletAddress.trim();
   if (!isEvmAddress(trimmed)) return null;
   try {
-    return await fetchUsdcBalanceOnBase(trimmed as `0x${string}`);
+    return await fetchUsdcBalanceOnBase(trimmed as `0x${string}`, {
+      rpcUrl: getSpendRailBaseRpcUrl(),
+      usdcContract: getSpendRailBaseUsdcContractAddress(),
+    });
   } catch (e) {
     console.error('fetchUserUsdcBalanceSafe:', e);
     return null;

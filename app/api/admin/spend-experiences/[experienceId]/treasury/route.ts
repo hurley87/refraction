@@ -6,9 +6,13 @@ import { requireAdmin } from '@/lib/auth';
 import type { TreasuryTransaction } from '@/lib/types';
 import {
   fetchServerWalletUsdcBalanceSafe,
-  getSpendServerWalletAddress,
   spendServerWalletFundingMetadata,
 } from '@/lib/spend-server-wallet';
+import {
+  getSpendBaseTreasuryPrivyTransferConfig,
+  getSpendReceivingWalletAddress,
+  getSpendTreasuryWalletAddress,
+} from '@/lib/spend-rail-config';
 
 interface RouteParams {
   params: { experienceId: string };
@@ -35,7 +39,7 @@ function ledgerTotalsFromRows(rows: TreasuryTransaction[]): {
 
 /**
  * GET /api/admin/spend-experiences/{experienceId}/treasury
- * Server wallet address, live USDC balance, optional ledger (PRD §12).
+ * Global rail treasury wallet (Base USDC), live USDC balance when applicable, optional ledger (PRD §12).
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
@@ -49,7 +53,11 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       return apiError('Spend experience not found', 404);
     }
 
-    const serverWalletAddress = getSpendServerWalletAddress(experience).trim();
+    const rail = experience.spend_rail;
+    const treasuryWalletAddress = getSpendTreasuryWalletAddress(rail).trim();
+    const receivingWalletAddress = getSpendReceivingWalletAddress(rail).trim();
+    const privyCfg =
+      rail === 'base_usdc' ? getSpendBaseTreasuryPrivyTransferConfig() : null;
 
     const [serverWalletUsdcBalance, ledger] = await Promise.all([
       fetchServerWalletUsdcBalanceSafe(experience),
@@ -64,14 +72,15 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
     return apiSuccess({
       spendExperienceId: experience.id,
-      serverWalletAddress,
-      privyServerWalletId: experience.privy_server_wallet_id,
-      serverWalletChain: experience.server_wallet_chain,
-      serverWalletCreatedAt: experience.server_wallet_created_at,
+      spendRail: rail,
+      serverWalletAddress: treasuryWalletAddress,
+      privyServerWalletId: privyCfg?.walletId ?? null,
+      serverWalletChain: rail === 'base_usdc' ? funding.chain : null,
+      serverWalletCreatedAt: null,
       serverWalletUsdcBalance,
       funding,
-      treasuryWalletAddress: serverWalletAddress,
-      receivingWalletAddress: serverWalletAddress,
+      treasuryWalletAddress,
+      receivingWalletAddress,
       treasuryUsdcBalance: serverWalletUsdcBalance,
       ledger,
       ledgerTotals,

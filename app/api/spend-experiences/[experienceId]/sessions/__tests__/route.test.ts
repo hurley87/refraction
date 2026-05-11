@@ -151,37 +151,50 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
   });
 
   it('snapshots Stellar rail wallet when experience is stellar_usdc', async () => {
-    const stellarExp = { ...experience, spend_rail: 'stellar_usdc' as const };
-    const stellarSession = {
-      ...session,
-      spend_rail: 'stellar_usdc' as const,
-      rail_user_wallet_address:
-        'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
-    };
-    mockGetExperience.mockResolvedValue(stellarExp);
-    mockCreateOrGet.mockResolvedValue({
-      session: stellarSession,
-      created: true,
-    });
-
-    const res = await POST(postRequest({ walletAddress: wallet }), {
-      params: { experienceId: 'exp-uuid' },
-    });
-    const j = await res.json();
-    expect(res.status).toBe(200);
-    expect(mockEnsureStellar).toHaveBeenCalledWith('privy-1');
-    expect(mockCreateOrGet).toHaveBeenCalledWith(
-      expect.objectContaining({
-        spendExperience: expect.objectContaining({
-          spend_rail: 'stellar_usdc',
-        }),
-        railUserWalletAddress:
+    const prevEnabled = process.env.SPEND_RAIL_STELLAR_USDC_ENABLED;
+    const prevRecv = process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS;
+    const prevNet = process.env.NEXT_PUBLIC_STELLAR_NETWORK;
+    process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = 'true';
+    process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS =
+      'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
+    process.env.NEXT_PUBLIC_STELLAR_NETWORK = 'PUBLIC';
+    try {
+      const stellarExp = { ...experience, spend_rail: 'stellar_usdc' as const };
+      const stellarSession = {
+        ...session,
+        spend_rail: 'stellar_usdc' as const,
+        rail_user_wallet_address:
           'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
-      })
-    );
-    expect(j.data.session.rail_user_wallet_address).toBe(
-      'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
-    );
+      };
+      mockGetExperience.mockResolvedValue(stellarExp);
+      mockCreateOrGet.mockResolvedValue({
+        session: stellarSession,
+        created: true,
+      });
+
+      const res = await POST(postRequest({ walletAddress: wallet }), {
+        params: { experienceId: 'exp-uuid' },
+      });
+      const j = await res.json();
+      expect(res.status).toBe(200);
+      expect(mockEnsureStellar).toHaveBeenCalledWith('privy-1');
+      expect(mockCreateOrGet).toHaveBeenCalledWith(
+        expect.objectContaining({
+          spendExperience: expect.objectContaining({
+            spend_rail: 'stellar_usdc',
+          }),
+          railUserWalletAddress:
+            'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+        })
+      );
+      expect(j.data.session.rail_user_wallet_address).toBe(
+        'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
+      );
+    } finally {
+      process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = prevEnabled;
+      process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = prevRecv;
+      process.env.NEXT_PUBLIC_STELLAR_NETWORK = prevNet;
+    }
   });
 
   it('returns 401 when wallet not owned', async () => {

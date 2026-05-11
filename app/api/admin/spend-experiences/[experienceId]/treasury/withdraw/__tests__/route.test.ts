@@ -82,6 +82,8 @@ const experience = {
   updated_at: '2026-04-01T00:00:00Z',
 };
 
+const CONFIG_TREASURY = '0x4444444444444444444444444444444444444444' as const;
+
 describe('POST /api/admin/spend-experiences/[experienceId]/treasury/withdraw', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -92,8 +94,8 @@ describe('POST /api/admin/spend-experiences/[experienceId]/treasury/withdraw', (
     mockGetSpendExperienceById.mockResolvedValue(experience);
     mockFetchBalance.mockResolvedValue(2.0001);
     mockGetTransferConfig.mockReturnValue({
-      walletId: 'privy-wallet-1',
-      address: '0x3333333333333333333333333333333333333333' as `0x${string}`,
+      walletId: 'wallet_e1',
+      address: CONFIG_TREASURY,
     });
     mockSubmitTransfer.mockResolvedValue({
       ok: true,
@@ -110,8 +112,8 @@ describe('POST /api/admin/spend-experiences/[experienceId]/treasury/withdraw', (
     mockWaitReceipt.mockResolvedValue(undefined);
     mockInsertLedger.mockResolvedValue(undefined);
     mockPrivyGetWallet.mockResolvedValue({
-      id: 'privy-wallet-1',
-      address: experience.server_wallet_address,
+      id: 'wallet_e1',
+      address: CONFIG_TREASURY,
     });
   });
 
@@ -125,7 +127,7 @@ describe('POST /api/admin/spend-experiences/[experienceId]/treasury/withdraw', (
         method: 'POST',
         headers,
         body: JSON.stringify({
-          destinationAddress: experience.server_wallet_address,
+          destinationAddress: CONFIG_TREASURY,
         }),
       }
     );
@@ -140,7 +142,7 @@ describe('POST /api/admin/spend-experiences/[experienceId]/treasury/withdraw', (
     const headers = new Headers();
     headers.set('Content-Type', 'application/json');
     headers.set('x-user-email', 'admin@example.com');
-    const dest = '0x4444444444444444444444444444444444444444';
+    const dest = '0x5555555555555555555555555555555555555555';
     const req = new NextRequest(
       'http://localhost:3000/api/admin/spend-experiences/exp-1/treasury/withdraw',
       {
@@ -171,7 +173,7 @@ describe('POST /api/admin/spend-experiences/[experienceId]/treasury/withdraw', (
     const headers = new Headers();
     headers.set('Content-Type', 'application/json');
     headers.set('x-user-email', 'admin@example.com');
-    const dest = '0x4444444444444444444444444444444444444444';
+    const dest = '0x5555555555555555555555555555555555555555';
     const req = new NextRequest(
       'http://localhost:3000/api/admin/spend-experiences/exp-1/treasury/withdraw',
       {
@@ -199,7 +201,7 @@ describe('POST /api/admin/spend-experiences/[experienceId]/treasury/withdraw', (
     const headers = new Headers();
     headers.set('Content-Type', 'application/json');
     headers.set('x-user-email', 'admin@example.com');
-    const dest = '0x4444444444444444444444444444444444444444';
+    const dest = '0x5555555555555555555555555555555555555555';
     const req = new NextRequest(
       'http://localhost:3000/api/admin/spend-experiences/exp-1/treasury/withdraw',
       {

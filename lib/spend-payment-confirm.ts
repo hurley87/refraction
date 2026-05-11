@@ -19,7 +19,10 @@ import {
 } from '@/lib/spend-conversion-preview';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import { verifySpendUsdcPaymentTx } from '@/lib/spend-payment-verify';
-import { getSpendServerWalletAddress } from '@/lib/spend-server-wallet';
+import {
+  getSpendReceivingWalletAddress,
+  isSpendRailOperational,
+} from '@/lib/spend-rail-config';
 import { isEvmAddress } from '@/lib/walletconnect-poster-direct-usdc';
 import type {
   SpendExperience,
@@ -179,6 +182,15 @@ export async function runSpendPaymentConfirm(input: {
     };
   }
 
+  if (spendExperience.spend_rail !== 'base_usdc') {
+    return {
+      ok: false,
+      error:
+        'USDC payment verification on this network is not available in this release.',
+      httpStatus: 400,
+    };
+  }
+
   const pointConversion = await getPointConversionBySessionId(session.id);
   const fundedConversion =
     pointConversion?.status === 'funded' ? pointConversion : null;
@@ -213,7 +225,9 @@ export async function runSpendPaymentConfirm(input: {
     };
   }
 
-  const receiving = getSpendServerWalletAddress(spendExperience).trim();
+  const receiving = getSpendReceivingWalletAddress(
+    spendExperience.spend_rail
+  ).trim();
   if (!isEvmAddress(receiving)) {
     return {
       ok: false,
@@ -267,6 +281,15 @@ export async function runSpendPaymentConfirm(input: {
   }
 
   let spendTx = await getSpendTransactionBySessionId(session.id);
+
+  if (!spendTx && !isSpendRailOperational(session.spend_rail)) {
+    return {
+      ok: false,
+      error:
+        'This payment network is temporarily unavailable. Please try again later.',
+      httpStatus: 400,
+    };
+  }
 
   if (spendTx?.status === 'confirmed') {
     const fresh = await getSpendSessionById(session.id);

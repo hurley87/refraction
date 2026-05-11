@@ -182,7 +182,7 @@ describe('PATCH /api/admin/spend-experiences/[experienceId]', () => {
 
     expect(res.status).toBe(200);
     expect(mockGetFundingStatus).toHaveBeenCalledWith({
-      walletAddress: existing.server_wallet_address,
+      walletAddress: '0x4444444444444444444444444444444444444444',
       minUsdcRequired: existing.max_usdc_per_user,
     });
     expect(mockUpdateSpendExperience).toHaveBeenCalledWith('exp-1', {

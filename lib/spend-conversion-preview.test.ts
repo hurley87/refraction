@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { buildSpendEligibilityPreview } from '@/lib/spend-conversion-preview';
 import type {
   SpendExperience,
@@ -79,7 +79,7 @@ describe('buildSpendEligibilityPreview', () => {
       '0x4444444444444444444444444444444444444444'
     );
     expect(r.preview?.receivingWalletAddress).toBe(
-      '0x4444444444444444444444444444444444444444'
+      '0x2222222222222222222222222222222222222222'
     );
   });
 
@@ -253,5 +253,75 @@ describe('buildSpendEligibilityPreview', () => {
       now,
     });
     expect(r.status).toBe('ready_for_payment_own_usdc');
+  });
+
+  describe('stellar_usdc rail', () => {
+    const prev: Record<string, string | undefined> = {};
+
+    beforeEach(() => {
+      for (const k of [
+        'SPEND_RAIL_STELLAR_USDC_ENABLED',
+        'SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS',
+        'NEXT_PUBLIC_STELLAR_NETWORK',
+      ]) {
+        prev[k] = process.env[k];
+      }
+      process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = 'true';
+      process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS =
+        'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
+      process.env.NEXT_PUBLIC_STELLAR_NETWORK = 'PUBLIC';
+    });
+
+    afterEach(() => {
+      for (const [k, v] of Object.entries(prev)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    });
+
+    it('allows ready_for_payment_own_usdc without Base treasury funding', () => {
+      const r = buildSpendEligibilityPreview({
+        session: sess({ spend_rail: 'stellar_usdc' }),
+        spendExperience: exp({ spend_rail: 'stellar_usdc' }),
+        player: player(0),
+        pointConversion: null,
+        spendTransaction: null,
+        fundedConversionForOtherSession: null,
+        treasuryUsdcBalance: null,
+        userUsdcBalance: 10,
+        now,
+      });
+      expect(r.status).toBe('ready_for_payment_own_usdc');
+    });
+
+    it('returns conversion_unsupported when points would fund but rail has no Privy treasury path', () => {
+      const r = buildSpendEligibilityPreview({
+        session: sess({ spend_rail: 'stellar_usdc' }),
+        spendExperience: exp({ spend_rail: 'stellar_usdc' }),
+        player: player(6000),
+        pointConversion: null,
+        spendTransaction: null,
+        fundedConversionForOtherSession: null,
+        treasuryUsdcBalance: 100,
+        userUsdcBalance: null,
+        now,
+      });
+      expect(r.status).toBe('conversion_unsupported');
+    });
+
+    it('returns insufficient_points when user lacks points and own USDC', () => {
+      const r = buildSpendEligibilityPreview({
+        session: sess({ spend_rail: 'stellar_usdc' }),
+        spendExperience: exp({ spend_rail: 'stellar_usdc' }),
+        player: player(100),
+        pointConversion: null,
+        spendTransaction: null,
+        fundedConversionForOtherSession: null,
+        treasuryUsdcBalance: 100,
+        userUsdcBalance: null,
+        now,
+      });
+      expect(r.status).toBe('insufficient_points');
+    });
   });
 });

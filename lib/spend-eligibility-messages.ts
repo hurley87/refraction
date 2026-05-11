@@ -8,6 +8,8 @@ export type SpendEligibilityStatus =
   | 'conversion_in_progress'
   | 'experience_inactive'
   | 'session_expired'
+  | 'rail_unavailable'
+  | 'conversion_unsupported'
   | 'treasury_insufficient'
   | 'wallet_unavailable'
   | 'ready_for_payment'
@@ -28,6 +30,10 @@ export const SPEND_ELIGIBILITY_MESSAGES: Record<
   experience_inactive:
     'This spend experience is inactive or outside its active window.',
   session_expired: 'This spend session has expired. Scan the event QR again.',
+  rail_unavailable:
+    'This payment network is temporarily unavailable. Please try again later or ask an event host.',
+  conversion_unsupported:
+    'Points conversion is not available on this payment network yet. Please ask an event host.',
   treasury_insufficient:
     'The event wallet is temporarily out of USDC. Please try again later or ask an event host.',
   wallet_unavailable:

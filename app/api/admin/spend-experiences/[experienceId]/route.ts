@@ -7,6 +7,7 @@ import { updateSpendExperienceRequestSchema } from '@/lib/schemas/spend-experien
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
 import { getServerWalletFundingStatus } from '@/lib/spend-server-wallet';
+import { getSpendTreasuryWalletAddress } from '@/lib/spend-rail-config';
 
 interface RouteParams {
   params: { experienceId: string };
@@ -58,16 +59,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     if (validation.data.status === 'active') {
-      const funding = await getServerWalletFundingStatus({
-        walletAddress: existing.server_wallet_address,
-        minUsdcRequired:
-          validation.data.max_usdc_per_user ?? existing.max_usdc_per_user,
-      });
-      if (!funding.isFunded) {
-        return apiError(
-          'Server wallet must be funded with at least max_usdc_per_user USDC before activation.',
-          400
-        );
+      if (existing.spend_rail === 'base_usdc') {
+        const funding = await getServerWalletFundingStatus({
+          walletAddress: getSpendTreasuryWalletAddress('base_usdc'),
+          minUsdcRequired:
+            validation.data.max_usdc_per_user ?? existing.max_usdc_per_user,
+        });
+        if (!funding.isFunded) {
+          return apiError(
+            'Server wallet must be funded with at least max_usdc_per_user USDC before activation.',
+            400
+          );
+        }
       }
     }
 
