@@ -424,3 +424,32 @@ export type TreasuryTransaction = {
   created_at: string;
   updated_at: string;
 };
+
+/** Wallet readiness lifecycle for rail setup (e.g. Stellar account + trustline). */
+export type SpendWalletReadinessStatus =
+  | 'pending'
+  | 'completed'
+  | 'failed'
+  | 'needs_review';
+
+/**
+ * Idempotent per-session wallet readiness operation (v1 idempotency key
+ * `wallet_readiness:{spend_session_id}`).
+ */
+export type SpendWalletReadinessOperation = {
+  id: string;
+  spend_session_id: string;
+  user_id: string;
+  spend_rail: SpendRail;
+  rail_user_wallet_address: string;
+  status: SpendWalletReadinessStatus;
+  step_metadata: Record<string, unknown>;
+  sanitized_error_category: string | null;
+  sanitized_error_code: string | null;
+  internal_diagnostics: Record<string, unknown> | null;
+  idempotency_key: string;
+  sponsor_treasury_transaction_id: string | null;
+  trustline_treasury_transaction_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
