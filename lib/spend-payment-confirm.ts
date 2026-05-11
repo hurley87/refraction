@@ -9,6 +9,7 @@ import {
   confirmSpendTransactionIfSubmitted,
 } from '@/lib/db/spend-sessions';
 import { insertTreasuryReceivePaymentLedgerIfAbsent } from '@/lib/db/treasury-transactions';
+import { explorerTxUrlForSpendLedger } from '@/lib/spend-ledger-explorer-url';
 import {
   computeConversionAmounts,
   fetchUserUsdcBalanceSafe,
@@ -284,6 +285,7 @@ export async function runSpendPaymentConfirm(input: {
       payment_tx_hash: txHash,
       failed_reason: null,
       completed_at: null,
+      explorer_tx_url: explorerTxUrlForSpendLedger(session.spend_rail, txHash),
     });
     spendTx = await getSpendTransactionBySessionId(session.id);
   }
@@ -298,6 +300,7 @@ export async function runSpendPaymentConfirm(input: {
       fromWalletAddress: normalizedWallet,
       toWalletAddress: receiving.toLowerCase(),
       paymentTxHash: txHash,
+      spendRail: session.spend_rail,
     });
 
     if (inserted === 'session_duplicate') {
@@ -324,6 +327,7 @@ export async function runSpendPaymentConfirm(input: {
     await updateSpendTransactionFields(spendTx.id, {
       status: 'submitted',
       payment_tx_hash: txHash,
+      explorer_tx_url: explorerTxUrlForSpendLedger(session.spend_rail, txHash),
     });
     spendTx = await getSpendTransactionBySessionId(session.id);
     if (!spendTx) {
@@ -386,6 +390,7 @@ export async function runSpendPaymentConfirm(input: {
   if (updatedTx?.status === 'confirmed' && updatedTx.payment_tx_hash) {
     void insertTreasuryReceivePaymentLedgerIfAbsent({
       spendExperienceId: spendExperience.id,
+      spendRail: spendExperience.spend_rail,
       amount: updatedTx.usdc_amount,
       fromWalletAddress: updatedTx.from_wallet_address,
       toWalletAddress: updatedTx.to_wallet_address,

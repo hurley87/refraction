@@ -28,13 +28,18 @@ const CONVERSION_COLS = `
   points_deducted,
   usdc_amount,
   status,
+  spend_rail,
+  network,
+  asset_symbol,
   treasury_wallet_address,
   user_wallet_address,
   funding_tx_hash,
+  explorer_tx_url,
   idempotency_key,
   created_at,
   completed_at,
-  failed_reason
+  failed_reason,
+  updated_at
 `;
 
 const SPEND_TX_COLS = `
@@ -43,14 +48,19 @@ const SPEND_TX_COLS = `
   spend_session_id,
   user_id,
   usdc_amount,
+  spend_rail,
+  network,
+  asset_symbol,
   from_wallet_address,
   to_wallet_address,
   status,
   payment_tx_hash,
+  explorer_tx_url,
   idempotency_key,
   created_at,
   completed_at,
-  failed_reason
+  failed_reason,
+  updated_at
 `;
 
 function toNum(v: unknown): number {
@@ -85,16 +95,23 @@ function rowToSpendTransaction(row: Record<string, unknown>): SpendTransaction {
     spend_session_id: String(row.spend_session_id),
     user_id: String(row.user_id),
     usdc_amount: toNum(row.usdc_amount),
+    spend_rail: normalizeSpendRail(row.spend_rail),
+    network: row.network == null ? 'Base' : String(row.network),
+    asset_symbol: row.asset_symbol == null ? 'USDC' : String(row.asset_symbol),
     from_wallet_address: String(row.from_wallet_address),
     to_wallet_address: String(row.to_wallet_address),
     status: row.status as SpendTransaction['status'],
     payment_tx_hash:
       row.payment_tx_hash == null ? null : String(row.payment_tx_hash),
+    explorer_tx_url:
+      row.explorer_tx_url == null ? null : String(row.explorer_tx_url),
     idempotency_key:
       row.idempotency_key == null ? null : String(row.idempotency_key),
     created_at: String(row.created_at),
     completed_at: row.completed_at == null ? null : String(row.completed_at),
     failed_reason: row.failed_reason == null ? null : String(row.failed_reason),
+    updated_at:
+      row.updated_at == null ? String(row.created_at) : String(row.updated_at),
   };
 }
 
@@ -107,15 +124,22 @@ function rowToConversion(row: Record<string, unknown>): PointConversion {
     points_deducted: toNum(row.points_deducted),
     usdc_amount: toNum(row.usdc_amount),
     status: row.status as PointConversion['status'],
+    spend_rail: normalizeSpendRail(row.spend_rail),
+    network: row.network == null ? 'Base' : String(row.network),
+    asset_symbol: row.asset_symbol == null ? 'USDC' : String(row.asset_symbol),
     treasury_wallet_address: String(row.treasury_wallet_address),
     user_wallet_address: String(row.user_wallet_address),
     funding_tx_hash:
       row.funding_tx_hash == null ? null : String(row.funding_tx_hash),
+    explorer_tx_url:
+      row.explorer_tx_url == null ? null : String(row.explorer_tx_url),
     idempotency_key:
       row.idempotency_key == null ? null : String(row.idempotency_key),
     created_at: String(row.created_at),
     completed_at: row.completed_at == null ? null : String(row.completed_at),
     failed_reason: row.failed_reason == null ? null : String(row.failed_reason),
+    updated_at:
+      row.updated_at == null ? String(row.created_at) : String(row.updated_at),
   };
 }
 

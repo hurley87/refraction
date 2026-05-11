@@ -350,13 +350,22 @@ export type PointConversion = {
   points_deducted: number;
   usdc_amount: number;
   status: PointConversionStatus;
+  /** Rail snapshotted at conversion insert. Immutable in DB. */
+  spend_rail: SpendRail;
+  /** Chain/network label at insert. Immutable in DB. */
+  network: string;
+  /** Asset at insert (e.g. USDC). Immutable in DB. */
+  asset_symbol: string;
   treasury_wallet_address: string;
   user_wallet_address: string;
   funding_tx_hash: string | null;
+  /** Canonical explorer URL when known; set-once in DB. */
+  explorer_tx_url: string | null;
   idempotency_key: string | null;
   created_at: string;
   completed_at: string | null;
   failed_reason: string | null;
+  updated_at: string;
 };
 
 export type SpendTransactionStatus =
@@ -371,14 +380,21 @@ export type SpendTransaction = {
   spend_session_id: string;
   user_id: string;
   usdc_amount: number;
+  /** Rail snapshotted at payment row insert. Immutable in DB. */
+  spend_rail: SpendRail;
+  network: string;
+  asset_symbol: string;
   from_wallet_address: string;
   to_wallet_address: string;
   status: SpendTransactionStatus;
   payment_tx_hash: string | null;
+  /** Canonical explorer URL when known; set-once in DB. */
+  explorer_tx_url: string | null;
   idempotency_key: string | null;
   created_at: string;
   completed_at: string | null;
   failed_reason: string | null;
+  updated_at: string;
 };
 
 export type TreasuryTransactionType =
@@ -397,9 +413,14 @@ export type TreasuryTransaction = {
   spend_experience_id: string | null;
   transaction_type: TreasuryTransactionType;
   amount: number;
+  spend_rail: SpendRail;
+  network: string;
+  asset_symbol: string;
   from_wallet_address: string | null;
   to_wallet_address: string | null;
   tx_hash: string | null;
+  explorer_tx_url: string | null;
   status: TreasuryTransactionRowStatus;
   created_at: string;
+  updated_at: string;
 };

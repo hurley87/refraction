@@ -101,13 +101,18 @@ function inProgressConversion(
     points_deducted: 5000,
     usdc_amount: 5,
     status,
+    spend_rail: 'base_usdc',
+    network: 'Base',
+    asset_symbol: 'USDC',
     treasury_wallet_address: '0x3333333333333333333333333333333333333333',
     user_wallet_address: baseSession.wallet_address,
     funding_tx_hash: null,
+    explorer_tx_url: null,
     idempotency_key: null,
     created_at: '2026-01-01T00:00:00.000Z',
     completed_at: null,
     failed_reason: null,
+    updated_at: '2026-01-01T00:00:00.000Z',
   };
 }
 

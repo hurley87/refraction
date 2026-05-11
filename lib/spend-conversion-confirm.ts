@@ -27,6 +27,7 @@ import {
   getSpendServerWalletTransferConfig,
 } from '@/lib/spend-server-wallet';
 import { insertTreasuryFundUserLedgerIfAbsent } from '@/lib/db/treasury-transactions';
+import { explorerTxUrlForSpendLedger } from '@/lib/spend-ledger-explorer-url';
 import type {
   PointConversion,
   SpendExperience,
@@ -50,6 +51,18 @@ const MISCONFIGURED_CONVERSION_ERROR =
   'Conversion is not configured correctly. Please contact support.';
 const FUNDING_ACKNOWLEDGED_MESSAGE =
   'USDC transfer submitted. We are confirming it on Base.';
+
+function pointConversionFundingHashPatch(
+  session: SpendSession,
+  fundingTxHash: string
+): Pick<PointConversion, 'funding_tx_hash'> &
+  Partial<Pick<PointConversion, 'explorer_tx_url'>> {
+  const url = explorerTxUrlForSpendLedger(session.spend_rail, fundingTxHash);
+  return {
+    funding_tx_hash: fundingTxHash,
+    ...(url ? { explorer_tx_url: url } : {}),
+  };
+}
 
 type ConfirmContext = {
   session: SpendSession;
@@ -138,11 +151,12 @@ export async function finalizeSpendConversionFunding(input: {
 }): Promise<PointConversion> {
   const done = await updatePointConversionFields(input.pointConversion.id, {
     status: 'funded',
-    funding_tx_hash: input.txHash,
     completed_at: new Date().toISOString(),
+    ...pointConversionFundingHashPatch(input.session, input.txHash),
   });
   void insertTreasuryFundUserLedgerIfAbsent({
     spendExperienceId: input.spendExperience.id,
+    spendRail: input.spendExperience.spend_rail,
     amount: done.usdc_amount,
     fromWalletAddress: input.serverWalletAddress,
     toWalletAddress: done.user_wallet_address,
@@ -191,9 +205,10 @@ export async function tryFinalizePendingSpendConversion(input: {
     });
     hash = recovered ?? undefined;
     if (hash) {
-      await updatePointConversionFields(pointConversion.id, {
-        funding_tx_hash: hash,
-      });
+      await updatePointConversionFields(
+        pointConversion.id,
+        pointConversionFundingHashPatch(input.session, hash)
+      );
     }
   }
 
@@ -495,7 +510,7 @@ export async function runSpendConversionConfirm(
     const fundingPlaceholder = `pending:${sub.privyTransactionId}`;
     conv = await updatePointConversionFields(conv.id, {
       status: 'funding_pending',
-      funding_tx_hash: fundingPlaceholder,
+      ...pointConversionFundingHashPatch(session, fundingPlaceholder),
     });
     await updateSpendSessionStatus(session.id, 'conversion_pending');
 
@@ -518,7 +533,7 @@ export async function runSpendConversionConfirm(
   const txHash = sub.txHash;
   conv = await updatePointConversionFields(conv.id, {
     status: 'funding_pending',
-    funding_tx_hash: txHash,
+    ...pointConversionFundingHashPatch(session, txHash),
   });
   await updateSpendSessionStatus(session.id, 'conversion_pending');
 
@@ -620,7 +635,10 @@ async function fundOrResumeUsdc(input: {
     if ('submittedPending' in sub && sub.submittedPending) {
       conv = await updatePointConversionFields(conv.id, {
         status: 'funding_pending',
-        funding_tx_hash: `pending:${sub.privyTransactionId}`,
+        ...pointConversionFundingHashPatch(
+          session,
+          `pending:${sub.privyTransactionId}`
+        ),
       });
       await updateSpendSessionStatus(session.id, 'conversion_pending');
     } else {
@@ -636,7 +654,7 @@ async function fundOrResumeUsdc(input: {
       const txHash = sub.txHash;
       conv = await updatePointConversionFields(conv.id, {
         status: 'funding_pending',
-        funding_tx_hash: txHash,
+        ...pointConversionFundingHashPatch(session, txHash),
       });
       await updateSpendSessionStatus(session.id, 'conversion_pending');
     }
@@ -660,9 +678,10 @@ async function fundOrResumeUsdc(input: {
         const normalized = polled?.trim();
         if (normalized && isEvmTxHash(normalized)) {
           hash = normalized as `0x${string}`;
-          conv = await updatePointConversionFields(conv.id, {
-            funding_tx_hash: hash,
-          });
+          conv = await updatePointConversionFields(
+            conv.id,
+            pointConversionFundingHashPatch(session, hash)
+          );
         }
       } catch (e) {
         console.warn('fundOrResumeUsdc pending privy id resolve failed:', e);
@@ -677,9 +696,10 @@ async function fundOrResumeUsdc(input: {
     });
     hash = recovered ?? undefined;
     if (hash) {
-      conv = await updatePointConversionFields(conv.id, {
-        funding_tx_hash: hash,
-      });
+      conv = await updatePointConversionFields(
+        conv.id,
+        pointConversionFundingHashPatch(session, hash)
+      );
     }
   }
   if (!hash) {
