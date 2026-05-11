@@ -3,7 +3,7 @@
 --
 -- Backfill assumptions (Base-era historical rows):
 --   * spend_rail / network / asset_symbol derived from spend_sessions or spend_experiences; default base_usdc / Base / USDC.
---   * explorer_tx_url for Base EVM hashes (0x + 64 hex) uses https://basescan.org/tx/{lower(hash)}.
+--   * explorer_tx_url for Base EVM hashes (0x + 64 hex) uses https://basescan.org/tx/ plus lower-case hash.
 --   * Stellar-era rows: explorer URL uses stellar.expert public when spend_rail is stellar_usdc and tx_hash is not EVM-shaped.
 
 -- ---------------------------------------------------------------------------
@@ -35,7 +35,7 @@ SET
     ELSE NULL
   END
 FROM spend_sessions ss
-LEFT JOIN spend_experiences se ON se.id = pc.spend_experience_id
+LEFT JOIN spend_experiences se ON se.id = ss.spend_experience_id
 WHERE pc.spend_session_id = ss.id
   AND (pc.spend_rail IS NULL OR pc.network IS NULL OR pc.asset_symbol IS NULL);
 
@@ -160,7 +160,7 @@ SET
     ELSE NULL
   END
 FROM spend_sessions ss
-LEFT JOIN spend_experiences se ON se.id = st.spend_experience_id
+LEFT JOIN spend_experiences se ON se.id = ss.spend_experience_id
 WHERE st.spend_session_id = ss.id
   AND (st.spend_rail IS NULL OR st.network IS NULL OR st.asset_symbol IS NULL);
 
