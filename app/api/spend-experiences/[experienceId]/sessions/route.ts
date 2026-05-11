@@ -75,7 +75,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       spendExperience: experience,
       userId: auth.userId,
       walletAddress: trimmedWallet,
-      spendRail: experience.spend_rail,
       railUserWalletAddress,
     });
 

@@ -144,7 +144,7 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
     expect(mockCreateOrGet).toHaveBeenCalledWith(
       expect.objectContaining({
         walletAddress: wallet,
-        spendRail: 'base_usdc',
+        spendExperience: expect.objectContaining({ spend_rail: 'base_usdc' }),
         railUserWalletAddress: wallet,
       })
     );
@@ -172,7 +172,9 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
     expect(mockEnsureStellar).toHaveBeenCalledWith('privy-1');
     expect(mockCreateOrGet).toHaveBeenCalledWith(
       expect.objectContaining({
-        spendRail: 'stellar_usdc',
+        spendExperience: expect.objectContaining({
+          spend_rail: 'stellar_usdc',
+        }),
         railUserWalletAddress:
           'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
       })

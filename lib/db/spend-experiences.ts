@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { normalizeSpendRail } from './spend-rail';
 import type {
   SpendExperience,
   SpendExperienceStatus,
@@ -100,11 +101,6 @@ const toNumber = (value: unknown): number => {
   }
   return NaN;
 };
-
-function normalizeSpendRail(value: unknown): SpendRail {
-  if (value === 'stellar_usdc') return 'stellar_usdc';
-  return 'base_usdc';
-}
 
 const normalizeRow = (row: Record<string, unknown>): SpendExperience => ({
   id: String(row.id),
