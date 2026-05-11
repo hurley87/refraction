@@ -10,6 +10,10 @@ import {
 } from '@/lib/db/spend-sessions';
 import { insertTreasuryReceivePaymentLedgerIfAbsent } from '@/lib/db/treasury-transactions';
 import {
+  explorerTxUrlForSpendLedger,
+  isLedgerCanonicalEvmTxHash,
+} from '@/lib/spend-ledger-explorer-url';
+import {
   computeConversionAmounts,
   fetchUserUsdcBalanceSafe,
 } from '@/lib/spend-conversion-preview';
@@ -31,7 +35,7 @@ import type { SpendPilotPaymentEventProperties } from '@/lib/analytics/types';
 
 function normalizeTxHash(raw: string): `0x${string}` | null {
   const t = raw.trim();
-  if (!/^0x[a-fA-F0-9]{64}$/.test(t)) return null;
+  if (!isLedgerCanonicalEvmTxHash(t)) return null;
   return t as `0x${string}`;
 }
 
@@ -131,7 +135,7 @@ async function finalizeFailure(params: {
 }
 
 /**
- * Records and verifies a user USDC payment to the experience receiving wallet (PRD §9, §11).
+ * Records and verifies a user USDC payment to the experience receiving wallet (PRD sections 9 and 11).
  */
 export async function runSpendPaymentConfirm(input: {
   session: SpendSession;
@@ -284,6 +288,7 @@ export async function runSpendPaymentConfirm(input: {
       payment_tx_hash: txHash,
       failed_reason: null,
       completed_at: null,
+      explorer_tx_url: explorerTxUrlForSpendLedger(session.spend_rail, txHash),
     });
     spendTx = await getSpendTransactionBySessionId(session.id);
   }
@@ -298,6 +303,7 @@ export async function runSpendPaymentConfirm(input: {
       fromWalletAddress: normalizedWallet,
       toWalletAddress: receiving.toLowerCase(),
       paymentTxHash: txHash,
+      spendRail: session.spend_rail,
     });
 
     if (inserted === 'session_duplicate') {
@@ -324,6 +330,7 @@ export async function runSpendPaymentConfirm(input: {
     await updateSpendTransactionFields(spendTx.id, {
       status: 'submitted',
       payment_tx_hash: txHash,
+      explorer_tx_url: explorerTxUrlForSpendLedger(session.spend_rail, txHash),
     });
     spendTx = await getSpendTransactionBySessionId(session.id);
     if (!spendTx) {
@@ -386,6 +393,7 @@ export async function runSpendPaymentConfirm(input: {
   if (updatedTx?.status === 'confirmed' && updatedTx.payment_tx_hash) {
     void insertTreasuryReceivePaymentLedgerIfAbsent({
       spendExperienceId: spendExperience.id,
+      spendRail: spendExperience.spend_rail,
       amount: updatedTx.usdc_amount,
       fromWalletAddress: updatedTx.from_wallet_address,
       toWalletAddress: updatedTx.to_wallet_address,

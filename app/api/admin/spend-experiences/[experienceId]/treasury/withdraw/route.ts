@@ -222,6 +222,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
     await insertTreasuryAdminRecoveryLedgerIfAbsent({
       spendExperienceId: experience.id,
+      spendRail: experience.spend_rail,
       amount: withdrawAmount,
       fromWalletAddress: walletConfig.address,
       toWalletAddress: destinationAddress,

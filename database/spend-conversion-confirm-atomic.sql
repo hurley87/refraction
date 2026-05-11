@@ -113,7 +113,10 @@ BEGIN
     usdc_amount,
     status,
     treasury_wallet_address,
-    user_wallet_address
+    user_wallet_address,
+    spend_rail,
+    network,
+    asset_symbol
   )
   VALUES (
     p_spend_experience_id,
@@ -123,7 +126,13 @@ BEGIN
     p_usdc_amount,
     'points_deducted',
     p_treasury_wallet_address,
-    p_user_wallet_address
+    p_user_wallet_address,
+    COALESCE(v_session.spend_rail, 'base_usdc'),
+    CASE COALESCE(v_session.spend_rail, 'base_usdc')
+      WHEN 'stellar_usdc' THEN 'Stellar'
+      ELSE 'Base'
+    END,
+    'USDC'
   )
   RETURNING id INTO v_existing_id;
 

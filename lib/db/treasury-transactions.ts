@@ -1,16 +1,26 @@
 import { supabase } from './client';
-import type { TreasuryTransaction } from '@/lib/types';
+import { normalizeSpendRail } from './spend-rail';
+import {
+  explorerTxUrlForSpendLedger,
+  spendLedgerNetworkLabel,
+} from '@/lib/spend-ledger-explorer-url';
+import type { SpendRail, TreasuryTransaction } from '@/lib/types';
 
 const TREASURY_COLS = `
   id,
   spend_experience_id,
   transaction_type,
   amount,
+  spend_rail,
+  network,
+  asset_symbol,
   from_wallet_address,
   to_wallet_address,
   tx_hash,
+  explorer_tx_url,
   status,
-  created_at
+  created_at,
+  updated_at
 `;
 
 function rowToTreasury(row: Record<string, unknown>): TreasuryTransaction {
@@ -22,13 +32,20 @@ function rowToTreasury(row: Record<string, unknown>): TreasuryTransaction {
       row.transaction_type as TreasuryTransaction['transaction_type'],
     amount:
       typeof row.amount === 'number' ? row.amount : Number(row.amount ?? NaN),
+    spend_rail: normalizeSpendRail(row.spend_rail),
+    network: row.network == null ? 'Base' : String(row.network),
+    asset_symbol: row.asset_symbol == null ? 'USDC' : String(row.asset_symbol),
     from_wallet_address:
       row.from_wallet_address == null ? null : String(row.from_wallet_address),
     to_wallet_address:
       row.to_wallet_address == null ? null : String(row.to_wallet_address),
     tx_hash: row.tx_hash == null ? null : String(row.tx_hash),
+    explorer_tx_url:
+      row.explorer_tx_url == null ? null : String(row.explorer_tx_url),
     status: row.status as TreasuryTransaction['status'],
     created_at: String(row.created_at),
+    updated_at:
+      row.updated_at == null ? String(row.created_at) : String(row.updated_at),
   };
 }
 
@@ -39,6 +56,7 @@ type TreasuryLedgerInsertType = Extract<
 
 async function insertTreasuryLedgerRowIfAbsent(params: {
   spendExperienceId: string;
+  spendRail: SpendRail;
   transactionType: TreasuryLedgerInsertType;
   amount: number;
   fromWalletAddress: string;
@@ -56,13 +74,20 @@ async function insertTreasuryLedgerRowIfAbsent(params: {
 
   if (existing) return;
 
+  const spend_rail = params.spendRail;
+  const explorerTxUrl = explorerTxUrlForSpendLedger(spend_rail, txLower);
+
   const { error } = await supabase.from('treasury_transactions').insert({
     spend_experience_id: params.spendExperienceId,
     transaction_type: params.transactionType,
     amount: params.amount,
+    spend_rail,
+    network: spendLedgerNetworkLabel(spend_rail),
+    asset_symbol: 'USDC',
     from_wallet_address: params.fromWalletAddress.trim().toLowerCase(),
     to_wallet_address: params.toWalletAddress.trim().toLowerCase(),
     tx_hash: txLower,
+    explorer_tx_url: explorerTxUrl,
     status: 'confirmed',
   });
 
@@ -77,6 +102,7 @@ async function insertTreasuryLedgerRowIfAbsent(params: {
 /** Optional audit row: treasury → user USDC (matches funded `point_conversions.funding_tx_hash`). */
 export function insertTreasuryFundUserLedgerIfAbsent(input: {
   spendExperienceId: string;
+  spendRail: SpendRail;
   amount: number;
   fromWalletAddress: string;
   toWalletAddress: string;
@@ -84,6 +110,7 @@ export function insertTreasuryFundUserLedgerIfAbsent(input: {
 }): Promise<void> {
   return insertTreasuryLedgerRowIfAbsent({
     spendExperienceId: input.spendExperienceId,
+    spendRail: input.spendRail,
     transactionType: 'fund_user',
     amount: input.amount,
     fromWalletAddress: input.fromWalletAddress,
@@ -95,6 +122,7 @@ export function insertTreasuryFundUserLedgerIfAbsent(input: {
 /** Optional audit row: user → event wallet USDC (matches confirmed `spend_transactions.payment_tx_hash`). */
 export function insertTreasuryReceivePaymentLedgerIfAbsent(input: {
   spendExperienceId: string;
+  spendRail: SpendRail;
   amount: number;
   fromWalletAddress: string;
   toWalletAddress: string;
@@ -102,6 +130,7 @@ export function insertTreasuryReceivePaymentLedgerIfAbsent(input: {
 }): Promise<void> {
   return insertTreasuryLedgerRowIfAbsent({
     spendExperienceId: input.spendExperienceId,
+    spendRail: input.spendRail,
     transactionType: 'receive_payment',
     amount: input.amount,
     fromWalletAddress: input.fromWalletAddress,
@@ -113,6 +142,7 @@ export function insertTreasuryReceivePaymentLedgerIfAbsent(input: {
 /** Optional audit row: admin withdrawal from server wallet to an external address. */
 export function insertTreasuryAdminRecoveryLedgerIfAbsent(input: {
   spendExperienceId: string;
+  spendRail: SpendRail;
   amount: number;
   fromWalletAddress: string;
   toWalletAddress: string;
@@ -120,6 +150,7 @@ export function insertTreasuryAdminRecoveryLedgerIfAbsent(input: {
 }): Promise<void> {
   return insertTreasuryLedgerRowIfAbsent({
     spendExperienceId: input.spendExperienceId,
+    spendRail: input.spendRail,
     transactionType: 'admin_recovery',
     amount: input.amount,
     fromWalletAddress: input.fromWalletAddress,
