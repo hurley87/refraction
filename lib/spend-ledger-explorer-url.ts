@@ -2,21 +2,18 @@ import type { SpendRail } from '@/lib/types';
 
 const EVM_TX_HASH_RE = /^0x[a-fA-F0-9]{64}$/;
 
-function isCanonicalBaseTxHash(value: string): boolean {
+/** `0x` + 64 hex digits (trimmed). Used for BaseScan links and payment hash gates. */
+export function isLedgerCanonicalEvmTxHash(value: string): boolean {
   return EVM_TX_HASH_RE.test(value.trim());
 }
 
-/** Human-readable network label stored on ledger snapshot rows. */
 export function spendLedgerNetworkLabel(spendRail: SpendRail): string {
   return spendRail === 'stellar_usdc' ? 'Stellar' : 'Base';
 }
 
 /**
- * Canonical explorer URL for a ledger tx hash on a spend rail, or null when unknown / non-canonical
- * (e.g. `pending:` placeholders, unrecognized hash shapes).
- *
- * EVM-shaped hashes (0x + 64 hex) use BaseScan — current treasury / payment confirmation paths are Base-on-chain
- * even when the spend experience rail is Stellar for other operations.
+ * Explorer URL for a ledger tx hash, or null for `pending:` / unknown shapes.
+ * EVM-shaped hashes use BaseScan (treasury paths are Base today even when the experience rail is Stellar).
  */
 export function explorerTxUrlForSpendLedger(
   spendRail: SpendRail,
@@ -27,7 +24,7 @@ export function explorerTxUrlForSpendLedger(
     return null;
   }
 
-  if (isCanonicalBaseTxHash(raw)) {
+  if (isLedgerCanonicalEvmTxHash(raw)) {
     return `https://basescan.org/tx/${raw.toLowerCase()}`;
   }
 

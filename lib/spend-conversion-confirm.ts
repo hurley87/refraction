@@ -120,7 +120,7 @@ function restoreTierAfterRefundResumeOnlyWallet(params: {
 }
 
 /**
- * After successful conversion funding, set session to `conversion_complete` (PRD §11).
+ * After successful conversion funding, set session to `conversion_complete` (PRD section 11).
  */
 async function markSessionAfterFunding(sessionId: string): Promise<void> {
   await updateSpendSessionStatus(sessionId, 'conversion_complete');

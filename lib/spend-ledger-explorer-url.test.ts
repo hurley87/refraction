@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   explorerTxUrlForSpendLedger,
+  isLedgerCanonicalEvmTxHash,
   spendLedgerNetworkLabel,
 } from '@/lib/spend-ledger-explorer-url';
 
@@ -8,6 +9,15 @@ describe('spendLedgerNetworkLabel', () => {
   it('maps rails to snapshot labels', () => {
     expect(spendLedgerNetworkLabel('base_usdc')).toBe('Base');
     expect(spendLedgerNetworkLabel('stellar_usdc')).toBe('Stellar');
+  });
+});
+
+describe('isLedgerCanonicalEvmTxHash', () => {
+  it('accepts 0x + 64 hex', () => {
+    expect(isLedgerCanonicalEvmTxHash('0x' + 'a'.repeat(64))).toBe(true);
+  });
+  it('rejects short hashes', () => {
+    expect(isLedgerCanonicalEvmTxHash('0xabc')).toBe(false);
   });
 });
 

@@ -9,7 +9,10 @@ import {
   confirmSpendTransactionIfSubmitted,
 } from '@/lib/db/spend-sessions';
 import { insertTreasuryReceivePaymentLedgerIfAbsent } from '@/lib/db/treasury-transactions';
-import { explorerTxUrlForSpendLedger } from '@/lib/spend-ledger-explorer-url';
+import {
+  explorerTxUrlForSpendLedger,
+  isLedgerCanonicalEvmTxHash,
+} from '@/lib/spend-ledger-explorer-url';
 import {
   computeConversionAmounts,
   fetchUserUsdcBalanceSafe,
@@ -32,7 +35,7 @@ import type { SpendPilotPaymentEventProperties } from '@/lib/analytics/types';
 
 function normalizeTxHash(raw: string): `0x${string}` | null {
   const t = raw.trim();
-  if (!/^0x[a-fA-F0-9]{64}$/.test(t)) return null;
+  if (!isLedgerCanonicalEvmTxHash(t)) return null;
   return t as `0x${string}`;
 }
 
@@ -132,7 +135,7 @@ async function finalizeFailure(params: {
 }
 
 /**
- * Records and verifies a user USDC payment to the experience receiving wallet (PRD §9, §11).
+ * Records and verifies a user USDC payment to the experience receiving wallet (PRD sections 9 and 11).
  */
 export async function runSpendPaymentConfirm(input: {
   session: SpendSession;
