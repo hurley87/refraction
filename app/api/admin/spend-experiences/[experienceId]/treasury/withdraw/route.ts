@@ -36,6 +36,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return apiError('Spend experience not found', 404);
     }
 
+    if (experience.spend_rail !== 'base_usdc') {
+      return apiError(
+        'USDC withdrawals are only supported for Base USDC experiences.',
+        400
+      );
+    }
+
     const walletConfig = getSpendServerWalletTransferConfig(experience);
     if (!walletConfig) {
       return apiError(

@@ -9,16 +9,17 @@ import {
 } from 'viem';
 import { getPrivyClient } from '@/lib/api/privy';
 import {
+  getSpendRailBaseRpcUrl,
+  getSpendRailBaseUsdcContractAddress,
+} from '@/lib/spend-rail-config';
+import {
   PrivyRestApiError,
   PrivyRestTransactionFailedError,
   PrivyRestTransactionTimeoutError,
   signAndSendTransaction,
   waitForTransaction,
 } from '@/lib/privy-server-rest';
-import {
-  POSTER_CHECKOUT_USDC_ADDRESS_BASE,
-  POSTER_CHECKOUT_CHAIN,
-} from '@/lib/walletconnect-poster-direct-usdc';
+import { POSTER_CHECKOUT_CHAIN } from '@/lib/walletconnect-poster-direct-usdc';
 
 export type TreasuryUsdcSubmitResult =
   | {
@@ -75,7 +76,7 @@ export function mapInsufficientNativeGasPrivyError(message: string): string {
 }
 
 function rpcUrl(): string {
-  return process.env.NEXT_PUBLIC_BASE_RPC?.trim() || 'https://mainnet.base.org';
+  return getSpendRailBaseRpcUrl().trim() || 'https://mainnet.base.org';
 }
 
 async function publicBaseClient() {
@@ -140,7 +141,7 @@ async function findRecentTreasuryTransferHash(params: {
     const maxFrom = chunkTo - (MAX_LOG_BLOCK_SPAN - 1n);
     const fromBlock = maxFrom > scanFrom ? maxFrom : scanFrom;
     const logs = await publicClient.getLogs({
-      address: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+      address: getSpendRailBaseUsdcContractAddress(),
       event: TRANSFER_EVENT,
       args: {
         from: params.serverWalletAddress,
@@ -240,7 +241,7 @@ export async function submitTreasuryUsdcTransfer(params: {
 
     const sent = await signAndSendTransaction({
       walletId,
-      to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+      to: getSpendRailBaseUsdcContractAddress(),
       data: transferData,
       value: '0x0',
       sponsor: true,

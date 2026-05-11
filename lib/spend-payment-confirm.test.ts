@@ -31,9 +31,10 @@ vi.mock('@/lib/spend-payment-verify', () => ({
   verifySpendUsdcPaymentTx: vi.fn(),
 }));
 
-vi.mock('@/lib/spend-server-wallet', () => ({
-  getSpendServerWalletAddress: () =>
+vi.mock('@/lib/spend-rail-config', () => ({
+  getSpendReceivingWalletAddress: () =>
     '0x2222222222222222222222222222222222222222',
+  isSpendRailOperational: () => true,
 }));
 
 vi.mock('@/lib/analytics/server', () => ({

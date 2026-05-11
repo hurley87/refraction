@@ -7,6 +7,7 @@ import { getSpendExperienceById } from '@/lib/db/spend-experiences';
 import { createOrGetSpendSession } from '@/lib/db/spend-sessions';
 import { ensureStellarRailUserWallet } from '@/lib/privy/stellar-rail-wallet';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
+import { assertSpendRailAllowsNewSessions } from '@/lib/spend-rail-config';
 import { createSpendSessionBodySchema } from '@/lib/schemas/spend-session';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import {
@@ -59,6 +60,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const gate = assertSpendExperienceOpenForSessions(experience);
   if (!gate.ok) {
     return apiError(gate.error, gate.httpStatus);
+  }
+
+  const railGate = assertSpendRailAllowsNewSessions(experience.spend_rail);
+  if (!railGate.ok) {
+    return apiError(railGate.error, 400);
   }
 
   try {

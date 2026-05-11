@@ -79,7 +79,7 @@ describe('buildSpendEligibilityPreview', () => {
       '0x4444444444444444444444444444444444444444'
     );
     expect(r.preview?.receivingWalletAddress).toBe(
-      '0x4444444444444444444444444444444444444444'
+      '0x2222222222222222222222222222222222222222'
     );
   });
 

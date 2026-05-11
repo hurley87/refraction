@@ -49,14 +49,21 @@ export function encodeUsdcTransferData(
  * Returns the balance as a human-readable number (e.g. 1.23 for 1.23 USDC).
  */
 export async function fetchUsdcBalanceOnBase(
-  walletAddress: `0x${string}`
+  walletAddress: `0x${string}`,
+  options?: {
+    rpcUrl?: string;
+    usdcContract?: `0x${string}`;
+  }
 ): Promise<number> {
+  const rpcUrl =
+    options?.rpcUrl ?? process.env.NEXT_PUBLIC_BASE_RPC?.trim() ?? undefined;
   const client = createPublicClient({
     chain: base,
-    transport: http(),
+    transport: rpcUrl ? http(rpcUrl) : http(),
   });
+  const contract = options?.usdcContract ?? POSTER_CHECKOUT_USDC_ADDRESS_BASE;
   const raw = await client.readContract({
-    address: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
+    address: contract,
     abi: erc20Abi,
     functionName: 'balanceOf',
     args: [walletAddress],

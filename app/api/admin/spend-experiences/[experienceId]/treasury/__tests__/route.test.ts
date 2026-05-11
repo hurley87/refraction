@@ -91,7 +91,7 @@ describe('GET /api/admin/spend-experiences/[experienceId]/treasury', () => {
     expect(res.status).toBe(200);
     expect(mockFetchBalance).toHaveBeenCalledWith(
       expect.objectContaining({
-        server_wallet_address: '0x3333333333333333333333333333333333333333',
+        spend_rail: 'base_usdc',
       })
     );
     expect(j.data.serverWalletUsdcBalance).toBe(123.45);

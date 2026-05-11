@@ -88,8 +88,8 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/preview', () => {
       preview: {
         pointsRequired: 5000,
         usdcAmount: 5,
-        receivingWalletAddress: experience.receiving_wallet_address,
-        treasuryWalletAddress: experience.treasury_wallet_address,
+        receivingWalletAddress: '0x2222222222222222222222222222222222222222',
+        treasuryWalletAddress: '0x4444444444444444444444444444444444444444',
         userPointsBalance: 6000,
         treasuryUsdcBalance: 100,
       },
