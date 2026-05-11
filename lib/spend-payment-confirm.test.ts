@@ -57,6 +57,8 @@ const baseSession: SpendSession = {
   spend_experience_id: 'exp-1',
   user_id: 'user-1',
   wallet_address: '0x1111111111111111111111111111111111111111',
+  spend_rail: 'base_usdc',
+  rail_user_wallet_address: '0x1111111111111111111111111111111111111111',
   /** Stale or partial-write state: conversion row exists but session not advanced yet. */
   status: 'created',
   qr_token_hash: null,

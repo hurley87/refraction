@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import type {
   PointConversion,
+  SpendRail,
   SpendSession,
   SpendTransaction,
 } from '@/lib/types';
@@ -10,6 +11,8 @@ const SESSION_COLS = `
   spend_experience_id,
   user_id,
   wallet_address,
+  spend_rail,
+  rail_user_wallet_address,
   status,
   qr_token_hash,
   created_at,
@@ -59,12 +62,19 @@ function toNum(v: unknown): number {
   return NaN;
 }
 
+function normalizeSpendRail(value: unknown): SpendRail {
+  if (value === 'stellar_usdc') return 'stellar_usdc';
+  return 'base_usdc';
+}
+
 function rowToSession(row: Record<string, unknown>): SpendSession {
   return {
     id: String(row.id),
     spend_experience_id: String(row.spend_experience_id),
     user_id: String(row.user_id),
     wallet_address: String(row.wallet_address),
+    spend_rail: normalizeSpendRail(row.spend_rail),
+    rail_user_wallet_address: String(row.rail_user_wallet_address),
     status: row.status as SpendSession['status'],
     qr_token_hash: row.qr_token_hash == null ? null : String(row.qr_token_hash),
     created_at: String(row.created_at),

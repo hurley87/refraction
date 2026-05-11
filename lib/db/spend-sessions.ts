@@ -3,6 +3,7 @@ import { computeSpendSessionExpiresAt } from '@/lib/spend-experience-guard';
 import type {
   PointConversion,
   SpendExperience,
+  SpendRail,
   SpendSession,
   SpendSessionStatus,
   SpendTransaction,
@@ -13,6 +14,8 @@ const SESSION_COLS = `
   spend_experience_id,
   user_id,
   wallet_address,
+  spend_rail,
+  rail_user_wallet_address,
   status,
   qr_token_hash,
   created_at,
@@ -62,12 +65,19 @@ function toNum(v: unknown): number {
   return NaN;
 }
 
+function normalizeSpendRail(value: unknown): SpendRail {
+  if (value === 'stellar_usdc') return 'stellar_usdc';
+  return 'base_usdc';
+}
+
 function rowToSession(row: Record<string, unknown>): SpendSession {
   return {
     id: String(row.id),
     spend_experience_id: String(row.spend_experience_id),
     user_id: String(row.user_id),
     wallet_address: String(row.wallet_address),
+    spend_rail: normalizeSpendRail(row.spend_rail),
+    rail_user_wallet_address: String(row.rail_user_wallet_address),
     status: row.status as SpendSession['status'],
     qr_token_hash: row.qr_token_hash == null ? null : String(row.qr_token_hash),
     created_at: String(row.created_at),
@@ -195,6 +205,8 @@ type CreateSessionInput = {
   spendExperience: SpendExperience;
   userId: string;
   walletAddress: string;
+  spendRail: SpendRail;
+  railUserWalletAddress: string;
   now?: Date;
 };
 
@@ -215,6 +227,8 @@ export async function createOrGetSpendSession(
     spend_experience_id: input.spendExperience.id,
     user_id: input.userId,
     wallet_address: input.walletAddress,
+    spend_rail: input.spendRail,
+    rail_user_wallet_address: input.railUserWalletAddress,
     status: 'created' as SpendSessionStatus,
     expires_at: expiresAt,
   };

@@ -38,6 +38,8 @@ const session = {
   spend_experience_id: 'exp-1',
   user_id: 'privy-1',
   wallet_address: '0xabc',
+  spend_rail: 'base_usdc' as const,
+  rail_user_wallet_address: '0xabc',
   status: 'created' as const,
   qr_token_hash: null,
   created_at: '2026-01-01T00:00:00.000Z',

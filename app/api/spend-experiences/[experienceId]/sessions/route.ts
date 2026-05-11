@@ -5,6 +5,7 @@ import {
 } from '@/lib/api/privy';
 import { getSpendExperienceById } from '@/lib/db/spend-experiences';
 import { createOrGetSpendSession } from '@/lib/db/spend-sessions';
+import { ensureStellarRailUserWallet } from '@/lib/privy/stellar-rail-wallet';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import { createSpendSessionBodySchema } from '@/lib/schemas/spend-session';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
@@ -61,22 +62,33 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   try {
+    const trimmedWallet = walletAddress.trim();
+    let railUserWalletAddress: string;
+    if (experience.spend_rail === 'stellar_usdc') {
+      const stellar = await ensureStellarRailUserWallet(auth.userId);
+      railUserWalletAddress = stellar.address;
+    } else {
+      railUserWalletAddress = trimmedWallet;
+    }
+
     const { session, created } = await createOrGetSpendSession({
       spendExperience: experience,
       userId: auth.userId,
-      walletAddress: walletAddress.trim(),
+      walletAddress: trimmedWallet,
+      spendRail: experience.spend_rail,
+      railUserWalletAddress,
     });
 
     if (created) {
       const distinctId = resolveServerIdentity({
         privyUserId: auth.userId,
-        walletAddress: walletAddress.trim().toLowerCase(),
+        walletAddress: trimmedWallet.toLowerCase(),
       });
       trackSpendSessionCreated(distinctId, {
         spend_experience_id: experienceId,
         event_id: experience.event_id,
         user_id: auth.userId,
-        wallet_address: walletAddress.trim().toLowerCase(),
+        wallet_address: trimmedWallet.toLowerCase(),
         spend_session_id: session.id,
         created: true,
       });

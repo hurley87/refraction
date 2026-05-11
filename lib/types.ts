@@ -320,6 +320,14 @@ export type SpendSession = {
   spend_experience_id: string;
   user_id: string;
   wallet_address: string;
+  /** Copied from the parent experience at session creation. Immutable in DB. */
+  spend_rail: SpendRail;
+  /**
+   * Rail-specific user wallet at session creation: verified EVM for `base_usdc`,
+   * canonical Stellar account for `stellar_usdc` (see GET /api/stellar-wallet order;
+   * Stellar may be auto-provisioned on create).
+   */
+  rail_user_wallet_address: string;
   status: SpendSessionStatus;
   qr_token_hash: string | null;
   created_at: string;
