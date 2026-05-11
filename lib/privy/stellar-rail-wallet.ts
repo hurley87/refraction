@@ -41,12 +41,9 @@ export async function ensureStellarRailUserWallet(
   );
 
   if (existingStellarWallet && 'address' in existingStellarWallet) {
-    const walletIdRaw =
+    const rawId =
       'id' in existingStellarWallet ? existingStellarWallet.id : undefined;
-    const walletId =
-      walletIdRaw === null || walletIdRaw === undefined
-        ? undefined
-        : String(walletIdRaw);
+    const walletId = rawId == null ? undefined : String(rawId);
     await createOrUpdatePlayerForStellar(
       existingStellarWallet.address,
       email,

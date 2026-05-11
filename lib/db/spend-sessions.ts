@@ -1,9 +1,9 @@
 import { supabase } from './client';
+import { normalizeSpendRail } from './spend-rail';
 import { computeSpendSessionExpiresAt } from '@/lib/spend-experience-guard';
 import type {
   PointConversion,
   SpendExperience,
-  SpendRail,
   SpendSession,
   SpendSessionStatus,
   SpendTransaction,
@@ -63,11 +63,6 @@ function toNum(v: unknown): number {
     if (!Number.isNaN(n)) return n;
   }
   return NaN;
-}
-
-function normalizeSpendRail(value: unknown): SpendRail {
-  if (value === 'stellar_usdc') return 'stellar_usdc';
-  return 'base_usdc';
 }
 
 function rowToSession(row: Record<string, unknown>): SpendSession {
@@ -205,7 +200,6 @@ type CreateSessionInput = {
   spendExperience: SpendExperience;
   userId: string;
   walletAddress: string;
-  spendRail: SpendRail;
   railUserWalletAddress: string;
   now?: Date;
 };
@@ -227,7 +221,7 @@ export async function createOrGetSpendSession(
     spend_experience_id: input.spendExperience.id,
     user_id: input.userId,
     wallet_address: input.walletAddress,
-    spend_rail: input.spendRail,
+    spend_rail: input.spendExperience.spend_rail,
     rail_user_wallet_address: input.railUserWalletAddress,
     status: 'created' as SpendSessionStatus,
     expires_at: expiresAt,

@@ -1,7 +1,7 @@
 import { supabase } from './client';
+import { normalizeSpendRail } from './spend-rail';
 import type {
   PointConversion,
-  SpendRail,
   SpendSession,
   SpendTransaction,
 } from '@/lib/types';
@@ -60,11 +60,6 @@ function toNum(v: unknown): number {
     if (!Number.isNaN(n)) return n;
   }
   return NaN;
-}
-
-function normalizeSpendRail(value: unknown): SpendRail {
-  if (value === 'stellar_usdc') return 'stellar_usdc';
-  return 'base_usdc';
 }
 
 function rowToSession(row: Record<string, unknown>): SpendSession {
