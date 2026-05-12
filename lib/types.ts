@@ -339,6 +339,8 @@ export type PointConversionStatus =
   | 'pending'
   | 'points_deducted'
   | 'funding_pending'
+  /** Ambiguous funding outcome (submitted / pending confirmation); no automatic refund (IRL-20). */
+  | 'needs_review'
   | 'funded'
   | 'failed';
 

@@ -187,6 +187,47 @@ describe('createBaseUsdcSpendPaymentRail', () => {
     expect(res.ok).toBe(true);
     if (!res.ok) throw new Error('unexpected');
     expect(res.value.status).toBe('pending');
+    expect(res.value.txReference).toBe('pending:ptx-1');
+  });
+
+  it('initiateUserFunding passes deterministic referenceId when fundingReferenceId is set', async () => {
+    vi.mocked(submitTreasuryUsdcTransfer).mockResolvedValue({
+      ok: true,
+      submittedPending: true,
+      privyTransactionId: 'ptx-ref',
+    });
+    const res = await rail.initiateUserFunding({
+      spendSessionId: 's1',
+      embeddedEvmWalletAddress: EMBEDDED,
+      privyNormalizedWalletAddressLower: EMBEDDED.toLowerCase(),
+      usdcAmount: 5,
+      fundingReferenceId: 'fund_user:00000000-0000-0000-0000-000000000001',
+    });
+    expect(res.ok).toBe(true);
+    expect(submitTreasuryUsdcTransfer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        referenceId: 'fund_user:00000000-0000-0000-0000-000000000001',
+      })
+    );
+  });
+
+  it('initiateUserFunding returns submitted with tx hash when receipt is not yet final', async () => {
+    vi.mocked(submitTreasuryUsdcTransfer).mockResolvedValue({
+      ok: true,
+      txHash: VALID_PAYMENT_HASH,
+      privyTransactionId: 'ptx-2',
+    });
+    vi.mocked(getTreasuryTxReceiptStatus).mockResolvedValue(null);
+    const res = await rail.initiateUserFunding({
+      spendSessionId: 's1',
+      embeddedEvmWalletAddress: EMBEDDED,
+      privyNormalizedWalletAddressLower: EMBEDDED.toLowerCase(),
+      usdcAmount: 5,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error('unexpected');
+    expect(res.value.status).toBe('submitted');
+    expect(res.value.txReference).toBe(VALID_PAYMENT_HASH);
   });
 
   it('initiateUserFunding returns confirmed when receipt is already successful', async () => {
@@ -205,6 +246,7 @@ describe('createBaseUsdcSpendPaymentRail', () => {
     expect(res.ok).toBe(true);
     if (!res.ok) throw new Error('unexpected');
     expect(res.value.status).toBe('confirmed');
+    expect(res.value.txReference).toBe(VALID_PAYMENT_HASH);
   });
 
   it('initiateUserFunding maps treasury insufficient errors to the treasury catalog', async () => {
@@ -226,11 +268,16 @@ describe('createBaseUsdcSpendPaymentRail', () => {
     );
   });
 
-  it('preparePayment returns rail_operation_not_supported', async () => {
-    const res = await rail.preparePayment({ spendSessionId: 's1' });
-    expect(res.ok).toBe(false);
-    if (res.ok) throw new Error('unexpected');
-    expect(res.error.category).toBe('rail_operation_not_supported');
+  it('preparePayment returns prepared when wallet and amount are valid', async () => {
+    const res = await rail.preparePayment({
+      spendSessionId: 's1',
+      embeddedEvmWalletAddress: EMBEDDED,
+      usdcAmount: 5,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error('unexpected');
+    expect(res.value.status).toBe('prepared');
+    expect(res.value.baseUsdc?.preparedAction.v).toBe(1);
   });
 
   it('confirmPayment rejects invalid global receiving wallet configuration', async () => {

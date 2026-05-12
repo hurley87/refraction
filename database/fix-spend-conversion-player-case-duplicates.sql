@@ -191,8 +191,8 @@ BEGIN
     RAISE EXCEPTION 'Conversion mismatch';
   END IF;
 
-  IF v_status IS DISTINCT FROM 'points_deducted' THEN
-    RAISE EXCEPTION 'Conversion is not in points_deducted state';
+  IF v_status NOT IN ('points_deducted', 'funding_pending', 'needs_review') THEN
+    RAISE EXCEPTION 'Conversion is not refundable from this state';
   END IF;
 
   IF v_points::INTEGER IS DISTINCT FROM p_points_to_refund THEN

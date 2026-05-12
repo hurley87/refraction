@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   SPEND_RAIL_ANALYTICS_CODES,
+  spendRailErrorConversionFundingNotSupported,
   spendRailErrorDuplicateRequest,
   spendRailErrorFundingFailed,
   spendRailErrorInvalidReceivingWallet,
@@ -50,6 +51,11 @@ describe('spend rail error catalog', () => {
     [
       'unsupported',
       spendRailErrorRailOperationNotSupported,
+      'rail_operation_not_supported',
+    ],
+    [
+      'conversion funding unsupported',
+      spendRailErrorConversionFundingNotSupported,
       'rail_operation_not_supported',
     ],
   ] as const;
@@ -146,5 +152,15 @@ describe('getSpendPaymentRail', () => {
     ).resolves.toMatchObject({ ok: false });
 
     expect(rail.explorerUrlForLedgerTx(null)).toBeNull();
+  });
+
+  it('Stellar conversion readiness uses conversion-specific unsupported copy', async () => {
+    const rail = getSpendPaymentRail('stellar_usdc');
+    const res = await rail.runWalletReadinessOrchestration({
+      spendSessionId: 's1',
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error('expected failure');
+    expect(res.error.userMessage).toContain('Points-to-USDC');
   });
 });

@@ -240,6 +240,7 @@ export async function updatePointConversionFields(
       | 'completed_at'
       | 'failed_reason'
       | 'explorer_tx_url'
+      | 'idempotency_key'
     >
   >
 ): Promise<PointConversion> {

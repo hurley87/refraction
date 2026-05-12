@@ -38,6 +38,16 @@ export type SpendPaymentRailSessionContext = {
   spendSessionId: string;
   spendExperienceId?: string;
   /**
+   * Spend pilot conversion row used for funding idempotency (`fund_user:<id>`) and analytics.
+   * Optional for payment-only rail calls.
+   */
+  pointConversionId?: string;
+  /**
+   * Deterministic Privy REST `reference_id` for treasury→user funding (conversion-scoped).
+   * When set, Base USDC rail passes this to `submitTreasuryUsdcTransfer`.
+   */
+  fundingReferenceId?: string;
+  /**
    * Base pilot: optional session fields used by the Base USDC rail (`embeddedEvmWalletAddress`
    * aligns with `SpendSession.wallet_address`; other rails ignore unset fields for now).
    */
