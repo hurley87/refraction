@@ -7,6 +7,7 @@ import { ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SpendPageShell } from '@/components/spend/spend-page-shell';
 import { SpendPrimaryButton } from '@/components/spend/spend-primary-button';
+import { Button } from '@/components/ui/button';
 import type {
   PointConversion,
   SpendExperience,
@@ -71,6 +72,7 @@ type ConversionConfirmResponse = {
   };
   spendRailSummary: SpendRailClientSummary;
   resumed: boolean;
+  clientHint: 'funded' | 'processing';
 };
 
 type PaymentConfirmResponse = {
@@ -150,9 +152,13 @@ function eligibilityToneClass(status: SpendEligibilityStatus): string {
     status === 'eligible' ||
     status === 'ready_for_payment' ||
     status === 'ready_for_payment_own_usdc' ||
-    status === 'payment_complete'
+    status === 'payment_complete' ||
+    status === 'conversion_failed_retryable'
   ) {
     return 'body-small font-grotesk text-emerald-800';
+  }
+  if (status === 'conversion_failed_retry_exhausted') {
+    return 'body-small font-grotesk text-red-800';
   }
   return 'body-small font-grotesk text-amber-900';
 }
@@ -163,7 +169,9 @@ function isPostPointsConversionFlow(status: SpendEligibilityStatus): boolean {
     status === 'ready_for_payment' ||
     status === 'conversion_in_progress' ||
     status === 'payment_failed' ||
-    status === 'payment_complete'
+    status === 'payment_complete' ||
+    status === 'conversion_failed_retryable' ||
+    status === 'conversion_failed_retry_exhausted'
   );
 }
 
@@ -322,7 +330,7 @@ export function SpendExperiencePage({
   }, [queryClient, sessionId, experienceId]);
 
   const conversionMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (intent: 'confirm' | 'retry_conversion') => {
       const token = await getAccessToken();
       if (!token || !walletAddress || !sessionId) {
         throw new Error('Missing auth or session');
@@ -330,11 +338,15 @@ export function SpendExperiencePage({
       return spendAuthedPost<ConversionConfirmResponse>(
         token,
         `/api/spend-sessions/${sessionId}/conversion/confirm`,
-        { walletAddress }
+        { walletAddress, intent }
       );
     },
-    onSuccess: async () => {
-      toast.success('USDC is on the way to your wallet.');
+    onSuccess: async (data) => {
+      if (data.clientHint === 'funded') {
+        toast.success('USDC is on the way to your wallet.');
+      } else {
+        toast.success('We are processing your conversion.');
+      }
       await invalidateSpendQueries();
     },
     onError: (e) => {
@@ -523,6 +535,11 @@ export function SpendExperiencePage({
     preview &&
     (sessionStatus === 'created' || sessionStatus === 'conversion_pending');
 
+  const showRetryConversion =
+    elig?.status === 'conversion_failed_retryable' &&
+    preview &&
+    (sessionStatus === 'created' || sessionStatus === 'conversion_pending');
+
   const showBaseWalletPay =
     !isPaymentComplete &&
     (elig?.status === 'ready_for_payment' ||
@@ -695,12 +712,30 @@ export function SpendExperiencePage({
                     {showConvert && (
                       <SpendPrimaryButton
                         pending={conversionMutation.isPending}
-                        onClick={() => conversionMutation.mutate()}
+                        onClick={() => conversionMutation.mutate('confirm')}
                       >
                         {conversionMutation.isPending
                           ? 'Converting…'
                           : `Convert points to ${assetSymbol}`}
                       </SpendPrimaryButton>
+                    )}
+
+                    {showRetryConversion && (
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-[44px] w-full border-[#171717] font-grotesk text-[#171717]"
+                          disabled={conversionMutation.isPending}
+                          onClick={() =>
+                            conversionMutation.mutate('retry_conversion')
+                          }
+                        >
+                          {conversionMutation.isPending
+                            ? 'Retrying…'
+                            : 'Retry conversion'}
+                        </Button>
+                      </div>
                     )}
 
                     {showBaseWalletPay && (

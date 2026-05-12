@@ -22,6 +22,7 @@ type RouteParams = { params: { sessionId: string } };
 /**
  * POST /api/spend-sessions/{sessionId}/conversion/confirm
  * Atomically deducts points, creates point conversion, sends treasury USDC to the user wallet (PRD §11).
+ * Optional body `intent`: `confirm` (default) or `retry_conversion` after a safe refunded failure (IRL-17).
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const sessionId = params.sessionId;
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       distinctId,
       usdcAmount,
       pointsRequired,
+      intent: parsed.data.intent,
     });
 
     if (!result.ok) {
@@ -124,6 +126,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
       spendRailSummary: getSpendRailClientSummary(spendExperience.spend_rail),
       resumed: result.resumed,
+      clientHint: result.clientHint,
       ...(walletReadiness ? { walletReadiness } : {}),
     });
   } catch (e) {

@@ -206,6 +206,49 @@ export function buildSpendEligibilityPreview(
     };
   }
 
+  if (pointConversion?.status === 'failed') {
+    const attempts = pointConversion.conversion_attempt_count;
+    if (attempts >= 4) {
+      return {
+        status: 'conversion_failed_retry_exhausted',
+        message: SPEND_ELIGIBILITY_MESSAGES.conversion_failed_retry_exhausted,
+        preview: basePreview(),
+      };
+    }
+    const balance =
+      player?.total_points != null ? Number(player.total_points) : 0;
+    if (balance < pointsRequired) {
+      return {
+        status: 'insufficient_points',
+        message: SPEND_ELIGIBILITY_MESSAGES.insufficient_points,
+        preview: basePreview(),
+      };
+    }
+    if (!spendRailSupportsPointsToUsdcConversion(spendExperience.spend_rail)) {
+      return {
+        status: 'conversion_unsupported',
+        message: SPEND_ELIGIBILITY_MESSAGES.conversion_unsupported,
+        preview: basePreview(),
+      };
+    }
+    if (treasuryUsdcBalance === null || treasuryUsdcBalance < usdcAmount) {
+      const insufficientMsg =
+        spendExperience.spend_rail === 'stellar_usdc'
+          ? "We're unable to fund this spend right now. Please try again shortly."
+          : SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient;
+      return {
+        status: 'treasury_insufficient',
+        message: insufficientMsg,
+        preview: basePreview(),
+      };
+    }
+    return {
+      status: 'conversion_failed_retryable',
+      message: SPEND_ELIGIBILITY_MESSAGES.conversion_failed_retryable,
+      preview: basePreview(),
+    };
+  }
+
   if (pointConversion && IN_PROGRESS.includes(pointConversion.status)) {
     return {
       status: 'conversion_in_progress',
