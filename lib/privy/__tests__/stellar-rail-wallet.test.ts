@@ -20,7 +20,10 @@ vi.mock('@/lib/db/players', () => ({
     mockCreateOrUpdatePlayerForStellar(...a),
 }));
 
-import { ensureStellarRailUserWallet } from '../stellar-rail-wallet';
+import {
+  ensureStellarRailUserWallet,
+  resolveStellarPrivyWalletIdForUser,
+} from '../stellar-rail-wallet';
 
 describe('ensureStellarRailUserWallet', () => {
   beforeEach(() => {
@@ -97,5 +100,49 @@ describe('ensureStellarRailUserWallet', () => {
       'u@test.com',
       'new-id'
     );
+  });
+});
+
+describe('resolveStellarPrivyWalletIdForUser', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns the linked Stellar wallet id matching the address', async () => {
+    mockGetUser.mockResolvedValue({
+      linkedAccounts: [
+        {
+          type: 'wallet',
+          chainType: 'stellar',
+          address: 'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+          id: 'wid-99',
+        },
+      ],
+    });
+    await expect(
+      resolveStellarPrivyWalletIdForUser(
+        'privy-u1',
+        'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+      )
+    ).resolves.toBe('wid-99');
+  });
+
+  it('throws when no matching Stellar wallet is linked', async () => {
+    mockGetUser.mockResolvedValue({
+      linkedAccounts: [
+        {
+          type: 'wallet',
+          chainType: 'stellar',
+          address: 'GOTHERBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+          id: 'wid-x',
+        },
+      ],
+    });
+    await expect(
+      resolveStellarPrivyWalletIdForUser(
+        'privy-u1',
+        'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+      )
+    ).rejects.toThrow('stellar_privy_wallet_id_unresolved');
   });
 });

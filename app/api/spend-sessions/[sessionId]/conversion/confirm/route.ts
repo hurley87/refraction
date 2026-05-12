@@ -6,6 +6,7 @@ import {
 import { apiError, apiSuccess, apiValidationError } from '@/lib/api/response';
 import { captureHandledException } from '@/lib/monitoring/capture-handled-exception';
 import { resolveServerIdentity } from '@/lib/analytics/server';
+import { getSpendWalletReadinessBySessionId } from '@/lib/db/spend-wallet-readiness';
 import {
   getSpendContextOr404,
   runSpendConversionConfirm,
@@ -102,6 +103,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return apiError(result.error, result.httpStatus);
     }
 
+    const walletReadiness =
+      spendExperience.spend_rail === 'stellar_usdc'
+        ? await getSpendWalletReadinessBySessionId(session.id)
+        : null;
+
     return apiSuccess({
       pointConversion: result.pointConversion,
       session: {
@@ -118,6 +124,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       },
       spendRailSummary: getSpendRailClientSummary(spendExperience.spend_rail),
       resumed: result.resumed,
+      ...(walletReadiness ? { walletReadiness } : {}),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed to confirm conversion';

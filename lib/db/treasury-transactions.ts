@@ -51,7 +51,11 @@ function rowToTreasury(row: Record<string, unknown>): TreasuryTransaction {
 
 type TreasuryLedgerInsertType = Extract<
   TreasuryTransaction['transaction_type'],
-  'fund_user' | 'receive_payment' | 'admin_recovery'
+  | 'fund_user'
+  | 'receive_payment'
+  | 'admin_recovery'
+  | 'stellar_account_activation'
+  | 'stellar_usdc_trustline_setup'
 >;
 
 async function insertTreasuryLedgerRowIfAbsent(params: {
@@ -157,6 +161,73 @@ export function insertTreasuryAdminRecoveryLedgerIfAbsent(input: {
     toWalletAddress: input.toWalletAddress,
     txHash: input.txHash,
   });
+}
+
+type StellarSetupTreasuryType = Extract<
+  TreasuryTransaction['transaction_type'],
+  'stellar_account_activation' | 'stellar_usdc_trustline_setup'
+>;
+
+/**
+ * Inserts a `treasury_transactions` audit row for Stellar readiness (activation or trustline)
+ * using a `pending:{uuid}` tx_hash placeholder until the on-ledger hash is known (IRL-18).
+ */
+export async function insertTreasuryStellarSetupRow(input: {
+  spendExperienceId: string;
+  transactionType: StellarSetupTreasuryType;
+  fromWalletAddress: string;
+  toWalletAddress: string;
+  pendingTxCorrelation: string;
+}): Promise<string> {
+  const spend_rail = 'stellar_usdc' as const;
+  const tx_hash = `pending:${input.pendingTxCorrelation.trim()}`;
+  const { data, error } = await supabase
+    .from('treasury_transactions')
+    .insert({
+      spend_experience_id: input.spendExperienceId,
+      transaction_type: input.transactionType,
+      amount: 0,
+      spend_rail,
+      network: spendLedgerNetworkLabel(spend_rail),
+      asset_symbol: 'USDC',
+      from_wallet_address: input.fromWalletAddress.trim(),
+      to_wallet_address: input.toWalletAddress.trim(),
+      tx_hash,
+      explorer_tx_url: null,
+      status: 'submitted',
+    })
+    .select('id')
+    .single();
+
+  if (error || !data) {
+    console.error(
+      `insertTreasuryStellarSetupRow (${input.transactionType}):`,
+      error
+    );
+    throw new Error(error?.message || 'Failed to insert treasury row');
+  }
+  return String((data as Record<string, unknown>).id);
+}
+
+export async function finalizeTreasuryStellarSetupRow(input: {
+  id: string;
+  txHashNormalized: string;
+  explorerTxUrl: string | null;
+  status: 'confirmed' | 'failed';
+}): Promise<void> {
+  const { error } = await supabase
+    .from('treasury_transactions')
+    .update({
+      tx_hash: input.txHashNormalized.trim().toLowerCase(),
+      explorer_tx_url: input.explorerTxUrl,
+      status: input.status,
+    })
+    .eq('id', input.id);
+
+  if (error) {
+    console.error('finalizeTreasuryStellarSetupRow:', error);
+    throw new Error(error.message || 'Failed to finalize treasury row');
+  }
 }
 
 export async function listTreasuryTransactionsForExperience(

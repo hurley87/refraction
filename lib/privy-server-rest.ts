@@ -112,6 +112,52 @@ function privyRestFetch(
 }
 
 /**
+ * POST /v1/wallets/{walletId}/raw_sign — sign a 32-byte hash (Tier-2 chains, e.g. Stellar).
+ * @see https://docs.privy.io/wallets/using-wallets/other-chains
+ */
+export async function privyWalletRawSignTransactionHash(input: {
+  walletId: string;
+  /** 32-byte transaction signing hash (e.g. Stellar `Transaction.prototype.hash()`). */
+  hash32: Buffer;
+}): Promise<Buffer> {
+  if (input.hash32.length !== 32) {
+    throw new Error('privyWalletRawSignTransactionHash: expected 32-byte hash');
+  }
+  const hashHex0x = `0x${input.hash32.toString('hex')}` as const;
+  const res = await privyRestFetch(
+    `/wallets/${encodeURIComponent(input.walletId)}/raw_sign`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        params: { hash: hashHex0x },
+      }),
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new PrivyRestApiError(res.status, text);
+  }
+  const json = (await res.json()) as {
+    data?: { signature?: string };
+  };
+  const sig = json.data?.signature?.trim();
+  if (!sig || !sig.startsWith('0x')) {
+    throw new PrivyRestApiError(
+      500,
+      `Malformed Privy raw_sign response: ${JSON.stringify(json)}`
+    );
+  }
+  const raw = Buffer.from(sig.slice(2), 'hex');
+  if (raw.length !== 64) {
+    throw new PrivyRestApiError(
+      500,
+      `Unexpected raw_sign signature length ${raw.length}`
+    );
+  }
+  return raw;
+}
+
+/**
  * POST /v1/wallets/{walletId}/rpc — `method: eth_sendTransaction`.
  */
 export async function signAndSendTransaction(

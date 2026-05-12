@@ -164,6 +164,8 @@ async function runWalletReadinessAndUserFunding(input: {
 }): Promise<
   | { kind: 'funded'; conversion: PointConversion }
   | { kind: 'ambiguous_review'; conversion: PointConversion }
+  | { kind: 'readiness_pending'; conversion: PointConversion }
+  | { kind: 'readiness_needs_review'; conversion: PointConversion }
   | {
       kind: 'error';
       value: SpendConversionConfirmResult;
@@ -248,6 +250,29 @@ async function runWalletReadinessAndUserFunding(input: {
       category: readiness.error.category,
       userMessage: readiness.error.userMessage,
     });
+  }
+
+  if (readiness.value.status === 'needs_review') {
+    const updated = await updatePointConversionFields(conv.id, {
+      status: 'needs_review',
+    });
+    await updateSpendSessionStatus(session.id, 'conversion_pending');
+    return { kind: 'readiness_needs_review', conversion: updated };
+  }
+
+  if (readiness.value.status === 'pending') {
+    return { kind: 'readiness_pending', conversion: conv };
+  }
+
+  if (readiness.value.status !== 'completed') {
+    return {
+      kind: 'error',
+      value: {
+        ok: false,
+        httpStatus: 500,
+        error: 'Unexpected wallet readiness status.',
+      },
+    };
   }
 
   const funding = await rail.initiateUserFunding(ctx);
@@ -794,9 +819,12 @@ async function fundOrResumeUsdc(input: {
 
   let conv = pointConversion;
   if (
-    conv.status === 'points_deducted' &&
     !conv.funding_tx_hash &&
-    spendConversionResumeInvokesWalletReadinessOrchestration(session.spend_rail)
+    spendConversionResumeInvokesWalletReadinessOrchestration(
+      session.spend_rail
+    ) &&
+    (conv.status === 'points_deducted' ||
+      (session.spend_rail === 'stellar_usdc' && conv.status === 'needs_review'))
   ) {
     const onward = await runWalletReadinessAndUserFunding({
       session,
@@ -823,6 +851,12 @@ async function fundOrResumeUsdc(input: {
       return { error: onward.value };
     }
     if (onward.kind === 'funded') {
+      return { conversion: onward.conversion, error: null };
+    }
+    if (
+      onward.kind === 'readiness_pending' ||
+      onward.kind === 'readiness_needs_review'
+    ) {
       return { conversion: onward.conversion, error: null };
     }
     conv = onward.conversion;

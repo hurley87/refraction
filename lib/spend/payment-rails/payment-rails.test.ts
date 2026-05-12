@@ -1,8 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 
-// Registry imports Stellar rail → stellar-rail-wallet → Privy server client (not loadable in happy-dom).
-vi.mock('@/lib/privy/stellar-rail-wallet', () => ({
-  ensureStellarRailUserWallet: vi.fn(),
+// Registry imports Stellar rail → readiness orchestration (Stellar SDK + Horizon).
+vi.mock('@/lib/spend/stellar-wallet-readiness-orchestration', () => ({
+  runStellarUsdcWalletReadinessOrchestration: vi.fn().mockResolvedValue({
+    ok: true,
+    status: 'completed',
+    address: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+  }),
 }));
 
 import {

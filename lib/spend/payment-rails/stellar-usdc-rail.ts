@@ -1,5 +1,4 @@
 import type { SpendRail, SpendWalletReadinessStatus } from '@/lib/types';
-import { ensureStellarRailUserWallet } from '@/lib/privy/stellar-rail-wallet';
 import {
   insertPendingSpendWalletReadinessOrGet,
   updateSpendWalletReadinessFields,
@@ -26,6 +25,7 @@ import type {
   SpendRailFundingOperationStatus,
   SpendRailPaymentOperationStatus,
 } from '@/lib/spend/payment-rails/types';
+import { runStellarUsdcWalletReadinessOrchestration } from '@/lib/spend/stellar-wallet-readiness-orchestration';
 
 const unsupported = (): SpendRailResult<never> =>
   errSpendRail(spendRailErrorRailOperationNotSupported());
@@ -61,8 +61,8 @@ function internalDiagnosticsFromError(e: unknown): Record<string, unknown> {
 }
 
 /**
- * Stellar USDC rail: wallet readiness provisions a Privy-managed Stellar account on
- * conversion confirm (IRL-21). Funding/payment remain stubbed until follow-up issues.
+ * Stellar USDC rail: hybrid readiness (IRL-18) — sponsor-funded account creation,
+ * Privy-signed sponsored USDC trustline, ledger-confirmed completion, treasury audit rows.
  */
 export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
   const spendRail: SpendRail = 'stellar_usdc';
@@ -112,23 +112,48 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
         return okSpendRail({ status: 'completed' });
       }
 
+      if (row.status === 'failed') {
+        return errSpendRail(spendRailErrorWalletReadinessFailed());
+      }
+
       try {
-        const stellar = await ensureStellarRailUserWallet(privyUserId);
-        await updateSpendWalletReadinessFields(row.id, {
-          status: 'completed',
-          rail_user_wallet_address: stellar.address,
-          step_metadata: {
-            stellar_wallet_provisioned: stellar.provisioned,
-          },
-          sanitized_error_category: null,
-          sanitized_error_code: null,
-          internal_diagnostics: null,
+        const outcome = await runStellarUsdcWalletReadinessOrchestration({
+          readinessRow: row,
+          spendSessionId: sessionId,
+          spendExperienceId: ctx.spendExperienceId,
+          sessionOwnerPrivyUserId: privyUserId,
         });
-        await updateSpendSessionRailUserWalletAddress(
-          sessionId,
-          stellar.address
-        );
-        return okSpendRail({ status: 'completed' });
+
+        if (!outcome.ok) {
+          try {
+            await updateSpendWalletReadinessFields(row.id, {
+              status: 'failed',
+              sanitized_error_category: outcome.error.category,
+              sanitized_error_code: outcome.error.analyticsCode,
+              internal_diagnostics: { phase: 'orchestration_pre_ledger' },
+            });
+          } catch (persistErr) {
+            console.error(
+              'stellar_usdc readiness failure metadata persist:',
+              persistErr
+            );
+          }
+          return errSpendRail(outcome.error);
+        }
+
+        if (outcome.status === 'completed' && outcome.address) {
+          try {
+            await updateSpendSessionRailUserWalletAddress(
+              sessionId,
+              outcome.address
+            );
+          } catch (e) {
+            console.error('stellar_usdc readiness session address sync:', e);
+            return errSpendRail(classifyStellarReadinessException(e));
+          }
+        }
+
+        return okSpendRail({ status: outcome.status });
       } catch (e) {
         console.error('stellar_usdc runWalletReadinessOrchestration:', e);
         const railErr = classifyStellarReadinessException(e);

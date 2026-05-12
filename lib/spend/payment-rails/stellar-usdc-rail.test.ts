@@ -8,7 +8,7 @@ const hoisted = vi.hoisted(() => ({
   mockInsertOrGet: vi.fn(),
   mockUpdateReadiness: vi.fn(),
   mockUpdateSessionRail: vi.fn(),
-  mockEnsureStellar: vi.fn(),
+  mockOrchestrator: vi.fn(),
 }));
 
 vi.mock('@/lib/db/spend-wallet-readiness', () => ({
@@ -23,9 +23,9 @@ vi.mock('@/lib/db/spend-sessions', () => ({
     hoisted.mockUpdateSessionRail(...a),
 }));
 
-vi.mock('@/lib/privy/stellar-rail-wallet', () => ({
-  ensureStellarRailUserWallet: (...a: unknown[]) =>
-    hoisted.mockEnsureStellar(...a),
+vi.mock('@/lib/spend/stellar-wallet-readiness-orchestration', () => ({
+  runStellarUsdcWalletReadinessOrchestration: (...a: unknown[]) =>
+    hoisted.mockOrchestrator(...a),
 }));
 
 import { createStellarUsdcSpendPaymentRail } from './stellar-usdc-rail';
@@ -33,7 +33,7 @@ import { createStellarUsdcSpendPaymentRail } from './stellar-usdc-rail';
 const sessionId = '770e8400-e29b-41d4-a716-446655440000';
 const STELLAR_G = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
 
-function pendingRow(opts?: { status?: 'pending' | 'completed' }) {
+function pendingRow(opts?: { status?: 'pending' | 'completed' | 'failed' }) {
   const status = opts?.status ?? 'pending';
   return {
     id: '880e8400-e29b-41d4-a716-446655440001',
@@ -54,26 +54,27 @@ function pendingRow(opts?: { status?: 'pending' | 'completed' }) {
   };
 }
 
-describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-21)', () => {
+describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-18)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.mockUpdateReadiness.mockResolvedValue(
       pendingRow({ status: 'completed' })
     );
     hoisted.mockUpdateSessionRail.mockResolvedValue({});
-    hoisted.mockEnsureStellar.mockResolvedValue({
+    hoisted.mockOrchestrator.mockResolvedValue({
+      ok: true,
+      status: 'completed',
       address: STELLAR_G,
-      walletId: 'w1',
-      provisioned: true,
     });
   });
 
   const ctx = {
     spendSessionId: sessionId,
+    spendExperienceId: '990e8400-e29b-41d4-a716-446655440002',
     sessionOwnerPrivyUserId: 'privy-1',
   };
 
-  it('happy path: ensures Stellar wallet, updates readiness + session', async () => {
+  it('happy path: orchestration completed syncs session rail address', async () => {
     hoisted.mockInsertOrGet.mockResolvedValue({
       row: pendingRow(),
       created: true,
@@ -85,22 +86,22 @@ describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-21)', () =
     expect(res.ok).toBe(true);
     if (!res.ok) throw new Error('expected ok');
     expect(res.value.status).toBe('completed');
-    expect(hoisted.mockEnsureStellar).toHaveBeenCalledTimes(1);
-    expect(hoisted.mockEnsureStellar).toHaveBeenCalledWith('privy-1');
+    expect(hoisted.mockOrchestrator).toHaveBeenCalledTimes(1);
+    expect(hoisted.mockOrchestrator).toHaveBeenCalledWith(
+      expect.objectContaining({
+        spendSessionId: sessionId,
+        spendExperienceId: ctx.spendExperienceId,
+        sessionOwnerPrivyUserId: 'privy-1',
+      })
+    );
     expect(hoisted.mockUpdateSessionRail).toHaveBeenCalledWith(
       sessionId,
       STELLAR_G
     );
-    expect(hoisted.mockUpdateReadiness).toHaveBeenCalledWith(
-      pendingRow().id,
-      expect.objectContaining({
-        status: 'completed',
-        rail_user_wallet_address: STELLAR_G,
-      })
-    );
+    expect(hoisted.mockUpdateReadiness).not.toHaveBeenCalled();
   });
 
-  it('idempotent second call: completed row skips Privy but syncs session rail address', async () => {
+  it('idempotent second call: completed row skips orchestration but syncs session rail address', async () => {
     hoisted.mockInsertOrGet.mockResolvedValue({
       row: {
         ...pendingRow({ status: 'completed' }),
@@ -113,7 +114,7 @@ describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-21)', () =
     const res = await rail.runWalletReadinessOrchestration(ctx);
 
     expect(res.ok).toBe(true);
-    expect(hoisted.mockEnsureStellar).not.toHaveBeenCalled();
+    expect(hoisted.mockOrchestrator).not.toHaveBeenCalled();
     expect(hoisted.mockUpdateReadiness).not.toHaveBeenCalled();
     expect(hoisted.mockUpdateSessionRail).toHaveBeenCalledTimes(1);
     expect(hoisted.mockUpdateSessionRail).toHaveBeenCalledWith(
@@ -122,12 +123,15 @@ describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-21)', () =
     );
   });
 
-  it('Privy failure: categorized SpendRailError + persisted diagnostics', async () => {
+  it('orchestration failure: categorized SpendRailError + persisted diagnostics', async () => {
     hoisted.mockInsertOrGet.mockResolvedValue({
       row: pendingRow(),
       created: true,
     });
-    hoisted.mockEnsureStellar.mockRejectedValue(new Error('privy outage'));
+    hoisted.mockOrchestrator.mockResolvedValue({
+      ok: false,
+      error: spendRailErrorWalletReadinessFailed(),
+    });
 
     const rail = createStellarUsdcSpendPaymentRail();
     const res = await rail.runWalletReadinessOrchestration(ctx);
@@ -145,9 +149,6 @@ describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-21)', () =
         sanitized_error_category: 'wallet_readiness_failed',
         sanitized_error_code:
           SPEND_RAIL_ANALYTICS_CODES.wallet_readiness_failed,
-        internal_diagnostics: expect.objectContaining({
-          error_message: 'privy outage',
-        }),
       })
     );
   });
@@ -163,38 +164,44 @@ describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-21)', () =
     expect(hoisted.mockInsertOrGet).not.toHaveBeenCalled();
   });
 
-  it('network-style Privy errors map to network_unavailable', async () => {
+  it('returns pending when orchestration is still confirming on ledger', async () => {
     hoisted.mockInsertOrGet.mockResolvedValue({
       row: pendingRow(),
       created: true,
     });
-    hoisted.mockEnsureStellar.mockRejectedValue(
-      new Error('fetch failed upstream')
-    );
+    hoisted.mockOrchestrator.mockResolvedValue({
+      ok: true,
+      status: 'pending',
+      address: STELLAR_G,
+    });
 
     const rail = createStellarUsdcSpendPaymentRail();
     const res = await rail.runWalletReadinessOrchestration(ctx);
-
-    expect(res.ok).toBe(false);
-    if (res.ok) throw new Error('expected failure');
-    expect(res.error.category).toBe('network_unavailable');
-    expect(hoisted.mockUpdateReadiness).toHaveBeenCalledWith(
-      pendingRow().id,
-      expect.objectContaining({
-        status: 'failed',
-        sanitized_error_category: 'network_unavailable',
-      })
-    );
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error('expected ok');
+    expect(res.value.status).toBe('pending');
+    expect(hoisted.mockUpdateSessionRail).not.toHaveBeenCalled();
   });
 
-  it('at most one ensureStellar call per invocation (no retry loop)', async () => {
+  it('at most one orchestration call per invocation (no retry loop)', async () => {
     hoisted.mockInsertOrGet.mockResolvedValue({
       row: pendingRow(),
       created: true,
     });
-    hoisted.mockEnsureStellar.mockRejectedValueOnce(new Error('first'));
+    hoisted.mockOrchestrator.mockRejectedValueOnce(new Error('first'));
     const rail = createStellarUsdcSpendPaymentRail();
     await rail.runWalletReadinessOrchestration(ctx);
-    expect(hoisted.mockEnsureStellar).toHaveBeenCalledTimes(1);
+    expect(hoisted.mockOrchestrator).toHaveBeenCalledTimes(1);
+  });
+
+  it('failed row short-circuits without calling orchestration', async () => {
+    hoisted.mockInsertOrGet.mockResolvedValue({
+      row: pendingRow({ status: 'failed' }),
+      created: false,
+    });
+    const rail = createStellarUsdcSpendPaymentRail();
+    const res = await rail.runWalletReadinessOrchestration(ctx);
+    expect(res.ok).toBe(false);
+    expect(hoisted.mockOrchestrator).not.toHaveBeenCalled();
   });
 });
