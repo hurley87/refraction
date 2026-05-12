@@ -38,18 +38,15 @@ export type SpendPaymentRailSessionContext = {
   spendSessionId: string;
   spendExperienceId?: string;
   /**
-   * Base: Privy embedded EVM wallet tied to the spend session (same field semantics as
-   * `SpendSession.wallet_address` for Base pilot flows).
+   * Base pilot: optional session fields used by the Base USDC rail (`embeddedEvmWalletAddress`
+   * aligns with `SpendSession.wallet_address`; other rails ignore unset fields for now).
    */
   embeddedEvmWalletAddress?: string;
-  /**
-   * Base: lowercased EVM address from the authenticated user (Privy-linked). When set,
-   * readiness requires it to match `embeddedEvmWalletAddress`, mirroring spend payment confirm.
-   */
+  /** When set, Base readiness requires a case-insensitive match to `embeddedEvmWalletAddress`. */
   privyNormalizedWalletAddressLower?: string;
-  /** Base: human-readable USDC amount (6 decimals) for treasury funding and payment verify. */
+  /** Human-readable USDC amount for treasury funding and payment verification. */
   usdcAmount?: number;
-  /** Base: user-submitted on-chain payment hash for `confirmPayment` (canonical `0x` + 64 hex). */
+  /** User-submitted canonical `0x` + 64 hex payment hash for `confirmPayment`. */
   paymentTxHash?: string;
 };
 

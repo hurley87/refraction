@@ -158,7 +158,7 @@ describe('createBaseUsdcSpendPaymentRail', () => {
     );
   });
 
-  it('preparePayment is unsupported on Base until IRL-19', async () => {
+  it('preparePayment returns rail_operation_not_supported', async () => {
     const res = await rail.preparePayment({ spendSessionId: 's1' });
     expect(res.ok).toBe(false);
     if (res.ok) throw new Error('unexpected');

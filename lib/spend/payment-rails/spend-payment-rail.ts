@@ -57,8 +57,8 @@ export interface SpendPaymentRail {
   ): Promise<SpendRailResult<{ status: SpendRailPaymentOperationStatus }>>;
 
   /**
-   * Confirm payment after prepare/submit. Unsupported at IRL-15 except for typing;
-   * user-signed Base confirmation stays in `lib/spend-payment-confirm.ts` until extracted.
+   * Confirm on-chain payment evidence (user-submitted tx hash on Base USDC). Stellar remains
+   * unsupported at this boundary until server-controlled confirmation exists on the rail.
    */
   confirmPayment(
     ctx: SpendPaymentRailSessionContext

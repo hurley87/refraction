@@ -1,4 +1,5 @@
 import type { SpendRail, SpendWalletReadinessStatus } from '@/lib/types';
+import { recipientUsdcAddressForSpendTransfer } from '@/lib/spend/recipient-usdc-for-treasury-transfer';
 import {
   fetchUsdcBalanceOnBase,
   isEvmAddress,
@@ -37,24 +38,6 @@ import type {
   SpendRailPaymentOperationStatus,
 } from '@/lib/spend/payment-rails/types';
 
-/**
- * Treasury-funded USDC targets the session embedded wallet. If the session wallet equals the
- * treasury server wallet (misconfiguration), fall back to the authenticated user's normalized
- * embedded address — same rule as `lib/spend-conversion-confirm.ts`.
- */
-function recipientUsdcAddressForTreasuryFunding(params: {
-  serverWalletAddress: string;
-  sessionWalletTrimmed: string;
-  normalizedWalletLower: string;
-}): `0x${string}` {
-  const serverWalletLower = params.serverWalletAddress.trim().toLowerCase();
-  const sessionLower = params.sessionWalletTrimmed.toLowerCase();
-  if (serverWalletLower === sessionLower) {
-    return params.normalizedWalletLower as `0x${string}`;
-  }
-  return params.sessionWalletTrimmed as `0x${string}`;
-}
-
 function normalizedEmbeddedLower(ctx: SpendPaymentRailSessionContext): string {
   const fromPrivy = ctx.privyNormalizedWalletAddressLower?.trim();
   if (fromPrivy) return fromPrivy.toLowerCase();
@@ -89,10 +72,20 @@ function classifyPaymentVerifyFailure(reason: string): SpendRailError {
   return spendRailErrorPaymentFailed();
 }
 
-/**
- * Base USDC rail: treasury balance, embedded-wallet readiness, Privy treasury funding,
- * on-chain payment verification against the configured global receiving wallet, and explorer URLs.
- */
+function isValidPositiveUsdcAmount(n: unknown): n is number {
+  return typeof n === 'number' && Number.isFinite(n) && n > 0;
+}
+
+function embeddedEvmFromContext(
+  ctx: SpendPaymentRailSessionContext
+): SpendRailResult<string> {
+  const embedded = ctx.embeddedEvmWalletAddress?.trim() ?? '';
+  if (!embedded || !isEvmAddress(embedded)) {
+    return errSpendRail(spendRailErrorWalletUnavailable());
+  }
+  return okSpendRail(embedded);
+}
+
 export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
   const spendRail: SpendRail = 'base_usdc';
 
@@ -124,10 +117,11 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
       if (!ctx.spendSessionId?.trim()) {
         return errSpendRail(spendRailErrorWalletReadinessFailed());
       }
-      const embedded = ctx.embeddedEvmWalletAddress?.trim() ?? '';
-      if (!embedded || !isEvmAddress(embedded)) {
-        return errSpendRail(spendRailErrorWalletUnavailable());
+      const embeddedRes = embeddedEvmFromContext(ctx);
+      if (!embeddedRes.ok) {
+        return embeddedRes;
       }
+      const embedded = embeddedRes.value;
       const authLower = ctx.privyNormalizedWalletAddressLower?.trim();
       if (authLower && embedded.toLowerCase() !== authLower.toLowerCase()) {
         return errSpendRail(spendRailErrorWalletUnavailable());
@@ -138,18 +132,15 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
     async initiateUserFunding(
       ctx: SpendPaymentRailSessionContext
     ): Promise<SpendRailResult<{ status: SpendRailFundingOperationStatus }>> {
-      const embedded = ctx.embeddedEvmWalletAddress?.trim() ?? '';
-      if (!embedded || !isEvmAddress(embedded)) {
-        return errSpendRail(spendRailErrorWalletUnavailable());
+      const embeddedRes = embeddedEvmFromContext(ctx);
+      if (!embeddedRes.ok) {
+        return embeddedRes;
       }
-      const usdcAmount = ctx.usdcAmount;
-      if (
-        usdcAmount == null ||
-        !Number.isFinite(usdcAmount) ||
-        usdcAmount <= 0
-      ) {
+      const embedded = embeddedRes.value;
+      if (!isValidPositiveUsdcAmount(ctx.usdcAmount)) {
         return errSpendRail(spendRailErrorFundingFailed());
       }
+      const usdcAmount = ctx.usdcAmount;
 
       const transferCfg = getSpendBaseTreasuryPrivyTransferConfig();
       if (!transferCfg) {
@@ -161,7 +152,7 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
         return errSpendRail(spendRailErrorWalletUnavailable());
       }
 
-      const recipient = recipientUsdcAddressForTreasuryFunding({
+      const recipient = recipientUsdcAddressForSpendTransfer({
         serverWalletAddress: transferCfg.address,
         sessionWalletTrimmed: embedded,
         normalizedWalletLower: normalizedLower,
@@ -215,19 +206,16 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
       }
       const txHash = rawHash as `0x${string}`;
 
-      const embedded = ctx.embeddedEvmWalletAddress?.trim() ?? '';
-      if (!embedded || !isEvmAddress(embedded)) {
-        return errSpendRail(spendRailErrorWalletUnavailable());
+      const embeddedRes = embeddedEvmFromContext(ctx);
+      if (!embeddedRes.ok) {
+        return embeddedRes;
       }
+      const embedded = embeddedRes.value;
 
-      const usdcAmount = ctx.usdcAmount;
-      if (
-        usdcAmount == null ||
-        !Number.isFinite(usdcAmount) ||
-        usdcAmount <= 0
-      ) {
+      if (!isValidPositiveUsdcAmount(ctx.usdcAmount)) {
         return errSpendRail(spendRailErrorPaymentFailed());
       }
+      const usdcAmount = ctx.usdcAmount;
 
       const receiving = getSpendReceivingWalletAddress(spendRail).trim();
       if (!receiving || !isEvmAddress(receiving)) {
