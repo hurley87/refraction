@@ -10,10 +10,6 @@ const mockTrack = vi.fn();
 const mockTrackRailBlocked = vi.fn();
 const mockResolve = vi.fn();
 
-const { mockEnsureStellar } = vi.hoisted(() => ({
-  mockEnsureStellar: vi.fn(),
-}));
-
 vi.mock('@/lib/api/privy', () => ({
   verifyWalletOwnership: (...a: unknown[]) => mockVerifyWallet(...a),
   getPrivyUserIdFromRequest: (...a: unknown[]) => mockGetPrivyUserId(...a),
@@ -36,10 +32,6 @@ vi.mock('@/lib/analytics/server', () => ({
   trackSpendPilotRailMutationBlocked: (...a: unknown[]) =>
     mockTrackRailBlocked(...a),
   resolveServerIdentity: (...a: unknown[]) => mockResolve(...a),
-}));
-
-vi.mock('@/lib/privy/stellar-rail-wallet', () => ({
-  ensureStellarRailUserWallet: (...a: unknown[]) => mockEnsureStellar(...a),
 }));
 
 import { POST } from '../route';
@@ -101,10 +93,6 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
     mockAssert.mockReturnValue({ ok: true });
     mockCreateOrGet.mockResolvedValue({ session, created: true });
     mockResolve.mockReturnValue('privy-1');
-    mockEnsureStellar.mockResolvedValue({
-      address: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
-      provisioned: false,
-    });
   });
 
   it('returns 404 when experience not found', async () => {
@@ -144,7 +132,6 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
     expect(j.data.created).toBe(true);
     expect(j.data.spendRailSummary.rail).toBe('base_usdc');
     expect(mockTrack).toHaveBeenCalled();
-    expect(mockEnsureStellar).not.toHaveBeenCalled();
     expect(mockCreateOrGet).toHaveBeenCalledWith(
       expect.objectContaining({
         walletAddress: wallet,
@@ -154,7 +141,7 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
     );
   });
 
-  it('snapshots Stellar rail wallet when experience is stellar_usdc', async () => {
+  it('does not provision Stellar wallet at session create; rail wallet NULL until readiness', async () => {
     const prevEnabled = process.env.SPEND_RAIL_STELLAR_USDC_ENABLED;
     const prevRecv = process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS;
     const prevNet = process.env.NEXT_PUBLIC_STELLAR_NETWORK;
@@ -167,8 +154,7 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
       const stellarSession = {
         ...session,
         spend_rail: 'stellar_usdc' as const,
-        rail_user_wallet_address:
-          'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+        rail_user_wallet_address: null as string | null,
       };
       mockGetExperience.mockResolvedValue(stellarExp);
       mockCreateOrGet.mockResolvedValue({
@@ -181,19 +167,15 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
       });
       const j = await res.json();
       expect(res.status).toBe(200);
-      expect(mockEnsureStellar).toHaveBeenCalledWith('privy-1');
       expect(mockCreateOrGet).toHaveBeenCalledWith(
         expect.objectContaining({
           spendExperience: expect.objectContaining({
             spend_rail: 'stellar_usdc',
           }),
-          railUserWalletAddress:
-            'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+          railUserWalletAddress: null,
         })
       );
-      expect(j.data.session.rail_user_wallet_address).toBe(
-        'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
-      );
+      expect(j.data.session.rail_user_wallet_address).toBeNull();
       expect(j.data.spendRailSummary.rail).toBe('stellar_usdc');
     } finally {
       process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = prevEnabled;

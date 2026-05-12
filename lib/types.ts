@@ -323,11 +323,11 @@ export type SpendSession = {
   /** Copied from the parent experience at session creation. Immutable in DB. */
   spend_rail: SpendRail;
   /**
-   * Rail-specific user wallet at session creation: verified EVM for `base_usdc`,
-   * canonical Stellar account for `stellar_usdc` (see GET /api/stellar-wallet order;
-   * Stellar may be auto-provisioned on create).
+   * Rail-specific user wallet: required non-NULL EVM for `base_usdc`.
+   * For `stellar_usdc`, NULL until conversion confirm wallet readiness sets the
+   * Privy-managed Stellar G-address (never the signed-in EVM wallet as a placeholder).
    */
-  rail_user_wallet_address: string;
+  rail_user_wallet_address: string | null;
   status: SpendSessionStatus;
   qr_token_hash: string | null;
   created_at: string;
@@ -443,7 +443,8 @@ export type SpendWalletReadinessOperation = {
   spend_session_id: string;
   user_id: string;
   spend_rail: SpendRail;
-  rail_user_wallet_address: string;
+  /** Resolved G-address when known; NULL while Stellar readiness is still pending. */
+  rail_user_wallet_address: string | null;
   status: SpendWalletReadinessStatus;
   step_metadata: Record<string, unknown>;
   sanitized_error_category: string | null;

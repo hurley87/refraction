@@ -343,7 +343,10 @@ describe('buildSpendEligibilityPreview', () => {
 
     it('allows ready_for_payment_own_usdc without Base treasury funding', () => {
       const r = buildSpendEligibilityPreview({
-        session: sess({ spend_rail: 'stellar_usdc' }),
+        session: sess({
+          spend_rail: 'stellar_usdc',
+          rail_user_wallet_address: null,
+        }),
         spendExperience: exp({ spend_rail: 'stellar_usdc' }),
         player: player(0),
         pointConversion: null,
@@ -358,7 +361,10 @@ describe('buildSpendEligibilityPreview', () => {
 
     it('returns conversion_unsupported when points would fund but rail has no Privy treasury path', () => {
       const r = buildSpendEligibilityPreview({
-        session: sess({ spend_rail: 'stellar_usdc' }),
+        session: sess({
+          spend_rail: 'stellar_usdc',
+          rail_user_wallet_address: null,
+        }),
         spendExperience: exp({ spend_rail: 'stellar_usdc' }),
         player: player(6000),
         pointConversion: null,
@@ -373,7 +379,10 @@ describe('buildSpendEligibilityPreview', () => {
 
     it('returns insufficient_points when user lacks points and own USDC', () => {
       const r = buildSpendEligibilityPreview({
-        session: sess({ spend_rail: 'stellar_usdc' }),
+        session: sess({
+          spend_rail: 'stellar_usdc',
+          rail_user_wallet_address: null,
+        }),
         spendExperience: exp({ spend_rail: 'stellar_usdc' }),
         player: player(100),
         pointConversion: null,

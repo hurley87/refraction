@@ -77,6 +77,28 @@ describe('insertPendingSpendWalletReadinessOrGet', () => {
     vi.clearAllMocks();
   });
 
+  it('allows NULL rail_user_wallet_address on insert for pending Stellar readiness', async () => {
+    mockSingle.mockResolvedValueOnce({
+      data: { ...readinessRow, rail_user_wallet_address: null },
+      error: null,
+    });
+
+    const result = await insertPendingSpendWalletReadinessOrGet({
+      spendSessionId: sessionId,
+      userId: 'user-1',
+      spendRail: 'stellar_usdc',
+      railUserWalletAddress: null,
+    });
+
+    expect(mockInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rail_user_wallet_address: null,
+        spend_session_id: sessionId,
+      })
+    );
+    expect(result.row.rail_user_wallet_address).toBeNull();
+  });
+
   it('returns created row on first insert', async () => {
     mockSingle.mockResolvedValueOnce({ data: readinessRow, error: null });
 

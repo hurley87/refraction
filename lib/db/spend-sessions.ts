@@ -99,7 +99,8 @@ type CreateSessionInput = {
   spendExperience: SpendExperience;
   userId: string;
   walletAddress: string;
-  railUserWalletAddress: string;
+  /** NULL for stellar_usdc until conversion readiness (IRL-21). */
+  railUserWalletAddress: string | null;
   now?: Date;
 };
 
@@ -142,7 +143,7 @@ export async function createOrGetSpendSession(
   // Unique violation: return existing session
   if (
     insertError?.code === '23505' ||
-    insertError?.message?.includes('duplicate')
+    insertError?.message?.toLowerCase().includes('duplicate')
   ) {
     const { data: existing, error: fetchError } = await supabase
       .from('spend_sessions')
@@ -278,6 +279,28 @@ export async function updateSpendSessionStatus(
     console.error('updateSpendSessionStatus:', error);
     throw new Error(error.message || 'Failed to update spend session');
   }
+}
+
+/** Sets `rail_user_wallet_address` after Stellar wallet readiness (IRL-21). */
+export async function updateSpendSessionRailUserWalletAddress(
+  sessionId: string,
+  railUserWalletAddress: string
+): Promise<SpendSession> {
+  const trimmed = railUserWalletAddress.trim();
+  const { data, error } = await supabase
+    .from('spend_sessions')
+    .update({ rail_user_wallet_address: trimmed })
+    .eq('id', sessionId)
+    .select(SESSION_COLS)
+    .single();
+
+  if (error || !data) {
+    console.error('updateSpendSessionRailUserWalletAddress:', error);
+    throw new Error(
+      error?.message || 'Failed to update spend session rail wallet'
+    );
+  }
+  return rowToSession(data as Record<string, unknown>);
 }
 
 export async function insertSpendTransactionSubmitted(input: {

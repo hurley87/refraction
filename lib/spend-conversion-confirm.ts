@@ -28,11 +28,7 @@ import {
 } from '@/lib/spend-server-wallet';
 import { insertTreasuryFundUserLedgerIfAbsent } from '@/lib/db/treasury-transactions';
 import { explorerTxUrlForSpendLedger } from '@/lib/spend-ledger-explorer-url';
-import type {
-  PointConversion,
-  SpendExperience,
-  SpendSession,
-} from '@/lib/types';
+import { spendConversionResumeInvokesWalletReadinessOrchestration } from '@/lib/spend/spend-conversion-resume-policy';
 import { getSpendPaymentRail } from '@/lib/spend/payment-rails';
 import type { SpendPaymentRailSessionContext } from '@/lib/spend/payment-rails/types';
 import {
@@ -52,6 +48,11 @@ import {
   trackSpendTreasuryInsufficientFunds,
 } from '@/lib/analytics/server';
 import type { SpendPilotConversionEventProperties } from '@/lib/analytics/types';
+import type {
+  PointConversion,
+  SpendExperience,
+  SpendSession,
+} from '@/lib/types';
 
 const RESUMABLE: PointConversion['status'][] = [
   'points_deducted',
@@ -79,7 +80,9 @@ export type SpendConversionConfirmResult =
 
 function embeddedSpendWalletForSession(session: SpendSession): string {
   if (session.spend_rail === 'stellar_usdc') {
-    return session.rail_user_wallet_address.trim();
+    const rail = session.rail_user_wallet_address?.trim();
+    if (rail) return rail;
+    return session.wallet_address.trim();
   }
   return session.wallet_address.trim();
 }
@@ -230,6 +233,7 @@ async function runWalletReadinessAndUserFunding(input: {
     fundingReferenceId: fundingKey,
     embeddedEvmWalletAddress: embeddedSpendWalletForSession(session),
     privyNormalizedWalletAddressLower: normalizedWallet,
+    sessionOwnerPrivyUserId: session.user_id,
     usdcAmount,
   };
 
@@ -789,7 +793,11 @@ async function fundOrResumeUsdc(input: {
   }
 
   let conv = pointConversion;
-  if (conv.status === 'points_deducted' && !conv.funding_tx_hash) {
+  if (
+    conv.status === 'points_deducted' &&
+    !conv.funding_tx_hash &&
+    spendConversionResumeInvokesWalletReadinessOrchestration(session.spend_rail)
+  ) {
     const onward = await runWalletReadinessAndUserFunding({
       session,
       spendExperience,

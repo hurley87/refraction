@@ -1,4 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// Registry imports Stellar rail → stellar-rail-wallet → Privy server client (not loadable in happy-dom).
+vi.mock('@/lib/privy/stellar-rail-wallet', () => ({
+  ensureStellarRailUserWallet: vi.fn(),
+}));
+
 import {
   SPEND_RAIL_ANALYTICS_CODES,
   spendRailErrorConversionFundingNotSupported,
@@ -126,16 +132,11 @@ describe('getSpendPaymentRail', () => {
     expect(gate.error.userMessage).toContain('not available in this release');
   });
 
-  it('marks Stellar orchestration entrypoints as unsupported except explorer URL helper', async () => {
+  it('marks Stellar treasury/funding/payment/reconcile as unsupported; readiness is rail-specific', async () => {
     const rail = getSpendPaymentRail('stellar_usdc');
-    const ctx = { spendSessionId: 's1' };
+    const ctx = { spendSessionId: 's1', sessionOwnerPrivyUserId: 'p1' };
 
     await expect(rail.getTreasurySpendableBalance()).resolves.toMatchObject({
-      ok: false,
-    });
-    await expect(
-      rail.runWalletReadinessOrchestration(ctx)
-    ).resolves.toMatchObject({
       ok: false,
     });
     await expect(rail.initiateUserFunding(ctx)).resolves.toMatchObject({
@@ -152,15 +153,5 @@ describe('getSpendPaymentRail', () => {
     ).resolves.toMatchObject({ ok: false });
 
     expect(rail.explorerUrlForLedgerTx(null)).toBeNull();
-  });
-
-  it('Stellar conversion readiness uses conversion-specific unsupported copy', async () => {
-    const rail = getSpendPaymentRail('stellar_usdc');
-    const res = await rail.runWalletReadinessOrchestration({
-      spendSessionId: 's1',
-    });
-    expect(res.ok).toBe(false);
-    if (res.ok) throw new Error('expected failure');
-    expect(res.error.userMessage).toContain('Points-to-USDC');
   });
 });

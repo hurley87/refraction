@@ -47,7 +47,8 @@ export interface SpendPaymentRail {
   /**
    * Coarse wallet readiness orchestration (e.g. sponsored account + trustline). Base USDC
    * treats readiness as **completed** at this boundary because session wallets are verified EVM
-   * up front; Stellar returns **not supported** until IRL-21 implements readiness behind the rail.
+   * up front. Stellar USDC provisions the Privy-managed Stellar account on conversion confirm
+   * (IRL-21) via this hook; session create leaves `rail_user_wallet_address` null until then.
    */
   runWalletReadinessOrchestration(
     ctx: SpendPaymentRailSessionContext
