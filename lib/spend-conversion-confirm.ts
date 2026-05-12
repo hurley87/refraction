@@ -89,7 +89,7 @@ async function refundSpendConversionPointsBestEffort(input: {
   conversion: PointConversion;
   session: SpendSession;
   failedReason: string;
-}): Promise<void> {
+}): Promise<boolean> {
   try {
     await refundSpendConversionOnFundingFailure({
       conversionId: input.conversion.id,
@@ -98,8 +98,10 @@ async function refundSpendConversionPointsBestEffort(input: {
       pointsToRefund: Math.ceil(Number(input.conversion.points_deducted)),
       failedReason: input.failedReason.slice(0, 256),
     });
+    return true;
   } catch (e) {
     console.error('refundSpendConversionOnFundingFailure:', e);
+    return false;
   }
 }
 
@@ -114,10 +116,10 @@ async function conversionRailFailureOutcome(input: {
 }): Promise<{
   kind: 'error';
   value: SpendConversionConfirmResult;
-  pointsRefunded: number;
+  pointsRefunded?: number;
 }> {
   const prefix = input.phase === 'readiness' ? 'readiness' : 'funding';
-  await refundSpendConversionPointsBestEffort({
+  const refundOk = await refundSpendConversionPointsBestEffort({
     conversion: input.conv,
     session: input.session,
     failedReason: `${prefix}:${input.category}:${input.userMessage}`,
@@ -136,7 +138,9 @@ async function conversionRailFailureOutcome(input: {
       httpStatus: spendRailErrorCategoryToHttpStatus(input.category),
       error: input.userMessage,
     },
-    pointsRefunded: Math.ceil(Number(input.conv.points_deducted)),
+    ...(refundOk
+      ? { pointsRefunded: Math.ceil(Number(input.conv.points_deducted)) }
+      : {}),
   };
 }
 
