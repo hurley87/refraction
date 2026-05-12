@@ -143,7 +143,7 @@ export async function createOrGetSpendSession(
   // Unique violation: return existing session
   if (
     insertError?.code === '23505' ||
-    insertError?.message?.includes('duplicate')
+    insertError?.message?.toLowerCase().includes('duplicate')
   ) {
     const { data: existing, error: fetchError } = await supabase
       .from('spend_sessions')

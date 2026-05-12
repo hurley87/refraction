@@ -1,13 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
-
-vi.mock('@/lib/privy/stellar-rail-wallet', () => ({
-  ensureStellarRailUserWallet: vi
-    .fn()
-    .mockResolvedValue({
-      address: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
-      provisioned: false,
-    }),
-}));
+import { describe, it, expect } from 'vitest';
 
 import {
   SPEND_RAIL_ANALYTICS_CODES,

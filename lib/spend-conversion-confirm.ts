@@ -54,8 +54,6 @@ import type {
   SpendSession,
 } from '@/lib/types';
 
-export { spendConversionResumeInvokesWalletReadinessOrchestration };
-
 const RESUMABLE: PointConversion['status'][] = [
   'points_deducted',
   'funding_pending',

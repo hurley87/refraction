@@ -10,10 +10,6 @@ const mockTrack = vi.fn();
 const mockTrackRailBlocked = vi.fn();
 const mockResolve = vi.fn();
 
-const { mockEnsureStellar } = vi.hoisted(() => ({
-  mockEnsureStellar: vi.fn(),
-}));
-
 vi.mock('@/lib/api/privy', () => ({
   verifyWalletOwnership: (...a: unknown[]) => mockVerifyWallet(...a),
   getPrivyUserIdFromRequest: (...a: unknown[]) => mockGetPrivyUserId(...a),
@@ -36,10 +32,6 @@ vi.mock('@/lib/analytics/server', () => ({
   trackSpendPilotRailMutationBlocked: (...a: unknown[]) =>
     mockTrackRailBlocked(...a),
   resolveServerIdentity: (...a: unknown[]) => mockResolve(...a),
-}));
-
-vi.mock('@/lib/privy/stellar-rail-wallet', () => ({
-  ensureStellarRailUserWallet: (...a: unknown[]) => mockEnsureStellar(...a),
 }));
 
 import { POST } from '../route';
@@ -101,10 +93,6 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
     mockAssert.mockReturnValue({ ok: true });
     mockCreateOrGet.mockResolvedValue({ session, created: true });
     mockResolve.mockReturnValue('privy-1');
-    mockEnsureStellar.mockResolvedValue({
-      address: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
-      provisioned: false,
-    });
   });
 
   it('returns 404 when experience not found', async () => {
@@ -144,7 +132,6 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
     expect(j.data.created).toBe(true);
     expect(j.data.spendRailSummary.rail).toBe('base_usdc');
     expect(mockTrack).toHaveBeenCalled();
-    expect(mockEnsureStellar).not.toHaveBeenCalled();
     expect(mockCreateOrGet).toHaveBeenCalledWith(
       expect.objectContaining({
         walletAddress: wallet,
@@ -180,7 +167,6 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
       });
       const j = await res.json();
       expect(res.status).toBe(200);
-      expect(mockEnsureStellar).not.toHaveBeenCalled();
       expect(mockCreateOrGet).toHaveBeenCalledWith(
         expect.objectContaining({
           spendExperience: expect.objectContaining({
