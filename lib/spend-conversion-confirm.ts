@@ -15,6 +15,7 @@ import {
   loadSpendEligibilityForSession,
 } from '@/lib/spend-conversion-preview';
 import { SPEND_ELIGIBILITY_MESSAGES } from '@/lib/spend-eligibility-messages';
+import { recipientUsdcAddressForSpendTransfer } from '@/lib/spend/recipient-usdc-for-treasury-transfer';
 import { resolvePrivyServerTransactionHash } from '@/lib/api/privy';
 import {
   findRecentTreasuryUsdcTransfer,
@@ -33,7 +34,6 @@ import type {
   SpendExperience,
   SpendSession,
 } from '@/lib/types';
-import { recipientUsdcAddressForSpendTransfer } from '@/lib/spend/recipient-usdc-for-treasury-transfer';
 import { isEvmAddress } from '@/lib/walletconnect-poster-direct-usdc';
 import {
   assertSpendRailAllowsMutatingSpendWork,

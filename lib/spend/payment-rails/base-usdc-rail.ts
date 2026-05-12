@@ -38,13 +38,6 @@ import type {
   SpendRailPaymentOperationStatus,
 } from '@/lib/spend/payment-rails/types';
 
-function normalizedEmbeddedLower(ctx: SpendPaymentRailSessionContext): string {
-  const fromPrivy = ctx.privyNormalizedWalletAddressLower?.trim();
-  if (fromPrivy) return fromPrivy.toLowerCase();
-  const embedded = ctx.embeddedEvmWalletAddress?.trim();
-  return embedded ? embedded.toLowerCase() : '';
-}
-
 function classifyTreasurySubmitFailure(message: string): SpendRailError {
   const m = message.toLowerCase();
   if (
@@ -147,15 +140,28 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
         return errSpendRail(spendRailErrorFundingFailed());
       }
 
-      const normalizedLower = normalizedEmbeddedLower(ctx);
-      if (!normalizedLower || !isEvmAddress(normalizedLower)) {
-        return errSpendRail(spendRailErrorWalletUnavailable());
+      const serverLower = transferCfg.address.trim().toLowerCase();
+      const sessionLower = embedded.toLowerCase();
+      let normalizedWalletLower: string;
+      if (serverLower === sessionLower) {
+        const fromPrivy = ctx.privyNormalizedWalletAddressLower?.trim();
+        if (!fromPrivy || !isEvmAddress(fromPrivy)) {
+          return errSpendRail(spendRailErrorWalletUnavailable());
+        }
+        normalizedWalletLower = fromPrivy.toLowerCase();
+        if (normalizedWalletLower === sessionLower) {
+          return errSpendRail(spendRailErrorWalletUnavailable());
+        }
+      } else {
+        normalizedWalletLower =
+          ctx.privyNormalizedWalletAddressLower?.trim().toLowerCase() ??
+          sessionLower;
       }
 
       const recipient = recipientUsdcAddressForSpendTransfer({
         serverWalletAddress: transferCfg.address,
         sessionWalletTrimmed: embedded,
-        normalizedWalletLower: normalizedLower,
+        normalizedWalletLower,
       });
 
       const { submitTreasuryUsdcTransfer, getTreasuryTxReceiptStatus } =

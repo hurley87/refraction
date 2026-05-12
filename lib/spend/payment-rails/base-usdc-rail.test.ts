@@ -104,6 +104,74 @@ describe('createBaseUsdcSpendPaymentRail', () => {
     expect(res.value.status).toBe('completed');
   });
 
+  it('initiateUserFunding fails when treasury equals session without a distinct Privy auth wallet', async () => {
+    vi.spyOn(
+      spendRailConfig,
+      'getSpendBaseTreasuryPrivyTransferConfig'
+    ).mockReturnValue({
+      walletId: 'privy-wallet-1',
+      address: EMBEDDED as `0x${string}`,
+    });
+    const res = await rail.initiateUserFunding({
+      spendSessionId: 's1',
+      embeddedEvmWalletAddress: EMBEDDED,
+      usdcAmount: 5,
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error('unexpected');
+    expect(res.error.category).toBe('wallet_unavailable');
+    expect(submitTreasuryUsdcTransfer).not.toHaveBeenCalled();
+  });
+
+  it('initiateUserFunding fails when treasury equals session and Privy wallet is the same address', async () => {
+    vi.spyOn(
+      spendRailConfig,
+      'getSpendBaseTreasuryPrivyTransferConfig'
+    ).mockReturnValue({
+      walletId: 'privy-wallet-1',
+      address: EMBEDDED as `0x${string}`,
+    });
+    const res = await rail.initiateUserFunding({
+      spendSessionId: 's1',
+      embeddedEvmWalletAddress: EMBEDDED,
+      privyNormalizedWalletAddressLower: EMBEDDED.toLowerCase(),
+      usdcAmount: 5,
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error('unexpected');
+    expect(res.error.category).toBe('wallet_unavailable');
+    expect(submitTreasuryUsdcTransfer).not.toHaveBeenCalled();
+  });
+
+  it('initiateUserFunding targets Privy auth wallet when treasury is misconfigured to the session wallet', async () => {
+    const privyUser = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+    vi.spyOn(
+      spendRailConfig,
+      'getSpendBaseTreasuryPrivyTransferConfig'
+    ).mockReturnValue({
+      walletId: 'privy-wallet-1',
+      address: EMBEDDED as `0x${string}`,
+    });
+    vi.mocked(submitTreasuryUsdcTransfer).mockResolvedValue({
+      ok: true,
+      submittedPending: true,
+      privyTransactionId: 'ptx-misconfig',
+    });
+    const res = await rail.initiateUserFunding({
+      spendSessionId: 's1',
+      embeddedEvmWalletAddress: EMBEDDED,
+      privyNormalizedWalletAddressLower: privyUser.toLowerCase(),
+      usdcAmount: 5,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error('unexpected');
+    expect(submitTreasuryUsdcTransfer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientAddress: privyUser.toLowerCase(),
+      })
+    );
+  });
+
   it('initiateUserFunding returns pending when Privy submission is still resolving', async () => {
     vi.mocked(submitTreasuryUsdcTransfer).mockResolvedValue({
       ok: true,
