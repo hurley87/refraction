@@ -329,10 +329,7 @@ export async function runSpendPaymentConfirm(input: {
     payment_tx_hash: txHash,
   };
 
-  const isConfirmedPaymentResume =
-    session.status === 'payment_complete' && spendTx?.status === 'confirmed';
-
-  if (!isConfirmedPaymentResume) {
+  if (!spendTx) {
     const railGate = assertSpendRailAllowsMutatingSpendWork(session.spend_rail);
     if (!railGate.ok) {
       trackSpendPilotRailMutationBlocked(distinctId, {

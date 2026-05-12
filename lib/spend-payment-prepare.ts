@@ -34,6 +34,23 @@ export type SpendPaymentPrepareResult =
     }
   | { ok: false; error: string; httpStatus: SpendPilotApiHttpStatus };
 
+/** Canonical JSON for compare — PostgreSQL jsonb does not preserve object key order. */
+function stableJsonStringify(value: unknown): string {
+  if (value === null) return 'null';
+  const t = typeof value;
+  if (t === 'number' || t === 'boolean') return JSON.stringify(value);
+  if (t === 'string') return JSON.stringify(value);
+  if (t !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableJsonStringify(item)).join(',')}]`;
+  }
+  const o = value as Record<string, unknown>;
+  const keys = Object.keys(o).sort();
+  return `{${keys
+    .map((k) => `${JSON.stringify(k)}:${stableJsonStringify(o[k])}`)
+    .join(',')}}`;
+}
+
 function snapshotPairUnchanged(
   rowAction: Record<string, unknown>,
   rowSnap: Record<string, unknown>,
@@ -41,8 +58,8 @@ function snapshotPairUnchanged(
   nextSnap: Record<string, unknown>
 ): boolean {
   return (
-    JSON.stringify([rowAction, rowSnap]) ===
-    JSON.stringify([nextAction, nextSnap])
+    stableJsonStringify([rowAction, rowSnap]) ===
+    stableJsonStringify([nextAction, nextSnap])
   );
 }
 
