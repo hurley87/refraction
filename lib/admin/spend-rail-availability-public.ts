@@ -26,10 +26,12 @@ export function spendRailDiagnosticsToPublicUnavailableReason(
   if (r.some((x) => /missing/i.test(x))) {
     return 'Required configuration for this network is incomplete.';
   }
-  if (r.some((x) => /HORIZON_URL/i.test(x))) {
+  if (r.some((x) => /STELLAR_HORIZON_URL/i.test(x))) {
     return 'The Stellar Horizon URL setting is invalid.';
   }
-  if (r.some((x) => /not a valid/i.test(x))) {
+  if (
+    r.some((x) => /not a valid/i.test(x) && !/STELLAR_HORIZON_URL/i.test(x))
+  ) {
     return 'A configured wallet address for this network is invalid.';
   }
   if (r.some((x) => /explorer template/i.test(x))) {
