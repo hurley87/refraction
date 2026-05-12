@@ -240,6 +240,68 @@ describe('buildSpendEligibilityPreview', () => {
     expect(r.status).toBe('payment_complete');
   });
 
+  it('returns payment_complete when spend is confirmed even if Base rail is disabled', () => {
+    const prev = process.env.SPEND_RAIL_BASE_USDC_ENABLED;
+    process.env.SPEND_RAIL_BASE_USDC_ENABLED = 'false';
+    try {
+      const conv: PointConversion = {
+        id: 'c1',
+        spend_experience_id: 'e1',
+        spend_session_id: 's1',
+        user_id: 'u1',
+        points_deducted: 5000,
+        usdc_amount: 5,
+        status: 'funded',
+        spend_rail: 'base_usdc',
+        network: 'Base',
+        asset_symbol: 'USDC',
+        treasury_wallet_address: '0x1',
+        user_wallet_address: '0x3',
+        funding_tx_hash: '0xabc',
+        explorer_tx_url: null,
+        idempotency_key: null,
+        created_at: '',
+        completed_at: '',
+        failed_reason: null,
+        updated_at: '',
+      };
+      const r = buildSpendEligibilityPreview({
+        session: sess({ status: 'payment_complete' }),
+        spendExperience: exp(),
+        player: player(1000),
+        pointConversion: conv,
+        spendTransaction: {
+          id: 't1',
+          spend_experience_id: 'e1',
+          spend_session_id: 's1',
+          user_id: 'u1',
+          usdc_amount: 5,
+          spend_rail: 'base_usdc',
+          network: 'Base',
+          asset_symbol: 'USDC',
+          from_wallet_address: '0x3',
+          to_wallet_address: '0x2',
+          status: 'confirmed',
+          payment_tx_hash: '0x' + 'a'.repeat(64),
+          explorer_tx_url: null,
+          idempotency_key: 'k',
+          created_at: '',
+          completed_at: '',
+          failed_reason: null,
+          updated_at: '',
+        },
+        fundedConversionForOtherSession: null,
+        treasuryUsdcBalance: 100,
+        userUsdcBalance: null,
+        now,
+      });
+      expect(r.status).toBe('payment_complete');
+    } finally {
+      if (prev === undefined) delete process.env.SPEND_RAIL_BASE_USDC_ENABLED;
+      else process.env.SPEND_RAIL_BASE_USDC_ENABLED = prev;
+    }
+  });
+
   it('returns ready_for_payment_own_usdc when wallet has enough USDC (no conversion)', () => {
     const r = buildSpendEligibilityPreview({
       session: sess(),

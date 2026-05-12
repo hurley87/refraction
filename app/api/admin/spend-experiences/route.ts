@@ -15,8 +15,9 @@ import {
 import {
   getSpendRailOperationalDiagnostics,
   getSpendRailPublicMetadata,
-  isSpendRailOperational,
+  assertSpendRailAllowsMutatingSpendWork,
 } from '@/lib/spend-rail-config';
+import { trackSpendPilotRailMutationBlocked } from '@/lib/analytics/server';
 
 function createIdempotencyKey(request: NextRequest): string {
   return (
@@ -74,7 +75,16 @@ export async function POST(request: NextRequest) {
     }
 
     const spendRail = validation.data.spend_rail;
-    if (!isSpendRailOperational(spendRail)) {
+    const railGate = assertSpendRailAllowsMutatingSpendWork(spendRail);
+    if (!railGate.ok) {
+      trackSpendPilotRailMutationBlocked(
+        adminCheck.user?.email ?? 'admin_server',
+        {
+          mutation: 'admin_spend_experience_create',
+          ...railGate.analytics,
+          admin_actor: adminCheck.user?.email ?? null,
+        }
+      );
       const meta = getSpendRailPublicMetadata(spendRail);
       const { unavailableReasons } =
         getSpendRailOperationalDiagnostics(spendRail);

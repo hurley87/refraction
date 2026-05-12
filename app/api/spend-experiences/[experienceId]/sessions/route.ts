@@ -7,11 +7,12 @@ import { getSpendExperienceById } from '@/lib/db/spend-experiences';
 import { createOrGetSpendSession } from '@/lib/db/spend-sessions';
 import { ensureStellarRailUserWallet } from '@/lib/privy/stellar-rail-wallet';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
-import { assertSpendRailAllowsNewSessions } from '@/lib/spend-rail-config';
+import { assertSpendRailAllowsMutatingSpendWork } from '@/lib/spend-rail-config';
 import { createSpendSessionBodySchema } from '@/lib/schemas/spend-session';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { getSpendRailClientSummary } from '@/lib/spend-rail-config';
 import {
+  trackSpendPilotRailMutationBlocked,
   trackSpendSessionCreated,
   resolveServerIdentity,
 } from '@/lib/analytics/server';
@@ -63,8 +64,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return apiError(gate.error, gate.httpStatus);
   }
 
-  const railGate = assertSpendRailAllowsNewSessions(experience.spend_rail);
+  const railGate = assertSpendRailAllowsMutatingSpendWork(
+    experience.spend_rail
+  );
   if (!railGate.ok) {
+    const distinctId = resolveServerIdentity({
+      privyUserId: auth.userId,
+      walletAddress: walletAddress.trim().toLowerCase(),
+    });
+    trackSpendPilotRailMutationBlocked(distinctId, {
+      mutation: 'spend_session_create',
+      ...railGate.analytics,
+      spend_experience_id: experienceId,
+      event_id: experience.event_id,
+      user_id: auth.userId,
+      wallet_address: walletAddress.trim().toLowerCase(),
+    });
     return apiError(railGate.error, 400);
   }
 

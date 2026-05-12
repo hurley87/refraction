@@ -3,14 +3,35 @@ import {
   getSpendExperienceById,
   updateSpendExperience,
 } from '@/lib/db/spend-experiences';
+import { z } from 'zod';
 import { updateSpendExperienceRequestSchema } from '@/lib/schemas/spend-experience';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
 import { getServerWalletFundingStatus } from '@/lib/spend-server-wallet';
-import { getSpendTreasuryWalletAddress } from '@/lib/spend-rail-config';
+import {
+  getSpendTreasuryWalletAddress,
+  assertSpendRailAllowsMutatingSpendWork,
+} from '@/lib/spend-rail-config';
+import { trackSpendPilotRailMutationBlocked } from '@/lib/analytics/server';
 
 interface RouteParams {
   params: { experienceId: string };
+}
+
+type UpdateSpendExperiencePatch = z.infer<
+  typeof updateSpendExperienceRequestSchema
+>;
+
+function spendExperiencePatchAffectsSpendMechanics(
+  data: UpdateSpendExperiencePatch
+): boolean {
+  return (
+    data.status !== undefined ||
+    data.max_usdc_per_user !== undefined ||
+    data.points_to_usdc_rate !== undefined ||
+    data.start_time !== undefined ||
+    data.end_time !== undefined
+  );
 }
 
 /** GET /api/admin/spend-experiences/{experienceId} */
@@ -50,6 +71,25 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const validation = updateSpendExperienceRequestSchema.safeParse(raw);
     if (!validation.success) {
       return apiValidationError(validation.error);
+    }
+
+    if (spendExperiencePatchAffectsSpendMechanics(validation.data)) {
+      const railGate = assertSpendRailAllowsMutatingSpendWork(
+        existing.spend_rail
+      );
+      if (!railGate.ok) {
+        trackSpendPilotRailMutationBlocked(
+          adminCheck.user?.email ?? 'admin_server',
+          {
+            mutation: 'admin_spend_experience_update',
+            ...railGate.analytics,
+            spend_experience_id: existing.id,
+            event_id: existing.event_id,
+            admin_actor: adminCheck.user?.email ?? null,
+          }
+        );
+        return apiError(railGate.error, 400);
+      }
     }
 
     const nextStart = validation.data.start_time ?? existing.start_time;

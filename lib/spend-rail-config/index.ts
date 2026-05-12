@@ -252,16 +252,54 @@ export function isSpendRailOperational(spendRail: SpendRail): boolean {
   return getSpendRailOperationalDiagnostics(spendRail).operational;
 }
 
-export function assertSpendRailAllowsNewSessions(
+/** Safe analytics payload when mutating spend work is blocked (no secrets). */
+export type SpendRailMutationBlockAnalytics = {
+  spend_rail: SpendRail;
+  rail_operational: false;
+  unavailable_reason_codes: string[];
+};
+
+export function spendRailMutationBlockAnalytics(
   spendRail: SpendRail
-): { ok: true } | { ok: false; error: string } {
+): SpendRailMutationBlockAnalytics {
+  const diag = getSpendRailOperationalDiagnostics(spendRail);
+  return {
+    spend_rail: spendRail,
+    rail_operational: false,
+    unavailable_reason_codes: dedupeStrings(
+      diag.unavailableReasons.map(mapSpendRailOperationalReasonToAdminCurated)
+    ),
+  };
+}
+
+const SPEND_RAIL_MUTATION_BLOCKED_USER_MESSAGE =
+  'This payment network is temporarily unavailable. Please try again later.';
+
+/**
+ * Blocks user- or admin-initiated spend work that must not run when the rail is
+ * disabled or misconfigured (sessions, conversion funding, new payment rows, etc.).
+ * Read-only flows (e.g. confirmed receipts) use separate rules in eligibility builders.
+ */
+export function assertSpendRailAllowsMutatingSpendWork(
+  spendRail: SpendRail
+):
+  | { ok: true }
+  | { ok: false; error: string; analytics: SpendRailMutationBlockAnalytics } {
   const { operational } = getSpendRailOperationalDiagnostics(spendRail);
   if (operational) return { ok: true };
   return {
     ok: false,
-    error:
-      'This payment network is temporarily unavailable. Please try again later.',
+    error: SPEND_RAIL_MUTATION_BLOCKED_USER_MESSAGE,
+    analytics: spendRailMutationBlockAnalytics(spendRail),
   };
+}
+
+export function assertSpendRailAllowsNewSessions(
+  spendRail: SpendRail
+): { ok: true } | { ok: false; error: string } {
+  const gate = assertSpendRailAllowsMutatingSpendWork(spendRail);
+  if (gate.ok) return { ok: true };
+  return { ok: false, error: gate.error };
 }
 
 /** Treasury funding via Privy server wallet + Base USDC exists only for `base_usdc` today. */

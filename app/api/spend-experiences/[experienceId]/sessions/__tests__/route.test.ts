@@ -7,6 +7,7 @@ const mockGetExperience = vi.fn();
 const mockCreateOrGet = vi.fn();
 const mockAssert = vi.fn();
 const mockTrack = vi.fn();
+const mockTrackRailBlocked = vi.fn();
 const mockResolve = vi.fn();
 
 const { mockEnsureStellar } = vi.hoisted(() => ({
@@ -32,6 +33,8 @@ vi.mock('@/lib/spend-experience-guard', () => ({
 
 vi.mock('@/lib/analytics/server', () => ({
   trackSpendSessionCreated: (...a: unknown[]) => mockTrack(...a),
+  trackSpendPilotRailMutationBlocked: (...a: unknown[]) =>
+    mockTrackRailBlocked(...a),
   resolveServerIdentity: (...a: unknown[]) => mockResolve(...a),
 }));
 
@@ -205,5 +208,33 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
       params: { experienceId: 'exp-uuid' },
     });
     expect(res.status).toBe(401);
+  });
+
+  it('returns 400 when spend rail is not operational and does not create a session', async () => {
+    const prev = process.env.SPEND_RAIL_BASE_USDC_ENABLED;
+    process.env.SPEND_RAIL_BASE_USDC_ENABLED = 'false';
+    try {
+      const res = await POST(postRequest({ walletAddress: wallet }), {
+        params: { experienceId: 'exp-uuid' },
+      });
+      const j = await res.json();
+      expect(res.status).toBe(400);
+      expect(j.success).toBe(false);
+      expect(mockCreateOrGet).not.toHaveBeenCalled();
+      expect(mockTrack).not.toHaveBeenCalled();
+      expect(mockTrackRailBlocked).toHaveBeenCalledWith(
+        'privy-1',
+        expect.objectContaining({
+          mutation: 'spend_session_create',
+          spend_rail: 'base_usdc',
+          rail_operational: false,
+          spend_experience_id: 'exp-uuid',
+          user_id: 'privy-1',
+        })
+      );
+    } finally {
+      if (prev === undefined) delete process.env.SPEND_RAIL_BASE_USDC_ENABLED;
+      else process.env.SPEND_RAIL_BASE_USDC_ENABLED = prev;
+    }
   });
 });

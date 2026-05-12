@@ -118,7 +118,14 @@ export function buildSpendEligibilityPreview(
     treasuryUsdcBalance,
   });
 
-  if (now > new Date(session.expires_at)) {
+  const railDiag = getSpendRailOperationalDiagnostics(session.spend_rail);
+  /** Confirmed on-chain payment: receipt/read paths stay accurate if the rail is later disabled. */
+  const completedPaymentReadBypass =
+    !railDiag.operational &&
+    spendTransaction?.status === 'confirmed' &&
+    !!(spendTransaction.payment_tx_hash ?? '').trim();
+
+  if (now > new Date(session.expires_at) && !completedPaymentReadBypass) {
     return {
       status: 'session_expired',
       message: SPEND_ELIGIBILITY_MESSAGES.session_expired,
@@ -126,8 +133,7 @@ export function buildSpendEligibilityPreview(
     };
   }
 
-  const railDiag = getSpendRailOperationalDiagnostics(session.spend_rail);
-  if (!railDiag.operational) {
+  if (!railDiag.operational && !completedPaymentReadBypass) {
     return {
       status: 'rail_unavailable',
       message: SPEND_ELIGIBILITY_MESSAGES.rail_unavailable,
@@ -136,7 +142,7 @@ export function buildSpendEligibilityPreview(
   }
 
   const gate = assertSpendExperienceOpenForSessions(spendExperience, now);
-  if (!gate.ok) {
+  if (!gate.ok && !completedPaymentReadBypass) {
     return {
       status: 'experience_inactive',
       message: SPEND_ELIGIBILITY_MESSAGES.experience_inactive,
