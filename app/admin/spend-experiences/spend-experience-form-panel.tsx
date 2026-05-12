@@ -11,23 +11,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type {
-  SpendExperience,
-  SpendExperienceStatus,
-  SpendRail,
-} from '@/lib/types';
-import type { SpendRailsAvailabilityClientPayload } from '@/lib/admin/spend-rail-availability-public';
+import type { SpendExperience, SpendExperienceStatus } from '@/lib/types';
+import type { SpendRailCatalogEntry } from '@/lib/spend-rail-config/types';
 import type { SpendExperienceFormState } from './form-state';
-import { SPEND_RAIL_ADMIN_LABEL } from './form-state';
 
 export type SpendExperienceFormPanelProps = {
   open: boolean;
   editing: SpendExperience | null;
   form: SpendExperienceFormState;
   setForm: Dispatch<SetStateAction<SpendExperienceFormState>>;
+  railCatalog: SpendRailCatalogEntry[];
   isSaving: boolean;
-  spendRailAvailability: SpendRailsAvailabilityClientPayload | null;
-  spendRailAvailabilityLoading: boolean;
   onClose: () => void;
   onSubmit: () => void;
 };
@@ -58,15 +52,16 @@ export function SpendExperienceFormPanel({
   editing,
   form,
   setForm,
+  railCatalog,
   isSaving,
-  spendRailAvailability,
-  spendRailAvailabilityLoading,
   onClose,
   onSubmit,
 }: SpendExperienceFormPanelProps) {
   if (!open) return null;
 
-  const rails = spendRailAvailability?.rails;
+  const selectedCatalogRow = editing
+    ? railCatalog.find((r) => r.rail === editing.spend_rail)
+    : railCatalog.find((r) => r.rail === form.spend_rail);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -124,63 +119,94 @@ export function SpendExperienceFormPanel({
               placeholder="External event id if linked"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="se-rail">Payment network</Label>
-            {editing ? (
-              <div
-                id="se-rail"
-                className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900"
-              >
-                {SPEND_RAIL_ADMIN_LABEL[editing.spend_rail]}
-                <p className="mt-1 text-xs text-neutral-500">
-                  Cannot be changed after creation.
+          {!editing && (
+            <div className="space-y-2">
+              <Label>Payment network</Label>
+              {railCatalog.length === 0 ? (
+                <p className="text-sm text-neutral-500">
+                  Loading payment networks…
                 </p>
-              </div>
-            ) : (
-              <>
+              ) : (
                 <Select
                   value={form.spend_rail}
                   onValueChange={(v) =>
-                    setForm((f) => ({ ...f, spend_rail: v as SpendRail }))
+                    setForm((f) => ({
+                      ...f,
+                      spend_rail: v as SpendExperienceFormState['spend_rail'],
+                    }))
                   }
-                  disabled={spendRailAvailabilityLoading}
                 >
-                  <SelectTrigger id="se-rail">
-                    <SelectValue placeholder="Select payment network" />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select network" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(['base_usdc', 'stellar_usdc'] as const).map((rail) => {
-                      const row = rails?.[rail];
-                      const unavailable = Boolean(row && !row.operational);
-                      return (
-                        <SelectItem
-                          key={rail}
-                          value={rail}
-                          disabled={unavailable}
-                        >
-                          {SPEND_RAIL_ADMIN_LABEL[rail]}
-                          {unavailable ? ' (unavailable)' : ''}
-                        </SelectItem>
-                      );
-                    })}
+                    {railCatalog.map((row) => (
+                      <SelectItem
+                        key={row.rail}
+                        value={row.rail}
+                        disabled={!row.allowsNewSpendWork}
+                      >
+                        {row.displayName} — {row.networkLabel} ·{' '}
+                        {row.assetSymbol}
+                        {!row.allowsNewSpendWork ? ' (unavailable)' : ''}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                {spendRailAvailabilityLoading && (
-                  <p className="text-xs text-neutral-500">
-                    Checking operational status…
-                  </p>
-                )}
-                {!spendRailAvailabilityLoading &&
-                  rails &&
-                  !rails[form.spend_rail].operational && (
-                    <p className="text-sm text-amber-800">
-                      {rails[form.spend_rail].unavailableReason ??
-                        'This payment network is unavailable.'}
-                    </p>
-                  )}
-              </>
-            )}
-          </div>
+              )}
+              {selectedCatalogRow && !selectedCatalogRow.allowsNewSpendWork && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+                  <p className="font-medium">This network is not ready</p>
+                  <ul className="mt-1 list-inside list-disc space-y-0.5">
+                    {selectedCatalogRow.adminUnavailableReasons.map(
+                      (reason) => (
+                        <li key={reason}>{reason}</li>
+                      )
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          {editing && selectedCatalogRow && (
+            <div className="space-y-2">
+              <Label>Payment network</Label>
+              <p className="text-sm text-neutral-700">
+                {selectedCatalogRow.displayName} —{' '}
+                {selectedCatalogRow.networkLabel} ·{' '}
+                {selectedCatalogRow.assetSymbol}
+              </p>
+              <p className="text-xs text-neutral-500">
+                Cannot be changed after creation.
+              </p>
+              {!selectedCatalogRow.allowsNewSpendWork && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+                  <p className="font-medium">Operational issues detected</p>
+                  <ul className="mt-1 list-inside list-disc space-y-0.5">
+                    {selectedCatalogRow.adminUnavailableReasons.map(
+                      (reason) => (
+                        <li key={reason}>{reason}</li>
+                      )
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          {(selectedCatalogRow?.receivingWalletAddress ?? '') !== '' && (
+            <div className="space-y-2">
+              <Label>Receiving wallet (read-only)</Label>
+              <Input
+                readOnly
+                className="font-mono text-xs"
+                value={selectedCatalogRow?.receivingWalletAddress ?? ''}
+              />
+              <p className="text-xs text-neutral-500">
+                Global settlement address for this payment network. Shown for
+                verification only.
+              </p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Status</Label>
             <Select

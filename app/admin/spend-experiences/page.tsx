@@ -17,10 +17,10 @@ import {
 import { SpendExperienceFormPanel } from './spend-experience-form-panel';
 import { SpendExperienceList } from './spend-experience-list';
 import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
-import type { SpendRailsAvailabilityClientPayload } from '@/lib/admin/spend-rail-availability-public';
+import type { SpendRailCatalogEntry } from '@/lib/spend-rail-config/types';
 
 const QUERY_KEY = ['admin-spend-experiences'] as const;
-const RAIL_AVAILABILITY_QUERY_KEY = ['admin-spend-rails-availability'] as const;
+const RAILS_CATALOG_QUERY_KEY = ['admin-spend-rails-catalog'] as const;
 
 type CreateSpendExperienceResponse = {
   spendExperience: SpendExperience;
@@ -38,7 +38,7 @@ export default function AdminSpendExperiencesPage() {
     CreateSpendExperienceResponse['funding'] | null
   >(null);
   const [form, setForm] = useState<SpendExperienceFormState>(
-    emptySpendExperienceForm
+    emptySpendExperienceForm()
   );
 
   const checkAdminStatus = useCallback(async () => {
@@ -91,20 +91,20 @@ export default function AdminSpendExperiencesPage() {
   });
 
   const {
-    data: railAvailability,
-    isLoading: railAvailabilityLoading,
-    isError: railAvailabilityError,
-  } = useQuery<SpendRailsAvailabilityClientPayload>({
-    queryKey: RAIL_AVAILABILITY_QUERY_KEY,
+    data: railCatalog = [],
+    isLoading: railCatalogLoading,
+    isError: railCatalogError,
+  } = useQuery<SpendRailCatalogEntry[]>({
+    queryKey: RAILS_CATALOG_QUERY_KEY,
     queryFn: async () => {
       const auth = await adminApiAuthHeaders(getAccessToken);
-      const response = await fetch('/api/admin/spend-rails/availability', {
+      const response = await fetch('/api/admin/spend-rails/catalog', {
         headers: auth,
       });
-      if (!response.ok) throw new Error('Failed to load rail availability');
+      if (!response.ok) throw new Error('Failed to load spend rail catalog');
       const responseData = await response.json();
-      const data = responseData.data ?? responseData;
-      return data as SpendRailsAvailabilityClientPayload;
+      const data = responseData.data || responseData;
+      return data.rails ?? [];
     },
     enabled: !!isAdmin && !!user?.email?.address,
   });
@@ -134,6 +134,7 @@ export default function AdminSpendExperiencesPage() {
         max_usdc_per_user: Number(form.max_usdc_per_user),
         start_time: datetimeLocalToIso(form.start_time_local),
         end_time: datetimeLocalToIso(form.end_time_local),
+        ...(editing ? {} : { spend_rail: form.spend_rail }),
       };
 
       const auth = await adminApiAuthHeaders(getAccessToken);
@@ -167,15 +168,13 @@ export default function AdminSpendExperiencesPage() {
         return { spendExperience } satisfies CreateSpendExperienceResponse;
       }
 
-      const createPayload = { ...payload, spend_rail: form.spend_rail };
-
       const response = await fetch('/api/admin/spend-experiences', {
         method: 'POST',
         headers: {
           ...jsonHeaders,
           'Idempotency-Key': crypto.randomUUID(),
         },
-        body: JSON.stringify(createPayload),
+        body: JSON.stringify(payload),
       });
       const j = (await response.json().catch(() => ({}))) as Record<
         string,
@@ -203,21 +202,26 @@ export default function AdminSpendExperiencesPage() {
 
   const handleSave = useCallback(() => {
     if (!editing) {
-      if (railAvailabilityLoading) {
+      if (railCatalogLoading) {
         toast.error('Still loading payment network status. Please wait.');
         return;
       }
-      if (railAvailabilityError || !railAvailability) {
+      if (railCatalogError) {
         toast.error(
           'Could not verify payment network status. Try refreshing the page.'
         );
         return;
       }
-      const row = railAvailability.rails[form.spend_rail];
-      if (!row.operational) {
-        toast.error(
-          row.unavailableReason ?? 'Selected payment network is unavailable.'
-        );
+      const row = railCatalog.find((r) => r.rail === form.spend_rail);
+      if (!row) {
+        toast.error('Could not resolve the selected payment network.');
+        return;
+      }
+      if (!row.allowsNewSpendWork) {
+        const detail =
+          row.adminUnavailableReasons.filter(Boolean).join(' ') ||
+          'Selected payment network is unavailable.';
+        toast.error(detail);
         return;
       }
     }
@@ -225,9 +229,9 @@ export default function AdminSpendExperiencesPage() {
   }, [
     editing,
     form.spend_rail,
-    railAvailability,
-    railAvailabilityError,
-    railAvailabilityLoading,
+    railCatalog,
+    railCatalogError,
+    railCatalogLoading,
     saveMutation,
   ]);
 
@@ -319,9 +323,8 @@ export default function AdminSpendExperiencesPage() {
         editing={editing}
         form={form}
         setForm={setForm}
+        railCatalog={railCatalog}
         isSaving={saveMutation.isPending}
-        spendRailAvailability={railAvailability ?? null}
-        spendRailAvailabilityLoading={railAvailabilityLoading}
         onClose={closePanel}
         onSubmit={handleSave}
       />

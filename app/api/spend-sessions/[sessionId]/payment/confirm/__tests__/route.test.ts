@@ -48,6 +48,7 @@ describe('POST /api/spend-sessions/[sessionId]/payment/confirm', () => {
         id: 'sess-1',
         user_id: 'privy-1',
         wallet_address: '0xabcdef0123456789012345678901234567890abc',
+        spend_rail: 'base_usdc',
       },
       spendExperience: { id: 'exp-1' },
       usdcAmount: 5,
@@ -81,6 +82,10 @@ describe('POST /api/spend-sessions/[sessionId]/payment/confirm', () => {
     expect(res.status).toBe(200);
     expect(j.data.spendTransaction.id).toBe('tx-1');
     expect(j.data.session.status).toBe('payment_complete');
+    expect(j.data.spendRailSummary).toMatchObject({
+      rail: 'base_usdc',
+      displayName: 'Base USDC',
+    });
   });
 
   it('returns 400 for invalid paymentTxHash', async () => {

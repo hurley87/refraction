@@ -18,6 +18,7 @@ import {
   resolveServerIdentity,
 } from '@/lib/analytics/server';
 import { spendConversionPreviewBodySchema } from '@/lib/schemas/spend-session';
+import { getSpendRailClientSummary } from '@/lib/spend-rail-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,6 +137,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return apiSuccess({
       eligibility,
       spendExperience,
+      spendRailSummary: getSpendRailClientSummary(responseSession.spend_rail),
       session: {
         id: responseSession.id,
         status: responseSession.status,

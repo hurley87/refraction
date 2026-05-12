@@ -4,7 +4,10 @@ import {
 } from '@/lib/walletconnect-poster-direct-usdc';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import type { SpendRail } from '@/lib/types';
+import { mapSpendRailOperationalReasonToAdminCurated } from '@/lib/spend-rail-config/admin-curated-unavailable-reasons';
 import type {
+  SpendRailCatalogEntry,
+  SpendRailClientSummary,
   SpendRailOperationalDiagnostics,
   SpendRailPublicMetadata,
 } from '@/lib/spend-rail-config/types';
@@ -12,6 +15,8 @@ import type {
 export type {
   SpendRailPublicMetadata,
   SpendRailOperationalDiagnostics,
+  SpendRailClientSummary,
+  SpendRailCatalogEntry,
 } from '@/lib/spend-rail-config/types';
 
 const DEFAULT_BASE_RPC = 'https://mainnet.base.org';
@@ -264,6 +269,60 @@ export function supportsSpendRailBasePrivyTreasuryFunding(
   spendRail: SpendRail
 ): boolean {
   return spendRail === 'base_usdc';
+}
+
+/** Stable ordering for admin catalog and pickers. */
+export const SPEND_RAILS_CATALOG_ORDER: SpendRail[] = [
+  'base_usdc',
+  'stellar_usdc',
+];
+
+function dedupeStrings(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of values) {
+    if (seen.has(v)) continue;
+    seen.add(v);
+    out.push(v);
+  }
+  return out;
+}
+
+export function getSpendRailClientSummary(
+  spendRail: SpendRail
+): SpendRailClientSummary {
+  const m = getSpendRailPublicMetadata(spendRail);
+  return {
+    rail: m.rail,
+    displayName: m.displayName,
+    networkLabel: m.networkLabel,
+    assetSymbol: m.assetSymbol,
+    explorerTxUrlTemplate: m.explorerTxUrlTemplate,
+  };
+}
+
+export function getSpendRailCatalogEntry(
+  spendRail: SpendRail
+): SpendRailCatalogEntry {
+  const summary = getSpendRailClientSummary(spendRail);
+  const diag = getSpendRailOperationalDiagnostics(spendRail);
+  const allowsNewSpendWork = diag.operational;
+  const meta = getSpendRailPublicMetadata(spendRail);
+  const adminUnavailableReasons = allowsNewSpendWork
+    ? []
+    : dedupeStrings(
+        diag.unavailableReasons.map(mapSpendRailOperationalReasonToAdminCurated)
+      );
+  return {
+    ...summary,
+    allowsNewSpendWork,
+    adminUnavailableReasons,
+    receivingWalletAddress: meta.receivingWalletAddress,
+  };
+}
+
+export function listSpendRailCatalog(): SpendRailCatalogEntry[] {
+  return SPEND_RAILS_CATALOG_ORDER.map(getSpendRailCatalogEntry);
 }
 
 export function getSpendRailPublicMetadata(
