@@ -9,31 +9,36 @@ function trimEnv(key: string): string {
 }
 
 /**
- * Parses the Stellar treasury signing key used for USDC funding (IRL-16).
+ * Parses a trimmed Stellar secret seed for treasury USDC funding (IRL-16).
  * Distinct from the sponsor key used for readiness (IRL-18).
  */
-export function parseStellarTreasuryFundingKeypair(): Keypair {
-  const secret = trimEnv('SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY');
-  if (!secret) {
+export function parseStellarTreasuryFundingKeypairFromSecret(
+  secret: string
+): Keypair {
+  const t = secret.trim();
+  if (!t) {
     throw new Error(
       'SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY is not configured'
     );
   }
-  if (
-    !secret.startsWith(STELLAR_SECRET_PREFIX) ||
-    secret.length !== STELLAR_SECRET_LEN
-  ) {
+  if (!t.startsWith(STELLAR_SECRET_PREFIX) || t.length !== STELLAR_SECRET_LEN) {
     throw new Error(
       'SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY is not a valid Stellar secret seed'
     );
   }
   try {
-    return Keypair.fromSecret(secret);
+    return Keypair.fromSecret(t);
   } catch {
     throw new Error(
       'SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY could not be parsed'
     );
   }
+}
+
+export function parseStellarTreasuryFundingKeypair(): Keypair {
+  return parseStellarTreasuryFundingKeypairFromSecret(
+    trimEnv('SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY')
+  );
 }
 
 /**
@@ -65,7 +70,7 @@ export function collectStellarTreasuryFundingConfigReasons(input: {
     return reasons;
   }
   try {
-    const kp = parseStellarTreasuryFundingKeypair();
+    const kp = parseStellarTreasuryFundingKeypairFromSecret(secretRaw);
     if (kp.publicKey() !== pub) {
       reasons.push(
         'SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY does not match the configured Stellar treasury public address'

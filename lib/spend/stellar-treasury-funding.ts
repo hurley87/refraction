@@ -20,7 +20,7 @@ import {
 } from '@/lib/spend/payment-rails/errors';
 import { parseStellarTreasuryFundingKeypair } from '@/lib/spend/stellar-treasury-funding-config';
 import {
-  getStellarSpendHorizonUrl,
+  createStellarSpendHorizonServer,
   getStellarSpendNetworkPassphrase,
   getStellarSpendUsdcAssetCode,
   getStellarSpendUsdcIssuer,
@@ -31,20 +31,7 @@ const HORIZON_TX_POLL_INTERVAL_MS = 1500;
 const PRIOR_PAYMENT_PAGE_LIMIT = 100;
 const PRIOR_PAYMENT_MAX_PAGES = 5;
 
-function classifyHorizonException(e: unknown): SpendRailError {
-  const raw = e instanceof Error ? e.message : String(e);
-  const s = raw.toLowerCase();
-  if (
-    s.includes('fetch') ||
-    s.includes('econn') ||
-    s.includes('timeout') ||
-    s.includes('socket') ||
-    s.includes('502') ||
-    s.includes('503') ||
-    s.includes('504')
-  ) {
-    return spendRailErrorNetworkUnavailable();
-  }
+function classifyHorizonException(): SpendRailError {
   return spendRailErrorNetworkUnavailable();
 }
 
@@ -87,25 +74,8 @@ async function loadAccountOrThrow(
     if (status === 404) {
       throw spendRailErrorTreasuryConfiguration();
     }
-    throw classifyHorizonException(e);
+    throw classifyHorizonException();
   }
-}
-
-function hasUsdcTrustline(
-  account: Horizon.AccountResponse,
-  code: string,
-  issuer: string
-): boolean {
-  for (const b of account.balances) {
-    if (
-      b.asset_type !== 'credit_alphanum4' &&
-      b.asset_type !== 'credit_alphanum12'
-    ) {
-      continue;
-    }
-    if (b.asset_code === code && b.asset_issuer === issuer) return true;
-  }
-  return false;
 }
 
 function parseUsdcBalanceLine(
@@ -178,9 +148,13 @@ async function waitForHorizonTxSuccess(
 }
 
 /**
- * Confirmed USDC balance on the configured Stellar treasury account (Horizon).
+ * Loads the configured treasury account from Horizon and its confirmed USDC balance.
+ * Callers may pass `cachedTreasuryAccount` into `submitStellarTreasuryUsdcFunding` to skip a second load.
  */
-export async function readStellarTreasuryConfirmedUsdcBalance(): Promise<number> {
+export async function loadStellarTreasuryAccountWithConfirmedUsdcBalance(): Promise<{
+  account: Horizon.AccountResponse;
+  balance: number;
+}> {
   const treasuryPub = getSpendTreasuryWalletAddress('stellar_usdc').trim();
   const parsedTreasury = stellarWalletAddressSchema.safeParse(treasuryPub);
   if (!parsedTreasury.success) {
@@ -193,20 +167,23 @@ export async function readStellarTreasuryConfirmedUsdcBalance(): Promise<number>
   }
   const code = getStellarSpendUsdcAssetCode();
 
-  const horizonUrl = getStellarSpendHorizonUrl();
-  const server = new Horizon.Server(horizonUrl, {
-    allowHttp: horizonUrl.startsWith('http://'),
-  });
+  const server = createStellarSpendHorizonServer();
 
   const acct = await loadAccountOrThrow(server, parsedTreasury.data);
-  if (!hasUsdcTrustline(acct, code, usdcIssuer)) {
-    throw spendRailErrorTreasuryConfiguration();
-  }
   const bal = parseUsdcBalanceLine(acct, code, usdcIssuer);
   if (bal === null) {
     throw spendRailErrorTreasuryConfiguration();
   }
-  return bal;
+  return { account: acct, balance: bal };
+}
+
+/**
+ * Confirmed USDC balance on the configured Stellar treasury account (Horizon).
+ */
+export async function readStellarTreasuryConfirmedUsdcBalance(): Promise<number> {
+  const { balance } =
+    await loadStellarTreasuryAccountWithConfirmedUsdcBalance();
+  return balance;
 }
 
 export async function findSuccessfulStellarFundingTxByMemo(input: {
@@ -217,11 +194,7 @@ export async function findSuccessfulStellarFundingTxByMemo(input: {
   usdcIssuer: string;
   usdcCode: string;
 }): Promise<string | null> {
-  const horizonUrl = getStellarSpendHorizonUrl();
-  const server = new Horizon.Server(horizonUrl, {
-    allowHttp: horizonUrl.startsWith('http://'),
-  });
-
+  const server = createStellarSpendHorizonServer();
   const memoBuf = stellarFundingMemoHashBuffer(input.fundingReferenceId);
   const wantAmount = formatUsdcAmountForStellar(input.usdcAmount);
 
@@ -235,7 +208,7 @@ export async function findSuccessfulStellarFundingTxByMemo(input: {
       .call();
   } catch (e) {
     console.error('findSuccessfulStellarFundingTxByMemo first page:', e);
-    throw classifyHorizonException(e);
+    throw classifyHorizonException();
   }
 
   for (let pageIdx = 0; pageIdx < PRIOR_PAYMENT_MAX_PAGES; pageIdx += 1) {
@@ -287,7 +260,7 @@ export async function findSuccessfulStellarFundingTxByMemo(input: {
       page = await page.next();
     } catch (e) {
       console.error('findSuccessfulStellarFundingTxByMemo page.next:', e);
-      throw classifyHorizonException(e);
+      throw classifyHorizonException();
     }
   }
 
@@ -307,6 +280,8 @@ export async function submitStellarTreasuryUsdcFunding(input: {
   destinationPublicKey: string;
   usdcAmount: number;
   fundingReferenceId: string;
+  /** When the caller just loaded this account (same treasury key), avoids a duplicate Horizon load. */
+  cachedTreasuryAccount?: Horizon.AccountResponse;
 }): Promise<StellarTreasuryFundingSubmitResult> {
   let treasuryKp: Keypair;
   try {
@@ -340,11 +315,8 @@ export async function submitStellarTreasuryUsdcFunding(input: {
   const code = getStellarSpendUsdcAssetCode();
   const asset = new Asset(code, usdcIssuer);
 
-  const horizonUrl = getStellarSpendHorizonUrl();
+  const server = createStellarSpendHorizonServer();
   const passphrase = getStellarSpendNetworkPassphrase();
-  const server = new Horizon.Server(horizonUrl, {
-    allowHttp: horizonUrl.startsWith('http://'),
-  });
 
   const prior = await findSuccessfulStellarFundingTxByMemo({
     treasuryPublicKey: treasuryKp.publicKey(),
@@ -359,24 +331,29 @@ export async function submitStellarTreasuryUsdcFunding(input: {
   }
 
   let sourceAccount: Horizon.AccountResponse;
-  try {
-    sourceAccount = await loadAccountOrThrow(server, treasuryKp.publicKey());
-  } catch (e) {
-    if (isSpendRailError(e)) {
-      return { kind: 'error', error: e };
+  const cached = input.cachedTreasuryAccount;
+  if (cached?.account_id === treasuryKp.publicKey()) {
+    sourceAccount = cached;
+  } else {
+    try {
+      sourceAccount = await loadAccountOrThrow(server, treasuryKp.publicKey());
+    } catch (e) {
+      if (isSpendRailError(e)) {
+        return { kind: 'error', error: e };
+      }
+      return { kind: 'error', error: classifyHorizonException() };
     }
-    return { kind: 'error', error: classifyHorizonException(e) };
   }
 
-  if (!hasUsdcTrustline(sourceAccount, code, usdcIssuer)) {
+  if (parseUsdcBalanceLine(sourceAccount, code, usdcIssuer) === null) {
     return { kind: 'error', error: spendRailErrorTreasuryConfiguration() };
   }
 
   let baseFee: string;
   try {
     baseFee = (await server.fetchBaseFee()).toString();
-  } catch (e) {
-    return { kind: 'error', error: classifyHorizonException(e) };
+  } catch {
+    return { kind: 'error', error: classifyHorizonException() };
   }
 
   const amountStr = formatUsdcAmountForStellar(input.usdcAmount);
@@ -408,13 +385,7 @@ export async function submitStellarTreasuryUsdcFunding(input: {
     return { kind: 'error', error: classifySubmitException(e) };
   }
 
-  let outcome: 'success' | 'failed' | 'pending';
-  try {
-    outcome = await waitForHorizonTxSuccess(server, txHash);
-  } catch (e) {
-    console.error('submitStellarTreasuryUsdcFunding confirmation poll:', e);
-    return { kind: 'submitted', txHash };
-  }
+  const outcome = await waitForHorizonTxSuccess(server, txHash);
   if (outcome === 'success') {
     return { kind: 'confirmed', txHash };
   }
@@ -427,9 +398,6 @@ export async function submitStellarTreasuryUsdcFunding(input: {
 export async function getStellarTreasuryFundingTxOutcome(
   txHash: string
 ): Promise<'success' | 'failed' | 'pending'> {
-  const horizonUrl = getStellarSpendHorizonUrl();
-  const server = new Horizon.Server(horizonUrl, {
-    allowHttp: horizonUrl.startsWith('http://'),
-  });
+  const server = createStellarSpendHorizonServer();
   return waitForHorizonTxSuccess(server, txHash.trim());
 }

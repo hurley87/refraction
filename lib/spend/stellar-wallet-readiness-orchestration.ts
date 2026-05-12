@@ -27,8 +27,8 @@ import {
 } from '@/lib/spend/payment-rails/errors';
 import type { SpendWalletReadinessOperation } from '@/lib/types';
 import {
+  createStellarSpendHorizonServer,
   getStellarSpendCreateAccountStartingBalance,
-  getStellarSpendHorizonUrl,
   getStellarSpendNetworkPassphrase,
   getStellarSpendUsdcAssetCode,
   getStellarSpendUsdcIssuer,
@@ -160,7 +160,6 @@ export async function runStellarUsdcWalletReadinessOrchestration(input: {
     ...readinessRow.step_metadata,
   };
 
-  const horizonUrl = getStellarSpendHorizonUrl();
   const passphrase = getStellarSpendNetworkPassphrase();
   const usdcCode = getStellarSpendUsdcAssetCode();
   const usdcIssuer = getStellarSpendUsdcIssuer();
@@ -171,9 +170,7 @@ export async function runStellarUsdcWalletReadinessOrchestration(input: {
     };
   }
 
-  const server = new Horizon.Server(horizonUrl, {
-    allowHttp: horizonUrl.startsWith('http://'),
-  });
+  const server = createStellarSpendHorizonServer();
 
   let sponsor: Keypair;
   try {

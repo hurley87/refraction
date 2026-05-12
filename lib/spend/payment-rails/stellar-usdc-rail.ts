@@ -30,6 +30,7 @@ import type {
 } from '@/lib/spend/payment-rails/types';
 import { runStellarUsdcWalletReadinessOrchestration } from '@/lib/spend/stellar-wallet-readiness-orchestration';
 import {
+  loadStellarTreasuryAccountWithConfirmedUsdcBalance,
   readStellarTreasuryConfirmedUsdcBalance,
   submitStellarTreasuryUsdcFunding,
 } from '@/lib/spend/stellar-treasury-funding';
@@ -74,7 +75,6 @@ function isValidPositiveUsdcAmount(n: unknown): n is number {
  */
 export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
   const spendRail: SpendRail = 'stellar_usdc';
-  const notSupported = unsupported;
 
   return {
     spendRail,
@@ -211,9 +211,13 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
         return errSpendRail(spendRailErrorWalletReadinessFailed());
       }
 
+      let treasurySnapshot: Awaited<
+        ReturnType<typeof loadStellarTreasuryAccountWithConfirmedUsdcBalance>
+      >;
       try {
-        const treasuryBal = await readStellarTreasuryConfirmedUsdcBalance();
-        if (treasuryBal < ctx.usdcAmount) {
+        treasurySnapshot =
+          await loadStellarTreasuryAccountWithConfirmedUsdcBalance();
+        if (treasurySnapshot.balance < ctx.usdcAmount) {
           return errSpendRail(spendRailErrorStellarTreasuryCannotFundSpend());
         }
       } catch (e) {
@@ -230,6 +234,7 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
           destinationPublicKey: destOk.data,
           usdcAmount: ctx.usdcAmount,
           fundingReferenceId: fundingRef,
+          cachedTreasuryAccount: treasurySnapshot.account,
         });
       } catch (e) {
         console.error('stellar_usdc initiateUserFunding submit:', e);
@@ -258,14 +263,14 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
       ctx: SpendPaymentRailSessionContext
     ): Promise<SpendRailResult<SpendPaymentPrepareRailValue>> {
       void ctx;
-      return notSupported();
+      return unsupported();
     },
 
     async confirmPayment(
       ctx: SpendPaymentRailSessionContext
     ): Promise<SpendRailResult<{ status: SpendRailPaymentOperationStatus }>> {
       void ctx;
-      return notSupported();
+      return unsupported();
     },
 
     explorerUrlForLedgerTx(
@@ -278,11 +283,11 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
       ctx: SpendPaymentRailReconcileContext
     ): Promise<SpendRailResult<void>> {
       void ctx;
-      return notSupported();
+      return unsupported();
     },
 
     assertUserSignedOnchainPaymentConfirmSupported(): SpendRailResult<void> {
-      return notSupported();
+      return unsupported();
     },
   };
 }

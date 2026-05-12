@@ -36,6 +36,17 @@ const hoistedTreasury = vi.hoisted(() => ({
 vi.mock('@/lib/spend/stellar-treasury-funding', () => ({
   readStellarTreasuryConfirmedUsdcBalance: (...a: unknown[]) =>
     hoistedTreasury.readBal(...a),
+  loadStellarTreasuryAccountWithConfirmedUsdcBalance: async (
+    ...a: unknown[]
+  ) => {
+    const balance = await hoistedTreasury.readBal(...a);
+    return {
+      balance: balance as number,
+      account: {
+        account_id: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+      },
+    };
+  },
   submitStellarTreasuryUsdcFunding: (...a: unknown[]) =>
     hoistedTreasury.submit(...a),
 }));
