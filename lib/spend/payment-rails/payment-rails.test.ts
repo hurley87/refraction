@@ -1,4 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// Registry imports Stellar rail → stellar-rail-wallet → Privy server client (not loadable in happy-dom).
+vi.mock('@/lib/privy/stellar-rail-wallet', () => ({
+  ensureStellarRailUserWallet: vi.fn(),
+}));
 
 import {
   SPEND_RAIL_ANALYTICS_CODES,
