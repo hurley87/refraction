@@ -5,6 +5,7 @@ import {
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import type { SpendRail } from '@/lib/types';
 import { mapSpendRailOperationalReasonToAdminCurated } from '@/lib/spend-rail-config/admin-curated-unavailable-reasons';
+import { collectStellarSpendReadinessConfigReasons } from '@/lib/spend/stellar-wallet-readiness-config';
 import type {
   SpendRailCatalogEntry,
   SpendRailClientSummary,
@@ -206,6 +207,7 @@ function collectStellarOperationalReasons(parsed: ParsedStellar): string[] {
   reasons.push(
     ...validateExplorerTemplate(parsed.explorerTxUrlTemplate, 'Stellar')
   );
+  reasons.push(...collectStellarSpendReadinessConfigReasons());
   return reasons;
 }
 

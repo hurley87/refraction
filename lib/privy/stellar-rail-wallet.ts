@@ -69,3 +69,25 @@ export async function ensureStellarRailUserWallet(
     provisioned: true,
   };
 }
+
+/**
+ * Resolves the Privy Stellar embedded wallet id for a known G-address (server-side).
+ */
+export async function resolveStellarPrivyWalletIdForUser(
+  privyUserId: string,
+  canonicalAddress: string
+): Promise<string> {
+  const privy = getPrivyClient();
+  const user = await privy.getUser(privyUserId);
+  const wanted = canonicalAddress.trim();
+  const linked = user.linkedAccounts?.find((a) => {
+    if (a.type !== 'wallet' || !('chainType' in a)) return false;
+    if (a.chainType !== 'stellar') return false;
+    if (!('address' in a) || typeof a.address !== 'string') return false;
+    return a.address.trim() === wanted;
+  });
+  if (linked && 'id' in linked && linked.id != null && linked.id !== '') {
+    return String(linked.id);
+  }
+  throw new Error('stellar_privy_wallet_id_unresolved');
+}

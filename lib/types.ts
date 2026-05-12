@@ -402,7 +402,9 @@ export type SpendTransaction = {
 export type TreasuryTransactionType =
   | 'fund_user'
   | 'receive_payment'
-  | 'admin_recovery';
+  | 'admin_recovery'
+  | 'stellar_account_activation'
+  | 'stellar_usdc_trustline_setup';
 
 export type TreasuryTransactionRowStatus =
   | 'pending'
