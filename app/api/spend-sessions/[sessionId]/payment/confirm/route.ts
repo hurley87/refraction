@@ -10,6 +10,7 @@ import {
   runSpendPaymentConfirm,
 } from '@/lib/spend-payment-confirm';
 import { spendPaymentConfirmBodySchema } from '@/lib/schemas/spend-session';
+import { getSpendRailClientSummary } from '@/lib/spend-rail-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ type RouteParams = { params: { sessionId: string } };
 
 /**
  * POST /api/spend-sessions/{sessionId}/payment/confirm
- * Verifies on-chain Base USDC transfer from the session wallet to the experience receiving wallet.
+ * Verifies on-chain USDC transfer from the session wallet to the configured receiving wallet for the session rail.
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const sessionId = params.sessionId;
@@ -88,6 +89,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return apiSuccess({
       spendTransaction: result.spendTransaction,
+      spendRailSummary: getSpendRailClientSummary(session.spend_rail),
       session: {
         id: result.session.id,
         status: result.session.status,

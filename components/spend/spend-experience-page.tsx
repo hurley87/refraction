@@ -20,6 +20,11 @@ import {
   SPEND_ELIGIBILITY_MESSAGES,
   type SpendEligibilityStatus,
 } from '@/lib/spend-eligibility-messages';
+import type { SpendRailClientSummary } from '@/lib/spend-rail-config/types';
+import {
+  formatSpendPaymentExplorerUrl,
+  spendPaymentExplorerLinkLabel,
+} from '@/lib/spend-rail-explorer-url-client';
 import {
   encodeUsdcTransferData,
   isEvmAddress,
@@ -36,6 +41,7 @@ type SessionResponse = {
   session: SpendSession;
   spendExperience: SpendExperience;
   created: boolean;
+  spendRailSummary: SpendRailClientSummary;
 };
 
 type ConversionPreviewResponse = {
@@ -54,6 +60,7 @@ type ConversionPreviewResponse = {
   };
   spendExperience: SpendExperience;
   session: Pick<SpendSession, 'id' | 'status' | 'expires_at'>;
+  spendRailSummary: SpendRailClientSummary;
 };
 
 type ConversionConfirmResponse = {
@@ -66,11 +73,13 @@ type ConversionConfirmResponse = {
     pointsRequired: number;
     usdcAmount: number;
   };
+  spendRailSummary: SpendRailClientSummary;
   resumed: boolean;
 };
 
 type PaymentConfirmResponse = {
   spendTransaction: SpendTransaction;
+  spendRailSummary: SpendRailClientSummary;
   session: Pick<SpendSession, 'id' | 'status' | 'expires_at' | 'completed_at'>;
   resumed: boolean;
 };
@@ -81,6 +90,7 @@ type ReceiptResponse = {
   pointConversion: PointConversion | null;
   spendTransaction: SpendTransaction | null;
   eligibility: ConversionPreviewResponse['eligibility'];
+  spendRailSummary: SpendRailClientSummary;
 };
 
 const WALLET_STEP_TIMEOUT_MS = 180_000;
@@ -438,6 +448,14 @@ export function SpendExperiencePage({
   const session = sessionPayload?.session;
   const elig = previewPayload?.eligibility;
   const preview = elig?.preview;
+  const spendRailSummary: SpendRailClientSummary | null =
+    previewPayload?.spendRailSummary ??
+    sessionPayload?.spendRailSummary ??
+    receiptPayload?.spendRailSummary ??
+    null;
+  const resolvedSpendRail = spendRailSummary?.rail ?? experience.spend_rail;
+  const walletNetworkLabel = spendRailSummary?.networkLabel ?? 'Base';
+  const assetSymbol = spendRailSummary?.assetSymbol ?? 'USDC';
   const showSessionError = user && walletAddress && sessionError;
   const showWalletBlock = user && !walletAddress;
 
@@ -461,18 +479,24 @@ export function SpendExperiencePage({
     preview &&
     (sessionStatus === 'created' || sessionStatus === 'conversion_pending');
 
-  const showPay =
+  const showBaseWalletPay =
     !isPaymentComplete &&
     (elig?.status === 'ready_for_payment' ||
       elig?.status === 'ready_for_payment_own_usdc' ||
       elig?.status === 'payment_failed') &&
     preview &&
+    resolvedSpendRail === 'base_usdc' &&
     isEvmAddress(preview.receivingWalletAddress);
 
   const displayReceipt = isPaymentComplete;
 
-  const basescanUrl = (hash: string) =>
-    `https://basescan.org/tx/${hash.trim()}`;
+  const paymentExplorerUrl = formatSpendPaymentExplorerUrl(
+    spendRailSummary?.explorerTxUrlTemplate,
+    receiptPaymentHash
+  );
+  const paymentExplorerLabel = spendPaymentExplorerLinkLabel(
+    spendRailSummary?.explorerTxUrlTemplate
+  );
 
   return (
     <SpendPageShell>
@@ -536,16 +560,17 @@ export function SpendExperiencePage({
                                 Pay
                               </span>
                               <span className="body-medium font-grotesk font-semibold text-[#171717]">
-                                ${preview.usdcAmount.toFixed(2)} USDC
+                                ${preview.usdcAmount.toFixed(2)} {assetSymbol}
                               </span>
                             </div>
                             {preview.userUsdcBalance != null && (
                               <div className="flex justify-between gap-4 border-t border-[#ededed] pt-3">
                                 <span className="body-small font-grotesk text-[#757575]">
-                                  Your wallet (Base)
+                                  Your wallet ({walletNetworkLabel})
                                 </span>
                                 <span className="body-medium font-grotesk text-[#171717]">
-                                  ${preview.userUsdcBalance.toFixed(2)} USDC
+                                  ${preview.userUsdcBalance.toFixed(2)}{' '}
+                                  {assetSymbol}
                                 </span>
                               </div>
                             )}
@@ -568,7 +593,8 @@ export function SpendExperiencePage({
                                     You will receive
                                   </span>
                                   <span className="body-medium font-grotesk font-semibold text-[#171717]">
-                                    ${preview.usdcAmount.toFixed(2)} USDC
+                                    ${preview.usdcAmount.toFixed(2)}{' '}
+                                    {assetSymbol}
                                   </span>
                                 </div>
                               </>
@@ -603,10 +629,11 @@ export function SpendExperiencePage({
                               preview.userUsdcBalance != null && (
                                 <div className="flex justify-between gap-4 border-t border-[#ededed] pt-3">
                                   <span className="body-small font-grotesk text-[#757575]">
-                                    USDC balance
+                                    {assetSymbol} balance
                                   </span>
                                   <span className="body-medium font-grotesk font-semibold text-[#171717]">
-                                    ${preview.userUsdcBalance.toFixed(2)} USDC
+                                    ${preview.userUsdcBalance.toFixed(2)}{' '}
+                                    {assetSymbol}
                                   </span>
                                 </div>
                               )}
@@ -617,7 +644,7 @@ export function SpendExperiencePage({
 
                     <p className={eligibilityToneClass(elig.status)}>
                       {elig.status === 'ready_for_payment' && preview
-                        ? `${preview.pointsRequired.toLocaleString()} points were converted to ${preview.usdcAmount.toFixed(2)} USDC.`
+                        ? `${preview.pointsRequired.toLocaleString()} points were converted to ${preview.usdcAmount.toFixed(2)} ${assetSymbol}.`
                         : elig.message}
                     </p>
 
@@ -628,18 +655,18 @@ export function SpendExperiencePage({
                       >
                         {conversionMutation.isPending
                           ? 'Converting…'
-                          : 'Convert points to USDC'}
+                          : `Convert points to ${assetSymbol}`}
                       </SpendPrimaryButton>
                     )}
 
-                    {showPay && (
+                    {showBaseWalletPay && (
                       <SpendPrimaryButton
                         pending={paymentMutation.isPending}
                         onClick={() => void sendUsdcPayment()}
                       >
                         {paymentMutation.isPending
-                          ? 'Pay with USDC…'
-                          : `Spend $${preview.usdcAmount.toFixed(2)} USDC`}
+                          ? `Pay with ${assetSymbol}…`
+                          : `Spend $${preview.usdcAmount.toFixed(2)} ${assetSymbol}`}
                       </SpendPrimaryButton>
                     )}
 
@@ -659,7 +686,7 @@ export function SpendExperiencePage({
                               preview?.usdcAmount ??
                               0
                             ).toFixed(2)}{' '}
-                            USDC
+                            {assetSymbol}
                           </span>
                         </div>
                         <div className="flex justify-between gap-2">
@@ -681,14 +708,14 @@ export function SpendExperiencePage({
                             {receiptSession?.id}
                           </p>
                         </div>
-                        {receiptPaymentHash && (
+                        {receiptPaymentHash && paymentExplorerUrl && (
                           <a
-                            href={basescanUrl(receiptPaymentHash)}
+                            href={paymentExplorerUrl}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex items-center gap-1 body-medium font-grotesk font-semibold text-emerald-900 underline"
                           >
-                            View payment on BaseScan
+                            {paymentExplorerLabel}
                             <ExternalLink className="size-3.5 shrink-0" />
                           </a>
                         )}
