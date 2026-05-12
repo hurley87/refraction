@@ -37,6 +37,20 @@ export type SpendRailPaymentOperationStatus =
 export type SpendPaymentRailSessionContext = {
   spendSessionId: string;
   spendExperienceId?: string;
+  /**
+   * Base: Privy embedded EVM wallet tied to the spend session (same field semantics as
+   * `SpendSession.wallet_address` for Base pilot flows).
+   */
+  embeddedEvmWalletAddress?: string;
+  /**
+   * Base: lowercased EVM address from the authenticated user (Privy-linked). When set,
+   * readiness requires it to match `embeddedEvmWalletAddress`, mirroring spend payment confirm.
+   */
+  privyNormalizedWalletAddressLower?: string;
+  /** Base: human-readable USDC amount (6 decimals) for treasury funding and payment verify. */
+  usdcAmount?: number;
+  /** Base: user-submitted on-chain payment hash for `confirmPayment` (canonical `0x` + 64 hex). */
+  paymentTxHash?: string;
 };
 
 /**

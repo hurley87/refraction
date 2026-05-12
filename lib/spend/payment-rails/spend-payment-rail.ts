@@ -49,8 +49,8 @@ export interface SpendPaymentRail {
   ): Promise<SpendRailResult<{ status: SpendRailFundingOperationStatus }>>;
 
   /**
-   * Prepare a payment action (idempotent descriptor). Unsupported on both rails at IRL-15
-   * except for typing; IRL-19 will implement descriptors.
+   * Prepare a payment action (idempotent descriptor). Unsupported on Base until IRL-19;
+   * Stellar returns **not supported** until backend submit metadata exists.
    */
   preparePayment(
     ctx: SpendPaymentRailSessionContext
