@@ -453,3 +453,24 @@ export type SpendWalletReadinessOperation = {
   created_at: string;
   updated_at: string;
 };
+
+/** v1 idempotency key `payment:{spend_session_id}` (distinct from `spend_payment:{sessionId}` on spend_transactions). */
+export type SpendPaymentPrepareOperationStatus = 'prepared';
+
+/**
+ * Server-prepared payment action row (IRL-19). `prepared_action` / `verification_snapshot` are
+ * rail-specific JSON; Base USDC uses `SpendPaymentPrepareStoredActionV1` + snapshot types in
+ * `lib/spend-payment-prepare-types.ts`.
+ */
+export type SpendPaymentPrepareOperation = {
+  id: string;
+  spend_session_id: string;
+  user_id: string;
+  spend_rail: SpendRail;
+  status: SpendPaymentPrepareOperationStatus;
+  prepared_action: Record<string, unknown>;
+  verification_snapshot: Record<string, unknown>;
+  idempotency_key: string;
+  created_at: string;
+  updated_at: string;
+};

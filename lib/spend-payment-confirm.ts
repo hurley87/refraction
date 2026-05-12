@@ -1,4 +1,3 @@
-import { getSpendExperienceById } from '@/lib/db/spend-experiences';
 import {
   getPointConversionBySessionId,
   getSpendSessionById,
@@ -8,23 +7,29 @@ import {
   updateSpendTransactionFields,
   confirmSpendTransactionIfSubmitted,
 } from '@/lib/db/spend-sessions';
+import { getSpendPaymentPrepareBySessionId } from '@/lib/db/spend-payment-prepare';
 import { insertTreasuryReceivePaymentLedgerIfAbsent } from '@/lib/db/treasury-transactions';
 import {
   explorerTxUrlForSpendLedger,
   isLedgerCanonicalEvmTxHash,
 } from '@/lib/spend-ledger-explorer-url';
-import {
-  computeConversionAmounts,
-  fetchUserUsdcBalanceSafe,
-} from '@/lib/spend-conversion-preview';
+import { fetchUserUsdcBalanceSafe } from '@/lib/spend-conversion-preview';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import { verifySpendUsdcPaymentTx } from '@/lib/spend-payment-verify';
 import { getSpendPaymentRail } from '@/lib/spend/payment-rails';
 import {
   assertSpendRailAllowsMutatingSpendWork,
+  getSpendRailBaseUsdcContractAddress,
   getSpendReceivingWalletAddress,
 } from '@/lib/spend-rail-config';
-import { isEvmAddress } from '@/lib/walletconnect-poster-direct-usdc';
+import {
+  isEvmAddress,
+  POSTER_CHECKOUT_CHAIN_ID,
+} from '@/lib/walletconnect-poster-direct-usdc';
+import {
+  isSpendBaseUsdcVerificationSnapshotV1,
+  spendBaseUsdcSnapshotMatchesLiveRail,
+} from '@/lib/spend-payment-prepare-types';
 import type {
   SpendExperience,
   SpendSession,
@@ -37,6 +42,10 @@ import {
   trackSpendPilotRailMutationBlocked,
 } from '@/lib/analytics/server';
 import type { SpendPilotPaymentEventProperties } from '@/lib/analytics/types';
+import type { SpendPilotApiHttpStatus } from '@/lib/spend-pilot-http-status';
+
+export type { SpendPilotApiHttpStatus } from '@/lib/spend-pilot-http-status';
+export { getSpendPaymentSessionContextOr404 as getSpendPaymentContextOr404 } from '@/lib/spend-payment-session-context';
 
 function normalizeTxHash(raw: string): `0x${string}` | null {
   const t = raw.trim();
@@ -52,31 +61,6 @@ function submittedPaymentHashConflicts(
   if (spendTx.status !== 'submitted') return false;
   const existing = (spendTx.payment_tx_hash ?? '').toLowerCase();
   return existing.length > 0 && existing !== requestedHashLower;
-}
-
-/** HTTP statuses allowed by `apiError` for spend pilot routes. */
-export type SpendPilotApiHttpStatus = 400 | 401 | 403 | 404 | 409 | 429 | 500;
-
-export async function getSpendPaymentContextOr404(sessionId: string): Promise<
-  | {
-      session: SpendSession;
-      spendExperience: SpendExperience;
-      usdcAmount: number;
-    }
-  | { error: string; httpStatus: SpendPilotApiHttpStatus }
-> {
-  const session = await getSpendSessionById(sessionId);
-  if (!session) {
-    return { error: 'Spend session not found', httpStatus: 404 };
-  }
-  const spendExperience = await getSpendExperienceById(
-    session.spend_experience_id
-  );
-  if (!spendExperience) {
-    return { error: 'Spend experience not found', httpStatus: 404 };
-  }
-  const { usdcAmount } = computeConversionAmounts(spendExperience);
-  return { session, spendExperience, usdcAmount };
 }
 
 export type SpendPaymentConfirmResult =
@@ -112,7 +96,6 @@ async function finalizeSuccess(params: {
   trackSpendPaymentCompleted(params.distinctId, {
     ...params.analytics,
     status: 'confirmed',
-    payment_tx_hash: params.analytics.payment_tx_hash,
   });
   return true;
 }
@@ -135,7 +118,6 @@ async function finalizeFailure(params: {
     ...params.analytics,
     status: 'failed',
     error_reason: params.reason,
-    payment_tx_hash: params.analytics.payment_tx_hash,
   });
 }
 
@@ -229,35 +211,6 @@ export async function runSpendPaymentConfirm(input: {
     };
   }
 
-  const receiving = getSpendReceivingWalletAddress(
-    spendExperience.spend_rail
-  ).trim();
-  if (!isEvmAddress(receiving)) {
-    return {
-      ok: false,
-      error: 'Invalid receiving wallet configuration',
-      httpStatus: 500,
-    };
-  }
-
-  const fromAddr = normalizedWallet as `0x${string}`;
-  const toAddr = receiving as `0x${string}`;
-  const usdcAmount = input.usdcAmount;
-  const requestedHashLower = txHash.toLowerCase();
-
-  const baseAnalytics: SpendPilotPaymentEventProperties = {
-    spend_experience_id: spendExperience.id,
-    event_id: spendExperience.event_id,
-    user_id: authUserId,
-    wallet_address: normalizedWallet,
-    points_amount: fundedConversion ? fundedConversion.points_deducted : 0,
-    usdc_amount: usdcAmount,
-    status: 'submitted',
-    spend_session_id: session.id,
-    point_conversion_id: fundedConversion?.id,
-    payment_tx_hash: txHash,
-  };
-
   const sessionReadyForFundedConversion =
     session.status === 'conversion_complete' ||
     session.status === 'payment_pending';
@@ -284,13 +237,103 @@ export async function runSpendPaymentConfirm(input: {
     };
   }
 
-  let spendTx = await getSpendTransactionBySessionId(session.id);
+  const receivingLive = getSpendReceivingWalletAddress(
+    spendExperience.spend_rail
+  ).trim();
+  if (!isEvmAddress(receivingLive)) {
+    return {
+      ok: false,
+      error: 'Invalid receiving wallet configuration',
+      httpStatus: 500,
+    };
+  }
+
+  let fromAddr: `0x${string}`;
+  let toAddr: `0x${string}`;
+  let usdcAmount: number;
+
+  let spendTx: SpendTransaction | null = null;
+
+  if (session.spend_rail === 'base_usdc') {
+    const [preparedOp, tx] = await Promise.all([
+      getSpendPaymentPrepareBySessionId(session.id),
+      getSpendTransactionBySessionId(session.id),
+    ]);
+    spendTx = tx;
+    if (!preparedOp) {
+      return {
+        ok: false,
+        error:
+          'Payment is not ready to confirm. Refresh this page to prepare your payment, then complete it in your wallet.',
+        httpStatus: 400,
+      };
+    }
+    const snap = preparedOp.verification_snapshot;
+    if (!isSpendBaseUsdcVerificationSnapshotV1(snap)) {
+      return {
+        ok: false,
+        error:
+          'Payment is not ready to confirm. Refresh this page to prepare your payment, then complete it in your wallet.',
+        httpStatus: 400,
+      };
+    }
+    if (
+      !spendBaseUsdcSnapshotMatchesLiveRail({
+        snapshot: snap,
+        liveSpendRail: session.spend_rail,
+        liveReceivingLower: receivingLive.toLowerCase(),
+        liveUsdcContractLower:
+          getSpendRailBaseUsdcContractAddress().toLowerCase(),
+        liveChainId: POSTER_CHECKOUT_CHAIN_ID,
+      })
+    ) {
+      return {
+        ok: false,
+        error:
+          'Payment no longer matches the configured receiving wallet. Refresh this page and try again.',
+        httpStatus: 400,
+      };
+    }
+    if (
+      snap.usdc_amount !== input.usdcAmount ||
+      snap.from_wallet !== normalizedWallet.toLowerCase()
+    ) {
+      return {
+        ok: false,
+        error:
+          'Payment details do not match this session. Refresh this page and try again.',
+        httpStatus: 400,
+      };
+    }
+    fromAddr = snap.from_wallet as `0x${string}`;
+    toAddr = snap.receiving_wallet as `0x${string}`;
+    usdcAmount = snap.usdc_amount;
+  } else {
+    spendTx = await getSpendTransactionBySessionId(session.id);
+    fromAddr = normalizedWallet as `0x${string}`;
+    toAddr = receivingLive as `0x${string}`;
+    usdcAmount = input.usdcAmount;
+  }
+  const requestedHashLower = txHash.toLowerCase();
+
+  const baseAnalytics: SpendPilotPaymentEventProperties = {
+    spend_experience_id: spendExperience.id,
+    event_id: spendExperience.event_id,
+    user_id: authUserId,
+    wallet_address: normalizedWallet,
+    points_amount: fundedConversion ? fundedConversion.points_deducted : 0,
+    usdc_amount: usdcAmount,
+    status: 'submitted',
+    spend_session_id: session.id,
+    point_conversion_id: fundedConversion?.id,
+    payment_tx_hash: txHash,
+  };
 
   if (!spendTx) {
     const railGate = assertSpendRailAllowsMutatingSpendWork(session.spend_rail);
     if (!railGate.ok) {
       trackSpendPilotRailMutationBlocked(distinctId, {
-        mutation: 'payment_confirm_new_tx',
+        mutation: 'payment_confirm',
         ...railGate.analytics,
         spend_experience_id: spendExperience.id,
         event_id: spendExperience.event_id,
@@ -340,7 +383,7 @@ export async function runSpendPaymentConfirm(input: {
       userId: authUserId,
       usdcAmount,
       fromWalletAddress: normalizedWallet,
-      toWalletAddress: receiving.toLowerCase(),
+      toWalletAddress: toAddr.toLowerCase(),
       paymentTxHash: txHash,
       spendRail: session.spend_rail,
     });

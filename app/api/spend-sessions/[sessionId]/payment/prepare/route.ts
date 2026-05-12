@@ -6,10 +6,10 @@ import {
 import { apiError, apiSuccess, apiValidationError } from '@/lib/api/response';
 import { resolveServerIdentity } from '@/lib/analytics/server';
 import {
-  getSpendPaymentContextOr404,
-  runSpendPaymentConfirm,
-} from '@/lib/spend-payment-confirm';
-import { spendPaymentConfirmBodySchema } from '@/lib/schemas/spend-session';
+  getSpendPaymentPrepareContextOr404,
+  runSpendPaymentPrepare,
+} from '@/lib/spend-payment-prepare';
+import { spendPaymentPrepareBodySchema } from '@/lib/schemas/spend-session';
 import { getSpendRailClientSummary } from '@/lib/spend-rail-config';
 
 export const dynamic = 'force-dynamic';
@@ -17,8 +17,8 @@ export const dynamic = 'force-dynamic';
 type RouteParams = { params: { sessionId: string } };
 
 /**
- * POST /api/spend-sessions/{sessionId}/payment/confirm
- * Verifies on-chain USDC transfer from the session wallet to the configured receiving wallet for the session rail.
+ * POST /api/spend-sessions/{sessionId}/payment/prepare
+ * Returns a JSON-serializable Privy-compatible EVM transaction request for Base USDC transfer.
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   const sessionId = params.sessionId;
@@ -33,14 +33,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return apiError('Invalid JSON body', 400);
   }
 
-  const parsed = spendPaymentConfirmBodySchema.safeParse(body);
+  const parsed = spendPaymentPrepareBodySchema.safeParse(body);
   if (!parsed.success) {
     return apiValidationError(parsed.error);
   }
 
   const walletAddress = parsed.data.walletAddress.trim();
   const normalizedWallet = walletAddress.toLowerCase();
-  const paymentTxHash = parsed.data.paymentTxHash.trim();
 
   const auth = await verifyWalletOwnership(request, walletAddress);
   if (!auth.authorized || !auth.userId) {
@@ -52,12 +51,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return apiError('Unauthorized', 401);
   }
 
-  const ctx = await getSpendPaymentContextOr404(sessionId);
+  const ctx = await getSpendPaymentPrepareContextOr404(sessionId);
   if ('error' in ctx) {
     return apiError(ctx.error, ctx.httpStatus);
   }
 
-  const { session, spendExperience, usdcAmount } = ctx;
+  const { session, spendExperience } = ctx;
 
   const distinctId = resolveServerIdentity({
     privyUserId: auth.userId,
@@ -65,14 +64,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   });
 
   try {
-    const result = await runSpendPaymentConfirm({
+    const result = await runSpendPaymentPrepare({
       session,
       spendExperience,
       normalizedWallet,
       authUserId: auth.userId,
       distinctId,
-      paymentTxHash,
-      usdcAmount,
     });
 
     if (!result.ok) {
@@ -80,19 +77,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     return apiSuccess({
-      spendTransaction: result.spendTransaction,
+      preparedAction: result.preparedAction,
       spendRailSummary: getSpendRailClientSummary(session.spend_rail),
-      session: {
-        id: result.session.id,
-        status: result.session.status,
-        expires_at: result.session.expires_at,
-        completed_at: result.session.completed_at,
-      },
-      resumed: result.resumed,
+      session: result.session,
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Failed to confirm payment';
-    console.error('POST payment confirm:', e);
+    const msg = e instanceof Error ? e.message : 'Failed to prepare payment';
+    console.error('POST payment prepare:', e);
     return apiError(msg, 500);
   }
 }

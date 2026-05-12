@@ -90,15 +90,22 @@ describe('isTerminalSpendRailPaymentStatus', () => {
 });
 
 describe('getSpendPaymentRail', () => {
-  it('returns typed Base rail with user-signed payment confirm supported', async () => {
+  it('returns typed Base rail with preparePayment supported for Base USDC', async () => {
     const rail = getSpendPaymentRail('base_usdc');
     expect(rail.spendRail).toBe('base_usdc');
     expect(rail.assertUserSignedOnchainPaymentConfirmSupported().ok).toBe(true);
-    await expect(
-      rail.preparePayment({ spendSessionId: 's1' })
-    ).resolves.toMatchObject({
-      ok: false,
+    const res = await rail.preparePayment({
+      spendSessionId: 's1',
+      embeddedEvmWalletAddress: '0x1111111111111111111111111111111111111111',
+      usdcAmount: 1.5,
     });
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error('expected prepare ok');
+    expect(res.value.status).toBe('prepared');
+    expect(res.value.baseUsdc?.preparedAction.v).toBe(1);
+    expect(res.value.baseUsdc?.preparedAction.evmTransactionRequest.gas).toBe(
+      '100000'
+    );
   });
 
   it('returns typed Stellar rail that rejects user-signed confirm with catalog error', () => {

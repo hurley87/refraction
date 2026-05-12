@@ -34,6 +34,15 @@ export type SpendConversionConfirmBody = z.infer<
   typeof spendConversionConfirmBodySchema
 >;
 
+/** POST /api/spend-sessions/{sessionId}/payment/prepare */
+export const spendPaymentPrepareBodySchema = z.object({
+  walletAddress: evmAddressField,
+});
+
+export type SpendPaymentPrepareBody = z.infer<
+  typeof spendPaymentPrepareBodySchema
+>;
+
 /** POST /api/spend-sessions/{sessionId}/payment/confirm */
 export const spendPaymentConfirmBodySchema = z.object({
   walletAddress: evmAddressField,
