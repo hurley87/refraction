@@ -42,7 +42,10 @@ export function rowToSpendWalletReadinessOperation(
     spend_session_id: String(row.spend_session_id),
     user_id: String(row.user_id),
     spend_rail: normalizeSpendRail(row.spend_rail),
-    rail_user_wallet_address: String(row.rail_user_wallet_address),
+    rail_user_wallet_address:
+      row.rail_user_wallet_address == null
+        ? null
+        : String(row.rail_user_wallet_address),
     status: row.status as SpendWalletReadinessStatus,
     step_metadata: step ?? {},
     sanitized_error_category:
@@ -113,8 +116,11 @@ export type InsertSpendWalletReadinessPendingInput = {
   spendSessionId: string;
   userId: string;
   spendRail: SpendRail;
-  /** Same convention as `spend_sessions.rail_user_wallet_address` (trimmed). */
-  railUserWalletAddress: string;
+  /**
+   * Same convention as `spend_sessions.rail_user_wallet_address` when known.
+   * Use NULL for Stellar while readiness is pending (IRL-21).
+   */
+  railUserWalletAddress: string | null;
   status?: SpendWalletReadinessStatus;
   stepMetadata?: Record<string, unknown>;
 };
@@ -129,7 +135,10 @@ export async function insertPendingSpendWalletReadinessOrGet(
   const idempotency_key = spendWalletReadinessIdempotencyKey(
     input.spendSessionId
   );
-  const rail = input.railUserWalletAddress.trim();
+  const rail =
+    input.railUserWalletAddress == null
+      ? null
+      : input.railUserWalletAddress.trim();
   const insertRow = {
     spend_session_id: input.spendSessionId,
     user_id: input.userId,
@@ -182,6 +191,7 @@ export async function updateSpendWalletReadinessFields(
       | 'sanitized_error_category'
       | 'sanitized_error_code'
       | 'internal_diagnostics'
+      | 'rail_user_wallet_address'
       | 'sponsor_treasury_transaction_id'
       | 'trustline_treasury_transaction_id'
     >

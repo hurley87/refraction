@@ -79,7 +79,10 @@ export function rowToSession(row: Record<string, unknown>): SpendSession {
     user_id: String(row.user_id),
     wallet_address: String(row.wallet_address),
     spend_rail: normalizeSpendRail(row.spend_rail),
-    rail_user_wallet_address: String(row.rail_user_wallet_address),
+    rail_user_wallet_address:
+      row.rail_user_wallet_address == null
+        ? null
+        : String(row.rail_user_wallet_address),
     status: row.status as SpendSession['status'],
     qr_token_hash: row.qr_token_hash == null ? null : String(row.qr_token_hash),
     created_at: String(row.created_at),
