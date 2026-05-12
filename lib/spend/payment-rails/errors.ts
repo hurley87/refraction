@@ -117,6 +117,14 @@ export const spendRailErrorRailOperationNotSupported = (): SpendRailError =>
     SPEND_RAIL_ANALYTICS_CODES.rail_operation_not_supported
   );
 
+/** Treasury→user points conversion funding is not implemented for this rail (IRL-20). */
+export const spendRailErrorConversionFundingNotSupported = (): SpendRailError =>
+  err(
+    'rail_operation_not_supported',
+    'Points-to-USDC conversion is not available on this payment network yet. Please ask an event host.',
+    SPEND_RAIL_ANALYTICS_CODES.rail_operation_not_supported
+  );
+
 export function isSpendRailError(value: unknown): value is SpendRailError {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
@@ -125,4 +133,11 @@ export function isSpendRailError(value: unknown): value is SpendRailError {
     typeof v.userMessage === 'string' &&
     typeof v.analyticsCode === 'string'
   );
+}
+
+/** HTTP status for surfacing a rail error to clients (conversion / payment routes). */
+export function spendRailErrorCategoryToHttpStatus(
+  category: SpendRailErrorCategory
+): 400 | 500 {
+  return category === 'network_unavailable' ? 500 : 400;
 }

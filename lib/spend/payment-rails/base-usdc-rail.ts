@@ -124,9 +124,12 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
       return okSpendRail({ status: 'completed' });
     },
 
-    async initiateUserFunding(
-      ctx: SpendPaymentRailSessionContext
-    ): Promise<SpendRailResult<{ status: SpendRailFundingOperationStatus }>> {
+    async initiateUserFunding(ctx: SpendPaymentRailSessionContext): Promise<
+      SpendRailResult<{
+        status: SpendRailFundingOperationStatus;
+        txReference?: string | null;
+      }>
+    > {
       const embeddedRes = embeddedEvmFromContext(ctx);
       if (!embeddedRes.ok) {
         return embeddedRes;
@@ -174,6 +177,7 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
         serverWalletAddress: transferCfg.address,
         recipientAddress: recipient,
         usdcAmount,
+        referenceId: ctx.fundingReferenceId?.trim() || undefined,
       });
 
       if (!sub.ok) {
@@ -181,7 +185,10 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
       }
 
       if ('submittedPending' in sub && sub.submittedPending) {
-        return okSpendRail({ status: 'pending' });
+        return okSpendRail({
+          status: 'pending',
+          txReference: `pending:${sub.privyTransactionId}`,
+        });
       }
 
       if (!('txHash' in sub)) {
@@ -190,12 +197,18 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
 
       const receipt = await getTreasuryTxReceiptStatus(sub.txHash);
       if (receipt === 'success') {
-        return okSpendRail({ status: 'confirmed' });
+        return okSpendRail({
+          status: 'confirmed',
+          txReference: sub.txHash,
+        });
       }
       if (receipt === 'reverted') {
         return errSpendRail(spendRailErrorFundingFailed());
       }
-      return okSpendRail({ status: 'submitted' });
+      return okSpendRail({
+        status: 'submitted',
+        txReference: sub.txHash,
+      });
     },
 
     async preparePayment(

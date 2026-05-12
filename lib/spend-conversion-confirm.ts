@@ -5,6 +5,7 @@ import {
   getPointConversionBySessionId,
   getSpendSessionById,
   refundSpendConversionOnFundingFailure,
+  spendConversionFundingIdempotencyKey,
   updatePointConversionFields,
   updateSpendSessionStatus,
 } from '@/lib/db/spend-sessions';
@@ -15,13 +16,11 @@ import {
   loadSpendEligibilityForSession,
 } from '@/lib/spend-conversion-preview';
 import { SPEND_ELIGIBILITY_MESSAGES } from '@/lib/spend-eligibility-messages';
-import { recipientUsdcAddressForSpendTransfer } from '@/lib/spend/recipient-usdc-for-treasury-transfer';
 import { resolvePrivyServerTransactionHash } from '@/lib/api/privy';
 import {
   findRecentTreasuryUsdcTransfer,
   getTreasuryTxReceiptStatus,
   isEvmTxHash,
-  submitTreasuryUsdcTransfer,
 } from '@/lib/spend-treasury-usdc-transfer';
 import {
   fetchServerWalletUsdcBalanceSafe,
@@ -34,7 +33,12 @@ import type {
   SpendExperience,
   SpendSession,
 } from '@/lib/types';
-import { isEvmAddress } from '@/lib/walletconnect-poster-direct-usdc';
+import { getSpendPaymentRail } from '@/lib/spend/payment-rails';
+import type { SpendPaymentRailSessionContext } from '@/lib/spend/payment-rails/types';
+import {
+  spendRailErrorCategoryToHttpStatus,
+  type SpendRailErrorCategory,
+} from '@/lib/spend/payment-rails/errors';
 import {
   assertSpendRailAllowsMutatingSpendWork,
   isSpendRailOperational,
@@ -52,11 +56,264 @@ import type { SpendPilotConversionEventProperties } from '@/lib/analytics/types'
 const RESUMABLE: PointConversion['status'][] = [
   'points_deducted',
   'funding_pending',
+  'needs_review',
 ];
 const MISCONFIGURED_CONVERSION_ERROR =
   'Conversion is not configured correctly. Please contact support.';
 const FUNDING_ACKNOWLEDGED_MESSAGE =
   'USDC transfer submitted. We are confirming it on Base.';
+
+export type SpendConversionConfirmResult =
+  | {
+      ok: true;
+      pointConversion: PointConversion;
+      session: SpendSession;
+      resumed: boolean;
+    }
+  | {
+      ok: false;
+      httpStatus: 400 | 401 | 403 | 404 | 409 | 500;
+      error: string;
+      capture?: boolean;
+    };
+
+function embeddedSpendWalletForSession(session: SpendSession): string {
+  if (session.spend_rail === 'stellar_usdc') {
+    return session.rail_user_wallet_address.trim();
+  }
+  return session.wallet_address.trim();
+}
+
+/** Logs on failure; refund RPC errors do not block returning the user-facing rail error. */
+async function refundSpendConversionPointsBestEffort(input: {
+  conversion: PointConversion;
+  session: SpendSession;
+  failedReason: string;
+}): Promise<boolean> {
+  try {
+    await refundSpendConversionOnFundingFailure({
+      conversionId: input.conversion.id,
+      userId: input.conversion.user_id,
+      spendSessionId: input.session.id,
+      pointsToRefund: Math.ceil(Number(input.conversion.points_deducted)),
+      failedReason: input.failedReason.slice(0, 256),
+    });
+    return true;
+  } catch (e) {
+    console.error('refundSpendConversionOnFundingFailure:', e);
+    return false;
+  }
+}
+
+async function conversionRailFailureOutcome(input: {
+  phase: 'readiness' | 'funding';
+  conv: PointConversion;
+  session: SpendSession;
+  distinctId: string;
+  baseAnalytics: SpendPilotConversionEventProperties;
+  category: SpendRailErrorCategory;
+  userMessage: string;
+}): Promise<{
+  kind: 'error';
+  value: SpendConversionConfirmResult;
+  pointsRefunded?: number;
+}> {
+  const prefix = input.phase === 'readiness' ? 'readiness' : 'funding';
+  const refundOk = await refundSpendConversionPointsBestEffort({
+    conversion: input.conv,
+    session: input.session,
+    failedReason: `${prefix}:${input.category}:${input.userMessage}`,
+  });
+  trackSpendConversionFailed(input.distinctId, {
+    ...input.baseAnalytics,
+    point_conversion_id: input.conv.id,
+    spend_session_id: input.session.id,
+    status: 'failed',
+    error_reason: `${prefix}_failed:${input.category}`,
+  });
+  return {
+    kind: 'error',
+    value: {
+      ok: false,
+      httpStatus: spendRailErrorCategoryToHttpStatus(input.category),
+      error: input.userMessage,
+    },
+    ...(refundOk
+      ? { pointsRefunded: Math.ceil(Number(input.conv.points_deducted)) }
+      : {}),
+  };
+}
+
+/**
+ * IRL-20: after `points_deducted`, run rail readiness then `initiateUserFunding`.
+ * Persists `fund_user:<point_conversion_id>` on `point_conversions.idempotency_key` before funding
+ * (session uniqueness is enforced by `idx_point_conversions_session_unique`).
+ */
+async function runWalletReadinessAndUserFunding(input: {
+  session: SpendSession;
+  spendExperience: SpendExperience;
+  normalizedWallet: string;
+  pointConversion: PointConversion;
+  usdcAmount: number;
+  distinctId: string;
+  baseAnalytics: SpendPilotConversionEventProperties;
+  skipSpendRailMutationGate?: boolean;
+}): Promise<
+  | { kind: 'funded'; conversion: PointConversion }
+  | { kind: 'ambiguous_review'; conversion: PointConversion }
+  | {
+      kind: 'error';
+      value: SpendConversionConfirmResult;
+      pointsRefunded?: number;
+    }
+> {
+  const {
+    session,
+    spendExperience,
+    normalizedWallet,
+    pointConversion,
+    usdcAmount,
+    distinctId,
+    baseAnalytics,
+    skipSpendRailMutationGate,
+  } = input;
+
+  if (!skipSpendRailMutationGate) {
+    const railGate = assertSpendRailAllowsMutatingSpendWork(session.spend_rail);
+    if (!railGate.ok) {
+      trackSpendPilotRailMutationBlocked(distinctId, {
+        mutation: 'conversion_confirm',
+        ...railGate.analytics,
+        spend_experience_id: spendExperience.id,
+        event_id: spendExperience.event_id,
+        user_id: session.user_id,
+        wallet_address: normalizedWallet,
+        spend_session_id: session.id,
+        point_conversion_id: pointConversion.id,
+      });
+      return {
+        kind: 'error',
+        value: {
+          ok: false,
+          httpStatus: 400,
+          error: railGate.error,
+        },
+      };
+    }
+  }
+
+  const serverWallet = getSpendServerWalletTransferConfig(spendExperience);
+  if (!serverWallet) {
+    return {
+      kind: 'error',
+      value: {
+        ok: false,
+        httpStatus: 500,
+        error: MISCONFIGURED_CONVERSION_ERROR,
+      },
+    };
+  }
+
+  const fundingKey = spendConversionFundingIdempotencyKey(pointConversion.id);
+  let conv = pointConversion;
+  if (!conv.idempotency_key) {
+    conv = await updatePointConversionFields(conv.id, {
+      idempotency_key: fundingKey,
+    });
+  }
+
+  const rail = getSpendPaymentRail(session.spend_rail);
+  const ctx: SpendPaymentRailSessionContext = {
+    spendSessionId: session.id,
+    spendExperienceId: spendExperience.id,
+    pointConversionId: conv.id,
+    fundingReferenceId: fundingKey,
+    embeddedEvmWalletAddress: embeddedSpendWalletForSession(session),
+    privyNormalizedWalletAddressLower: normalizedWallet,
+    usdcAmount,
+  };
+
+  const readiness = await rail.runWalletReadinessOrchestration(ctx);
+  if (!readiness.ok) {
+    return conversionRailFailureOutcome({
+      phase: 'readiness',
+      conv,
+      session,
+      distinctId,
+      baseAnalytics,
+      category: readiness.error.category,
+      userMessage: readiness.error.userMessage,
+    });
+  }
+
+  const funding = await rail.initiateUserFunding(ctx);
+  if (!funding.ok) {
+    return conversionRailFailureOutcome({
+      phase: 'funding',
+      conv,
+      session,
+      distinctId,
+      baseAnalytics,
+      category: funding.error.category,
+      userMessage: funding.error.userMessage,
+    });
+  }
+
+  const { status, txReference } = funding.value;
+  const ref = (txReference ?? '').trim();
+
+  if (status === 'confirmed') {
+    if (!isEvmTxHash(ref)) {
+      return {
+        kind: 'error',
+        value: {
+          ok: false,
+          httpStatus: 500,
+          error:
+            'Unexpected funding confirmation without a valid transaction hash.',
+        },
+      };
+    }
+    const done = await finalizeSpendConversionFunding({
+      pointConversion: { ...conv, funding_tx_hash: ref },
+      session,
+      spendExperience,
+      serverWalletAddress: serverWallet.address,
+      txHash: ref,
+      distinctId,
+      baseAnalytics,
+    });
+    return { kind: 'funded', conversion: done };
+  }
+
+  if (status === 'pending' || status === 'submitted') {
+    if (!ref) {
+      return {
+        kind: 'error',
+        value: {
+          ok: false,
+          httpStatus: 500,
+          error: 'Unexpected funding response without a transaction reference.',
+        },
+      };
+    }
+    const updated = await updatePointConversionFields(conv.id, {
+      status: 'needs_review',
+      ...pointConversionFundingHashPatch(session, ref),
+    });
+    await updateSpendSessionStatus(session.id, 'conversion_pending');
+    return { kind: 'ambiguous_review', conversion: updated };
+  }
+
+  return {
+    kind: 'error',
+    value: {
+      ok: false,
+      httpStatus: 500,
+      error: 'Unexpected funding orchestration outcome.',
+    },
+  };
+}
 
 function pointConversionFundingHashPatch(
   session: SpendSession,
@@ -114,20 +371,6 @@ function restoreTierAfterRefundResumeOnlyWallet(params: {
 async function markSessionAfterFunding(sessionId: string): Promise<void> {
   await updateSpendSessionStatus(sessionId, 'conversion_complete');
 }
-
-export type SpendConversionConfirmResult =
-  | {
-      ok: true;
-      pointConversion: PointConversion;
-      session: SpendSession;
-      resumed: boolean;
-    }
-  | {
-      ok: false;
-      httpStatus: 400 | 401 | 403 | 404 | 409 | 500;
-      error: string;
-      capture?: boolean;
-    };
 
 export async function finalizeSpendConversionFunding(input: {
   pointConversion: PointConversion;
@@ -388,20 +631,6 @@ export async function runSpendConversionConfirm(
     };
   }
 
-  if (!isEvmAddress(session.wallet_address.trim())) {
-    return {
-      ok: false,
-      httpStatus: 400,
-      error: 'Invalid wallet for this session.',
-    };
-  }
-
-  const userRecipient = recipientUsdcAddressForSpendTransfer({
-    serverWalletAddress: serverWallet.address,
-    sessionWalletTrimmed: session.wallet_address.trim(),
-    normalizedWalletLower: normalizedWallet,
-  });
-
   let rpc: Awaited<ReturnType<typeof confirmSpendConversionAtomic>>;
   try {
     rpc = await confirmSpendConversionAtomic({
@@ -443,7 +672,15 @@ export async function runSpendConversionConfirm(
     throw e;
   }
 
-  let conv = (await getPointConversionBySessionId(session.id))!;
+  const conv = await getPointConversionBySessionId(session.id);
+  if (!conv) {
+    return {
+      ok: false,
+      httpStatus: 500,
+      error:
+        'Points conversion could not be loaded. Please try again or contact support.',
+    };
+  }
   const previousPoints = preRpcPoints;
   const newPoints = rpc.playerTotalPoints;
 
@@ -467,86 +704,31 @@ export async function runSpendConversionConfirm(
     await updateSpendSessionStatus(session.id, 'conversion_pending');
   }
 
-  const sub = await submitTreasuryUsdcTransfer({
-    serverWalletId: serverWallet.walletId,
-    serverWalletAddress: serverWallet.address,
-    recipientAddress: userRecipient,
+  const fundOutcome = await runWalletReadinessAndUserFunding({
+    session,
+    spendExperience,
+    normalizedWallet,
+    pointConversion: conv,
     usdcAmount,
+    distinctId,
+    baseAnalytics,
   });
 
-  if (!sub.ok) {
-    const failReason = sub.error.slice(0, 256);
-    try {
-      await refundSpendConversionOnFundingFailure({
-        conversionId: conv.id,
-        userId: authUserId,
-        spendSessionId: session.id,
-        pointsToRefund: pointsRequired,
-        failedReason: failReason,
-      });
-    } catch (refundErr) {
-      console.error('refund after funding failure:', refundErr);
-    }
-    const failedConv =
-      (await getPointConversionBySessionId(session.id)) ?? conv;
-    trackSpendConversionFailed(distinctId, {
-      ...baseAnalytics,
-      point_conversion_id: failedConv.id,
-      spend_session_id: session.id,
-      status: 'failed',
-      error_reason: `funding_submission_failed: ${failReason}`,
-    });
-
-    if (failedConv.user_id === authUserId) {
+  if (fundOutcome.kind === 'error') {
+    if (fundOutcome.pointsRefunded && conv.user_id === authUserId) {
       restoreTierAfterRefund({
         authUserId,
         normalizedWallet,
         balanceAfterDeduction: newPoints,
-        pointsRestored: pointsRequired,
+        pointsRestored: fundOutcome.pointsRefunded,
       });
     }
-
-    return {
-      ok: false,
-      httpStatus: 400,
-      error: 'USDC transfer could not be sent. Your points have been restored.',
-    };
+    return fundOutcome.value;
   }
-
-  if ('submittedPending' in sub && sub.submittedPending) {
-    const fundingPlaceholder = `pending:${sub.privyTransactionId}`;
-    conv = await updatePointConversionFields(conv.id, {
-      status: 'funding_pending',
-      ...pointConversionFundingHashPatch(session, fundingPlaceholder),
-    });
-    await updateSpendSessionStatus(session.id, 'conversion_pending');
-
-    return {
-      ok: true,
-      pointConversion: conv,
-      session: (await getSpendSessionById(session.id)) ?? session,
-      resumed: rpc.outcome === 'already_exists',
-    };
-  }
-
-  if (!('txHash' in sub)) {
-    return {
-      ok: false,
-      httpStatus: 500,
-      error: 'Unexpected treasury submit response.',
-    };
-  }
-
-  const txHash = sub.txHash;
-  conv = await updatePointConversionFields(conv.id, {
-    status: 'funding_pending',
-    ...pointConversionFundingHashPatch(session, txHash),
-  });
-  await updateSpendSessionStatus(session.id, 'conversion_pending');
 
   return {
     ok: true,
-    pointConversion: conv,
+    pointConversion: fundOutcome.conversion,
     session: (await getSpendSessionById(session.id)) ?? session,
     resumed: rpc.outcome === 'already_exists',
   };
@@ -608,84 +790,34 @@ async function fundOrResumeUsdc(input: {
 
   let conv = pointConversion;
   if (conv.status === 'points_deducted' && !conv.funding_tx_hash) {
-    const userRecipient = recipientUsdcAddressForSpendTransfer({
-      serverWalletAddress: serverWallet.address,
-      sessionWalletTrimmed: session.wallet_address.trim(),
-      normalizedWalletLower: normalizedWallet,
-    });
-
-    const sub = await submitTreasuryUsdcTransfer({
-      serverWalletId: serverWallet.walletId,
-      serverWalletAddress: serverWallet.address,
-      recipientAddress: userRecipient,
+    const onward = await runWalletReadinessAndUserFunding({
+      session,
+      spendExperience,
+      normalizedWallet,
+      pointConversion: conv,
       usdcAmount,
+      distinctId,
+      baseAnalytics,
+      skipSpendRailMutationGate: true,
     });
-    if (!sub.ok) {
-      const fail = sub.error.slice(0, 256);
-      try {
-        await refundSpendConversionOnFundingFailure({
-          conversionId: conv.id,
-          userId: conv.user_id,
-          spendSessionId: session.id,
-          pointsToRefund: Math.ceil(Number(conv.points_deducted)),
-          failedReason: fail,
-        });
-      } catch (e) {
-        console.error('resume refund failed:', e);
+    if (onward.kind === 'error') {
+      if (onward.pointsRefunded) {
+        const p = await getPlayerByWallet(session.wallet_address);
+        if (p) {
+          const cur = Number(p.total_points ?? 0);
+          restoreTierAfterRefundResumeOnlyWallet({
+            normalizedWallet,
+            balanceNow: cur,
+            pointsRestored: onward.pointsRefunded,
+          });
+        }
       }
-      trackSpendConversionFailed(distinctId, {
-        ...baseAnalytics,
-        point_conversion_id: conv.id,
-        spend_session_id: session.id,
-        status: 'failed',
-        error_reason: 'funding_submission_failed',
-      });
-
-      const p = await getPlayerByWallet(session.wallet_address);
-      if (p) {
-        const cur = Number(p.total_points ?? 0);
-        const refunded = Math.ceil(Number(conv.points_deducted));
-        restoreTierAfterRefundResumeOnlyWallet({
-          normalizedWallet,
-          balanceNow: cur,
-          pointsRestored: refunded,
-        });
-      }
-      return {
-        error: {
-          ok: false,
-          httpStatus: 400,
-          error:
-            'USDC transfer could not be sent. Your points have been restored.',
-        },
-      };
+      return { error: onward.value };
     }
-    if ('submittedPending' in sub && sub.submittedPending) {
-      conv = await updatePointConversionFields(conv.id, {
-        status: 'funding_pending',
-        ...pointConversionFundingHashPatch(
-          session,
-          `pending:${sub.privyTransactionId}`
-        ),
-      });
-      await updateSpendSessionStatus(session.id, 'conversion_pending');
-    } else {
-      if (!('txHash' in sub)) {
-        return {
-          error: {
-            ok: false,
-            httpStatus: 500,
-            error: 'Unexpected treasury submit response.',
-          },
-        };
-      }
-      const txHash = sub.txHash;
-      conv = await updatePointConversionFields(conv.id, {
-        status: 'funding_pending',
-        ...pointConversionFundingHashPatch(session, txHash),
-      });
-      await updateSpendSessionStatus(session.id, 'conversion_pending');
+    if (onward.kind === 'funded') {
+      return { conversion: onward.conversion, error: null };
     }
+    conv = onward.conversion;
   }
 
   let hash = conv.funding_tx_hash?.trim() as `0x${string}` | undefined;
@@ -694,7 +826,7 @@ async function fundOrResumeUsdc(input: {
   if (
     !hash &&
     trimmedFunding.startsWith(pendingPrefix) &&
-    conv.status === 'funding_pending'
+    (conv.status === 'funding_pending' || conv.status === 'needs_review')
   ) {
     const privyId = trimmedFunding.slice(pendingPrefix.length).trim();
     if (privyId) {
@@ -705,7 +837,7 @@ async function fundOrResumeUsdc(input: {
         );
         const normalized = polled?.trim();
         if (normalized && isEvmTxHash(normalized)) {
-          hash = normalized as `0x${string}`;
+          hash = normalized;
           conv = await updatePointConversionFields(
             conv.id,
             pointConversionFundingHashPatch(session, hash)
@@ -716,7 +848,10 @@ async function fundOrResumeUsdc(input: {
       }
     }
   }
-  if (!hash && conv.status === 'funding_pending') {
+  if (
+    !hash &&
+    (conv.status === 'funding_pending' || conv.status === 'needs_review')
+  ) {
     const recovered = await findRecentTreasuryUsdcTransfer({
       serverWalletAddress: serverWallet.address,
       recipientAddress: session.wallet_address as `0x${string}`,
@@ -742,17 +877,11 @@ async function fundOrResumeUsdc(input: {
 
   const receiptStatus = await getTreasuryTxReceiptStatus(hash);
   if (receiptStatus === 'reverted') {
-    try {
-      await refundSpendConversionOnFundingFailure({
-        conversionId: conv.id,
-        userId: conv.user_id,
-        spendSessionId: session.id,
-        pointsToRefund: Math.ceil(Number(conv.points_deducted)),
-        failedReason: 'funding transaction reverted',
-      });
-    } catch (r) {
-      console.error('resume wait refund:', r);
-    }
+    await refundSpendConversionPointsBestEffort({
+      conversion: conv,
+      session,
+      failedReason: 'funding transaction reverted',
+    });
     return {
       error: {
         ok: false,

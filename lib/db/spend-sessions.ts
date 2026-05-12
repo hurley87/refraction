@@ -240,6 +240,7 @@ export async function updatePointConversionFields(
       | 'completed_at'
       | 'failed_reason'
       | 'explorer_tx_url'
+      | 'idempotency_key'
     >
   >
 ): Promise<PointConversion> {
@@ -382,6 +383,13 @@ export async function confirmSpendTransactionIfSubmitted(
   }
   if (!data) return null;
   return rowToSpendTransaction(data as Record<string, unknown>);
+}
+
+/** Deterministic idempotency key for treasury→user conversion funding (IRL-20). */
+export function spendConversionFundingIdempotencyKey(
+  pointConversionId: string
+): string {
+  return `fund_user:${pointConversionId}`;
 }
 
 /**

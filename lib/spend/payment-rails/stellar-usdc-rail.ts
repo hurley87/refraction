@@ -6,7 +6,10 @@ import {
   type SpendPaymentRail,
   type SpendRailResult,
 } from '@/lib/spend/payment-rails/spend-payment-rail';
-import { spendRailErrorRailOperationNotSupported } from '@/lib/spend/payment-rails/errors';
+import {
+  spendRailErrorRailOperationNotSupported,
+  spendRailErrorConversionFundingNotSupported,
+} from '@/lib/spend/payment-rails/errors';
 import type {
   SpendPaymentRailReconcileContext,
   SpendPaymentRailSessionContext,
@@ -17,6 +20,9 @@ import type {
 
 const unsupported = (): SpendRailResult<never> =>
   errSpendRail(spendRailErrorRailOperationNotSupported());
+
+const conversionFundingUnsupported = (): SpendRailResult<never> =>
+  errSpendRail(spendRailErrorConversionFundingNotSupported());
 
 /**
  * Stellar USDC rail: registered for typing and shared errors; orchestration methods return
@@ -39,14 +45,17 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
       ctx: SpendPaymentRailSessionContext
     ): Promise<SpendRailResult<{ status: SpendWalletReadinessStatus }>> {
       void ctx;
-      return notSupported();
+      return conversionFundingUnsupported();
     },
 
-    async initiateUserFunding(
-      ctx: SpendPaymentRailSessionContext
-    ): Promise<SpendRailResult<{ status: SpendRailFundingOperationStatus }>> {
+    async initiateUserFunding(ctx: SpendPaymentRailSessionContext): Promise<
+      SpendRailResult<{
+        status: SpendRailFundingOperationStatus;
+        txReference?: string | null;
+      }>
+    > {
       void ctx;
-      return notSupported();
+      return conversionFundingUnsupported();
     },
 
     async preparePayment(

@@ -37,6 +37,7 @@ const IN_PROGRESS: PointConversion['status'][] = [
   'pending',
   'points_deducted',
   'funding_pending',
+  'needs_review',
 ];
 
 export type SpendConversionPreview = {

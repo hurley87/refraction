@@ -57,9 +57,13 @@ export interface SpendPaymentRail {
    * Treasury → user funding at the rail operation layer. Real orchestration moves in IRL-14 /
    * conversion refactors; Base returns a neutral pending placeholder, Stellar is unsupported.
    */
-  initiateUserFunding(
-    ctx: SpendPaymentRailSessionContext
-  ): Promise<SpendRailResult<{ status: SpendRailFundingOperationStatus }>>;
+  initiateUserFunding(ctx: SpendPaymentRailSessionContext): Promise<
+    SpendRailResult<{
+      status: SpendRailFundingOperationStatus;
+      /** Ledger reference when known (`0x…` hash or `pending:<privyTransactionId>`). */
+      txReference?: string | null;
+    }>
+  >;
 
   /**
    * Prepare a payment action (idempotent descriptor). Unsupported on Base until IRL-19;
