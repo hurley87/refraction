@@ -6,6 +6,7 @@ import {
   getSpendBaseTreasuryPrivyTransferConfig,
   getSpendRailBaseRpcUrl,
   getSpendRailBaseUsdcContractAddress,
+  getSpendRailPublicMetadata,
   getSpendTreasuryWalletAddress,
   supportsSpendRailBasePrivyTreasuryFunding,
 } from '@/lib/spend-rail-config';
@@ -23,10 +24,16 @@ export type SpendServerWalletMetadata = {
 
 export type SpendServerWalletFundingMetadata = {
   serverWalletAddress: string;
+  /** Technical network tag (Base mainnet CAIP-style id for Base; `stellar` for Stellar). */
   chain: string;
   minimumUsdc: number;
   usdcBalance: number | null;
   funded: boolean;
+  spendRail: SpendExperience['spend_rail'];
+  paymentNetworkDisplayName: string;
+  fundingNetworkLabel: string;
+  fundingCalloutTitle: string;
+  fundingCalloutBody: string;
 };
 
 export type SpendServerWalletTransferConfig = {
@@ -43,17 +50,49 @@ export function getSpendServerWalletAddress(
   return getSpendTreasuryWalletAddress(experience.spend_rail);
 }
 
+function fundingCalloutCopy(
+  experience: Pick<SpendExperience, 'spend_rail' | 'max_usdc_per_user'>
+): Pick<
+  SpendServerWalletFundingMetadata,
+  | 'fundingCalloutTitle'
+  | 'fundingCalloutBody'
+  | 'paymentNetworkDisplayName'
+  | 'fundingNetworkLabel'
+  | 'chain'
+> {
+  const meta = getSpendRailPublicMetadata(experience.spend_rail);
+  const minStr = Number(experience.max_usdc_per_user).toFixed(2);
+  if (experience.spend_rail === 'base_usdc') {
+    return {
+      chain: SPEND_SERVER_WALLET_CHAIN,
+      paymentNetworkDisplayName: meta.displayName,
+      fundingNetworkLabel: meta.networkLabel,
+      fundingCalloutTitle: 'Fund the server wallet',
+      fundingCalloutBody: `Send at least $${minStr} USDC on ${meta.networkLabel} to activate this spend experience. Fund enough USDC for expected redemptions.`,
+    };
+  }
+  return {
+    chain: 'stellar',
+    paymentNetworkDisplayName: meta.displayName,
+    fundingNetworkLabel: meta.networkLabel,
+    fundingCalloutTitle: 'Fund the Stellar treasury',
+    fundingCalloutBody: `Send at least $${minStr} USDC on the ${meta.networkLabel} network (${meta.displayName}) to the treasury address below. This funds user conversions; add enough for expected redemptions.`,
+  };
+}
+
 export function spendServerWalletFundingMetadata(
   experience: Pick<SpendExperience, 'spend_rail' | 'max_usdc_per_user'>,
   usdcBalance: number | null
 ): SpendServerWalletFundingMetadata {
   const minimumUsdc = Number(experience.max_usdc_per_user);
+  const callout = fundingCalloutCopy(experience);
   return {
     serverWalletAddress: getSpendTreasuryWalletAddress(experience.spend_rail),
-    chain: SPEND_SERVER_WALLET_CHAIN,
     minimumUsdc,
     usdcBalance,
     funded: usdcBalance !== null && usdcBalance >= minimumUsdc,
+    spendRail: experience.spend_rail,
+    ...callout,
   };
 }
 

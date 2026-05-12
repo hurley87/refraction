@@ -38,7 +38,7 @@ export default function AdminSpendExperiencesPage() {
     CreateSpendExperienceResponse['funding'] | null
   >(null);
   const [form, setForm] = useState<SpendExperienceFormState>(
-    emptySpendExperienceForm
+    emptySpendExperienceForm()
   );
 
   const checkAdminStatus = useCallback(async () => {
@@ -90,9 +90,11 @@ export default function AdminSpendExperiencesPage() {
     enabled: !!isAdmin && !!user?.email?.address,
   });
 
-  const { data: railCatalog = [], isPending: railCatalogPending } = useQuery<
-    SpendRailCatalogEntry[]
-  >({
+  const {
+    data: railCatalog = [],
+    isLoading: railCatalogLoading,
+    isError: railCatalogError,
+  } = useQuery<SpendRailCatalogEntry[]>({
     queryKey: RAILS_CATALOG_QUERY_KEY,
     queryFn: async () => {
       const auth = await adminApiAuthHeaders(getAccessToken);
@@ -111,6 +113,15 @@ export default function AdminSpendExperiencesPage() {
     setPanelOpen(false);
     setEditing(null);
   }, []);
+
+  const readApiErrorMessage = useCallback(
+    (body: Record<string, unknown>, fallback: string) => {
+      if (typeof body.error === 'string') return body.error;
+      if (typeof body.message === 'string') return body.message;
+      return fallback;
+    },
+    []
+  );
 
   const saveMutation = useMutation<CreateSpendExperienceResponse, Error>({
     mutationFn: async () => {
@@ -138,11 +149,22 @@ export default function AdminSpendExperiencesPage() {
             body: JSON.stringify(payload),
           }
         );
-        const j = await response.json().catch(() => ({}));
+        const j = (await response.json().catch(() => ({}))) as Record<
+          string,
+          unknown
+        >;
         if (!response.ok) {
-          throw new Error(j.error || j.message || 'Update failed');
+          throw new Error(readApiErrorMessage(j, 'Update failed'));
         }
-        const spendExperience = j.data?.spendExperience ?? j.spendExperience;
+        const dataWrap = j.data as
+          | { spendExperience?: SpendExperience }
+          | undefined;
+        const spendExperience =
+          dataWrap?.spendExperience ??
+          (j as { spendExperience?: SpendExperience }).spendExperience;
+        if (!spendExperience) {
+          throw new Error(readApiErrorMessage(j, 'Update failed'));
+        }
         return { spendExperience } satisfies CreateSpendExperienceResponse;
       }
 
@@ -154,9 +176,12 @@ export default function AdminSpendExperiencesPage() {
         },
         body: JSON.stringify(payload),
       });
-      const j = await response.json().catch(() => ({}));
+      const j = (await response.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
       if (!response.ok) {
-        throw new Error(j.error || j.message || 'Create failed');
+        throw new Error(readApiErrorMessage(j, 'Create failed'));
       }
       return (j.data ?? j) as CreateSpendExperienceResponse;
     },
@@ -174,6 +199,41 @@ export default function AdminSpendExperiencesPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const handleSave = useCallback(() => {
+    if (!editing) {
+      if (railCatalogLoading) {
+        toast.error('Still loading payment network status. Please wait.');
+        return;
+      }
+      if (railCatalogError) {
+        toast.error(
+          'Could not verify payment network status. Try refreshing the page.'
+        );
+        return;
+      }
+      const row = railCatalog.find((r) => r.rail === form.spend_rail);
+      if (!row) {
+        toast.error('Could not resolve the selected payment network.');
+        return;
+      }
+      if (!row.allowsNewSpendWork) {
+        const detail =
+          row.adminUnavailableReasons.filter(Boolean).join(' ') ||
+          'Selected payment network is unavailable.';
+        toast.error(detail);
+        return;
+      }
+    }
+    saveMutation.mutate();
+  }, [
+    editing,
+    form.spend_rail,
+    railCatalog,
+    railCatalogError,
+    railCatalogLoading,
+    saveMutation,
+  ]);
 
   const openCreate = useCallback(() => {
     setEditing(null);
@@ -226,12 +286,10 @@ export default function AdminSpendExperiencesPage() {
     <div className="mx-auto max-w-3xl p-6 font-grotesk">
       {createdFunding && (
         <section className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-          <div className="font-semibold">Fund the server wallet</div>
-          <p className="mt-1">
-            Send at least ${createdFunding.minimumUsdc.toFixed(2)} USDC on Base
-            to activate this spend experience. Fund enough USDC for expected
-            redemptions.
-          </p>
+          <div className="font-semibold">
+            {createdFunding.fundingCalloutTitle}
+          </div>
+          <p className="mt-1">{createdFunding.fundingCalloutBody}</p>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
             <code className="flex-1 break-all rounded bg-white/80 px-2 py-1 text-xs">
               {createdFunding.serverWalletAddress}
@@ -244,7 +302,7 @@ export default function AdminSpendExperiencesPage() {
                 void navigator.clipboard.writeText(
                   createdFunding.serverWalletAddress
                 );
-                toast.success('Server wallet copied');
+                toast.success('Treasury address copied');
               }}
             >
               Copy
@@ -266,10 +324,10 @@ export default function AdminSpendExperiencesPage() {
         form={form}
         setForm={setForm}
         railCatalog={railCatalog}
-        railCatalogPending={railCatalogPending}
+        railCatalogLoading={railCatalogLoading}
         isSaving={saveMutation.isPending}
         onClose={closePanel}
-        onSubmit={saveMutation.mutate}
+        onSubmit={handleSave}
       />
     </div>
   );

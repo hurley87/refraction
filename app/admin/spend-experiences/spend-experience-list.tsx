@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Loader2, Pencil, Plus, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { SpendExperience } from '@/lib/types';
+import { SPEND_RAIL_ADMIN_LABEL } from './form-state';
 
 export type SpendExperienceListProps = {
   experiences: SpendExperience[];
@@ -55,6 +56,8 @@ export function SpendExperienceList({
                 <div className="font-medium text-[#171717]">{exp.title}</div>
                 <div className="text-sm text-neutral-500">
                   <span className="capitalize">{exp.status}</span>
+                  {' · '}
+                  {SPEND_RAIL_ADMIN_LABEL[exp.spend_rail]}
                   {' · '}
                   {exp.points_to_usdc_rate} pts / $1 · max $
                   {exp.max_usdc_per_user} USDC

@@ -22,7 +22,7 @@ export type SpendExperienceFormPanelProps = {
   form: SpendExperienceFormState;
   setForm: Dispatch<SetStateAction<SpendExperienceFormState>>;
   railCatalog: SpendRailCatalogEntry[];
-  railCatalogPending: boolean;
+  railCatalogLoading: boolean;
   isSaving: boolean;
   onClose: () => void;
   onSubmit: () => void;
@@ -55,7 +55,7 @@ export function SpendExperienceFormPanel({
   form,
   setForm,
   railCatalog,
-  railCatalogPending,
+  railCatalogLoading,
   isSaving,
   onClose,
   onSubmit,
@@ -74,7 +74,7 @@ export function SpendExperienceFormPanel({
 
   const createRailBlocked =
     !editing &&
-    (railCatalogPending ||
+    (railCatalogLoading ||
       railCatalog.length === 0 ||
       !selectedCatalogRow ||
       !selectedCatalogRow.allowsNewSpendWork);
@@ -138,7 +138,7 @@ export function SpendExperienceFormPanel({
           {!editing && (
             <div className="space-y-2">
               <Label>Payment network</Label>
-              {railCatalogPending && railCatalog.length === 0 ? (
+              {railCatalogLoading && railCatalog.length === 0 ? (
                 <div className="flex items-center gap-2 text-sm text-neutral-500">
                   <Loader2 className="size-4 animate-spin" />
                   Loading payment networks…
@@ -198,8 +198,8 @@ export function SpendExperienceFormPanel({
                 {selectedCatalogRow.networkLabel} ·{' '}
                 {selectedCatalogRow.assetSymbol}
               </p>
-              <p className="text-xs text-neutral-600">
-                Network is fixed after creation.
+              <p className="text-xs text-neutral-500">
+                Cannot be changed after creation.
               </p>
               {!selectedCatalogRow.allowsNewSpendWork && (
                 <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
@@ -224,19 +224,14 @@ export function SpendExperienceFormPanel({
               </p>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                 <code className="flex-1 break-all rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900">
-                  {railCatalogPending && railCatalog.length === 0
-                    ? '…'
-                    : receivingDisplay}
+                  {receivingDisplay}
                 </code>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   className="shrink-0 gap-1 sm:self-start"
-                  disabled={
-                    !receivingTrimmed ||
-                    (railCatalogPending && railCatalog.length === 0)
-                  }
+                  disabled={!receivingTrimmed}
                   onClick={() => {
                     void navigator.clipboard.writeText(receivingTrimmed);
                     toast.success('Address copied');
@@ -303,17 +298,34 @@ export function SpendExperienceFormPanel({
               />
             </div>
           </div>
-          {editing?.server_wallet_address && (
-            <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
-              <div className="font-medium text-blue-950">
-                Privy server wallet
+          {editing?.spend_rail === 'base_usdc' &&
+            editing.server_wallet_address && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
+                <div className="font-medium text-blue-950">
+                  Privy server wallet (Base)
+                </div>
+                <p className="mt-1 text-blue-900">
+                  Backend-managed on Base for this experience. Admins do not
+                  edit wallet addresses.
+                </p>
+                <code className="mt-2 block break-all text-xs text-blue-950">
+                  {editing.server_wallet_address}
+                </code>
               </div>
-              <p className="mt-1 text-blue-900">
-                Backend-managed on Base. Admins do not edit wallet addresses.
+            )}
+          {editing?.spend_rail === 'stellar_usdc' && (
+            <div className="rounded-lg border border-violet-100 bg-violet-50 p-3 text-sm text-violet-950">
+              <div className="font-medium">Stellar USDC</div>
+              <p className="mt-1 text-violet-900">
+                Funding uses the global Stellar treasury from platform
+                configuration. User accounts and trustlines are managed on
+                Stellar (not Base).
               </p>
-              <code className="mt-2 block break-all text-xs text-blue-950">
-                {editing.server_wallet_address}
-              </code>
+              {editing.treasury_wallet_address ? (
+                <code className="mt-2 block break-all text-xs">
+                  Treasury: {editing.treasury_wallet_address}
+                </code>
+              ) : null}
             </div>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
