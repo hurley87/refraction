@@ -15,6 +15,7 @@ import {
   loadSpendEligibilityForSession,
 } from '@/lib/spend-conversion-preview';
 import { SPEND_ELIGIBILITY_MESSAGES } from '@/lib/spend-eligibility-messages';
+import { recipientUsdcAddressForSpendTransfer } from '@/lib/spend/recipient-usdc-for-treasury-transfer';
 import { resolvePrivyServerTransactionHash } from '@/lib/api/privy';
 import {
   findRecentTreasuryUsdcTransfer,
@@ -78,23 +79,6 @@ type ConfirmContext = {
   usdcAmount: number;
   pointsRequired: number;
 };
-
-/**
- * Server-wallet-funded USDC goes to the session embedded wallet. If session wallet equals the server wallet
- * (misconfiguration), fall back to the normalized embedded address from auth.
- */
-function recipientUsdcAddressForSpendTransfer(params: {
-  serverWalletAddress: string;
-  sessionWalletTrimmed: string;
-  normalizedWalletLower: string;
-}): `0x${string}` {
-  const serverWalletLower = params.serverWalletAddress.trim().toLowerCase();
-  const sessionLower = params.sessionWalletTrimmed.toLowerCase();
-  if (serverWalletLower === sessionLower) {
-    return params.normalizedWalletLower as `0x${string}`;
-  }
-  return params.sessionWalletTrimmed as `0x${string}`;
-}
 
 function restoreTierAfterRefund(params: {
   authUserId: string;

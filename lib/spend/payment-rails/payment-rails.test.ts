@@ -90,10 +90,15 @@ describe('isTerminalSpendRailPaymentStatus', () => {
 });
 
 describe('getSpendPaymentRail', () => {
-  it('returns typed Base rail with user-signed payment confirm supported', () => {
+  it('returns typed Base rail with user-signed payment confirm supported', async () => {
     const rail = getSpendPaymentRail('base_usdc');
     expect(rail.spendRail).toBe('base_usdc');
     expect(rail.assertUserSignedOnchainPaymentConfirmSupported().ok).toBe(true);
+    await expect(
+      rail.preparePayment({ spendSessionId: 's1' })
+    ).resolves.toMatchObject({
+      ok: false,
+    });
   });
 
   it('returns typed Stellar rail that rejects user-signed confirm with catalog error', () => {

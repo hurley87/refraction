@@ -37,6 +37,17 @@ export type SpendRailPaymentOperationStatus =
 export type SpendPaymentRailSessionContext = {
   spendSessionId: string;
   spendExperienceId?: string;
+  /**
+   * Base pilot: optional session fields used by the Base USDC rail (`embeddedEvmWalletAddress`
+   * aligns with `SpendSession.wallet_address`; other rails ignore unset fields for now).
+   */
+  embeddedEvmWalletAddress?: string;
+  /** When set, Base readiness requires a case-insensitive match to `embeddedEvmWalletAddress`. */
+  privyNormalizedWalletAddressLower?: string;
+  /** Human-readable USDC amount for treasury funding and payment verification. */
+  usdcAmount?: number;
+  /** User-submitted canonical `0x` + 64 hex payment hash for `confirmPayment`. */
+  paymentTxHash?: string;
 };
 
 /**
