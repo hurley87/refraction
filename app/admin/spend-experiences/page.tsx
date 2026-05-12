@@ -7,7 +7,7 @@ import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { AdminSpendRailRow, SpendExperience } from '@/lib/types';
+import type { SpendExperience } from '@/lib/types';
 import {
   datetimeLocalToIso,
   emptySpendExperienceForm,
@@ -17,9 +17,10 @@ import {
 import { SpendExperienceFormPanel } from './spend-experience-form-panel';
 import { SpendExperienceList } from './spend-experience-list';
 import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
+import type { SpendRailCatalogEntry } from '@/lib/spend-rail-config/types';
 
 const QUERY_KEY = ['admin-spend-experiences'] as const;
-const SPEND_RAILS_QUERY_KEY = ['admin-spend-rails'] as const;
+const RAILS_CATALOG_QUERY_KEY = ['admin-spend-rails-catalog'] as const;
 
 type CreateSpendExperienceResponse = {
   spendExperience: SpendExperience;
@@ -89,21 +90,22 @@ export default function AdminSpendExperiencesPage() {
     enabled: !!isAdmin && !!user?.email?.address,
   });
 
-  const { data: spendRailRows = [], isPending: spendRailRowsPending } =
-    useQuery<AdminSpendRailRow[]>({
-      queryKey: SPEND_RAILS_QUERY_KEY,
-      queryFn: async () => {
-        const auth = await adminApiAuthHeaders(getAccessToken);
-        const response = await fetch('/api/admin/spend-rails', {
-          headers: auth,
-        });
-        if (!response.ok) throw new Error('Failed to load payment networks');
-        const responseData = await response.json();
-        const data = responseData.data || responseData;
-        return data.rails ?? [];
-      },
-      enabled: !!isAdmin && !!user?.email?.address,
-    });
+  const { data: railCatalog = [], isPending: railCatalogPending } = useQuery<
+    SpendRailCatalogEntry[]
+  >({
+    queryKey: RAILS_CATALOG_QUERY_KEY,
+    queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch('/api/admin/spend-rails/catalog', {
+        headers: auth,
+      });
+      if (!response.ok) throw new Error('Failed to load spend rail catalog');
+      const responseData = await response.json();
+      const data = responseData.data || responseData;
+      return data.rails ?? [];
+    },
+    enabled: !!isAdmin && !!user?.email?.address,
+  });
 
   const closePanel = useCallback(() => {
     setPanelOpen(false);
@@ -263,9 +265,9 @@ export default function AdminSpendExperiencesPage() {
         editing={editing}
         form={form}
         setForm={setForm}
+        railCatalog={railCatalog}
+        railCatalogPending={railCatalogPending}
         isSaving={saveMutation.isPending}
-        spendRailRows={spendRailRows}
-        spendRailRowsLoading={spendRailRowsPending}
         onClose={closePanel}
         onSubmit={saveMutation.mutate}
       />

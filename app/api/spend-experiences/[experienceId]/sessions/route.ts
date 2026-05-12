@@ -10,6 +10,7 @@ import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-gua
 import { assertSpendRailAllowsNewSessions } from '@/lib/spend-rail-config';
 import { createSpendSessionBodySchema } from '@/lib/schemas/spend-session';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
+import { getSpendRailClientSummary } from '@/lib/spend-rail-config';
 import {
   trackSpendSessionCreated,
   resolveServerIdentity,
@@ -100,7 +101,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     return apiSuccess(
-      { session, spendExperience: experience, created },
+      {
+        session,
+        spendExperience: experience,
+        created,
+        spendRailSummary: getSpendRailClientSummary(experience.spend_rail),
+      },
       created ? 'Spend session created' : 'Spend session returned'
     );
   } catch (e) {

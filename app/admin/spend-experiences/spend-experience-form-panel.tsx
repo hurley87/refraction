@@ -12,12 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type {
-  AdminSpendRailRow,
-  SpendExperience,
-  SpendExperienceStatus,
-  SpendRail,
-} from '@/lib/types';
+import type { SpendExperience, SpendExperienceStatus } from '@/lib/types';
+import type { SpendRailCatalogEntry } from '@/lib/spend-rail-config/types';
 import type { SpendExperienceFormState } from './form-state';
 
 export type SpendExperienceFormPanelProps = {
@@ -25,9 +21,9 @@ export type SpendExperienceFormPanelProps = {
   editing: SpendExperience | null;
   form: SpendExperienceFormState;
   setForm: Dispatch<SetStateAction<SpendExperienceFormState>>;
+  railCatalog: SpendRailCatalogEntry[];
+  railCatalogPending: boolean;
   isSaving: boolean;
-  spendRailRows: AdminSpendRailRow[];
-  spendRailRowsLoading: boolean;
   onClose: () => void;
   onSubmit: () => void;
 };
@@ -53,36 +49,35 @@ function submitButtonContent(
   return 'Create';
 }
 
-function railRowFor(
-  rows: AdminSpendRailRow[],
-  rail: SpendRail
-): AdminSpendRailRow | undefined {
-  return rows.find((r) => r.spend_rail === rail);
-}
-
 export function SpendExperienceFormPanel({
   open,
   editing,
   form,
   setForm,
+  railCatalog,
+  railCatalogPending,
   isSaving,
-  spendRailRows,
-  spendRailRowsLoading,
   onClose,
   onSubmit,
 }: SpendExperienceFormPanelProps) {
   if (!open) return null;
 
-  const effectiveRail: SpendRail = editing?.spend_rail ?? form.spend_rail;
-  const effectiveRow = railRowFor(spendRailRows, effectiveRail);
+  const selectedCatalogRow = editing
+    ? railCatalog.find((r) => r.rail === editing.spend_rail)
+    : railCatalog.find((r) => r.rail === form.spend_rail);
+
+  const receivingTrimmed = (
+    selectedCatalogRow?.receivingWalletAddress ?? ''
+  ).trim();
   const receivingDisplay =
-    effectiveRow?.receivingWalletAddress?.trim() || '— (not configured)';
-  const selectedRow = railRowFor(spendRailRows, form.spend_rail);
+    receivingTrimmed || '— (not configured in environment)';
+
   const createRailBlocked =
     !editing &&
-    ((spendRailRowsLoading && spendRailRows.length === 0) ||
-      spendRailRows.length === 0 ||
-      selectedRow?.operational !== true);
+    (railCatalogPending ||
+      railCatalog.length === 0 ||
+      !selectedCatalogRow ||
+      !selectedCatalogRow.allowsNewSpendWork);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -140,99 +135,119 @@ export function SpendExperienceFormPanel({
               placeholder="External event id if linked"
             />
           </div>
-          <div className="space-y-2">
-            <Label>Payment network</Label>
-            {editing ? (
-              <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800">
-                {effectiveRow?.displayName ?? effectiveRail}
-                <span className="ml-2 text-neutral-500">
-                  ({effectiveRow?.networkLabel ?? '—'})
-                </span>
-                <p className="mt-1 text-xs text-neutral-600">
-                  Network is fixed after creation.
-                </p>
-              </div>
-            ) : spendRailRowsLoading && spendRailRows.length === 0 ? (
-              <div className="flex items-center gap-2 text-sm text-neutral-500">
-                <Loader2 className="size-4 animate-spin" />
-                Loading networks…
-              </div>
-            ) : (
-              <Select
-                value={form.spend_rail}
-                onValueChange={(v) =>
-                  setForm((f) => ({
-                    ...f,
-                    spend_rail: v as SpendRail,
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {spendRailRows.map((row) => (
-                    <SelectItem
-                      key={row.spend_rail}
-                      value={row.spend_rail}
-                      disabled={!row.operational}
-                      title={
-                        row.operational
-                          ? undefined
-                          : row.unavailableReasons.join('; ')
-                      }
-                    >
-                      {row.displayName}
-                      {!row.operational ? ' (unavailable)' : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {!editing &&
-              !spendRailRowsLoading &&
-              selectedRow &&
-              !selectedRow.operational && (
-                <p className="text-xs text-amber-800">
-                  This network cannot be used for new experiences until
-                  configuration is fixed (see error on create).
-                </p>
+          {!editing && (
+            <div className="space-y-2">
+              <Label>Payment network</Label>
+              {railCatalogPending && railCatalog.length === 0 ? (
+                <div className="flex items-center gap-2 text-sm text-neutral-500">
+                  <Loader2 className="size-4 animate-spin" />
+                  Loading payment networks…
+                </div>
+              ) : (
+                <Select
+                  value={form.spend_rail}
+                  onValueChange={(v) =>
+                    setForm((f) => ({
+                      ...f,
+                      spend_rail: v as SpendExperienceFormState['spend_rail'],
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select network" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {railCatalog.map((row) => (
+                      <SelectItem
+                        key={row.rail}
+                        value={row.rail}
+                        disabled={!row.allowsNewSpendWork}
+                        title={
+                          row.allowsNewSpendWork
+                            ? undefined
+                            : row.adminUnavailableReasons.join('; ')
+                        }
+                      >
+                        {row.displayName} — {row.networkLabel} ·{' '}
+                        {row.assetSymbol}
+                        {!row.allowsNewSpendWork ? ' (unavailable)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
-          </div>
-          <div className="space-y-2">
-            <Label>Global receiving address (read-only)</Label>
-            <p className="text-xs text-neutral-600">
-              Final USDC destination for this rail — set in environment rail
-              config, not per experience.
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-              <code className="flex-1 break-all rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900">
-                {spendRailRowsLoading && spendRailRows.length === 0
-                  ? '…'
-                  : receivingDisplay}
-              </code>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="shrink-0 gap-1 sm:self-start"
-                disabled={
-                  !receivingDisplay ||
-                  receivingDisplay === '— (not configured)' ||
-                  (spendRailRowsLoading && spendRailRows.length === 0)
-                }
-                onClick={() => {
-                  void navigator.clipboard.writeText(
-                    effectiveRow?.receivingWalletAddress?.trim() ?? ''
-                  );
-                  toast.success('Address copied');
-                }}
-              >
-                <Copy className="size-3.5" />
-                Copy
-              </Button>
+              {selectedCatalogRow && !selectedCatalogRow.allowsNewSpendWork && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+                  <p className="font-medium">This network is not ready</p>
+                  <ul className="mt-1 list-inside list-disc space-y-0.5">
+                    {selectedCatalogRow.adminUnavailableReasons.map(
+                      (reason) => (
+                        <li key={reason}>{reason}</li>
+                      )
+                    )}
+                  </ul>
+                </div>
+              )}
             </div>
-          </div>
+          )}
+          {editing && selectedCatalogRow && (
+            <div className="space-y-2">
+              <Label>Payment network</Label>
+              <p className="text-sm text-neutral-700">
+                {selectedCatalogRow.displayName} —{' '}
+                {selectedCatalogRow.networkLabel} ·{' '}
+                {selectedCatalogRow.assetSymbol}
+              </p>
+              <p className="text-xs text-neutral-600">
+                Network is fixed after creation.
+              </p>
+              {!selectedCatalogRow.allowsNewSpendWork && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+                  <p className="font-medium">Operational issues detected</p>
+                  <ul className="mt-1 list-inside list-disc space-y-0.5">
+                    {selectedCatalogRow.adminUnavailableReasons.map(
+                      (reason) => (
+                        <li key={reason}>{reason}</li>
+                      )
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          {selectedCatalogRow && (
+            <div className="space-y-2">
+              <Label>Global receiving address (read-only)</Label>
+              <p className="text-xs text-neutral-600">
+                Final USDC destination for this rail from environment rail
+                config — not per experience.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <code className="flex-1 break-all rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900">
+                  {railCatalogPending && railCatalog.length === 0
+                    ? '…'
+                    : receivingDisplay}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 gap-1 sm:self-start"
+                  disabled={
+                    !receivingTrimmed ||
+                    (railCatalogPending && railCatalog.length === 0)
+                  }
+                  onClick={() => {
+                    void navigator.clipboard.writeText(receivingTrimmed);
+                    toast.success('Address copied');
+                  }}
+                >
+                  <Copy className="size-3.5" />
+                  Copy
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Status</Label>
             <Select

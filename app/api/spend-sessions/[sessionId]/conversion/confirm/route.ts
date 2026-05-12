@@ -11,6 +11,7 @@ import {
   runSpendConversionConfirm,
 } from '@/lib/spend-conversion-confirm';
 import { spendConversionConfirmBodySchema } from '@/lib/schemas/spend-session';
+import { getSpendRailClientSummary } from '@/lib/spend-rail-config';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -115,6 +116,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         pointsRequired,
         usdcAmount,
       },
+      spendRailSummary: getSpendRailClientSummary(spendExperience.spend_rail),
       resumed: result.resumed,
     });
   } catch (e) {

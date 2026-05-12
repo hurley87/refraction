@@ -9,6 +9,7 @@ export type SpendExperienceFormState = {
   description: string;
   event_id: string;
   status: SpendExperienceStatus;
+  /** Immutable after create; only used when creating a new experience. */
   spend_rail: SpendRail;
   points_to_usdc_rate: string;
   max_usdc_per_user: string;

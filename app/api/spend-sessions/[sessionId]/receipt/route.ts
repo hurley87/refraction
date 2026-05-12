@@ -12,6 +12,7 @@ import {
   resolveServerIdentity,
   trackSpendReceiptViewed,
 } from '@/lib/analytics/server';
+import { getSpendRailClientSummary } from '@/lib/spend-rail-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,6 +83,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       pointConversion,
       spendTransaction,
       eligibility,
+      spendRailSummary: getSpendRailClientSummary(session.spend_rail),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed to load receipt state';
