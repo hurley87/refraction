@@ -42,6 +42,7 @@ interface PublicEvent {
 }
 
 interface ManualEvent {
+  id?: string;
   title: string;
   thumbnailUrl: string;
   date: string;
@@ -138,13 +139,12 @@ export default function EventsPage() {
   } = useQuery<ManualEvent[]>({
     queryKey: ['manual-events'],
     queryFn: async () => {
-      const response = await fetch('/data/manual-events.json');
-      if (!response.ok) {
-        return [];
-      }
-      const data = (await response.json().catch(() => [])) as unknown;
-      if (!Array.isArray(data)) return [];
-      return data as ManualEvent[];
+      const response = await fetch('/api/manual-events');
+      if (!response.ok) return [];
+      const body = await response.json().catch(() => ({}));
+      const events = body?.data ?? body;
+      if (!Array.isArray(events)) return [];
+      return events as ManualEvent[];
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -155,7 +155,7 @@ export default function EventsPage() {
 
     const manualPublic: PublicEvent[] =
       manualEvents?.map((evt, index) => ({
-        id: `manual-${index}-${evt.title}`,
+        id: evt.id ?? `manual-${index}-${evt.title}`,
         title: evt.title,
         description: null,
         start: parseEventDate(evt.date),
