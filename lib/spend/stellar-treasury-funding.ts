@@ -111,8 +111,7 @@ function memoHashMatchesTransaction(
   if (tx.memo_type !== 'hash') return false;
   const m = tx.memo?.trim();
   if (!m) return false;
-  const want = expected.toString('hex').toLowerCase();
-  return m.toLowerCase() === want;
+  return Buffer.from(m, 'base64').equals(expected);
 }
 
 function formatUsdcAmountForStellar(amount: number): string {
