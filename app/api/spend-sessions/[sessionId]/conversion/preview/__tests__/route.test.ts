@@ -126,6 +126,13 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/preview', () => {
     const j = await res.json();
     expect(res.status).toBe(200);
     expect(j.data.eligibility.status).toBe('eligible');
+    expect(j.data.spendRailSummary).toMatchObject({
+      rail: 'base_usdc',
+      displayName: 'Base USDC',
+      networkLabel: 'Base',
+      assetSymbol: 'USDC',
+    });
+    expect(j.data.spendRailSummary.explorerTxUrlTemplate).toContain('{txHash}');
     expect(mockTrackPreview).toHaveBeenCalled();
   });
 

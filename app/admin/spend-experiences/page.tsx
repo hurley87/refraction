@@ -17,8 +17,10 @@ import {
 import { SpendExperienceFormPanel } from './spend-experience-form-panel';
 import { SpendExperienceList } from './spend-experience-list';
 import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
+import type { SpendRailCatalogEntry } from '@/lib/spend-rail-config/types';
 
 const QUERY_KEY = ['admin-spend-experiences'] as const;
+const RAILS_CATALOG_QUERY_KEY = ['admin-spend-rails-catalog'] as const;
 
 type CreateSpendExperienceResponse = {
   spendExperience: SpendExperience;
@@ -88,6 +90,21 @@ export default function AdminSpendExperiencesPage() {
     enabled: !!isAdmin && !!user?.email?.address,
   });
 
+  const { data: railCatalog = [] } = useQuery<SpendRailCatalogEntry[]>({
+    queryKey: RAILS_CATALOG_QUERY_KEY,
+    queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch('/api/admin/spend-rails/catalog', {
+        headers: auth,
+      });
+      if (!response.ok) throw new Error('Failed to load spend rail catalog');
+      const responseData = await response.json();
+      const data = responseData.data || responseData;
+      return data.rails ?? [];
+    },
+    enabled: !!isAdmin && !!user?.email?.address,
+  });
+
   const closePanel = useCallback(() => {
     setPanelOpen(false);
     setEditing(null);
@@ -104,6 +121,7 @@ export default function AdminSpendExperiencesPage() {
         max_usdc_per_user: Number(form.max_usdc_per_user),
         start_time: datetimeLocalToIso(form.start_time_local),
         end_time: datetimeLocalToIso(form.end_time_local),
+        ...(editing ? {} : { spend_rail: form.spend_rail }),
       };
 
       const auth = await adminApiAuthHeaders(getAccessToken);
@@ -112,7 +130,11 @@ export default function AdminSpendExperiencesPage() {
       if (editing) {
         const response = await fetch(
           `/api/admin/spend-experiences/${encodeURIComponent(editing.id)}`,
-          { method: 'PATCH', headers: jsonHeaders, body: JSON.stringify(payload) }
+          {
+            method: 'PATCH',
+            headers: jsonHeaders,
+            body: JSON.stringify(payload),
+          }
         );
         const j = await response.json().catch(() => ({}));
         if (!response.ok) {
@@ -241,6 +263,7 @@ export default function AdminSpendExperiencesPage() {
         editing={editing}
         form={form}
         setForm={setForm}
+        railCatalog={railCatalog}
         isSaving={saveMutation.isPending}
         onClose={closePanel}
         onSubmit={saveMutation.mutate}

@@ -137,6 +137,10 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/confirm', () => {
       (json as { data: { spendExperience: { spend_rail: string } } }).data
         .spendExperience.spend_rail
     ).toBe('base_usdc');
+    expect(
+      (json as { data: { spendRailSummary: { rail: string } } }).data
+        .spendRailSummary.rail
+    ).toBe('base_usdc');
   });
 
   it('captures handled conversion failures when requested by domain logic', async () => {

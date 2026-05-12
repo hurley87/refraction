@@ -139,6 +139,7 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
     expect(res.status).toBe(200);
     expect(j.data.session).toEqual(session);
     expect(j.data.created).toBe(true);
+    expect(j.data.spendRailSummary.rail).toBe('base_usdc');
     expect(mockTrack).toHaveBeenCalled();
     expect(mockEnsureStellar).not.toHaveBeenCalled();
     expect(mockCreateOrGet).toHaveBeenCalledWith(
@@ -190,6 +191,7 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
       expect(j.data.session.rail_user_wallet_address).toBe(
         'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF'
       );
+      expect(j.data.spendRailSummary.rail).toBe('stellar_usdc');
     } finally {
       process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = prevEnabled;
       process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = prevRecv;

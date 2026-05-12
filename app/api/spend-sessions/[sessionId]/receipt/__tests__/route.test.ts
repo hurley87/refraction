@@ -70,5 +70,6 @@ describe('GET /api/spend-sessions/[sessionId]/receipt', () => {
     expect(res.status).toBe(200);
     expect(j.data.session).toEqual(session);
     expect(j.data.eligibility.status).toBe('eligible');
+    expect(j.data.spendRailSummary.rail).toBe('base_usdc');
   });
 });
