@@ -97,6 +97,18 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
       });
 
       if (row.status === 'completed') {
+        const readyAddr = row.rail_user_wallet_address?.trim();
+        if (readyAddr) {
+          try {
+            await updateSpendSessionRailUserWalletAddress(sessionId, readyAddr);
+          } catch (e) {
+            console.error(
+              'stellar_usdc completed readiness session address sync:',
+              e
+            );
+            return errSpendRail(classifyStellarReadinessException(e));
+          }
+        }
         return okSpendRail({ status: 'completed' });
       }
 

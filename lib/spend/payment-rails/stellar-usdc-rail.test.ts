@@ -100,7 +100,7 @@ describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-21)', () =
     );
   });
 
-  it('idempotent second call: completed row skips Privy', async () => {
+  it('idempotent second call: completed row skips Privy but syncs session rail address', async () => {
     hoisted.mockInsertOrGet.mockResolvedValue({
       row: {
         ...pendingRow({ status: 'completed' }),
@@ -115,7 +115,11 @@ describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-21)', () =
     expect(res.ok).toBe(true);
     expect(hoisted.mockEnsureStellar).not.toHaveBeenCalled();
     expect(hoisted.mockUpdateReadiness).not.toHaveBeenCalled();
-    expect(hoisted.mockUpdateSessionRail).not.toHaveBeenCalled();
+    expect(hoisted.mockUpdateSessionRail).toHaveBeenCalledTimes(1);
+    expect(hoisted.mockUpdateSessionRail).toHaveBeenCalledWith(
+      sessionId,
+      STELLAR_G
+    );
   });
 
   it('Privy failure: categorized SpendRailError + persisted diagnostics', async () => {

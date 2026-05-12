@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { spendConversionResumeInvokesWalletReadinessOrchestration } from '@/lib/spend/spend-conversion-resume-policy';
 
 describe('spendConversionResumeInvokesWalletReadinessOrchestration (IRL-21)', () => {
-  it('skips automatic resume readiness orchestration for stellar_usdc', () => {
+  it('invokes resume readiness orchestration for stellar_usdc', () => {
     expect(
       spendConversionResumeInvokesWalletReadinessOrchestration('stellar_usdc')
-    ).toBe(false);
+    ).toBe(true);
   });
 
-  it('keeps Base USDC resume behavior invoking readiness + funding', () => {
+  it('invokes resume readiness orchestration for base_usdc', () => {
     expect(
       spendConversionResumeInvokesWalletReadinessOrchestration('base_usdc')
     ).toBe(true);
