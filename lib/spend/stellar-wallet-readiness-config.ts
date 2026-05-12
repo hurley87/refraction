@@ -1,4 +1,4 @@
-import { Keypair, Networks } from '@stellar/stellar-sdk';
+import { Horizon, Keypair, Networks } from '@stellar/stellar-sdk';
 import { getStellarNetworkConfig } from '@/lib/stellar/utils/network';
 
 /** Circle-issued USDC on Stellar public network (canonical issuer). */
@@ -10,6 +10,14 @@ const STELLAR_SECRET_LEN = 56;
 
 function trimEnv(key: string): string {
   return (process.env[key] ?? '').trim();
+}
+
+/** Horizon client for spend Stellar flows (readiness + treasury funding). */
+export function createStellarSpendHorizonServer(): Horizon.Server {
+  const horizonUrl = getStellarSpendHorizonUrl();
+  return new Horizon.Server(horizonUrl, {
+    allowHttp: horizonUrl.startsWith('http://'),
+  });
 }
 
 export function getStellarSpendHorizonUrl(): string {

@@ -10,9 +10,6 @@ import {
   spendLedgerNetworkLabel,
 } from '@/lib/spend-rail-config/index';
 
-const VALID_STELLAR =
-  'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
-
 describe('spendLedgerNetworkLabel', () => {
   it('maps rails to snapshot labels', () => {
     expect(spendLedgerNetworkLabel('base_usdc')).toBe('Base');
@@ -147,6 +144,7 @@ describe('getSpendRailOperationalDiagnostics — stellar_usdc', () => {
       'NEXT_PUBLIC_STELLAR_NETWORK',
       'NEXT_PUBLIC_SPEND_RAIL_STELLAR_USDC_EXPLORER_TX_URL_TEMPLATE',
       'SPEND_RAIL_STELLAR_USDC_SPONSOR_SECRET_KEY',
+      'SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY',
     ]) {
       prev[k] = process.env[k];
     }
@@ -161,36 +159,39 @@ describe('getSpendRailOperationalDiagnostics — stellar_usdc', () => {
 
   it('happy path when enabled with valid receiving and network', async () => {
     const { Keypair } = await import('@stellar/stellar-sdk');
+    const kp = Keypair.random();
     process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = 'true';
-    process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = VALID_STELLAR;
+    process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = kp.publicKey();
     process.env.NEXT_PUBLIC_STELLAR_NETWORK = 'PUBLIC';
-    process.env.SPEND_RAIL_STELLAR_USDC_SPONSOR_SECRET_KEY =
-      Keypair.random().secret();
+    process.env.SPEND_RAIL_STELLAR_USDC_SPONSOR_SECRET_KEY = kp.secret();
+    process.env.SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY = kp.secret();
     delete process.env
       .NEXT_PUBLIC_SPEND_RAIL_STELLAR_USDC_EXPLORER_TX_URL_TEMPLATE;
     const d = getSpendRailOperationalDiagnostics('stellar_usdc');
     expect(d.operational).toBe(true);
-    expect(getSpendReceivingWalletAddress('stellar_usdc')).toBe(VALID_STELLAR);
+    expect(getSpendReceivingWalletAddress('stellar_usdc')).toBe(kp.publicKey());
   });
 
   it('unavailable when receiving invalid', async () => {
     const { Keypair } = await import('@stellar/stellar-sdk');
+    const kp = Keypair.random();
     process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = 'true';
     process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = 'bad';
     process.env.NEXT_PUBLIC_STELLAR_NETWORK = 'PUBLIC';
-    process.env.SPEND_RAIL_STELLAR_USDC_SPONSOR_SECRET_KEY =
-      Keypair.random().secret();
+    process.env.SPEND_RAIL_STELLAR_USDC_SPONSOR_SECRET_KEY = kp.secret();
+    process.env.SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY = kp.secret();
     const d = getSpendRailOperationalDiagnostics('stellar_usdc');
     expect(d.operational).toBe(false);
   });
 
   it('unavailable when network env missing', async () => {
     const { Keypair } = await import('@stellar/stellar-sdk');
+    const kp = Keypair.random();
     process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = 'true';
-    process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = VALID_STELLAR;
+    process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = kp.publicKey();
     process.env.NEXT_PUBLIC_STELLAR_NETWORK = '';
-    process.env.SPEND_RAIL_STELLAR_USDC_SPONSOR_SECRET_KEY =
-      Keypair.random().secret();
+    process.env.SPEND_RAIL_STELLAR_USDC_SPONSOR_SECRET_KEY = kp.secret();
+    process.env.SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY = kp.secret();
     const d = getSpendRailOperationalDiagnostics('stellar_usdc');
     expect(d.operational).toBe(false);
   });

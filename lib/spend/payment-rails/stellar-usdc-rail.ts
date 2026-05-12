@@ -1,4 +1,5 @@
 import type { SpendRail, SpendWalletReadinessStatus } from '@/lib/types';
+import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import {
   insertPendingSpendWalletReadinessOrGet,
   updateSpendWalletReadinessFields,
@@ -13,8 +14,10 @@ import {
   type SpendRailResult,
 } from '@/lib/spend/payment-rails/spend-payment-rail';
 import {
-  spendRailErrorConversionFundingNotSupported,
+  isSpendRailError,
+  spendRailErrorFundingFailed,
   spendRailErrorNetworkUnavailable,
+  spendRailErrorStellarTreasuryCannotFundSpend,
   spendRailErrorRailOperationNotSupported,
   spendRailErrorWalletReadinessFailed,
   type SpendRailError,
@@ -26,12 +29,14 @@ import type {
   SpendRailPaymentOperationStatus,
 } from '@/lib/spend/payment-rails/types';
 import { runStellarUsdcWalletReadinessOrchestration } from '@/lib/spend/stellar-wallet-readiness-orchestration';
+import {
+  loadStellarTreasuryAccountWithConfirmedUsdcBalance,
+  readStellarTreasuryConfirmedUsdcBalance,
+  submitStellarTreasuryUsdcFunding,
+} from '@/lib/spend/stellar-treasury-funding';
 
 const unsupported = (): SpendRailResult<never> =>
   errSpendRail(spendRailErrorRailOperationNotSupported());
-
-const conversionFundingUnsupported = (): SpendRailResult<never> =>
-  errSpendRail(spendRailErrorConversionFundingNotSupported());
 
 function classifyStellarReadinessException(e: unknown): SpendRailError {
   const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
@@ -60,13 +65,16 @@ function internalDiagnosticsFromError(e: unknown): Record<string, unknown> {
   return { error_message: String(e).slice(0, 4000) };
 }
 
+function isValidPositiveUsdcAmount(n: unknown): n is number {
+  return typeof n === 'number' && Number.isFinite(n) && n > 0;
+}
+
 /**
  * Stellar USDC rail: hybrid readiness (IRL-18) — sponsor-funded account creation,
  * Privy-signed sponsored USDC trustline, ledger-confirmed completion, treasury audit rows.
  */
 export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
   const spendRail: SpendRail = 'stellar_usdc';
-  const notSupported = unsupported;
 
   return {
     spendRail,
@@ -74,7 +82,16 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
     async getTreasurySpendableBalance(): Promise<
       SpendRailResult<number | null>
     > {
-      return notSupported();
+      try {
+        const v = await readStellarTreasuryConfirmedUsdcBalance();
+        return okSpendRail(v);
+      } catch (e) {
+        if (isSpendRailError(e)) {
+          return errSpendRail(e);
+        }
+        console.error('stellar_usdc rail getTreasurySpendableBalance:', e);
+        return errSpendRail(spendRailErrorNetworkUnavailable());
+      }
     },
 
     async runWalletReadinessOrchestration(
@@ -180,22 +197,80 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
         txReference?: string | null;
       }>
     > {
-      void ctx;
-      return conversionFundingUnsupported();
+      const fundingRef = ctx.fundingReferenceId?.trim();
+      if (!fundingRef) {
+        return errSpendRail(spendRailErrorFundingFailed());
+      }
+      if (!isValidPositiveUsdcAmount(ctx.usdcAmount)) {
+        return errSpendRail(spendRailErrorFundingFailed());
+      }
+
+      const destRaw = ctx.embeddedEvmWalletAddress?.trim() ?? '';
+      const destOk = stellarWalletAddressSchema.safeParse(destRaw);
+      if (!destOk.success) {
+        return errSpendRail(spendRailErrorWalletReadinessFailed());
+      }
+
+      let treasurySnapshot: Awaited<
+        ReturnType<typeof loadStellarTreasuryAccountWithConfirmedUsdcBalance>
+      >;
+      try {
+        treasurySnapshot =
+          await loadStellarTreasuryAccountWithConfirmedUsdcBalance();
+        if (treasurySnapshot.balance < ctx.usdcAmount) {
+          return errSpendRail(spendRailErrorStellarTreasuryCannotFundSpend());
+        }
+      } catch (e) {
+        if (isSpendRailError(e)) {
+          return errSpendRail(e);
+        }
+        console.error('stellar_usdc initiateUserFunding balance read:', e);
+        return errSpendRail(spendRailErrorNetworkUnavailable());
+      }
+
+      let sub;
+      try {
+        sub = await submitStellarTreasuryUsdcFunding({
+          destinationPublicKey: destOk.data,
+          usdcAmount: ctx.usdcAmount,
+          fundingReferenceId: fundingRef,
+          cachedTreasuryAccount: treasurySnapshot.account,
+        });
+      } catch (e) {
+        console.error('stellar_usdc initiateUserFunding submit:', e);
+        if (isSpendRailError(e)) {
+          return errSpendRail(e);
+        }
+        return errSpendRail(spendRailErrorNetworkUnavailable());
+      }
+
+      if (sub.kind === 'error') {
+        return errSpendRail(sub.error);
+      }
+      if (sub.kind === 'confirmed') {
+        return okSpendRail({
+          status: 'confirmed',
+          txReference: sub.txHash,
+        });
+      }
+      return okSpendRail({
+        status: 'submitted',
+        txReference: sub.txHash,
+      });
     },
 
     async preparePayment(
       ctx: SpendPaymentRailSessionContext
     ): Promise<SpendRailResult<SpendPaymentPrepareRailValue>> {
       void ctx;
-      return notSupported();
+      return unsupported();
     },
 
     async confirmPayment(
       ctx: SpendPaymentRailSessionContext
     ): Promise<SpendRailResult<{ status: SpendRailPaymentOperationStatus }>> {
       void ctx;
-      return notSupported();
+      return unsupported();
     },
 
     explorerUrlForLedgerTx(
@@ -208,11 +283,11 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
       ctx: SpendPaymentRailReconcileContext
     ): Promise<SpendRailResult<void>> {
       void ctx;
-      return notSupported();
+      return unsupported();
     },
 
     assertUserSignedOnchainPaymentConfirmSupported(): SpendRailResult<void> {
-      return notSupported();
+      return unsupported();
     },
   };
 }

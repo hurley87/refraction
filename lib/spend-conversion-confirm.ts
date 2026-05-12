@@ -22,14 +22,16 @@ import {
   getTreasuryTxReceiptStatus,
   isEvmTxHash,
 } from '@/lib/spend-treasury-usdc-transfer';
-import {
-  fetchServerWalletUsdcBalanceSafe,
-  getSpendServerWalletTransferConfig,
-} from '@/lib/spend-server-wallet';
+import { getSpendTreasuryFundingWalletMeta } from '@/lib/spend-server-wallet';
 import { insertTreasuryFundUserLedgerIfAbsent } from '@/lib/db/treasury-transactions';
-import { explorerTxUrlForSpendLedger } from '@/lib/spend-ledger-explorer-url';
+import {
+  explorerTxUrlForSpendLedger,
+  isStellarTransactionHash,
+  isValidSpendConversionFundingTxReference,
+} from '@/lib/spend-ledger-explorer-url';
 import { spendConversionResumeInvokesWalletReadinessOrchestration } from '@/lib/spend/spend-conversion-resume-policy';
 import { getSpendPaymentRail } from '@/lib/spend/payment-rails';
+import { getStellarTreasuryFundingTxOutcome } from '@/lib/spend/stellar-treasury-funding';
 import type { SpendPaymentRailSessionContext } from '@/lib/spend/payment-rails/types';
 import {
   spendRailErrorCategoryToHttpStatus,
@@ -63,6 +65,17 @@ const MISCONFIGURED_CONVERSION_ERROR =
   'Conversion is not configured correctly. Please contact support.';
 const FUNDING_ACKNOWLEDGED_MESSAGE =
   'USDC transfer submitted. We are confirming it on Base.';
+
+const STELLAR_TREASURY_INSUFFICIENT_AT_CONFIRM =
+  "We're unable to fund this spend right now. Please try again shortly.";
+
+function fundingAcknowledgedMessage(
+  spendRail: SpendSession['spend_rail']
+): string {
+  return spendRail === 'stellar_usdc'
+    ? 'USDC transfer submitted. We are confirming it on Stellar.'
+    : FUNDING_ACKNOWLEDGED_MESSAGE;
+}
 
 export type SpendConversionConfirmResult =
   | {
@@ -207,8 +220,8 @@ async function runWalletReadinessAndUserFunding(input: {
     }
   }
 
-  const serverWallet = getSpendServerWalletTransferConfig(spendExperience);
-  if (!serverWallet) {
+  const treasuryMeta = getSpendTreasuryFundingWalletMeta(spendExperience);
+  if (!treasuryMeta) {
     return {
       kind: 'error',
       value: {
@@ -292,7 +305,7 @@ async function runWalletReadinessAndUserFunding(input: {
   const ref = (txReference ?? '').trim();
 
   if (status === 'confirmed') {
-    if (!isEvmTxHash(ref)) {
+    if (!isValidSpendConversionFundingTxReference(session.spend_rail, ref)) {
       return {
         kind: 'error',
         value: {
@@ -307,8 +320,8 @@ async function runWalletReadinessAndUserFunding(input: {
       pointConversion: { ...conv, funding_tx_hash: ref },
       session,
       spendExperience,
-      serverWalletAddress: serverWallet.address,
-      txHash: ref,
+      treasuryFromWalletAddress: treasuryMeta.treasuryAddress,
+      fundingTxReference: ref,
       distinctId,
       baseAnalytics,
     });
@@ -405,23 +418,27 @@ export async function finalizeSpendConversionFunding(input: {
   pointConversion: PointConversion;
   session: SpendSession;
   spendExperience: SpendExperience;
-  serverWalletAddress: string;
-  txHash: `0x${string}`;
+  treasuryFromWalletAddress: string;
+  fundingTxReference: string;
   distinctId: string;
   baseAnalytics: SpendPilotConversionEventProperties;
 }): Promise<PointConversion> {
   const done = await updatePointConversionFields(input.pointConversion.id, {
     status: 'funded',
     completed_at: new Date().toISOString(),
-    ...pointConversionFundingHashPatch(input.session, input.txHash),
+    ...pointConversionFundingHashPatch(input.session, input.fundingTxReference),
   });
+  const toLedger =
+    input.session.spend_rail === 'stellar_usdc'
+      ? embeddedSpendWalletForSession(input.session)
+      : done.user_wallet_address;
   void insertTreasuryFundUserLedgerIfAbsent({
     spendExperienceId: input.spendExperience.id,
     spendRail: input.spendExperience.spend_rail,
     amount: done.usdc_amount,
-    fromWalletAddress: input.serverWalletAddress,
-    toWalletAddress: done.user_wallet_address,
-    txHash: input.txHash,
+    fromWalletAddress: input.treasuryFromWalletAddress,
+    toWalletAddress: toLedger,
+    txHash: input.fundingTxReference,
   });
   await markSessionAfterFunding(input.session.id);
   trackSpendConversionCompleted(input.distinctId, {
@@ -429,7 +446,7 @@ export async function finalizeSpendConversionFunding(input: {
     point_conversion_id: done.id,
     spend_session_id: input.session.id,
     status: 'funded',
-    funding_tx_hash: input.txHash,
+    funding_tx_hash: input.fundingTxReference,
   });
   return done;
 }
@@ -453,10 +470,24 @@ export async function tryFinalizePendingSpendConversion(input: {
     return null;
   }
 
-  const serverWallet = getSpendServerWalletTransferConfig(
-    input.spendExperience
-  );
-  if (!serverWallet) return null;
+  const treasuryMeta = getSpendTreasuryFundingWalletMeta(input.spendExperience);
+  if (!treasuryMeta) return null;
+
+  if (input.session.spend_rail === 'stellar_usdc') {
+    const raw = pointConversion.funding_tx_hash?.trim() ?? '';
+    if (!raw || !isStellarTransactionHash(raw)) return null;
+    const outcome = await getStellarTreasuryFundingTxOutcome(raw);
+    if (outcome !== 'success') return null;
+    return finalizeSpendConversionFunding({
+      pointConversion: { ...pointConversion, funding_tx_hash: raw },
+      session: input.session,
+      spendExperience: input.spendExperience,
+      treasuryFromWalletAddress: treasuryMeta.treasuryAddress,
+      fundingTxReference: raw,
+      distinctId: input.distinctId,
+      baseAnalytics: input.baseAnalytics,
+    });
+  }
 
   let hash = pointConversion.funding_tx_hash?.trim() as
     | `0x${string}`
@@ -464,7 +495,7 @@ export async function tryFinalizePendingSpendConversion(input: {
 
   if (!hash) {
     const recovered = await findRecentTreasuryUsdcTransfer({
-      serverWalletAddress: serverWallet.address,
+      serverWalletAddress: treasuryMeta.treasuryAddress as `0x${string}`,
       recipientAddress: input.session.wallet_address as `0x${string}`,
       usdcAmount: Number(pointConversion.usdc_amount),
     });
@@ -485,8 +516,8 @@ export async function tryFinalizePendingSpendConversion(input: {
     pointConversion: { ...pointConversion, funding_tx_hash: hash },
     session: input.session,
     spendExperience: input.spendExperience,
-    serverWalletAddress: serverWallet.address,
-    txHash: hash,
+    treasuryFromWalletAddress: treasuryMeta.treasuryAddress,
+    fundingTxReference: hash,
     distinctId: input.distinctId,
     baseAnalytics: input.baseAnalytics,
   });
@@ -637,7 +668,19 @@ export async function runSpendConversionConfirm(
     };
   }
 
-  const bal = await fetchServerWalletUsdcBalanceSafe(spendExperience);
+  const confirmTreasury = await getSpendPaymentRail(
+    session.spend_rail
+  ).getTreasurySpendableBalance();
+  if (!confirmTreasury.ok) {
+    return {
+      ok: false,
+      httpStatus: spendRailErrorCategoryToHttpStatus(
+        confirmTreasury.error.category
+      ),
+      error: confirmTreasury.error.userMessage,
+    };
+  }
+  const bal = confirmTreasury.value;
   if (bal === null || bal < usdcAmount) {
     trackSpendTreasuryInsufficientFunds(distinctId, {
       ...baseAnalytics,
@@ -647,12 +690,15 @@ export async function runSpendConversionConfirm(
     return {
       ok: false,
       httpStatus: 400,
-      error: SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient,
+      error:
+        session.spend_rail === 'stellar_usdc'
+          ? STELLAR_TREASURY_INSUFFICIENT_AT_CONFIRM
+          : SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient,
     };
   }
 
-  const serverWallet = getSpendServerWalletTransferConfig(spendExperience);
-  if (!serverWallet) {
+  const treasuryMeta = getSpendTreasuryFundingWalletMeta(spendExperience);
+  if (!treasuryMeta) {
     return {
       ok: false,
       httpStatus: 500,
@@ -669,7 +715,7 @@ export async function runSpendConversionConfirm(
       spendExperienceId: spendExperience.id,
       pointsToDeduct: pointsRequired,
       usdcAmount,
-      treasuryWalletAddress: serverWallet.address,
+      treasuryWalletAddress: treasuryMeta.treasuryAddress,
       userWalletAddress: session.wallet_address,
     });
   } catch (e) {
@@ -806,8 +852,8 @@ async function fundOrResumeUsdc(input: {
     };
   }
 
-  const serverWallet = getSpendServerWalletTransferConfig(spendExperience);
-  if (!serverWallet) {
+  const treasuryMeta = getSpendTreasuryFundingWalletMeta(spendExperience);
+  if (!treasuryMeta) {
     return {
       error: {
         ok: false,
@@ -862,10 +908,11 @@ async function fundOrResumeUsdc(input: {
     conv = onward.conversion;
   }
 
-  let hash = conv.funding_tx_hash?.trim() as `0x${string}` | undefined;
+  let hash = conv.funding_tx_hash?.trim();
   const pendingPrefix = 'pending:';
   const trimmedFunding = conv.funding_tx_hash?.trim() ?? '';
   if (
+    session.spend_rail === 'base_usdc' &&
     !hash &&
     trimmedFunding.startsWith(pendingPrefix) &&
     (conv.status === 'funding_pending' || conv.status === 'needs_review')
@@ -891,16 +938,18 @@ async function fundOrResumeUsdc(input: {
     }
   }
   if (
+    session.spend_rail === 'base_usdc' &&
     !hash &&
     (conv.status === 'funding_pending' || conv.status === 'needs_review')
   ) {
     const recovered = await findRecentTreasuryUsdcTransfer({
-      serverWalletAddress: serverWallet.address,
+      serverWalletAddress: treasuryMeta.treasuryAddress as `0x${string}`,
       recipientAddress: session.wallet_address as `0x${string}`,
       usdcAmount: Number(conv.usdc_amount),
     });
-    hash = recovered ?? undefined;
-    if (hash) {
+    const recoveredHash = recovered ?? undefined;
+    if (recoveredHash) {
+      hash = recoveredHash;
       conv = await updatePointConversionFields(
         conv.id,
         pointConversionFundingHashPatch(session, hash)
@@ -912,12 +961,35 @@ async function fundOrResumeUsdc(input: {
       error: {
         ok: false,
         httpStatus: 409,
-        error: FUNDING_ACKNOWLEDGED_MESSAGE,
+        error: fundingAcknowledgedMessage(session.spend_rail),
       } as SpendConversionConfirmResult,
     };
   }
 
-  const receiptStatus = await getTreasuryTxReceiptStatus(hash);
+  let receiptStatus: 'success' | 'reverted' | 'pending';
+  if (session.spend_rail === 'stellar_usdc' && isStellarTransactionHash(hash)) {
+    const o = await getStellarTreasuryFundingTxOutcome(hash);
+    if (o === 'success') receiptStatus = 'success';
+    else if (o === 'failed') receiptStatus = 'reverted';
+    else receiptStatus = 'pending';
+  } else if (isEvmTxHash(hash)) {
+    const evm = await getTreasuryTxReceiptStatus(hash);
+    receiptStatus =
+      evm === 'success'
+        ? 'success'
+        : evm === 'reverted'
+          ? 'reverted'
+          : 'pending';
+  } else {
+    return {
+      error: {
+        ok: false,
+        httpStatus: 409,
+        error: fundingAcknowledgedMessage(session.spend_rail),
+      } as SpendConversionConfirmResult,
+    };
+  }
+
   if (receiptStatus === 'reverted') {
     await refundSpendConversionPointsBestEffort({
       conversion: conv,
@@ -939,7 +1011,7 @@ async function fundOrResumeUsdc(input: {
       error: {
         ok: false,
         httpStatus: 409,
-        error: FUNDING_ACKNOWLEDGED_MESSAGE,
+        error: fundingAcknowledgedMessage(session.spend_rail),
       },
     };
   }
@@ -948,8 +1020,8 @@ async function fundOrResumeUsdc(input: {
     pointConversion: conv,
     session,
     spendExperience,
-    serverWalletAddress: serverWallet.address,
-    txHash: hash,
+    treasuryFromWalletAddress: treasuryMeta.treasuryAddress,
+    fundingTxReference: hash,
     distinctId,
     baseAnalytics,
   });

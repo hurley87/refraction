@@ -2,7 +2,6 @@ import {
   SPEND_ELIGIBILITY_MESSAGES,
   type SpendEligibilityStatus,
 } from '@/lib/spend-eligibility-messages';
-import { fetchServerWalletUsdcBalanceSafe } from '@/lib/spend-server-wallet';
 import {
   fetchUsdcBalanceOnBase,
   isEvmAddress,
@@ -13,9 +12,12 @@ import {
   getSpendRailOperationalDiagnostics,
   getSpendReceivingWalletAddress,
   getSpendTreasuryWalletAddress,
-  supportsSpendRailBasePrivyTreasuryFunding,
 } from '@/lib/spend-rail-config';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
+import {
+  okSpendRail,
+  type SpendRailResult,
+} from '@/lib/spend/payment-rails/spend-payment-rail';
 import type {
   PointConversion,
   Player,
@@ -32,6 +34,20 @@ import {
 
 export type { SpendEligibilityStatus } from '@/lib/spend-eligibility-messages';
 export { SPEND_ELIGIBILITY_MESSAGES } from '@/lib/spend-eligibility-messages';
+
+async function getTreasurySpendableBalanceForSpendEligibility(
+  spendExperience: Pick<SpendExperience, 'spend_rail'>
+): Promise<SpendRailResult<number | null>> {
+  if (spendExperience.spend_rail === 'stellar_usdc') {
+    const { createStellarUsdcSpendPaymentRail } =
+      await import('@/lib/spend/payment-rails/stellar-usdc-rail');
+    return createStellarUsdcSpendPaymentRail().getTreasurySpendableBalance();
+  }
+  const { fetchServerWalletUsdcBalanceSafe } =
+    await import('@/lib/spend-server-wallet');
+  const b = await fetchServerWalletUsdcBalanceSafe(spendExperience);
+  return okSpendRail(b);
+}
 
 const IN_PROGRESS: PointConversion['status'][] = [
   'pending',
@@ -69,6 +85,12 @@ type BuildPreviewInput = {
   userUsdcBalance: number | null;
   now: Date;
 };
+
+function spendRailSupportsPointsToUsdcConversion(
+  spendRail: SpendExperience['spend_rail']
+): boolean {
+  return spendRail === 'base_usdc' || spendRail === 'stellar_usdc';
+}
 
 /**
  * Computes max USDC and required points for a spend experience (pilot: full max per user).
@@ -205,9 +227,9 @@ export function buildSpendEligibilityPreview(
   const balance =
     player?.total_points != null ? Number(player.total_points) : 0;
 
-  /** Points→USDC via Privy treasury exists only on `base_usdc` today. */
+  /** Points→USDC conversion is supported only on rails that implement treasury funding. */
   if (
-    !supportsSpendRailBasePrivyTreasuryFunding(spendExperience.spend_rail) &&
+    !spendRailSupportsPointsToUsdcConversion(spendExperience.spend_rail) &&
     balance >= pointsRequired
   ) {
     return {
@@ -226,9 +248,13 @@ export function buildSpendEligibilityPreview(
   }
 
   if (treasuryUsdcBalance === null || treasuryUsdcBalance < usdcAmount) {
+    const insufficientMsg =
+      spendExperience.spend_rail === 'stellar_usdc'
+        ? "We're unable to fund this spend right now. Please try again shortly."
+        : SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient;
     return {
       status: 'treasury_insufficient',
-      message: SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient,
+      message: insufficientMsg,
       preview: basePreview(),
     };
   }
@@ -272,24 +298,30 @@ export async function loadSpendEligibilityForSession(
   const session = input.session;
   const spendExperience = input.spendExperience;
 
-  const [
-    player,
-    pointConversion,
-    fundedOther,
-    treasuryUsdcBalance,
-    spendTx,
-    userUsdcBalance,
-  ] = await Promise.all([
-    getPlayerByWallet(session.wallet_address),
-    getPointConversionBySessionId(session.id),
-    getFundedPointConversionForUserExperience(
-      spendExperience.id,
-      session.user_id
-    ),
-    fetchServerWalletUsdcBalanceSafe(spendExperience),
-    getSpendTransactionBySessionId(session.id),
-    fetchUserUsdcBalanceSafe(session.wallet_address),
-  ]);
+  const tb =
+    await getTreasurySpendableBalanceForSpendEligibility(spendExperience);
+
+  if (!tb.ok && spendExperience.spend_rail === 'stellar_usdc') {
+    return {
+      status: 'rail_unavailable',
+      message: SPEND_ELIGIBILITY_MESSAGES.rail_unavailable,
+      preview: null,
+    };
+  }
+
+  const treasuryUsdcBalance = tb.ok ? tb.value : null;
+
+  const [player, pointConversion, fundedOther, spendTx, userUsdcBalance] =
+    await Promise.all([
+      getPlayerByWallet(session.wallet_address),
+      getPointConversionBySessionId(session.id),
+      getFundedPointConversionForUserExperience(
+        spendExperience.id,
+        session.user_id
+      ),
+      getSpendTransactionBySessionId(session.id),
+      fetchUserUsdcBalanceSafe(session.wallet_address),
+    ]);
 
   return buildSpendEligibilityPreview({
     session,
