@@ -2,12 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockGetPointConversion = vi.fn();
 const mockFetchUserUsdc = vi.fn();
+const mockGetSpendTransaction = vi.fn();
+const mockRailGate = vi.fn(() => ({ ok: true as const }));
 
 vi.mock('@/lib/db/spend-sessions', () => ({
   getPointConversionBySessionId: (...a: unknown[]) =>
     mockGetPointConversion(...a),
   getSpendSessionById: vi.fn(),
-  getSpendTransactionBySessionId: vi.fn(),
+  getSpendTransactionBySessionId: (...a: unknown[]) =>
+    mockGetSpendTransaction(...a),
   insertSpendTransactionSubmitted: vi.fn(),
   updateSpendSessionStatus: vi.fn(),
   updateSpendTransactionFields: vi.fn(),
@@ -34,16 +37,20 @@ vi.mock('@/lib/spend-payment-verify', () => ({
 vi.mock('@/lib/spend-rail-config', () => ({
   getSpendReceivingWalletAddress: () =>
     '0x2222222222222222222222222222222222222222',
-  isSpendRailOperational: () => true,
+  assertSpendRailAllowsMutatingSpendWork: (...a: unknown[]) =>
+    mockRailGate(...a),
 }));
 
 vi.mock('@/lib/analytics/server', () => ({
   trackSpendPaymentCompleted: vi.fn(),
   trackSpendPaymentConfirmed: vi.fn(),
   trackSpendPaymentFailed: vi.fn(),
+  trackSpendPilotRailMutationBlocked: vi.fn(),
 }));
 
 import { runSpendPaymentConfirm } from '@/lib/spend-payment-confirm';
+import * as analytics from '@/lib/analytics/server';
+import * as spendSessions from '@/lib/db/spend-sessions';
 import type {
   PointConversion,
   SpendExperience,
@@ -121,6 +128,8 @@ describe('runSpendPaymentConfirm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetchUserUsdc.mockResolvedValue(10);
+    mockRailGate.mockReturnValue({ ok: true as const });
+    mockGetSpendTransaction.mockResolvedValue(null);
   });
 
   it('rejects direct USDC payment while a points conversion is still in progress', async () => {
@@ -142,5 +151,51 @@ describe('runSpendPaymentConfirm', () => {
     if (result.ok) throw new Error('expected failure');
     expect(result.httpStatus).toBe(400);
     expect(result.error).toMatch(/conversion is still in progress/i);
+  });
+
+  it('returns 400 and does not insert when rail blocks new payment tx (HTTP 400 per spend API convention)', async () => {
+    mockGetPointConversion.mockResolvedValue(inProgressConversion('funded'));
+    mockRailGate.mockReturnValue({
+      ok: false as const,
+      error:
+        'This payment network is temporarily unavailable. Please try again later.',
+      analytics: {
+        spend_rail: 'base_usdc',
+        rail_operational: false as const,
+        unavailable_reason_codes: ['Base USDC is turned off in configuration.'],
+      },
+    });
+
+    const session = {
+      ...baseSession,
+      status: 'conversion_complete' as const,
+    };
+
+    const result = await runSpendPaymentConfirm({
+      session,
+      spendExperience: baseExperience,
+      normalizedWallet: baseSession.wallet_address.toLowerCase(),
+      authUserId: 'user-1',
+      distinctId: 'd1',
+      paymentTxHash: validHash,
+      usdcAmount: 5,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('expected failure');
+    expect(result.httpStatus).toBe(400);
+    expect(result.error).toMatch(/temporarily unavailable/i);
+    expect(analytics.trackSpendPilotRailMutationBlocked).toHaveBeenCalledWith(
+      'd1',
+      expect.objectContaining({
+        mutation: 'payment_confirm_new_tx',
+        spend_rail: 'base_usdc',
+        rail_operational: false,
+        spend_session_id: session.id,
+      })
+    );
+    expect(
+      spendSessions.insertSpendTransactionSubmitted
+    ).not.toHaveBeenCalled();
   });
 });

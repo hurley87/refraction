@@ -22,6 +22,10 @@ vi.mock('@/lib/spend-server-wallet', () => ({
     mockGetFundingStatus(...args),
 }));
 
+vi.mock('@/lib/analytics/server', () => ({
+  trackSpendPilotRailMutationBlocked: vi.fn(),
+}));
+
 import { PATCH, GET } from '../route';
 
 const existing = {
@@ -121,6 +125,29 @@ describe('PATCH /api/admin/spend-experiences/[experienceId]', () => {
     expect(res.status).toBe(404);
     expect(j.success).toBe(false);
     expect(mockUpdateSpendExperience).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when updating spend mechanics while rail is not operational', async () => {
+    mockRequireAdmin.mockResolvedValue({
+      isValid: true,
+      user: { email: 'admin@example.com' },
+    });
+    mockGetSpendExperienceById.mockResolvedValue(existing);
+    const prev = process.env.SPEND_RAIL_BASE_USDC_ENABLED;
+    process.env.SPEND_RAIL_BASE_USDC_ENABLED = 'false';
+    try {
+      const res = await PATCH(
+        patchRequest({ max_usdc_per_user: 10 }, 'admin@example.com'),
+        { params: { experienceId: 'exp-1' } }
+      );
+      const j = await res.json();
+      expect(res.status).toBe(400);
+      expect(j.success).toBe(false);
+      expect(mockUpdateSpendExperience).not.toHaveBeenCalled();
+    } finally {
+      if (prev === undefined) delete process.env.SPEND_RAIL_BASE_USDC_ENABLED;
+      else process.env.SPEND_RAIL_BASE_USDC_ENABLED = prev;
+    }
   });
 
   it('returns 400 when merged window is invalid', async () => {

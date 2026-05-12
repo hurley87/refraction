@@ -181,3 +181,26 @@ export interface SpendPilotPaymentEventProperties {
   spend_transaction_id?: string;
   payment_tx_hash?: string | null;
 }
+
+/** Server-only: mutating spend blocked because the session rail is not operational. */
+export interface SpendPilotRailMutationBlockedProperties {
+  mutation:
+    | 'spend_session_create'
+    | 'conversion_confirm'
+    | 'conversion_resume'
+    | 'payment_confirm_new_tx'
+    | 'admin_spend_experience_create'
+    | 'admin_spend_experience_update'
+    | 'admin_treasury_withdraw';
+  spend_rail: string;
+  rail_operational: false;
+  /** Curated, non-secret reason labels (see spend-rail-config admin mapping). */
+  unavailable_reason_codes: string[];
+  spend_experience_id?: string;
+  spend_session_id?: string;
+  event_id?: string | null;
+  user_id?: string;
+  wallet_address?: string;
+  point_conversion_id?: string;
+  admin_actor?: string | null;
+}

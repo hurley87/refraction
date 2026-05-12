@@ -50,6 +50,8 @@ export const ANALYTICS_EVENTS = {
   SPEND_PAYMENT_COMPLETED: 'spend_payment_completed',
   SPEND_PAYMENT_FAILED: 'spend_payment_failed',
   SPEND_RECEIPT_VIEWED: 'spend_receipt_viewed',
+  /** Spend rail disabled/misconfigured blocked a mutating API path (IRL-10). */
+  SPEND_PILOT_RAIL_MUTATION_BLOCKED: 'spend_pilot_rail_mutation_blocked',
 } as const;
 
 export type AnalyticsEventName =

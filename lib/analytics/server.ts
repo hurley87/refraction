@@ -14,6 +14,7 @@ import type {
   SpendPilotSessionEventProperties,
   SpendPilotConversionEventProperties,
   SpendPilotPaymentEventProperties,
+  SpendPilotRailMutationBlockedProperties,
 } from './types';
 import { ANALYTICS_EVENTS } from './events';
 import { resolveDistinctId, type IdentityInput } from './identity';
@@ -356,4 +357,15 @@ export function trackSpendReceiptViewed(
   properties: SpendPilotPaymentEventProperties
 ): void {
   trackEvent(distinctId, ANALYTICS_EVENTS.SPEND_RECEIPT_VIEWED, properties);
+}
+
+export function trackSpendPilotRailMutationBlocked(
+  distinctId: string,
+  properties: SpendPilotRailMutationBlockedProperties
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPEND_PILOT_RAIL_MUTATION_BLOCKED,
+    properties
+  );
 }

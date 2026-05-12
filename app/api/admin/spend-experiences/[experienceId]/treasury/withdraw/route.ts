@@ -10,6 +10,8 @@ import {
   getSpendServerWalletAddress,
   getSpendServerWalletTransferConfig,
 } from '@/lib/spend-server-wallet';
+import { assertSpendRailAllowsMutatingSpendWork } from '@/lib/spend-rail-config';
+import { trackSpendPilotRailMutationBlocked } from '@/lib/analytics/server';
 import {
   submitTreasuryUsdcTransfer,
   waitForTreasuryTxReceipt,
@@ -34,6 +36,23 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const experience = await getSpendExperienceById(params.experienceId);
     if (!experience) {
       return apiError('Spend experience not found', 404);
+    }
+
+    const railGate = assertSpendRailAllowsMutatingSpendWork(
+      experience.spend_rail
+    );
+    if (!railGate.ok) {
+      trackSpendPilotRailMutationBlocked(
+        adminCheck.user?.email ?? 'admin_server',
+        {
+          mutation: 'admin_treasury_withdraw',
+          ...railGate.analytics,
+          spend_experience_id: experience.id,
+          event_id: experience.event_id,
+          admin_actor: adminCheck.user?.email ?? null,
+        }
+      );
+      return apiError(railGate.error, 400);
     }
 
     if (experience.spend_rail !== 'base_usdc') {

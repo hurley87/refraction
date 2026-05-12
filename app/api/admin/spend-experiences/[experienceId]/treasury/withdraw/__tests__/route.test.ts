@@ -57,6 +57,10 @@ vi.mock('@/lib/db/treasury-transactions', () => ({
     mockInsertLedger(...args),
 }));
 
+vi.mock('@/lib/analytics/server', () => ({
+  trackSpendPilotRailMutationBlocked: vi.fn(),
+}));
+
 import { POST } from '../route';
 
 const experience = {
@@ -115,6 +119,33 @@ describe('POST /api/admin/spend-experiences/[experienceId]/treasury/withdraw', (
       id: 'wallet_e1',
       address: CONFIG_TREASURY,
     });
+  });
+
+  it('returns 400 when spend rail is not operational', async () => {
+    const prev = process.env.SPEND_RAIL_BASE_USDC_ENABLED;
+    process.env.SPEND_RAIL_BASE_USDC_ENABLED = 'false';
+    try {
+      const headers = new Headers();
+      headers.set('Content-Type', 'application/json');
+      headers.set('x-user-email', 'admin@example.com');
+      const dest = '0x5555555555555555555555555555555555555555';
+      const req = new NextRequest(
+        'http://localhost:3000/api/admin/spend-experiences/exp-1/treasury/withdraw',
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ destinationAddress: dest }),
+        }
+      );
+      const res = await POST(req, { params: { experienceId: 'exp-1' } });
+      const j = await res.json();
+      expect(res.status).toBe(400);
+      expect(j.success).toBe(false);
+      expect(mockSubmitTransfer).not.toHaveBeenCalled();
+    } finally {
+      if (prev === undefined) delete process.env.SPEND_RAIL_BASE_USDC_ENABLED;
+      else process.env.SPEND_RAIL_BASE_USDC_ENABLED = prev;
+    }
   });
 
   it('returns 400 when destination equals server wallet', async () => {

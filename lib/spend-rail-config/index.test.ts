@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  assertSpendRailAllowsMutatingSpendWork,
   assertSpendRailAllowsNewSessions,
   formatExplorerTxUrlForSpendLedger,
   getSpendRailOperationalDiagnostics,
@@ -91,6 +92,21 @@ describe('getSpendRailOperationalDiagnostics — base_usdc', () => {
     expect(d.operational).toBe(false);
     expect(d.unavailableReasons.some((r) => r.includes('disabled'))).toBe(true);
     expect(assertSpendRailAllowsNewSessions('base_usdc').ok).toBe(false);
+  });
+
+  it('assertSpendRailAllowsMutatingSpendWork includes safe analytics when blocked', () => {
+    process.env.SPEND_RAIL_BASE_USDC_ENABLED = 'false';
+    process.env.SPEND_RAIL_BASE_USDC_TREASURY_WALLET_ADDRESS =
+      '0x1111111111111111111111111111111111111111';
+    process.env.SPEND_RAIL_BASE_USDC_RECEIVING_WALLET_ADDRESS =
+      '0x2222222222222222222222222222222222222222';
+    process.env.SPEND_RAIL_BASE_USDC_PRIVY_SERVER_WALLET_ID = 'w1';
+    const gate = assertSpendRailAllowsMutatingSpendWork('base_usdc');
+    expect(gate.ok).toBe(false);
+    if (gate.ok) throw new Error('expected block');
+    expect(gate.analytics.spend_rail).toBe('base_usdc');
+    expect(gate.analytics.rail_operational).toBe(false);
+    expect(gate.analytics.unavailable_reason_codes.length).toBeGreaterThan(0);
   });
 
   it('marks rail unavailable when treasury address invalid', () => {
