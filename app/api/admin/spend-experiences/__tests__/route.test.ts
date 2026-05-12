@@ -202,53 +202,108 @@ describe('POST /api/admin/spend-experiences', () => {
     );
   });
 
-  it('passes spend_rail stellar_usdc through to createSpendExperience', async () => {
+  it('returns 400 when spend rail is not operational', async () => {
     mockRequireAdmin.mockResolvedValue({
       isValid: true,
       user: { email: 'admin@example.com' },
     });
-    mockCreateSpendExperience.mockImplementation(async (input) => ({
-      id: 'exp-1',
-      title: input.title,
-      description: input.description,
-      event_id: input.event_id,
-      status: input.status,
-      spend_rail: input.spend_rail,
-      points_to_usdc_rate: input.points_to_usdc_rate,
-      max_usdc_per_user: input.max_usdc_per_user,
-      treasury_wallet_address: input.server_wallet_address,
-      receiving_wallet_address: input.server_wallet_address,
-      privy_server_wallet_id: input.privy_server_wallet_id,
-      server_wallet_address: input.server_wallet_address,
-      server_wallet_chain: input.server_wallet_chain,
-      server_wallet_created_at: input.server_wallet_created_at,
-      spend_create_idempotency_key: input.spend_create_idempotency_key,
-      start_time: input.start_time,
-      end_time: input.end_time,
-      created_by: input.created_by,
-      created_at: '2026-04-28T00:00:00.000Z',
-      updated_at: '2026-04-28T00:00:00.000Z',
-    }));
+    const prev = process.env.SPEND_RAIL_BASE_USDC_ENABLED;
+    process.env.SPEND_RAIL_BASE_USDC_ENABLED = 'false';
+    try {
+      const res = await POST(
+        jsonRequest(
+          'POST',
+          {
+            title: 'Ok',
+            points_to_usdc_rate: 1000,
+            max_usdc_per_user: 5,
+            start_time: '2026-05-01T12:00:00.000Z',
+            end_time: '2026-05-08T12:00:00.000Z',
+          },
+          'admin@example.com'
+        )
+      );
+      const j = await res.json();
+      expect(res.status).toBe(400);
+      expect(j.success).toBe(false);
+      expect(String(j.error)).toContain('not available');
+      expect(mockCreateSpendPrivyServerWallet).not.toHaveBeenCalled();
+      expect(mockCreateSpendExperience).not.toHaveBeenCalled();
+    } finally {
+      process.env.SPEND_RAIL_BASE_USDC_ENABLED = prev;
+    }
+  });
 
-    const res = await POST(
-      jsonRequest(
-        'POST',
-        {
-          title: 'Stellar pilot',
-          points_to_usdc_rate: 1000,
-          max_usdc_per_user: 5,
-          spend_rail: 'stellar_usdc',
-          start_time: '2026-05-01T12:00:00.000Z',
-          end_time: '2026-05-08T12:00:00.000Z',
-        },
-        'admin@example.com'
-      )
-    );
+  it('passes spend_rail stellar_usdc through to createSpendExperience', async () => {
+    const VALID_STELLAR =
+      'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
+    const prevEnabled = process.env.SPEND_RAIL_STELLAR_USDC_ENABLED;
+    const prevRecv = process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS;
+    const prevNet = process.env.NEXT_PUBLIC_STELLAR_NETWORK;
 
-    expect(res.status).toBe(200);
-    expect(mockCreateSpendExperience).toHaveBeenCalledWith(
-      expect.objectContaining({ spend_rail: 'stellar_usdc' })
-    );
+    process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = 'true';
+    process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = VALID_STELLAR;
+    process.env.NEXT_PUBLIC_STELLAR_NETWORK = 'PUBLIC';
+
+    try {
+      mockRequireAdmin.mockResolvedValue({
+        isValid: true,
+        user: { email: 'admin@example.com' },
+      });
+      mockCreateSpendExperience.mockImplementation(async (input) => ({
+        id: 'exp-1',
+        title: input.title,
+        description: input.description,
+        event_id: input.event_id,
+        status: input.status,
+        spend_rail: input.spend_rail,
+        points_to_usdc_rate: input.points_to_usdc_rate,
+        max_usdc_per_user: input.max_usdc_per_user,
+        treasury_wallet_address: input.server_wallet_address,
+        receiving_wallet_address: input.server_wallet_address,
+        privy_server_wallet_id: input.privy_server_wallet_id,
+        server_wallet_address: input.server_wallet_address,
+        server_wallet_chain: input.server_wallet_chain,
+        server_wallet_created_at: input.server_wallet_created_at,
+        spend_create_idempotency_key: input.spend_create_idempotency_key,
+        start_time: input.start_time,
+        end_time: input.end_time,
+        created_by: input.created_by,
+        created_at: '2026-04-28T00:00:00.000Z',
+        updated_at: '2026-04-28T00:00:00.000Z',
+      }));
+
+      const res = await POST(
+        jsonRequest(
+          'POST',
+          {
+            title: 'Stellar pilot',
+            points_to_usdc_rate: 1000,
+            max_usdc_per_user: 5,
+            spend_rail: 'stellar_usdc',
+            start_time: '2026-05-01T12:00:00.000Z',
+            end_time: '2026-05-08T12:00:00.000Z',
+          },
+          'admin@example.com'
+        )
+      );
+
+      expect(res.status).toBe(200);
+      expect(mockCreateSpendExperience).toHaveBeenCalledWith(
+        expect.objectContaining({ spend_rail: 'stellar_usdc' })
+      );
+    } finally {
+      if (prevEnabled === undefined)
+        delete process.env.SPEND_RAIL_STELLAR_USDC_ENABLED;
+      else process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = prevEnabled;
+      if (prevRecv === undefined) {
+        delete process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS;
+      } else {
+        process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = prevRecv;
+      }
+      if (prevNet === undefined) delete process.env.NEXT_PUBLIC_STELLAR_NETWORK;
+      else process.env.NEXT_PUBLIC_STELLAR_NETWORK = prevNet;
+    }
   });
 
   it('returns existing experience for repeated idempotency key', async () => {

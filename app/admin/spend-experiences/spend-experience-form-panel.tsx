@@ -1,5 +1,6 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Copy, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +22,7 @@ export type SpendExperienceFormPanelProps = {
   form: SpendExperienceFormState;
   setForm: Dispatch<SetStateAction<SpendExperienceFormState>>;
   railCatalog: SpendRailCatalogEntry[];
+  railCatalogLoading: boolean;
   isSaving: boolean;
   onClose: () => void;
   onSubmit: () => void;
@@ -53,6 +55,7 @@ export function SpendExperienceFormPanel({
   form,
   setForm,
   railCatalog,
+  railCatalogLoading,
   isSaving,
   onClose,
   onSubmit,
@@ -62,6 +65,19 @@ export function SpendExperienceFormPanel({
   const selectedCatalogRow = editing
     ? railCatalog.find((r) => r.rail === editing.spend_rail)
     : railCatalog.find((r) => r.rail === form.spend_rail);
+
+  const receivingTrimmed = (
+    selectedCatalogRow?.receivingWalletAddress ?? ''
+  ).trim();
+  const receivingDisplay =
+    receivingTrimmed || '— (not configured in environment)';
+
+  const createRailBlocked =
+    !editing &&
+    (railCatalogLoading ||
+      railCatalog.length === 0 ||
+      !selectedCatalogRow ||
+      !selectedCatalogRow.allowsNewSpendWork);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -122,10 +138,11 @@ export function SpendExperienceFormPanel({
           {!editing && (
             <div className="space-y-2">
               <Label>Payment network</Label>
-              {railCatalog.length === 0 ? (
-                <p className="text-sm text-neutral-500">
+              {railCatalogLoading && railCatalog.length === 0 ? (
+                <div className="flex items-center gap-2 text-sm text-neutral-500">
+                  <Loader2 className="size-4 animate-spin" />
                   Loading payment networks…
-                </p>
+                </div>
               ) : (
                 <Select
                   value={form.spend_rail}
@@ -145,6 +162,11 @@ export function SpendExperienceFormPanel({
                         key={row.rail}
                         value={row.rail}
                         disabled={!row.allowsNewSpendWork}
+                        title={
+                          row.allowsNewSpendWork
+                            ? undefined
+                            : row.adminUnavailableReasons.join('; ')
+                        }
                       >
                         {row.displayName} — {row.networkLabel} ·{' '}
                         {row.assetSymbol}
@@ -193,18 +215,32 @@ export function SpendExperienceFormPanel({
               )}
             </div>
           )}
-          {(selectedCatalogRow?.receivingWalletAddress ?? '') !== '' && (
+          {selectedCatalogRow && (
             <div className="space-y-2">
-              <Label>Receiving wallet (read-only)</Label>
-              <Input
-                readOnly
-                className="font-mono text-xs"
-                value={selectedCatalogRow?.receivingWalletAddress ?? ''}
-              />
-              <p className="text-xs text-neutral-500">
-                Global settlement address for this payment network. Shown for
-                verification only.
+              <Label>Global receiving address (read-only)</Label>
+              <p className="text-xs text-neutral-600">
+                Final USDC destination for this rail from environment rail
+                config — not per experience.
               </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <code className="flex-1 break-all rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900">
+                  {receivingDisplay}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 gap-1 sm:self-start"
+                  disabled={!receivingTrimmed}
+                  onClick={() => {
+                    void navigator.clipboard.writeText(receivingTrimmed);
+                    toast.success('Address copied');
+                  }}
+                >
+                  <Copy className="size-3.5" />
+                  Copy
+                </Button>
+              </div>
             </div>
           )}
           <div className="space-y-2">
@@ -327,7 +363,11 @@ export function SpendExperienceFormPanel({
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="button" disabled={isSaving} onClick={() => onSubmit()}>
+          <Button
+            type="button"
+            disabled={isSaving || createRailBlocked}
+            onClick={() => onSubmit()}
+          >
             {submitButtonContent(isSaving, editing)}
           </Button>
         </div>

@@ -1,5 +1,9 @@
 import { supabase } from './client';
 import { normalizeSpendRail } from './spend-rail';
+import {
+  getSpendReceivingWalletAddress,
+  getSpendTreasuryWalletAddress,
+} from '@/lib/spend-rail-config';
 import type {
   SpendExperience,
   SpendExperienceStatus,
@@ -179,8 +183,8 @@ export async function createSpendExperience(
     spend_rail: input.spend_rail,
     points_to_usdc_rate: input.points_to_usdc_rate,
     max_usdc_per_user: input.max_usdc_per_user,
-    treasury_wallet_address: input.server_wallet_address,
-    receiving_wallet_address: input.server_wallet_address,
+    treasury_wallet_address: getSpendTreasuryWalletAddress(input.spend_rail),
+    receiving_wallet_address: getSpendReceivingWalletAddress(input.spend_rail),
     privy_server_wallet_id: input.privy_server_wallet_id,
     server_wallet_address: input.server_wallet_address,
     server_wallet_chain: input.server_wallet_chain,
@@ -276,12 +280,19 @@ export async function getSpendExperienceByCreateIdempotencyKey(
 
 export async function updateSpendExperience(
   id: string,
-  updates: UpdateSpendExperienceInput
+  updates: UpdateSpendExperienceInput,
+  spendRail: SpendRail
 ): Promise<SpendExperience> {
-  const patch = buildSpendExperiencePatch(updates);
-  if (Object.keys(patch).length === 0) {
+  const userPatch = buildSpendExperiencePatch(updates);
+  if (Object.keys(userPatch).length === 0) {
     throw new Error('No fields to update');
   }
+
+  const patch = {
+    ...userPatch,
+    treasury_wallet_address: getSpendTreasuryWalletAddress(spendRail),
+    receiving_wallet_address: getSpendReceivingWalletAddress(spendRail),
+  };
 
   const { data, error } = await spendExperiencesTable()
     .update(patch)

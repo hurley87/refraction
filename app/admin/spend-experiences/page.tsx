@@ -324,6 +324,7 @@ export default function AdminSpendExperiencesPage() {
         form={form}
         setForm={setForm}
         railCatalog={railCatalog}
+        railCatalogLoading={railCatalogLoading}
         isSaving={saveMutation.isPending}
         onClose={closePanel}
         onSubmit={handleSave}

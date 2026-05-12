@@ -185,9 +185,11 @@ describe('PATCH /api/admin/spend-experiences/[experienceId]', () => {
       walletAddress: '0x4444444444444444444444444444444444444444',
       minUsdcRequired: existing.max_usdc_per_user,
     });
-    expect(mockUpdateSpendExperience).toHaveBeenCalledWith('exp-1', {
-      status: 'active',
-    });
+    expect(mockUpdateSpendExperience).toHaveBeenCalledWith(
+      'exp-1',
+      { status: 'active' },
+      'base_usdc'
+    );
   });
 
   it('returns 400 when spend_rail is present in PATCH body', async () => {
