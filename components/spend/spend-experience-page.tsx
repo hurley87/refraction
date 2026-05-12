@@ -25,12 +25,8 @@ import {
   formatSpendPaymentExplorerUrl,
   spendPaymentExplorerLinkLabel,
 } from '@/lib/spend-rail-explorer-url-client';
-import {
-  encodeUsdcTransferData,
-  isEvmAddress,
-  POSTER_CHECKOUT_CHAIN_ID,
-  POSTER_CHECKOUT_USDC_ADDRESS_BASE,
-} from '@/lib/walletconnect-poster-direct-usdc';
+import { isEvmAddress } from '@/lib/walletconnect-poster-direct-usdc';
+import { isSpendPaymentPrepareStoredActionV1 } from '@/lib/spend-payment-prepare-types';
 
 type SpendExperiencePageProps = {
   experienceId: string;
@@ -82,6 +78,12 @@ type PaymentConfirmResponse = {
   spendRailSummary: SpendRailClientSummary;
   session: Pick<SpendSession, 'id' | 'status' | 'expires_at' | 'completed_at'>;
   resumed: boolean;
+};
+
+type PaymentPrepareResponse = {
+  preparedAction: Record<string, unknown>;
+  spendRailSummary: SpendRailClientSummary;
+  session: Pick<SpendSession, 'id' | 'status' | 'expires_at'>;
 };
 
 type ReceiptResponse = {
@@ -141,10 +143,6 @@ async function spendAuthedGet<T>(token: string, path: string): Promise<T> {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   });
-}
-
-function toEvmHexAddress(value: string | undefined): `0x${string}` | null {
-  return value && isEvmAddress(value) ? (value as `0x${string}`) : null;
 }
 
 function eligibilityToneClass(status: SpendEligibilityStatus): string {
@@ -246,6 +244,48 @@ export function SpendExperiencePage({
     retry: false,
   });
 
+  const eligForPrepare = previewPayload?.eligibility;
+  const sessionStatusForPrepare = previewPayload?.session?.status;
+  const basePayPrepareEnabled = Boolean(
+    user &&
+    walletAddress &&
+    sessionId &&
+    !isFetching &&
+    !previewLoading &&
+    eligForPrepare?.preview &&
+    previewPayload?.spendRailSummary?.rail === 'base_usdc' &&
+    isEvmAddress(eligForPrepare.preview.receivingWalletAddress) &&
+    (eligForPrepare.status === 'ready_for_payment' ||
+      eligForPrepare.status === 'ready_for_payment_own_usdc' ||
+      eligForPrepare.status === 'payment_failed') &&
+    sessionStatusForPrepare !== 'payment_complete'
+  );
+
+  const { data: paymentPrepareData, isFetching: paymentPrepareLoading } =
+    useQuery({
+      queryKey: [
+        'spend-payment-prepare',
+        sessionId,
+        user?.id,
+        walletAddress,
+      ] as const,
+      queryFn: async () => {
+        const token = await getAccessToken();
+        if (!token || !walletAddress || !sessionId) {
+          throw new Error('Missing auth or session');
+        }
+        return spendAuthedPost<PaymentPrepareResponse>(
+          token,
+          `/api/spend-sessions/${sessionId}/payment/prepare`,
+          { walletAddress }
+        );
+      },
+      enabled: basePayPrepareEnabled,
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
+      retry: false,
+    });
+
   const sessionStatus = previewPayload?.session?.status;
 
   const { data: receiptPayload } = useQuery({
@@ -275,6 +315,9 @@ export function SpendExperiencePage({
     });
     await queryClient.invalidateQueries({
       queryKey: ['spend-receipt', sessionId],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ['spend-payment-prepare', sessionId],
     });
   }, [queryClient, sessionId, experienceId]);
 
@@ -327,26 +370,26 @@ export function SpendExperiencePage({
       toast.error('Wallet not ready');
       return;
     }
-    const preview = previewPayload.eligibility.preview;
-    const recipient = toEvmHexAddress(preview.receivingWalletAddress);
-    if (!recipient) {
-      toast.error('Invalid receiving wallet');
+    const prepared = paymentPrepareData?.preparedAction;
+    if (!isSpendPaymentPrepareStoredActionV1(prepared)) {
+      toast.error(
+        'Payment is not ready yet. Wait a moment or refresh the page.'
+      );
       return;
     }
+    const treq = prepared.evmTransactionRequest;
 
     try {
       await withTimeout(
-        evmWallet.switchChain(POSTER_CHECKOUT_CHAIN_ID),
+        evmWallet.switchChain(treq.chainId),
         WALLET_STEP_TIMEOUT_MS,
         'Switching to Base in your wallet'
       );
-      const data = encodeUsdcTransferData(recipient, preview.usdcAmount);
-      // Explicit gas avoids Privy/RPC preflight estimation errors in the sponsored ERC20 transfer modal.
       const transactionRequest = {
-        to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
-        data,
-        chainId: POSTER_CHECKOUT_CHAIN_ID,
-        gas: 100000n,
+        to: treq.to as `0x${string}`,
+        data: treq.data as `0x${string}`,
+        chainId: treq.chainId,
+        gas: BigInt(treq.gas),
       };
       const spendPaymentDebug = process.env.NODE_ENV !== 'production';
       if (spendPaymentDebug) {
@@ -355,11 +398,11 @@ export function SpendExperiencePage({
           walletAddress,
           evmWalletAddress: evmWallet.address,
           evmWalletClientType: evmWallet.walletClientType,
-          chainId: POSTER_CHECKOUT_CHAIN_ID,
+          chainId: treq.chainId,
           sponsor: true,
-          to: POSTER_CHECKOUT_USDC_ADDRESS_BASE,
-          hasData: Boolean(data),
-          dataLength: data.length,
+          to: treq.to,
+          hasData: Boolean(treq.data),
+          dataLength: treq.data.length,
           includesValueField: Object.prototype.hasOwnProperty.call(
             transactionRequest,
             'value'
@@ -415,6 +458,7 @@ export function SpendExperiencePage({
     walletAddress,
     evmWallet,
     previewPayload,
+    paymentPrepareData,
     paymentMutation,
     sendTransaction,
   ]);
@@ -661,7 +705,9 @@ export function SpendExperiencePage({
 
                     {showBaseWalletPay && (
                       <SpendPrimaryButton
-                        pending={paymentMutation.isPending}
+                        pending={
+                          paymentMutation.isPending || paymentPrepareLoading
+                        }
                         onClick={() => void sendUsdcPayment()}
                       >
                         {paymentMutation.isPending

@@ -189,6 +189,8 @@ export interface SpendPilotRailMutationBlockedProperties {
     | 'conversion_confirm'
     | 'conversion_resume'
     | 'payment_confirm_new_tx'
+    | 'payment_confirm'
+    | 'payment_prepare'
     | 'admin_spend_experience_create'
     | 'admin_spend_experience_update'
     | 'admin_treasury_withdraw';

@@ -8,6 +8,19 @@ import type {
   SpendRailPaymentOperationStatus,
   SpendWalletReadinessStatus,
 } from '@/lib/spend/payment-rails/types';
+import type {
+  SpendBaseUsdcPaymentVerificationSnapshotV1,
+  SpendPaymentPrepareStoredActionV1,
+} from '@/lib/spend-payment-prepare-types';
+
+/** Successful `preparePayment` payload (Base USDC fills `baseUsdc`; other rails omit). */
+export type SpendPaymentPrepareRailValue = {
+  status: SpendRailPaymentOperationStatus;
+  baseUsdc?: {
+    preparedAction: SpendPaymentPrepareStoredActionV1;
+    verificationSnapshot: SpendBaseUsdcPaymentVerificationSnapshotV1;
+  };
+};
 
 export type SpendRailResult<T> =
   | { ok: true; value: T }
@@ -54,7 +67,7 @@ export interface SpendPaymentRail {
    */
   preparePayment(
     ctx: SpendPaymentRailSessionContext
-  ): Promise<SpendRailResult<{ status: SpendRailPaymentOperationStatus }>>;
+  ): Promise<SpendRailResult<SpendPaymentPrepareRailValue>>;
 
   /**
    * Confirm on-chain payment evidence (user-submitted tx hash on Base USDC). Stellar remains

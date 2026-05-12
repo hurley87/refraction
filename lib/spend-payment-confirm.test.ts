@@ -3,7 +3,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockGetPointConversion = vi.fn();
 const mockFetchUserUsdc = vi.fn();
 const mockGetSpendTransaction = vi.fn();
-const mockRailGate = vi.fn(() => ({ ok: true as const }));
+const mockRailGate = vi.fn(
+  (
+    ...args: unknown[]
+  ):
+    | { ok: true }
+    | {
+        ok: false;
+        error: string;
+        analytics: {
+          spend_rail: string;
+          rail_operational: false;
+          unavailable_reason_codes: string[];
+        };
+      } => {
+    void args;
+    return { ok: true as const };
+  }
+);
 
 vi.mock('@/lib/db/spend-sessions', () => ({
   getPointConversionBySessionId: (...a: unknown[]) =>
@@ -15,6 +32,13 @@ vi.mock('@/lib/db/spend-sessions', () => ({
   updateSpendSessionStatus: vi.fn(),
   updateSpendTransactionFields: vi.fn(),
   confirmSpendTransactionIfSubmitted: vi.fn(),
+}));
+
+const mockGetPaymentPrepare = vi.fn();
+
+vi.mock('@/lib/db/spend-payment-prepare', () => ({
+  getSpendPaymentPrepareBySessionId: (...a: unknown[]) =>
+    mockGetPaymentPrepare(...a),
 }));
 
 vi.mock('@/lib/db/treasury-transactions', () => ({
@@ -37,6 +61,8 @@ vi.mock('@/lib/spend-payment-verify', () => ({
 vi.mock('@/lib/spend-rail-config', () => ({
   getSpendReceivingWalletAddress: () =>
     '0x2222222222222222222222222222222222222222',
+  getSpendRailBaseUsdcContractAddress: () =>
+    '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   assertSpendRailAllowsMutatingSpendWork: (...a: unknown[]) =>
     mockRailGate(...a),
 }));
@@ -130,6 +156,27 @@ describe('runSpendPaymentConfirm', () => {
     mockFetchUserUsdc.mockResolvedValue(10);
     mockRailGate.mockReturnValue({ ok: true as const });
     mockGetSpendTransaction.mockResolvedValue(null);
+    mockGetPaymentPrepare.mockResolvedValue({
+      id: 'prep-1',
+      spend_session_id: baseSession.id,
+      user_id: 'user-1',
+      spend_rail: 'base_usdc',
+      status: 'prepared',
+      prepared_action: {},
+      verification_snapshot: {
+        v: 1,
+        spend_rail: 'base_usdc',
+        chain_id: 8453,
+        usdc_contract: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+        receiving_wallet: '0x2222222222222222222222222222222222222222',
+        from_wallet: baseSession.wallet_address.toLowerCase(),
+        usdc_amount: 5,
+        transfer_calldata: '0x',
+      },
+      idempotency_key: 'payment:sess-1',
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
   });
 
   it('rejects direct USDC payment while a points conversion is still in progress', async () => {
@@ -216,7 +263,7 @@ describe('runSpendPaymentConfirm', () => {
     expect(analytics.trackSpendPilotRailMutationBlocked).toHaveBeenCalledWith(
       'd1',
       expect.objectContaining({
-        mutation: 'payment_confirm_new_tx',
+        mutation: 'payment_confirm',
         spend_rail: 'base_usdc',
         rail_operational: false,
         spend_session_id: session.id,
@@ -225,5 +272,30 @@ describe('runSpendPaymentConfirm', () => {
     expect(
       spendSessions.insertSpendTransactionSubmitted
     ).not.toHaveBeenCalled();
+  });
+
+  it('rejects confirm when no server-prepared payment exists for Base', async () => {
+    mockGetPointConversion.mockResolvedValue(inProgressConversion('funded'));
+    mockGetPaymentPrepare.mockResolvedValue(null);
+
+    const session = {
+      ...baseSession,
+      status: 'conversion_complete' as const,
+    };
+
+    const result = await runSpendPaymentConfirm({
+      session,
+      spendExperience: baseExperience,
+      normalizedWallet: baseSession.wallet_address.toLowerCase(),
+      authUserId: 'user-1',
+      distinctId: 'd1',
+      paymentTxHash: validHash,
+      usdcAmount: 5,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('expected failure');
+    expect(result.httpStatus).toBe(400);
+    expect(result.error).toMatch(/not ready to confirm/i);
   });
 });

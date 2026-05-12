@@ -3,6 +3,8 @@ import { recipientUsdcAddressForSpendTransfer } from '@/lib/spend/recipient-usdc
 import {
   fetchUsdcBalanceOnBase,
   isEvmAddress,
+  encodeUsdcTransferData,
+  POSTER_CHECKOUT_CHAIN_ID,
 } from '@/lib/walletconnect-poster-direct-usdc';
 import { verifySpendUsdcPaymentTx } from '@/lib/spend-payment-verify';
 import { isLedgerCanonicalEvmTxHash } from '@/lib/spend-ledger-explorer-url';
@@ -18,7 +20,6 @@ import {
   spendRailErrorInvalidReceivingWallet,
   spendRailErrorNetworkUnavailable,
   spendRailErrorPaymentFailed,
-  spendRailErrorRailOperationNotSupported,
   spendRailErrorTreasuryInsufficientFunds,
   spendRailErrorWalletReadinessFailed,
   spendRailErrorWalletUnavailable,
@@ -28,6 +29,7 @@ import {
   errSpendRail,
   okSpendRail,
   spendPaymentRailExplorerUrl,
+  type SpendPaymentPrepareRailValue,
   type SpendPaymentRail,
   type SpendRailResult,
 } from '@/lib/spend/payment-rails/spend-payment-rail';
@@ -198,9 +200,51 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
 
     async preparePayment(
       ctx: SpendPaymentRailSessionContext
-    ): Promise<SpendRailResult<{ status: SpendRailPaymentOperationStatus }>> {
-      void ctx;
-      return errSpendRail(spendRailErrorRailOperationNotSupported());
+    ): Promise<SpendRailResult<SpendPaymentPrepareRailValue>> {
+      const embeddedRes = embeddedEvmFromContext(ctx);
+      if (!embeddedRes.ok) {
+        return embeddedRes;
+      }
+      const embedded = embeddedRes.value;
+      if (!isValidPositiveUsdcAmount(ctx.usdcAmount)) {
+        return errSpendRail(spendRailErrorPaymentFailed());
+      }
+      const usdcAmount = ctx.usdcAmount;
+
+      const receiving = getSpendReceivingWalletAddress(spendRail).trim();
+      if (!receiving || !isEvmAddress(receiving)) {
+        return errSpendRail(spendRailErrorInvalidReceivingWallet());
+      }
+
+      const usdcContract = getSpendRailBaseUsdcContractAddress();
+      const recipient = receiving as `0x${string}`;
+      const data = encodeUsdcTransferData(recipient, usdcAmount);
+      const gas = 100000n;
+      const evmTransactionRequest = {
+        chainId: POSTER_CHECKOUT_CHAIN_ID,
+        to: usdcContract.toLowerCase(),
+        data,
+        gas: gas.toString(),
+      };
+      const preparedAction = {
+        v: 1 as const,
+        spend_rail: 'base_usdc' as const,
+        evmTransactionRequest,
+      };
+      const verificationSnapshot = {
+        v: 1 as const,
+        spend_rail: 'base_usdc' as const,
+        chain_id: POSTER_CHECKOUT_CHAIN_ID,
+        usdc_contract: usdcContract.toLowerCase(),
+        receiving_wallet: receiving.toLowerCase(),
+        from_wallet: embedded.toLowerCase(),
+        usdc_amount: usdcAmount,
+        transfer_calldata: data,
+      };
+      return okSpendRail({
+        status: 'prepared',
+        baseUsdc: { preparedAction, verificationSnapshot },
+      });
     },
 
     async confirmPayment(

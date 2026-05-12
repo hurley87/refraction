@@ -2,6 +2,7 @@ import type { SpendRail } from '@/lib/types';
 import {
   errSpendRail,
   spendPaymentRailExplorerUrl,
+  type SpendPaymentPrepareRailValue,
   type SpendPaymentRail,
   type SpendRailResult,
 } from '@/lib/spend/payment-rails/spend-payment-rail';
@@ -50,7 +51,7 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
 
     async preparePayment(
       ctx: SpendPaymentRailSessionContext
-    ): Promise<SpendRailResult<{ status: SpendRailPaymentOperationStatus }>> {
+    ): Promise<SpendRailResult<SpendPaymentPrepareRailValue>> {
       void ctx;
       return notSupported();
     },
