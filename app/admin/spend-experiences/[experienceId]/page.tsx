@@ -404,13 +404,8 @@ export default function SpendExperienceDetailPage() {
         <section className="mb-8 rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="font-semibold">
-                Fund server wallet before activation
-              </h2>
-              <p className="mt-1">
-                Send at least {fmtUsdc(funding.minimumUsdc)} USDC on Base now,
-                and enough USDC for expected redemptions.
-              </p>
+              <h2 className="font-semibold">{funding.fundingCalloutTitle}</h2>
+              <p className="mt-1">{funding.fundingCalloutBody}</p>
               <code className="mt-3 block break-all rounded bg-white/70 p-2 text-xs text-neutral-900">
                 {funding.serverWalletAddress}
               </code>

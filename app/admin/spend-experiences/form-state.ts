@@ -4,6 +4,12 @@ import type {
   SpendRail,
 } from '@/lib/types';
 
+/** Admin UI labels — aligned with `getSpendRailPublicMetadata` display names. */
+export const SPEND_RAIL_ADMIN_LABEL: Record<SpendRail, string> = {
+  base_usdc: 'Base USDC',
+  stellar_usdc: 'Stellar USDC',
+};
+
 export type SpendExperienceFormState = {
   title: string;
   description: string;

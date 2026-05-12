@@ -176,6 +176,9 @@ export function SpendExperienceFormPanel({
                 {selectedCatalogRow.networkLabel} ·{' '}
                 {selectedCatalogRow.assetSymbol}
               </p>
+              <p className="text-xs text-neutral-500">
+                Cannot be changed after creation.
+              </p>
               {!selectedCatalogRow.allowsNewSpendWork && (
                 <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
                   <p className="font-medium">Operational issues detected</p>
@@ -259,17 +262,34 @@ export function SpendExperienceFormPanel({
               />
             </div>
           </div>
-          {editing?.server_wallet_address && (
-            <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
-              <div className="font-medium text-blue-950">
-                Privy server wallet
+          {editing?.spend_rail === 'base_usdc' &&
+            editing.server_wallet_address && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm">
+                <div className="font-medium text-blue-950">
+                  Privy server wallet (Base)
+                </div>
+                <p className="mt-1 text-blue-900">
+                  Backend-managed on Base for this experience. Admins do not
+                  edit wallet addresses.
+                </p>
+                <code className="mt-2 block break-all text-xs text-blue-950">
+                  {editing.server_wallet_address}
+                </code>
               </div>
-              <p className="mt-1 text-blue-900">
-                Backend-managed on Base. Admins do not edit wallet addresses.
+            )}
+          {editing?.spend_rail === 'stellar_usdc' && (
+            <div className="rounded-lg border border-violet-100 bg-violet-50 p-3 text-sm text-violet-950">
+              <div className="font-medium">Stellar USDC</div>
+              <p className="mt-1 text-violet-900">
+                Funding uses the global Stellar treasury from platform
+                configuration. User accounts and trustlines are managed on
+                Stellar (not Base).
               </p>
-              <code className="mt-2 block break-all text-xs text-blue-950">
-                {editing.server_wallet_address}
-              </code>
+              {editing.treasury_wallet_address ? (
+                <code className="mt-2 block break-all text-xs">
+                  Treasury: {editing.treasury_wallet_address}
+                </code>
+              ) : null}
             </div>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
