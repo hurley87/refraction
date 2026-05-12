@@ -19,6 +19,7 @@ import {
 } from '@/lib/spend-conversion-preview';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import { verifySpendUsdcPaymentTx } from '@/lib/spend-payment-verify';
+import { getSpendPaymentRail } from '@/lib/spend/payment-rails';
 import {
   getSpendReceivingWalletAddress,
   isSpendRailOperational,
@@ -182,11 +183,13 @@ export async function runSpendPaymentConfirm(input: {
     };
   }
 
-  if (spendExperience.spend_rail !== 'base_usdc') {
+  const spendPaymentRail = getSpendPaymentRail(spendExperience.spend_rail);
+  const userSignedConfirmGate =
+    spendPaymentRail.assertUserSignedOnchainPaymentConfirmSupported();
+  if (!userSignedConfirmGate.ok) {
     return {
       ok: false,
-      error:
-        'USDC payment verification on this network is not available in this release.',
+      error: userSignedConfirmGate.error.userMessage,
       httpStatus: 400,
     };
   }

@@ -143,4 +143,32 @@ describe('runSpendPaymentConfirm', () => {
     expect(result.httpStatus).toBe(400);
     expect(result.error).toMatch(/conversion is still in progress/i);
   });
+
+  it('rejects user-signed payment confirm for stellar_usdc via spend payment rail', async () => {
+    const stellarExperience = {
+      ...baseExperience,
+      spend_rail: 'stellar_usdc' as const,
+    };
+    const stellarSession = {
+      ...baseSession,
+      spend_rail: 'stellar_usdc' as const,
+    };
+
+    const result = await runSpendPaymentConfirm({
+      session: stellarSession,
+      spendExperience: stellarExperience,
+      normalizedWallet: baseSession.wallet_address.toLowerCase(),
+      authUserId: 'user-1',
+      distinctId: 'd1',
+      paymentTxHash: validHash,
+      usdcAmount: 5,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('expected failure');
+    expect(result.httpStatus).toBe(400);
+    expect(result.error).toBe(
+      'USDC payment verification on this network is not available in this release.'
+    );
+  });
 });
