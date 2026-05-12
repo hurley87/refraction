@@ -1,10 +1,21 @@
-import type { SpendExperience, SpendExperienceStatus } from '@/lib/types';
+import type {
+  SpendExperience,
+  SpendExperienceStatus,
+  SpendRail,
+} from '@/lib/types';
+
+/** Admin UI labels — aligned with `getSpendRailPublicMetadata` display names. */
+export const SPEND_RAIL_ADMIN_LABEL: Record<SpendRail, string> = {
+  base_usdc: 'Base USDC',
+  stellar_usdc: 'Stellar USDC',
+};
 
 export type SpendExperienceFormState = {
   title: string;
   description: string;
   event_id: string;
   status: SpendExperienceStatus;
+  spend_rail: SpendRail;
   points_to_usdc_rate: string;
   max_usdc_per_user: string;
   start_time_local: string;
@@ -33,6 +44,7 @@ export function experienceToForm(e: SpendExperience): SpendExperienceFormState {
     description: e.description ?? '',
     event_id: e.event_id ?? '',
     status: e.status,
+    spend_rail: e.spend_rail,
     points_to_usdc_rate: String(e.points_to_usdc_rate),
     max_usdc_per_user: String(e.max_usdc_per_user),
     start_time_local: isoToDatetimeLocalValue(e.start_time),
@@ -47,6 +59,7 @@ export function emptySpendExperienceForm(): SpendExperienceFormState {
     description: '',
     event_id: '',
     status: 'draft',
+    spend_rail: 'base_usdc',
     points_to_usdc_rate: '1000',
     max_usdc_per_user: '5',
     start_time_local: isoToDatetimeLocalValue(start),
