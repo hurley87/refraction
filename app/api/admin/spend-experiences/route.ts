@@ -12,6 +12,11 @@ import {
   SPEND_SERVER_WALLET_CHAIN,
   spendServerWalletFundingMetadata,
 } from '@/lib/spend-server-wallet';
+import {
+  getSpendRailOperationalDiagnostics,
+  getSpendRailPublicMetadata,
+  isSpendRailOperational,
+} from '@/lib/spend-rail-config';
 
 function createIdempotencyKey(request: NextRequest): string {
   return (
@@ -65,6 +70,21 @@ export async function POST(request: NextRequest) {
           funding: spendServerWalletFundingMetadata(existing, null),
         },
         'Spend experience already created'
+      );
+    }
+
+    const spendRail = validation.data.spend_rail;
+    if (!isSpendRailOperational(spendRail)) {
+      const meta = getSpendRailPublicMetadata(spendRail);
+      const { unavailableReasons } =
+        getSpendRailOperationalDiagnostics(spendRail);
+      const detail =
+        unavailableReasons.length > 0
+          ? unavailableReasons.join('; ')
+          : 'Check environment configuration for this rail.';
+      return apiError(
+        `${meta.displayName} is not available for new experiences. ${detail}`,
+        400
       );
     }
 

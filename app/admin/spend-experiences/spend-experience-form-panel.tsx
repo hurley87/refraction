@@ -1,5 +1,6 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Copy, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { SpendExperience, SpendExperienceStatus } from '@/lib/types';
+import type {
+  AdminSpendRailRow,
+  SpendExperience,
+  SpendExperienceStatus,
+  SpendRail,
+} from '@/lib/types';
 import type { SpendExperienceFormState } from './form-state';
 
 export type SpendExperienceFormPanelProps = {
@@ -20,6 +26,8 @@ export type SpendExperienceFormPanelProps = {
   form: SpendExperienceFormState;
   setForm: Dispatch<SetStateAction<SpendExperienceFormState>>;
   isSaving: boolean;
+  spendRailRows: AdminSpendRailRow[];
+  spendRailRowsLoading: boolean;
   onClose: () => void;
   onSubmit: () => void;
 };
@@ -45,16 +53,36 @@ function submitButtonContent(
   return 'Create';
 }
 
+function railRowFor(
+  rows: AdminSpendRailRow[],
+  rail: SpendRail
+): AdminSpendRailRow | undefined {
+  return rows.find((r) => r.spend_rail === rail);
+}
+
 export function SpendExperienceFormPanel({
   open,
   editing,
   form,
   setForm,
   isSaving,
+  spendRailRows,
+  spendRailRowsLoading,
   onClose,
   onSubmit,
 }: SpendExperienceFormPanelProps) {
   if (!open) return null;
+
+  const effectiveRail: SpendRail = editing?.spend_rail ?? form.spend_rail;
+  const effectiveRow = railRowFor(spendRailRows, effectiveRail);
+  const receivingDisplay =
+    effectiveRow?.receivingWalletAddress?.trim() || '— (not configured)';
+  const selectedRow = railRowFor(spendRailRows, form.spend_rail);
+  const createRailBlocked =
+    !editing &&
+    ((spendRailRowsLoading && spendRailRows.length === 0) ||
+      spendRailRows.length === 0 ||
+      selectedRow?.operational !== true);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -111,6 +139,99 @@ export function SpendExperienceFormPanel({
               }
               placeholder="External event id if linked"
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Payment network</Label>
+            {editing ? (
+              <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800">
+                {effectiveRow?.displayName ?? effectiveRail}
+                <span className="ml-2 text-neutral-500">
+                  ({effectiveRow?.networkLabel ?? '—'})
+                </span>
+                <p className="mt-1 text-xs text-neutral-600">
+                  Network is fixed after creation.
+                </p>
+              </div>
+            ) : spendRailRowsLoading && spendRailRows.length === 0 ? (
+              <div className="flex items-center gap-2 text-sm text-neutral-500">
+                <Loader2 className="size-4 animate-spin" />
+                Loading networks…
+              </div>
+            ) : (
+              <Select
+                value={form.spend_rail}
+                onValueChange={(v) =>
+                  setForm((f) => ({
+                    ...f,
+                    spend_rail: v as SpendRail,
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {spendRailRows.map((row) => (
+                    <SelectItem
+                      key={row.spend_rail}
+                      value={row.spend_rail}
+                      disabled={!row.operational}
+                      title={
+                        row.operational
+                          ? undefined
+                          : row.unavailableReasons.join('; ')
+                      }
+                    >
+                      {row.displayName}
+                      {!row.operational ? ' (unavailable)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {!editing &&
+              !spendRailRowsLoading &&
+              selectedRow &&
+              !selectedRow.operational && (
+                <p className="text-xs text-amber-800">
+                  This network cannot be used for new experiences until
+                  configuration is fixed (see error on create).
+                </p>
+              )}
+          </div>
+          <div className="space-y-2">
+            <Label>Global receiving address (read-only)</Label>
+            <p className="text-xs text-neutral-600">
+              Final USDC destination for this rail — set in environment rail
+              config, not per experience.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+              <code className="flex-1 break-all rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900">
+                {spendRailRowsLoading && spendRailRows.length === 0
+                  ? '…'
+                  : receivingDisplay}
+              </code>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0 gap-1 sm:self-start"
+                disabled={
+                  !receivingDisplay ||
+                  receivingDisplay === '— (not configured)' ||
+                  (spendRailRowsLoading && spendRailRows.length === 0)
+                }
+                onClick={() => {
+                  void navigator.clipboard.writeText(
+                    effectiveRow?.receivingWalletAddress?.trim() ?? ''
+                  );
+                  toast.success('Address copied');
+                }}
+              >
+                <Copy className="size-3.5" />
+                Copy
+              </Button>
+            </div>
           </div>
           <div className="space-y-2">
             <Label>Status</Label>
@@ -215,7 +336,11 @@ export function SpendExperienceFormPanel({
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="button" disabled={isSaving} onClick={() => onSubmit()}>
+          <Button
+            type="button"
+            disabled={isSaving || createRailBlocked}
+            onClick={() => onSubmit()}
+          >
             {submitButtonContent(isSaving, editing)}
           </Button>
         </div>

@@ -76,7 +76,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const spendExperience = await updateSpendExperience(
       params.experienceId,
-      validation.data
+      validation.data,
+      existing.spend_rail
     );
 
     return apiSuccess(

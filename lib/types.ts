@@ -277,6 +277,17 @@ export type SpendExperienceStatus = 'draft' | 'active' | 'ended';
 /** Canonical spend / settlement rail for a spend experience (immutable after insert). */
 export type SpendRail = 'base_usdc' | 'stellar_usdc';
 
+/** Rows for admin payment-network UI (GET /api/admin/spend-rails). */
+export type AdminSpendRailRow = {
+  spend_rail: SpendRail;
+  displayName: string;
+  networkLabel: string;
+  assetSymbol: string;
+  receivingWalletAddress: string;
+  operational: boolean;
+  unavailableReasons: string[];
+};
+
 /**
  * Admin-configured spend pilot experience (points → USDC conversion window).
  */

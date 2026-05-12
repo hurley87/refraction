@@ -7,7 +7,7 @@ import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { SpendExperience } from '@/lib/types';
+import type { AdminSpendRailRow, SpendExperience } from '@/lib/types';
 import {
   datetimeLocalToIso,
   emptySpendExperienceForm,
@@ -19,6 +19,7 @@ import { SpendExperienceList } from './spend-experience-list';
 import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
 
 const QUERY_KEY = ['admin-spend-experiences'] as const;
+const SPEND_RAILS_QUERY_KEY = ['admin-spend-rails'] as const;
 
 type CreateSpendExperienceResponse = {
   spendExperience: SpendExperience;
@@ -88,6 +89,22 @@ export default function AdminSpendExperiencesPage() {
     enabled: !!isAdmin && !!user?.email?.address,
   });
 
+  const { data: spendRailRows = [], isPending: spendRailRowsPending } =
+    useQuery<AdminSpendRailRow[]>({
+      queryKey: SPEND_RAILS_QUERY_KEY,
+      queryFn: async () => {
+        const auth = await adminApiAuthHeaders(getAccessToken);
+        const response = await fetch('/api/admin/spend-rails', {
+          headers: auth,
+        });
+        if (!response.ok) throw new Error('Failed to load payment networks');
+        const responseData = await response.json();
+        const data = responseData.data || responseData;
+        return data.rails ?? [];
+      },
+      enabled: !!isAdmin && !!user?.email?.address,
+    });
+
   const closePanel = useCallback(() => {
     setPanelOpen(false);
     setEditing(null);
@@ -104,6 +121,7 @@ export default function AdminSpendExperiencesPage() {
         max_usdc_per_user: Number(form.max_usdc_per_user),
         start_time: datetimeLocalToIso(form.start_time_local),
         end_time: datetimeLocalToIso(form.end_time_local),
+        ...(editing ? {} : { spend_rail: form.spend_rail }),
       };
 
       const auth = await adminApiAuthHeaders(getAccessToken);
@@ -112,7 +130,11 @@ export default function AdminSpendExperiencesPage() {
       if (editing) {
         const response = await fetch(
           `/api/admin/spend-experiences/${encodeURIComponent(editing.id)}`,
-          { method: 'PATCH', headers: jsonHeaders, body: JSON.stringify(payload) }
+          {
+            method: 'PATCH',
+            headers: jsonHeaders,
+            body: JSON.stringify(payload),
+          }
         );
         const j = await response.json().catch(() => ({}));
         if (!response.ok) {
@@ -242,6 +264,8 @@ export default function AdminSpendExperiencesPage() {
         form={form}
         setForm={setForm}
         isSaving={saveMutation.isPending}
+        spendRailRows={spendRailRows}
+        spendRailRowsLoading={spendRailRowsPending}
         onClose={closePanel}
         onSubmit={saveMutation.mutate}
       />
