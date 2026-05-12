@@ -530,15 +530,16 @@ export function SpendExperiencePage({
     Boolean(elig?.status && isPostPointsConversionFlow(elig.status)) &&
     !showPayDirectUsdc;
 
-  const showConvert =
-    elig?.status === 'eligible' &&
-    preview &&
+  const sessionAllowsConversionActions =
+    Boolean(preview) &&
     (sessionStatus === 'created' || sessionStatus === 'conversion_pending');
+
+  const showConvert =
+    elig?.status === 'eligible' && sessionAllowsConversionActions;
 
   const showRetryConversion =
     elig?.status === 'conversion_failed_retryable' &&
-    preview &&
-    (sessionStatus === 'created' || sessionStatus === 'conversion_pending');
+    sessionAllowsConversionActions;
 
   const showBaseWalletPay =
     !isPaymentComplete &&

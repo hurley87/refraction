@@ -20,6 +20,7 @@ import {
 import {
   SPEND_CONVERSION_FAILED_REQUIRES_RETRY_ACTION,
   SPEND_ELIGIBILITY_MESSAGES,
+  SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE,
 } from '@/lib/spend-eligibility-messages';
 import { resolvePrivyServerTransactionHash } from '@/lib/api/privy';
 import {
@@ -72,9 +73,6 @@ const MISCONFIGURED_CONVERSION_ERROR =
 const FUNDING_ACKNOWLEDGED_MESSAGE =
   'USDC transfer submitted. We are confirming it on Base.';
 
-const STELLAR_TREASURY_INSUFFICIENT_AT_CONFIRM =
-  "We're unable to fund this spend right now. Please try again shortly.";
-
 function fundingAcknowledgedMessage(
   spendRail: SpendSession['spend_rail']
 ): string {
@@ -123,6 +121,7 @@ async function persistConversionLastFailure(input: {
       },
     });
   } catch (e) {
+    // Best-effort audit metadata; do not block refund or confirm responses.
     console.error('persistConversionLastFailure:', e);
   }
 }
@@ -748,7 +747,7 @@ export async function runSpendConversionConfirm(
         httpStatus: 400,
         error:
           session.spend_rail === 'stellar_usdc'
-            ? STELLAR_TREASURY_INSUFFICIENT_AT_CONFIRM
+            ? SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE
             : SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient,
       };
     }
@@ -969,7 +968,7 @@ export async function runSpendConversionConfirm(
       httpStatus: 400,
       error:
         session.spend_rail === 'stellar_usdc'
-          ? STELLAR_TREASURY_INSUFFICIENT_AT_CONFIRM
+          ? SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE
           : SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient,
     };
   }

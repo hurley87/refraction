@@ -183,6 +183,27 @@ export type RetrySpendConversionAfterRefundRpcResult = {
   playerTotalPoints: number;
 };
 
+function readSpendConversionRpcRow(data: unknown): {
+  outcome: string | undefined;
+  conversionId: string | undefined;
+  playerTotalPoints: unknown;
+} {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row !== 'object') {
+    return {
+      outcome: undefined,
+      conversionId: undefined,
+      playerTotalPoints: undefined,
+    };
+  }
+  const r = row as Record<string, unknown>;
+  return {
+    outcome: r.outcome as string | undefined,
+    conversionId: r.conversion_id as string | undefined,
+    playerTotalPoints: r.player_total_points,
+  };
+}
+
 /**
  * Atomically deduct points and create `point_conversions` (status `points_deducted`), or return existing
  * conversion for the session. Requires `confirm_spend_conversion_atomic` in the database.
@@ -215,10 +236,8 @@ export async function confirmSpendConversionAtomic(input: {
     throw new Error(error.message || 'confirm_spend_conversion_atomic failed');
   }
 
-  const row = Array.isArray(data) ? data[0] : data;
-  const outcome = row?.outcome as string | undefined;
-  const conversionId = row?.conversion_id as string | undefined;
-  const playerTotalPoints = row?.player_total_points;
+  const { outcome, conversionId, playerTotalPoints } =
+    readSpendConversionRpcRow(data);
 
   if (
     (outcome !== 'created' && outcome !== 'already_exists') ||
@@ -266,10 +285,8 @@ export async function retrySpendConversionAfterRefundAtomic(input: {
     );
   }
 
-  const row = Array.isArray(data) ? data[0] : data;
-  const outcome = row?.outcome as string | undefined;
-  const conversionId = row?.conversion_id as string | undefined;
-  const playerTotalPoints = row?.player_total_points;
+  const { outcome, conversionId, playerTotalPoints } =
+    readSpendConversionRpcRow(data);
 
   if (
     outcome !== 'retried' ||

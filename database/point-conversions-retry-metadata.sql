@@ -5,14 +5,12 @@ ALTER TABLE point_conversions
   ADD COLUMN IF NOT EXISTS conversion_last_failure JSONB;
 
 COMMENT ON COLUMN point_conversions.conversion_attempt_count IS
-  'Number of point-deduction attempts for this session conversion (1 on first confirm; incremented on each explicit retry). Max 4 attempts total.';
+  'Number of point-deduction attempts for this session conversion (1 on first confirm; incremented on each explicit retry). Capped at MAX_SPEND_CONVERSION_POINT_DEDUCTION_ATTEMPTS in lib/spend-eligibility-messages.ts (must match retry RPC).';
 
 COMMENT ON COLUMN point_conversions.conversion_last_failure IS
   'Last terminal failure metadata after a safe points refund (timestamps, phase, category, snippet) for support.';
 
-UPDATE point_conversions
-SET conversion_attempt_count = 1
-WHERE conversion_attempt_count IS NULL;
+-- Existing rows receive DEFAULT 1 from ADD COLUMN NOT NULL DEFAULT 1; no separate backfill needed.
 
 -- After a refunded failure, deduct points again and reset the row for a new funding attempt (same conversion id / idempotency key).
 CREATE OR REPLACE FUNCTION retry_spend_conversion_after_refund_atomic(
@@ -77,6 +75,7 @@ BEGIN
     RAISE EXCEPTION 'Conversion is not in a retryable failed state';
   END IF;
 
+  -- Cap must match MAX_SPEND_CONVERSION_POINT_DEDUCTION_ATTEMPTS in lib/spend-eligibility-messages.ts
   IF v_conv.conversion_attempt_count >= 4 THEN
     RAISE EXCEPTION 'Conversion retry limit reached';
   END IF;
