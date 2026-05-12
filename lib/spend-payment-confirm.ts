@@ -20,8 +20,8 @@ import {
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import { verifySpendUsdcPaymentTx } from '@/lib/spend-payment-verify';
 import {
+  assertSpendRailAllowsMutatingSpendWork,
   getSpendReceivingWalletAddress,
-  isSpendRailOperational,
 } from '@/lib/spend-rail-config';
 import { isEvmAddress } from '@/lib/walletconnect-poster-direct-usdc';
 import type {
@@ -33,6 +33,7 @@ import {
   trackSpendPaymentCompleted,
   trackSpendPaymentConfirmed,
   trackSpendPaymentFailed,
+  trackSpendPilotRailMutationBlocked,
 } from '@/lib/analytics/server';
 import type { SpendPilotPaymentEventProperties } from '@/lib/analytics/types';
 
@@ -282,13 +283,25 @@ export async function runSpendPaymentConfirm(input: {
 
   let spendTx = await getSpendTransactionBySessionId(session.id);
 
-  if (!spendTx && !isSpendRailOperational(session.spend_rail)) {
-    return {
-      ok: false,
-      error:
-        'This payment network is temporarily unavailable. Please try again later.',
-      httpStatus: 400,
-    };
+  if (!spendTx) {
+    const railGate = assertSpendRailAllowsMutatingSpendWork(session.spend_rail);
+    if (!railGate.ok) {
+      trackSpendPilotRailMutationBlocked(distinctId, {
+        mutation: 'payment_confirm_new_tx',
+        ...railGate.analytics,
+        spend_experience_id: spendExperience.id,
+        event_id: spendExperience.event_id,
+        user_id: authUserId,
+        wallet_address: normalizedWallet,
+        spend_session_id: session.id,
+        point_conversion_id: fundedConversion?.id,
+      });
+      return {
+        ok: false,
+        error: railGate.error,
+        httpStatus: 400,
+      };
+    }
   }
 
   if (spendTx?.status === 'confirmed') {

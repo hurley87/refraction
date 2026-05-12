@@ -35,10 +35,15 @@ import type {
 } from '@/lib/types';
 import { isEvmAddress } from '@/lib/walletconnect-poster-direct-usdc';
 import {
+  assertSpendRailAllowsMutatingSpendWork,
+  isSpendRailOperational,
+} from '@/lib/spend-rail-config';
+import {
   resolveServerIdentity,
   trackSpendConversionCompleted,
   trackSpendConversionConfirmed,
   trackSpendConversionFailed,
+  trackSpendPilotRailMutationBlocked,
   trackSpendTreasuryInsufficientFunds,
 } from '@/lib/analytics/server';
 import type { SpendPilotConversionEventProperties } from '@/lib/analytics/types';
@@ -181,6 +186,10 @@ export async function tryFinalizePendingSpendConversion(input: {
   distinctId: string;
   baseAnalytics: SpendPilotConversionEventProperties;
 }): Promise<PointConversion | null> {
+  if (!isSpendRailOperational(input.session.spend_rail)) {
+    return null;
+  }
+
   const pointConversion =
     input.pointConversion ??
     (await getPointConversionBySessionId(input.session.id));
@@ -351,6 +360,20 @@ export async function runSpendConversionConfirm(
   }
 
   if (eligibility.status !== 'eligible') {
+    if (eligibility.status === 'rail_unavailable') {
+      const rg = assertSpendRailAllowsMutatingSpendWork(session.spend_rail);
+      if (!rg.ok) {
+        trackSpendPilotRailMutationBlocked(distinctId, {
+          mutation: 'conversion_confirm',
+          ...rg.analytics,
+          spend_experience_id: spendExperience.id,
+          event_id: spendExperience.event_id,
+          user_id: authUserId,
+          wallet_address: normalizedWallet,
+          spend_session_id: session.id,
+        });
+      }
+    }
     return {
       ok: false,
       httpStatus: 400,
@@ -566,6 +589,27 @@ async function fundOrResumeUsdc(input: {
     distinctId,
     baseAnalytics,
   } = input;
+
+  const railGate = assertSpendRailAllowsMutatingSpendWork(session.spend_rail);
+  if (!railGate.ok) {
+    trackSpendPilotRailMutationBlocked(distinctId, {
+      mutation: 'conversion_resume',
+      ...railGate.analytics,
+      spend_experience_id: spendExperience.id,
+      event_id: spendExperience.event_id,
+      user_id: session.user_id,
+      wallet_address: normalizedWallet,
+      spend_session_id: session.id,
+      point_conversion_id: pointConversion.id,
+    });
+    return {
+      error: {
+        ok: false,
+        httpStatus: 400,
+        error: railGate.error,
+      },
+    };
+  }
 
   const serverWallet = getSpendServerWalletTransferConfig(spendExperience);
   if (!serverWallet) {

@@ -127,7 +127,13 @@ export function buildSpendEligibilityPreview(
   }
 
   const railDiag = getSpendRailOperationalDiagnostics(session.spend_rail);
-  if (!railDiag.operational) {
+  /** Confirmed on-chain payment: receipt/read paths stay accurate if the rail is later disabled. */
+  const completedPaymentReadBypass =
+    !railDiag.operational &&
+    spendTransaction?.status === 'confirmed' &&
+    !!(spendTransaction.payment_tx_hash ?? '').trim();
+
+  if (!railDiag.operational && !completedPaymentReadBypass) {
     return {
       status: 'rail_unavailable',
       message: SPEND_ELIGIBILITY_MESSAGES.rail_unavailable,
