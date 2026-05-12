@@ -1,8 +1,4 @@
-import { getSpendExperienceById } from '@/lib/db/spend-experiences';
-import {
-  getPointConversionBySessionId,
-  getSpendSessionById,
-} from '@/lib/db/spend-sessions';
+import { getPointConversionBySessionId } from '@/lib/db/spend-sessions';
 import {
   insertSpendPaymentPrepareOrGet,
   updateSpendPaymentPreparePayload,
@@ -24,33 +20,11 @@ import {
   POSTER_CHECKOUT_CHAIN_ID,
 } from '@/lib/walletconnect-poster-direct-usdc';
 import { trackSpendPilotRailMutationBlocked } from '@/lib/analytics/server';
+import type { SpendPilotApiHttpStatus } from '@/lib/spend-pilot-http-status';
 import type { SpendExperience, SpendSession } from '@/lib/types';
 
-export type SpendPilotApiHttpStatus = 400 | 401 | 403 | 404 | 409 | 429 | 500;
-
-export async function getSpendPaymentPrepareContextOr404(
-  sessionId: string
-): Promise<
-  | {
-      session: SpendSession;
-      spendExperience: SpendExperience;
-      usdcAmount: number;
-    }
-  | { error: string; httpStatus: SpendPilotApiHttpStatus }
-> {
-  const session = await getSpendSessionById(sessionId);
-  if (!session) {
-    return { error: 'Spend session not found', httpStatus: 404 };
-  }
-  const spendExperience = await getSpendExperienceById(
-    session.spend_experience_id
-  );
-  if (!spendExperience) {
-    return { error: 'Spend experience not found', httpStatus: 404 };
-  }
-  const { usdcAmount } = computeConversionAmounts(spendExperience);
-  return { session, spendExperience, usdcAmount };
-}
+export type { SpendPilotApiHttpStatus } from '@/lib/spend-pilot-http-status';
+export { getSpendPaymentSessionContextOr404 as getSpendPaymentPrepareContextOr404 } from '@/lib/spend-payment-session-context';
 
 export type SpendPaymentPrepareResult =
   | {
@@ -60,11 +34,26 @@ export type SpendPaymentPrepareResult =
     }
   | { ok: false; error: string; httpStatus: SpendPilotApiHttpStatus };
 
-function snapshotsContentEqual(
-  a: Record<string, unknown>,
-  b: Record<string, unknown>
+function snapshotPairUnchanged(
+  rowAction: Record<string, unknown>,
+  rowSnap: Record<string, unknown>,
+  nextAction: Record<string, unknown>,
+  nextSnap: Record<string, unknown>
 ): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
+  return (
+    JSON.stringify([rowAction, rowSnap]) ===
+    JSON.stringify([nextAction, nextSnap])
+  );
+}
+
+function paymentPrepareResponseSession(
+  session: SpendSession
+): Pick<SpendSession, 'id' | 'status' | 'expires_at'> {
+  return {
+    id: session.id,
+    status: session.status,
+    expires_at: session.expires_at,
+  };
 }
 
 /**
@@ -166,7 +155,9 @@ export async function runSpendPaymentPrepare(input: {
     };
   }
 
-  const receiving = getSpendReceivingWalletAddress(session.spend_rail).trim();
+  const receiving = getSpendReceivingWalletAddress(
+    spendExperience.spend_rail
+  ).trim();
   if (!isEvmAddress(receiving)) {
     return {
       ok: false,
@@ -220,9 +211,7 @@ export async function runSpendPaymentPrepare(input: {
 
   const { preparedAction, verificationSnapshot } = railPrepare.value.baseUsdc;
 
-  const liveReceiving = getSpendReceivingWalletAddress(
-    session.spend_rail
-  ).toLowerCase();
+  const liveReceiving = receiving.toLowerCase();
   const liveUsdc = getSpendRailBaseUsdcContractAddress().toLowerCase();
 
   if (
@@ -241,30 +230,30 @@ export async function runSpendPaymentPrepare(input: {
     };
   }
 
+  const newAction = { ...preparedAction } as Record<string, unknown>;
+  const newSnap = { ...verificationSnapshot } as Record<string, unknown>;
+
   const { row, created } = await insertSpendPaymentPrepareOrGet({
     spendSessionId: session.id,
     userId: authUserId,
     spendRail: session.spend_rail,
-    preparedAction: { ...preparedAction },
-    verificationSnapshot: { ...verificationSnapshot },
+    preparedAction: newAction,
+    verificationSnapshot: newSnap,
   });
-
-  const newAction = { ...preparedAction } as Record<string, unknown>;
-  const newSnap = { ...verificationSnapshot } as Record<string, unknown>;
 
   if (
     !created &&
-    snapshotsContentEqual(row.prepared_action, newAction) &&
-    snapshotsContentEqual(row.verification_snapshot, newSnap)
+    snapshotPairUnchanged(
+      row.prepared_action,
+      row.verification_snapshot,
+      newAction,
+      newSnap
+    )
   ) {
     return {
       ok: true,
       preparedAction: row.prepared_action,
-      session: {
-        id: session.id,
-        status: session.status,
-        expires_at: session.expires_at,
-      },
+      session: paymentPrepareResponseSession(session),
     };
   }
 
@@ -276,21 +265,13 @@ export async function runSpendPaymentPrepare(input: {
     return {
       ok: true,
       preparedAction: updated.prepared_action,
-      session: {
-        id: session.id,
-        status: session.status,
-        expires_at: session.expires_at,
-      },
+      session: paymentPrepareResponseSession(session),
     };
   }
 
   return {
     ok: true,
     preparedAction: row.prepared_action,
-    session: {
-      id: session.id,
-      status: session.status,
-      expires_at: session.expires_at,
-    },
+    session: paymentPrepareResponseSession(session),
   };
 }

@@ -50,17 +50,19 @@ export function spendPaymentPrepareIdempotencyKey(
   return `payment:${spendSessionId}`;
 }
 
-export async function getSpendPaymentPrepareBySessionId(
-  spendSessionId: string
+async function getSpendPaymentPrepareByColumn(
+  column: 'spend_session_id' | 'idempotency_key',
+  value: string,
+  label: string
 ): Promise<SpendPaymentPrepareOperation | null> {
   const { data, error } = await supabase
     .from('spend_payment_prepare_operations')
     .select(SPEND_PAYMENT_PREPARE_COLS)
-    .eq('spend_session_id', spendSessionId)
+    .eq(column, value)
     .maybeSingle();
 
   if (error) {
-    console.error('getSpendPaymentPrepareBySessionId error:', error);
+    console.error(`${label} error:`, error);
     throw new Error(
       error.message || 'Failed to load payment prepare operation'
     );
@@ -69,23 +71,24 @@ export async function getSpendPaymentPrepareBySessionId(
   return rowToSpendPaymentPrepareOperation(data as Record<string, unknown>);
 }
 
+export async function getSpendPaymentPrepareBySessionId(
+  spendSessionId: string
+): Promise<SpendPaymentPrepareOperation | null> {
+  return getSpendPaymentPrepareByColumn(
+    'spend_session_id',
+    spendSessionId,
+    'getSpendPaymentPrepareBySessionId'
+  );
+}
+
 export async function getSpendPaymentPrepareByIdempotencyKey(
   idempotencyKey: string
 ): Promise<SpendPaymentPrepareOperation | null> {
-  const { data, error } = await supabase
-    .from('spend_payment_prepare_operations')
-    .select(SPEND_PAYMENT_PREPARE_COLS)
-    .eq('idempotency_key', idempotencyKey)
-    .maybeSingle();
-
-  if (error) {
-    console.error('getSpendPaymentPrepareByIdempotencyKey error:', error);
-    throw new Error(
-      error.message || 'Failed to load payment prepare operation'
-    );
-  }
-  if (!data) return null;
-  return rowToSpendPaymentPrepareOperation(data as Record<string, unknown>);
+  return getSpendPaymentPrepareByColumn(
+    'idempotency_key',
+    idempotencyKey,
+    'getSpendPaymentPrepareByIdempotencyKey'
+  );
 }
 
 export type InsertSpendPaymentPrepareInput = {

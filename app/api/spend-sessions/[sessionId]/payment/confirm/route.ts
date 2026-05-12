@@ -59,14 +59,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   const { session, spendExperience, usdcAmount } = ctx;
 
-  if (session.user_id !== auth.userId) {
-    return apiError('Forbidden', 403);
-  }
-
-  if (session.wallet_address.toLowerCase() !== normalizedWallet) {
-    return apiError('Wallet does not match this session', 400);
-  }
-
   const distinctId = resolveServerIdentity({
     privyUserId: auth.userId,
     walletAddress: normalizedWallet,

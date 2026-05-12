@@ -1,4 +1,3 @@
-import { getSpendExperienceById } from '@/lib/db/spend-experiences';
 import {
   getPointConversionBySessionId,
   getSpendSessionById,
@@ -14,10 +13,7 @@ import {
   explorerTxUrlForSpendLedger,
   isLedgerCanonicalEvmTxHash,
 } from '@/lib/spend-ledger-explorer-url';
-import {
-  computeConversionAmounts,
-  fetchUserUsdcBalanceSafe,
-} from '@/lib/spend-conversion-preview';
+import { fetchUserUsdcBalanceSafe } from '@/lib/spend-conversion-preview';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import { verifySpendUsdcPaymentTx } from '@/lib/spend-payment-verify';
 import { getSpendPaymentRail } from '@/lib/spend/payment-rails';
@@ -46,6 +42,10 @@ import {
   trackSpendPilotRailMutationBlocked,
 } from '@/lib/analytics/server';
 import type { SpendPilotPaymentEventProperties } from '@/lib/analytics/types';
+import type { SpendPilotApiHttpStatus } from '@/lib/spend-pilot-http-status';
+
+export type { SpendPilotApiHttpStatus } from '@/lib/spend-pilot-http-status';
+export { getSpendPaymentSessionContextOr404 as getSpendPaymentContextOr404 } from '@/lib/spend-payment-session-context';
 
 function normalizeTxHash(raw: string): `0x${string}` | null {
   const t = raw.trim();
@@ -61,31 +61,6 @@ function submittedPaymentHashConflicts(
   if (spendTx.status !== 'submitted') return false;
   const existing = (spendTx.payment_tx_hash ?? '').toLowerCase();
   return existing.length > 0 && existing !== requestedHashLower;
-}
-
-/** HTTP statuses allowed by `apiError` for spend pilot routes. */
-export type SpendPilotApiHttpStatus = 400 | 401 | 403 | 404 | 409 | 429 | 500;
-
-export async function getSpendPaymentContextOr404(sessionId: string): Promise<
-  | {
-      session: SpendSession;
-      spendExperience: SpendExperience;
-      usdcAmount: number;
-    }
-  | { error: string; httpStatus: SpendPilotApiHttpStatus }
-> {
-  const session = await getSpendSessionById(sessionId);
-  if (!session) {
-    return { error: 'Spend session not found', httpStatus: 404 };
-  }
-  const spendExperience = await getSpendExperienceById(
-    session.spend_experience_id
-  );
-  if (!spendExperience) {
-    return { error: 'Spend experience not found', httpStatus: 404 };
-  }
-  const { usdcAmount } = computeConversionAmounts(spendExperience);
-  return { session, spendExperience, usdcAmount };
 }
 
 export type SpendPaymentConfirmResult =
@@ -121,7 +96,6 @@ async function finalizeSuccess(params: {
   trackSpendPaymentCompleted(params.distinctId, {
     ...params.analytics,
     status: 'confirmed',
-    payment_tx_hash: params.analytics.payment_tx_hash,
   });
   return true;
 }
@@ -144,7 +118,6 @@ async function finalizeFailure(params: {
     ...params.analytics,
     status: 'failed',
     error_reason: params.reason,
-    payment_tx_hash: params.analytics.payment_tx_hash,
   });
 }
 
@@ -279,8 +252,14 @@ export async function runSpendPaymentConfirm(input: {
   let toAddr: `0x${string}`;
   let usdcAmount: number;
 
+  let spendTx: SpendTransaction | null = null;
+
   if (session.spend_rail === 'base_usdc') {
-    const preparedOp = await getSpendPaymentPrepareBySessionId(session.id);
+    const [preparedOp, tx] = await Promise.all([
+      getSpendPaymentPrepareBySessionId(session.id),
+      getSpendTransactionBySessionId(session.id),
+    ]);
+    spendTx = tx;
     if (!preparedOp) {
       return {
         ok: false,
@@ -330,6 +309,7 @@ export async function runSpendPaymentConfirm(input: {
     toAddr = snap.receiving_wallet as `0x${string}`;
     usdcAmount = snap.usdc_amount;
   } else {
+    spendTx = await getSpendTransactionBySessionId(session.id);
     fromAddr = normalizedWallet as `0x${string}`;
     toAddr = receivingLive as `0x${string}`;
     usdcAmount = input.usdcAmount;
@@ -348,8 +328,6 @@ export async function runSpendPaymentConfirm(input: {
     point_conversion_id: fundedConversion?.id,
     payment_tx_hash: txHash,
   };
-
-  let spendTx = await getSpendTransactionBySessionId(session.id);
 
   const isConfirmedPaymentResume =
     session.status === 'payment_complete' && spendTx?.status === 'confirmed';
