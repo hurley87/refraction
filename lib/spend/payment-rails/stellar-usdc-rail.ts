@@ -48,9 +48,12 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
       return conversionFundingUnsupported();
     },
 
-    async initiateUserFunding(
-      ctx: SpendPaymentRailSessionContext
-    ): Promise<SpendRailResult<{ status: SpendRailFundingOperationStatus }>> {
+    async initiateUserFunding(ctx: SpendPaymentRailSessionContext): Promise<
+      SpendRailResult<{
+        status: SpendRailFundingOperationStatus;
+        txReference?: string | null;
+      }>
+    > {
       void ctx;
       return conversionFundingUnsupported();
     },

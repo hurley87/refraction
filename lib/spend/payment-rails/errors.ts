@@ -134,3 +134,10 @@ export function isSpendRailError(value: unknown): value is SpendRailError {
     typeof v.analyticsCode === 'string'
   );
 }
+
+/** HTTP status for surfacing a rail error to clients (conversion / payment routes). */
+export function spendRailErrorCategoryToHttpStatus(
+  category: SpendRailErrorCategory
+): 400 | 500 {
+  return category === 'network_unavailable' ? 500 : 400;
+}

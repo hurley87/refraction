@@ -385,6 +385,13 @@ export async function confirmSpendTransactionIfSubmitted(
   return rowToSpendTransaction(data as Record<string, unknown>);
 }
 
+/** Deterministic idempotency key for treasury→user conversion funding (IRL-20). */
+export function spendConversionFundingIdempotencyKey(
+  pointConversionId: string
+): string {
+  return `fund_user:${pointConversionId}`;
+}
+
 /**
  * If USDC transfer fails after points were deducted, refund points and mark conversion `failed`.
  */
