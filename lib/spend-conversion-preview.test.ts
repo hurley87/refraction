@@ -320,17 +320,22 @@ describe('buildSpendEligibilityPreview', () => {
   describe('stellar_usdc rail', () => {
     const prev: Record<string, string | undefined> = {};
 
-    beforeEach(() => {
+    beforeEach(async () => {
+      const { Keypair } = await import('@stellar/stellar-sdk');
+      const kp = Keypair.random();
       for (const k of [
         'SPEND_RAIL_STELLAR_USDC_ENABLED',
         'SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS',
         'NEXT_PUBLIC_STELLAR_NETWORK',
+        'SPEND_RAIL_STELLAR_USDC_SPONSOR_SECRET_KEY',
+        'SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY',
       ]) {
         prev[k] = process.env[k];
       }
       process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = 'true';
-      process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS =
-        'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
+      process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = kp.publicKey();
+      process.env.SPEND_RAIL_STELLAR_USDC_SPONSOR_SECRET_KEY = kp.secret();
+      process.env.SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY = kp.secret();
       process.env.NEXT_PUBLIC_STELLAR_NETWORK = 'PUBLIC';
     });
 
@@ -359,7 +364,7 @@ describe('buildSpendEligibilityPreview', () => {
       expect(r.status).toBe('ready_for_payment_own_usdc');
     });
 
-    it('returns conversion_unsupported when points would fund but rail has no Privy treasury path', () => {
+    it('allows points conversion when treasury is funded on stellar_usdc', () => {
       const r = buildSpendEligibilityPreview({
         session: sess({
           spend_rail: 'stellar_usdc',
@@ -374,7 +379,7 @@ describe('buildSpendEligibilityPreview', () => {
         userUsdcBalance: null,
         now,
       });
-      expect(r.status).toBe('conversion_unsupported');
+      expect(r.status).toBe('eligible');
     });
 
     it('returns insufficient_points when user lacks points and own USDC', () => {

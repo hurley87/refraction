@@ -6,6 +6,7 @@ import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import type { SpendRail } from '@/lib/types';
 import { mapSpendRailOperationalReasonToAdminCurated } from '@/lib/spend-rail-config/admin-curated-unavailable-reasons';
 import { collectStellarSpendReadinessConfigReasons } from '@/lib/spend/stellar-wallet-readiness-config';
+import { collectStellarTreasuryFundingConfigReasons } from '@/lib/spend/stellar-treasury-funding-config';
 import type {
   SpendRailCatalogEntry,
   SpendRailClientSummary,
@@ -208,6 +209,13 @@ function collectStellarOperationalReasons(parsed: ParsedStellar): string[] {
     ...validateExplorerTemplate(parsed.explorerTxUrlTemplate, 'Stellar')
   );
   reasons.push(...collectStellarSpendReadinessConfigReasons());
+  const treasuryResolved =
+    parsed.treasuryAddress?.trim() || parsed.receivingAddress?.trim() || '';
+  reasons.push(
+    ...collectStellarTreasuryFundingConfigReasons({
+      treasuryPublicAddressTrimmed: treasuryResolved,
+    })
+  );
   return reasons;
 }
 

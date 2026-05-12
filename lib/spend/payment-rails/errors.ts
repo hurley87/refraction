@@ -5,6 +5,7 @@
 export const SPEND_RAIL_ANALYTICS_CODES = {
   wallet_unavailable: 'spend_rail_wallet_unavailable',
   treasury_insufficient_funds: 'spend_rail_treasury_insufficient_funds',
+  treasury_configuration: 'spend_rail_treasury_configuration',
   wallet_readiness_failed: 'spend_rail_wallet_readiness_failed',
   funding_failed: 'spend_rail_funding_failed',
   payment_failed: 'spend_rail_payment_failed',
@@ -20,6 +21,7 @@ export type SpendRailAnalyticsCode =
 export type SpendRailErrorCategory =
   | 'wallet_unavailable'
   | 'treasury_insufficient_funds'
+  | 'treasury_configuration'
   | 'wallet_readiness_failed'
   | 'funding_failed'
   | 'payment_failed'
@@ -57,6 +59,26 @@ export const spendRailErrorTreasuryInsufficientFunds = (): SpendRailError =>
     'treasury_insufficient_funds',
     'This experience cannot fund your balance right now. Please try again later.',
     SPEND_RAIL_ANALYTICS_CODES.treasury_insufficient_funds
+  );
+
+/** Stellar treasury USDC balance too low to fund this spend (IRL-16 user-facing copy). */
+export const spendRailErrorStellarTreasuryCannotFundSpend =
+  (): SpendRailError =>
+    err(
+      'treasury_insufficient_funds',
+      "We're unable to fund this spend right now. Please try again shortly.",
+      SPEND_RAIL_ANALYTICS_CODES.treasury_insufficient_funds
+    );
+
+/**
+ * Treasury funding wallet is misconfigured for this rail (e.g. missing USDC trustline on Stellar).
+ * Support-safe category; raw upstream details belong in logs only.
+ */
+export const spendRailErrorTreasuryConfiguration = (): SpendRailError =>
+  err(
+    'treasury_configuration',
+    'This experience is not configured correctly for funding. Please contact support.',
+    SPEND_RAIL_ANALYTICS_CODES.treasury_configuration
   );
 
 /** Server-driven wallet readiness (e.g. account prep) did not complete successfully. */
@@ -139,5 +161,11 @@ export function isSpendRailError(value: unknown): value is SpendRailError {
 export function spendRailErrorCategoryToHttpStatus(
   category: SpendRailErrorCategory
 ): 400 | 500 {
-  return category === 'network_unavailable' ? 500 : 400;
+  if (
+    category === 'network_unavailable' ||
+    category === 'treasury_configuration'
+  ) {
+    return 500;
+  }
+  return 400;
 }

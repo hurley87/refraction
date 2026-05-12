@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   explorerTxUrlForSpendLedger,
   isLedgerCanonicalEvmTxHash,
+  isStellarTransactionHash,
+  isValidSpendConversionFundingTxReference,
   spendLedgerNetworkLabel,
 } from '@/lib/spend-ledger-explorer-url';
 
@@ -18,6 +20,36 @@ describe('isLedgerCanonicalEvmTxHash', () => {
   });
   it('rejects short hashes', () => {
     expect(isLedgerCanonicalEvmTxHash('0xabc')).toBe(false);
+  });
+});
+
+describe('isStellarTransactionHash', () => {
+  it('accepts 64 hex without 0x prefix', () => {
+    expect(isStellarTransactionHash('a'.repeat(64))).toBe(true);
+  });
+  it('rejects EVM-shaped hashes', () => {
+    expect(isStellarTransactionHash('0x' + 'a'.repeat(64))).toBe(false);
+  });
+});
+
+describe('isValidSpendConversionFundingTxReference', () => {
+  it('accepts EVM hash on base_usdc', () => {
+    expect(
+      isValidSpendConversionFundingTxReference(
+        'base_usdc',
+        '0x' + 'c'.repeat(64)
+      )
+    ).toBe(true);
+  });
+  it('accepts stellar hash on stellar_usdc', () => {
+    expect(
+      isValidSpendConversionFundingTxReference('stellar_usdc', 'd'.repeat(64))
+    ).toBe(true);
+  });
+  it('rejects stellar hash on base_usdc', () => {
+    expect(
+      isValidSpendConversionFundingTxReference('base_usdc', 'd'.repeat(64))
+    ).toBe(false);
   });
 });
 

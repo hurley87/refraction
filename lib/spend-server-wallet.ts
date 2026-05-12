@@ -2,6 +2,7 @@ import {
   fetchUsdcBalanceOnBase,
   isEvmAddress,
 } from '@/lib/walletconnect-poster-direct-usdc';
+import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import {
   getSpendBaseTreasuryPrivyTransferConfig,
   getSpendRailBaseRpcUrl,
@@ -40,6 +41,32 @@ export type SpendServerWalletTransferConfig = {
   walletId: string;
   address: `0x${string}`;
 };
+
+/** Treasury address used for conversion funding ledger + atomic RPC (rail-specific shape). */
+export type SpendTreasuryFundingWalletMeta =
+  | { spendRail: 'base_usdc'; treasuryAddress: `0x${string}` }
+  | { spendRail: 'stellar_usdc'; treasuryAddress: string };
+
+/**
+ * Resolves the configured treasury **public** address for conversion funding (IRL-16).
+ * Base continues to use the Privy server wallet id + address pair via `getSpendServerWalletTransferConfig`.
+ */
+export function getSpendTreasuryFundingWalletMeta(
+  experience: Pick<SpendExperience, 'spend_rail'>
+): SpendTreasuryFundingWalletMeta | null {
+  if (experience.spend_rail === 'base_usdc') {
+    const cfg = getSpendServerWalletTransferConfig(experience);
+    if (!cfg) return null;
+    return { spendRail: 'base_usdc', treasuryAddress: cfg.address };
+  }
+  if (experience.spend_rail === 'stellar_usdc') {
+    const raw = getSpendTreasuryWalletAddress('stellar_usdc').trim();
+    const parsed = stellarWalletAddressSchema.safeParse(raw);
+    if (!parsed.success) return null;
+    return { spendRail: 'stellar_usdc', treasuryAddress: parsed.data };
+  }
+  return null;
+}
 
 /**
  * Global treasury (funding) wallet for the experience rail — from spend rail env config.

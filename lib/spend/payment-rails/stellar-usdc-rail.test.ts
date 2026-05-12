@@ -28,6 +28,18 @@ vi.mock('@/lib/spend/stellar-wallet-readiness-orchestration', () => ({
     hoisted.mockOrchestrator(...a),
 }));
 
+const hoistedTreasury = vi.hoisted(() => ({
+  readBal: vi.fn(),
+  submit: vi.fn(),
+}));
+
+vi.mock('@/lib/spend/stellar-treasury-funding', () => ({
+  readStellarTreasuryConfirmedUsdcBalance: (...a: unknown[]) =>
+    hoistedTreasury.readBal(...a),
+  submitStellarTreasuryUsdcFunding: (...a: unknown[]) =>
+    hoistedTreasury.submit(...a),
+}));
+
 import { createStellarUsdcSpendPaymentRail } from './stellar-usdc-rail';
 
 const sessionId = '770e8400-e29b-41d4-a716-446655440000';
@@ -203,5 +215,68 @@ describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-18)', () =
     const res = await rail.runWalletReadinessOrchestration(ctx);
     expect(res.ok).toBe(false);
     expect(hoisted.mockOrchestrator).not.toHaveBeenCalled();
+  });
+});
+
+describe('createStellarUsdcSpendPaymentRail — treasury funding (IRL-16)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoistedTreasury.readBal.mockReset();
+    hoistedTreasury.submit.mockReset();
+  });
+
+  it('getTreasurySpendableBalance returns Horizon-backed balance', async () => {
+    hoistedTreasury.readBal.mockResolvedValue(42.5);
+    const rail = createStellarUsdcSpendPaymentRail();
+    const r = await rail.getTreasurySpendableBalance();
+    expect(r.ok).toBe(true);
+    if (!r.ok) throw new Error('expected ok');
+    expect(r.value).toBe(42.5);
+  });
+
+  it('getTreasurySpendableBalance returns err when balance read throws categorized error', async () => {
+    const { spendRailErrorTreasuryConfiguration } =
+      await import('@/lib/spend/payment-rails/errors');
+    hoistedTreasury.readBal.mockRejectedValue(
+      spendRailErrorTreasuryConfiguration()
+    );
+    const rail = createStellarUsdcSpendPaymentRail();
+    const r = await rail.getTreasurySpendableBalance();
+    expect(r.ok).toBe(false);
+    if (r.ok) throw new Error('expected err');
+    expect(r.error.category).toBe('treasury_configuration');
+  });
+
+  it('initiateUserFunding returns confirmed when submit succeeds inline', async () => {
+    hoistedTreasury.readBal.mockResolvedValue(100);
+    hoistedTreasury.submit.mockResolvedValue({
+      kind: 'confirmed',
+      txHash: 'a'.repeat(64),
+    });
+    const rail = createStellarUsdcSpendPaymentRail();
+    const res = await rail.initiateUserFunding({
+      spendSessionId: sessionId,
+      fundingReferenceId: 'fund_user:cv-1',
+      embeddedEvmWalletAddress: STELLAR_G,
+      usdcAmount: 10,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error('expected ok');
+    expect(res.value.status).toBe('confirmed');
+    expect(res.value.txReference?.toLowerCase()).toBe('a'.repeat(64));
+  });
+
+  it('initiateUserFunding rejects invalid destination as readiness failure', async () => {
+    hoistedTreasury.readBal.mockResolvedValue(100);
+    const rail = createStellarUsdcSpendPaymentRail();
+    const res = await rail.initiateUserFunding({
+      spendSessionId: sessionId,
+      fundingReferenceId: 'fund_user:cv-1',
+      embeddedEvmWalletAddress: 'not-stellar',
+      usdcAmount: 10,
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error('expected err');
+    expect(res.error.category).toBe('wallet_readiness_failed');
   });
 });

@@ -9,6 +9,15 @@ vi.mock('@/lib/spend/stellar-wallet-readiness-orchestration', () => ({
   }),
 }));
 
+vi.mock('@/lib/spend/stellar-treasury-funding', () => ({
+  readStellarTreasuryConfirmedUsdcBalance: vi
+    .fn()
+    .mockRejectedValue(new Error('econn horizon')),
+  submitStellarTreasuryUsdcFunding: vi.fn(),
+  findSuccessfulStellarFundingTxByMemo: vi.fn(),
+  getStellarTreasuryFundingTxOutcome: vi.fn(),
+}));
+
 import {
   SPEND_RAIL_ANALYTICS_CODES,
   spendRailErrorConversionFundingNotSupported,
@@ -136,7 +145,7 @@ describe('getSpendPaymentRail', () => {
     expect(gate.error.userMessage).toContain('not available in this release');
   });
 
-  it('marks Stellar treasury/funding/payment/reconcile as unsupported; readiness is rail-specific', async () => {
+  it('Stellar rail rejects prepare/confirm/reconcile; treasury reads are rail-shaped', async () => {
     const rail = getSpendPaymentRail('stellar_usdc');
     const ctx = { spendSessionId: 's1', sessionOwnerPrivyUserId: 'p1' };
 

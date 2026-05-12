@@ -6,6 +6,17 @@ import {
 } from '@/lib/spend-ledger-explorer-url';
 import type { SpendRail, TreasuryTransaction } from '@/lib/types';
 
+function normalizeTreasuryLedgerWalletAddress(
+  spendRail: SpendRail,
+  address: string
+): string {
+  const t = address.trim();
+  if (spendRail === 'base_usdc' || t.startsWith('0x')) {
+    return t.toLowerCase();
+  }
+  return t;
+}
+
 const TREASURY_COLS = `
   id,
   spend_experience_id,
@@ -81,6 +92,15 @@ async function insertTreasuryLedgerRowIfAbsent(params: {
   const spend_rail = params.spendRail;
   const explorerTxUrl = explorerTxUrlForSpendLedger(spend_rail, txLower);
 
+  const fromNorm = normalizeTreasuryLedgerWalletAddress(
+    spend_rail,
+    params.fromWalletAddress
+  );
+  const toNorm = normalizeTreasuryLedgerWalletAddress(
+    spend_rail,
+    params.toWalletAddress
+  );
+
   const { error } = await supabase.from('treasury_transactions').insert({
     spend_experience_id: params.spendExperienceId,
     transaction_type: params.transactionType,
@@ -88,8 +108,8 @@ async function insertTreasuryLedgerRowIfAbsent(params: {
     spend_rail,
     network: spendLedgerNetworkLabel(spend_rail),
     asset_symbol: 'USDC',
-    from_wallet_address: params.fromWalletAddress.trim().toLowerCase(),
-    to_wallet_address: params.toWalletAddress.trim().toLowerCase(),
+    from_wallet_address: fromNorm,
+    to_wallet_address: toNorm,
     tx_hash: txLower,
     explorer_tx_url: explorerTxUrl,
     status: 'confirmed',
