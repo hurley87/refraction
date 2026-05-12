@@ -224,19 +224,14 @@ export function SpendExperienceFormPanel({
               </p>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                 <code className="flex-1 break-all rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900">
-                  {railCatalogPending && railCatalog.length === 0
-                    ? '…'
-                    : receivingDisplay}
+                  {receivingDisplay}
                 </code>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   className="shrink-0 gap-1 sm:self-start"
-                  disabled={
-                    !receivingTrimmed ||
-                    (railCatalogPending && railCatalog.length === 0)
-                  }
+                  disabled={!receivingTrimmed}
                   onClick={() => {
                     void navigator.clipboard.writeText(receivingTrimmed);
                     toast.success('Address copied');
