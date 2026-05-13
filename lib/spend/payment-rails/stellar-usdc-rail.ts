@@ -29,6 +29,7 @@ import type {
   SpendPaymentRailReconcileContext,
   SpendPaymentRailSessionContext,
   SpendRailFundingOperationStatus,
+  SpendTreasuryBalanceRailContext,
 } from '@/lib/spend/payment-rails/types';
 import { runStellarUsdcWalletReadinessOrchestration } from '@/lib/spend/stellar-wallet-readiness-orchestration';
 import {
@@ -113,9 +114,10 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
   return {
     spendRail,
 
-    async getTreasurySpendableBalance(): Promise<
-      SpendRailResult<number | null>
-    > {
+    async getTreasurySpendableBalance(
+      ctx?: SpendTreasuryBalanceRailContext
+    ): Promise<SpendRailResult<number | null>> {
+      void ctx;
       try {
         const v = await readStellarTreasuryConfirmedUsdcBalance();
         return okSpendRail(v);

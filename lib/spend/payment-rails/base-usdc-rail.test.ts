@@ -71,6 +71,23 @@ describe('createBaseUsdcSpendPaymentRail', () => {
     expect(res.value).toBeNull();
   });
 
+  it('getTreasurySpendableBalance uses per-experience wallet from context when provided', async () => {
+    const expWallet =
+      '0x9999999999999999999999999999999999999999' as `0x${string}`;
+    vi.spyOn(posterUsdc, 'fetchUsdcBalanceOnBase').mockResolvedValue(42);
+    const res = await rail.getTreasurySpendableBalance({
+      treasuryFundingWalletId: 'wallet-exp-1',
+      treasuryFundingWalletAddress: expWallet,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error('unexpected');
+    expect(res.value).toBe(42);
+    expect(posterUsdc.fetchUsdcBalanceOnBase).toHaveBeenCalledWith(
+      expWallet,
+      expect.any(Object)
+    );
+  });
+
   it('runWalletReadinessOrchestration fails without a valid embedded wallet', async () => {
     const res = await rail.runWalletReadinessOrchestration({
       spendSessionId: 's1',
