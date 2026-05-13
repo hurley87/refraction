@@ -69,6 +69,49 @@ const LOCATION_INSTRUCTION_STORAGE_KEY =
   'irl-location-create-instruction-count';
 const LOCATION_INSTRUCTION_LIMIT = 3;
 
+const isDev = process.env.NODE_ENV === 'development';
+
+type ViewportBounds = {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+};
+
+function boundsFromMapboxLngLatBounds(bounds: {
+  getNorth: () => number;
+  getSouth: () => number;
+  getEast: () => number;
+  getWest: () => number;
+}): ViewportBounds {
+  return {
+    north: bounds.getNorth(),
+    south: bounds.getSouth(),
+    east: bounds.getEast(),
+    west: bounds.getWest(),
+  };
+}
+
+function mapLoadErrorMessage(raw: unknown): string {
+  if (raw instanceof Error) {
+    return raw.message;
+  }
+  if (typeof raw === 'string') {
+    return raw;
+  }
+  return 'Unable to load the map.';
+}
+
+function mapBoundsApproxEqual(a: ViewportBounds, b: ViewportBounds): boolean {
+  const eps = 1e-6;
+  return (
+    Math.abs(a.north - b.north) < eps &&
+    Math.abs(a.south - b.south) < eps &&
+    Math.abs(a.east - b.east) < eps &&
+    Math.abs(a.west - b.west) < eps
+  );
+}
+
 /** Style/Body/Body Medium — map LocationSearch (Gal Gothic) */
 const MAP_SEARCH_INPUT_CLASS =
   'text-center text-base font-medium leading-[22px] tracking-[-0.48px] font-["Gal_Gothic_Variable",sans-serif] text-[color:var(--Dark-Tint-40---Neutral,#A9A9A9)] placeholder:text-[color:var(--Dark-Tint-40---Neutral,#A9A9A9)]';
@@ -277,10 +320,7 @@ export default function InteractiveMap({
       },
       (error) => {
         // Code 2 (POSITION_UNAVAILABLE) is common on desktop without a precise fix; avoid noisy logs.
-        if (
-          process.env.NODE_ENV === 'development' &&
-          error.code !== error.POSITION_UNAVAILABLE
-        ) {
+        if (isDev && error.code !== error.POSITION_UNAVAILABLE) {
           console.warn('Geolocation error:', error);
         }
       },
@@ -450,13 +490,8 @@ export default function InteractiveMap({
           if (map && typeof map.getBounds === 'function') {
             const bounds = map.getBounds();
             if (bounds && typeof bounds.getNorth === 'function') {
-              const calculatedBounds = {
-                north: bounds.getNorth(),
-                south: bounds.getSouth(),
-                east: bounds.getEast(),
-                west: bounds.getWest(),
-              };
-              if (process.env.NODE_ENV === 'development') {
+              const calculatedBounds = boundsFromMapboxLngLatBounds(bounds);
+              if (isDev) {
                 console.log(
                   '[MapBounds] Calculated from map instance:',
                   calculatedBounds
@@ -469,13 +504,8 @@ export default function InteractiveMap({
           if (typeof mapRef.current.getBounds === 'function') {
             const bounds = mapRef.current.getBounds();
             if (bounds && typeof bounds.getNorth === 'function') {
-              const calculatedBounds = {
-                north: bounds.getNorth(),
-                south: bounds.getSouth(),
-                east: bounds.getEast(),
-                west: bounds.getWest(),
-              };
-              if (process.env.NODE_ENV === 'development') {
+              const calculatedBounds = boundsFromMapboxLngLatBounds(bounds);
+              if (isDev) {
                 console.log(
                   '[MapBounds] Calculated from ref.getBounds():',
                   calculatedBounds
@@ -508,7 +538,7 @@ export default function InteractiveMap({
         east: longitude + viewportWidthDegrees / 2,
         west: longitude - viewportWidthDegrees / 2,
       };
-      if (process.env.NODE_ENV === 'development') {
+      if (isDev) {
         console.log('[MapBounds] Calculated fallback from viewState:', {
           center: { latitude, longitude },
           zoom,
@@ -523,10 +553,12 @@ export default function InteractiveMap({
   // Keep list-drawer bounds in sync before the map fires move/load (slow init or WebGL failure).
   useEffect(() => {
     const bounds = calculateMapBounds(viewState);
-    if (bounds) {
-      setMapBounds(bounds);
-    }
-    // Intentionally lat/lng/zoom only: full viewState changes every pan frame while onMove already updates bounds when WebGL is active.
+    if (!bounds) return;
+    setMapBounds((prev) =>
+      prev && mapBoundsApproxEqual(prev, bounds) ? prev : bounds
+    );
+    // Lat/lng/zoom only: full viewState changes every pan frame; onMove already updates bounds when WebGL is active.
+    // mapBoundsApproxEqual avoids an extra state commit when the seed matches what onMove just set.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     viewState.latitude,
@@ -1776,12 +1808,12 @@ export default function InteractiveMap({
         onMoveEnd={() => {
           // Update map bounds when map movement ends - this ensures accurate bounds
           // This is the most accurate as it uses the actual map instance
-          if (process.env.NODE_ENV === 'development') {
+          if (isDev) {
             console.log('[MapBounds] onMoveEnd triggered');
           }
           const bounds = calculateMapBounds();
           if (bounds) {
-            if (process.env.NODE_ENV === 'development') {
+            if (isDev) {
               console.log('[MapBounds] Setting bounds from onMoveEnd:', bounds);
             }
             setMapBounds(bounds);
@@ -1802,12 +1834,7 @@ export default function InteractiveMap({
             evt && typeof evt === 'object' && 'error' in evt
               ? (evt as { error?: unknown }).error
               : evt;
-          const msg =
-            raw instanceof Error
-              ? raw.message
-              : typeof raw === 'string'
-                ? raw
-                : 'Unable to load the map.';
+          const msg = mapLoadErrorMessage(raw);
           if (msg.toLowerCase().includes('webgl')) {
             setMapRenderError(
               'This map requires WebGL. Enable hardware acceleration in your browser settings, update your graphics drivers, or try a different browser.'

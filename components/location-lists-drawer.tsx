@@ -46,7 +46,19 @@ interface UserLocation {
 /** Include list locations within this distance (km) of the visible viewport, not only strictly inside it. */
 const VIEWPORT_NEARBY_RADIUS_KM = 25;
 
-const isDev = process.env.NODE_ENV === 'development';
+const devLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV === 'development') console.log(...args);
+};
+
+const devWarn = (...args: unknown[]) => {
+  if (process.env.NODE_ENV === 'development') console.warn(...args);
+};
+
+function parseCoord(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') return parseFloat(value);
+  return NaN;
+}
 
 interface LocationListsDrawerProps {
   walletAddress?: string | null;
@@ -63,19 +75,8 @@ interface LocationListsDrawerProps {
 const toLngLat = (
   location: DrawerLocationSummary
 ): { latitude: number; longitude: number } | null => {
-  const { latitude: latRaw, longitude: lngRaw } = location;
-  const lat =
-    typeof latRaw === 'number'
-      ? latRaw
-      : typeof latRaw === 'string'
-        ? parseFloat(latRaw)
-        : NaN;
-  const lng =
-    typeof lngRaw === 'number'
-      ? lngRaw
-      : typeof lngRaw === 'string'
-        ? parseFloat(lngRaw)
-        : NaN;
+  const lat = parseCoord(location.latitude);
+  const lng = parseCoord(location.longitude);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
     return null;
   }
@@ -92,9 +93,7 @@ const isLocationInBounds = (
 ): boolean => {
   const coords = toLngLat(location);
   if (!coords) {
-    if (isDev) {
-      console.log('[Filter] Location missing coordinates:', location.name);
-    }
+    devLog('[Filter] Location missing coordinates:', location.name);
     return false;
   }
 
@@ -104,16 +103,11 @@ const isLocationInBounds = (
   // Check latitude bounds
   const latInBounds = latitude >= south && latitude <= north;
   if (!latInBounds) {
-    if (isDev) {
-      console.log(
-        `[Filter] Location "${location.name}" FAILED latitude check:`,
-        {
-          locationLat: latitude,
-          boundsSouth: south,
-          boundsNorth: north,
-        }
-      );
-    }
+    devLog(`[Filter] Location "${location.name}" FAILED latitude check:`, {
+      locationLat: latitude,
+      boundsSouth: south,
+      boundsNorth: north,
+    });
     return false;
   }
 
@@ -129,22 +123,19 @@ const isLocationInBounds = (
   }
 
   if (!lonInBounds) {
-    if (isDev) {
-      console.log(
-        `[Filter] Location "${location.name}" FAILED longitude check:`,
-        { locationLon: longitude, boundsWest: west, boundsEast: east }
-      );
-    }
+    devLog(`[Filter] Location "${location.name}" FAILED longitude check:`, {
+      locationLon: longitude,
+      boundsWest: west,
+      boundsEast: east,
+    });
     return false;
   }
 
-  if (isDev) {
-    console.log(`[Filter] Location "${location.name}" PASSED:`, {
-      lat: latitude,
-      lon: longitude,
-      bounds,
-    });
-  }
+  devLog(`[Filter] Location "${location.name}" PASSED:`, {
+    lat: latitude,
+    lon: longitude,
+    bounds,
+  });
   return true;
 };
 
@@ -240,45 +231,35 @@ export default function LocationListsDrawer({
 
   // Filter locations based on map bounds
   const filteredLists = useMemo(() => {
-    if (isDev) {
-      console.log('[Filter] Starting filter with mapBounds:', mapBounds);
-    }
+    devLog('[Filter] Starting filter with mapBounds:', mapBounds);
     const effectiveBounds = getEffectiveBounds(mapBounds, userLocation);
-    if (isDev) {
-      console.log('[Filter] Effective bounds:', effectiveBounds);
-    }
+    devLog('[Filter] Effective bounds:', effectiveBounds);
 
     if (!effectiveBounds) {
       return [];
     }
 
-    if (isDev) {
-      console.log(
-        `[Filter] Filtering ${lists.length} lists with bounds:`,
-        effectiveBounds
-      );
-    }
+    devLog(
+      `[Filter] Filtering ${lists.length} lists with bounds:`,
+      effectiveBounds
+    );
 
     const filtered = lists
       .filter((list) => (list.locations?.length ?? 0) > 0)
       .map((list) => {
         const locs = list.locations ?? [];
         const totalLocations = locs.length;
-        if (isDev) {
-          console.log(
-            `[Filter] Filtering list "${list.title}" with ${totalLocations} locations`
-          );
-        }
+        devLog(
+          `[Filter] Filtering list "${list.title}" with ${totalLocations} locations`
+        );
 
         const filteredLocations = locs.filter((location) =>
           isLocationInBounds(location, effectiveBounds)
         );
 
-        if (isDev) {
-          console.log(
-            `[Filter] List "${list.title}": ${filteredLocations.length}/${totalLocations} locations passed filter`
-          );
-        }
+        devLog(
+          `[Filter] List "${list.title}": ${filteredLocations.length}/${totalLocations} locations passed filter`
+        );
 
         return {
           ...list,
@@ -295,14 +276,12 @@ export default function LocationListsDrawer({
       0
     );
 
-    if (isDev) {
-      console.log(
-        `[Filter] Filtering complete. ${totalFiltered}/${totalOriginal} locations passed filter`
-      );
-    }
+    devLog(
+      `[Filter] Filtering complete. ${totalFiltered}/${totalOriginal} locations passed filter`
+    );
 
-    if (isDev && totalFiltered === 0 && totalOriginal > 0) {
-      console.warn(
+    if (totalFiltered === 0 && totalOriginal > 0) {
+      devWarn(
         `[Filter] ⚠️ All ${totalOriginal} locations were filtered out!`,
         `No list locations within viewport + ${VIEWPORT_NEARBY_RADIUS_KM}km buffer.`,
         `Bounds:`,
