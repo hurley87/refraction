@@ -35,8 +35,12 @@ export async function maybeReconcileSpendRailOnAuthorizedSessionRead(input: {
   const cfg = readSpendRailReconcileAgeWindowEnv();
   const nowMs = input.nowMs ?? Date.now();
   const olderThanIso = computeSpendRailReconcileOlderThanIso(nowMs, cfg);
-  await reconcileSpendRailPendingOperationsForSession({
-    spendSessionId: input.spendSessionId,
-    olderThanIso,
-  });
+  try {
+    await reconcileSpendRailPendingOperationsForSession({
+      spendSessionId: input.spendSessionId,
+      olderThanIso,
+    });
+  } catch (e) {
+    console.error('opportunistic spend rail reconcile on read:', e);
+  }
 }
