@@ -200,11 +200,21 @@ function rowToConversionLastFailure(
   ) {
     return null;
   }
+  const rawDiagnostics = o.internal_diagnostics;
+  const internalDiagnostics =
+    rawDiagnostics &&
+    typeof rawDiagnostics === 'object' &&
+    !Array.isArray(rawDiagnostics)
+      ? (rawDiagnostics as Record<string, unknown>)
+      : undefined;
   return {
     recorded_at: recordedAt,
     phase,
     category,
     reason_snippet: reasonSnippet,
+    ...(internalDiagnostics
+      ? { internal_diagnostics: internalDiagnostics }
+      : {}),
   };
 }
 

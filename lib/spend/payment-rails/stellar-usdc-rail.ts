@@ -22,7 +22,9 @@ import {
   spendRailErrorPaymentFailed,
   spendRailErrorStellarTreasuryCannotFundSpend,
   spendRailErrorRailOperationNotSupported,
+  spendRailDiagnosticKeySuffix,
   spendRailErrorWalletReadinessFailed,
+  spendRailErrorWithDiagnostics,
   type SpendRailError,
 } from '@/lib/spend/payment-rails/errors';
 import type {
@@ -381,10 +383,21 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
         return errSpendRail(spendRailErrorFundingFailed());
       }
 
-      const destRaw = ctx.embeddedEvmWalletAddress?.trim() ?? '';
+      const destRaw = ctx.stellarFundingDestinationWalletAddress?.trim() ?? '';
       const destOk = stellarWalletAddressSchema.safeParse(destRaw);
       if (!destOk.success) {
-        return errSpendRail(spendRailErrorWalletReadinessFailed());
+        const usdcIssuer = getStellarSpendUsdcIssuer();
+        return errSpendRail(
+          spendRailErrorWithDiagnostics(spendRailErrorWalletReadinessFailed(), {
+            phase: 'stellar_funding_destination_validation',
+            destination_public_key: destRaw || null,
+            destination_validation_result: 'invalid',
+            treasury_public_key_suffix: spendRailDiagnosticKeySuffix(
+              ctx.treasuryFundingWalletAddress
+            ),
+            usdc_issuer_suffix: spendRailDiagnosticKeySuffix(usdcIssuer),
+          })
+        );
       }
 
       let treasurySnapshot: Awaited<

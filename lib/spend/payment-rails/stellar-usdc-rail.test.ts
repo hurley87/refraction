@@ -319,27 +319,81 @@ describe('createStellarUsdcSpendPaymentRail — treasury funding (IRL-16)', () =
     const res = await rail.initiateUserFunding({
       spendSessionId: sessionId,
       fundingReferenceId: 'fund_user:cv-1',
-      embeddedEvmWalletAddress: STELLAR_G,
+      embeddedEvmWalletAddress: '0x1111111111111111111111111111111111111111',
+      stellarFundingDestinationWalletAddress: STELLAR_G,
+      treasuryFundingWalletAddress: STELLAR_G,
       usdcAmount: 10,
     });
     expect(res.ok).toBe(true);
     if (!res.ok) throw new Error('expected ok');
     expect(res.value.status).toBe('confirmed');
     expect(res.value.txReference?.toLowerCase()).toBe('a'.repeat(64));
+    expect(hoistedTreasury.submit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        destinationPublicKey: STELLAR_G,
+      })
+    );
   });
 
-  it('initiateUserFunding rejects invalid destination as readiness failure', async () => {
+  it('initiateUserFunding rejects the EVM auth wallet as Stellar funding destination', async () => {
     hoistedTreasury.readBal.mockResolvedValue(100);
     const rail = createStellarUsdcSpendPaymentRail();
     const res = await rail.initiateUserFunding({
       spendSessionId: sessionId,
       fundingReferenceId: 'fund_user:cv-1',
-      embeddedEvmWalletAddress: 'not-stellar',
+      embeddedEvmWalletAddress: '0x1111111111111111111111111111111111111111',
+      stellarFundingDestinationWalletAddress:
+        '0x1111111111111111111111111111111111111111',
+      treasuryFundingWalletAddress: STELLAR_G,
       usdcAmount: 10,
     });
     expect(res.ok).toBe(false);
     if (res.ok) throw new Error('expected err');
     expect(res.error.category).toBe('wallet_readiness_failed');
+    expect(res.error.internalDiagnostics).toEqual(
+      expect.objectContaining({
+        phase: 'stellar_funding_destination_validation',
+        destination_validation_result: 'invalid',
+        destination_public_key: '0x1111111111111111111111111111111111111111',
+      })
+    );
+    expect(hoistedTreasury.submit).not.toHaveBeenCalled();
+  });
+
+  it('initiateUserFunding preserves Stellar treasury submit diagnostics', async () => {
+    hoistedTreasury.readBal.mockResolvedValue(100);
+    hoistedTreasury.submit.mockResolvedValue({
+      kind: 'error',
+      error: {
+        category: 'wallet_readiness_failed',
+        userMessage: 'generic',
+        analyticsCode: SPEND_RAIL_ANALYTICS_CODES.wallet_readiness_failed,
+        internalDiagnostics: {
+          phase: 'stellar_funding_horizon_submit',
+          destination_public_key: STELLAR_G,
+          horizon_result_codes: {
+            transaction: 'tx_failed',
+            operations: ['op_no_trust'],
+          },
+        },
+      },
+    });
+    const rail = createStellarUsdcSpendPaymentRail();
+    const res = await rail.initiateUserFunding({
+      spendSessionId: sessionId,
+      fundingReferenceId: 'fund_user:cv-1',
+      stellarFundingDestinationWalletAddress: STELLAR_G,
+      treasuryFundingWalletAddress: STELLAR_G,
+      usdcAmount: 10,
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error('expected err');
+    expect(res.error.internalDiagnostics).toEqual(
+      expect.objectContaining({
+        phase: 'stellar_funding_horizon_submit',
+        destination_public_key: STELLAR_G,
+      })
+    );
   });
 });
 

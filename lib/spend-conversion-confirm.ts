@@ -130,6 +130,7 @@ async function persistConversionLastFailure(input: {
   phase: PointConversionLastFailure['phase'];
   category: string;
   reasonSnippet: string;
+  internalDiagnostics?: Record<string, unknown>;
 }): Promise<void> {
   try {
     await updatePointConversionFields(input.conversionId, {
@@ -138,6 +139,9 @@ async function persistConversionLastFailure(input: {
         phase: input.phase,
         category: input.category,
         reason_snippet: input.reasonSnippet.slice(0, 500),
+        ...(input.internalDiagnostics
+          ? { internal_diagnostics: input.internalDiagnostics }
+          : {}),
       },
     });
   } catch (e) {
@@ -199,6 +203,7 @@ async function conversionRailFailureOutcome(input: {
     phase: input.phase,
     category: input.railError.category,
     reasonSnippet: input.railError.userMessage,
+    internalDiagnostics: input.railError.internalDiagnostics,
   });
   let walletReadinessOperationId: string | undefined;
   if (
@@ -318,22 +323,30 @@ async function runWalletReadinessAndUserFunding(input: {
   }
 
   const rail = getSpendPaymentRail(session.spend_rail);
-  const ctx: SpendPaymentRailSessionContext = {
-    spendSessionId: session.id,
+  const buildRailSessionContext = (
+    ctxSession: SpendSession
+  ): SpendPaymentRailSessionContext => ({
+    spendSessionId: ctxSession.id,
     spendExperienceId: spendExperience.id,
     pointConversionId: conv.id,
     fundingReferenceId: fundingKey,
     treasuryFundingWalletId:
       treasuryMeta.spendRail === 'base_usdc' ? treasuryMeta.walletId : null,
     treasuryFundingWalletAddress: treasuryMeta.treasuryAddress,
-    embeddedEvmWalletAddress: embeddedSpendWalletForSession(session),
+    embeddedEvmWalletAddress: embeddedSpendWalletForSession(ctxSession),
+    stellarFundingDestinationWalletAddress:
+      ctxSession.spend_rail === 'stellar_usdc'
+        ? ctxSession.rail_user_wallet_address
+        : null,
+    railUserWalletAddress: ctxSession.rail_user_wallet_address,
     privyNormalizedWalletAddressLower: normalizedWallet,
-    sessionOwnerPrivyUserId: session.user_id,
+    sessionOwnerPrivyUserId: ctxSession.user_id,
     usdcAmount,
     analyticsDistinctId: distinctId,
-  };
+  });
+  const readinessCtx = buildRailSessionContext(session);
 
-  const readiness = await rail.runWalletReadinessOrchestration(ctx);
+  const readiness = await rail.runWalletReadinessOrchestration(readinessCtx);
   if (!readiness.ok) {
     return conversionRailFailureOutcome({
       phase: 'readiness',
@@ -368,12 +381,17 @@ async function runWalletReadinessAndUserFunding(input: {
     };
   }
 
-  const funding = await rail.initiateUserFunding(ctx);
+  const fundingSession =
+    session.spend_rail === 'stellar_usdc'
+      ? ((await getSpendSessionById(session.id)) ?? session)
+      : session;
+  const fundingCtx = buildRailSessionContext(fundingSession);
+  const funding = await rail.initiateUserFunding(fundingCtx);
   if (!funding.ok) {
     return conversionRailFailureOutcome({
       phase: 'funding',
       conv,
-      session,
+      session: fundingSession,
       distinctId,
       baseAnalytics,
       railError: funding.error,
@@ -384,7 +402,9 @@ async function runWalletReadinessAndUserFunding(input: {
   const ref = (txReference ?? '').trim();
 
   if (status === 'confirmed') {
-    if (!isValidSpendConversionFundingTxReference(session.spend_rail, ref)) {
+    if (
+      !isValidSpendConversionFundingTxReference(fundingSession.spend_rail, ref)
+    ) {
       return {
         kind: 'error',
         value: {
@@ -397,7 +417,7 @@ async function runWalletReadinessAndUserFunding(input: {
     }
     const done = await finalizeSpendConversionFunding({
       pointConversion: { ...conv, funding_tx_hash: ref },
-      session,
+      session: fundingSession,
       spendExperience,
       treasuryFromWalletAddress: treasuryMeta.treasuryAddress,
       fundingTxReference: ref,
@@ -420,9 +440,9 @@ async function runWalletReadinessAndUserFunding(input: {
     }
     const updated = await updatePointConversionFields(conv.id, {
       status: 'needs_review',
-      ...pointConversionFundingHashPatch(session, ref),
+      ...pointConversionFundingHashPatch(fundingSession, ref),
     });
-    await updateSpendSessionStatus(session.id, 'conversion_pending');
+    await updateSpendSessionStatus(fundingSession.id, 'conversion_pending');
     return { kind: 'ambiguous_review', conversion: updated };
   }
 
