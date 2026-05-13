@@ -40,6 +40,23 @@ export type SpendRailError = {
   internalDiagnostics?: Record<string, unknown>;
 };
 
+/** Trailing characters of a long identifier for diagnostics only (not full keys). */
+export function spendRailDiagnosticKeySuffix(
+  value: string | null | undefined,
+  length = 8
+): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.slice(-length) : null;
+}
+
+/** Return `error` with `internalDiagnostics` for support and conversion ledger rows. */
+export function spendRailErrorWithDiagnostics(
+  error: SpendRailError,
+  internalDiagnostics: Record<string, unknown>
+): SpendRailError {
+  return { ...error, internalDiagnostics };
+}
+
 const err = (
   category: SpendRailErrorCategory,
   userMessage: string,

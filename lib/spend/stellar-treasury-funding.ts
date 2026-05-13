@@ -15,7 +15,9 @@ import {
   spendRailErrorNetworkUnavailable,
   spendRailErrorStellarTreasuryCannotFundSpend,
   spendRailErrorTreasuryConfiguration,
+  spendRailDiagnosticKeySuffix,
   spendRailErrorWalletReadinessFailed,
+  spendRailErrorWithDiagnostics,
   type SpendRailError,
 } from '@/lib/spend/payment-rails/errors';
 import { parseStellarTreasuryFundingKeypair } from '@/lib/spend/stellar-treasury-funding-config';
@@ -33,11 +35,6 @@ const PRIOR_PAYMENT_MAX_PAGES = 5;
 
 function classifyHorizonException(): SpendRailError {
   return spendRailErrorNetworkUnavailable();
-}
-
-function suffix(value: string | null | undefined, length = 8): string | null {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed.slice(-length) : null;
 }
 
 function resultCodesFromHorizonError(e: unknown): unknown {
@@ -69,17 +66,10 @@ function horizonDiagnostics(e: unknown): Record<string, unknown> {
   };
 }
 
-function railErrorWithDiagnostics(
-  error: SpendRailError,
-  internalDiagnostics: Record<string, unknown>
-): SpendRailError {
-  return { ...error, internalDiagnostics };
-}
-
 function classifySubmitException(e: unknown): SpendRailError {
   const raw = e instanceof Error ? e.message : String(e);
-  const resultCodes = JSON.stringify(resultCodesFromHorizonError(e) ?? {});
-  const s = `${raw} ${resultCodes}`.toLowerCase();
+  const codes = resultCodesFromHorizonError(e);
+  const s = `${raw} ${JSON.stringify(codes ?? {})}`.toLowerCase();
   if (
     s.includes('fetch') ||
     s.includes('econn') ||
@@ -348,11 +338,14 @@ export async function submitStellarTreasuryUsdcFunding(input: {
   if (!destOk.success) {
     return {
       kind: 'error',
-      error: railErrorWithDiagnostics(spendRailErrorWalletReadinessFailed(), {
-        phase: 'stellar_funding_destination_validation',
-        destination_public_key: input.destinationPublicKey.trim() || null,
-        destination_validation_result: 'invalid',
-      }),
+      error: spendRailErrorWithDiagnostics(
+        spendRailErrorWalletReadinessFailed(),
+        {
+          phase: 'stellar_funding_destination_validation',
+          destination_public_key: input.destinationPublicKey.trim() || null,
+          destination_validation_result: 'invalid',
+        }
+      ),
     };
   }
 
@@ -365,8 +358,10 @@ export async function submitStellarTreasuryUsdcFunding(input: {
   const commonDiagnostics = {
     destination_public_key: destOk.data,
     destination_validation_result: 'valid',
-    treasury_public_key_suffix: suffix(treasuryKp.publicKey()),
-    usdc_issuer_suffix: suffix(usdcIssuer),
+    treasury_public_key_suffix: spendRailDiagnosticKeySuffix(
+      treasuryKp.publicKey()
+    ),
+    usdc_issuer_suffix: spendRailDiagnosticKeySuffix(usdcIssuer),
   };
 
   const server = createStellarSpendHorizonServer();
@@ -385,7 +380,7 @@ export async function submitStellarTreasuryUsdcFunding(input: {
   } catch (e) {
     return {
       kind: 'error',
-      error: railErrorWithDiagnostics(classifyHorizonException(), {
+      error: spendRailErrorWithDiagnostics(classifyHorizonException(), {
         phase: 'stellar_funding_prior_lookup',
         ...commonDiagnostics,
         ...horizonDiagnostics(e),
@@ -452,7 +447,7 @@ export async function submitStellarTreasuryUsdcFunding(input: {
     console.error('submitStellarTreasuryUsdcFunding submit:', e);
     return {
       kind: 'error',
-      error: railErrorWithDiagnostics(classifySubmitException(e), {
+      error: spendRailErrorWithDiagnostics(classifySubmitException(e), {
         phase: 'stellar_funding_horizon_submit',
         ...commonDiagnostics,
         ...horizonDiagnostics(e),

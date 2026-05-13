@@ -22,7 +22,9 @@ import {
   spendRailErrorPaymentFailed,
   spendRailErrorStellarTreasuryCannotFundSpend,
   spendRailErrorRailOperationNotSupported,
+  spendRailDiagnosticKeySuffix,
   spendRailErrorWalletReadinessFailed,
+  spendRailErrorWithDiagnostics,
   type SpendRailError,
 } from '@/lib/spend/payment-rails/errors';
 import type {
@@ -102,18 +104,6 @@ function classifyStellarPaymentSubmitReason(reason: string): SpendRailError {
     return spendRailErrorNetworkUnavailable();
   }
   return spendRailErrorPaymentFailed();
-}
-
-function suffix(value: string | null | undefined, length = 8): string | null {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed.slice(-length) : null;
-}
-
-function railErrorWithDiagnostics(
-  error: SpendRailError,
-  internalDiagnostics: Record<string, unknown>
-): SpendRailError {
-  return { ...error, internalDiagnostics };
 }
 
 /**
@@ -398,14 +388,14 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
       if (!destOk.success) {
         const usdcIssuer = getStellarSpendUsdcIssuer();
         return errSpendRail(
-          railErrorWithDiagnostics(spendRailErrorWalletReadinessFailed(), {
+          spendRailErrorWithDiagnostics(spendRailErrorWalletReadinessFailed(), {
             phase: 'stellar_funding_destination_validation',
             destination_public_key: destRaw || null,
             destination_validation_result: 'invalid',
-            treasury_public_key_suffix: suffix(
+            treasury_public_key_suffix: spendRailDiagnosticKeySuffix(
               ctx.treasuryFundingWalletAddress
             ),
-            usdc_issuer_suffix: suffix(usdcIssuer),
+            usdc_issuer_suffix: spendRailDiagnosticKeySuffix(usdcIssuer),
           })
         );
       }
