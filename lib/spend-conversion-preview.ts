@@ -12,6 +12,7 @@ import {
   getSpendRailBaseRpcUrl,
   getSpendRailBaseUsdcContractAddress,
   getSpendRailOperationalDiagnostics,
+  getSpendRailPublicMetadata,
   getSpendReceivingWalletAddress,
   getSpendTreasuryWalletAddress,
 } from '@/lib/spend-rail-config';
@@ -128,6 +129,9 @@ export function buildSpendEligibilityPreview(
   const { usdcAmount, pointsRequired } =
     computeConversionAmounts(spendExperience);
 
+  const railPublic = getSpendRailPublicMetadata(spendExperience.spend_rail);
+  const { networkLabel, assetSymbol: railAssetSymbol } = railPublic;
+
   const basePreview = (): SpendConversionPreview => ({
     pointsRequired,
     usdcAmount,
@@ -190,20 +194,20 @@ export function buildSpendEligibilityPreview(
     ) {
       return {
         status: 'payment_complete',
-        message: SPEND_ELIGIBILITY_MESSAGES.payment_complete,
+        message: `Your ${railAssetSymbol} payment on ${networkLabel} was received. You are all set for this event.`,
         preview: basePreview(),
       };
     }
     if (spendTransaction?.status === 'failed') {
       return {
         status: 'payment_failed',
-        message: SPEND_ELIGIBILITY_MESSAGES.payment_failed,
+        message: `Your last ${railAssetSymbol} payment on ${networkLabel} could not be verified on-chain. You can try sending payment again.`,
         preview: basePreview(),
       };
     }
     return {
       status: 'ready_for_payment',
-      message: SPEND_ELIGIBILITY_MESSAGES.ready_for_payment,
+      message: `Your points were converted to ${railAssetSymbol} on ${networkLabel}.`,
       preview: basePreview(),
     };
   }
@@ -264,7 +268,7 @@ export function buildSpendEligibilityPreview(
   if (userHasEnoughUsdc) {
     return {
       status: 'ready_for_payment_own_usdc',
-      message: SPEND_ELIGIBILITY_MESSAGES.ready_for_payment_own_usdc,
+      message: `You have enough ${railAssetSymbol} in your wallet on ${networkLabel} to complete this payment.`,
       preview: basePreview(),
     };
   }
@@ -306,7 +310,7 @@ export function buildSpendEligibilityPreview(
 
   return {
     status: 'eligible',
-    message: SPEND_ELIGIBILITY_MESSAGES.eligible,
+    message: `You can convert your points to ${railAssetSymbol} on ${networkLabel} for this event.`,
     preview: basePreview(),
   };
 }
