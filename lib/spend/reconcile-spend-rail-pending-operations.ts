@@ -148,23 +148,22 @@ export async function reconcileSpendRailPendingOperationsForSession(input: {
       readiness &&
       (readiness.status === 'pending' || readiness.status === 'needs_review')
     ) {
-      if (
+      const skipReadinessOrchestration =
         input.olderThanIso != null &&
-        Date.parse(readiness.updated_at) > Date.parse(input.olderThanIso)
-      ) {
-        return okSpendRail(undefined);
-      }
-      await runAndLogErrors('stellar readiness reconcile', async () => {
-        const outcome = await runStellarUsdcWalletReadinessOrchestration({
-          readinessRow: readiness,
-          spendSessionId: session.id,
-          spendExperienceId: spendExperience.id,
-          sessionOwnerPrivyUserId: session.user_id,
+        Date.parse(readiness.updated_at) > Date.parse(input.olderThanIso);
+      if (!skipReadinessOrchestration) {
+        await runAndLogErrors('stellar readiness reconcile', async () => {
+          const outcome = await runStellarUsdcWalletReadinessOrchestration({
+            readinessRow: readiness,
+            spendSessionId: session.id,
+            spendExperienceId: spendExperience.id,
+            sessionOwnerPrivyUserId: session.user_id,
+          });
+          if (!outcome.ok) {
+            console.warn('stellar readiness reconcile: orchestration error');
+          }
         });
-        if (!outcome.ok) {
-          console.warn('stellar readiness reconcile: orchestration error');
-        }
-      });
+      }
     }
   }
 
