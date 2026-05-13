@@ -1,6 +1,6 @@
 import { supabase } from './client';
 import {
-  CONVERSION_COLS,
+  fetchPointConversionWithSelectFallback,
   SESSION_COLS,
   SPEND_TX_COLS,
   rowToConversion,
@@ -131,11 +131,13 @@ export async function listSpendPilotActivityForExperience(
 
   if (sessionIds.length > 0) {
     const [convRes, payRes] = await Promise.all([
-      supabase
-        .from('point_conversions')
-        .select(CONVERSION_COLS)
-        .eq('spend_experience_id', spendExperienceId)
-        .in('spend_session_id', sessionIds),
+      fetchPointConversionWithSelectFallback((cols) =>
+        supabase
+          .from('point_conversions')
+          .select(cols)
+          .eq('spend_experience_id', spendExperienceId)
+          .in('spend_session_id', sessionIds)
+      ),
       supabase
         .from('spend_transactions')
         .select(SPEND_TX_COLS)
@@ -152,7 +154,8 @@ export async function listSpendPilotActivityForExperience(
       throw new Error(payRes.error.message || 'Failed to load payments');
     }
 
-    for (const row of convRes.data ?? []) {
+    for (const row of (convRes.data as Record<string, unknown>[] | null) ??
+      []) {
       const c = rowToConversion(row as Record<string, unknown>);
       conversionsBySession.set(c.spend_session_id, c);
     }
@@ -171,13 +174,15 @@ export async function listSpendPilotActivityForExperience(
   );
 
   const [failedConvRes, failedPayRes] = await Promise.all([
-    supabase
-      .from('point_conversions')
-      .select(CONVERSION_COLS)
-      .eq('spend_experience_id', spendExperienceId)
-      .eq('status', 'failed')
-      .order('created_at', { ascending: false })
-      .limit(FAILED_LIMIT),
+    fetchPointConversionWithSelectFallback((cols) =>
+      supabase
+        .from('point_conversions')
+        .select(cols)
+        .eq('spend_experience_id', spendExperienceId)
+        .eq('status', 'failed')
+        .order('created_at', { ascending: false })
+        .limit(FAILED_LIMIT)
+    ),
     supabase
       .from('spend_transactions')
       .select(SPEND_TX_COLS)
@@ -208,9 +213,9 @@ export async function listSpendPilotActivityForExperience(
 
   return {
     sessions: activitySessions,
-    failedConversions: (failedConvRes.data ?? []).map((row) =>
-      rowToConversion(row as Record<string, unknown>)
-    ),
+    failedConversions: (
+      (failedConvRes.data as Record<string, unknown>[] | null) ?? []
+    ).map((row) => rowToConversion(row)),
     failedPayments: (failedPayRes.data ?? []).map((row) =>
       rowToSpendTransaction(row as Record<string, unknown>)
     ),
@@ -395,19 +400,22 @@ async function loadLatestFundedConversionBySession(
   const latestBySession = new Map<string, PointConversion>();
   const pageSize = 500;
   for (let from = 0; ; from += pageSize) {
-    const { data, error } = await supabase
-      .from('point_conversions')
-      .select(CONVERSION_COLS)
-      .eq('spend_experience_id', spendExperienceId)
-      .eq('status', 'funded')
-      .order('updated_at', { ascending: false })
-      .range(from, from + pageSize - 1);
+    const { data, error } = await fetchPointConversionWithSelectFallback(
+      (cols) =>
+        supabase
+          .from('point_conversions')
+          .select(cols)
+          .eq('spend_experience_id', spendExperienceId)
+          .eq('status', 'funded')
+          .order('updated_at', { ascending: false })
+          .range(from, from + pageSize - 1)
+    );
 
     if (error) {
       console.error('loadLatestFundedConversionBySession:', error);
       throw new Error(error.message || 'Failed to load funded conversions');
     }
-    const rows = data ?? [];
+    const rows = (data as Record<string, unknown>[] | null | undefined) ?? [];
     if (rows.length === 0) break;
 
     for (const row of rows) {
@@ -464,13 +472,15 @@ export async function getSpendPilotAdminRailVisibility(
         .in('status', ['pending', 'needs_review'])
         .order('created_at', { ascending: true })
         .limit(RAIL_OPS_DETAIL_LIMIT),
-      supabase
-        .from('point_conversions')
-        .select(CONVERSION_COLS)
-        .eq('spend_experience_id', spendExperienceId)
-        .in('status', CONVERSION_IN_FLIGHT_STATUSES)
-        .order('created_at', { ascending: true })
-        .limit(RAIL_OPS_DETAIL_LIMIT),
+      fetchPointConversionWithSelectFallback((cols) =>
+        supabase
+          .from('point_conversions')
+          .select(cols)
+          .eq('spend_experience_id', spendExperienceId)
+          .in('status', CONVERSION_IN_FLIGHT_STATUSES)
+          .order('created_at', { ascending: true })
+          .limit(RAIL_OPS_DETAIL_LIMIT)
+      ),
       supabase
         .from('spend_transactions')
         .select(SPEND_TX_COLS)
@@ -538,7 +548,7 @@ export async function getSpendPilotAdminRailVisibility(
   });
 
   const conversionsInFlight: SpendPilotAdminRailVisibilityRow[] = (
-    convListRes.data ?? []
+    (convListRes.data as Record<string, unknown>[] | null) ?? []
   ).map((r) => {
     const c = rowToConversion(r as Record<string, unknown>);
     return {

@@ -1,6 +1,6 @@
 import { supabase } from './client';
 import {
-  CONVERSION_COLS,
+  fetchPointConversionWithSelectFallback,
   SESSION_COLS,
   SPEND_TX_COLS,
   rowToConversion,
@@ -58,11 +58,13 @@ export async function getSpendTransactionBySessionId(
 export async function getPointConversionBySessionId(
   sessionId: string
 ): Promise<PointConversion | null> {
-  const { data, error } = await supabase
-    .from('point_conversions')
-    .select(CONVERSION_COLS)
-    .eq('spend_session_id', sessionId)
-    .maybeSingle();
+  const { data, error } = await fetchPointConversionWithSelectFallback((cols) =>
+    supabase
+      .from('point_conversions')
+      .select(cols)
+      .eq('spend_session_id', sessionId)
+      .maybeSingle()
+  );
 
   if (error) {
     console.error('getPointConversionBySessionId error:', error);
@@ -79,13 +81,15 @@ export async function getFundedPointConversionForUserExperience(
   spendExperienceId: string,
   userId: string
 ): Promise<PointConversion | null> {
-  const { data, error } = await supabase
-    .from('point_conversions')
-    .select(CONVERSION_COLS)
-    .eq('spend_experience_id', spendExperienceId)
-    .eq('user_id', userId)
-    .eq('status', 'funded')
-    .maybeSingle();
+  const { data, error } = await fetchPointConversionWithSelectFallback((cols) =>
+    supabase
+      .from('point_conversions')
+      .select(cols)
+      .eq('spend_experience_id', spendExperienceId)
+      .eq('user_id', userId)
+      .eq('status', 'funded')
+      .maybeSingle()
+  );
 
   if (error) {
     console.error('getFundedPointConversionForUserExperience error:', error);
@@ -321,12 +325,14 @@ export async function updatePointConversionFields(
     >
   >
 ): Promise<PointConversion> {
-  const { data, error } = await supabase
-    .from('point_conversions')
-    .update(patch)
-    .eq('id', conversionId)
-    .select(CONVERSION_COLS)
-    .single();
+  const { data, error } = await fetchPointConversionWithSelectFallback((cols) =>
+    supabase
+      .from('point_conversions')
+      .update(patch)
+      .eq('id', conversionId)
+      .select(cols)
+      .single()
+  );
 
   if (error || !data) {
     console.error('updatePointConversionFields:', error);
