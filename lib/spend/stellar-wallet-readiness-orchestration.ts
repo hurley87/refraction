@@ -52,6 +52,7 @@ export type StellarWalletReadinessCurrentStep =
 
 const HORIZON_TX_POLL_ATTEMPTS = 8;
 const HORIZON_TX_POLL_INTERVAL_MS = 1500;
+export const STELLAR_USDC_TRUSTLINE_MAX_LIMIT = '922337203685.4775807';
 
 export type StellarWalletReadinessOrchestrationOutput =
   | { ok: true; status: 'completed'; address: string }
@@ -502,7 +503,7 @@ export async function runStellarUsdcWalletReadinessOrchestration(input: {
     .addOperation(
       Operation.changeTrust({
         asset: usdcAsset,
-        limit: '9223372036854775807',
+        limit: STELLAR_USDC_TRUSTLINE_MAX_LIMIT,
       })
     )
     .addOperation(
