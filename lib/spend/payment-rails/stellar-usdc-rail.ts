@@ -302,15 +302,22 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
         }
 
         if (distinctId && outcome.ok && outcome.status === 'completed') {
-          const fresh = await getSpendWalletReadinessBySessionId(sessionId);
-          trackSpendWalletReadinessCompleted(distinctId, {
-            ...readinessProps(fresh?.id ?? row.id),
-            wallet_readiness_operation_id: fresh?.id ?? row.id,
-            sponsor_treasury_transaction_id:
-              fresh?.sponsor_treasury_transaction_id ?? null,
-            trustline_treasury_transaction_id:
-              fresh?.trustline_treasury_transaction_id ?? null,
-          });
+          try {
+            const fresh = await getSpendWalletReadinessBySessionId(sessionId);
+            trackSpendWalletReadinessCompleted(distinctId, {
+              ...readinessProps(fresh?.id ?? row.id),
+              wallet_readiness_operation_id: fresh?.id ?? row.id,
+              sponsor_treasury_transaction_id:
+                fresh?.sponsor_treasury_transaction_id ?? null,
+              trustline_treasury_transaction_id:
+                fresh?.trustline_treasury_transaction_id ?? null,
+            });
+          } catch (analyticsErr) {
+            console.error(
+              'stellar_usdc readiness completed analytics:',
+              analyticsErr
+            );
+          }
         }
 
         return okSpendRail({ status: outcome.status });

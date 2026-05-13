@@ -22,8 +22,8 @@ import {
   SPEND_ELIGIBILITY_MESSAGES,
   type SpendEligibilityStatus,
 } from '@/lib/spend-eligibility-messages';
+import { spendPilotRailMixpanelFields } from '@/lib/analytics/spend-pilot-rail-context';
 import type { SpendRailClientSummary } from '@/lib/spend-rail-config/types';
-import { getSpendRailClientSummary } from '@/lib/spend-rail-config';
 import {
   formatSpendPaymentExplorerUrl,
   spendPaymentExplorerLinkLabel,
@@ -541,17 +541,15 @@ export function SpendExperiencePage({
       if (token) {
         await initMixpanel(token);
       }
-      const railSummary = getSpendRailClientSummary(
-        initialExperience.spend_rail
-      );
+      const rail = spendPilotRailMixpanelFields(initialExperience.spend_rail);
       trackEvent(ANALYTICS_EVENTS.SPEND_EXPERIENCE_QR_SCANNED, {
         spend_experience_id: experienceId,
         event_id: initialExperience.event_id ?? undefined,
         user_id: user?.id,
         wallet_address: walletAddress ?? undefined,
-        spend_rail: railSummary.rail,
-        network: railSummary.networkLabel,
-        asset: railSummary.assetSymbol,
+        spend_rail: rail.spend_rail,
+        network: rail.network,
+        asset: rail.asset,
       });
       setTrackedScan(true);
     };
