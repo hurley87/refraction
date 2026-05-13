@@ -35,6 +35,7 @@ import {
   isSpendPaymentPrepareStoredActionV1,
   isSpendStellarUsdcBackendSubmitPreparedActionV1,
 } from '@/lib/spend-payment-prepare-types';
+import { getSpendConversionErrorMessage } from '@/lib/spend-conversion-error-message';
 
 type SpendExperiencePageProps = {
   experienceId: string;
@@ -108,8 +109,6 @@ type ReceiptResponse = {
 
 const WALLET_STEP_TIMEOUT_MS = 180_000;
 
-const SPEND_TOAST_CONVERSION_ERROR =
-  "We couldn't complete that step. Please try again, or contact support if it keeps happening.";
 const SPEND_TOAST_PAYMENT_ERROR =
   "We couldn't record your payment. Please try again, or contact support if it keeps happening.";
 const SPEND_TOAST_WALLET_ERROR =
@@ -397,8 +396,8 @@ export function SpendExperiencePage({
       }
       await invalidateSpendQueries();
     },
-    onError: () => {
-      toast.error(SPEND_TOAST_CONVERSION_ERROR);
+    onError: (error) => {
+      toast.error(getSpendConversionErrorMessage(error));
     },
   });
 
