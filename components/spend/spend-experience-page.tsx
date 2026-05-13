@@ -28,7 +28,11 @@ import {
   spendPaymentExplorerLinkLabel,
 } from '@/lib/spend-rail-explorer-url-client';
 import { isEvmAddress } from '@/lib/walletconnect-poster-direct-usdc';
-import { isSpendPaymentPrepareStoredActionV1 } from '@/lib/spend-payment-prepare-types';
+import { stellarWalletAddressSchema } from '@/lib/schemas/player';
+import {
+  isSpendPaymentPrepareStoredActionV1,
+  isSpendStellarUsdcBackendSubmitPreparedActionV1,
+} from '@/lib/spend-payment-prepare-types';
 
 type SpendExperiencePageProps = {
   experienceId: string;
@@ -277,6 +281,25 @@ export function SpendExperiencePage({
     sessionStatusForPrepare !== 'payment_complete'
   );
 
+  const stellarPayPrepareEnabled = Boolean(
+    user &&
+    walletAddress &&
+    sessionId &&
+    !isFetching &&
+    !previewLoading &&
+    eligForPrepare?.preview &&
+    previewPayload?.spendRailSummary?.rail === 'stellar_usdc' &&
+    stellarWalletAddressSchema.safeParse(
+      eligForPrepare.preview.receivingWalletAddress.trim()
+    ).success &&
+    (eligForPrepare.status === 'ready_for_payment' ||
+      eligForPrepare.status === 'ready_for_payment_own_usdc' ||
+      eligForPrepare.status === 'payment_failed') &&
+    sessionStatusForPrepare !== 'payment_complete'
+  );
+
+  const payPrepareEnabled = basePayPrepareEnabled || stellarPayPrepareEnabled;
+
   const {
     data: paymentPrepareData,
     isFetching: paymentPrepareLoading,
@@ -299,7 +322,7 @@ export function SpendExperiencePage({
         { walletAddress }
       );
     },
-    enabled: basePayPrepareEnabled,
+    enabled: payPrepareEnabled,
     staleTime: Infinity,
     refetchOnWindowFocus: false,
     retry: false,
@@ -372,15 +395,24 @@ export function SpendExperiencePage({
   });
 
   const paymentMutation = useMutation({
-    mutationFn: async (paymentTxHash: string) => {
+    mutationFn: async (input: {
+      paymentTxHash?: string;
+      stellarBackendConfirm?: boolean;
+    }) => {
       const token = await getAccessToken();
       if (!token || !walletAddress || !sessionId) {
         throw new Error('Missing auth or session');
       }
+      const body: Record<string, unknown> = { walletAddress };
+      if (input.stellarBackendConfirm) {
+        body.stellarBackendConfirm = true;
+      } else if (input.paymentTxHash) {
+        body.paymentTxHash = input.paymentTxHash;
+      }
       return spendAuthedPost<PaymentConfirmResponse>(
         token,
         `/api/spend-sessions/${sessionId}/payment/confirm`,
-        { walletAddress, paymentTxHash }
+        body
       );
     },
     onSuccess: async () => {
@@ -394,12 +426,21 @@ export function SpendExperiencePage({
   });
 
   const sendUsdcPayment = useCallback(async () => {
-    if (!walletAddress || !evmWallet || !previewPayload?.eligibility.preview) {
+    if (!walletAddress || !previewPayload?.eligibility.preview) {
       toast.error('Wallet not ready');
       return;
     }
     const prepared = paymentPrepareData?.preparedAction;
-    if (!isSpendPaymentPrepareStoredActionV1(prepared)) {
+    if (isSpendStellarUsdcBackendSubmitPreparedActionV1(prepared)) {
+      try {
+        await paymentMutation.mutateAsync({ stellarBackendConfirm: true });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        toast.error(msg);
+      }
+      return;
+    }
+    if (!evmWallet || !isSpendPaymentPrepareStoredActionV1(prepared)) {
       toast.error(
         'Payment is not ready yet. Wait a moment or refresh the page.'
       );
@@ -477,7 +518,7 @@ export function SpendExperiencePage({
           sponsor: true,
         });
       }
-      await paymentMutation.mutateAsync(hash);
+      await paymentMutation.mutateAsync({ paymentTxHash: hash });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast.error(msg);
@@ -557,15 +598,19 @@ export function SpendExperiencePage({
     elig?.status === 'conversion_failed_retryable' &&
     sessionAllowsConversionActions;
 
-  const showBaseWalletPay =
+  const showWalletPay =
     !isPaymentComplete &&
     !paymentPrepareNeedsReview &&
     (elig?.status === 'ready_for_payment' ||
       elig?.status === 'ready_for_payment_own_usdc' ||
       elig?.status === 'payment_failed') &&
     preview &&
-    resolvedSpendRail === 'base_usdc' &&
-    isEvmAddress(preview.receivingWalletAddress);
+    ((resolvedSpendRail === 'base_usdc' &&
+      isEvmAddress(preview.receivingWalletAddress)) ||
+      (resolvedSpendRail === 'stellar_usdc' &&
+        stellarWalletAddressSchema.safeParse(
+          preview.receivingWalletAddress.trim()
+        ).success));
 
   const displayReceipt = isPaymentComplete;
 
@@ -756,7 +801,7 @@ export function SpendExperiencePage({
                       </div>
                     )}
 
-                    {showBaseWalletPay && (
+                    {showWalletPay && (
                       <SpendPrimaryButton
                         pending={
                           paymentMutation.isPending || paymentPrepareLoading
@@ -764,15 +809,27 @@ export function SpendExperiencePage({
                         onClick={() => void sendUsdcPayment()}
                       >
                         {paymentMutation.isPending
-                          ? `Pay with ${assetSymbol}…`
-                          : `Spend $${preview.usdcAmount.toFixed(2)} ${assetSymbol}`}
+                          ? resolvedSpendRail === 'stellar_usdc' &&
+                            isSpendStellarUsdcBackendSubmitPreparedActionV1(
+                              paymentPrepareData?.preparedAction
+                            )
+                            ? paymentPrepareData.preparedAction.display
+                                .submitting_label
+                            : `Pay with ${assetSymbol}…`
+                          : isSpendStellarUsdcBackendSubmitPreparedActionV1(
+                                paymentPrepareData?.preparedAction
+                              )
+                            ? paymentPrepareData.preparedAction.display
+                                .pay_label
+                            : `Spend $${preview.usdcAmount.toFixed(2)} ${assetSymbol}`}
                       </SpendPrimaryButton>
                     )}
 
                     {postPointsConversion &&
                       paymentPrepareNeedsReview &&
                       !isPaymentComplete &&
-                      resolvedSpendRail === 'base_usdc' && (
+                      (resolvedSpendRail === 'base_usdc' ||
+                        resolvedSpendRail === 'stellar_usdc') && (
                         <p className="body-small font-grotesk text-amber-900">
                           We could not automatically confirm your last payment
                           transaction. Please contact support with your

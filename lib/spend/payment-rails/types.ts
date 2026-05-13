@@ -63,6 +63,11 @@ export type SpendPaymentRailSessionContext = {
   usdcAmount?: number;
   /** User-submitted canonical `0x` + 64 hex payment hash for `confirmPayment`. */
   paymentTxHash?: string;
+  /**
+   * Stellar USDC: canonical `G…` payer (`spend_sessions.rail_user_wallet_address`).
+   * Not used by Base USDC.
+   */
+  railUserWalletAddress?: string | null;
 };
 
 /**

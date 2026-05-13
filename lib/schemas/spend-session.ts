@@ -45,15 +45,33 @@ export type SpendPaymentPrepareBody = z.infer<
 >;
 
 /** POST /api/spend-sessions/{sessionId}/payment/confirm */
-export const spendPaymentConfirmBodySchema = z.object({
-  walletAddress: evmAddressField,
-  paymentTxHash: z
-    .string()
-    .min(1, 'paymentTxHash is required')
-    .refine((s) => /^0x[a-fA-F0-9]{64}$/.test(s.trim()), {
-      message: 'paymentTxHash must be a 32-byte hex hash with 0x prefix',
-    }),
-});
+export const spendPaymentConfirmBodySchema = z
+  .object({
+    walletAddress: evmAddressField,
+    paymentTxHash: z.string().trim().optional(),
+    stellarBackendConfirm: z.literal(true).optional(),
+  })
+  .superRefine((val, ctx) => {
+    const hash = val.paymentTxHash?.trim() ?? '';
+    if (val.stellarBackendConfirm === true) {
+      if (hash.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'paymentTxHash must not be sent for Stellar backend confirmations',
+          path: ['paymentTxHash'],
+        });
+      }
+      return;
+    }
+    if (!/^0x[a-fA-F0-9]{64}$/.test(hash)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'paymentTxHash must be a 32-byte hex hash with 0x prefix',
+        path: ['paymentTxHash'],
+      });
+    }
+  });
 
 export type SpendPaymentConfirmBody = z.infer<
   typeof spendPaymentConfirmBodySchema

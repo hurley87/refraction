@@ -40,7 +40,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   const walletAddress = parsed.data.walletAddress.trim();
   const normalizedWallet = walletAddress.toLowerCase();
-  const paymentTxHash = parsed.data.paymentTxHash.trim();
+  const paymentTxHash = parsed.data.paymentTxHash?.trim() ?? '';
+  const stellarBackendConfirm = parsed.data.stellarBackendConfirm === true;
 
   const auth = await verifyWalletOwnership(request, walletAddress);
   if (!auth.authorized || !auth.userId) {
@@ -59,6 +60,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
   const { session, spendExperience, usdcAmount } = ctx;
 
+  if (session.spend_rail === 'stellar_usdc' && !stellarBackendConfirm) {
+    return apiError(
+      'Stellar payments require `"stellarBackendConfirm": true` in the JSON body (no paymentTxHash).',
+      400
+    );
+  }
+  if (session.spend_rail === 'base_usdc' && stellarBackendConfirm) {
+    return apiError('Invalid confirmation body for this payment network.', 400);
+  }
+
   const distinctId = resolveServerIdentity({
     privyUserId: auth.userId,
     walletAddress: normalizedWallet,
@@ -71,7 +82,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       normalizedWallet,
       authUserId: auth.userId,
       distinctId,
-      paymentTxHash,
+      paymentTxHash: paymentTxHash || undefined,
+      stellarBackendConfirm,
       usdcAmount,
     });
 

@@ -16,10 +16,12 @@ import { insertTreasuryReceivePaymentLedgerIfAbsent } from '@/lib/db/treasury-tr
 import {
   explorerTxUrlForSpendLedger,
   isLedgerCanonicalEvmTxHash,
+  isStellarTransactionHash,
 } from '@/lib/spend-ledger-explorer-url';
 import { fetchUserUsdcBalanceSafe } from '@/lib/spend-conversion-preview';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import { verifySpendUsdcPaymentTx } from '@/lib/spend-payment-verify';
+import { verifySpendStellarUsdcPaymentTx } from '@/lib/spend-payment-verify-stellar';
 import { isAmbiguousSpendPaymentVerifyFailure } from '@/lib/spend-payment-verify-ambiguous';
 import { getSpendPaymentRail } from '@/lib/spend/payment-rails';
 import {
@@ -28,14 +30,22 @@ import {
   getSpendReceivingWalletAddress,
 } from '@/lib/spend-rail-config';
 import {
+  getStellarSpendUsdcAssetCode,
+  getStellarSpendUsdcIssuer,
+} from '@/lib/spend/stellar-wallet-readiness-config';
+import { stellarWalletAddressSchema } from '@/lib/schemas/player';
+import {
   isSpendBaseUsdcVerificationSnapshotV1,
+  isSpendStellarUsdcVerificationSnapshotV1,
   spendBaseUsdcSnapshotMatchesLiveRail,
+  spendStellarUsdcSnapshotMatchesLiveRail,
 } from '@/lib/spend-payment-prepare-types';
 import {
   isEvmAddress,
   POSTER_CHECKOUT_CHAIN_ID,
 } from '@/lib/walletconnect-poster-direct-usdc';
 import type {
+  PointConversion,
   SpendExperience,
   SpendPaymentOperationClientSummary,
   SpendPaymentPrepareOperation,
@@ -128,6 +138,441 @@ async function finalizeFailure(params: {
   });
 }
 
+type StellarConfirmDeps = {
+  fundedConversion: PointConversion | null;
+  receivingLive: string;
+};
+
+async function runSpendPaymentConfirmStellarUsdc(input: {
+  session: SpendSession;
+  spendExperience: SpendExperience;
+  normalizedWallet: string;
+  authUserId: string;
+  distinctId: string;
+  usdcAmount: number;
+  paymentTxHash?: string;
+  stellarBackendConfirm?: boolean;
+  deps: StellarConfirmDeps;
+}): Promise<SpendPaymentConfirmResult> {
+  const {
+    session,
+    spendExperience,
+    normalizedWallet,
+    authUserId,
+    distinctId,
+    deps,
+  } = input;
+  const { fundedConversion, receivingLive } = deps;
+
+  if (!input.stellarBackendConfirm) {
+    return {
+      ok: false,
+      error:
+        'Use the in-app Stellar payment confirmation (do not send a transaction hash).',
+      httpStatus: 400,
+    };
+  }
+  if (input.paymentTxHash?.trim()) {
+    return {
+      ok: false,
+      error: 'Do not send paymentTxHash for Stellar backend payments.',
+      httpStatus: 400,
+    };
+  }
+
+  const spendPaymentRail = getSpendPaymentRail('stellar_usdc');
+
+  const [preparedOp, spendTxInitial] = await Promise.all([
+    getSpendPaymentPrepareBySessionId(session.id),
+    getSpendTransactionBySessionId(session.id),
+  ]);
+
+  if (!preparedOp) {
+    return {
+      ok: false,
+      error:
+        'Payment is not ready to confirm. Refresh this page to prepare your payment.',
+      httpStatus: 400,
+    };
+  }
+
+  if (preparedOp.status === 'needs_review') {
+    return {
+      ok: false,
+      error:
+        'This payment is under review. Please contact support and do not send another payment.',
+      httpStatus: 400,
+      details: {
+        paymentOperation: spendPaymentOperationClientSummary(preparedOp),
+      },
+    };
+  }
+
+  if (preparedOp.status === 'failed') {
+    return {
+      ok: false,
+      error:
+        'Prepare your payment again in this app after a failed attempt, then try paying again.',
+      httpStatus: 400,
+      details: {
+        paymentOperation: spendPaymentOperationClientSummary(preparedOp),
+      },
+    };
+  }
+
+  if (
+    preparedOp.status === 'confirmed' &&
+    spendTxInitial?.status === 'confirmed'
+  ) {
+    const fresh = await getSpendSessionById(session.id);
+    return {
+      ok: true,
+      spendTransaction: spendTxInitial,
+      session: fresh ?? { ...session, status: 'payment_complete' },
+      resumed: true,
+      paymentOperation: spendPaymentOperationClientSummary(preparedOp),
+    };
+  }
+
+  const snap = preparedOp.verification_snapshot;
+  if (!isSpendStellarUsdcVerificationSnapshotV1(snap)) {
+    return {
+      ok: false,
+      error:
+        'Payment is not ready to confirm. Refresh this page to prepare your payment.',
+      httpStatus: 400,
+    };
+  }
+
+  const issuerLive = getStellarSpendUsdcIssuer();
+  const codeLive = getStellarSpendUsdcAssetCode();
+  if (
+    !issuerLive ||
+    !spendStellarUsdcSnapshotMatchesLiveRail({
+      snapshot: snap,
+      liveSpendRail: session.spend_rail,
+      liveReceiving: receivingLive,
+      liveUsdcIssuer: issuerLive,
+      liveUsdcCode: codeLive,
+    })
+  ) {
+    return {
+      ok: false,
+      error:
+        'Payment no longer matches the configured receiving wallet. Refresh this page and try again.',
+      httpStatus: 400,
+    };
+  }
+
+  const railAddr = session.rail_user_wallet_address?.trim() ?? '';
+  if (!railAddr || snap.from_wallet !== railAddr) {
+    return {
+      ok: false,
+      error:
+        'Payment details do not match this session. Refresh this page and try again.',
+      httpStatus: 400,
+    };
+  }
+
+  if (snap.usdc_amount !== input.usdcAmount) {
+    return {
+      ok: false,
+      error:
+        'Payment details do not match this session. Refresh this page and try again.',
+      httpStatus: 400,
+    };
+  }
+
+  let spendTx: SpendTransaction | null = spendTxInitial;
+
+  const stellarAnalyticsBase: SpendPilotPaymentEventProperties = {
+    spend_experience_id: spendExperience.id,
+    event_id: spendExperience.event_id,
+    user_id: authUserId,
+    wallet_address: normalizedWallet,
+    points_amount: fundedConversion ? fundedConversion.points_deducted : 0,
+    usdc_amount: snap.usdc_amount,
+    status: 'submitted',
+    spend_session_id: session.id,
+    point_conversion_id: fundedConversion?.id,
+    payment_tx_hash: spendTx?.payment_tx_hash ?? '',
+  };
+
+  const applyStellarPrepareTerminal = async (
+    status: 'confirmed' | 'failed' | 'needs_review',
+    patch: {
+      lastFailureReason?: string | null;
+      lastFailureAt?: string | null;
+      lastAmbiguityMetadata?: Record<string, unknown> | null;
+    }
+  ) => {
+    await patchSpendPaymentPrepare(preparedOp.id, {
+      status,
+      lastFailureReason: patch.lastFailureReason ?? null,
+      lastFailureAt: patch.lastFailureAt ?? null,
+      lastAmbiguityMetadata: patch.lastAmbiguityMetadata ?? null,
+    });
+  };
+
+  const handleVerifyOutcome = async (
+    ledgerHash: string,
+    verify: Awaited<ReturnType<typeof verifySpendStellarUsdcPaymentTx>>
+  ): Promise<SpendPaymentConfirmResult> => {
+    if (verify.ok) {
+      if (!spendTx) {
+        return {
+          ok: false,
+          error: 'Failed to load payment record',
+          httpStatus: 500,
+        };
+      }
+      const didWin = await finalizeSuccess({
+        spendTransactionId: spendTx.id,
+        sessionId: session.id,
+        distinctId,
+        analytics: {
+          ...stellarAnalyticsBase,
+          spend_transaction_id: spendTx.id,
+          payment_tx_hash: ledgerHash,
+        },
+      });
+      await applyStellarPrepareTerminal('confirmed', {
+        lastFailureReason: null,
+        lastFailureAt: null,
+        lastAmbiguityMetadata: null,
+      });
+      const [updatedTx, freshSession, prepFresh] = await Promise.all([
+        getSpendTransactionBySessionId(session.id),
+        getSpendSessionById(session.id),
+        getSpendPaymentPrepareBySessionId(session.id),
+      ]);
+      if (updatedTx?.status === 'confirmed' && updatedTx.payment_tx_hash) {
+        void insertTreasuryReceivePaymentLedgerIfAbsent({
+          spendExperienceId: spendExperience.id,
+          spendRail: spendExperience.spend_rail,
+          amount: updatedTx.usdc_amount,
+          fromWalletAddress: updatedTx.from_wallet_address,
+          toWalletAddress: updatedTx.to_wallet_address,
+          txHash: updatedTx.payment_tx_hash,
+        });
+      }
+      return {
+        ok: true,
+        spendTransaction: updatedTx ?? spendTx,
+        session: freshSession ?? { ...session, status: 'payment_complete' },
+        resumed: !didWin,
+        paymentOperation: prepFresh
+          ? spendPaymentOperationClientSummary(prepFresh)
+          : undefined,
+      };
+    }
+
+    const nowIso = new Date().toISOString();
+    if (isAmbiguousSpendPaymentVerifyFailure(verify.reason)) {
+      const opRow = await patchSpendPaymentPrepare(preparedOp.id, {
+        status: 'needs_review',
+        lastFailureReason: verify.reason,
+        lastFailureAt: nowIso,
+        lastAmbiguityMetadata: {
+          spend_transaction_id: spendTx?.id,
+          verify_reason: verify.reason,
+        },
+      });
+      return {
+        ok: false,
+        error:
+          'We could not fully verify this payment yet. Please contact support and do not send another payment.',
+        httpStatus: 400,
+        details: {
+          paymentOperation: spendPaymentOperationClientSummary(opRow),
+        },
+      };
+    }
+
+    if (spendTx) {
+      await finalizeFailure({
+        spendTransactionId: spendTx.id,
+        sessionId: session.id,
+        distinctId,
+        analytics: {
+          ...stellarAnalyticsBase,
+          spend_transaction_id: spendTx.id,
+          payment_tx_hash: ledgerHash,
+        },
+        reason: verify.reason,
+      });
+    }
+    await applyStellarPrepareTerminal('failed', {
+      lastFailureReason: verify.reason,
+      lastFailureAt: nowIso,
+      lastAmbiguityMetadata: null,
+    });
+    const opAfter = await getSpendPaymentPrepareBySessionId(session.id);
+    return {
+      ok: false,
+      error:
+        'Payment could not be verified on-chain. If funds left your wallet, contact support with your transaction hash.',
+      httpStatus: 400,
+      details: opAfter
+        ? { paymentOperation: spendPaymentOperationClientSummary(opAfter) }
+        : undefined,
+    };
+  };
+
+  // Resume: already submitted on-chain; verify only (no second Privy submit).
+  if (
+    spendTx?.status === 'submitted' &&
+    preparedOp.status === 'submitted' &&
+    isStellarTransactionHash(spendTx.payment_tx_hash)
+  ) {
+    const ledgerHash = spendTx.payment_tx_hash!.trim().toLowerCase();
+    const verify = await verifySpendStellarUsdcPaymentTx({
+      txHash: ledgerHash,
+      expectedFrom: snap.from_wallet,
+      expectedTo: snap.receiving_wallet,
+      expectedUsdcAmount: snap.usdc_amount,
+      usdcIssuer: issuerLive,
+      usdcCode: codeLive,
+    });
+    await updateSpendSessionStatus(session.id, 'payment_pending');
+    return handleVerifyOutcome(ledgerHash, verify);
+  }
+
+  const railGate = assertSpendRailAllowsMutatingSpendWork(session.spend_rail);
+  if (!railGate.ok) {
+    trackSpendPilotRailMutationBlocked(distinctId, {
+      mutation: 'payment_confirm',
+      ...railGate.analytics,
+      spend_experience_id: spendExperience.id,
+      event_id: spendExperience.event_id,
+      user_id: authUserId,
+      wallet_address: normalizedWallet,
+      spend_session_id: session.id,
+      point_conversion_id: fundedConversion?.id,
+    });
+    return {
+      ok: false,
+      error: railGate.error,
+      httpStatus: 400,
+    };
+  }
+
+  if (spendTx?.status === 'confirmed') {
+    const fresh = await getSpendSessionById(session.id);
+    const prepOp = await getSpendPaymentPrepareBySessionId(session.id);
+    return {
+      ok: true,
+      spendTransaction: spendTx,
+      session: fresh ?? { ...session, status: 'payment_complete' },
+      resumed: true,
+      paymentOperation: prepOp
+        ? spendPaymentOperationClientSummary(prepOp)
+        : undefined,
+    };
+  }
+
+  const railConfirm = await spendPaymentRail.confirmPayment({
+    spendSessionId: session.id,
+    spendExperienceId: spendExperience.id,
+    sessionOwnerPrivyUserId: authUserId,
+    railUserWalletAddress: session.rail_user_wallet_address,
+    usdcAmount: snap.usdc_amount,
+  });
+
+  if (!railConfirm.ok) {
+    return {
+      ok: false,
+      error: railConfirm.error.userMessage,
+      httpStatus: 400,
+      details: {
+        paymentOperation: spendPaymentOperationClientSummary(preparedOp),
+      },
+    };
+  }
+
+  const outcome = railConfirm.value;
+  const ledgerRef = outcome.ledgerTxReference?.trim() ?? '';
+  if (!ledgerRef || !isStellarTransactionHash(ledgerRef)) {
+    return {
+      ok: false,
+      error: 'Payment submission did not return a ledger reference.',
+      httpStatus: 500,
+    };
+  }
+
+  if (outcome.status !== 'submitted') {
+    return {
+      ok: false,
+      error: 'Unexpected payment submission state.',
+      httpStatus: 500,
+    };
+  }
+
+  let resumed = false;
+  if (!spendTx) {
+    const inserted = await insertSpendTransactionSubmitted({
+      spendExperienceId: spendExperience.id,
+      spendSessionId: session.id,
+      userId: authUserId,
+      usdcAmount: snap.usdc_amount,
+      fromWalletAddress: snap.from_wallet,
+      toWalletAddress: snap.receiving_wallet,
+      paymentTxHash: ledgerRef,
+      spendRail: session.spend_rail,
+    });
+    if (inserted === 'session_duplicate') {
+      spendTx = await getSpendTransactionBySessionId(session.id);
+      resumed = true;
+    } else {
+      spendTx = inserted;
+    }
+  } else if (spendTx.status === 'failed') {
+    await updateSpendTransactionFields(spendTx.id, {
+      status: 'submitted',
+      payment_tx_hash: ledgerRef,
+      failed_reason: null,
+      completed_at: null,
+      explorer_tx_url: explorerTxUrlForSpendLedger(
+        session.spend_rail,
+        ledgerRef
+      ),
+    });
+    spendTx = await getSpendTransactionBySessionId(session.id);
+  }
+
+  if (!spendTx) {
+    return {
+      ok: false,
+      error: 'Failed to load payment record',
+      httpStatus: 500,
+    };
+  }
+
+  await patchSpendPaymentPrepare(preparedOp.id, { status: 'submitted' });
+  await updateSpendSessionStatus(session.id, 'payment_pending');
+
+  trackSpendPaymentConfirmed(distinctId, {
+    ...stellarAnalyticsBase,
+    spend_transaction_id: spendTx.id,
+    payment_tx_hash: ledgerRef,
+  });
+
+  const verify = await verifySpendStellarUsdcPaymentTx({
+    txHash: ledgerRef,
+    expectedFrom: snap.from_wallet,
+    expectedTo: snap.receiving_wallet,
+    expectedUsdcAmount: snap.usdc_amount,
+    usdcIssuer: issuerLive,
+    usdcCode: codeLive,
+  });
+
+  const verifyResult = await handleVerifyOutcome(ledgerRef, verify);
+  if (verifyResult.ok) {
+    return { ...verifyResult, resumed: verifyResult.resumed || resumed };
+  }
+  return verifyResult;
+}
+
 /**
  * Records and verifies a user USDC payment to the experience receiving wallet (PRD sections 9 and 11).
  */
@@ -137,15 +582,12 @@ export async function runSpendPaymentConfirm(input: {
   normalizedWallet: string;
   authUserId: string;
   distinctId: string;
-  paymentTxHash: string;
+  paymentTxHash?: string;
   usdcAmount: number;
+  stellarBackendConfirm?: boolean;
 }): Promise<SpendPaymentConfirmResult> {
   const { session, spendExperience, normalizedWallet, authUserId, distinctId } =
     input;
-  const txHash = normalizeTxHash(input.paymentTxHash);
-  if (!txHash) {
-    return { ok: false, error: 'Invalid paymentTxHash', httpStatus: 400 };
-  }
 
   if (session.user_id !== authUserId) {
     return { ok: false, error: 'Forbidden', httpStatus: 403 };
@@ -173,17 +615,6 @@ export async function runSpendPaymentConfirm(input: {
     };
   }
 
-  const spendPaymentRail = getSpendPaymentRail(spendExperience.spend_rail);
-  const userSignedConfirmGate =
-    spendPaymentRail.assertUserSignedOnchainPaymentConfirmSupported();
-  if (!userSignedConfirmGate.ok) {
-    return {
-      ok: false,
-      error: userSignedConfirmGate.error.userMessage,
-      httpStatus: 400,
-    };
-  }
-
   const pointConversion = await getPointConversionBySessionId(session.id);
   const fundedConversion =
     pointConversion?.status === 'funded' ? pointConversion : null;
@@ -202,9 +633,6 @@ export async function runSpendPaymentConfirm(input: {
     }
   }
 
-  // Do not accept direct USDC payment while a points conversion is still in flight for this
-  // session (points may already be deducted and treasury funding may complete). Otherwise the
-  // user could receive treasury-funded USDC and still pass payment confirm with the same wallet.
   if (
     payingWithOwnUsdc &&
     pointConversion &&
@@ -251,11 +679,49 @@ export async function runSpendPaymentConfirm(input: {
   const receivingLive = getSpendReceivingWalletAddress(
     spendExperience.spend_rail
   ).trim();
+
+  if (session.spend_rail === 'stellar_usdc') {
+    if (!stellarWalletAddressSchema.safeParse(receivingLive).success) {
+      return {
+        ok: false,
+        error: 'Invalid receiving wallet configuration',
+        httpStatus: 500,
+      };
+    }
+    return runSpendPaymentConfirmStellarUsdc({
+      session,
+      spendExperience,
+      normalizedWallet,
+      authUserId,
+      distinctId,
+      usdcAmount: input.usdcAmount,
+      paymentTxHash: input.paymentTxHash,
+      stellarBackendConfirm: input.stellarBackendConfirm,
+      deps: { fundedConversion, receivingLive },
+    });
+  }
+
   if (!isEvmAddress(receivingLive)) {
     return {
       ok: false,
       error: 'Invalid receiving wallet configuration',
       httpStatus: 500,
+    };
+  }
+
+  const txHash = normalizeTxHash(input.paymentTxHash ?? '');
+  if (!txHash) {
+    return { ok: false, error: 'Invalid paymentTxHash', httpStatus: 400 };
+  }
+
+  const spendPaymentRail = getSpendPaymentRail(spendExperience.spend_rail);
+  const userSignedConfirmGate =
+    spendPaymentRail.assertUserSignedOnchainPaymentConfirmSupported();
+  if (!userSignedConfirmGate.ok) {
+    return {
+      ok: false,
+      error: userSignedConfirmGate.error.userMessage,
+      httpStatus: 400,
     };
   }
 
@@ -266,7 +732,7 @@ export async function runSpendPaymentConfirm(input: {
   let spendTx: SpendTransaction | null = null;
   let basePaymentPrepare: SpendPaymentPrepareOperation | null = null;
 
-  if (session.spend_rail === 'base_usdc') {
+  {
     const [preparedOp, tx] = await Promise.all([
       getSpendPaymentPrepareBySessionId(session.id),
       getSpendTransactionBySessionId(session.id),
@@ -357,11 +823,6 @@ export async function runSpendPaymentConfirm(input: {
     fromAddr = snap.from_wallet as `0x${string}`;
     toAddr = snap.receiving_wallet as `0x${string}`;
     usdcAmount = snap.usdc_amount;
-  } else {
-    spendTx = await getSpendTransactionBySessionId(session.id);
-    fromAddr = normalizedWallet as `0x${string}`;
-    toAddr = receivingLive as `0x${string}`;
-    usdcAmount = input.usdcAmount;
   }
   const requestedHashLower = txHash.toLowerCase();
 

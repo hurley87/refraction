@@ -11,6 +11,8 @@ import type {
 import type {
   SpendBaseUsdcPaymentVerificationSnapshotV1,
   SpendPaymentPrepareStoredActionV1,
+  SpendStellarUsdcBackendSubmitPreparedActionV1,
+  SpendStellarUsdcPaymentVerificationSnapshotV1,
 } from '@/lib/spend-payment-prepare-types';
 
 /** Successful `preparePayment` payload (Base USDC fills `baseUsdc`; other rails omit). */
@@ -20,6 +22,19 @@ export type SpendPaymentPrepareRailValue = {
     preparedAction: SpendPaymentPrepareStoredActionV1;
     verificationSnapshot: SpendBaseUsdcPaymentVerificationSnapshotV1;
   };
+  stellarUsdc?: {
+    preparedAction: SpendStellarUsdcBackendSubmitPreparedActionV1;
+    verificationSnapshot: SpendStellarUsdcPaymentVerificationSnapshotV1;
+  };
+};
+
+/** `confirmPayment` rail outcome (Base is verify-only; Stellar may return `needs_review`). */
+export type SpendPaymentConfirmRailValue = {
+  status: SpendRailPaymentOperationStatus;
+  /** Ledger reference when known (Stellar 64-hex hash; Base uses client hash in orchestration). */
+  ledgerTxReference?: string | null;
+  /** Ambiguous verification reason for `needs_review` (Stellar). */
+  verifyFailureReason?: string | null;
 };
 
 export type SpendRailResult<T> =
@@ -66,20 +81,20 @@ export interface SpendPaymentRail {
   >;
 
   /**
-   * Prepare a payment action (idempotent descriptor). Unsupported on Base until IRL-19;
-   * Stellar returns **not supported** until backend submit metadata exists.
+   * Prepare a payment action (idempotent descriptor). Base returns wallet transaction data;
+   * Stellar returns backend-submit metadata (IRL-24).
    */
   preparePayment(
     ctx: SpendPaymentRailSessionContext
   ): Promise<SpendRailResult<SpendPaymentPrepareRailValue>>;
 
   /**
-   * Confirm on-chain payment evidence (user-submitted tx hash on Base USDC). Stellar remains
-   * unsupported at this boundary until server-controlled confirmation exists on the rail.
+   * Confirm on-chain payment evidence. Base USDC: user-submitted tx hash. Stellar USDC:
+   * server submit only (IRL-24); orchestration verifies on Horizon after `submitted`.
    */
   confirmPayment(
     ctx: SpendPaymentRailSessionContext
-  ): Promise<SpendRailResult<{ status: SpendRailPaymentOperationStatus }>>;
+  ): Promise<SpendRailResult<SpendPaymentConfirmRailValue>>;
 
   /** Canonical explorer URL for a ledger transaction reference, when known. */
   explorerUrlForLedgerTx(txReference: string | null | undefined): string | null;

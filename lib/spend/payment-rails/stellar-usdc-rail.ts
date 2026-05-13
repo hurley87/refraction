@@ -9,6 +9,7 @@ import {
   errSpendRail,
   okSpendRail,
   spendPaymentRailExplorerUrl,
+  type SpendPaymentConfirmRailValue,
   type SpendPaymentPrepareRailValue,
   type SpendPaymentRail,
   type SpendRailResult,
@@ -16,7 +17,9 @@ import {
 import {
   isSpendRailError,
   spendRailErrorFundingFailed,
+  spendRailErrorInvalidReceivingWallet,
   spendRailErrorNetworkUnavailable,
+  spendRailErrorPaymentFailed,
   spendRailErrorStellarTreasuryCannotFundSpend,
   spendRailErrorRailOperationNotSupported,
   spendRailErrorWalletReadinessFailed,
@@ -26,7 +29,6 @@ import type {
   SpendPaymentRailReconcileContext,
   SpendPaymentRailSessionContext,
   SpendRailFundingOperationStatus,
-  SpendRailPaymentOperationStatus,
 } from '@/lib/spend/payment-rails/types';
 import { runStellarUsdcWalletReadinessOrchestration } from '@/lib/spend/stellar-wallet-readiness-orchestration';
 import {
@@ -34,6 +36,14 @@ import {
   readStellarTreasuryConfirmedUsdcBalance,
   submitStellarTreasuryUsdcFunding,
 } from '@/lib/spend/stellar-treasury-funding';
+import { getSpendReceivingWalletAddress } from '@/lib/spend-rail-config';
+import { resolveStellarPrivyWalletIdForUser } from '@/lib/privy/stellar-rail-wallet';
+import { submitSponsoredStellarUsdcPaymentFromUser } from '@/lib/spend/stellar-spend-payment-submit';
+import {
+  getStellarSpendUsdcAssetCode,
+  getStellarSpendUsdcIssuer,
+} from '@/lib/spend/stellar-wallet-readiness-config';
+import type { SpendStellarUsdcBackendSubmitPreparedActionV1 } from '@/lib/spend-payment-prepare-types';
 
 const unsupported = (): SpendRailResult<never> =>
   errSpendRail(spendRailErrorRailOperationNotSupported());
@@ -67,6 +77,18 @@ function internalDiagnosticsFromError(e: unknown): Record<string, unknown> {
 
 function isValidPositiveUsdcAmount(n: unknown): n is number {
   return typeof n === 'number' && Number.isFinite(n) && n > 0;
+}
+
+function classifyStellarPaymentSubmitReason(reason: string): SpendRailError {
+  const r = reason.toLowerCase();
+  if (
+    r.includes('network_submit_failed') ||
+    r.includes('horizon') ||
+    r.includes('fetch')
+  ) {
+    return spendRailErrorNetworkUnavailable();
+  }
+  return spendRailErrorPaymentFailed();
 }
 
 /**
@@ -262,15 +284,108 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
     async preparePayment(
       ctx: SpendPaymentRailSessionContext
     ): Promise<SpendRailResult<SpendPaymentPrepareRailValue>> {
-      void ctx;
-      return unsupported();
+      const sessionId = ctx.spendSessionId?.trim();
+      if (!sessionId) {
+        return errSpendRail(spendRailErrorPaymentFailed());
+      }
+      if (!isValidPositiveUsdcAmount(ctx.usdcAmount)) {
+        return errSpendRail(spendRailErrorPaymentFailed());
+      }
+      const fromRaw = ctx.railUserWalletAddress?.trim() ?? '';
+      const fromOk = stellarWalletAddressSchema.safeParse(fromRaw);
+      if (!fromOk.success) {
+        return errSpendRail(spendRailErrorWalletReadinessFailed());
+      }
+      const receivingRaw = getSpendReceivingWalletAddress(spendRail).trim();
+      const recvOk = stellarWalletAddressSchema.safeParse(receivingRaw);
+      if (!recvOk.success) {
+        return errSpendRail(spendRailErrorInvalidReceivingWallet());
+      }
+      const usdcIssuer = getStellarSpendUsdcIssuer();
+      if (!usdcIssuer) {
+        return errSpendRail(spendRailErrorInvalidReceivingWallet());
+      }
+      const usdcCode = getStellarSpendUsdcAssetCode();
+
+      const amt = ctx.usdcAmount;
+      const payLabel = `Pay ${amt.toFixed(2)} USDC on Stellar`;
+      const preparedAction: SpendStellarUsdcBackendSubmitPreparedActionV1 = {
+        v: 1,
+        spend_rail: 'stellar_usdc',
+        payment_channel: 'backend_submit',
+        confirm: {
+          method: 'POST',
+          path: `/api/spend-sessions/${encodeURIComponent(sessionId)}/payment/confirm`,
+          session_id: sessionId,
+        },
+        display: {
+          pay_label: payLabel,
+          submitting_label: 'Submitting your Stellar payment…',
+        },
+      };
+      const verificationSnapshot = {
+        v: 1 as const,
+        spend_rail: 'stellar_usdc' as const,
+        from_wallet: fromOk.data,
+        receiving_wallet: recvOk.data,
+        usdc_amount: amt,
+        usdc_asset_code: usdcCode,
+        usdc_issuer: usdcIssuer,
+      };
+      return okSpendRail({
+        status: 'prepared',
+        stellarUsdc: { preparedAction, verificationSnapshot },
+      });
     },
 
     async confirmPayment(
       ctx: SpendPaymentRailSessionContext
-    ): Promise<SpendRailResult<{ status: SpendRailPaymentOperationStatus }>> {
-      void ctx;
-      return unsupported();
+    ): Promise<SpendRailResult<SpendPaymentConfirmRailValue>> {
+      if (!isValidPositiveUsdcAmount(ctx.usdcAmount)) {
+        return errSpendRail(spendRailErrorPaymentFailed());
+      }
+      const privyUserId = ctx.sessionOwnerPrivyUserId?.trim();
+      if (!privyUserId) {
+        return errSpendRail(spendRailErrorPaymentFailed());
+      }
+      const fromRaw = ctx.railUserWalletAddress?.trim() ?? '';
+      const fromOk = stellarWalletAddressSchema.safeParse(fromRaw);
+      if (!fromOk.success) {
+        return errSpendRail(spendRailErrorWalletReadinessFailed());
+      }
+      const receivingRaw = getSpendReceivingWalletAddress(spendRail).trim();
+      const recvOk = stellarWalletAddressSchema.safeParse(receivingRaw);
+      if (!recvOk.success) {
+        return errSpendRail(spendRailErrorInvalidReceivingWallet());
+      }
+
+      let walletId: string;
+      try {
+        walletId = await resolveStellarPrivyWalletIdForUser(
+          privyUserId,
+          fromOk.data
+        );
+      } catch (e) {
+        console.error('stellar_usdc confirmPayment wallet id:', e);
+        return errSpendRail(spendRailErrorWalletReadinessFailed());
+      }
+
+      const sub = await submitSponsoredStellarUsdcPaymentFromUser({
+        userPublicKey: fromOk.data,
+        privyStellarWalletId: walletId,
+        destinationPublicKey: recvOk.data,
+        usdcAmount: ctx.usdcAmount,
+      });
+
+      if (!sub.ok) {
+        console.error('stellar_usdc payment submit:', sub.internalMessage);
+        return errSpendRail(classifyStellarPaymentSubmitReason(sub.reason));
+      }
+
+      return okSpendRail({
+        status: 'submitted',
+        ledgerTxReference: sub.txHash,
+      });
     },
 
     explorerUrlForLedgerTx(
