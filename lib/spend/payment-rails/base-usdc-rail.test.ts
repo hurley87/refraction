@@ -211,6 +211,30 @@ describe('createBaseUsdcSpendPaymentRail', () => {
     );
   });
 
+  it('initiateUserFunding uses the per-experience treasury wallet config from context', async () => {
+    const experienceWallet = '0x9999999999999999999999999999999999999999';
+    vi.mocked(submitTreasuryUsdcTransfer).mockResolvedValue({
+      ok: true,
+      submittedPending: true,
+      privyTransactionId: 'ptx-exp',
+    });
+    const res = await rail.initiateUserFunding({
+      spendSessionId: 's1',
+      embeddedEvmWalletAddress: EMBEDDED,
+      privyNormalizedWalletAddressLower: EMBEDDED.toLowerCase(),
+      treasuryFundingWalletId: 'wallet-exp-1',
+      treasuryFundingWalletAddress: experienceWallet,
+      usdcAmount: 5,
+    });
+    expect(res.ok).toBe(true);
+    expect(submitTreasuryUsdcTransfer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        serverWalletId: 'wallet-exp-1',
+        serverWalletAddress: experienceWallet,
+      })
+    );
+  });
+
   it('initiateUserFunding returns submitted with tx hash when receipt is not yet final', async () => {
     vi.mocked(submitTreasuryUsdcTransfer).mockResolvedValue({
       ok: true,

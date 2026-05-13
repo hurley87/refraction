@@ -309,6 +309,9 @@ async function runWalletReadinessAndUserFunding(input: {
     spendExperienceId: spendExperience.id,
     pointConversionId: conv.id,
     fundingReferenceId: fundingKey,
+    treasuryFundingWalletId:
+      treasuryMeta.spendRail === 'base_usdc' ? treasuryMeta.walletId : null,
+    treasuryFundingWalletAddress: treasuryMeta.treasuryAddress,
     embeddedEvmWalletAddress: embeddedSpendWalletForSession(session),
     privyNormalizedWalletAddressLower: normalizedWallet,
     sessionOwnerPrivyUserId: session.user_id,

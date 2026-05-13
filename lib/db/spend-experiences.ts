@@ -183,7 +183,10 @@ export async function createSpendExperience(
     spend_rail: input.spend_rail,
     points_to_usdc_rate: input.points_to_usdc_rate,
     max_usdc_per_user: input.max_usdc_per_user,
-    treasury_wallet_address: getSpendTreasuryWalletAddress(input.spend_rail),
+    treasury_wallet_address:
+      input.spend_rail === 'base_usdc'
+        ? input.server_wallet_address
+        : getSpendTreasuryWalletAddress(input.spend_rail),
     receiving_wallet_address: getSpendReceivingWalletAddress(input.spend_rail),
     privy_server_wallet_id: input.privy_server_wallet_id,
     server_wallet_address: input.server_wallet_address,

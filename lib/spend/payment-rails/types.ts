@@ -54,6 +54,10 @@ export type SpendPaymentRailSessionContext = {
   embeddedEvmWalletAddress?: string;
   /** When set, Base readiness requires a case-insensitive match to `embeddedEvmWalletAddress`. */
   privyNormalizedWalletAddressLower?: string;
+  /** Base treasury Privy wallet id for this spend experience. */
+  treasuryFundingWalletId?: string | null;
+  /** Base treasury Privy wallet address for this spend experience. */
+  treasuryFundingWalletAddress?: string | null;
   /**
    * Spend session owner (`spend_sessions.user_id`, Privy user id). Required for Stellar
    * wallet readiness orchestration (IRL-21).

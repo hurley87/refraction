@@ -90,6 +90,17 @@ function embeddedEvmFromContext(
   return okSpendRail(embedded);
 }
 
+function treasuryTransferConfigFromContext(
+  ctx: SpendPaymentRailSessionContext
+): ReturnType<typeof getSpendBaseTreasuryPrivyTransferConfig> {
+  const walletId = ctx.treasuryFundingWalletId?.trim();
+  const address = ctx.treasuryFundingWalletAddress?.trim();
+  if (walletId && address && isEvmAddress(address)) {
+    return { walletId, address: address as `0x${string}` };
+  }
+  return getSpendBaseTreasuryPrivyTransferConfig();
+}
+
 export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
   const spendRail: SpendRail = 'base_usdc';
 
@@ -199,7 +210,7 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
       }
       const usdcAmount = ctx.usdcAmount;
 
-      const transferCfg = getSpendBaseTreasuryPrivyTransferConfig();
+      const transferCfg = treasuryTransferConfigFromContext(ctx);
       if (!transferCfg) {
         return errSpendRail(spendRailErrorFundingFailed());
       }

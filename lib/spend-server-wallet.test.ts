@@ -1,10 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { spendServerWalletFundingMetadata } from './spend-server-wallet';
+import {
+  getSpendServerWalletTransferConfig,
+  spendServerWalletFundingMetadata,
+} from './spend-server-wallet';
 
 const VALID_STELLAR =
   'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
 
 describe('spendServerWalletFundingMetadata', () => {
+  it('uses the Base server wallet stored on the experience before env fallback', () => {
+    const experience = {
+      spend_rail: 'base_usdc' as const,
+      max_usdc_per_user: 5,
+      privy_server_wallet_id: 'wallet-exp-1',
+      server_wallet_address: '0x9999999999999999999999999999999999999999',
+    };
+
+    expect(getSpendServerWalletTransferConfig(experience)).toEqual({
+      walletId: 'wallet-exp-1',
+      address: '0x9999999999999999999999999999999999999999',
+    });
+    expect(
+      spendServerWalletFundingMetadata(experience, null).serverWalletAddress
+    ).toBe('0x9999999999999999999999999999999999999999');
+  });
+
   it('includes Base-specific funding copy and chain for base_usdc', () => {
     const m = spendServerWalletFundingMetadata(
       { spend_rail: 'base_usdc', max_usdc_per_user: 5 },
