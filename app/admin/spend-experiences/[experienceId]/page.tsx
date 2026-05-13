@@ -21,99 +21,24 @@ import type {
   PointConversion,
   SpendExperience,
   SpendRail,
-  SpendSession,
   SpendTransaction,
   TreasuryTransaction,
 } from '@/lib/types';
 import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
-import { explorerTxUrlForSpendLedger } from '@/lib/spend-ledger-explorer-url';
-
-type ActivityTotals = {
-  usersConverted: number;
-  totalUsdcDistributed: number;
-  totalUsdcReceivedAtEventWallet: number;
-  spendSessionsCount: number;
-};
-
-type ActivitySessionRow = {
-  session: SpendSession;
-  conversion: PointConversion | null;
-  payment: SpendTransaction | null;
-};
-
-type RailOpsSummary = {
-  walletReadiness: { pending: number; needsReview: number };
-  conversions: {
-    pending: number;
-    pointsDeducted: number;
-    fundingPending: number;
-    needsReview: number;
-    inFlightTotal: number;
-  };
-  spendTransactions: { pending: number; submitted: number };
-  fundedUnpaidSessions: number;
-};
-
-type RailVisibilityRow = {
-  operationKind: 'wallet_readiness' | 'conversion' | 'payment';
-  operationId: string;
-  spendExperienceId: string;
-  spendSessionId: string;
-  userId: string;
-  spendRail: SpendRail;
-  networkLabel: string;
-  usdcAmount: number | null;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  safeErrorSummary: string | null;
-  txHash: string | null;
-  explorerTxUrl: string | null;
-};
-
-type FundedUnpaidRow = {
-  spendExperienceId: string;
-  spendSessionId: string;
-  userId: string;
-  spendRail: SpendRail;
-  networkLabel: string;
-  usdcAmount: number;
-  sessionStatus: SpendSession['status'] | null;
-  conversion: {
-    id: string;
-    status: string;
-    createdAt: string;
-    updatedAt: string;
-    fundingTxHash: string | null;
-    explorerTxUrl: string | null;
-    safeErrorSummary: string | null;
-  };
-  payment: {
-    id: string;
-    status: string;
-    createdAt: string;
-    updatedAt: string;
-    paymentTxHash: string | null;
-    explorerTxUrl: string | null;
-    safeErrorSummary: string | null;
-  } | null;
-};
-
-type RailVisibilityPayload = {
-  summary: RailOpsSummary;
-  walletReadiness: RailVisibilityRow[];
-  conversionsInFlight: RailVisibilityRow[];
-  spendTransactionsInFlight: RailVisibilityRow[];
-  fundedUnpaid: FundedUnpaidRow[];
-};
+import { spendLedgerTxExplorerUrl } from '@/lib/spend-ledger-explorer-url';
+import type {
+  SpendPilotAdminRailVisibility,
+  SpendPilotAdminTotals,
+  SpendPilotSessionActivityRow,
+} from '@/lib/db/spend-admin';
 
 type ActivityPayload = {
   spendExperienceId: string;
-  totals: ActivityTotals;
-  sessions: ActivitySessionRow[];
+  totals: SpendPilotAdminTotals;
+  sessions: SpendPilotSessionActivityRow[];
   failedConversions: PointConversion[];
   failedPayments: SpendTransaction[];
-  railVisibility?: RailVisibilityPayload;
+  railVisibility?: SpendPilotAdminRailVisibility;
   mixpanelInsightUrl?: string;
 };
 
@@ -151,16 +76,6 @@ function shortenAddr(a: string): string {
   return `${t.slice(0, 6)}…${t.slice(-4)}`;
 }
 
-function spendLedgerTxHref(
-  spendRail: SpendRail,
-  explorerTxUrl: string | null | undefined,
-  txHash: string | null | undefined
-): string | null {
-  const persisted = explorerTxUrl?.trim();
-  if (persisted) return persisted;
-  return explorerTxUrlForSpendLedger(spendRail, txHash);
-}
-
 /** Age from `createdAt` (ISO), consistent with API contract (IRL-26). */
 function formatAgeFromIso(createdAt: string): string {
   const ms = Date.now() - new Date(createdAt).getTime();
@@ -174,10 +89,6 @@ function formatAgeFromIso(createdAt: string): string {
   return `${days}d`;
 }
 
-async function copyText(value: string): Promise<void> {
-  await navigator.clipboard.writeText(value);
-}
-
 function LedgerTxLink({
   spendRail,
   explorerTxUrl,
@@ -189,7 +100,7 @@ function LedgerTxLink({
   txHash: string;
   className?: string;
 }) {
-  const href = spendLedgerTxHref(spendRail, explorerTxUrl, txHash);
+  const href = spendLedgerTxExplorerUrl(spendRail, explorerTxUrl, txHash);
   const label = shortenAddr(txHash);
   if (!href) {
     return (
@@ -298,11 +209,12 @@ export default function SpendExperienceDetailPage() {
     const verify = async () => {
       if (user?.email?.address) {
         setIsAdmin(await checkAdminStatus());
-        setAdminLoading(false);
-      } else if (user === null) {
+      } else if (!user) {
         setIsAdmin(false);
-        setAdminLoading(false);
+      } else {
+        setIsAdmin(false);
       }
+      setAdminLoading(false);
     };
     void verify();
   }, [user, checkAdminStatus]);
@@ -519,7 +431,9 @@ export default function SpendExperienceDetailPage() {
               variant="outline"
               size="sm"
               className="gap-1 bg-white"
-              onClick={() => void copyText(funding.serverWalletAddress)}
+              onClick={() =>
+                void navigator.clipboard.writeText(funding.serverWalletAddress)
+              }
             >
               <Copy className="size-3.5" />
               Copy

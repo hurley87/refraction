@@ -11,7 +11,7 @@ import {
 import { normalizeSpendRail } from './spend-rail';
 import { WALLET_READINESS_ADMIN_SESSION_JOIN_SELECT } from './spend-wallet-readiness';
 import {
-  explorerTxUrlForSpendLedger,
+  spendLedgerTxExplorerUrl,
   spendLedgerNetworkLabel,
 } from '@/lib/spend-ledger-explorer-url';
 import type {
@@ -302,16 +302,6 @@ export type SpendPilotAdminRailVisibility = {
   fundedUnpaid: SpendPilotAdminFundedUnpaidRow[];
 };
 
-function adminLedgerExplorerUrl(
-  spendRail: SpendRail,
-  persistedUrl: string | null | undefined,
-  txHash: string | null | undefined
-): string | null {
-  const persisted = persistedUrl?.trim();
-  if (persisted) return persisted;
-  return explorerTxUrlForSpendLedger(spendRail, txHash);
-}
-
 function safeConversionErrorSummary(c: PointConversion): string | null {
   const lf = c.conversion_last_failure;
   if (lf) {
@@ -565,7 +555,7 @@ export async function getSpendPilotAdminRailVisibility(
       updatedAt: c.updated_at,
       safeErrorSummary: safeConversionErrorSummary(c),
       txHash: c.funding_tx_hash,
-      explorerTxUrl: adminLedgerExplorerUrl(
+      explorerTxUrl: spendLedgerTxExplorerUrl(
         c.spend_rail,
         c.explorer_tx_url,
         c.funding_tx_hash
@@ -591,7 +581,7 @@ export async function getSpendPilotAdminRailVisibility(
       updatedAt: p.updated_at,
       safeErrorSummary: safePaymentErrorSummary(p),
       txHash: p.payment_tx_hash,
-      explorerTxUrl: adminLedgerExplorerUrl(
+      explorerTxUrl: spendLedgerTxExplorerUrl(
         p.spend_rail,
         p.explorer_tx_url,
         p.payment_tx_hash
@@ -603,20 +593,32 @@ export async function getSpendPilotAdminRailVisibility(
   const fundedSessionIds = [...latestFundedBySession.keys()];
 
   const paymentsBySession = new Map<string, SpendTransaction>();
-  for (const chunk of chunkIds(fundedSessionIds, 200)) {
-    if (chunk.length === 0) continue;
-    const { data, error } = await supabase
-      .from('spend_transactions')
-      .select(SPEND_TX_COLS)
-      .eq('spend_experience_id', spendExperienceId)
-      .in('spend_session_id', chunk);
-    if (error) {
-      console.error('getSpendPilotAdminRailVisibility funded payments:', error);
-      throw new Error(error.message || 'Failed to load payment rows');
-    }
-    for (const row of data ?? []) {
-      const p = rowToSpendTransaction(row as Record<string, unknown>);
-      paymentsBySession.set(p.spend_session_id, p);
+  const paymentChunks = chunkIds(fundedSessionIds, 200).filter(
+    (chunk) => chunk.length > 0
+  );
+  if (paymentChunks.length > 0) {
+    const paymentRowsByChunk = await Promise.all(
+      paymentChunks.map(async (chunk) => {
+        const { data, error } = await supabase
+          .from('spend_transactions')
+          .select(SPEND_TX_COLS)
+          .eq('spend_experience_id', spendExperienceId)
+          .in('spend_session_id', chunk);
+        if (error) {
+          console.error(
+            'getSpendPilotAdminRailVisibility funded payments:',
+            error
+          );
+          throw new Error(error.message || 'Failed to load payment rows');
+        }
+        return data ?? [];
+      })
+    );
+    for (const rows of paymentRowsByChunk) {
+      for (const row of rows) {
+        const p = rowToSpendTransaction(row as Record<string, unknown>);
+        paymentsBySession.set(p.spend_session_id, p);
+      }
     }
   }
 
@@ -627,27 +629,37 @@ export async function getSpendPilotAdminRailVisibility(
 
   const fundedUnpaidSessionsCount = fundedUnpaidCandidates.length;
 
-  const fundedUnpaidForList = [...fundedUnpaidCandidates]
+  const fundedUnpaidForList = fundedUnpaidCandidates
+    .slice()
     .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
     .slice(0, RAIL_OPS_DETAIL_LIMIT);
   const listSessionIds = [
     ...new Set(fundedUnpaidForList.map((c) => c.spend_session_id)),
   ];
   const sessionStatusById = new Map<string, SpendSession['status']>();
-  for (const chunk of chunkIds(listSessionIds, 200)) {
-    if (chunk.length === 0) continue;
-    const { data, error } = await supabase
-      .from('spend_sessions')
-      .select('id, status')
-      .eq('spend_experience_id', spendExperienceId)
-      .in('id', chunk);
-    if (error) {
-      console.error('getSpendPilotAdminRailVisibility sessions:', error);
-      throw new Error(error.message || 'Failed to load sessions');
-    }
-    for (const row of data ?? []) {
-      const rec = row as { id: string; status: SpendSession['status'] };
-      sessionStatusById.set(String(rec.id), rec.status);
+  const sessionChunks = chunkIds(listSessionIds, 200).filter(
+    (chunk) => chunk.length > 0
+  );
+  if (sessionChunks.length > 0) {
+    const sessionRowsByChunk = await Promise.all(
+      sessionChunks.map(async (chunk) => {
+        const { data, error } = await supabase
+          .from('spend_sessions')
+          .select('id, status')
+          .eq('spend_experience_id', spendExperienceId)
+          .in('id', chunk);
+        if (error) {
+          console.error('getSpendPilotAdminRailVisibility sessions:', error);
+          throw new Error(error.message || 'Failed to load sessions');
+        }
+        return data ?? [];
+      })
+    );
+    for (const rows of sessionRowsByChunk) {
+      for (const row of rows) {
+        const rec = row as { id: string; status: SpendSession['status'] };
+        sessionStatusById.set(String(rec.id), rec.status);
+      }
     }
   }
 
@@ -668,7 +680,7 @@ export async function getSpendPilotAdminRailVisibility(
           createdAt: c.created_at,
           updatedAt: c.updated_at,
           fundingTxHash: c.funding_tx_hash,
-          explorerTxUrl: adminLedgerExplorerUrl(
+          explorerTxUrl: spendLedgerTxExplorerUrl(
             c.spend_rail,
             c.explorer_tx_url,
             c.funding_tx_hash
@@ -682,7 +694,7 @@ export async function getSpendPilotAdminRailVisibility(
               createdAt: p.created_at,
               updatedAt: p.updated_at,
               paymentTxHash: p.payment_tx_hash,
-              explorerTxUrl: adminLedgerExplorerUrl(
+              explorerTxUrl: spendLedgerTxExplorerUrl(
                 p.spend_rail,
                 p.explorer_tx_url,
                 p.payment_tx_hash

@@ -14,7 +14,7 @@ interface RouteParams {
 
 /**
  * GET /api/admin/spend-experiences/{experienceId}/activity
- * Sessions (recent), failed conversion/payment rows, and aggregate totals (PRD §12).
+ * Recent sessions, failed rows, totals, and rail ops visibility (IRL-26).
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {

@@ -1,4 +1,8 @@
 import type { SpendRail } from '@/lib/types';
+import {
+  formatExplorerTxUrlForSpendLedger,
+  spendLedgerNetworkLabel,
+} from '@/lib/spend-rail-config';
 
 const EVM_TX_HASH_RE = /^0x[a-fA-F0-9]{64}$/;
 const STELLAR_TX_HASH_RE = /^[a-fA-F0-9]{64}$/;
@@ -28,7 +32,21 @@ export function isValidSpendConversionFundingTxReference(
   return false;
 }
 
+/**
+ * Prefer a persisted explorer URL from a ledger row; otherwise derive from rail
+ * and tx hash (shared by admin DB mapping and the spend admin UI).
+ */
+export function spendLedgerTxExplorerUrl(
+  spendRail: SpendRail,
+  persistedExplorerTxUrl: string | null | undefined,
+  txHash: string | null | undefined
+): string | null {
+  const persisted = persistedExplorerTxUrl?.trim();
+  if (persisted) return persisted;
+  return formatExplorerTxUrlForSpendLedger(spendRail, txHash);
+}
+
 export {
   spendLedgerNetworkLabel,
   formatExplorerTxUrlForSpendLedger as explorerTxUrlForSpendLedger,
-} from '@/lib/spend-rail-config';
+};
