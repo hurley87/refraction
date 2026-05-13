@@ -149,6 +149,32 @@ describe('Stellar wallet readiness orchestration', () => {
     );
   });
 
+  it('builds sponsored trustline operations with the expected source accounts', async () => {
+    hoisted.mockServer.submitTransaction.mockRejectedValue(
+      new Error('inspect submit')
+    );
+
+    const result = await runStellarUsdcWalletReadinessOrchestration({
+      readinessRow: readinessRow(),
+      spendSessionId: '770e8400-e29b-41d4-a716-446655440000',
+      spendExperienceId: '990e8400-e29b-41d4-a716-446655440003',
+      sessionOwnerPrivyUserId: 'privy-1',
+    });
+
+    expect(result.ok).toBe(false);
+    const feeBump = hoisted.mockServer.submitTransaction.mock.calls[0]?.[0];
+    const operations = feeBump.innerTransaction.operations;
+    expect(operations.map((op: { type: string }) => op.type)).toEqual([
+      'beginSponsoringFutureReserves',
+      'changeTrust',
+      'endSponsoringFutureReserves',
+    ]);
+    expect(operations[0].source).toBe(feeBump.feeSource);
+    expect(operations[0].source).not.toBe(VALID_STELLAR_PUBLIC_KEY);
+    expect(operations[1].source).toBeUndefined();
+    expect(operations[2].source).toBe(VALID_STELLAR_PUBLIC_KEY);
+  });
+
   it('persists diagnostics when Privy raw signing fails during trustline setup', async () => {
     hoisted.mockRawSign.mockRejectedValue(new Error('raw sign failed'));
 
