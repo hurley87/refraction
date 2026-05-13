@@ -219,13 +219,15 @@ export default function InteractiveMap({
     longitude: number;
   } | null>(null);
 
-  // Don't initialize bounds - wait for map to load and provide actual viewport bounds
+  // Seeded from viewState on mount; refined from the map instance when WebGL is available.
   const [mapBounds, setMapBounds] = useState<{
     north: number;
     south: number;
     east: number;
     west: number;
   } | null>(null);
+  /** Set when Mapbox / WebGL fails so we can show guidance instead of a blank map. */
+  const [mapRenderError, setMapRenderError] = useState<string | null>(null);
 
   const mapRef = useRef<any>(null);
   const hasSetInitialLocationRef = useRef(false);
@@ -274,9 +276,16 @@ export default function InteractiveMap({
         }));
       },
       (error) => {
-        console.warn('Geolocation error:', error);
+        // Code 2 (POSITION_UNAVAILABLE) is common on desktop without a precise fix; avoid noisy logs.
+        if (
+          process.env.NODE_ENV === 'development' &&
+          error.code !== error.POSITION_UNAVAILABLE
+        ) {
+          console.warn('Geolocation error:', error);
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      // Low accuracy works far more reliably than GPS-style fixes on laptops / Wi‑Fi.
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
     );
   }, [initialLatitude, initialLongitude]);
 
@@ -447,10 +456,12 @@ export default function InteractiveMap({
                 east: bounds.getEast(),
                 west: bounds.getWest(),
               };
-              console.log(
-                '[MapBounds] Calculated from map instance:',
-                calculatedBounds
-              );
+              if (process.env.NODE_ENV === 'development') {
+                console.log(
+                  '[MapBounds] Calculated from map instance:',
+                  calculatedBounds
+                );
+              }
               return calculatedBounds;
             }
           }
@@ -464,10 +475,12 @@ export default function InteractiveMap({
                 east: bounds.getEast(),
                 west: bounds.getWest(),
               };
-              console.log(
-                '[MapBounds] Calculated from ref.getBounds():',
-                calculatedBounds
-              );
+              if (process.env.NODE_ENV === 'development') {
+                console.log(
+                  '[MapBounds] Calculated from ref.getBounds():',
+                  calculatedBounds
+                );
+              }
               return calculatedBounds;
             }
           }
@@ -495,15 +508,32 @@ export default function InteractiveMap({
         east: longitude + viewportWidthDegrees / 2,
         west: longitude - viewportWidthDegrees / 2,
       };
-      console.log('[MapBounds] Calculated fallback from viewState:', {
-        center: { latitude, longitude },
-        zoom,
-        bounds: fallbackBounds,
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[MapBounds] Calculated fallback from viewState:', {
+          center: { latitude, longitude },
+          zoom,
+          bounds: fallbackBounds,
+        });
+      }
       return fallbackBounds;
     },
     [viewState]
   );
+
+  // Keep list-drawer bounds in sync before the map fires move/load (slow init or WebGL failure).
+  useEffect(() => {
+    const bounds = calculateMapBounds(viewState);
+    if (bounds) {
+      setMapBounds(bounds);
+    }
+    // Intentionally lat/lng/zoom only: full viewState changes every pan frame while onMove already updates bounds when WebGL is active.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    viewState.latitude,
+    viewState.longitude,
+    viewState.zoom,
+    calculateMapBounds,
+  ]);
 
   // Handle deep link to specific location via placeId URL param
   const deepLinkHandledRef = useRef(false);
@@ -958,7 +988,6 @@ export default function InteractiveMap({
         setIsLocating(false);
       },
       (error) => {
-        console.warn('Geolocation error:', error);
         let errorMessage = 'Unable to retrieve your location.';
 
         switch (error.code) {
@@ -1747,14 +1776,19 @@ export default function InteractiveMap({
         onMoveEnd={() => {
           // Update map bounds when map movement ends - this ensures accurate bounds
           // This is the most accurate as it uses the actual map instance
-          console.log('[MapBounds] onMoveEnd triggered');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[MapBounds] onMoveEnd triggered');
+          }
           const bounds = calculateMapBounds();
           if (bounds) {
-            console.log('[MapBounds] Setting bounds from onMoveEnd:', bounds);
+            if (process.env.NODE_ENV === 'development') {
+              console.log('[MapBounds] Setting bounds from onMoveEnd:', bounds);
+            }
             setMapBounds(bounds);
           }
         }}
         onLoad={() => {
+          setMapRenderError(null);
           // Calculate initial bounds after map loads
           setTimeout(() => {
             const bounds = calculateMapBounds();
@@ -1762,6 +1796,25 @@ export default function InteractiveMap({
               setMapBounds(bounds);
             }
           }, 100);
+        }}
+        onError={(evt) => {
+          const raw =
+            evt && typeof evt === 'object' && 'error' in evt
+              ? (evt as { error?: unknown }).error
+              : evt;
+          const msg =
+            raw instanceof Error
+              ? raw.message
+              : typeof raw === 'string'
+                ? raw
+                : 'Unable to load the map.';
+          if (msg.toLowerCase().includes('webgl')) {
+            setMapRenderError(
+              'This map requires WebGL. Enable hardware acceleration in your browser settings, update your graphics drivers, or try a different browser.'
+            );
+          } else {
+            setMapRenderError(msg);
+          }
         }}
         onClick={onMapClick}
         mapStyle="mapbox://styles/mapbox/streets-v12"
@@ -1893,6 +1946,17 @@ export default function InteractiveMap({
           </Marker>
         )}
       </Map>
+
+      {mapRenderError ? (
+        <div
+          role="alert"
+          className="pointer-events-auto absolute inset-0 z-[25] flex items-center justify-center bg-black/80 px-4 py-8 text-center"
+        >
+          <p className="max-w-md text-sm leading-relaxed text-white">
+            {mapRenderError}
+          </p>
+        </div>
+      ) : null}
 
       {popupInfo && (
         <div className={mapCardBottomOverlayClassName}>
