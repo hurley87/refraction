@@ -426,9 +426,6 @@ export function SpendExperiencePage({
       toast.success('Payment recorded. Thank you!');
       await invalidateSpendQueries();
     },
-    onError: () => {
-      toast.error(SPEND_TOAST_PAYMENT_ERROR);
-    },
   });
 
   const sendUsdcPayment = useCallback(async () => {
@@ -523,7 +520,11 @@ export function SpendExperiencePage({
           sponsor: true,
         });
       }
-      await paymentMutation.mutateAsync({ paymentTxHash: hash });
+      try {
+        await paymentMutation.mutateAsync({ paymentTxHash: hash });
+      } catch {
+        toast.error(SPEND_TOAST_PAYMENT_ERROR);
+      }
     } catch {
       toast.error(SPEND_TOAST_WALLET_ERROR);
     }
