@@ -9,12 +9,12 @@ import {
 import { verifySpendUsdcPaymentTx } from '@/lib/spend-payment-verify';
 import { isLedgerCanonicalEvmTxHash } from '@/lib/spend-ledger-explorer-url';
 import {
-  getSpendBaseTreasuryPrivyTransferConfig,
   getSpendRailBaseRpcUrl,
   getSpendRailBaseUsdcContractAddress,
   getSpendReceivingWalletAddress,
   getSpendTreasuryWalletAddress,
 } from '@/lib/spend-rail-config';
+import { getSpendServerWalletTransferConfig } from '@/lib/spend-server-wallet';
 import {
   spendRailErrorFundingFailed,
   spendRailErrorInvalidReceivingWallet,
@@ -47,6 +47,7 @@ import type {
   SpendPaymentRailSessionContext,
   SpendRailFundingOperationStatus,
   SpendRailPaymentOperationStatus,
+  SpendTreasuryBalanceRailContext,
 } from '@/lib/spend/payment-rails/types';
 
 function classifyTreasurySubmitFailure(message: string): SpendRailError {
@@ -96,10 +97,17 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
   return {
     spendRail,
 
-    async getTreasurySpendableBalance(): Promise<
-      SpendRailResult<number | null>
-    > {
-      const treasury = getSpendTreasuryWalletAddress(spendRail).trim();
+    async getTreasurySpendableBalance(
+      ctx?: SpendTreasuryBalanceRailContext
+    ): Promise<SpendRailResult<number | null>> {
+      const transferCfg = getSpendServerWalletTransferConfig({
+        spend_rail: 'base_usdc',
+        privy_server_wallet_id: ctx?.treasuryFundingWalletId ?? undefined,
+        server_wallet_address: ctx?.treasuryFundingWalletAddress ?? undefined,
+      });
+      const treasury = (
+        transferCfg?.address ?? getSpendTreasuryWalletAddress(spendRail).trim()
+      ).trim();
       if (!treasury || !isEvmAddress(treasury)) {
         return okSpendRail(null);
       }
@@ -199,7 +207,11 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
       }
       const usdcAmount = ctx.usdcAmount;
 
-      const transferCfg = getSpendBaseTreasuryPrivyTransferConfig();
+      const transferCfg = getSpendServerWalletTransferConfig({
+        spend_rail: 'base_usdc',
+        privy_server_wallet_id: ctx.treasuryFundingWalletId ?? undefined,
+        server_wallet_address: ctx.treasuryFundingWalletAddress ?? undefined,
+      });
       if (!transferCfg) {
         return errSpendRail(spendRailErrorFundingFailed());
       }

@@ -55,6 +55,16 @@ export type SpendPaymentRailSessionContext = {
   /** When set, Base readiness requires a case-insensitive match to `embeddedEvmWalletAddress`. */
   privyNormalizedWalletAddressLower?: string;
   /**
+   * Base: Privy server wallet id for this conversion (same source as `SpendExperience.privy_server_wallet_id`).
+   * Stellar rails ignore this field.
+   */
+  treasuryFundingWalletId?: string | null;
+  /**
+   * Base: server wallet address for conversion funding (same source as `SpendExperience.server_wallet_address`).
+   * Stellar rails ignore this field.
+   */
+  treasuryFundingWalletAddress?: string | null;
+  /**
    * Spend session owner (`spend_sessions.user_id`, Privy user id). Required for Stellar
    * wallet readiness orchestration (IRL-21).
    */
@@ -73,6 +83,12 @@ export type SpendPaymentRailSessionContext = {
    */
   analyticsDistinctId?: string;
 };
+
+/** Optional Base treasury hints for `SpendPaymentRail.getTreasurySpendableBalance`. */
+export type SpendTreasuryBalanceRailContext = Pick<
+  SpendPaymentRailSessionContext,
+  'treasuryFundingWalletId' | 'treasuryFundingWalletAddress'
+>;
 
 /**
  * Inputs for reconciliation passes (e.g. cron). IRL-15 defines shape only; behavior is no-op

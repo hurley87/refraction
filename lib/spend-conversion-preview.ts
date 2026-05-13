@@ -21,6 +21,7 @@ import {
   okSpendRail,
   type SpendRailResult,
 } from '@/lib/spend/payment-rails/spend-payment-rail';
+import { getSpendTreasuryFundingWalletMeta } from '@/lib/spend-server-wallet';
 import type {
   PointConversion,
   Player,
@@ -132,6 +133,9 @@ export function buildSpendEligibilityPreview(
   const railPublic = getSpendRailPublicMetadata(spendExperience.spend_rail);
   const { networkLabel, assetSymbol: railAssetSymbol } = railPublic;
 
+  const previewTreasuryFundingMeta =
+    getSpendTreasuryFundingWalletMeta(spendExperience);
+
   const treasuryInsufficientMessage =
     spendExperience.spend_rail === 'stellar_usdc'
       ? SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE
@@ -143,9 +147,9 @@ export function buildSpendEligibilityPreview(
     receivingWalletAddress: getSpendReceivingWalletAddress(
       spendExperience.spend_rail
     ),
-    treasuryWalletAddress: getSpendTreasuryWalletAddress(
-      spendExperience.spend_rail
-    ),
+    treasuryWalletAddress:
+      previewTreasuryFundingMeta?.treasuryAddress ??
+      getSpendTreasuryWalletAddress(spendExperience.spend_rail),
     userPointsBalance:
       player?.total_points != null ? Number(player.total_points) : null,
     userUsdcBalance,

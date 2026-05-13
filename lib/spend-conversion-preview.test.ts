@@ -455,9 +455,13 @@ describe('buildSpendEligibilityPreview', () => {
       for (const k of [
         'SPEND_RAIL_STELLAR_USDC_ENABLED',
         'SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS',
+        'SPEND_RAIL_STELLAR_USDC_TREASURY_ADDRESS',
         'NEXT_PUBLIC_STELLAR_NETWORK',
+        'NEXT_PUBLIC_STELLAR_HORIZON_URL',
+        'NEXT_PUBLIC_SPEND_RAIL_STELLAR_USDC_EXPLORER_TX_URL_TEMPLATE',
         'SPEND_RAIL_STELLAR_USDC_SPONSOR_SECRET_KEY',
         'SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY',
+        'SPEND_RAIL_STELLAR_USDC_USDC_ISSUER',
       ]) {
         prev[k] = process.env[k];
       }
@@ -466,6 +470,11 @@ describe('buildSpendEligibilityPreview', () => {
       process.env.SPEND_RAIL_STELLAR_USDC_SPONSOR_SECRET_KEY = kp.secret();
       process.env.SPEND_RAIL_STELLAR_USDC_TREASURY_SECRET_KEY = kp.secret();
       process.env.NEXT_PUBLIC_STELLAR_NETWORK = 'PUBLIC';
+      delete process.env.SPEND_RAIL_STELLAR_USDC_TREASURY_ADDRESS;
+      delete process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL;
+      delete process.env
+        .NEXT_PUBLIC_SPEND_RAIL_STELLAR_USDC_EXPLORER_TX_URL_TEMPLATE;
+      delete process.env.SPEND_RAIL_STELLAR_USDC_USDC_ISSUER;
     });
 
     afterEach(() => {

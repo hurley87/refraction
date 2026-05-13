@@ -19,6 +19,7 @@ const mockAssertSpendExperienceOpen = vi.fn();
 const mockAssertSpendRailAllows = vi.fn();
 const mockGetSpendPaymentRail = vi.fn();
 const mockGetTreasuryFundingMeta = vi.fn();
+const mockUpdatePointConversionFields = vi.fn();
 
 vi.mock('@/lib/db/spend-sessions', () => ({
   getPointConversionBySessionId: (...a: unknown[]) =>
@@ -29,7 +30,8 @@ vi.mock('@/lib/db/spend-sessions', () => ({
     mockRetryAtomic(...a),
   refundSpendConversionOnFundingFailure: vi.fn(),
   spendConversionFundingIdempotencyKey: (id: string) => `fund_user:${id}`,
-  updatePointConversionFields: vi.fn(),
+  updatePointConversionFields: (...a: unknown[]) =>
+    mockUpdatePointConversionFields(...a),
   updateSpendSessionStatus: vi.fn(),
 }));
 
@@ -188,6 +190,8 @@ describe('runSpendConversionConfirm (IRL-17 retry)', () => {
     mockAssertSpendExperienceOpen.mockReturnValue({ ok: true as const });
     mockAssertSpendRailAllows.mockReturnValue({ ok: true as const });
     mockGetTreasuryFundingMeta.mockReturnValue({
+      spendRail: 'base_usdc',
+      walletId: 'wallet-exp-1',
       treasuryAddress: '0x1111111111111111111111111111111111111111',
     });
     mockGetSpendPaymentRail.mockReturnValue({
@@ -289,6 +293,89 @@ describe('runSpendConversionConfirm (IRL-17 retry)', () => {
     expect(r.httpStatus).toBe(400);
     expect(r.error).toBe(
       SPEND_ELIGIBILITY_MESSAGES.conversion_failed_retry_exhausted
+    );
+  });
+
+  it('uses the experience Base server wallet for conversion RPC and rail funding', async () => {
+    const pointConversion: PointConversion = {
+      ...failedConversion(0, {
+        status: 'points_deducted',
+        conversion_attempt_count: 1,
+        completed_at: null,
+        failed_reason: null,
+        conversion_last_failure: null,
+      }),
+    };
+    const initiateUserFunding = vi.fn().mockResolvedValue({
+      ok: true as const,
+      value: {
+        status: 'pending' as const,
+        txReference: 'pending:privy-tx-1',
+      },
+    });
+    mockGetSpendPaymentRail.mockReturnValue({
+      getTreasurySpendableBalance: async () => ({
+        ok: true as const,
+        value: 100,
+      }),
+      runWalletReadinessOrchestration: vi.fn().mockResolvedValue({
+        ok: true as const,
+        value: { status: 'completed' as const },
+      }),
+      initiateUserFunding,
+    });
+    mockGetTreasuryFundingMeta.mockReturnValue({
+      spendRail: 'base_usdc',
+      walletId: 'wallet-exp-1',
+      treasuryAddress: '0x9999999999999999999999999999999999999999',
+    });
+    mockLoadEligibility.mockResolvedValue({
+      status: 'eligible',
+      message: 'eligible',
+      preview: {},
+    });
+    mockGetPlayerByWallet.mockResolvedValue({ total_points: 6000 });
+    mockConfirmAtomic.mockResolvedValue({
+      outcome: 'created',
+      conversionId: pointConversion.id,
+      playerTotalPoints: 1000,
+    });
+    mockGetPointConversion
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(pointConversion);
+    mockUpdatePointConversionFields.mockResolvedValue({
+      ...pointConversion,
+      status: 'needs_review',
+      funding_tx_hash: 'pending:privy-tx-1',
+    });
+
+    const r = await runSpendConversionConfirm({
+      session: baseSession,
+      spendExperience: {
+        ...baseExperience,
+        privy_server_wallet_id: 'wallet-exp-1',
+        server_wallet_address: '0x9999999999999999999999999999999999999999',
+      },
+      normalizedWallet: baseSession.wallet_address.toLowerCase(),
+      authUserId: 'privy-1',
+      distinctId: 'd',
+      usdcAmount: 5,
+      pointsRequired: 5000,
+      intent: 'confirm',
+    });
+
+    expect(r.ok).toBe(true);
+    expect(mockConfirmAtomic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        treasuryWalletAddress: '0x9999999999999999999999999999999999999999',
+      })
+    );
+    expect(initiateUserFunding).toHaveBeenCalledWith(
+      expect.objectContaining({
+        treasuryFundingWalletId: 'wallet-exp-1',
+        treasuryFundingWalletAddress:
+          '0x9999999999999999999999999999999999999999',
+      })
     );
   });
 });

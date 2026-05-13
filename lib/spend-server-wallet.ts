@@ -43,9 +43,18 @@ export type SpendServerWalletTransferConfig = {
   address: `0x${string}`;
 };
 
+type BaseWalletConfigSource = Pick<SpendExperience, 'spend_rail'> &
+  Partial<
+    Pick<SpendExperience, 'privy_server_wallet_id' | 'server_wallet_address'>
+  >;
+
 /** Treasury address used for conversion funding ledger + atomic RPC (rail-specific shape). */
 export type SpendTreasuryFundingWalletMeta =
-  | { spendRail: 'base_usdc'; treasuryAddress: `0x${string}` }
+  | {
+      spendRail: 'base_usdc';
+      walletId: string;
+      treasuryAddress: `0x${string}`;
+    }
   | { spendRail: 'stellar_usdc'; treasuryAddress: string };
 
 /**
@@ -53,12 +62,16 @@ export type SpendTreasuryFundingWalletMeta =
  * Base continues to use the Privy server wallet id + address pair via `getSpendServerWalletTransferConfig`.
  */
 export function getSpendTreasuryFundingWalletMeta(
-  experience: Pick<SpendExperience, 'spend_rail'>
+  experience: BaseWalletConfigSource
 ): SpendTreasuryFundingWalletMeta | null {
   if (experience.spend_rail === 'base_usdc') {
     const cfg = getSpendServerWalletTransferConfig(experience);
     if (!cfg) return null;
-    return { spendRail: 'base_usdc', treasuryAddress: cfg.address };
+    return {
+      spendRail: 'base_usdc',
+      walletId: cfg.walletId,
+      treasuryAddress: cfg.address,
+    };
   }
   if (experience.spend_rail === 'stellar_usdc') {
     const raw = getSpendTreasuryWalletAddress('stellar_usdc').trim();
@@ -109,13 +122,20 @@ function fundingCalloutCopy(
 }
 
 export function spendServerWalletFundingMetadata(
-  experience: Pick<SpendExperience, 'spend_rail' | 'max_usdc_per_user'>,
+  experience: Pick<SpendExperience, 'spend_rail' | 'max_usdc_per_user'> &
+    Partial<
+      Pick<SpendExperience, 'privy_server_wallet_id' | 'server_wallet_address'>
+    >,
   usdcBalance: number | null
 ): SpendServerWalletFundingMetadata {
   const minimumUsdc = Number(experience.max_usdc_per_user);
   const callout = fundingCalloutCopy(experience);
+  const serverWalletAddress =
+    experience.spend_rail === 'base_usdc'
+      ? (getSpendServerWalletTransferConfig(experience)?.address ?? '')
+      : getSpendTreasuryWalletAddress(experience.spend_rail);
   return {
-    serverWalletAddress: getSpendTreasuryWalletAddress(experience.spend_rail),
+    serverWalletAddress,
     minimumUsdc,
     usdcBalance,
     funded: usdcBalance !== null && usdcBalance >= minimumUsdc,
@@ -125,10 +145,15 @@ export function spendServerWalletFundingMetadata(
 }
 
 export function getSpendServerWalletTransferConfig(
-  experience: Pick<SpendExperience, 'spend_rail'>
+  experience: BaseWalletConfigSource
 ): SpendServerWalletTransferConfig | null {
   if (!supportsSpendRailBasePrivyTreasuryFunding(experience.spend_rail)) {
     return null;
+  }
+  const walletId = experience.privy_server_wallet_id?.trim();
+  const address = experience.server_wallet_address?.trim();
+  if (walletId && address && isEvmAddress(address)) {
+    return { walletId, address: address as `0x${string}` };
   }
   const cfg = getSpendBaseTreasuryPrivyTransferConfig();
   if (!cfg) return null;
@@ -176,7 +201,7 @@ export async function getServerWalletFundingStatus(params: {
 }
 
 export async function fetchServerWalletUsdcBalanceSafe(
-  experience: Pick<SpendExperience, 'spend_rail'>
+  experience: BaseWalletConfigSource
 ): Promise<number | null> {
   if (experience.spend_rail === 'stellar_usdc') {
     try {
@@ -186,9 +211,10 @@ export async function fetchServerWalletUsdcBalanceSafe(
       return null;
     }
   }
+  const walletAddress = getSpendServerWalletTransferConfig(experience)?.address;
   return fetchUsdcBalanceSafe(
     experience.spend_rail,
-    getSpendTreasuryWalletAddress(experience.spend_rail),
+    walletAddress,
     'fetchServerWalletUsdcBalanceSafe'
   );
 }

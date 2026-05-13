@@ -16,6 +16,7 @@ vi.mock('@/lib/walletconnect-poster-direct-usdc', async (importOriginal) => {
 
 import {
   fetchServerWalletUsdcBalanceSafe,
+  getSpendServerWalletTransferConfig,
   spendServerWalletFundingMetadata,
 } from './spend-server-wallet';
 
@@ -25,6 +26,23 @@ const VALID_STELLAR =
 const BASE_TREASURY = '0x1414141414141414141414141414141414141414' as const;
 
 describe('spendServerWalletFundingMetadata', () => {
+  it('uses the Base server wallet stored on the experience before env fallback', () => {
+    const experience = {
+      spend_rail: 'base_usdc' as const,
+      max_usdc_per_user: 5,
+      privy_server_wallet_id: 'wallet-exp-1',
+      server_wallet_address: '0x9999999999999999999999999999999999999999',
+    };
+
+    expect(getSpendServerWalletTransferConfig(experience)).toEqual({
+      walletId: 'wallet-exp-1',
+      address: '0x9999999999999999999999999999999999999999',
+    });
+    expect(
+      spendServerWalletFundingMetadata(experience, null).serverWalletAddress
+    ).toBe('0x9999999999999999999999999999999999999999');
+  });
+
   it('includes Base-specific funding copy and chain for base_usdc', () => {
     const m = spendServerWalletFundingMetadata(
       { spend_rail: 'base_usdc', max_usdc_per_user: 5 },
@@ -130,12 +148,19 @@ describe('fetchServerWalletUsdcBalanceSafe', () => {
   });
 
   it('uses fetchUsdcBalanceOnBase for base_usdc', async () => {
+    const experienceWallet = '0x9999999999999999999999999999999999999999';
     vi.mocked(fetchUsdcBalanceOnBase).mockResolvedValue(42.25);
     const balance = await fetchServerWalletUsdcBalanceSafe({
       spend_rail: 'base_usdc',
+      privy_server_wallet_id: 'wallet-exp-1',
+      server_wallet_address: experienceWallet,
     });
     expect(balance).toBe(42.25);
     expect(fetchUsdcBalanceOnBase).toHaveBeenCalledTimes(1);
+    expect(fetchUsdcBalanceOnBase).toHaveBeenCalledWith(
+      experienceWallet,
+      expect.any(Object)
+    );
     expect(readStellarTreasuryConfirmedUsdcBalance).not.toHaveBeenCalled();
   });
 

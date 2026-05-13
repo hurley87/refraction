@@ -198,7 +198,7 @@ describe('POST /api/admin/spend-experiences', () => {
       })
     );
     expect(j.data.funding.serverWalletAddress).toBe(
-      '0x4444444444444444444444444444444444444444'
+      '0x9999999999999999999999999999999999999999'
     );
   });
 
