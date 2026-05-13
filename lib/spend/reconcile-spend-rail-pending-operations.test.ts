@@ -9,9 +9,6 @@ describe('readSpendRailReconcileEnvConfig', () => {
   });
 
   it('returns defaults when env vars are unset', () => {
-    delete process.env.SPEND_RAIL_CRON_MIN_AGE_SECONDS;
-    delete process.env.SPEND_RAIL_CRON_BACKOFF_SECONDS;
-    delete process.env.SPEND_RAIL_CRON_BATCH_SIZE;
     expect(readSpendRailReconcileEnvConfig()).toEqual({
       minAgeSeconds: 60,
       backoffSeconds: 120,

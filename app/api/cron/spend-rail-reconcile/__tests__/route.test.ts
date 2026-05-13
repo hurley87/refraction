@@ -30,6 +30,18 @@ describe('GET /api/cron/spend-rail-reconcile', () => {
     expect(res.status).toBe(401);
   });
 
+  it('returns 500 when CRON_SECRET is not configured', async () => {
+    delete process.env.CRON_SECRET;
+    const req = new NextRequest(
+      'http://localhost/api/cron/spend-rail-reconcile',
+      {
+        headers: { Authorization: 'Bearer test-cron-secret' },
+      }
+    );
+    const res = await GET(req);
+    expect(res.status).toBe(500);
+  });
+
   it('returns 401 with wrong secret', async () => {
     const req = new NextRequest(
       'http://localhost/api/cron/spend-rail-reconcile',

@@ -21,7 +21,33 @@ import type { SpendPaymentRailReconcileContext } from '@/lib/spend/payment-rails
 const DEFAULT_MIN_AGE_SECONDS = 60;
 const DEFAULT_BACKOFF_SECONDS = 120;
 const DEFAULT_BATCH_SIZE = 25;
+const MAX_BATCH_SIZE = 500;
 const RECONCILE_DISTINCT_ID = 'spend_rail_reconcile';
+
+function parseNonNegativeIntEnv(
+  raw: string | undefined,
+  fallback: number
+): number {
+  const n = Number.parseInt(raw ?? `${fallback}`, 10);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+function parseBatchSizeEnv(raw: string | undefined, fallback: number): number {
+  const n = Number.parseInt(raw ?? `${fallback}`, 10);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(n, MAX_BATCH_SIZE);
+}
+
+async function runAndLogErrors(
+  label: string,
+  fn: () => Promise<unknown>
+): Promise<void> {
+  try {
+    await fn();
+  } catch (e) {
+    console.error(`${label}:`, e);
+  }
+}
 
 export type SpendRailReconcileEnvConfig = {
   minAgeSeconds: number;
@@ -30,29 +56,19 @@ export type SpendRailReconcileEnvConfig = {
 };
 
 export function readSpendRailReconcileEnvConfig(): SpendRailReconcileEnvConfig {
-  const minAge = Number.parseInt(
-    process.env.SPEND_RAIL_CRON_MIN_AGE_SECONDS ?? `${DEFAULT_MIN_AGE_SECONDS}`,
-    10
-  );
-  const backoff = Number.parseInt(
-    process.env.SPEND_RAIL_CRON_BACKOFF_SECONDS ?? `${DEFAULT_BACKOFF_SECONDS}`,
-    10
-  );
-  const batch = Number.parseInt(
-    process.env.SPEND_RAIL_CRON_BATCH_SIZE ?? `${DEFAULT_BATCH_SIZE}`,
-    10
-  );
   return {
-    minAgeSeconds:
-      Number.isFinite(minAge) && minAge >= 0 ? minAge : DEFAULT_MIN_AGE_SECONDS,
-    backoffSeconds:
-      Number.isFinite(backoff) && backoff >= 0
-        ? backoff
-        : DEFAULT_BACKOFF_SECONDS,
-    batchSize:
-      Number.isFinite(batch) && batch > 0
-        ? Math.min(batch, 500)
-        : DEFAULT_BATCH_SIZE,
+    minAgeSeconds: parseNonNegativeIntEnv(
+      process.env.SPEND_RAIL_CRON_MIN_AGE_SECONDS,
+      DEFAULT_MIN_AGE_SECONDS
+    ),
+    backoffSeconds: parseNonNegativeIntEnv(
+      process.env.SPEND_RAIL_CRON_BACKOFF_SECONDS,
+      DEFAULT_BACKOFF_SECONDS
+    ),
+    batchSize: parseBatchSizeEnv(
+      process.env.SPEND_RAIL_CRON_BATCH_SIZE,
+      DEFAULT_BATCH_SIZE
+    ),
   };
 }
 
@@ -99,6 +115,9 @@ async function collectReconcileCandidateSessionIds(input: {
  * Reconciles pending Stellar readiness, conversion funding confirmations, and
  * submitted payment verifications for a single spend session. Safe to call from
  * Vercel Cron, overlapping runs, and future read-path hooks (IRL-25).
+ *
+ * Missing or unknown sessions are treated as success (`okSpendRail(undefined)`) so
+ * callers and cron batches do not fail on deleted or stale ids.
  */
 export async function reconcileSpendRailPendingOperationsForSession(input: {
   spendSessionId: string;
@@ -135,7 +154,7 @@ export async function reconcileSpendRailPendingOperationsForSession(input: {
       ) {
         return okSpendRail(undefined);
       }
-      try {
+      await runAndLogErrors('stellar readiness reconcile', async () => {
         const outcome = await runStellarUsdcWalletReadinessOrchestration({
           readinessRow: readiness,
           spendSessionId: session.id,
@@ -145,37 +164,32 @@ export async function reconcileSpendRailPendingOperationsForSession(input: {
         if (!outcome.ok) {
           console.warn('stellar readiness reconcile: orchestration error');
         }
-      } catch (e) {
-        console.error('stellar readiness reconcile:', e);
-      }
+      });
     }
   }
 
-  try {
-    await reconcileSpendConversionFundingBackground({
+  await runAndLogErrors('conversion funding reconcile', () =>
+    reconcileSpendConversionFundingBackground({
       session,
       spendExperience,
       distinctId,
-    });
-  } catch (e) {
-    console.error('conversion funding reconcile:', e);
-  }
+    })
+  );
 
-  try {
-    await reconcileSubmittedSpendPaymentBackground({
+  await runAndLogErrors('payment reconcile', () =>
+    reconcileSubmittedSpendPaymentBackground({
       session,
       spendExperience,
       distinctId,
-    });
-  } catch (e) {
-    console.error('payment reconcile:', e);
-  }
+    })
+  );
 
   return okSpendRail(undefined);
 }
 
 export type SpendRailReconcileCronResult = {
   candidateSessions: number;
+  /** Sessions for which {@link reconcileSpendRailPendingOperationsForSession} returned `ok`. */
   processedSessions: number;
   olderThanIso: string;
   batchSize: number;
