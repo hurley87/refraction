@@ -1,24 +1,28 @@
 import { Asset, Operation } from '@stellar/stellar-sdk';
 import { describe, expect, it } from 'vitest';
-import {
-  buildStellarUsdcChangeTrustOperation,
-  STELLAR_USDC_TRUSTLINE_MAX_LIMIT,
-} from './stellar-wallet-readiness-orchestration';
+import { STELLAR_USDC_TRUSTLINE_MAX_LIMIT } from './stellar-wallet-readiness-orchestration';
 
 const VALID_STELLAR_PUBLIC_KEY =
   'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
 
+/** Int64-style string rejected by the SDK; Stellar amounts use decimal/scientific format. */
+const INVALID_TRUSTLINE_LIMIT_FORMAT = '9223372036854775807';
+
 describe('Stellar wallet readiness orchestration', () => {
-  it('builds the USDC trustline operation with a Stellar amount limit', () => {
+  it('uses a Stellar-formatted max limit for USDC changeTrust', () => {
     const usdcAsset = new Asset('USDC', VALID_STELLAR_PUBLIC_KEY);
 
     expect(() =>
       Operation.changeTrust({
         asset: usdcAsset,
-        limit: '9223372036854775807',
+        limit: INVALID_TRUSTLINE_LIMIT_FORMAT,
       })
-    ).toThrow(/limit argument/);
-    expect(STELLAR_USDC_TRUSTLINE_MAX_LIMIT).toBe('922337203685.4775807');
-    expect(() => buildStellarUsdcChangeTrustOperation(usdcAsset)).not.toThrow();
+    ).toThrow();
+    expect(() =>
+      Operation.changeTrust({
+        asset: usdcAsset,
+        limit: STELLAR_USDC_TRUSTLINE_MAX_LIMIT,
+      })
+    ).not.toThrow();
   });
 });

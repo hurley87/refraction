@@ -121,13 +121,6 @@ function hasUsdcTrustline(
   return false;
 }
 
-export function buildStellarUsdcChangeTrustOperation(asset: Asset) {
-  return Operation.changeTrust({
-    asset,
-    limit: STELLAR_USDC_TRUSTLINE_MAX_LIMIT,
-  });
-}
-
 async function waitForHorizonTxSuccess(
   server: Horizon.Server,
   txHash: string
@@ -507,7 +500,12 @@ export async function runStellarUsdcWalletReadinessOrchestration(input: {
         source: sponsor.publicKey(),
       })
     )
-    .addOperation(buildStellarUsdcChangeTrustOperation(usdcAsset))
+    .addOperation(
+      Operation.changeTrust({
+        asset: usdcAsset,
+        limit: STELLAR_USDC_TRUSTLINE_MAX_LIMIT,
+      })
+    )
     .addOperation(
       Operation.endSponsoringFutureReserves({
         source: sponsor.publicKey(),
