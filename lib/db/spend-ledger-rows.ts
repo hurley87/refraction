@@ -205,6 +205,16 @@ function rowToConversionLastFailure(
     phase,
     category,
     reason_snippet: reasonSnippet,
+    ...(o.internal_diagnostics &&
+    typeof o.internal_diagnostics === 'object' &&
+    !Array.isArray(o.internal_diagnostics)
+      ? {
+          internal_diagnostics: o.internal_diagnostics as Record<
+            string,
+            unknown
+          >,
+        }
+      : {}),
   };
 }
 

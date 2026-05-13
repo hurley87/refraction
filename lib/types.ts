@@ -350,6 +350,7 @@ export type PointConversionLastFailure = {
   phase: 'readiness' | 'funding' | 'resume';
   category: string;
   reason_snippet: string;
+  internal_diagnostics?: Record<string, unknown>;
 };
 
 export type PointConversion = {

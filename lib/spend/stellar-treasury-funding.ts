@@ -35,9 +35,51 @@ function classifyHorizonException(): SpendRailError {
   return spendRailErrorNetworkUnavailable();
 }
 
+function suffix(value: string | null | undefined, length = 8): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.slice(-length) : null;
+}
+
+function resultCodesFromHorizonError(e: unknown): unknown {
+  const data = (e as { response?: { data?: unknown } })?.response?.data;
+  if (!data || typeof data !== 'object') return null;
+  const extras = (data as { extras?: unknown }).extras;
+  if (!extras || typeof extras !== 'object') return null;
+  return (extras as { result_codes?: unknown }).result_codes ?? null;
+}
+
+function horizonDiagnostics(e: unknown): Record<string, unknown> {
+  const response = (e as { response?: { status?: number; data?: unknown } })
+    ?.response;
+  const data =
+    response?.data && typeof response.data === 'object'
+      ? (response.data as Record<string, unknown>)
+      : null;
+  const resultCodes = resultCodesFromHorizonError(e);
+  return {
+    ...(response?.status ? { horizon_status: response.status } : {}),
+    ...(typeof data?.title === 'string' ? { horizon_title: data.title } : {}),
+    ...(typeof data?.detail === 'string'
+      ? { horizon_detail: data.detail.slice(0, 1000) }
+      : {}),
+    ...(data?.extras && typeof data.extras === 'object'
+      ? { horizon_extras: data.extras }
+      : {}),
+    ...(resultCodes ? { horizon_result_codes: resultCodes } : {}),
+  };
+}
+
+function railErrorWithDiagnostics(
+  error: SpendRailError,
+  internalDiagnostics: Record<string, unknown>
+): SpendRailError {
+  return { ...error, internalDiagnostics };
+}
+
 function classifySubmitException(e: unknown): SpendRailError {
   const raw = e instanceof Error ? e.message : String(e);
-  const s = raw.toLowerCase();
+  const resultCodes = JSON.stringify(resultCodesFromHorizonError(e) ?? {});
+  const s = `${raw} ${resultCodes}`.toLowerCase();
   if (
     s.includes('fetch') ||
     s.includes('econn') ||
@@ -207,7 +249,7 @@ export async function findSuccessfulStellarFundingTxByMemo(input: {
       .call();
   } catch (e) {
     console.error('findSuccessfulStellarFundingTxByMemo first page:', e);
-    throw classifyHorizonException();
+    throw e;
   }
 
   for (let pageIdx = 0; pageIdx < PRIOR_PAYMENT_MAX_PAGES; pageIdx += 1) {
@@ -259,7 +301,7 @@ export async function findSuccessfulStellarFundingTxByMemo(input: {
       page = await page.next();
     } catch (e) {
       console.error('findSuccessfulStellarFundingTxByMemo page.next:', e);
-      throw classifyHorizonException();
+      throw e;
     }
   }
 
@@ -304,7 +346,14 @@ export async function submitStellarTreasuryUsdcFunding(input: {
     input.destinationPublicKey.trim()
   );
   if (!destOk.success) {
-    return { kind: 'error', error: spendRailErrorWalletReadinessFailed() };
+    return {
+      kind: 'error',
+      error: railErrorWithDiagnostics(spendRailErrorWalletReadinessFailed(), {
+        phase: 'stellar_funding_destination_validation',
+        destination_public_key: input.destinationPublicKey.trim() || null,
+        destination_validation_result: 'invalid',
+      }),
+    };
   }
 
   const usdcIssuer = getStellarSpendUsdcIssuer();
@@ -313,18 +362,38 @@ export async function submitStellarTreasuryUsdcFunding(input: {
   }
   const code = getStellarSpendUsdcAssetCode();
   const asset = new Asset(code, usdcIssuer);
+  const commonDiagnostics = {
+    destination_public_key: destOk.data,
+    destination_validation_result: 'valid',
+    treasury_public_key_suffix: suffix(treasuryKp.publicKey()),
+    usdc_issuer_suffix: suffix(usdcIssuer),
+  };
 
   const server = createStellarSpendHorizonServer();
   const passphrase = getStellarSpendNetworkPassphrase();
 
-  const prior = await findSuccessfulStellarFundingTxByMemo({
-    treasuryPublicKey: treasuryKp.publicKey(),
-    destinationPublicKey: destOk.data,
-    fundingReferenceId: input.fundingReferenceId,
-    usdcAmount: input.usdcAmount,
-    usdcIssuer,
-    usdcCode: code,
-  });
+  let prior: string | null;
+  try {
+    prior = await findSuccessfulStellarFundingTxByMemo({
+      treasuryPublicKey: treasuryKp.publicKey(),
+      destinationPublicKey: destOk.data,
+      fundingReferenceId: input.fundingReferenceId,
+      usdcAmount: input.usdcAmount,
+      usdcIssuer,
+      usdcCode: code,
+    });
+  } catch (e) {
+    return {
+      kind: 'error',
+      error: railErrorWithDiagnostics(classifyHorizonException(), {
+        phase: 'stellar_funding_prior_lookup',
+        ...commonDiagnostics,
+        ...horizonDiagnostics(e),
+        error_message:
+          e instanceof Error ? e.message.slice(0, 1000) : String(e),
+      }),
+    };
+  }
   if (prior) {
     return { kind: 'confirmed', txHash: prior };
   }
@@ -381,7 +450,16 @@ export async function submitStellarTreasuryUsdcFunding(input: {
     txHash = res.hash;
   } catch (e) {
     console.error('submitStellarTreasuryUsdcFunding submit:', e);
-    return { kind: 'error', error: classifySubmitException(e) };
+    return {
+      kind: 'error',
+      error: railErrorWithDiagnostics(classifySubmitException(e), {
+        phase: 'stellar_funding_horizon_submit',
+        ...commonDiagnostics,
+        ...horizonDiagnostics(e),
+        error_message:
+          e instanceof Error ? e.message.slice(0, 1000) : String(e),
+      }),
+    };
   }
 
   const outcome = await waitForHorizonTxSuccess(server, txHash);

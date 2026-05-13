@@ -104,6 +104,18 @@ function classifyStellarPaymentSubmitReason(reason: string): SpendRailError {
   return spendRailErrorPaymentFailed();
 }
 
+function suffix(value: string | null | undefined, length = 8): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.slice(-length) : null;
+}
+
+function railErrorWithDiagnostics(
+  error: SpendRailError,
+  internalDiagnostics: Record<string, unknown>
+): SpendRailError {
+  return { ...error, internalDiagnostics };
+}
+
 /**
  * Stellar USDC rail: hybrid readiness (IRL-18) — sponsor-funded account creation,
  * Privy-signed sponsored USDC trustline, ledger-confirmed completion, treasury audit rows.
@@ -381,10 +393,21 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
         return errSpendRail(spendRailErrorFundingFailed());
       }
 
-      const destRaw = ctx.embeddedEvmWalletAddress?.trim() ?? '';
+      const destRaw = ctx.stellarFundingDestinationWalletAddress?.trim() ?? '';
       const destOk = stellarWalletAddressSchema.safeParse(destRaw);
       if (!destOk.success) {
-        return errSpendRail(spendRailErrorWalletReadinessFailed());
+        const usdcIssuer = getStellarSpendUsdcIssuer();
+        return errSpendRail(
+          railErrorWithDiagnostics(spendRailErrorWalletReadinessFailed(), {
+            phase: 'stellar_funding_destination_validation',
+            destination_public_key: destRaw || null,
+            destination_validation_result: 'invalid',
+            treasury_public_key_suffix: suffix(
+              ctx.treasuryFundingWalletAddress
+            ),
+            usdc_issuer_suffix: suffix(usdcIssuer),
+          })
+        );
       }
 
       let treasurySnapshot: Awaited<

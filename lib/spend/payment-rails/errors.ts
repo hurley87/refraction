@@ -37,6 +37,7 @@ export type SpendRailError = {
   category: SpendRailErrorCategory;
   userMessage: string;
   analyticsCode: SpendRailAnalyticsCode;
+  internalDiagnostics?: Record<string, unknown>;
 };
 
 const err = (

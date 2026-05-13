@@ -378,4 +378,116 @@ describe('runSpendConversionConfirm (IRL-17 retry)', () => {
       })
     );
   });
+
+  it('uses fresh Stellar rail wallet after readiness before funding', async () => {
+    const evmWallet = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+    const stellarWallet =
+      'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
+    const staleSession: SpendSession = {
+      ...baseSession,
+      wallet_address: evmWallet,
+      spend_rail: 'stellar_usdc',
+      rail_user_wallet_address: null,
+    };
+    const freshSession: SpendSession = {
+      ...staleSession,
+      rail_user_wallet_address: stellarWallet,
+    };
+    const stellarExperience: SpendExperience = {
+      ...baseExperience,
+      spend_rail: 'stellar_usdc',
+      treasury_wallet_address: stellarWallet,
+      receiving_wallet_address: stellarWallet,
+      server_wallet_address: stellarWallet,
+      server_wallet_chain: 'stellar',
+      privy_server_wallet_id: null,
+    };
+    const pointConversion: PointConversion = {
+      ...failedConversion(0, {
+        status: 'points_deducted',
+        spend_rail: 'stellar_usdc',
+        network: 'Stellar',
+        treasury_wallet_address: stellarWallet,
+        user_wallet_address: evmWallet,
+        conversion_attempt_count: 1,
+        completed_at: null,
+        failed_reason: null,
+        conversion_last_failure: null,
+      }),
+    };
+    const runWalletReadinessOrchestration = vi.fn().mockResolvedValue({
+      ok: true as const,
+      value: { status: 'completed' as const },
+    });
+    const initiateUserFunding = vi.fn().mockResolvedValue({
+      ok: true as const,
+      value: {
+        status: 'submitted' as const,
+        txReference: 'a'.repeat(64),
+      },
+    });
+    mockGetSpendPaymentRail.mockReturnValue({
+      getTreasurySpendableBalance: async () => ({
+        ok: true as const,
+        value: 100,
+      }),
+      runWalletReadinessOrchestration,
+      initiateUserFunding,
+    });
+    mockGetTreasuryFundingMeta.mockReturnValue({
+      spendRail: 'stellar_usdc',
+      treasuryAddress: stellarWallet,
+    });
+    mockLoadEligibility.mockResolvedValue({
+      status: 'eligible',
+      message: 'eligible',
+      preview: {},
+    });
+    mockGetPlayerByWallet.mockResolvedValue({ total_points: 6000 });
+    mockConfirmAtomic.mockResolvedValue({
+      outcome: 'created',
+      conversionId: pointConversion.id,
+      playerTotalPoints: 1000,
+    });
+    mockGetPointConversion
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(pointConversion);
+    mockGetSpendSessionById.mockResolvedValue(freshSession);
+    mockUpdatePointConversionFields.mockResolvedValue({
+      ...pointConversion,
+      status: 'needs_review',
+      funding_tx_hash: 'a'.repeat(64),
+    });
+
+    const r = await runSpendConversionConfirm({
+      session: staleSession,
+      spendExperience: stellarExperience,
+      normalizedWallet: evmWallet.toLowerCase(),
+      authUserId: 'privy-1',
+      distinctId: 'd',
+      usdcAmount: 5,
+      pointsRequired: 5000,
+      intent: 'confirm',
+    });
+
+    expect(r.ok).toBe(true);
+    expect(runWalletReadinessOrchestration).toHaveBeenCalledWith(
+      expect.objectContaining({
+        embeddedEvmWalletAddress: evmWallet,
+        stellarFundingDestinationWalletAddress: null,
+      })
+    );
+    expect(initiateUserFunding).toHaveBeenCalledWith(
+      expect.objectContaining({
+        embeddedEvmWalletAddress: stellarWallet,
+        stellarFundingDestinationWalletAddress: stellarWallet,
+        railUserWalletAddress: stellarWallet,
+      })
+    );
+    expect(initiateUserFunding).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        stellarFundingDestinationWalletAddress: evmWallet,
+      })
+    );
+  });
 });

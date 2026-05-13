@@ -52,6 +52,11 @@ export type SpendPaymentRailSessionContext = {
    * aligns with `SpendSession.wallet_address`; other rails ignore unset fields for now).
    */
   embeddedEvmWalletAddress?: string;
+  /**
+   * Stellar USDC conversion funding destination (`spend_sessions.rail_user_wallet_address`).
+   * This is the prepared Stellar rail wallet, not the EVM auth wallet.
+   */
+  stellarFundingDestinationWalletAddress?: string | null;
   /** When set, Base readiness requires a case-insensitive match to `embeddedEvmWalletAddress`. */
   privyNormalizedWalletAddressLower?: string;
   /**
