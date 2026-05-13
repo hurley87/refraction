@@ -92,10 +92,6 @@ const player = (pts: number): Player => ({
 describe('buildSpendEligibilityPreview', () => {
   const now = new Date('2026-06-01T15:00:00.000Z');
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('returns eligible when balances ok', () => {
     const r = buildSpendEligibilityPreview({
       session: sess(),

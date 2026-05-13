@@ -383,7 +383,7 @@ export async function loadSpendEligibilityForSession(
 
   const treasuryUsdcBalance = tb.ok ? tb.value : null;
 
-  const [player, pointConversion, fundedOther, spendTx, userUsdcBalance] =
+  const [player, pointConversion, fundedOther, spendTx, userSpendRailUsdc] =
     await Promise.all([
       getPlayerByWallet(session.wallet_address),
       getPointConversionBySessionId(session.id),
@@ -406,7 +406,7 @@ export async function loadSpendEligibilityForSession(
         ? fundedOther
         : null,
     treasuryUsdcBalance,
-    userUsdcBalance,
+    userUsdcBalance: userSpendRailUsdc,
     now,
   });
 }
