@@ -238,15 +238,30 @@ describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-18)', () =
     expect(hoisted.mockOrchestrator).toHaveBeenCalledTimes(1);
   });
 
-  it('failed row short-circuits without calling orchestration', async () => {
+  it('failed row resets to pending and retries orchestration', async () => {
+    const retryRow = pendingRow();
     hoisted.mockInsertOrGet.mockResolvedValue({
       row: pendingRow({ status: 'failed' }),
       created: false,
     });
+    hoisted.mockUpdateReadiness.mockResolvedValueOnce(retryRow);
     const rail = createStellarUsdcSpendPaymentRail();
     const res = await rail.runWalletReadinessOrchestration(ctx);
-    expect(res.ok).toBe(false);
-    expect(hoisted.mockOrchestrator).not.toHaveBeenCalled();
+    expect(res.ok).toBe(true);
+    expect(hoisted.mockUpdateReadiness).toHaveBeenCalledWith(
+      pendingRow().id,
+      expect.objectContaining({
+        status: 'pending',
+        sanitized_error_category: null,
+        sanitized_error_code: null,
+        internal_diagnostics: null,
+      })
+    );
+    expect(hoisted.mockOrchestrator).toHaveBeenCalledWith(
+      expect.objectContaining({
+        readinessRow: retryRow,
+      })
+    );
   });
 });
 
