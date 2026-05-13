@@ -3,6 +3,7 @@ import {
   Horizon,
   Keypair,
   Operation,
+  Transaction,
   TransactionBuilder,
   xdr,
 } from '@stellar/stellar-sdk';
@@ -52,7 +53,13 @@ export type StellarWalletReadinessCurrentStep =
 
 const HORIZON_TX_POLL_ATTEMPTS = 8;
 const HORIZON_TX_POLL_INTERVAL_MS = 1500;
-export const STELLAR_USDC_TRUSTLINE_MAX_LIMIT = '922337203685.4775807';
+
+type TrustlineSetupFailurePhase =
+  | 'trustline_transaction_build'
+  | 'trustline_raw_sign'
+  | 'trustline_signature_attach'
+  | 'trustline_fee_bump_build'
+  | 'trustline_horizon_submit';
 
 export type StellarWalletReadinessOrchestrationOutput =
   | { ok: true; status: 'completed'; address: string }
@@ -91,6 +98,15 @@ function classifyHorizonSubmit(e: unknown): SpendRailError {
   return spendRailErrorWalletReadinessFailed();
 }
 
+function horizonLikeErrorResponse(
+  e: unknown
+): { status?: number; data?: unknown } | undefined {
+  if (e === null || typeof e !== 'object') return undefined;
+  const response = (e as { response?: { status?: number; data?: unknown } })
+    .response;
+  return response && typeof response === 'object' ? response : undefined;
+}
+
 async function loadAccountOrNull(
   server: Horizon.Server,
   publicKey: string
@@ -98,7 +114,7 @@ async function loadAccountOrNull(
   try {
     return await server.loadAccount(publicKey);
   } catch (e: unknown) {
-    const status = (e as { response?: { status?: number } })?.response?.status;
+    const status = horizonLikeErrorResponse(e)?.status;
     if (status === 404) return null;
     throw e;
   }
@@ -121,6 +137,66 @@ function hasUsdcTrustline(
   return false;
 }
 
+function diagnosticsFromTrustlineSetupError(
+  phase: TrustlineSetupFailurePhase,
+  e: unknown,
+  extra: Record<string, unknown> = {}
+): Record<string, unknown> {
+  const err = e instanceof Error ? e : null;
+  const response = horizonLikeErrorResponse(e);
+  const data =
+    response?.data && typeof response.data === 'object'
+      ? (response.data as Record<string, unknown>)
+      : null;
+  return {
+    phase,
+    ...extra,
+    ...(err
+      ? {
+          error_name: err.name,
+          error_message: err.message.slice(0, 4000),
+        }
+      : { error_message: String(e).slice(0, 4000) }),
+    ...(response?.status ? { horizon_status: response.status } : {}),
+    ...(typeof data?.title === 'string' ? { horizon_title: data.title } : {}),
+    ...(typeof data?.detail === 'string'
+      ? { horizon_detail: data.detail.slice(0, 1000) }
+      : {}),
+    ...(data?.extras && typeof data.extras === 'object'
+      ? { horizon_extras: data.extras }
+      : {}),
+  };
+}
+
+async function failTrustlineSetup(input: {
+  rowId: string;
+  stepMeta: Record<string, unknown>;
+  phase: TrustlineSetupFailurePhase;
+  error: unknown;
+  extra?: Record<string, unknown>;
+}): Promise<StellarWalletReadinessOrchestrationOutput> {
+  const railError = classifyHorizonSubmit(input.error);
+  try {
+    await updateSpendWalletReadinessFields(input.rowId, {
+      status: 'failed',
+      step_metadata: input.stepMeta,
+      sanitized_error_category: railError.category,
+      sanitized_error_code: railError.analyticsCode,
+      internal_diagnostics: diagnosticsFromTrustlineSetupError(
+        input.phase,
+        input.error,
+        input.extra
+      ),
+    });
+  } catch (persistErr) {
+    console.error('stellar_usdc trustline failure diagnostics persist:', {
+      phase: input.phase,
+      error: persistErr,
+    });
+  }
+  return { ok: false, error: railError };
+}
+
 async function waitForHorizonTxSuccess(
   server: Horizon.Server,
   txHash: string
@@ -132,8 +208,7 @@ async function waitForHorizonTxSuccess(
       if (tx.successful) return 'success';
       return 'failed';
     } catch (e: unknown) {
-      const status = (e as { response?: { status?: number } })?.response
-        ?.status;
+      const status = horizonLikeErrorResponse(e)?.status;
       if (status === 404) {
         await new Promise((r) => setTimeout(r, HORIZON_TX_POLL_INTERVAL_MS));
         continue;
@@ -483,38 +558,50 @@ export async function runStellarUsdcWalletReadinessOrchestration(input: {
     return { ok: true, status: 'needs_review', address: userPub };
   }
 
-  const usdcAsset = new Asset(usdcCode, usdcIssuer);
-
   stepMeta = mergeMeta(stepMeta, {
     current_step: STELLAR_WALLET_READINESS_CURRENT_STEP.trustline_submitting,
   });
   await updateSpendWalletReadinessFields(rowId, { step_metadata: stepMeta });
 
-  const inner = new TransactionBuilder(userAccount, {
-    fee: '0',
-    networkPassphrase: passphrase,
-  })
-    .addOperation(
-      Operation.beginSponsoringFutureReserves({
-        sponsoredId: userPub,
-        source: sponsor.publicKey(),
-      })
-    )
-    .addOperation(
-      Operation.changeTrust({
-        asset: usdcAsset,
-        limit: STELLAR_USDC_TRUSTLINE_MAX_LIMIT,
-      })
-    )
-    .addOperation(
-      Operation.endSponsoringFutureReserves({
-        source: sponsor.publicKey(),
-      })
-    )
-    .setTimeout(180)
-    .build();
-
-  inner.sign(sponsor);
+  let inner: Transaction;
+  try {
+    const usdcAsset = new Asset(usdcCode, usdcIssuer);
+    inner = new TransactionBuilder(userAccount, {
+      fee: '0',
+      networkPassphrase: passphrase,
+    })
+      .addOperation(
+        Operation.beginSponsoringFutureReserves({
+          sponsoredId: userPub,
+          source: sponsor.publicKey(),
+        })
+      )
+      .addOperation(
+        Operation.changeTrust({
+          asset: usdcAsset,
+        })
+      )
+      .addOperation(
+        Operation.endSponsoringFutureReserves({
+          source: sponsor.publicKey(),
+        })
+      )
+      .setTimeout(180)
+      .build();
+    inner.sign(sponsor);
+  } catch (e) {
+    return failTrustlineSetup({
+      rowId,
+      stepMeta,
+      phase: 'trustline_transaction_build',
+      error: e,
+      extra: {
+        asset_code: usdcCode,
+        asset_issuer: usdcIssuer,
+        user_public_key: userPub,
+      },
+    });
+  }
 
   const hash32 = inner.hash();
   let userSig: Buffer;
@@ -524,25 +611,55 @@ export async function runStellarUsdcWalletReadinessOrchestration(input: {
       hash32,
     });
   } catch (e) {
-    return { ok: false, error: classifyHorizonSubmit(e) };
+    return failTrustlineSetup({
+      rowId,
+      stepMeta,
+      phase: 'trustline_raw_sign',
+      error: e,
+      extra: {
+        wallet_id_suffix: walletId.slice(-8),
+        user_public_key: userPub,
+      },
+    });
   }
 
   const userKp = Keypair.fromPublicKey(userPub);
-  inner.addDecoratedSignature(
-    new xdr.DecoratedSignature({
-      hint: userKp.signatureHint(),
-      signature: userSig,
-    })
-  );
+  try {
+    inner.addDecoratedSignature(
+      new xdr.DecoratedSignature({
+        hint: userKp.signatureHint(),
+        signature: userSig,
+      })
+    );
+  } catch (e) {
+    return failTrustlineSetup({
+      rowId,
+      stepMeta,
+      phase: 'trustline_signature_attach',
+      error: e,
+      extra: { user_public_key: userPub },
+    });
+  }
 
-  const baseFee = (await server.fetchBaseFee()).toString();
-  const feeBump = TransactionBuilder.buildFeeBumpTransaction(
-    sponsor,
-    (Number(baseFee) * 10).toString(),
-    inner,
-    passphrase
-  );
-  feeBump.sign(sponsor);
+  let feeBump;
+  try {
+    const baseFee = (await server.fetchBaseFee()).toString();
+    feeBump = TransactionBuilder.buildFeeBumpTransaction(
+      sponsor,
+      (Number(baseFee) * 10).toString(),
+      inner,
+      passphrase
+    );
+    feeBump.sign(sponsor);
+  } catch (e) {
+    return failTrustlineSetup({
+      rowId,
+      stepMeta,
+      phase: 'trustline_fee_bump_build',
+      error: e,
+      extra: { user_public_key: userPub },
+    });
+  }
 
   let trustlineTreasuryId: string | null =
     readinessRow.trustline_treasury_transaction_id;
@@ -571,7 +688,16 @@ export async function runStellarUsdcWalletReadinessOrchestration(input: {
     const res = await server.submitTransaction(feeBump);
     trustHash = res.hash;
   } catch (e) {
-    return { ok: false, error: classifyHorizonSubmit(e) };
+    return failTrustlineSetup({
+      rowId,
+      stepMeta,
+      phase: 'trustline_horizon_submit',
+      error: e,
+      extra: {
+        user_public_key: userPub,
+        trustline_treasury_transaction_id: trustlineTreasuryId,
+      },
+    });
   }
 
   stepMeta = mergeMeta(stepMeta, {
