@@ -217,6 +217,24 @@ export async function readStellarTreasuryConfirmedUsdcBalance(): Promise<number>
   return balance;
 }
 
+export async function readStellarAccountConfirmedUsdcBalance(
+  publicKey: string
+): Promise<number | null> {
+  const parsed = stellarWalletAddressSchema.safeParse(publicKey.trim());
+  if (!parsed.success) return null;
+
+  const usdcIssuer = getStellarSpendUsdcIssuer();
+  if (!usdcIssuer) return null;
+
+  const server = createStellarSpendHorizonServer();
+  const account = await server.loadAccount(parsed.data);
+  return parseUsdcBalanceLine(
+    account,
+    getStellarSpendUsdcAssetCode(),
+    usdcIssuer
+  );
+}
+
 export async function findSuccessfulStellarFundingTxByMemo(input: {
   treasuryPublicKey: string;
   destinationPublicKey: string;
