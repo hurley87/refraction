@@ -1,5 +1,38 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { buildSpendEligibilityPreview } from '@/lib/spend-conversion-preview';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+const hoisted = vi.hoisted(() => ({
+  fetchBaseBalance: vi.fn(),
+  fetchStellarBalance: vi.fn(),
+}));
+
+vi.mock('@/lib/walletconnect-poster-direct-usdc', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@/lib/walletconnect-poster-direct-usdc')
+    >();
+  return {
+    ...actual,
+    fetchUsdcBalanceOnBase: (...args: unknown[]) =>
+      hoisted.fetchBaseBalance(...args),
+  };
+});
+
+vi.mock('@/lib/spend/stellar-treasury-funding', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@/lib/spend/stellar-treasury-funding')
+    >();
+  return {
+    ...actual,
+    readStellarAccountConfirmedUsdcBalance: (...args: unknown[]) =>
+      hoisted.fetchStellarBalance(...args),
+  };
+});
+
+import {
+  buildSpendEligibilityPreview,
+  fetchUserSpendRailUsdcBalanceSafe,
+} from '@/lib/spend-conversion-preview';
 import type {
   SpendExperience,
   SpendSession,
@@ -58,6 +91,10 @@ const player = (pts: number): Player => ({
 
 describe('buildSpendEligibilityPreview', () => {
   const now = new Date('2026-06-01T15:00:00.000Z');
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('returns eligible when balances ok', () => {
     const r = buildSpendEligibilityPreview({
@@ -537,5 +574,52 @@ describe('buildSpendEligibilityPreview', () => {
       });
       expect(r.status).toBe('insufficient_points');
     });
+  });
+});
+
+describe('fetchUserSpendRailUsdcBalanceSafe', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('uses the EVM wallet Base balance for base_usdc', async () => {
+    hoisted.fetchBaseBalance.mockResolvedValue(0.97);
+
+    await expect(fetchUserSpendRailUsdcBalanceSafe(sess())).resolves.toBe(0.97);
+    expect(hoisted.fetchBaseBalance).toHaveBeenCalledWith(
+      '0x3333333333333333333333333333333333333333',
+      expect.any(Object)
+    );
+    expect(hoisted.fetchStellarBalance).not.toHaveBeenCalled();
+  });
+
+  it('uses the Stellar rail wallet balance for stellar_usdc', async () => {
+    hoisted.fetchStellarBalance.mockResolvedValue(1);
+    const stellarWallet =
+      'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
+
+    await expect(
+      fetchUserSpendRailUsdcBalanceSafe(
+        sess({
+          spend_rail: 'stellar_usdc',
+          rail_user_wallet_address: stellarWallet,
+        })
+      )
+    ).resolves.toBe(1);
+    expect(hoisted.fetchStellarBalance).toHaveBeenCalledWith(stellarWallet);
+    expect(hoisted.fetchBaseBalance).not.toHaveBeenCalled();
+  });
+
+  it('does not query Base when Stellar rail wallet is missing', async () => {
+    await expect(
+      fetchUserSpendRailUsdcBalanceSafe(
+        sess({
+          spend_rail: 'stellar_usdc',
+          rail_user_wallet_address: null,
+        })
+      )
+    ).resolves.toBeNull();
+    expect(hoisted.fetchStellarBalance).not.toHaveBeenCalled();
+    expect(hoisted.fetchBaseBalance).not.toHaveBeenCalled();
   });
 });

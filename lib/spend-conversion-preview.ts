@@ -341,6 +341,28 @@ export async function fetchUserUsdcBalanceSafe(
   }
 }
 
+export async function fetchUserSpendRailUsdcBalanceSafe(
+  session: Pick<
+    SpendSession,
+    'spend_rail' | 'wallet_address' | 'rail_user_wallet_address'
+  >
+): Promise<number | null> {
+  if (session.spend_rail === 'stellar_usdc') {
+    const stellarWallet = session.rail_user_wallet_address?.trim();
+    if (!stellarWallet) return null;
+    try {
+      const { readStellarAccountConfirmedUsdcBalance } =
+        await import('@/lib/spend/stellar-treasury-funding');
+      return await readStellarAccountConfirmedUsdcBalance(stellarWallet);
+    } catch (e) {
+      console.error('fetchUserSpendRailUsdcBalanceSafe stellar:', e);
+      return null;
+    }
+  }
+
+  return fetchUserUsdcBalanceSafe(session.wallet_address);
+}
+
 export async function loadSpendEligibilityForSession(
   input: LoadEligibilityInput
 ): Promise<SpendEligibilityResult> {
@@ -370,7 +392,7 @@ export async function loadSpendEligibilityForSession(
         session.user_id
       ),
       getSpendTransactionBySessionId(session.id),
-      fetchUserUsdcBalanceSafe(session.wallet_address),
+      fetchUserSpendRailUsdcBalanceSafe(session),
     ]);
 
   return buildSpendEligibilityPreview({
