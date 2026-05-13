@@ -22,16 +22,13 @@ vi.mock('@/lib/privy-server-rest', () => ({
 
 vi.mock('@/lib/spend/stellar-wallet-readiness-config', async () => {
   const { Keypair, Networks } = await import('@stellar/stellar-sdk');
+  const sponsor = Keypair.random();
   return {
     createStellarSpendHorizonServer: () => hoisted.mockServer,
     getStellarSpendNetworkPassphrase: () => Networks.TESTNET,
     getStellarSpendUsdcAssetCode: () => 'USDC',
-    getStellarSpendUsdcIssuer: () =>
-      'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
-    parseStellarSpendSponsorKeypair: () =>
-      Keypair.fromSecret(
-        'SAPTCMRTYYW4H6ZU5YPH6LDJZYGEIECEPJYTBYPAX7KCFRRIVHJHGJFL'
-      ),
+    getStellarSpendUsdcIssuer: () => RECEIVER_PUBLIC_KEY,
+    parseStellarSpendSponsorKeypair: () => sponsor,
   };
 });
 

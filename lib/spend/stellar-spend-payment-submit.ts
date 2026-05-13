@@ -44,30 +44,32 @@ function classifySubmitMessage(raw: string, resultCodes?: unknown): string {
   return 'stellar_submit_failed';
 }
 
-function horizonResultCodesFromError(e: unknown): unknown {
-  const data = (e as { response?: { data?: unknown } })?.response?.data;
-  if (!data || typeof data !== 'object') return null;
-  const extras = (data as { extras?: unknown }).extras;
-  if (!extras || typeof extras !== 'object') return null;
-  return (extras as { result_codes?: unknown }).result_codes ?? null;
+function readHorizonHttpErrorData(e: unknown): {
+  data: Record<string, unknown> | null;
+  resultCodes: unknown;
+} {
+  const raw = (e as { response?: { data?: unknown } })?.response?.data;
+  if (!raw || typeof raw !== 'object') {
+    return { data: null, resultCodes: null };
+  }
+  const data = raw as Record<string, unknown>;
+  const extras = data.extras;
+  if (!extras || typeof extras !== 'object') {
+    return { data, resultCodes: null };
+  }
+  return {
+    data,
+    resultCodes: (extras as { result_codes?: unknown }).result_codes ?? null,
+  };
 }
 
-function horizonSubmitInternalMessage(e: unknown): string {
-  const msg = e instanceof Error ? e.message : String(e);
-  const data = (e as { response?: { data?: unknown } })?.response?.data;
-  const resultCodes = horizonResultCodesFromError(e);
-  const title =
-    data &&
-    typeof data === 'object' &&
-    typeof (data as { title?: unknown }).title === 'string'
-      ? (data as { title: string }).title
-      : null;
-  const detail =
-    data &&
-    typeof data === 'object' &&
-    typeof (data as { detail?: unknown }).detail === 'string'
-      ? (data as { detail: string }).detail
-      : null;
+function formatHorizonSubmitInternalMessage(
+  msg: string,
+  data: Record<string, unknown> | null,
+  resultCodes: unknown
+): string {
+  const title = data && typeof data.title === 'string' ? data.title : null;
+  const detail = data && typeof data.detail === 'string' ? data.detail : null;
   return JSON.stringify({
     message: msg.slice(0, 400),
     ...(title ? { horizon_title: title } : {}),
@@ -129,9 +131,10 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     userAccount = await loadAccountOrThrow(server, userPub);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    const { resultCodes } = readHorizonHttpErrorData(e);
     return {
       ok: false,
-      reason: classifySubmitMessage(msg, horizonResultCodesFromError(e)),
+      reason: classifySubmitMessage(msg, resultCodes),
       internalMessage: msg.slice(0, 500),
     };
   }
@@ -212,10 +215,15 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     return { ok: true, txHash: res.hash };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    const { data, resultCodes } = readHorizonHttpErrorData(e);
     return {
       ok: false,
-      reason: classifySubmitMessage(msg, horizonResultCodesFromError(e)),
-      internalMessage: horizonSubmitInternalMessage(e),
+      reason: classifySubmitMessage(msg, resultCodes),
+      internalMessage: formatHorizonSubmitInternalMessage(
+        msg,
+        data,
+        resultCodes
+      ),
     };
   }
 }
