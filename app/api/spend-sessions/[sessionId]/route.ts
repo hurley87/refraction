@@ -6,6 +6,7 @@ import {
 } from '@/lib/db/spend-sessions';
 import { getSpendExperienceById } from '@/lib/db/spend-experiences';
 import { apiSuccess, apiError } from '@/lib/api/response';
+import { maybeReconcileSpendRailOnAuthorizedSessionRead } from '@/lib/spend/opportunistic-spend-rail-reconcile-on-read';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,10 +36,24 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     return apiError('Forbidden', 403);
   }
 
+  await maybeReconcileSpendRailOnAuthorizedSessionRead({
+    spendSessionId: sessionId,
+    session,
+  });
+
+  const refreshed = await getSpendSessionById(sessionId);
+  if (!refreshed) {
+    return apiError('Spend session not found', 404);
+  }
+
   const [spendExperience, pointConversion] = await Promise.all([
-    getSpendExperienceById(session.spend_experience_id),
+    getSpendExperienceById(refreshed.spend_experience_id),
     getPointConversionBySessionId(sessionId),
   ]);
 
-  return apiSuccess({ session, spendExperience, pointConversion });
+  return apiSuccess({
+    session: refreshed,
+    spendExperience,
+    pointConversion,
+  });
 }

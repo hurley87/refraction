@@ -14,6 +14,7 @@ import {
 } from '@/lib/analytics/server';
 import { spendPilotRailMixpanelFields } from '@/lib/analytics/spend-pilot-rail-context';
 import { getSpendRailClientSummary } from '@/lib/spend-rail-config';
+import { maybeReconcileSpendRailOnAuthorizedSessionRead } from '@/lib/spend/opportunistic-spend-rail-reconcile-on-read';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,9 +44,19 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     return apiError('Forbidden', 403);
   }
 
+  await maybeReconcileSpendRailOnAuthorizedSessionRead({
+    spendSessionId: sessionId,
+    session,
+  });
+
+  const refreshed = await getSpendSessionById(sessionId);
+  if (!refreshed) {
+    return apiError('Spend session not found', 404);
+  }
+
   const [spendExperience, pointConversion, spendTransaction] =
     await Promise.all([
-      getSpendExperienceById(session.spend_experience_id),
+      getSpendExperienceById(refreshed.spend_experience_id),
       getPointConversionBySessionId(sessionId),
       getSpendTransactionBySessionId(sessionId),
     ]);
@@ -56,36 +67,36 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
   try {
     const eligibility = await loadSpendEligibilityForSession({
-      session,
+      session: refreshed,
       spendExperience,
     });
 
     const distinctId = resolveServerIdentity({
       privyUserId: userId,
-      walletAddress: session.wallet_address.toLowerCase(),
+      walletAddress: refreshed.wallet_address.toLowerCase(),
     });
     trackSpendReceiptViewed(distinctId, {
-      ...spendPilotRailMixpanelFields(session.spend_rail),
+      ...spendPilotRailMixpanelFields(refreshed.spend_rail),
       spend_experience_id: spendExperience.id,
       event_id: spendExperience.event_id,
       user_id: userId,
-      wallet_address: session.wallet_address.toLowerCase(),
+      wallet_address: refreshed.wallet_address.toLowerCase(),
       points_amount: pointConversion?.points_deducted ?? 0,
       usdc_amount: pointConversion?.usdc_amount ?? 0,
-      status: session.status,
-      spend_session_id: session.id,
+      status: refreshed.status,
+      spend_session_id: refreshed.id,
       point_conversion_id: pointConversion?.id,
       spend_transaction_id: spendTransaction?.id,
       payment_tx_hash: spendTransaction?.payment_tx_hash ?? null,
     });
 
     return apiSuccess({
-      session,
+      session: refreshed,
       spendExperience,
       pointConversion,
       spendTransaction,
       eligibility,
-      spendRailSummary: getSpendRailClientSummary(session.spend_rail),
+      spendRailSummary: getSpendRailClientSummary(refreshed.spend_rail),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed to load receipt state';
