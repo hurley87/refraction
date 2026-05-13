@@ -152,8 +152,7 @@ function eligibilityToneClass(status: SpendEligibilityStatus): string {
     status === 'eligible' ||
     status === 'ready_for_payment' ||
     status === 'ready_for_payment_own_usdc' ||
-    status === 'payment_complete' ||
-    status === 'conversion_failed_retryable'
+    status === 'payment_complete'
   ) {
     return 'body-small font-grotesk text-emerald-800';
   }
@@ -169,9 +168,7 @@ function isPostPointsConversionFlow(status: SpendEligibilityStatus): boolean {
     status === 'ready_for_payment' ||
     status === 'conversion_in_progress' ||
     status === 'payment_failed' ||
-    status === 'payment_complete' ||
-    status === 'conversion_failed_retryable' ||
-    status === 'conversion_failed_retry_exhausted'
+    status === 'payment_complete'
   );
 }
 
