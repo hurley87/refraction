@@ -93,7 +93,9 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     message.includes('extension context invalidated') ||
     message.includes('could not establish connection') ||
     message.includes('receiving end does not exist') ||
-    message.includes('runtime.lasterror');
+    message.includes('runtime.lasterror') ||
+    // Wallet extension inpage scripts (e.g. MetaMask), not app code.
+    message.includes('called from a webpage must specify an extension id');
 
   if (isKnownNoise) {
     return null;
