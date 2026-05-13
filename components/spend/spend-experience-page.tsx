@@ -25,7 +25,7 @@ import {
 import type { SpendRailClientSummary } from '@/lib/spend-rail-config/types';
 import {
   resolveSpendReceiptPaymentExplorerUrl,
-  spendPaymentExplorerLinkLabel,
+  SPEND_RECEIPT_EXPLORER_LINK_LABEL,
   spendReceiptPaymentStatusLabel,
 } from '@/lib/spend-rail-explorer-url-client';
 import { isEvmAddress } from '@/lib/walletconnect-poster-direct-usdc';
@@ -630,7 +630,6 @@ export function SpendExperiencePage({
     explorerTxUrlTemplate: spendRailSummary?.explorerTxUrlTemplate,
     paymentTxHash: receiptPaymentHash,
   });
-  const paymentExplorerLabel = spendPaymentExplorerLinkLabel();
 
   return (
     <SpendPageShell>
@@ -911,7 +910,7 @@ export function SpendExperiencePage({
                             rel="noreferrer"
                             className="inline-flex items-center gap-1 body-medium font-grotesk font-semibold text-emerald-900 underline"
                           >
-                            {paymentExplorerLabel}
+                            {SPEND_RECEIPT_EXPLORER_LINK_LABEL}
                             <ExternalLink className="size-3.5 shrink-0" />
                           </a>
                         )}

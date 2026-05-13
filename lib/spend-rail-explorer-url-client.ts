@@ -87,6 +87,4 @@ export function spendReceiptPaymentStatusLabel(
 }
 
 /** Link text for spend receipt explorer anchors (product copy). */
-export function spendPaymentExplorerLinkLabel(): string {
-  return 'View transaction';
-}
+export const SPEND_RECEIPT_EXPLORER_LINK_LABEL = 'View transaction';

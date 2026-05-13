@@ -3,7 +3,7 @@ import {
   formatSpendPaymentExplorerUrl,
   isSafeSpendExplorerHttpsUrl,
   resolveSpendReceiptPaymentExplorerUrl,
-  spendPaymentExplorerLinkLabel,
+  SPEND_RECEIPT_EXPLORER_LINK_LABEL,
   spendReceiptPaymentStatusLabel,
 } from '@/lib/spend-rail-explorer-url-client';
 
@@ -89,9 +89,9 @@ describe('resolveSpendReceiptPaymentExplorerUrl', () => {
   });
 });
 
-describe('spendPaymentExplorerLinkLabel', () => {
-  it('returns View transaction', () => {
-    expect(spendPaymentExplorerLinkLabel()).toBe('View transaction');
+describe('SPEND_RECEIPT_EXPLORER_LINK_LABEL', () => {
+  it('matches receipt explorer anchor copy', () => {
+    expect(SPEND_RECEIPT_EXPLORER_LINK_LABEL).toBe('View transaction');
   });
 });
 

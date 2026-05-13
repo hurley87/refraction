@@ -65,7 +65,7 @@ export type SpendConversionPreview = {
   receivingWalletAddress: string;
   treasuryWalletAddress: string;
   userPointsBalance: number | null;
-  /** Embedded wallet USDC on Base (null if unavailable). */
+  /** Wallet USDC balance on the active spend rail (null if unavailable). */
   userUsdcBalance: number | null;
   treasuryUsdcBalance: number | null;
 };
@@ -131,6 +131,11 @@ export function buildSpendEligibilityPreview(
 
   const railPublic = getSpendRailPublicMetadata(spendExperience.spend_rail);
   const { networkLabel, assetSymbol: railAssetSymbol } = railPublic;
+
+  const treasuryInsufficientMessage =
+    spendExperience.spend_rail === 'stellar_usdc'
+      ? SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE
+      : SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient;
 
   const basePreview = (): SpendConversionPreview => ({
     pointsRequired,
@@ -238,13 +243,9 @@ export function buildSpendEligibilityPreview(
       };
     }
     if (treasuryUsdcBalance === null || treasuryUsdcBalance < usdcAmount) {
-      const insufficientMsg =
-        spendExperience.spend_rail === 'stellar_usdc'
-          ? SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE
-          : SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient;
       return {
         status: 'treasury_insufficient',
-        message: insufficientMsg,
+        message: treasuryInsufficientMessage,
         preview: basePreview(),
       };
     }
@@ -297,13 +298,9 @@ export function buildSpendEligibilityPreview(
   }
 
   if (treasuryUsdcBalance === null || treasuryUsdcBalance < usdcAmount) {
-    const insufficientMsg =
-      spendExperience.spend_rail === 'stellar_usdc'
-        ? SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE
-        : SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient;
     return {
       status: 'treasury_insufficient',
-      message: insufficientMsg,
+      message: treasuryInsufficientMessage,
       preview: basePreview(),
     };
   }
