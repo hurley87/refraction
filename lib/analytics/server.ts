@@ -371,35 +371,37 @@ export function trackSpendPilotRailMutationBlocked(
   );
 }
 
+const SPEND_WALLET_READINESS_EVENTS = {
+  started: ANALYTICS_EVENTS.SPEND_WALLET_READINESS_STARTED,
+  completed: ANALYTICS_EVENTS.SPEND_WALLET_READINESS_COMPLETED,
+  failed: ANALYTICS_EVENTS.SPEND_WALLET_READINESS_FAILED,
+} as const;
+
+function trackSpendWalletReadiness(
+  phase: keyof typeof SPEND_WALLET_READINESS_EVENTS,
+  distinctId: string,
+  properties: SpendPilotWalletReadinessEventProperties
+): void {
+  trackEvent(distinctId, SPEND_WALLET_READINESS_EVENTS[phase], properties);
+}
+
 export function trackSpendWalletReadinessStarted(
   distinctId: string,
   properties: SpendPilotWalletReadinessEventProperties
 ): void {
-  trackEvent(
-    distinctId,
-    ANALYTICS_EVENTS.SPEND_WALLET_READINESS_STARTED,
-    properties
-  );
+  trackSpendWalletReadiness('started', distinctId, properties);
 }
 
 export function trackSpendWalletReadinessCompleted(
   distinctId: string,
   properties: SpendPilotWalletReadinessEventProperties
 ): void {
-  trackEvent(
-    distinctId,
-    ANALYTICS_EVENTS.SPEND_WALLET_READINESS_COMPLETED,
-    properties
-  );
+  trackSpendWalletReadiness('completed', distinctId, properties);
 }
 
 export function trackSpendWalletReadinessFailed(
   distinctId: string,
   properties: SpendPilotWalletReadinessEventProperties
 ): void {
-  trackEvent(
-    distinctId,
-    ANALYTICS_EVENTS.SPEND_WALLET_READINESS_FAILED,
-    properties
-  );
+  trackSpendWalletReadiness('failed', distinctId, properties);
 }

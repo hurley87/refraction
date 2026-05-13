@@ -24,8 +24,6 @@ import {
   spendRailErrorRailOperationNotSupported,
   spendRailErrorWalletReadinessFailed,
   type SpendRailError,
-  type SpendRailErrorCategory,
-  type SpendRailAnalyticsCode,
 } from '@/lib/spend/payment-rails/errors';
 import type {
   SpendPaymentRailReconcileContext,
@@ -50,6 +48,7 @@ import type { SpendPilotWalletReadinessEventProperties } from '@/lib/analytics/t
 import { getSpendWalletReadinessBySessionId } from '@/lib/db/spend-wallet-readiness';
 import {
   spendPilotRailMixpanelFields,
+  spendPilotSanitizedFieldsFromWalletReadinessRow,
   spendPilotSanitizedRailErrorFields,
 } from '@/lib/analytics/spend-pilot-rail-context';
 import {
@@ -226,9 +225,6 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
 
       if (row.status === 'failed') {
         if (distinctId) {
-          const hasSanitized =
-            row.sanitized_error_category != null &&
-            row.sanitized_error_code != null;
           trackSpendWalletReadinessFailed(distinctId, {
             ...readinessProps(row.id),
             wallet_readiness_operation_id: row.id,
@@ -236,16 +232,11 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
               row.sponsor_treasury_transaction_id,
             trustline_treasury_transaction_id:
               row.trustline_treasury_transaction_id,
-            ...(hasSanitized
-              ? {
-                  sanitized_error_category:
-                    row.sanitized_error_category as SpendRailErrorCategory,
-                  sanitized_error_code:
-                    row.sanitized_error_code as SpendRailAnalyticsCode,
-                }
-              : spendPilotSanitizedRailErrorFields(
-                  spendRailErrorWalletReadinessFailed()
-                )),
+            ...spendPilotSanitizedFieldsFromWalletReadinessRow(
+              row.sanitized_error_category,
+              row.sanitized_error_code,
+              spendRailErrorWalletReadinessFailed()
+            ),
           });
         }
         return errSpendRail(spendRailErrorWalletReadinessFailed());
