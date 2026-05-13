@@ -225,35 +225,53 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
         return okSpendRail({ status: 'completed' });
       }
 
+      let activeRow = row;
       if (row.status === 'failed') {
-        if (distinctId) {
-          trackSpendWalletReadinessFailed(distinctId, {
-            ...readinessProps(row.id),
-            wallet_readiness_operation_id: row.id,
-            sponsor_treasury_transaction_id:
-              row.sponsor_treasury_transaction_id,
-            trustline_treasury_transaction_id:
-              row.trustline_treasury_transaction_id,
-            ...spendPilotSanitizedFieldsFromWalletReadinessRow(
-              row.sanitized_error_category,
-              row.sanitized_error_code,
-              spendRailErrorWalletReadinessFailed()
-            ),
+        try {
+          activeRow = await updateSpendWalletReadinessFields(row.id, {
+            status: 'pending',
+            step_metadata: {
+              ...row.step_metadata,
+              retried_from_failed_status_at: new Date().toISOString(),
+              previous_sanitized_error_category: row.sanitized_error_category,
+              previous_sanitized_error_code: row.sanitized_error_code,
+            },
+            sanitized_error_category: null,
+            sanitized_error_code: null,
+            internal_diagnostics: null,
           });
+        } catch (e) {
+          console.error('stellar_usdc failed readiness retry reset:', e);
+          const retryErr = classifyStellarReadinessException(e);
+          if (distinctId) {
+            trackSpendWalletReadinessFailed(distinctId, {
+              ...readinessProps(row.id),
+              wallet_readiness_operation_id: row.id,
+              sponsor_treasury_transaction_id:
+                row.sponsor_treasury_transaction_id,
+              trustline_treasury_transaction_id:
+                row.trustline_treasury_transaction_id,
+              ...spendPilotSanitizedFieldsFromWalletReadinessRow(
+                row.sanitized_error_category,
+                row.sanitized_error_code,
+                retryErr
+              ),
+            });
+          }
+          return errSpendRail(retryErr);
         }
-        return errSpendRail(spendRailErrorWalletReadinessFailed());
       }
 
       if (distinctId) {
         trackSpendWalletReadinessStarted(distinctId, {
-          ...readinessProps(row.id),
-          wallet_readiness_operation_id: row.id,
+          ...readinessProps(activeRow.id),
+          wallet_readiness_operation_id: activeRow.id,
         });
       }
 
       try {
         const outcome = await runStellarUsdcWalletReadinessOrchestration({
-          readinessRow: row,
+          readinessRow: activeRow,
           spendSessionId: sessionId,
           spendExperienceId: ctx.spendExperienceId,
           sessionOwnerPrivyUserId: privyUserId,
@@ -261,7 +279,7 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
 
         if (!outcome.ok) {
           try {
-            await updateSpendWalletReadinessFields(row.id, {
+            await updateSpendWalletReadinessFields(activeRow.id, {
               status: 'failed',
               sanitized_error_category: outcome.error.category,
               sanitized_error_code: outcome.error.analyticsCode,
@@ -275,8 +293,8 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
           }
           if (distinctId) {
             trackSpendWalletReadinessFailed(distinctId, {
-              ...readinessProps(row.id),
-              wallet_readiness_operation_id: row.id,
+              ...readinessProps(activeRow.id),
+              wallet_readiness_operation_id: activeRow.id,
               ...spendPilotSanitizedRailErrorFields(outcome.error),
             });
           }
@@ -294,8 +312,8 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
             const syncErr = classifyStellarReadinessException(e);
             if (distinctId) {
               trackSpendWalletReadinessFailed(distinctId, {
-                ...readinessProps(row.id),
-                wallet_readiness_operation_id: row.id,
+                ...readinessProps(activeRow.id),
+                wallet_readiness_operation_id: activeRow.id,
                 ...spendPilotSanitizedRailErrorFields(syncErr),
               });
             }
@@ -307,8 +325,8 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
           try {
             const fresh = await getSpendWalletReadinessBySessionId(sessionId);
             trackSpendWalletReadinessCompleted(distinctId, {
-              ...readinessProps(fresh?.id ?? row.id),
-              wallet_readiness_operation_id: fresh?.id ?? row.id,
+              ...readinessProps(fresh?.id ?? activeRow.id),
+              wallet_readiness_operation_id: fresh?.id ?? activeRow.id,
               sponsor_treasury_transaction_id:
                 fresh?.sponsor_treasury_transaction_id ?? null,
               trustline_treasury_transaction_id:
@@ -327,7 +345,7 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
         console.error('stellar_usdc runWalletReadinessOrchestration:', e);
         const railErr = classifyStellarReadinessException(e);
         try {
-          await updateSpendWalletReadinessFields(row.id, {
+          await updateSpendWalletReadinessFields(activeRow.id, {
             status: 'failed',
             sanitized_error_category: railErr.category,
             sanitized_error_code: railErr.analyticsCode,
@@ -341,8 +359,8 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
         }
         if (distinctId) {
           trackSpendWalletReadinessFailed(distinctId, {
-            ...readinessProps(row.id),
-            wallet_readiness_operation_id: row.id,
+            ...readinessProps(activeRow.id),
+            wallet_readiness_operation_id: activeRow.id,
             ...spendPilotSanitizedRailErrorFields(railErr),
           });
         }
