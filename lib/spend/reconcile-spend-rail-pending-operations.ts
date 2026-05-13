@@ -72,7 +72,11 @@ export function readSpendRailReconcileEnvConfig(): SpendRailReconcileEnvConfig {
   };
 }
 
-function reconcileOlderThanIso(
+/**
+ * ISO cutoff for “stale enough to reconcile” — identical to
+ * {@link runSpendRailReconciliationCron} (IRL-22 / IRL-25).
+ */
+export function computeSpendRailReconcileOlderThanIso(
   nowMs: number,
   cfg: SpendRailReconcileEnvConfig
 ): string {
@@ -204,7 +208,7 @@ export async function runSpendRailReconciliationCron(input?: {
 }): Promise<SpendRailReconcileCronResult> {
   const cfg = input?.config ?? readSpendRailReconcileEnvConfig();
   const nowMs = input?.nowMs ?? Date.now();
-  const olderThanIso = reconcileOlderThanIso(nowMs, cfg);
+  const olderThanIso = computeSpendRailReconcileOlderThanIso(nowMs, cfg);
   const ids = await collectReconcileCandidateSessionIds({
     olderThanIso,
     batchSize: cfg.batchSize,
