@@ -21,7 +21,12 @@ export const SESSION_COLS = `
   completed_at
 `;
 
-export const CONVERSION_COLS = `
+/**
+ * `point_conversions` columns available before IRL-17 retry-audit fields
+ * (`database/point-conversions-retry-metadata.sql`). Prefer
+ * {@link fetchPointConversionWithSelectFallback} for reads so older DBs still work.
+ */
+export const CONVERSION_COLS_WITHOUT_RETRY_AUDIT = `
   id,
   spend_experience_id,
   spend_session_id,
@@ -37,13 +42,68 @@ export const CONVERSION_COLS = `
   funding_tx_hash,
   explorer_tx_url,
   idempotency_key,
-  conversion_attempt_count,
-  conversion_last_failure,
   created_at,
   completed_at,
   failed_reason,
   updated_at
-`;
+`.trim();
+
+/** Full `point_conversions` read including IRL-17 retry audit columns when present. */
+export const CONVERSION_COLS_WITH_RETRY_AUDIT = `${CONVERSION_COLS_WITHOUT_RETRY_AUDIT},
+  conversion_attempt_count,
+  conversion_last_failure`;
+
+/** @deprecated Prefer {@link fetchPointConversionWithSelectFallback} instead of selecting this list directly. */
+export const CONVERSION_COLS = CONVERSION_COLS_WITH_RETRY_AUDIT;
+
+type PgLikeError = { code?: string; message?: string } | null | undefined;
+
+/** PostgreSQL `undefined_column` (e.g. missing IRL-17 migration). */
+export function isMissingPointConversionRetryAuditDbError(
+  error: PgLikeError
+): boolean {
+  if (!error || String(error.code) !== '42703') return false;
+  const msg = (error.message ?? '').toLowerCase();
+  return (
+    msg.includes('conversion_attempt_count') ||
+    msg.includes('conversion_last_failure')
+  );
+}
+
+let pointConversionRetryAuditSelectEnabled = true;
+
+function pointConversionSelectColumnsForNextQuery(): string {
+  return pointConversionRetryAuditSelectEnabled
+    ? CONVERSION_COLS_WITH_RETRY_AUDIT
+    : CONVERSION_COLS_WITHOUT_RETRY_AUDIT;
+}
+
+type PointConversionQueryResult = { data: unknown; error: PgLikeError };
+
+/**
+ * Normalizes PostgREST array results from {@link fetchPointConversionWithSelectFallback}.
+ */
+export function pointConversionRowsFromSelectData(
+  data: unknown
+): Record<string, unknown>[] {
+  if (!Array.isArray(data)) return [];
+  return data as Record<string, unknown>[];
+}
+
+/**
+ * Runs a `point_conversions` PostgREST call with the broadest column list, then
+ * retries without IRL-17 retry-audit columns if the DB has not applied that migration.
+ */
+export async function fetchPointConversionWithSelectFallback(
+  run: (columns: string) => PromiseLike<PointConversionQueryResult>
+): Promise<PointConversionQueryResult> {
+  const first = await run(pointConversionSelectColumnsForNextQuery());
+  if (!first.error || !isMissingPointConversionRetryAuditDbError(first.error)) {
+    return first;
+  }
+  pointConversionRetryAuditSelectEnabled = false;
+  return run(pointConversionSelectColumnsForNextQuery());
+}
 
 export const SPEND_TX_COLS = `
   id,

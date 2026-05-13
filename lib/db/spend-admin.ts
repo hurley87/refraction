@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import {
-  CONVERSION_COLS,
+  fetchPointConversionWithSelectFallback,
+  pointConversionRowsFromSelectData,
   SESSION_COLS,
   SPEND_TX_COLS,
   rowToConversion,
@@ -131,11 +132,13 @@ export async function listSpendPilotActivityForExperience(
 
   if (sessionIds.length > 0) {
     const [convRes, payRes] = await Promise.all([
-      supabase
-        .from('point_conversions')
-        .select(CONVERSION_COLS)
-        .eq('spend_experience_id', spendExperienceId)
-        .in('spend_session_id', sessionIds),
+      fetchPointConversionWithSelectFallback((cols) =>
+        supabase
+          .from('point_conversions')
+          .select(cols)
+          .eq('spend_experience_id', spendExperienceId)
+          .in('spend_session_id', sessionIds)
+      ),
       supabase
         .from('spend_transactions')
         .select(SPEND_TX_COLS)
@@ -152,8 +155,8 @@ export async function listSpendPilotActivityForExperience(
       throw new Error(payRes.error.message || 'Failed to load payments');
     }
 
-    for (const row of convRes.data ?? []) {
-      const c = rowToConversion(row as Record<string, unknown>);
+    for (const row of pointConversionRowsFromSelectData(convRes.data)) {
+      const c = rowToConversion(row);
       conversionsBySession.set(c.spend_session_id, c);
     }
     for (const row of payRes.data ?? []) {
@@ -171,13 +174,15 @@ export async function listSpendPilotActivityForExperience(
   );
 
   const [failedConvRes, failedPayRes] = await Promise.all([
-    supabase
-      .from('point_conversions')
-      .select(CONVERSION_COLS)
-      .eq('spend_experience_id', spendExperienceId)
-      .eq('status', 'failed')
-      .order('created_at', { ascending: false })
-      .limit(FAILED_LIMIT),
+    fetchPointConversionWithSelectFallback((cols) =>
+      supabase
+        .from('point_conversions')
+        .select(cols)
+        .eq('spend_experience_id', spendExperienceId)
+        .eq('status', 'failed')
+        .order('created_at', { ascending: false })
+        .limit(FAILED_LIMIT)
+    ),
     supabase
       .from('spend_transactions')
       .select(SPEND_TX_COLS)
@@ -208,9 +213,9 @@ export async function listSpendPilotActivityForExperience(
 
   return {
     sessions: activitySessions,
-    failedConversions: (failedConvRes.data ?? []).map((row) =>
-      rowToConversion(row as Record<string, unknown>)
-    ),
+    failedConversions: pointConversionRowsFromSelectData(
+      failedConvRes.data
+    ).map((row) => rowToConversion(row)),
     failedPayments: (failedPayRes.data ?? []).map((row) =>
       rowToSpendTransaction(row as Record<string, unknown>)
     ),
@@ -395,23 +400,26 @@ async function loadLatestFundedConversionBySession(
   const latestBySession = new Map<string, PointConversion>();
   const pageSize = 500;
   for (let from = 0; ; from += pageSize) {
-    const { data, error } = await supabase
-      .from('point_conversions')
-      .select(CONVERSION_COLS)
-      .eq('spend_experience_id', spendExperienceId)
-      .eq('status', 'funded')
-      .order('updated_at', { ascending: false })
-      .range(from, from + pageSize - 1);
+    const { data, error } = await fetchPointConversionWithSelectFallback(
+      (cols) =>
+        supabase
+          .from('point_conversions')
+          .select(cols)
+          .eq('spend_experience_id', spendExperienceId)
+          .eq('status', 'funded')
+          .order('updated_at', { ascending: false })
+          .range(from, from + pageSize - 1)
+    );
 
     if (error) {
       console.error('loadLatestFundedConversionBySession:', error);
       throw new Error(error.message || 'Failed to load funded conversions');
     }
-    const rows = data ?? [];
+    const rows = pointConversionRowsFromSelectData(data);
     if (rows.length === 0) break;
 
     for (const row of rows) {
-      const c = rowToConversion(row as Record<string, unknown>);
+      const c = rowToConversion(row);
       const prev = latestBySession.get(c.spend_session_id);
       if (!prev || prev.updated_at < c.updated_at) {
         latestBySession.set(c.spend_session_id, c);
@@ -464,13 +472,15 @@ export async function getSpendPilotAdminRailVisibility(
         .in('status', ['pending', 'needs_review'])
         .order('created_at', { ascending: true })
         .limit(RAIL_OPS_DETAIL_LIMIT),
-      supabase
-        .from('point_conversions')
-        .select(CONVERSION_COLS)
-        .eq('spend_experience_id', spendExperienceId)
-        .in('status', CONVERSION_IN_FLIGHT_STATUSES)
-        .order('created_at', { ascending: true })
-        .limit(RAIL_OPS_DETAIL_LIMIT),
+      fetchPointConversionWithSelectFallback((cols) =>
+        supabase
+          .from('point_conversions')
+          .select(cols)
+          .eq('spend_experience_id', spendExperienceId)
+          .in('status', CONVERSION_IN_FLIGHT_STATUSES)
+          .order('created_at', { ascending: true })
+          .limit(RAIL_OPS_DETAIL_LIMIT)
+      ),
       supabase
         .from('spend_transactions')
         .select(SPEND_TX_COLS)
@@ -537,31 +547,30 @@ export async function getSpendPilotAdminRailVisibility(
     };
   });
 
-  const conversionsInFlight: SpendPilotAdminRailVisibilityRow[] = (
-    convListRes.data ?? []
-  ).map((r) => {
-    const c = rowToConversion(r as Record<string, unknown>);
-    return {
-      operationKind: 'conversion' as const,
-      operationId: c.id,
-      spendExperienceId: c.spend_experience_id,
-      spendSessionId: c.spend_session_id,
-      userId: c.user_id,
-      spendRail: c.spend_rail,
-      networkLabel: c.network,
-      usdcAmount: c.usdc_amount,
-      status: c.status,
-      createdAt: c.created_at,
-      updatedAt: c.updated_at,
-      safeErrorSummary: safeConversionErrorSummary(c),
-      txHash: c.funding_tx_hash,
-      explorerTxUrl: spendLedgerTxExplorerUrl(
-        c.spend_rail,
-        c.explorer_tx_url,
-        c.funding_tx_hash
-      ),
-    };
-  });
+  const conversionsInFlight: SpendPilotAdminRailVisibilityRow[] =
+    pointConversionRowsFromSelectData(convListRes.data).map((r) => {
+      const c = rowToConversion(r);
+      return {
+        operationKind: 'conversion' as const,
+        operationId: c.id,
+        spendExperienceId: c.spend_experience_id,
+        spendSessionId: c.spend_session_id,
+        userId: c.user_id,
+        spendRail: c.spend_rail,
+        networkLabel: c.network,
+        usdcAmount: c.usdc_amount,
+        status: c.status,
+        createdAt: c.created_at,
+        updatedAt: c.updated_at,
+        safeErrorSummary: safeConversionErrorSummary(c),
+        txHash: c.funding_tx_hash,
+        explorerTxUrl: spendLedgerTxExplorerUrl(
+          c.spend_rail,
+          c.explorer_tx_url,
+          c.funding_tx_hash
+        ),
+      };
+    });
 
   const spendTransactionsInFlight: SpendPilotAdminRailVisibilityRow[] = (
     payListRes.data ?? []
