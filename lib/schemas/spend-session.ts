@@ -28,6 +28,7 @@ export type SpendConversionPreviewBody = z.infer<
 /** POST /api/spend-sessions/{sessionId}/conversion/confirm */
 export const spendConversionConfirmBodySchema = z.object({
   walletAddress: evmAddressField,
+  intent: z.enum(['confirm', 'retry_conversion']).optional().default('confirm'),
 });
 
 export type SpendConversionConfirmBody = z.infer<

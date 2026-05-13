@@ -344,6 +344,14 @@ export type PointConversionStatus =
   | 'funded'
   | 'failed';
 
+/** Persisted on `point_conversions.conversion_last_failure` after a safe refund (IRL-17). */
+export type PointConversionLastFailure = {
+  recorded_at: string;
+  phase: 'readiness' | 'funding' | 'resume';
+  category: string;
+  reason_snippet: string;
+};
+
 export type PointConversion = {
   id: string;
   spend_experience_id: string;
@@ -364,6 +372,10 @@ export type PointConversion = {
   /** Canonical explorer URL when known; set-once in DB. */
   explorer_tx_url: string | null;
   idempotency_key: string | null;
+  /** Point-deduction attempts for this row (1 on first confirm; incremented on each explicit retry). */
+  conversion_attempt_count: number;
+  /** Last refunded failure metadata for support (IRL-17). */
+  conversion_last_failure: PointConversionLastFailure | null;
   created_at: string;
   completed_at: string | null;
   failed_reason: string | null;

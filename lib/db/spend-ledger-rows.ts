@@ -1,6 +1,7 @@
 import { normalizeSpendRail } from './spend-rail';
 import type {
   PointConversion,
+  PointConversionLastFailure,
   SpendSession,
   SpendTransaction,
 } from '@/lib/types';
@@ -36,6 +37,8 @@ export const CONVERSION_COLS = `
   funding_tx_hash,
   explorer_tx_url,
   idempotency_key,
+  conversion_attempt_count,
+  conversion_last_failure,
   created_at,
   completed_at,
   failed_reason,
@@ -120,7 +123,40 @@ export function rowToSpendTransaction(
   };
 }
 
+function rowToConversionLastFailure(
+  raw: unknown
+): PointConversionLastFailure | null {
+  if (raw == null || typeof raw !== 'object') return null;
+  const o = raw as Record<string, unknown>;
+  const recordedAt = o.recorded_at;
+  const phase = o.phase;
+  const category = o.category;
+  const reasonSnippet = o.reason_snippet;
+  if (
+    typeof recordedAt !== 'string' ||
+    (phase !== 'readiness' && phase !== 'funding' && phase !== 'resume') ||
+    typeof category !== 'string' ||
+    typeof reasonSnippet !== 'string'
+  ) {
+    return null;
+  }
+  return {
+    recorded_at: recordedAt,
+    phase,
+    category,
+    reason_snippet: reasonSnippet,
+  };
+}
+
 export function rowToConversion(row: Record<string, unknown>): PointConversion {
+  const attemptRaw = row.conversion_attempt_count;
+  const attemptCount =
+    typeof attemptRaw === 'number' && Number.isFinite(attemptRaw)
+      ? attemptRaw
+      : typeof attemptRaw === 'string'
+        ? Number(attemptRaw)
+        : 1;
+
   return {
     id: String(row.id),
     spend_experience_id: String(row.spend_experience_id),
@@ -140,6 +176,11 @@ export function rowToConversion(row: Record<string, unknown>): PointConversion {
       row.explorer_tx_url == null ? null : String(row.explorer_tx_url),
     idempotency_key:
       row.idempotency_key == null ? null : String(row.idempotency_key),
+    conversion_attempt_count:
+      Number.isFinite(attemptCount) && attemptCount >= 1 ? attemptCount : 1,
+    conversion_last_failure: rowToConversionLastFailure(
+      row.conversion_last_failure
+    ),
     created_at: String(row.created_at),
     completed_at: row.completed_at == null ? null : String(row.completed_at),
     failed_reason: row.failed_reason == null ? null : String(row.failed_reason),

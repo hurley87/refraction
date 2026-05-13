@@ -152,6 +152,8 @@ function inProgressConversion(
     funding_tx_hash: null,
     explorer_tx_url: null,
     idempotency_key: null,
+    conversion_attempt_count: 1,
+    conversion_last_failure: null,
     created_at: '2026-01-01T00:00:00.000Z',
     completed_at: null,
     failed_reason: null,

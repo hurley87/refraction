@@ -107,6 +107,8 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/confirm', () => {
         funding_tx_hash: '0xabc',
         explorer_tx_url: null,
         idempotency_key: null,
+        conversion_attempt_count: 1,
+        conversion_last_failure: null,
         created_at: '2026-01-01T00:00:00.000Z',
         completed_at: '2026-01-01T00:00:01.000Z',
         failed_reason: null,
@@ -114,6 +116,7 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/confirm', () => {
       },
       session: { ...session, status: 'conversion_complete' as const },
       resumed: false,
+      clientHint: 'funded',
     });
 
     const req = new NextRequest(
@@ -133,6 +136,14 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/confirm', () => {
     };
     expect(json.success).toBe(true);
     expect(json.data.pointConversion.status).toBe('funded');
+    expect((json as { data: { clientHint?: string } }).data.clientHint).toBe(
+      'funded'
+    );
+    expect(mockRunConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intent: 'confirm',
+      })
+    );
     expect(
       (json as { data: { spendExperience: { spend_rail: string } } }).data
         .spendExperience.spend_rail
@@ -181,6 +192,68 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/confirm', () => {
         route: '/api/spend-sessions/[sessionId]/conversion/confirm',
         operation: 'spend_conversion_confirm',
         statusCode: 400,
+      })
+    );
+  });
+
+  it('forwards retry_conversion intent to domain logic', async () => {
+    mockVerifyWallet.mockResolvedValue({
+      authorized: true,
+      userId: 'privy-1',
+    });
+    mockGetPrivyUserId.mockResolvedValue('privy-1');
+    mockGetSpendContext.mockResolvedValue({
+      session,
+      spendExperience,
+      usdcAmount: 5,
+      pointsRequired: 5000,
+    });
+    mockResolve.mockReturnValue('distinct-1');
+    mockRunConfirm.mockResolvedValue({
+      ok: true,
+      pointConversion: {
+        id: 'conv-1',
+        spend_experience_id: spendExperience.id,
+        spend_session_id: session.id,
+        user_id: 'privy-1',
+        points_deducted: 5000,
+        usdc_amount: 5,
+        status: 'points_deducted',
+        spend_rail: 'base_usdc',
+        network: 'Base',
+        asset_symbol: 'USDC',
+        treasury_wallet_address: spendExperience.treasury_wallet_address,
+        user_wallet_address: session.wallet_address,
+        funding_tx_hash: null,
+        explorer_tx_url: null,
+        idempotency_key: 'fund_user:conv-1',
+        conversion_attempt_count: 2,
+        conversion_last_failure: null,
+        created_at: '2026-01-01T00:00:00.000Z',
+        completed_at: null,
+        failed_reason: null,
+        updated_at: '2026-01-01T00:00:01.000Z',
+      },
+      session: { ...session, status: 'conversion_pending' as const },
+      resumed: true,
+      clientHint: 'processing',
+    });
+
+    const req = new NextRequest(
+      'http://localhost:3000/api/spend-sessions/sess-1/conversion/confirm',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          walletAddress: session.wallet_address,
+          intent: 'retry_conversion',
+        }),
+      }
+    );
+    const res = await POST(req, { params: { sessionId: 'sess-1' } });
+    expect(res.status).toBe(200);
+    expect(mockRunConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intent: 'retry_conversion',
       })
     );
   });

@@ -5,7 +5,9 @@ import {
   getPointConversionBySessionId,
   getSpendSessionById,
   refundSpendConversionOnFundingFailure,
+  retrySpendConversionAfterRefundAtomic,
   spendConversionFundingIdempotencyKey,
+  type RetrySpendConversionAfterRefundRpcResult,
   updatePointConversionFields,
   updateSpendSessionStatus,
 } from '@/lib/db/spend-sessions';
@@ -15,7 +17,11 @@ import {
   computeConversionAmounts,
   loadSpendEligibilityForSession,
 } from '@/lib/spend-conversion-preview';
-import { SPEND_ELIGIBILITY_MESSAGES } from '@/lib/spend-eligibility-messages';
+import {
+  SPEND_CONVERSION_FAILED_REQUIRES_RETRY_ACTION,
+  SPEND_ELIGIBILITY_MESSAGES,
+  SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE,
+} from '@/lib/spend-eligibility-messages';
 import { resolvePrivyServerTransactionHash } from '@/lib/api/privy';
 import {
   findRecentTreasuryUsdcTransfer,
@@ -52,6 +58,7 @@ import {
 import type { SpendPilotConversionEventProperties } from '@/lib/analytics/types';
 import type {
   PointConversion,
+  PointConversionLastFailure,
   SpendExperience,
   SpendSession,
 } from '@/lib/types';
@@ -66,9 +73,6 @@ const MISCONFIGURED_CONVERSION_ERROR =
 const FUNDING_ACKNOWLEDGED_MESSAGE =
   'USDC transfer submitted. We are confirming it on Base.';
 
-const STELLAR_TREASURY_INSUFFICIENT_AT_CONFIRM =
-  "We're unable to fund this spend right now. Please try again shortly.";
-
 function fundingAcknowledgedMessage(
   spendRail: SpendSession['spend_rail']
 ): string {
@@ -77,12 +81,16 @@ function fundingAcknowledgedMessage(
     : FUNDING_ACKNOWLEDGED_MESSAGE;
 }
 
+export type SpendConversionConfirmIntent = 'confirm' | 'retry_conversion';
+
 export type SpendConversionConfirmResult =
   | {
       ok: true;
       pointConversion: PointConversion;
       session: SpendSession;
       resumed: boolean;
+      /** Drives client toasts: do not show “USDC on the way” when `processing`. */
+      clientHint: 'funded' | 'processing';
     }
   | {
       ok: false;
@@ -90,6 +98,33 @@ export type SpendConversionConfirmResult =
       error: string;
       capture?: boolean;
     };
+
+function conversionClientHint(
+  pointConversion: PointConversion
+): 'funded' | 'processing' {
+  return pointConversion.status === 'funded' ? 'funded' : 'processing';
+}
+
+async function persistConversionLastFailure(input: {
+  conversionId: string;
+  phase: PointConversionLastFailure['phase'];
+  category: string;
+  reasonSnippet: string;
+}): Promise<void> {
+  try {
+    await updatePointConversionFields(input.conversionId, {
+      conversion_last_failure: {
+        recorded_at: new Date().toISOString(),
+        phase: input.phase,
+        category: input.category,
+        reason_snippet: input.reasonSnippet.slice(0, 500),
+      },
+    });
+  } catch (e) {
+    // Best-effort audit metadata; do not block refund or confirm responses.
+    console.error('persistConversionLastFailure:', e);
+  }
+}
 
 function embeddedSpendWalletForSession(session: SpendSession): string {
   if (session.spend_rail === 'stellar_usdc') {
@@ -139,6 +174,12 @@ async function conversionRailFailureOutcome(input: {
     conversion: input.conv,
     session: input.session,
     failedReason: `${prefix}:${input.category}:${input.userMessage}`,
+  });
+  void persistConversionLastFailure({
+    conversionId: input.conv.id,
+    phase: input.phase,
+    category: input.category,
+    reasonSnippet: input.userMessage,
   });
   trackSpendConversionFailed(input.distinctId, {
     ...input.baseAnalytics,
@@ -377,6 +418,8 @@ type ConfirmContext = {
   distinctId: string;
   usdcAmount: number;
   pointsRequired: number;
+  /** Default `confirm`. Use `retry_conversion` only after a safe refunded `failed` row (IRL-17). */
+  intent?: SpendConversionConfirmIntent;
 };
 
 function restoreTierAfterRefund(params: {
@@ -568,6 +611,7 @@ export async function runSpendConversionConfirm(
   const { session, spendExperience, normalizedWallet, authUserId, distinctId } =
     input;
   const { usdcAmount, pointsRequired } = input;
+  const intent = input.intent ?? 'confirm';
   const now = new Date();
 
   const baseAnalytics: SpendPilotConversionEventProperties = {
@@ -582,19 +626,241 @@ export async function runSpendConversionConfirm(
 
   let pointConversion = await getPointConversionBySessionId(session.id);
 
-  if (
-    pointConversion?.status === 'funded' ||
-    pointConversion?.status === 'failed'
-  ) {
-    if (pointConversion.status === 'funded') {
-      await markSessionAfterFunding(session.id);
+  if (intent === 'retry_conversion') {
+    if (!pointConversion || pointConversion.status !== 'failed') {
+      return {
+        ok: false,
+        httpStatus: 400,
+        error:
+          'There is no refunded failed conversion to retry for this session.',
+      };
     }
+  }
+
+  if (pointConversion?.status === 'funded') {
+    await markSessionAfterFunding(session.id);
     const freshSession = await getSpendSessionById(session.id);
     return {
       ok: true,
       pointConversion,
       session: freshSession ?? session,
       resumed: true,
+      clientHint: conversionClientHint(pointConversion),
+    };
+  }
+
+  if (pointConversion?.status === 'failed') {
+    if (intent !== 'retry_conversion') {
+      return {
+        ok: false,
+        httpStatus: 400,
+        error: SPEND_CONVERSION_FAILED_REQUIRES_RETRY_ACTION,
+      };
+    }
+
+    if (now > new Date(session.expires_at)) {
+      return { ok: false, httpStatus: 400, error: 'This session has expired.' };
+    }
+
+    const openGate = assertSpendExperienceOpenForSessions(spendExperience, now);
+    if (!openGate.ok) {
+      return { ok: false, httpStatus: 400, error: openGate.error };
+    }
+
+    const retryEligibility = await loadSpendEligibilityForSession({
+      session,
+      spendExperience,
+      now,
+    });
+
+    if (retryEligibility.status === 'treasury_insufficient') {
+      trackSpendTreasuryInsufficientFunds(distinctId, {
+        ...baseAnalytics,
+        status: 'treasury_insufficient',
+        error_reason: 'treasury_insufficient',
+      });
+    }
+
+    if (retryEligibility.status !== 'conversion_failed_retryable') {
+      if (retryEligibility.status === 'rail_unavailable') {
+        const rg = assertSpendRailAllowsMutatingSpendWork(session.spend_rail);
+        if (!rg.ok) {
+          trackSpendPilotRailMutationBlocked(distinctId, {
+            mutation: 'conversion_confirm',
+            ...rg.analytics,
+            spend_experience_id: spendExperience.id,
+            event_id: spendExperience.event_id,
+            user_id: authUserId,
+            wallet_address: normalizedWallet,
+            spend_session_id: session.id,
+          });
+        }
+      }
+      return {
+        ok: false,
+        httpStatus: 400,
+        error: retryEligibility.message,
+      };
+    }
+
+    const retryRailGate = assertSpendRailAllowsMutatingSpendWork(
+      session.spend_rail
+    );
+    if (!retryRailGate.ok) {
+      trackSpendPilotRailMutationBlocked(distinctId, {
+        mutation: 'conversion_confirm',
+        ...retryRailGate.analytics,
+        spend_experience_id: spendExperience.id,
+        event_id: spendExperience.event_id,
+        user_id: authUserId,
+        wallet_address: normalizedWallet,
+        spend_session_id: session.id,
+      });
+      return {
+        ok: false,
+        httpStatus: 400,
+        error: retryRailGate.error,
+      };
+    }
+
+    const retryTreasury = await getSpendPaymentRail(
+      session.spend_rail
+    ).getTreasurySpendableBalance();
+    if (!retryTreasury.ok) {
+      return {
+        ok: false,
+        httpStatus: spendRailErrorCategoryToHttpStatus(
+          retryTreasury.error.category
+        ),
+        error: retryTreasury.error.userMessage,
+      };
+    }
+    const retryBal = retryTreasury.value;
+    if (retryBal === null || retryBal < usdcAmount) {
+      trackSpendTreasuryInsufficientFunds(distinctId, {
+        ...baseAnalytics,
+        status: 'treasury_insufficient',
+        error_reason: 'treasury_insufficient_at_confirm_retry',
+      });
+      return {
+        ok: false,
+        httpStatus: 400,
+        error:
+          session.spend_rail === 'stellar_usdc'
+            ? SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE
+            : SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient,
+      };
+    }
+
+    const retryPlayer = await getPlayerByWallet(session.wallet_address);
+    const preRetryPoints =
+      retryPlayer != null ? Number(retryPlayer.total_points ?? 0) : 0;
+
+    let retryRpc: RetrySpendConversionAfterRefundRpcResult;
+    try {
+      retryRpc = await retrySpendConversionAfterRefundAtomic({
+        spendSessionId: session.id,
+        userId: authUserId,
+        walletAddress: session.wallet_address,
+        spendExperienceId: spendExperience.id,
+        pointsToDeduct: pointsRequired,
+        usdcAmount,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes('Conversion retry limit reached')) {
+        return {
+          ok: false,
+          httpStatus: 400,
+          error: SPEND_ELIGIBILITY_MESSAGES.conversion_failed_retry_exhausted,
+        };
+      }
+      if (
+        msg.includes('Insufficient points') ||
+        msg.includes('Player not found')
+      ) {
+        return { ok: false, httpStatus: 400, error: msg, capture: true };
+      }
+      if (msg.includes('not in a retryable failed state')) {
+        return {
+          ok: false,
+          httpStatus: 409,
+          error:
+            'This conversion cannot be retried from its current state. Please contact support if this persists.',
+        };
+      }
+      if (
+        msg.includes('PGRST202') ||
+        msg.includes('retry_spend_conversion_after_refund_atomic')
+      ) {
+        return {
+          ok: false,
+          httpStatus: 500,
+          error:
+            'Points conversion is not available yet. Please try again later.',
+        };
+      }
+      throw e;
+    }
+
+    const convAfterRetry = await getPointConversionBySessionId(session.id);
+    if (!convAfterRetry) {
+      return {
+        ok: false,
+        httpStatus: 500,
+        error:
+          'Points conversion could not be loaded. Please try again or contact support.',
+      };
+    }
+
+    void checkAndTrackTierProgression(
+      resolveServerIdentity({
+        privyUserId: authUserId,
+        walletAddress: normalizedWallet,
+      }),
+      preRetryPoints,
+      retryRpc.playerTotalPoints
+    );
+
+    trackSpendConversionConfirmed(distinctId, {
+      ...baseAnalytics,
+      point_conversion_id: convAfterRetry.id,
+      spend_session_id: session.id,
+      status: 'points_deducted',
+    });
+    await updateSpendSessionStatus(session.id, 'conversion_pending');
+
+    const retryFundOutcome = await runWalletReadinessAndUserFunding({
+      session,
+      spendExperience,
+      normalizedWallet,
+      pointConversion: convAfterRetry,
+      usdcAmount,
+      distinctId,
+      baseAnalytics,
+    });
+
+    if (retryFundOutcome.kind === 'error') {
+      if (
+        retryFundOutcome.pointsRefunded &&
+        convAfterRetry.user_id === authUserId
+      ) {
+        restoreTierAfterRefund({
+          authUserId,
+          normalizedWallet,
+          balanceAfterDeduction: retryRpc.playerTotalPoints,
+          pointsRestored: retryFundOutcome.pointsRefunded,
+        });
+      }
+      return retryFundOutcome.value;
+    }
+
+    return {
+      ok: true,
+      pointConversion: retryFundOutcome.conversion,
+      session: (await getSpendSessionById(session.id)) ?? session,
+      resumed: true,
+      clientHint: conversionClientHint(retryFundOutcome.conversion),
     };
   }
 
@@ -617,6 +883,16 @@ export async function runSpendConversionConfirm(
       pointConversion,
       session: (await getSpendSessionById(session.id)) ?? session,
       resumed: true,
+      clientHint: conversionClientHint(pointConversion),
+    };
+  }
+
+  if (intent === 'retry_conversion') {
+    return {
+      ok: false,
+      httpStatus: 400,
+      error:
+        'Retry is only available after a refunded failed conversion for this session.',
     };
   }
 
@@ -692,7 +968,7 @@ export async function runSpendConversionConfirm(
       httpStatus: 400,
       error:
         session.spend_rail === 'stellar_usdc'
-          ? STELLAR_TREASURY_INSUFFICIENT_AT_CONFIRM
+          ? SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE
           : SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient,
     };
   }
@@ -806,6 +1082,7 @@ export async function runSpendConversionConfirm(
     pointConversion: fundOutcome.conversion,
     session: (await getSpendSessionById(session.id)) ?? session,
     resumed: rpc.outcome === 'already_exists',
+    clientHint: conversionClientHint(fundOutcome.conversion),
   };
 }
 
@@ -995,6 +1272,13 @@ async function fundOrResumeUsdc(input: {
       conversion: conv,
       session,
       failedReason: 'funding transaction reverted',
+    });
+    void persistConversionLastFailure({
+      conversionId: conv.id,
+      phase: 'funding',
+      category: 'tx_reverted',
+      reasonSnippet:
+        'The funding transaction could not be confirmed. Your points have been restored.',
     });
     return {
       error: {

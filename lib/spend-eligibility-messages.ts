@@ -6,6 +6,10 @@ export type SpendEligibilityStatus =
   | 'insufficient_points'
   | 'already_converted'
   | 'conversion_in_progress'
+  /** Refunded failure: user may explicitly retry conversion (IRL-17). */
+  | 'conversion_failed_retryable'
+  /** Max explicit retries exhausted; contact support (IRL-17). */
+  | 'conversion_failed_retry_exhausted'
   | 'experience_inactive'
   | 'session_expired'
   | 'rail_unavailable'
@@ -27,6 +31,10 @@ export const SPEND_ELIGIBILITY_MESSAGES: Record<
   already_converted: 'You have already converted for this spend experience.',
   conversion_in_progress:
     'Your conversion is already in progress. Please wait.',
+  conversion_failed_retryable:
+    'Your points were returned after the last attempt. You can try converting again.',
+  conversion_failed_retry_exhausted:
+    'This conversion has reached the maximum number of retries. Please contact support for help.',
   experience_inactive:
     'This spend experience is inactive or outside its active window.',
   session_expired: 'This spend session has expired. Scan the event QR again.',
@@ -46,3 +54,20 @@ export const SPEND_ELIGIBILITY_MESSAGES: Record<
   payment_complete:
     'Your USDC payment was received. You are all set for this event.',
 };
+
+/**
+ * Stellar treasury shortfall at preview/confirm — softer wording than the generic
+ * `treasury_insufficient` eligibility message.
+ */
+export const SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE =
+  "We're unable to fund this spend right now. Please try again shortly.";
+
+/**
+ * IRL-17: max point-deduction attempts per conversion row. Keep in sync with
+ * `retry_spend_conversion_after_refund_atomic` in the database migration.
+ */
+export const MAX_SPEND_CONVERSION_POINT_DEDUCTION_ATTEMPTS = 4;
+
+/** Returned when POST conversion/confirm is called without `retry_conversion` while the row is `failed`. */
+export const SPEND_CONVERSION_FAILED_REQUIRES_RETRY_ACTION =
+  'Your points were returned after the last attempt. Use “Retry conversion” to try again.';

@@ -177,6 +177,33 @@ export type ConfirmSpendConversionRpcResult = {
   playerTotalPoints: number;
 };
 
+export type RetrySpendConversionAfterRefundRpcResult = {
+  outcome: 'retried';
+  conversionId: string;
+  playerTotalPoints: number;
+};
+
+function readSpendConversionRpcRow(data: unknown): {
+  outcome: string | undefined;
+  conversionId: string | undefined;
+  playerTotalPoints: unknown;
+} {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row !== 'object') {
+    return {
+      outcome: undefined,
+      conversionId: undefined,
+      playerTotalPoints: undefined,
+    };
+  }
+  const r = row as Record<string, unknown>;
+  return {
+    outcome: r.outcome as string | undefined,
+    conversionId: r.conversion_id as string | undefined,
+    playerTotalPoints: r.player_total_points,
+  };
+}
+
 /**
  * Atomically deduct points and create `point_conversions` (status `points_deducted`), or return existing
  * conversion for the session. Requires `confirm_spend_conversion_atomic` in the database.
@@ -209,10 +236,8 @@ export async function confirmSpendConversionAtomic(input: {
     throw new Error(error.message || 'confirm_spend_conversion_atomic failed');
   }
 
-  const row = Array.isArray(data) ? data[0] : data;
-  const outcome = row?.outcome as string | undefined;
-  const conversionId = row?.conversion_id as string | undefined;
-  const playerTotalPoints = row?.player_total_points;
+  const { outcome, conversionId, playerTotalPoints } =
+    readSpendConversionRpcRow(data);
 
   if (
     (outcome !== 'created' && outcome !== 'already_exists') ||
@@ -231,6 +256,55 @@ export async function confirmSpendConversionAtomic(input: {
   };
 }
 
+/**
+ * IRL-17: deduct points again and reset the same `point_conversions` row after a safe refund (`failed`).
+ */
+export async function retrySpendConversionAfterRefundAtomic(input: {
+  spendSessionId: string;
+  userId: string;
+  walletAddress: string;
+  spendExperienceId: string;
+  pointsToDeduct: number;
+  usdcAmount: number;
+}): Promise<RetrySpendConversionAfterRefundRpcResult> {
+  const { data, error } = await supabase.rpc(
+    'retry_spend_conversion_after_refund_atomic',
+    {
+      p_spend_session_id: input.spendSessionId,
+      p_user_id: input.userId,
+      p_wallet_address: input.walletAddress,
+      p_spend_experience_id: input.spendExperienceId,
+      p_points_to_deduct: input.pointsToDeduct,
+      p_usdc_amount: input.usdcAmount,
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      error.message || 'retry_spend_conversion_after_refund_atomic failed'
+    );
+  }
+
+  const { outcome, conversionId, playerTotalPoints } =
+    readSpendConversionRpcRow(data);
+
+  if (
+    outcome !== 'retried' ||
+    !conversionId ||
+    typeof playerTotalPoints !== 'number'
+  ) {
+    throw new Error(
+      'Unexpected RPC response from retry_spend_conversion_after_refund_atomic'
+    );
+  }
+
+  return {
+    outcome: 'retried',
+    conversionId,
+    playerTotalPoints,
+  };
+}
+
 export async function updatePointConversionFields(
   conversionId: string,
   patch: Partial<
@@ -242,6 +316,8 @@ export async function updatePointConversionFields(
       | 'failed_reason'
       | 'explorer_tx_url'
       | 'idempotency_key'
+      | 'conversion_attempt_count'
+      | 'conversion_last_failure'
     >
   >
 ): Promise<PointConversion> {

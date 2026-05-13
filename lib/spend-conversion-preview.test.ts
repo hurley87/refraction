@@ -130,6 +130,8 @@ describe('buildSpendEligibilityPreview', () => {
       funding_tx_hash: '0x',
       explorer_tx_url: null,
       idempotency_key: null,
+      conversion_attempt_count: 1,
+      conversion_last_failure: null,
       created_at: '',
       completed_at: '',
       failed_reason: null,
@@ -166,6 +168,8 @@ describe('buildSpendEligibilityPreview', () => {
       funding_tx_hash: '0xabc',
       explorer_tx_url: null,
       idempotency_key: null,
+      conversion_attempt_count: 1,
+      conversion_last_failure: null,
       created_at: '',
       completed_at: '',
       failed_reason: null,
@@ -202,6 +206,8 @@ describe('buildSpendEligibilityPreview', () => {
       funding_tx_hash: '0xabc',
       explorer_tx_url: null,
       idempotency_key: null,
+      conversion_attempt_count: 1,
+      conversion_last_failure: null,
       created_at: '',
       completed_at: '',
       failed_reason: null,
@@ -260,6 +266,8 @@ describe('buildSpendEligibilityPreview', () => {
         funding_tx_hash: '0xabc',
         explorer_tx_url: null,
         idempotency_key: null,
+        conversion_attempt_count: 1,
+        conversion_last_failure: null,
         created_at: '',
         completed_at: '',
         failed_reason: null,
@@ -300,6 +308,125 @@ describe('buildSpendEligibilityPreview', () => {
       if (prev === undefined) delete process.env.SPEND_RAIL_BASE_USDC_ENABLED;
       else process.env.SPEND_RAIL_BASE_USDC_ENABLED = prev;
     }
+  });
+
+  it('returns conversion_failed_retryable when conversion failed under retry cap', () => {
+    const failedConv: PointConversion = {
+      id: 'c1',
+      spend_experience_id: 'e1',
+      spend_session_id: 's1',
+      user_id: 'u1',
+      points_deducted: 5000,
+      usdc_amount: 5,
+      status: 'failed',
+      spend_rail: 'base_usdc',
+      network: 'Base',
+      asset_symbol: 'USDC',
+      treasury_wallet_address: '0x1',
+      user_wallet_address: '0x3',
+      funding_tx_hash: null,
+      explorer_tx_url: null,
+      idempotency_key: null,
+      conversion_attempt_count: 1,
+      conversion_last_failure: {
+        recorded_at: '2026-01-01T00:00:00.000Z',
+        phase: 'readiness',
+        category: 'x',
+        reason_snippet: 'y',
+      },
+      created_at: '',
+      completed_at: '',
+      failed_reason: 'readiness:x',
+      updated_at: '',
+    };
+    const r = buildSpendEligibilityPreview({
+      session: sess(),
+      spendExperience: exp(),
+      player: player(6000),
+      pointConversion: failedConv,
+      spendTransaction: null,
+      fundedConversionForOtherSession: null,
+      treasuryUsdcBalance: 100,
+      userUsdcBalance: null,
+      now,
+    });
+    expect(r.status).toBe('conversion_failed_retryable');
+  });
+
+  it('returns conversion_failed_retry_exhausted when failed after max attempts', () => {
+    const failedConv: PointConversion = {
+      id: 'c1',
+      spend_experience_id: 'e1',
+      spend_session_id: 's1',
+      user_id: 'u1',
+      points_deducted: 5000,
+      usdc_amount: 5,
+      status: 'failed',
+      spend_rail: 'base_usdc',
+      network: 'Base',
+      asset_symbol: 'USDC',
+      treasury_wallet_address: '0x1',
+      user_wallet_address: '0x3',
+      funding_tx_hash: null,
+      explorer_tx_url: null,
+      idempotency_key: null,
+      conversion_attempt_count: 4,
+      conversion_last_failure: null,
+      created_at: '',
+      completed_at: '',
+      failed_reason: 'x',
+      updated_at: '',
+    };
+    const r = buildSpendEligibilityPreview({
+      session: sess(),
+      spendExperience: exp(),
+      player: player(6000),
+      pointConversion: failedConv,
+      spendTransaction: null,
+      fundedConversionForOtherSession: null,
+      treasuryUsdcBalance: 100,
+      userUsdcBalance: null,
+      now,
+    });
+    expect(r.status).toBe('conversion_failed_retry_exhausted');
+  });
+
+  it('returns conversion_in_progress for needs_review (not retryable via failed path)', () => {
+    const conv: PointConversion = {
+      id: 'c1',
+      spend_experience_id: 'e1',
+      spend_session_id: 's1',
+      user_id: 'u1',
+      points_deducted: 5000,
+      usdc_amount: 5,
+      status: 'needs_review',
+      spend_rail: 'base_usdc',
+      network: 'Base',
+      asset_symbol: 'USDC',
+      treasury_wallet_address: '0x1',
+      user_wallet_address: '0x3',
+      funding_tx_hash: '0xabc',
+      explorer_tx_url: null,
+      idempotency_key: null,
+      conversion_attempt_count: 1,
+      conversion_last_failure: null,
+      created_at: '',
+      completed_at: null,
+      failed_reason: null,
+      updated_at: '',
+    };
+    const r = buildSpendEligibilityPreview({
+      session: sess({ status: 'conversion_pending' }),
+      spendExperience: exp(),
+      player: player(1000),
+      pointConversion: conv,
+      spendTransaction: null,
+      fundedConversionForOtherSession: null,
+      treasuryUsdcBalance: 100,
+      userUsdcBalance: null,
+      now,
+    });
+    expect(r.status).toBe('conversion_in_progress');
   });
 
   it('returns ready_for_payment_own_usdc when wallet has enough USDC (no conversion)', () => {
