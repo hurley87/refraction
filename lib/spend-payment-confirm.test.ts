@@ -66,12 +66,20 @@ vi.mock('@/lib/spend-payment-verify', () => ({
 }));
 
 vi.mock('@/lib/spend-rail-config', () => ({
-  getSpendReceivingWalletAddress: () =>
-    '0x2222222222222222222222222222222222222222',
+  getSpendReceivingWalletAddress: (spendRail: string) =>
+    spendRail === 'stellar_usdc'
+      ? 'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H'
+      : '0x2222222222222222222222222222222222222222',
   getSpendRailBaseUsdcContractAddress: () =>
     '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   assertSpendRailAllowsMutatingSpendWork: (...a: unknown[]) =>
     mockRailGate(...a),
+}));
+
+vi.mock('@/lib/spend/stellar-wallet-readiness-config', () => ({
+  getStellarSpendUsdcIssuer: () =>
+    'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN',
+  getStellarSpendUsdcAssetCode: () => 'USDC',
 }));
 
 vi.mock('@/lib/analytics/server', () => ({
@@ -216,7 +224,8 @@ describe('runSpendPaymentConfirm', () => {
     expect(result.error).toMatch(/conversion is still in progress/i);
   });
 
-  it('rejects user-signed payment confirm for stellar_usdc via spend payment rail', async () => {
+  it('rejects Stellar payment confirm without stellarBackendConfirm', async () => {
+    mockGetPointConversion.mockResolvedValue(inProgressConversion('funded'));
     const stellarExperience = {
       ...baseExperience,
       spend_rail: 'stellar_usdc' as const,
@@ -224,6 +233,39 @@ describe('runSpendPaymentConfirm', () => {
     const stellarSession = {
       ...baseSession,
       spend_rail: 'stellar_usdc' as const,
+      status: 'conversion_complete' as const,
+      rail_user_wallet_address:
+        'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+    };
+
+    const result = await runSpendPaymentConfirm({
+      session: stellarSession,
+      spendExperience: stellarExperience,
+      normalizedWallet: baseSession.wallet_address.toLowerCase(),
+      authUserId: 'user-1',
+      distinctId: 'd1',
+      paymentTxHash: undefined,
+      usdcAmount: 5,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('expected failure');
+    expect(result.httpStatus).toBe(400);
+    expect(result.error).toMatch(/in-app Stellar payment confirmation/i);
+  });
+
+  it('rejects Stellar payment confirm when paymentTxHash is sent', async () => {
+    mockGetPointConversion.mockResolvedValue(inProgressConversion('funded'));
+    const stellarExperience = {
+      ...baseExperience,
+      spend_rail: 'stellar_usdc' as const,
+    };
+    const stellarSession = {
+      ...baseSession,
+      spend_rail: 'stellar_usdc' as const,
+      status: 'conversion_complete' as const,
+      rail_user_wallet_address:
+        'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
     };
 
     const result = await runSpendPaymentConfirm({
@@ -233,15 +275,14 @@ describe('runSpendPaymentConfirm', () => {
       authUserId: 'user-1',
       distinctId: 'd1',
       paymentTxHash: validHash,
+      stellarBackendConfirm: true,
       usdcAmount: 5,
     });
 
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error('expected failure');
     expect(result.httpStatus).toBe(400);
-    expect(result.error).toBe(
-      'USDC payment verification on this network is not available in this release.'
-    );
+    expect(result.error).toMatch(/Do not send paymentTxHash/i);
   });
 
   it('returns 400 and does not insert when rail blocks new payment tx (HTTP 400 per spend API convention)', async () => {

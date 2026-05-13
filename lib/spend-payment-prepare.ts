@@ -19,7 +19,11 @@ import {
   getSpendRailBaseUsdcContractAddress,
   getSpendReceivingWalletAddress,
 } from '@/lib/spend-rail-config';
-import { spendBaseUsdcSnapshotMatchesLiveRail } from '@/lib/spend-payment-prepare-types';
+import { stellarWalletAddressSchema } from '@/lib/schemas/player';
+import {
+  spendBaseUsdcSnapshotMatchesLiveRail,
+  spendStellarUsdcSnapshotMatchesLiveRail,
+} from '@/lib/spend-payment-prepare-types';
 import {
   isEvmAddress,
   POSTER_CHECKOUT_CHAIN_ID,
@@ -141,15 +145,6 @@ export async function runSpendPaymentPrepare(input: {
   }
 
   const spendPaymentRail = getSpendPaymentRail(spendExperience.spend_rail);
-  const userSignedGate =
-    spendPaymentRail.assertUserSignedOnchainPaymentConfirmSupported();
-  if (!userSignedGate.ok) {
-    return {
-      ok: false,
-      error: userSignedGate.error.userMessage,
-      httpStatus: 400,
-    };
-  }
 
   const { usdcAmount } = computeConversionAmounts(spendExperience);
 
@@ -202,10 +197,26 @@ export async function runSpendPaymentPrepare(input: {
   const receiving = getSpendReceivingWalletAddress(
     spendExperience.spend_rail
   ).trim();
-  if (!isEvmAddress(receiving)) {
+  if (spendExperience.spend_rail === 'base_usdc') {
+    if (!isEvmAddress(receiving)) {
+      return {
+        ok: false,
+        error: 'Invalid receiving wallet configuration',
+        httpStatus: 500,
+      };
+    }
+  } else if (spendExperience.spend_rail === 'stellar_usdc') {
+    if (!stellarWalletAddressSchema.safeParse(receiving).success) {
+      return {
+        ok: false,
+        error: 'Invalid receiving wallet configuration',
+        httpStatus: 500,
+      };
+    }
+  } else {
     return {
       ok: false,
-      error: 'Invalid receiving wallet configuration',
+      error: 'Invalid payment rail configuration',
       httpStatus: 500,
     };
   }
@@ -234,6 +245,8 @@ export async function runSpendPaymentPrepare(input: {
     spendExperienceId: spendExperience.id,
     embeddedEvmWalletAddress: session.wallet_address,
     privyNormalizedWalletAddressLower: normalizedWallet,
+    sessionOwnerPrivyUserId: authUserId,
+    railUserWalletAddress: session.rail_user_wallet_address,
     usdcAmount,
   });
 
@@ -245,7 +258,7 @@ export async function runSpendPaymentPrepare(input: {
     };
   }
 
-  if (railPrepare.value.status !== 'prepared' || !railPrepare.value.baseUsdc) {
+  if (railPrepare.value.status !== 'prepared') {
     return {
       ok: false,
       error: 'Payment preparation is not available for this session',
@@ -253,29 +266,76 @@ export async function runSpendPaymentPrepare(input: {
     };
   }
 
-  const { preparedAction, verificationSnapshot } = railPrepare.value.baseUsdc;
+  let newAction: Record<string, unknown>;
+  let newSnap: Record<string, unknown>;
 
-  const liveReceiving = receiving.toLowerCase();
-  const liveUsdc = getSpendRailBaseUsdcContractAddress().toLowerCase();
+  if (session.spend_rail === 'base_usdc') {
+    if (!railPrepare.value.baseUsdc) {
+      return {
+        ok: false,
+        error: 'Payment preparation is not available for this session',
+        httpStatus: 400,
+      };
+    }
+    const { preparedAction, verificationSnapshot } = railPrepare.value.baseUsdc;
 
-  if (
-    !spendBaseUsdcSnapshotMatchesLiveRail({
-      snapshot: verificationSnapshot,
-      liveSpendRail: session.spend_rail,
-      liveReceivingLower: liveReceiving,
-      liveUsdcContractLower: liveUsdc,
-      liveChainId: POSTER_CHECKOUT_CHAIN_ID,
-    })
-  ) {
+    const liveReceiving = receiving.toLowerCase();
+    const liveUsdc = getSpendRailBaseUsdcContractAddress().toLowerCase();
+
+    if (
+      !spendBaseUsdcSnapshotMatchesLiveRail({
+        snapshot: verificationSnapshot,
+        liveSpendRail: session.spend_rail,
+        liveReceivingLower: liveReceiving,
+        liveUsdcContractLower: liveUsdc,
+        liveChainId: POSTER_CHECKOUT_CHAIN_ID,
+      })
+    ) {
+      return {
+        ok: false,
+        error: 'Invalid payment rail configuration',
+        httpStatus: 500,
+      };
+    }
+
+    newAction = { ...preparedAction } as Record<string, unknown>;
+    newSnap = { ...verificationSnapshot } as Record<string, unknown>;
+  } else if (session.spend_rail === 'stellar_usdc') {
+    if (!railPrepare.value.stellarUsdc) {
+      return {
+        ok: false,
+        error: 'Payment preparation is not available for this session',
+        httpStatus: 400,
+      };
+    }
+    const { preparedAction, verificationSnapshot } =
+      railPrepare.value.stellarUsdc;
+    const usdcIssuer = verificationSnapshot.usdc_issuer;
+    const usdcCode = verificationSnapshot.usdc_asset_code;
+    if (
+      !spendStellarUsdcSnapshotMatchesLiveRail({
+        snapshot: verificationSnapshot,
+        liveSpendRail: session.spend_rail,
+        liveReceiving: receiving,
+        liveUsdcIssuer: usdcIssuer,
+        liveUsdcCode: usdcCode,
+      })
+    ) {
+      return {
+        ok: false,
+        error: 'Invalid payment rail configuration',
+        httpStatus: 500,
+      };
+    }
+    newAction = { ...preparedAction } as Record<string, unknown>;
+    newSnap = { ...verificationSnapshot } as Record<string, unknown>;
+  } else {
     return {
       ok: false,
-      error: 'Invalid payment rail configuration',
-      httpStatus: 500,
+      error: 'Payment preparation is not available for this session',
+      httpStatus: 400,
     };
   }
-
-  const newAction = { ...preparedAction } as Record<string, unknown>;
-  const newSnap = { ...verificationSnapshot } as Record<string, unknown>;
 
   const { row: initialRow, created } = await insertSpendPaymentPrepareOrGet({
     spendSessionId: session.id,

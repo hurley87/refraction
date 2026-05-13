@@ -51,6 +51,27 @@ vi.mock('@/lib/spend/stellar-treasury-funding', () => ({
     hoistedTreasury.submit(...a),
 }));
 
+vi.mock('@/lib/spend-rail-config', () => ({
+  getSpendReceivingWalletAddress: () =>
+    'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H',
+}));
+
+vi.mock(
+  '@/lib/spend/stellar-wallet-readiness-config',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/lib/spend/stellar-wallet-readiness-config')
+      >();
+    return {
+      ...actual,
+      getStellarSpendUsdcIssuer: () =>
+        'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN',
+      getStellarSpendUsdcAssetCode: () => 'USDC',
+    };
+  }
+);
+
 import { createStellarUsdcSpendPaymentRail } from './stellar-usdc-rail';
 
 const sessionId = '770e8400-e29b-41d4-a716-446655440000';
@@ -289,5 +310,34 @@ describe('createStellarUsdcSpendPaymentRail — treasury funding (IRL-16)', () =
     expect(res.ok).toBe(false);
     if (res.ok) throw new Error('expected err');
     expect(res.error.category).toBe('wallet_readiness_failed');
+  });
+});
+
+describe('createStellarUsdcSpendPaymentRail — final payment prepare (IRL-24)', () => {
+  it('preparePayment returns backend_submit v1 payload bound to session + env receiver', async () => {
+    const rail = createStellarUsdcSpendPaymentRail();
+    const out = await rail.preparePayment({
+      spendSessionId: sessionId,
+      railUserWalletAddress: STELLAR_G,
+      usdcAmount: 1.5,
+    });
+    expect(out.ok).toBe(true);
+    if (!out.ok) throw new Error('expected ok');
+    expect(out.value.status).toBe('prepared');
+    const su = out.value.stellarUsdc;
+    if (!su) throw new Error('expected stellarUsdc');
+    expect(su.preparedAction.payment_channel).toBe('backend_submit');
+    expect(su.preparedAction.display.pay_label).toBe(
+      'Pay 1.50 USDC on Stellar'
+    );
+    expect(su.preparedAction.confirm.session_id).toBe(sessionId);
+    expect(su.preparedAction.confirm.path).toContain(
+      encodeURIComponent(sessionId)
+    );
+    expect(su.verificationSnapshot.from_wallet).toBe(STELLAR_G);
+    expect(su.verificationSnapshot.receiving_wallet).toBe(
+      'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H'
+    );
+    expect(su.verificationSnapshot.usdc_amount).toBe(1.5);
   });
 });

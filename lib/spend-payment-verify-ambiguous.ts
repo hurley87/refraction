@@ -8,6 +8,8 @@ export function isAmbiguousSpendPaymentVerifyFailure(reason: string): boolean {
     r.includes('timeout') ||
     r.includes('rpc not configured') ||
     r.includes('receipt wait') ||
-    r.includes('wait failed')
+    r.includes('wait failed') ||
+    r.includes('horizon_tx_pending_timeout') ||
+    r.includes('horizon_payments_fetch_failed')
   );
 }
