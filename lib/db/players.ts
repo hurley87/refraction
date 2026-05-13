@@ -156,8 +156,66 @@ export const getPlayerBySolanaWallet = async (solanaWalletAddress: string) => {
 export const getPlayerByStellarWallet = async (
   stellarWalletAddress: string
 ) => {
-  return getPlayerByField('stellar_wallet_address', stellarWalletAddress);
+  return getPlayerByField(
+    'stellar_wallet_address',
+    stellarWalletAddress.trim()
+  );
 };
+
+export async function getPlayersByEvmWalletCaseInsensitive(
+  walletAddress: string
+): Promise<Player[]> {
+  // Note: once duplicate lowercased wallet groups are merged, a partial unique
+  // index on `lower(trim(wallet_address))` would prevent parallel EVM rows.
+  const t = walletAddress.trim();
+  if (!t) return [];
+  const evm = tryNormalizeEvmAddress(t);
+  if (!evm) return [];
+
+  const { data, error } = await supabase
+    .from('players')
+    .select(PLAYER_COLUMNS)
+    .ilike('wallet_address', evm)
+    .order('id', { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function updatePlayerStellarWalletMetadata(
+  playerId: number,
+  input: {
+    stellarWalletAddress?: string;
+    stellarWalletId?: string;
+  }
+): Promise<Player> {
+  type Patch = {
+    updated_at: string;
+    stellar_wallet_address?: string;
+    stellar_wallet_id?: string;
+  };
+  const updates: Patch = {
+    updated_at: new Date().toISOString(),
+  };
+  const stellarWalletAddress = input.stellarWalletAddress?.trim();
+  const stellarWalletId = input.stellarWalletId?.trim();
+  if (stellarWalletAddress) {
+    updates.stellar_wallet_address = stellarWalletAddress;
+  }
+  if (stellarWalletId) {
+    updates.stellar_wallet_id = stellarWalletId;
+  }
+
+  const { data, error } = await supabase
+    .from('players')
+    .update(updates)
+    .eq('id', playerId)
+    .select(PLAYER_COLUMNS)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
 
 /**
  * Get player by Aptos wallet address
