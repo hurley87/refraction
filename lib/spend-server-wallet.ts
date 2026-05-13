@@ -1,3 +1,4 @@
+import { readStellarTreasuryConfirmedUsdcBalance } from '@/lib/spend/stellar-treasury-funding';
 import {
   fetchUsdcBalanceOnBase,
   isEvmAddress,
@@ -174,9 +175,17 @@ export async function getServerWalletFundingStatus(params: {
   };
 }
 
-export function fetchServerWalletUsdcBalanceSafe(
+export async function fetchServerWalletUsdcBalanceSafe(
   experience: Pick<SpendExperience, 'spend_rail'>
 ): Promise<number | null> {
+  if (experience.spend_rail === 'stellar_usdc') {
+    try {
+      return await readStellarTreasuryConfirmedUsdcBalance();
+    } catch (error) {
+      console.error('fetchServerWalletUsdcBalanceSafe stellar:', error);
+      return null;
+    }
+  }
   return fetchUsdcBalanceSafe(
     experience.spend_rail,
     getSpendTreasuryWalletAddress(experience.spend_rail),
