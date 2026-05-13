@@ -1,6 +1,8 @@
 /**
- * Content Security Policy for the application. Allows Privy, Google Fonts,
- * Sentry ingest, and other required third parties while restricting other sources.
+ * Content Security Policy for the application: allowlisted third parties the app
+ * depends on (Privy, Mapbox, wallets, analytics, Sentry, etc.) with restrictive defaults.
+ * Sentry needs explicit regional ingest patterns (e.g. *.ingest.us.sentry.io); a bare
+ * *.sentry.io entry does not match those multi-label hostnames under CSP wildcard rules.
  * script-src uses 'unsafe-inline' because Next.js/React inject many inline scripts
  * whose hashes change per build; hash allowlists would need constant updates.
  */
