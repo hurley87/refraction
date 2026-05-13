@@ -133,28 +133,28 @@ export function buildSpendEligibilityPreview(
   const railPublic = getSpendRailPublicMetadata(spendExperience.spend_rail);
   const { networkLabel, assetSymbol: railAssetSymbol } = railPublic;
 
+  const previewTreasuryFundingMeta =
+    getSpendTreasuryFundingWalletMeta(spendExperience);
+
   const treasuryInsufficientMessage =
     spendExperience.spend_rail === 'stellar_usdc'
       ? SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE
       : SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient;
 
-  const basePreview = (): SpendConversionPreview => {
-    const fundingMeta = getSpendTreasuryFundingWalletMeta(spendExperience);
-    return {
-      pointsRequired,
-      usdcAmount,
-      receivingWalletAddress: getSpendReceivingWalletAddress(
-        spendExperience.spend_rail
-      ),
-      treasuryWalletAddress:
-        fundingMeta?.treasuryAddress ??
-        getSpendTreasuryWalletAddress(spendExperience.spend_rail),
-      userPointsBalance:
-        player?.total_points != null ? Number(player.total_points) : null,
-      userUsdcBalance,
-      treasuryUsdcBalance,
-    };
-  };
+  const basePreview = (): SpendConversionPreview => ({
+    pointsRequired,
+    usdcAmount,
+    receivingWalletAddress: getSpendReceivingWalletAddress(
+      spendExperience.spend_rail
+    ),
+    treasuryWalletAddress:
+      previewTreasuryFundingMeta?.treasuryAddress ??
+      getSpendTreasuryWalletAddress(spendExperience.spend_rail),
+    userPointsBalance:
+      player?.total_points != null ? Number(player.total_points) : null,
+    userUsdcBalance,
+    treasuryUsdcBalance,
+  });
 
   const railDiag = getSpendRailOperationalDiagnostics(session.spend_rail);
   /** Confirmed on-chain payment: receipt/read paths stay accurate if the rail is later disabled. */

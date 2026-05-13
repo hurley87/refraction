@@ -6,6 +6,7 @@ import type {
   SpendPaymentRailSessionContext,
   SpendRailFundingOperationStatus,
   SpendRailPaymentOperationStatus,
+  SpendTreasuryBalanceRailContext,
   SpendWalletReadinessStatus,
 } from '@/lib/spend/payment-rails/types';
 import type {
@@ -56,8 +57,13 @@ export interface SpendPaymentRail {
   /**
    * Treasury USDC (or rail asset) spendable balance when the rail can resolve it server-side.
    * `null` means unknown / not loaded at this boundary (not an error).
+   *
+   * Base USDC: pass `treasuryFundingWalletId` / `treasuryFundingWalletAddress` when resolving
+   * the per-experience server wallet; omit to use env rail treasury only.
    */
-  getTreasurySpendableBalance(): Promise<SpendRailResult<number | null>>;
+  getTreasurySpendableBalance(
+    ctx?: SpendTreasuryBalanceRailContext
+  ): Promise<SpendRailResult<number | null>>;
 
   /**
    * Coarse wallet readiness orchestration (e.g. sponsored account + trustline). Base USDC

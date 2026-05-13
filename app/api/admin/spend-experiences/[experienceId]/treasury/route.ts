@@ -39,7 +39,8 @@ function ledgerTotalsFromRows(rows: TreasuryTransaction[]): {
 
 /**
  * GET /api/admin/spend-experiences/{experienceId}/treasury
- * Global rail treasury wallet (Base USDC), live USDC balance when applicable, optional ledger (PRD §12).
+ * Live treasury USDC balance, optional ledger, and funding metadata (PRD §12).
+ * For Base USDC, the funding wallet is the experience server wallet when configured, otherwise env rail treasury.
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {

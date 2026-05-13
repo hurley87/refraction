@@ -39,7 +39,10 @@ import {
 import { spendConversionResumeInvokesWalletReadinessOrchestration } from '@/lib/spend/spend-conversion-resume-policy';
 import { getSpendPaymentRail } from '@/lib/spend/payment-rails';
 import { getStellarTreasuryFundingTxOutcome } from '@/lib/spend/stellar-treasury-funding';
-import type { SpendPaymentRailSessionContext } from '@/lib/spend/payment-rails/types';
+import type {
+  SpendPaymentRailSessionContext,
+  SpendTreasuryBalanceRailContext,
+} from '@/lib/spend/payment-rails/types';
 import {
   spendRailErrorCategoryToHttpStatus,
   spendRailErrorTreasuryInsufficientFunds,
@@ -76,6 +79,17 @@ const RESUMABLE: PointConversion['status'][] = [
 ];
 const MISCONFIGURED_CONVERSION_ERROR =
   'Conversion is not configured correctly. Please contact support.';
+
+function baseTreasuryBalanceRailContext(
+  meta: ReturnType<typeof getSpendTreasuryFundingWalletMeta>
+): SpendTreasuryBalanceRailContext | undefined {
+  if (!meta || meta.spendRail !== 'base_usdc') return undefined;
+  return {
+    treasuryFundingWalletId: meta.walletId,
+    treasuryFundingWalletAddress: meta.treasuryAddress,
+  };
+}
+
 const FUNDING_ACKNOWLEDGED_MESSAGE =
   'USDC transfer submitted. We are confirming it on Base.';
 
@@ -754,9 +768,21 @@ export async function runSpendConversionConfirm(
       };
     }
 
+    const retryTreasuryMeta =
+      getSpendTreasuryFundingWalletMeta(spendExperience);
+    if (!retryTreasuryMeta) {
+      return {
+        ok: false,
+        httpStatus: 500,
+        error: MISCONFIGURED_CONVERSION_ERROR,
+      };
+    }
+
     const retryTreasury = await getSpendPaymentRail(
       session.spend_rail
-    ).getTreasurySpendableBalance();
+    ).getTreasurySpendableBalance(
+      baseTreasuryBalanceRailContext(retryTreasuryMeta)
+    );
     if (!retryTreasury.ok) {
       return {
         ok: false,
@@ -982,9 +1008,18 @@ export async function runSpendConversionConfirm(
     };
   }
 
+  const treasuryMeta = getSpendTreasuryFundingWalletMeta(spendExperience);
+  if (!treasuryMeta) {
+    return {
+      ok: false,
+      httpStatus: 500,
+      error: MISCONFIGURED_CONVERSION_ERROR,
+    };
+  }
+
   const confirmTreasury = await getSpendPaymentRail(
     session.spend_rail
-  ).getTreasurySpendableBalance();
+  ).getTreasurySpendableBalance(baseTreasuryBalanceRailContext(treasuryMeta));
   if (!confirmTreasury.ok) {
     return {
       ok: false,
@@ -1011,15 +1046,6 @@ export async function runSpendConversionConfirm(
         session.spend_rail === 'stellar_usdc'
           ? SPEND_STELLAR_TREASURY_INSUFFICIENT_MESSAGE
           : SPEND_ELIGIBILITY_MESSAGES.treasury_insufficient,
-    };
-  }
-
-  const treasuryMeta = getSpendTreasuryFundingWalletMeta(spendExperience);
-  if (!treasuryMeta) {
-    return {
-      ok: false,
-      httpStatus: 500,
-      error: MISCONFIGURED_CONVERSION_ERROR,
     };
   }
 
