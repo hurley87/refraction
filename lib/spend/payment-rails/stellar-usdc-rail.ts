@@ -397,8 +397,9 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
     async reconcilePendingOperations(
       ctx: SpendPaymentRailReconcileContext
     ): Promise<SpendRailResult<void>> {
-      void ctx;
-      return unsupported();
+      const { reconcileSpendRailPendingOperationsFromRailContext } =
+        await import('@/lib/spend/reconcile-spend-rail-pending-operations');
+      return reconcileSpendRailPendingOperationsFromRailContext(ctx, spendRail);
     },
 
     assertUserSignedOnchainPaymentConfirmSupported(): SpendRailResult<void> {

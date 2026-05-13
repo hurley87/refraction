@@ -100,8 +100,8 @@ export interface SpendPaymentRail {
   explorerUrlForLedgerTx(txReference: string | null | undefined): string | null;
 
   /**
-   * Reconcile stale pending/submitted operations (cron). IRL-15: successful no-op on Base;
-   * unsupported outcome on Stellar until reconciliation is rail-backed.
+   * Reconcile stale pending/submitted operations (cron / read-path, IRL-22).
+   * Delegates to `lib/spend/reconcile-spend-rail-pending-operations.ts`.
    */
   reconcilePendingOperations(
     ctx: SpendPaymentRailReconcileContext

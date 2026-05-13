@@ -267,3 +267,29 @@ export function spendPaymentOperationClientSummary(
     last_failure_at: row.last_failure_at,
   };
 }
+
+/**
+ * Sessions with payment prepare rows that may need on-chain verification (IRL-22).
+ */
+export async function listSpendSessionIdsForStalePaymentPrepareReconcile(input: {
+  olderThanIso: string;
+  limit: number;
+}): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('spend_payment_prepare_operations')
+    .select('spend_session_id')
+    .in('status', ['submitted', 'prepared'])
+    .lt('updated_at', input.olderThanIso)
+    .order('updated_at', { ascending: true })
+    .limit(input.limit);
+
+  if (error) {
+    console.error('listSpendSessionIdsForStalePaymentPrepareReconcile:', error);
+    throw new Error(
+      error.message || 'Failed to list payment prepare candidates'
+    );
+  }
+  return (data ?? []).map((row) =>
+    String((row as { spend_session_id: string }).spend_session_id)
+  );
+}
