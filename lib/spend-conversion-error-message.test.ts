@@ -27,4 +27,10 @@ describe('getSpendConversionErrorMessage', () => {
       SPEND_TOAST_CONVERSION_ERROR
     );
   });
+
+  it('falls back to the generic message when the API error body is blank', () => {
+    expect(getSpendConversionErrorMessage(new ApiError(400, '   '))).toBe(
+      SPEND_TOAST_CONVERSION_ERROR
+    );
+  });
 });
