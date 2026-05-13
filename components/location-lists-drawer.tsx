@@ -46,6 +46,8 @@ interface UserLocation {
 /** Include list locations within this distance (km) of the visible viewport, not only strictly inside it. */
 const VIEWPORT_NEARBY_RADIUS_KM = 25;
 
+const isDev = process.env.NODE_ENV === 'development';
+
 interface LocationListsDrawerProps {
   walletAddress?: string | null;
   onLocationFocus?: (location: DrawerLocationSummary) => void;
@@ -90,7 +92,9 @@ const isLocationInBounds = (
 ): boolean => {
   const coords = toLngLat(location);
   if (!coords) {
-    console.log('[Filter] Location missing coordinates:', location.name);
+    if (isDev) {
+      console.log('[Filter] Location missing coordinates:', location.name);
+    }
     return false;
   }
 
@@ -100,11 +104,16 @@ const isLocationInBounds = (
   // Check latitude bounds
   const latInBounds = latitude >= south && latitude <= north;
   if (!latInBounds) {
-    console.log(`[Filter] Location "${location.name}" FAILED latitude check:`, {
-      locationLat: latitude,
-      boundsSouth: south,
-      boundsNorth: north,
-    });
+    if (isDev) {
+      console.log(
+        `[Filter] Location "${location.name}" FAILED latitude check:`,
+        {
+          locationLat: latitude,
+          boundsSouth: south,
+          boundsNorth: north,
+        }
+      );
+    }
     return false;
   }
 
@@ -120,18 +129,22 @@ const isLocationInBounds = (
   }
 
   if (!lonInBounds) {
-    console.log(
-      `[Filter] Location "${location.name}" FAILED longitude check:`,
-      { locationLon: longitude, boundsWest: west, boundsEast: east }
-    );
+    if (isDev) {
+      console.log(
+        `[Filter] Location "${location.name}" FAILED longitude check:`,
+        { locationLon: longitude, boundsWest: west, boundsEast: east }
+      );
+    }
     return false;
   }
 
-  console.log(`[Filter] Location "${location.name}" PASSED:`, {
-    lat: latitude,
-    lon: longitude,
-    bounds,
-  });
+  if (isDev) {
+    console.log(`[Filter] Location "${location.name}" PASSED:`, {
+      lat: latitude,
+      lon: longitude,
+      bounds,
+    });
+  }
   return true;
 };
 
@@ -171,7 +184,7 @@ function expandMapBoundsByKm(bounds: MapBounds, radiusKm: number): MapBounds {
 
 /**
  * Effective bounds for filtering: visible viewport expanded by {@link VIEWPORT_NEARBY_RADIUS_KM}.
- * Returns null until the map has reported bounds.
+ * Returns null when the parent has not supplied bounds yet (briefly on first paint).
  */
 const getEffectiveBounds = (
   mapBounds: MapBounds | null | undefined,
@@ -227,35 +240,45 @@ export default function LocationListsDrawer({
 
   // Filter locations based on map bounds
   const filteredLists = useMemo(() => {
-    console.log('[Filter] Starting filter with mapBounds:', mapBounds);
+    if (isDev) {
+      console.log('[Filter] Starting filter with mapBounds:', mapBounds);
+    }
     const effectiveBounds = getEffectiveBounds(mapBounds, userLocation);
-    console.log('[Filter] Effective bounds:', effectiveBounds);
+    if (isDev) {
+      console.log('[Filter] Effective bounds:', effectiveBounds);
+    }
 
     if (!effectiveBounds) {
       return [];
     }
 
-    console.log(
-      `[Filter] Filtering ${lists.length} lists with bounds:`,
-      effectiveBounds
-    );
+    if (isDev) {
+      console.log(
+        `[Filter] Filtering ${lists.length} lists with bounds:`,
+        effectiveBounds
+      );
+    }
 
     const filtered = lists
       .filter((list) => (list.locations?.length ?? 0) > 0)
       .map((list) => {
         const locs = list.locations ?? [];
         const totalLocations = locs.length;
-        console.log(
-          `[Filter] Filtering list "${list.title}" with ${totalLocations} locations`
-        );
+        if (isDev) {
+          console.log(
+            `[Filter] Filtering list "${list.title}" with ${totalLocations} locations`
+          );
+        }
 
         const filteredLocations = locs.filter((location) =>
           isLocationInBounds(location, effectiveBounds)
         );
 
-        console.log(
-          `[Filter] List "${list.title}": ${filteredLocations.length}/${totalLocations} locations passed filter`
-        );
+        if (isDev) {
+          console.log(
+            `[Filter] List "${list.title}": ${filteredLocations.length}/${totalLocations} locations passed filter`
+          );
+        }
 
         return {
           ...list,
@@ -272,11 +295,13 @@ export default function LocationListsDrawer({
       0
     );
 
-    console.log(
-      `[Filter] Filtering complete. ${totalFiltered}/${totalOriginal} locations passed filter`
-    );
+    if (isDev) {
+      console.log(
+        `[Filter] Filtering complete. ${totalFiltered}/${totalOriginal} locations passed filter`
+      );
+    }
 
-    if (totalFiltered === 0 && totalOriginal > 0) {
+    if (isDev && totalFiltered === 0 && totalOriginal > 0) {
       console.warn(
         `[Filter] ⚠️ All ${totalOriginal} locations were filtered out!`,
         `No list locations within viewport + ${VIEWPORT_NEARBY_RADIUS_KM}km buffer.`,
