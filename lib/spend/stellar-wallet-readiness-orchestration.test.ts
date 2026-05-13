@@ -55,6 +55,7 @@ vi.mock('@/lib/privy-server-rest', () => ({
 
 vi.mock('@/lib/spend/stellar-wallet-readiness-config', async () => {
   const { Keypair, Networks } = await import('@stellar/stellar-sdk');
+  const sponsorKeypair = Keypair.random();
   return {
     createStellarSpendHorizonServer: () => hoisted.mockServer,
     getStellarSpendCreateAccountStartingBalance: () => '3',
@@ -62,10 +63,7 @@ vi.mock('@/lib/spend/stellar-wallet-readiness-config', async () => {
     getStellarSpendUsdcAssetCode: () => 'USDC',
     getStellarSpendUsdcIssuer: () =>
       'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
-    parseStellarSpendSponsorKeypair: () =>
-      Keypair.fromSecret(
-        'SAPTCMRTYYW4H6ZU5YPH6LDJZYGEIECEPJYTBYPAX7KCFRRIVHJHGJFL'
-      ),
+    parseStellarSpendSponsorKeypair: () => sponsorKeypair,
   };
 });
 
@@ -96,13 +94,19 @@ function accountWithoutTrustline() {
 }
 
 function diagnosticsPatchFor(phase: string) {
-  return hoisted.mockUpdateReadiness.mock.calls
-    .map((call) => call[1] as Record<string, unknown>)
-    .find(
-      (patch) =>
-        (patch.internal_diagnostics as { phase?: string } | undefined)
-          ?.phase === phase
-    );
+  const patches = hoisted.mockUpdateReadiness.mock.calls.map(
+    (call) => call[1] as Record<string, unknown>
+  );
+  for (let i = patches.length - 1; i >= 0; i -= 1) {
+    const patch = patches[i];
+    if (
+      (patch.internal_diagnostics as { phase?: string } | undefined)?.phase ===
+      phase
+    ) {
+      return patch;
+    }
+  }
+  return undefined;
 }
 
 describe('Stellar wallet readiness orchestration', () => {

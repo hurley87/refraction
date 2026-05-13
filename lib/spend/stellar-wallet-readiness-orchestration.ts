@@ -3,6 +3,7 @@ import {
   Horizon,
   Keypair,
   Operation,
+  Transaction,
   TransactionBuilder,
   xdr,
 } from '@stellar/stellar-sdk';
@@ -97,6 +98,15 @@ function classifyHorizonSubmit(e: unknown): SpendRailError {
   return spendRailErrorWalletReadinessFailed();
 }
 
+function horizonLikeErrorResponse(
+  e: unknown
+): { status?: number; data?: unknown } | undefined {
+  if (e === null || typeof e !== 'object') return undefined;
+  const response = (e as { response?: { status?: number; data?: unknown } })
+    .response;
+  return response && typeof response === 'object' ? response : undefined;
+}
+
 async function loadAccountOrNull(
   server: Horizon.Server,
   publicKey: string
@@ -104,7 +114,7 @@ async function loadAccountOrNull(
   try {
     return await server.loadAccount(publicKey);
   } catch (e: unknown) {
-    const status = (e as { response?: { status?: number } })?.response?.status;
+    const status = horizonLikeErrorResponse(e)?.status;
     if (status === 404) return null;
     throw e;
   }
@@ -133,8 +143,7 @@ function diagnosticsFromTrustlineSetupError(
   extra: Record<string, unknown> = {}
 ): Record<string, unknown> {
   const err = e instanceof Error ? e : null;
-  const response = (e as { response?: { status?: number; data?: unknown } })
-    ?.response;
+  const response = horizonLikeErrorResponse(e);
   const data =
     response?.data && typeof response.data === 'object'
       ? (response.data as Record<string, unknown>)
@@ -199,8 +208,7 @@ async function waitForHorizonTxSuccess(
       if (tx.successful) return 'success';
       return 'failed';
     } catch (e: unknown) {
-      const status = (e as { response?: { status?: number } })?.response
-        ?.status;
+      const status = horizonLikeErrorResponse(e)?.status;
       if (status === 404) {
         await new Promise((r) => setTimeout(r, HORIZON_TX_POLL_INTERVAL_MS));
         continue;
@@ -555,10 +563,9 @@ export async function runStellarUsdcWalletReadinessOrchestration(input: {
   });
   await updateSpendWalletReadinessFields(rowId, { step_metadata: stepMeta });
 
-  let usdcAsset;
-  let inner;
+  let inner: Transaction;
   try {
-    usdcAsset = new Asset(usdcCode, usdcIssuer);
+    const usdcAsset = new Asset(usdcCode, usdcIssuer);
     inner = new TransactionBuilder(userAccount, {
       fee: '0',
       networkPassphrase: passphrase,
