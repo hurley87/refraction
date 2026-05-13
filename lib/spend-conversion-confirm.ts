@@ -30,6 +30,7 @@ import {
 } from '@/lib/spend-treasury-usdc-transfer';
 import { getSpendTreasuryFundingWalletMeta } from '@/lib/spend-server-wallet';
 import { insertTreasuryFundUserLedgerIfAbsent } from '@/lib/db/treasury-transactions';
+import { getSpendWalletReadinessBySessionId } from '@/lib/db/spend-wallet-readiness';
 import {
   explorerTxUrlForSpendLedger,
   isStellarTransactionHash,
@@ -41,7 +42,8 @@ import { getStellarTreasuryFundingTxOutcome } from '@/lib/spend/stellar-treasury
 import type { SpendPaymentRailSessionContext } from '@/lib/spend/payment-rails/types';
 import {
   spendRailErrorCategoryToHttpStatus,
-  type SpendRailErrorCategory,
+  spendRailErrorTreasuryInsufficientFunds,
+  type SpendRailError,
 } from '@/lib/spend/payment-rails/errors';
 import {
   assertSpendRailAllowsMutatingSpendWork,
@@ -56,6 +58,10 @@ import {
   trackSpendTreasuryInsufficientFunds,
 } from '@/lib/analytics/server';
 import type { SpendPilotConversionEventProperties } from '@/lib/analytics/types';
+import {
+  spendPilotRailMixpanelFields,
+  spendPilotSanitizedRailErrorFields,
+} from '@/lib/analytics/spend-pilot-rail-context';
 import type {
   PointConversion,
   PointConversionLastFailure,
@@ -162,8 +168,7 @@ async function conversionRailFailureOutcome(input: {
   session: SpendSession;
   distinctId: string;
   baseAnalytics: SpendPilotConversionEventProperties;
-  category: SpendRailErrorCategory;
-  userMessage: string;
+  railError: SpendRailError;
 }): Promise<{
   kind: 'error';
   value: SpendConversionConfirmResult;
@@ -173,27 +178,43 @@ async function conversionRailFailureOutcome(input: {
   const refundOk = await refundSpendConversionPointsBestEffort({
     conversion: input.conv,
     session: input.session,
-    failedReason: `${prefix}:${input.category}:${input.userMessage}`,
+    failedReason: `${prefix}:${input.railError.category}:${input.railError.userMessage}`,
   });
   void persistConversionLastFailure({
     conversionId: input.conv.id,
     phase: input.phase,
-    category: input.category,
-    reasonSnippet: input.userMessage,
+    category: input.railError.category,
+    reasonSnippet: input.railError.userMessage,
   });
+  let walletReadinessOperationId: string | undefined;
+  if (
+    input.phase === 'readiness' &&
+    input.session.spend_rail === 'stellar_usdc'
+  ) {
+    try {
+      const w = await getSpendWalletReadinessBySessionId(input.session.id);
+      walletReadinessOperationId = w?.id;
+    } catch {
+      // best-effort analytics only
+    }
+  }
   trackSpendConversionFailed(input.distinctId, {
     ...input.baseAnalytics,
     point_conversion_id: input.conv.id,
     spend_session_id: input.session.id,
     status: 'failed',
-    error_reason: `${prefix}_failed:${input.category}`,
+    error_reason: `${prefix}_failed:${input.railError.category}`,
+    ...spendPilotSanitizedRailErrorFields(input.railError),
+    ...(walletReadinessOperationId
+      ? { wallet_readiness_operation_id: walletReadinessOperationId }
+      : {}),
   });
   return {
     kind: 'error',
     value: {
       ok: false,
-      httpStatus: spendRailErrorCategoryToHttpStatus(input.category),
-      error: input.userMessage,
+      httpStatus: spendRailErrorCategoryToHttpStatus(input.railError.category),
+      error: input.railError.userMessage,
     },
     ...(refundOk
       ? { pointsRefunded: Math.ceil(Number(input.conv.points_deducted)) }
@@ -243,6 +264,7 @@ async function runWalletReadinessAndUserFunding(input: {
       trackSpendPilotRailMutationBlocked(distinctId, {
         mutation: 'conversion_confirm',
         ...railGate.analytics,
+        ...spendPilotRailMixpanelFields(session.spend_rail),
         spend_experience_id: spendExperience.id,
         event_id: spendExperience.event_id,
         user_id: session.user_id,
@@ -291,6 +313,7 @@ async function runWalletReadinessAndUserFunding(input: {
     privyNormalizedWalletAddressLower: normalizedWallet,
     sessionOwnerPrivyUserId: session.user_id,
     usdcAmount,
+    analyticsDistinctId: distinctId,
   };
 
   const readiness = await rail.runWalletReadinessOrchestration(ctx);
@@ -301,8 +324,7 @@ async function runWalletReadinessAndUserFunding(input: {
       session,
       distinctId,
       baseAnalytics,
-      category: readiness.error.category,
-      userMessage: readiness.error.userMessage,
+      railError: readiness.error,
     });
   }
 
@@ -337,8 +359,7 @@ async function runWalletReadinessAndUserFunding(input: {
       session,
       distinctId,
       baseAnalytics,
-      category: funding.error.category,
-      userMessage: funding.error.userMessage,
+      railError: funding.error,
     });
   }
 
@@ -584,6 +605,7 @@ export async function finalizePendingSpendConversion(input: {
     normalizedWallet: input.walletAddress,
     distinctId: input.distinctId,
     baseAnalytics: {
+      ...spendPilotRailMixpanelFields(input.session.spend_rail),
       spend_experience_id: input.spendExperience.id,
       event_id: input.spendExperience.event_id,
       user_id: input.session.user_id,
@@ -615,6 +637,7 @@ export async function runSpendConversionConfirm(
   const now = new Date();
 
   const baseAnalytics: SpendPilotConversionEventProperties = {
+    ...spendPilotRailMixpanelFields(session.spend_rail),
     spend_experience_id: spendExperience.id,
     event_id: spendExperience.event_id,
     user_id: authUserId,
@@ -676,6 +699,9 @@ export async function runSpendConversionConfirm(
     if (retryEligibility.status === 'treasury_insufficient') {
       trackSpendTreasuryInsufficientFunds(distinctId, {
         ...baseAnalytics,
+        ...spendPilotSanitizedRailErrorFields(
+          spendRailErrorTreasuryInsufficientFunds()
+        ),
         status: 'treasury_insufficient',
         error_reason: 'treasury_insufficient',
       });
@@ -688,6 +714,7 @@ export async function runSpendConversionConfirm(
           trackSpendPilotRailMutationBlocked(distinctId, {
             mutation: 'conversion_confirm',
             ...rg.analytics,
+            ...spendPilotRailMixpanelFields(session.spend_rail),
             spend_experience_id: spendExperience.id,
             event_id: spendExperience.event_id,
             user_id: authUserId,
@@ -710,6 +737,7 @@ export async function runSpendConversionConfirm(
       trackSpendPilotRailMutationBlocked(distinctId, {
         mutation: 'conversion_confirm',
         ...retryRailGate.analytics,
+        ...spendPilotRailMixpanelFields(session.spend_rail),
         spend_experience_id: spendExperience.id,
         event_id: spendExperience.event_id,
         user_id: authUserId,
@@ -739,6 +767,9 @@ export async function runSpendConversionConfirm(
     if (retryBal === null || retryBal < usdcAmount) {
       trackSpendTreasuryInsufficientFunds(distinctId, {
         ...baseAnalytics,
+        ...spendPilotSanitizedRailErrorFields(
+          spendRailErrorTreasuryInsufficientFunds()
+        ),
         status: 'treasury_insufficient',
         error_reason: 'treasury_insufficient_at_confirm_retry',
       });
@@ -917,6 +948,9 @@ export async function runSpendConversionConfirm(
   if (eligibility.status === 'treasury_insufficient') {
     trackSpendTreasuryInsufficientFunds(distinctId, {
       ...baseAnalytics,
+      ...spendPilotSanitizedRailErrorFields(
+        spendRailErrorTreasuryInsufficientFunds()
+      ),
       status: 'treasury_insufficient',
       error_reason: 'treasury_insufficient',
     });
@@ -929,6 +963,7 @@ export async function runSpendConversionConfirm(
         trackSpendPilotRailMutationBlocked(distinctId, {
           mutation: 'conversion_confirm',
           ...rg.analytics,
+          ...spendPilotRailMixpanelFields(session.spend_rail),
           spend_experience_id: spendExperience.id,
           event_id: spendExperience.event_id,
           user_id: authUserId,
@@ -960,6 +995,9 @@ export async function runSpendConversionConfirm(
   if (bal === null || bal < usdcAmount) {
     trackSpendTreasuryInsufficientFunds(distinctId, {
       ...baseAnalytics,
+      ...spendPilotSanitizedRailErrorFields(
+        spendRailErrorTreasuryInsufficientFunds()
+      ),
       status: 'treasury_insufficient',
       error_reason: 'treasury_insufficient_at_confirm',
     });
@@ -1113,6 +1151,7 @@ async function fundOrResumeUsdc(input: {
     trackSpendPilotRailMutationBlocked(distinctId, {
       mutation: 'conversion_resume',
       ...railGate.analytics,
+      ...spendPilotRailMixpanelFields(session.spend_rail),
       spend_experience_id: spendExperience.id,
       event_id: spendExperience.event_id,
       user_id: session.user_id,

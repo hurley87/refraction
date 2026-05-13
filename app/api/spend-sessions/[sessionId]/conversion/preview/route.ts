@@ -17,6 +17,11 @@ import {
   trackSpendUserAlreadyConverted,
   resolveServerIdentity,
 } from '@/lib/analytics/server';
+import {
+  spendPilotRailMixpanelFields,
+  spendPilotSanitizedRailErrorFields,
+} from '@/lib/analytics/spend-pilot-rail-context';
+import { spendRailErrorTreasuryInsufficientFunds } from '@/lib/spend/payment-rails/errors';
 import { spendConversionPreviewBodySchema } from '@/lib/schemas/spend-session';
 import { getSpendRailClientSummary } from '@/lib/spend-rail-config';
 
@@ -95,6 +100,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       normalizedWallet,
       distinctId,
       baseAnalytics: {
+        ...spendPilotRailMixpanelFields(session.spend_rail),
         spend_experience_id: spendExperience.id,
         event_id: spendExperience.event_id,
         user_id: auth.userId,
@@ -113,7 +119,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       spendExperience,
     });
 
+    const railFields = spendPilotRailMixpanelFields(responseSession.spend_rail);
     const baseProps = {
+      ...railFields,
       spend_experience_id: spendExperience.id,
       event_id: spendExperience.event_id,
       user_id: auth.userId,
@@ -131,7 +139,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       trackSpendUserAlreadyConverted(distinctId, baseProps);
     }
     if (eligibility.status === 'treasury_insufficient') {
-      trackSpendTreasuryInsufficientFunds(distinctId, baseProps);
+      trackSpendTreasuryInsufficientFunds(distinctId, {
+        ...baseProps,
+        ...spendPilotSanitizedRailErrorFields(
+          spendRailErrorTreasuryInsufficientFunds()
+        ),
+      });
     }
 
     return apiSuccess({

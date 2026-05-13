@@ -15,6 +15,7 @@ import type {
   SpendPilotConversionEventProperties,
   SpendPilotPaymentEventProperties,
   SpendPilotRailMutationBlockedProperties,
+  SpendPilotWalletReadinessEventProperties,
 } from './types';
 import { ANALYTICS_EVENTS } from './events';
 import { resolveDistinctId, type IdentityInput } from './identity';
@@ -366,6 +367,39 @@ export function trackSpendPilotRailMutationBlocked(
   trackEvent(
     distinctId,
     ANALYTICS_EVENTS.SPEND_PILOT_RAIL_MUTATION_BLOCKED,
+    properties
+  );
+}
+
+export function trackSpendWalletReadinessStarted(
+  distinctId: string,
+  properties: SpendPilotWalletReadinessEventProperties
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPEND_WALLET_READINESS_STARTED,
+    properties
+  );
+}
+
+export function trackSpendWalletReadinessCompleted(
+  distinctId: string,
+  properties: SpendPilotWalletReadinessEventProperties
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPEND_WALLET_READINESS_COMPLETED,
+    properties
+  );
+}
+
+export function trackSpendWalletReadinessFailed(
+  distinctId: string,
+  properties: SpendPilotWalletReadinessEventProperties
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPEND_WALLET_READINESS_FAILED,
     properties
   );
 }

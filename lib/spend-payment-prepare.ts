@@ -29,6 +29,7 @@ import {
   POSTER_CHECKOUT_CHAIN_ID,
 } from '@/lib/walletconnect-poster-direct-usdc';
 import { trackSpendPilotRailMutationBlocked } from '@/lib/analytics/server';
+import { spendPilotRailMixpanelFields } from '@/lib/analytics/spend-pilot-rail-context';
 import type { SpendPilotApiHttpStatus } from '@/lib/spend-pilot-http-status';
 import type {
   SpendExperience,
@@ -226,6 +227,7 @@ export async function runSpendPaymentPrepare(input: {
     trackSpendPilotRailMutationBlocked(distinctId, {
       mutation: 'payment_prepare',
       ...railGate.analytics,
+      ...spendPilotRailMixpanelFields(session.spend_rail),
       spend_experience_id: spendExperience.id,
       event_id: spendExperience.event_id,
       user_id: authUserId,

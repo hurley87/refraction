@@ -18,6 +18,7 @@ import {
   assertSpendRailAllowsMutatingSpendWork,
 } from '@/lib/spend-rail-config';
 import { trackSpendPilotRailMutationBlocked } from '@/lib/analytics/server';
+import { spendPilotRailMixpanelFields } from '@/lib/analytics/spend-pilot-rail-context';
 
 function createIdempotencyKey(request: NextRequest): string {
   return (
@@ -82,6 +83,7 @@ export async function POST(request: NextRequest) {
         {
           mutation: 'admin_spend_experience_create',
           ...railGate.analytics,
+          ...spendPilotRailMixpanelFields(spendRail),
           admin_actor: adminCheck.user?.email ?? null,
         }
       );

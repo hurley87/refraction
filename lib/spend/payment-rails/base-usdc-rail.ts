@@ -33,6 +33,15 @@ import {
   type SpendPaymentRail,
   type SpendRailResult,
 } from '@/lib/spend/payment-rails/spend-payment-rail';
+import {
+  spendPilotRailMixpanelFields,
+  spendPilotSanitizedRailErrorFields,
+} from '@/lib/analytics/spend-pilot-rail-context';
+import {
+  trackSpendWalletReadinessCompleted,
+  trackSpendWalletReadinessFailed,
+  trackSpendWalletReadinessStarted,
+} from '@/lib/analytics/server';
 import type {
   SpendPaymentRailReconcileContext,
   SpendPaymentRailSessionContext,
@@ -109,17 +118,67 @@ export function createBaseUsdcSpendPaymentRail(): SpendPaymentRail {
     async runWalletReadinessOrchestration(
       ctx: SpendPaymentRailSessionContext
     ): Promise<SpendRailResult<{ status: SpendWalletReadinessStatus }>> {
+      /**
+       * IRL-23: Base wallet “readiness” is synchronous validation only (no
+       * `spend_wallet_readiness_operations` row). Mixpanel started/completed/failed
+       * mirror that validation gate for funnel parity with Stellar.
+       */
+      const distinctId = ctx.analyticsDistinctId?.trim();
+      const railFields = spendPilotRailMixpanelFields(spendRail);
+      const walletReadinessBase = () => ({
+        spend_session_id: ctx.spendSessionId?.trim() ?? '',
+        spend_experience_id: ctx.spendExperienceId,
+        point_conversion_id: ctx.pointConversionId,
+        user_id: ctx.sessionOwnerPrivyUserId,
+        wallet_address: (
+          ctx.privyNormalizedWalletAddressLower ??
+          ctx.embeddedEvmWalletAddress ??
+          ''
+        )
+          .trim()
+          .toLowerCase(),
+        wallet_readiness_mode: 'base_validation_sync' as const,
+        ...railFields,
+      });
+
+      if (distinctId && ctx.spendSessionId?.trim()) {
+        trackSpendWalletReadinessStarted(distinctId, walletReadinessBase());
+      }
+
       if (!ctx.spendSessionId?.trim()) {
-        return errSpendRail(spendRailErrorWalletReadinessFailed());
+        const err = spendRailErrorWalletReadinessFailed();
+        if (distinctId) {
+          trackSpendWalletReadinessFailed(distinctId, {
+            ...walletReadinessBase(),
+            ...spendPilotSanitizedRailErrorFields(err),
+          });
+        }
+        return errSpendRail(err);
       }
       const embeddedRes = embeddedEvmFromContext(ctx);
       if (!embeddedRes.ok) {
+        if (distinctId) {
+          trackSpendWalletReadinessFailed(distinctId, {
+            ...walletReadinessBase(),
+            ...spendPilotSanitizedRailErrorFields(embeddedRes.error),
+          });
+        }
         return embeddedRes;
       }
       const embedded = embeddedRes.value;
       const authLower = ctx.privyNormalizedWalletAddressLower?.trim();
       if (authLower && embedded.toLowerCase() !== authLower.toLowerCase()) {
-        return errSpendRail(spendRailErrorWalletUnavailable());
+        const err = spendRailErrorWalletUnavailable();
+        if (distinctId) {
+          trackSpendWalletReadinessFailed(distinctId, {
+            ...walletReadinessBase(),
+            ...spendPilotSanitizedRailErrorFields(err),
+          });
+        }
+        return errSpendRail(err);
+      }
+      if (distinctId) {
+        trackSpendWalletReadinessCompleted(distinctId, walletReadinessBase());
       }
       return okSpendRail({ status: 'completed' });
     },

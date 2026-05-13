@@ -13,6 +13,7 @@ import {
   assertSpendRailAllowsMutatingSpendWork,
 } from '@/lib/spend-rail-config';
 import { trackSpendPilotRailMutationBlocked } from '@/lib/analytics/server';
+import { spendPilotRailMixpanelFields } from '@/lib/analytics/spend-pilot-rail-context';
 
 interface RouteParams {
   params: { experienceId: string };
@@ -83,6 +84,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           {
             mutation: 'admin_spend_experience_update',
             ...railGate.analytics,
+            ...spendPilotRailMixpanelFields(existing.spend_rail),
             spend_experience_id: existing.id,
             event_id: existing.event_id,
             admin_actor: adminCheck.user?.email ?? null,

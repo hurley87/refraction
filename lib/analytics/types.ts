@@ -2,6 +2,24 @@
  * Analytics event types and interfaces
  */
 
+import type { SpendRail } from '@/lib/types';
+import type {
+  SpendRailAnalyticsCode,
+  SpendRailErrorCategory,
+} from '@/lib/spend/payment-rails/errors';
+
+/** Shared optional rail + error metadata for spend pilot Mixpanel payloads (IRL-23). */
+export type SpendPilotRailMixpanelFields = {
+  spend_rail: SpendRail;
+  network: string;
+  asset: string;
+};
+
+export type SpendPilotSanitizedErrorFields = {
+  sanitized_error_category: SpendRailErrorCategory;
+  sanitized_error_code: SpendRailAnalyticsCode;
+};
+
 export interface AnalyticsEvent {
   name: string;
   properties?: Record<string, any>;
@@ -147,6 +165,9 @@ export interface SpendPilotSessionEventProperties {
   spend_session_id?: string;
   /** True when the session row was newly inserted (not idempotent return). */
   created?: boolean;
+  spend_rail?: SpendRail;
+  network?: string;
+  asset?: string;
 }
 
 /** Spend pilot: conversion preview / eligibility analytics */
@@ -164,6 +185,14 @@ export interface SpendPilotConversionEventProperties {
   spend_session_id?: string;
   /** On-chain USDC funding tx */
   funding_tx_hash?: string | null;
+  spend_rail?: SpendRail;
+  network?: string;
+  asset?: string;
+  sanitized_error_category?: SpendRailErrorCategory;
+  sanitized_error_code?: SpendRailAnalyticsCode;
+  wallet_readiness_operation_id?: string;
+  sponsor_treasury_transaction_id?: string | null;
+  trustline_treasury_transaction_id?: string | null;
 }
 
 /** Spend pilot: user payment to receiving wallet (PRD §13). */
@@ -180,6 +209,13 @@ export interface SpendPilotPaymentEventProperties {
   point_conversion_id?: string;
   spend_transaction_id?: string;
   payment_tx_hash?: string | null;
+  spend_rail?: SpendRail;
+  network?: string;
+  asset?: string;
+  sanitized_error_category?: SpendRailErrorCategory;
+  sanitized_error_code?: SpendRailAnalyticsCode;
+  /** `spend_payment_prepare_operations.id` when a prepare row exists for the session. */
+  spend_payment_prepare_operation_id?: string;
 }
 
 /** Server-only: mutating spend blocked because the session rail is not operational. */
@@ -194,7 +230,7 @@ export interface SpendPilotRailMutationBlockedProperties {
     | 'admin_spend_experience_create'
     | 'admin_spend_experience_update'
     | 'admin_treasury_withdraw';
-  spend_rail: string;
+  spend_rail: SpendRail;
   rail_operational: false;
   /** Curated, non-secret reason labels (see spend-rail-config admin mapping). */
   unavailable_reason_codes: string[];
@@ -205,4 +241,32 @@ export interface SpendPilotRailMutationBlockedProperties {
   wallet_address?: string;
   point_conversion_id?: string;
   admin_actor?: string | null;
+  network?: string;
+  asset?: string;
+}
+
+/** Spend pilot wallet readiness funnel (IRL-23). */
+export interface SpendPilotWalletReadinessEventProperties {
+  spend_experience_id?: string;
+  event_id?: string | null;
+  user_id?: string;
+  wallet_address?: string;
+  spend_session_id: string;
+  point_conversion_id?: string;
+  spend_rail: SpendRail;
+  network: string;
+  asset: string;
+  /**
+   * Base USDC: synchronous validation-only gate (no `spend_wallet_readiness_operations` row).
+   * Stellar USDC: persisted readiness row id when available.
+   */
+  wallet_readiness_operation_id?: string;
+  sponsor_treasury_transaction_id?: string | null;
+  trustline_treasury_transaction_id?: string | null;
+  /** Base: `base_validation_sync`. Stellar: `stellar_async_orchestration`. */
+  wallet_readiness_mode: 'base_validation_sync' | 'stellar_async_orchestration';
+  sanitized_error_category?: SpendRailErrorCategory;
+  sanitized_error_code?: SpendRailAnalyticsCode;
+  /** True when Stellar readiness was already `completed` in the database (no new orchestration). */
+  resumed_from_completed_row?: boolean;
 }

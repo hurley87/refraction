@@ -59,6 +59,11 @@ import {
   trackSpendPilotRailMutationBlocked,
 } from '@/lib/analytics/server';
 import type { SpendPilotPaymentEventProperties } from '@/lib/analytics/types';
+import {
+  spendPilotRailMixpanelFields,
+  spendPilotSanitizedRailErrorFields,
+} from '@/lib/analytics/spend-pilot-rail-context';
+import { spendRailErrorPaymentFailed } from '@/lib/spend/payment-rails/errors';
 import type { SpendPilotApiHttpStatus } from '@/lib/spend-pilot-http-status';
 
 export type { SpendPilotApiHttpStatus } from '@/lib/spend-pilot-http-status';
@@ -131,8 +136,10 @@ async function finalizeFailure(params: {
     failed_reason: params.reason,
   });
   await updateSpendSessionStatus(params.sessionId, 'payment_pending');
+  const paymentFailed = spendRailErrorPaymentFailed();
   trackSpendPaymentFailed(params.distinctId, {
     ...params.analytics,
+    ...spendPilotSanitizedRailErrorFields(paymentFailed),
     status: 'failed',
     error_reason: params.reason,
   });
@@ -286,6 +293,7 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
   let spendTx: SpendTransaction | null = spendTxInitial;
 
   const stellarAnalyticsBase: SpendPilotPaymentEventProperties = {
+    ...spendPilotRailMixpanelFields(session.spend_rail),
     spend_experience_id: spendExperience.id,
     event_id: spendExperience.event_id,
     user_id: authUserId,
@@ -296,6 +304,7 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
     spend_session_id: session.id,
     point_conversion_id: fundedConversion?.id,
     payment_tx_hash: spendTx?.payment_tx_hash ?? '',
+    spend_payment_prepare_operation_id: preparedOp.id,
   };
 
   const applyStellarPrepareTerminal = async (
@@ -443,6 +452,7 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
     trackSpendPilotRailMutationBlocked(distinctId, {
       mutation: 'payment_confirm',
       ...railGate.analytics,
+      ...spendPilotRailMixpanelFields(session.spend_rail),
       spend_experience_id: spendExperience.id,
       event_id: spendExperience.event_id,
       user_id: authUserId,
@@ -480,6 +490,12 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
   });
 
   if (!railConfirm.ok) {
+    trackSpendPaymentFailed(distinctId, {
+      ...stellarAnalyticsBase,
+      status: 'failed',
+      error_reason: 'payment_submit_rejected',
+      ...spendPilotSanitizedRailErrorFields(railConfirm.error),
+    });
     return {
       ok: false,
       error: railConfirm.error.userMessage,
@@ -493,6 +509,13 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
   const outcome = railConfirm.value;
   const ledgerRef = outcome.ledgerTxReference?.trim() ?? '';
   if (!ledgerRef || !isStellarTransactionHash(ledgerRef)) {
+    trackSpendPaymentFailed(distinctId, {
+      ...stellarAnalyticsBase,
+      ...(spendTx ? { spend_transaction_id: spendTx.id } : {}),
+      status: 'failed',
+      error_reason: 'payment_submit_missing_ledger_ref',
+      ...spendPilotSanitizedRailErrorFields(spendRailErrorPaymentFailed()),
+    });
     return {
       ok: false,
       error: 'Payment submission did not return a ledger reference.',
@@ -501,6 +524,13 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
   }
 
   if (outcome.status !== 'submitted') {
+    trackSpendPaymentFailed(distinctId, {
+      ...stellarAnalyticsBase,
+      ...(spendTx ? { spend_transaction_id: spendTx.id } : {}),
+      status: 'failed',
+      error_reason: 'payment_submit_unexpected_state',
+      ...spendPilotSanitizedRailErrorFields(spendRailErrorPaymentFailed()),
+    });
     return {
       ok: false,
       error: 'Unexpected payment submission state.',
@@ -839,6 +869,7 @@ export async function runSpendPaymentConfirm(input: {
   };
 
   const baseAnalytics: SpendPilotPaymentEventProperties = {
+    ...spendPilotRailMixpanelFields(session.spend_rail),
     spend_experience_id: spendExperience.id,
     event_id: spendExperience.event_id,
     user_id: authUserId,
@@ -849,6 +880,9 @@ export async function runSpendPaymentConfirm(input: {
     spend_session_id: session.id,
     point_conversion_id: fundedConversion?.id,
     payment_tx_hash: txHash,
+    ...(basePaymentPrepare
+      ? { spend_payment_prepare_operation_id: basePaymentPrepare.id }
+      : {}),
   };
 
   if (!spendTx) {
@@ -857,6 +891,7 @@ export async function runSpendPaymentConfirm(input: {
       trackSpendPilotRailMutationBlocked(distinctId, {
         mutation: 'payment_confirm',
         ...railGate.analytics,
+        ...spendPilotRailMixpanelFields(session.spend_rail),
         spend_experience_id: spendExperience.id,
         event_id: spendExperience.event_id,
         user_id: authUserId,

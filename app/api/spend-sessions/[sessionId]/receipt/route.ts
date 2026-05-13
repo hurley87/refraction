@@ -12,6 +12,7 @@ import {
   resolveServerIdentity,
   trackSpendReceiptViewed,
 } from '@/lib/analytics/server';
+import { spendPilotRailMixpanelFields } from '@/lib/analytics/spend-pilot-rail-context';
 import { getSpendRailClientSummary } from '@/lib/spend-rail-config';
 
 export const dynamic = 'force-dynamic';
@@ -64,6 +65,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       walletAddress: session.wallet_address.toLowerCase(),
     });
     trackSpendReceiptViewed(distinctId, {
+      ...spendPilotRailMixpanelFields(session.spend_rail),
       spend_experience_id: spendExperience.id,
       event_id: spendExperience.event_id,
       user_id: userId,

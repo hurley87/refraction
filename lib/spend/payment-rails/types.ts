@@ -68,6 +68,10 @@ export type SpendPaymentRailSessionContext = {
    * Not used by Base USDC.
    */
   railUserWalletAddress?: string | null;
+  /**
+   * When set, wallet readiness rails may emit Mixpanel readiness funnel events (IRL-23).
+   */
+  analyticsDistinctId?: string;
 };
 
 /**
