@@ -72,6 +72,8 @@ describe('buildSpendEligibilityPreview', () => {
       now,
     });
     expect(r.status).toBe('eligible');
+    expect(r.message).toContain('Base');
+    expect(r.message).toContain('USDC');
     expect(r.preview?.pointsRequired).toBe(5000);
     expect(r.preview?.usdcAmount).toBe(5);
     expect(r.preview?.userUsdcBalance).toBeNull();

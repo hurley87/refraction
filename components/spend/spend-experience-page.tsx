@@ -24,8 +24,9 @@ import {
 } from '@/lib/spend-eligibility-messages';
 import type { SpendRailClientSummary } from '@/lib/spend-rail-config/types';
 import {
-  formatSpendPaymentExplorerUrl,
-  spendPaymentExplorerLinkLabel,
+  resolveSpendReceiptPaymentExplorerUrl,
+  SPEND_RECEIPT_EXPLORER_LINK_LABEL,
+  spendReceiptPaymentStatusLabel,
 } from '@/lib/spend-rail-explorer-url-client';
 import { isEvmAddress } from '@/lib/walletconnect-poster-direct-usdc';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
@@ -105,6 +106,13 @@ type ReceiptResponse = {
 };
 
 const WALLET_STEP_TIMEOUT_MS = 180_000;
+
+const SPEND_TOAST_CONVERSION_ERROR =
+  "We couldn't complete that step. Please try again, or contact support if it keeps happening.";
+const SPEND_TOAST_PAYMENT_ERROR =
+  "We couldn't record your payment. Please try again, or contact support if it keeps happening.";
+const SPEND_TOAST_WALLET_ERROR =
+  'Something went wrong with your wallet or network. Please try again in a moment.';
 
 function isPaymentNeedsReviewFromApiError(error: unknown): boolean {
   if (!(error instanceof ApiError)) return false;
@@ -388,9 +396,8 @@ export function SpendExperiencePage({
       }
       await invalidateSpendQueries();
     },
-    onError: (e) => {
-      const msg = e instanceof ApiError ? e.message : String(e);
-      toast.error(msg);
+    onError: () => {
+      toast.error(SPEND_TOAST_CONVERSION_ERROR);
     },
   });
 
@@ -419,10 +426,6 @@ export function SpendExperiencePage({
       toast.success('Payment recorded. Thank you!');
       await invalidateSpendQueries();
     },
-    onError: (e) => {
-      const msg = e instanceof ApiError ? e.message : String(e);
-      toast.error(msg);
-    },
   });
 
   const sendUsdcPayment = useCallback(async () => {
@@ -434,9 +437,8 @@ export function SpendExperiencePage({
     if (isSpendStellarUsdcBackendSubmitPreparedActionV1(prepared)) {
       try {
         await paymentMutation.mutateAsync({ stellarBackendConfirm: true });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        toast.error(msg);
+      } catch {
+        toast.error(SPEND_TOAST_PAYMENT_ERROR);
       }
       return;
     }
@@ -518,10 +520,13 @@ export function SpendExperiencePage({
           sponsor: true,
         });
       }
-      await paymentMutation.mutateAsync({ paymentTxHash: hash });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error(msg);
+      try {
+        await paymentMutation.mutateAsync({ paymentTxHash: hash });
+      } catch {
+        toast.error(SPEND_TOAST_PAYMENT_ERROR);
+      }
+    } catch {
+      toast.error(SPEND_TOAST_WALLET_ERROR);
     }
   }, [
     walletAddress,
@@ -574,7 +579,8 @@ export function SpendExperiencePage({
 
   const receiptSession = receiptPayload?.session ?? session;
   const receiptConversion = receiptPayload?.pointConversion;
-  const receiptPaymentHash = receiptPayload?.spendTransaction?.payment_tx_hash;
+  const receiptSpendTx = receiptPayload?.spendTransaction ?? null;
+  const receiptPaymentHash = receiptSpendTx?.payment_tx_hash;
 
   const isPaymentComplete =
     elig?.status === 'payment_complete' ||
@@ -614,13 +620,17 @@ export function SpendExperiencePage({
 
   const displayReceipt = isPaymentComplete;
 
-  const paymentExplorerUrl = formatSpendPaymentExplorerUrl(
-    spendRailSummary?.explorerTxUrlTemplate,
-    receiptPaymentHash
+  const receiptNetworkDisplay =
+    receiptSpendTx?.network?.trim() || walletNetworkLabel;
+  const receiptPaymentStatusLabel = spendReceiptPaymentStatusLabel(
+    receiptSpendTx?.status
   );
-  const paymentExplorerLabel = spendPaymentExplorerLinkLabel(
-    spendRailSummary?.explorerTxUrlTemplate
-  );
+
+  const paymentExplorerUrl = resolveSpendReceiptPaymentExplorerUrl({
+    persistedExplorerTxUrl: receiptSpendTx?.explorer_tx_url,
+    explorerTxUrlTemplate: spendRailSummary?.explorerTxUrlTemplate,
+    paymentTxHash: receiptPaymentHash,
+  });
 
   return (
     <SpendPageShell>
@@ -669,7 +679,8 @@ export function SpendExperiencePage({
                       className="size-4 shrink-0 animate-spin"
                       aria-hidden
                     />
-                    Checking your balance and event funds…
+                    Checking your balance on {walletNetworkLabel} and event
+                    funds…
                   </div>
                 )}
 
@@ -684,7 +695,8 @@ export function SpendExperiencePage({
                                 Pay
                               </span>
                               <span className="body-medium font-grotesk font-semibold text-[#171717]">
-                                ${preview.usdcAmount.toFixed(2)} {assetSymbol}
+                                ${preview.usdcAmount.toFixed(2)} {assetSymbol}{' '}
+                                on {walletNetworkLabel}
                               </span>
                             </div>
                             {preview.userUsdcBalance != null && (
@@ -718,7 +730,7 @@ export function SpendExperiencePage({
                                   </span>
                                   <span className="body-medium font-grotesk font-semibold text-[#171717]">
                                     ${preview.usdcAmount.toFixed(2)}{' '}
-                                    {assetSymbol}
+                                    {assetSymbol} on {walletNetworkLabel}
                                   </span>
                                 </div>
                               </>
@@ -768,7 +780,7 @@ export function SpendExperiencePage({
 
                     <p className={eligibilityToneClass(elig.status)}>
                       {elig.status === 'ready_for_payment' && preview
-                        ? `${preview.pointsRequired.toLocaleString()} points were converted to ${preview.usdcAmount.toFixed(2)} ${assetSymbol}.`
+                        ? `${preview.pointsRequired.toLocaleString()} points were converted to ${preview.usdcAmount.toFixed(2)} ${assetSymbol} on ${walletNetworkLabel}.`
                         : elig.message}
                     </p>
 
@@ -779,7 +791,7 @@ export function SpendExperiencePage({
                       >
                         {conversionMutation.isPending
                           ? 'Converting…'
-                          : `Convert points to ${assetSymbol}`}
+                          : `Convert points to ${assetSymbol} on ${walletNetworkLabel}`}
                       </SpendPrimaryButton>
                     )}
 
@@ -815,13 +827,13 @@ export function SpendExperiencePage({
                             )
                             ? paymentPrepareData.preparedAction.display
                                 .submitting_label
-                            : `Pay with ${assetSymbol}…`
+                            : `Pay with ${assetSymbol} on ${walletNetworkLabel}…`
                           : isSpendStellarUsdcBackendSubmitPreparedActionV1(
                                 paymentPrepareData?.preparedAction
                               )
                             ? paymentPrepareData.preparedAction.display
                                 .pay_label
-                            : `Spend $${preview.usdcAmount.toFixed(2)} ${assetSymbol}`}
+                            : `Spend $${preview.usdcAmount.toFixed(2)} ${assetSymbol} on ${walletNetworkLabel}`}
                       </SpendPrimaryButton>
                     )}
 
@@ -830,11 +842,11 @@ export function SpendExperiencePage({
                       !isPaymentComplete &&
                       (resolvedSpendRail === 'base_usdc' ||
                         resolvedSpendRail === 'stellar_usdc') && (
-                        <p className="body-small font-grotesk text-amber-900">
-                          We could not automatically confirm your last payment
-                          transaction. Please contact support with your
-                          transaction hash and do not pay again until support
-                          clears this session.
+                        <p className="body-small font-grotesk text-[#575757]">
+                          Your payment is still being confirmed. This can take a
+                          few minutes. If nothing changes, contact support
+                          before trying again, and avoid sending a duplicate
+                          payment.
                         </p>
                       )}
 
@@ -859,6 +871,22 @@ export function SpendExperiencePage({
                         </div>
                         <div className="flex justify-between gap-2">
                           <span className="body-small font-grotesk text-[#757575]">
+                            Network
+                          </span>
+                          <span className="body-medium font-grotesk font-semibold">
+                            {receiptNetworkDisplay}
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <span className="body-small font-grotesk text-[#757575]">
+                            Payment status
+                          </span>
+                          <span className="body-medium font-grotesk font-semibold">
+                            {receiptPaymentStatusLabel}
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-2">
+                          <span className="body-small font-grotesk text-[#757575]">
                             Points used
                           </span>
                           <span className="body-medium font-grotesk font-semibold">
@@ -876,14 +904,14 @@ export function SpendExperiencePage({
                             {receiptSession?.id}
                           </p>
                         </div>
-                        {receiptPaymentHash && paymentExplorerUrl && (
+                        {paymentExplorerUrl && (
                           <a
                             href={paymentExplorerUrl}
                             target="_blank"
                             rel="noreferrer"
                             className="inline-flex items-center gap-1 body-medium font-grotesk font-semibold text-emerald-900 underline"
                           >
-                            {paymentExplorerLabel}
+                            {SPEND_RECEIPT_EXPLORER_LINK_LABEL}
                             <ExternalLink className="size-3.5 shrink-0" />
                           </a>
                         )}
