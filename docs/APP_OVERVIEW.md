@@ -152,6 +152,7 @@ Important: perk claims do **not** deduct points. Points act as a qualification t
   - `session_started` and `tier_changed` are defined in code but not currently emitted.
   - Some user properties are incomplete or placeholder (for example, `cohort` is hard-coded to `new` on the client).
   - Similar behavioral counts may not exactly match Supabase row counts.
+  - Spend pilot (Base + Stellar USDC) manual QA: see [`docs/spend-rails-e2e-qa-matrix.md`](./spend-rails-e2e-qa-matrix.md).
 
 ### Campaign Monitor
 
