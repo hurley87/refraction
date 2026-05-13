@@ -93,7 +93,13 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     message.includes('extension context invalidated') ||
     message.includes('could not establish connection') ||
     message.includes('receiving end does not exist') ||
-    message.includes('runtime.lasterror');
+    message.includes('runtime.lasterror') ||
+    // Wallet extensions inject `inpage.js`; it can call `chrome.runtime.sendMessage`
+    // from the page world and Chrome throws (not actionable app code).
+    message.includes(
+      'runtime.sendmessage() called from a webpage must specify'
+    ) ||
+    message.includes('error in invocation of runtime.sendmessage');
 
   if (isKnownNoise) {
     return null;
