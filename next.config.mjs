@@ -34,6 +34,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    serverComponentsExternalPackages: [
+      "@stellar/stellar-sdk",
+      "@stellar/stellar-base",
+      "@stellar/js-xdr",
+    ],
+  },
   images: {
     remotePatterns: [
       {
