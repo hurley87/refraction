@@ -1,13 +1,15 @@
 /**
- * Content Security Policy for the application. Allows Privy and Google Fonts
- * while restricting other sources.
+ * Content Security Policy for the application: allowlisted third parties the app
+ * depends on (Privy, Mapbox, wallets, analytics, Sentry, etc.) with restrictive defaults.
+ * Sentry needs explicit regional ingest patterns (e.g. *.ingest.us.sentry.io); a bare
+ * *.sentry.io entry does not match those multi-label hostnames under CSP wildcard rules.
  * script-src uses 'unsafe-inline' because Next.js/React inject many inline scripts
  * whose hashes change per build; hash allowlists would need constant updates.
  */
 const ContentSecurityPolicy = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://*.privy.io https://api.mapbox.com https://*.mapbox.com https://www.googletagmanager.com https://*.googletagmanager.com;
-  connect-src 'self' https://*.privy.io https://*.privy.systems https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com https://*.mapbox.com https://api.developer.coinbase.com https://www.google-analytics.com https://*.google-analytics.com https://*.walletconnect.com https://api.pay.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.com wss://*.walletconnect.org https://mainnet.base.org https://*.base.org https://*.alchemy.com https://*.publicnode.com https://*.llamarpc.com https://*.tenderly.co https://*.infura.io https://*.onfinality.io https://*.syndicate.io https://horizon.stellar.org https://horizon-testnet.stellar.org https://horizon-futurenet.stellar.org https://friendbot.stellar.org https://friendbot-futurenet.stellar.org https://rpc-futurenet.stellar.org https://*.stellar.org https://api-js.mixpanel.com https://api.mixpanel.com https://decide.mixpanel.com;
+  connect-src 'self' https://*.privy.io https://*.privy.systems https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com https://*.mapbox.com https://api.developer.coinbase.com https://www.google-analytics.com https://*.google-analytics.com https://*.walletconnect.com https://api.pay.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.com wss://*.walletconnect.org https://mainnet.base.org https://*.base.org https://*.alchemy.com https://*.publicnode.com https://*.llamarpc.com https://*.tenderly.co https://*.infura.io https://*.onfinality.io https://*.syndicate.io https://horizon.stellar.org https://horizon-testnet.stellar.org https://horizon-futurenet.stellar.org https://friendbot.stellar.org https://friendbot-futurenet.stellar.org https://rpc-futurenet.stellar.org https://*.stellar.org https://api-js.mixpanel.com https://api.mixpanel.com https://decide.mixpanel.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io;
   img-src 'self' data: blob: https:;
   object-src 'self' data: blob:;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.mapbox.com https://*.mapbox.com;
