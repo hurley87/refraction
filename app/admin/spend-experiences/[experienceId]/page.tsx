@@ -20,31 +20,25 @@ import { Label } from '@/components/ui/label';
 import type {
   PointConversion,
   SpendExperience,
-  SpendSession,
+  SpendRail,
   SpendTransaction,
   TreasuryTransaction,
 } from '@/lib/types';
 import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
-
-type ActivityTotals = {
-  usersConverted: number;
-  totalUsdcDistributed: number;
-  totalUsdcReceivedAtEventWallet: number;
-  spendSessionsCount: number;
-};
-
-type ActivitySessionRow = {
-  session: SpendSession;
-  conversion: PointConversion | null;
-  payment: SpendTransaction | null;
-};
+import { spendLedgerTxExplorerUrl } from '@/lib/spend-ledger-explorer-url';
+import type {
+  SpendPilotAdminRailVisibility,
+  SpendPilotAdminTotals,
+  SpendPilotSessionActivityRow,
+} from '@/lib/db/spend-admin';
 
 type ActivityPayload = {
   spendExperienceId: string;
-  totals: ActivityTotals;
-  sessions: ActivitySessionRow[];
+  totals: SpendPilotAdminTotals;
+  sessions: SpendPilotSessionActivityRow[];
   failedConversions: PointConversion[];
   failedPayments: SpendTransaction[];
+  railVisibility?: SpendPilotAdminRailVisibility;
   mixpanelInsightUrl?: string;
 };
 
@@ -82,25 +76,46 @@ function shortenAddr(a: string): string {
   return `${t.slice(0, 6)}…${t.slice(-4)}`;
 }
 
-function baseScanTxUrl(hash: string): string {
-  const h = hash.trim().toLowerCase();
-  return `https://basescan.org/tx/${h}`;
+/** Age from `createdAt` (ISO), consistent with API contract (IRL-26). */
+function formatAgeFromIso(createdAt: string): string {
+  const ms = Date.now() - new Date(createdAt).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return '—';
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return '<1m';
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 48) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d`;
 }
 
-async function copyText(value: string): Promise<void> {
-  await navigator.clipboard.writeText(value);
-}
-
-function TxHashShortLink({
-  hash,
+function LedgerTxLink({
+  spendRail,
+  explorerTxUrl,
+  txHash,
   className,
 }: {
-  hash: string;
+  spendRail: SpendRail;
+  explorerTxUrl?: string | null;
+  txHash: string;
   className?: string;
 }) {
+  const href = spendLedgerTxExplorerUrl(spendRail, explorerTxUrl, txHash);
+  const label = shortenAddr(txHash);
+  if (!href) {
+    return (
+      <span
+        className={
+          className ?? 'font-mono text-[11px] text-neutral-600 tabular-nums'
+        }
+      >
+        {label}
+      </span>
+    );
+  }
   return (
     <a
-      href={baseScanTxUrl(hash)}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       className={
@@ -108,7 +123,7 @@ function TxHashShortLink({
         'inline-flex items-center gap-0.5 text-blue-700 hover:underline'
       }
     >
-      {shortenAddr(hash)}
+      {label}
       <ExternalLink className="size-3" />
     </a>
   );
@@ -127,14 +142,14 @@ function SessionConversionCell({
       <div>{conversion.status}</div>
       <div className="text-neutral-600">{fmtUsdc(conversion.usdc_amount)}</div>
       {conversion.funding_tx_hash && (
-        <a
-          href={baseScanTxUrl(conversion.funding_tx_hash)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:underline"
-        >
-          Tx
-        </a>
+        <div className="mt-0.5">
+          <LedgerTxLink
+            spendRail={conversion.spend_rail}
+            explorerTxUrl={conversion.explorer_tx_url}
+            txHash={conversion.funding_tx_hash}
+            className="text-blue-600 hover:underline"
+          />
+        </div>
       )}
     </>
   );
@@ -149,14 +164,14 @@ function SessionPaymentCell({ payment }: { payment: SpendTransaction | null }) {
       <div>{payment.status}</div>
       <div className="text-neutral-600">{fmtUsdc(payment.usdc_amount)}</div>
       {payment.payment_tx_hash && (
-        <a
-          href={baseScanTxUrl(payment.payment_tx_hash)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:underline"
-        >
-          Tx
-        </a>
+        <div className="mt-0.5">
+          <LedgerTxLink
+            spendRail={payment.spend_rail}
+            explorerTxUrl={payment.explorer_tx_url}
+            txHash={payment.payment_tx_hash}
+            className="text-blue-600 hover:underline"
+          />
+        </div>
       )}
     </>
   );
@@ -194,11 +209,12 @@ export default function SpendExperienceDetailPage() {
     const verify = async () => {
       if (user?.email?.address) {
         setIsAdmin(await checkAdminStatus());
-        setAdminLoading(false);
-      } else if (user === null) {
+      } else if (!user) {
         setIsAdmin(false);
-        setAdminLoading(false);
+      } else {
+        setIsAdmin(false);
       }
+      setAdminLoading(false);
     };
     void verify();
   }, [user, checkAdminStatus]);
@@ -415,7 +431,9 @@ export default function SpendExperienceDetailPage() {
               variant="outline"
               size="sm"
               className="gap-1 bg-white"
-              onClick={() => void copyText(funding.serverWalletAddress)}
+              onClick={() =>
+                void navigator.clipboard.writeText(funding.serverWalletAddress)
+              }
             >
               <Copy className="size-3.5" />
               Copy
@@ -547,8 +565,10 @@ export default function SpendExperienceDetailPage() {
                       {fmtUsdc(row.amount)}
                     </span>
                     {row.tx_hash ? (
-                      <TxHashShortLink
-                        hash={row.tx_hash}
+                      <LedgerTxLink
+                        spendRail={row.spend_rail}
+                        explorerTxUrl={row.explorer_tx_url}
+                        txHash={row.tx_hash}
                         className="inline-flex items-center gap-0.5 font-mono text-blue-600 hover:underline"
                       />
                     ) : (
@@ -577,6 +597,374 @@ export default function SpendExperienceDetailPage() {
         </p>
       )}
 
+      {activityData?.railVisibility && (
+        <section className="mb-8 space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold text-[#171717]">
+              In-flight rail work & funded (unpaid)
+            </h2>
+            <p className="mt-1 text-xs text-neutral-500">
+              Read-only visibility for this experience. Age uses each row&apos;s{' '}
+              <span className="font-mono text-[11px]">created_at</span>. Lists
+              are capped (oldest in-flight queues first; funded-unpaid by newest
+              conversion activity).
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-sm">
+              <div className="text-xs font-medium uppercase tracking-wide text-amber-900/80">
+                Wallet readiness
+              </div>
+              <div className="mt-1 text-neutral-800">
+                pending{' '}
+                <span className="font-semibold tabular-nums">
+                  {activityData.railVisibility.summary.walletReadiness.pending}
+                </span>
+                <span className="mx-1 text-neutral-400">·</span>
+                needs_review{' '}
+                <span className="font-semibold tabular-nums">
+                  {
+                    activityData.railVisibility.summary.walletReadiness
+                      .needsReview
+                  }
+                </span>
+              </div>
+            </div>
+            <div className="rounded-lg border border-violet-200 bg-violet-50/60 p-3 text-sm">
+              <div className="text-xs font-medium uppercase tracking-wide text-violet-900/80">
+                Conversions (in-flight)
+              </div>
+              <div className="mt-1 text-neutral-800">
+                total{' '}
+                <span className="font-semibold tabular-nums">
+                  {
+                    activityData.railVisibility.summary.conversions
+                      .inFlightTotal
+                  }
+                </span>
+                <div className="mt-0.5 text-[11px] text-neutral-600">
+                  pnd {activityData.railVisibility.summary.conversions.pending}{' '}
+                  · pts{' '}
+                  {
+                    activityData.railVisibility.summary.conversions
+                      .pointsDeducted
+                  }{' '}
+                  · fund{' '}
+                  {
+                    activityData.railVisibility.summary.conversions
+                      .fundingPending
+                  }{' '}
+                  · rev{' '}
+                  {activityData.railVisibility.summary.conversions.needsReview}
+                </div>
+              </div>
+            </div>
+            <div className="rounded-lg border border-sky-200 bg-sky-50/60 p-3 text-sm">
+              <div className="text-xs font-medium uppercase tracking-wide text-sky-900/80">
+                Payments (ledger)
+              </div>
+              <div className="mt-1 text-neutral-800">
+                pending{' '}
+                <span className="font-semibold tabular-nums">
+                  {
+                    activityData.railVisibility.summary.spendTransactions
+                      .pending
+                  }
+                </span>
+                <span className="mx-1 text-neutral-400">·</span>
+                submitted{' '}
+                <span className="font-semibold tabular-nums">
+                  {
+                    activityData.railVisibility.summary.spendTransactions
+                      .submitted
+                  }
+                </span>
+              </div>
+            </div>
+            <div className="rounded-lg border border-orange-200 bg-orange-50/60 p-3 text-sm">
+              <div className="text-xs font-medium uppercase tracking-wide text-orange-900/80">
+                Funded — payment not confirmed
+              </div>
+              <div className="mt-1 text-2xl font-semibold tabular-nums text-neutral-900">
+                {activityData.railVisibility.summary.fundedUnpaidSessions}
+              </div>
+              <div className="text-[11px] text-neutral-600">sessions</div>
+            </div>
+          </div>
+
+          {activityData.railVisibility.walletReadiness.length > 0 && (
+            <div className="rounded-lg border border-neutral-200 bg-white">
+              <div className="border-b border-neutral-100 px-4 py-2 text-sm font-medium text-neutral-800">
+                Wallet readiness (pending / needs_review)
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-left text-xs">
+                  <thead className="border-b border-neutral-100 bg-neutral-50/80 text-[10px] uppercase text-neutral-500">
+                    <tr>
+                      <th className="px-2 py-1.5 font-medium">Rail</th>
+                      <th className="px-2 py-1.5 font-medium">Network</th>
+                      <th className="px-2 py-1.5 font-medium">User</th>
+                      <th className="px-2 py-1.5 font-medium">Session</th>
+                      <th className="px-2 py-1.5 font-medium">Status</th>
+                      <th className="px-2 py-1.5 font-medium">Age</th>
+                      <th className="px-2 py-1.5 font-medium">Safe error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityData.railVisibility.walletReadiness.map((r) => (
+                      <tr
+                        key={r.operationId}
+                        className="border-b border-neutral-50 last:border-0"
+                      >
+                        <td className="px-2 py-1.5 font-mono text-[11px]">
+                          {r.spendRail}
+                        </td>
+                        <td className="px-2 py-1.5">{r.networkLabel}</td>
+                        <td className="px-2 py-1.5 font-mono text-[11px]">
+                          {shortenAddr(r.userId)}
+                        </td>
+                        <td className="px-2 py-1.5 font-mono text-[11px]">
+                          {shortenAddr(r.spendSessionId)}
+                        </td>
+                        <td className="px-2 py-1.5">{r.status}</td>
+                        <td className="px-2 py-1.5 tabular-nums text-neutral-600">
+                          {formatAgeFromIso(r.createdAt)}
+                        </td>
+                        <td className="max-w-[200px] truncate px-2 py-1.5 text-neutral-700">
+                          {r.safeErrorSummary ?? '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activityData.railVisibility.conversionsInFlight.length > 0 && (
+            <div className="rounded-lg border border-neutral-200 bg-white">
+              <div className="border-b border-neutral-100 px-4 py-2 text-sm font-medium text-neutral-800">
+                Conversions (in-flight statuses)
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[880px] text-left text-xs">
+                  <thead className="border-b border-neutral-100 bg-neutral-50/80 text-[10px] uppercase text-neutral-500">
+                    <tr>
+                      <th className="px-2 py-1.5 font-medium">Rail</th>
+                      <th className="px-2 py-1.5 font-medium">Network</th>
+                      <th className="px-2 py-1.5 font-medium">USDC</th>
+                      <th className="px-2 py-1.5 font-medium">User</th>
+                      <th className="px-2 py-1.5 font-medium">Session</th>
+                      <th className="px-2 py-1.5 font-medium">Status</th>
+                      <th className="px-2 py-1.5 font-medium">Age</th>
+                      <th className="px-2 py-1.5 font-medium">Safe error</th>
+                      <th className="px-2 py-1.5 font-medium">Tx</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityData.railVisibility.conversionsInFlight.map(
+                      (r) => (
+                        <tr
+                          key={r.operationId}
+                          className="border-b border-neutral-50 last:border-0"
+                        >
+                          <td className="px-2 py-1.5 font-mono text-[11px]">
+                            {r.spendRail}
+                          </td>
+                          <td className="px-2 py-1.5">{r.networkLabel}</td>
+                          <td className="px-2 py-1.5 tabular-nums">
+                            {fmtUsdc(r.usdcAmount)}
+                          </td>
+                          <td className="px-2 py-1.5 font-mono text-[11px]">
+                            {shortenAddr(r.userId)}
+                          </td>
+                          <td className="px-2 py-1.5 font-mono text-[11px]">
+                            {shortenAddr(r.spendSessionId)}
+                          </td>
+                          <td className="px-2 py-1.5">{r.status}</td>
+                          <td className="px-2 py-1.5 tabular-nums text-neutral-600">
+                            {formatAgeFromIso(r.createdAt)}
+                          </td>
+                          <td className="max-w-[180px] truncate px-2 py-1.5 text-neutral-700">
+                            {r.safeErrorSummary ?? '—'}
+                          </td>
+                          <td className="px-2 py-1.5">
+                            {r.txHash ? (
+                              <LedgerTxLink
+                                spendRail={r.spendRail}
+                                explorerTxUrl={r.explorerTxUrl}
+                                txHash={r.txHash}
+                                className="text-blue-600 hover:underline"
+                              />
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activityData.railVisibility.spendTransactionsInFlight.length > 0 && (
+            <div className="rounded-lg border border-neutral-200 bg-white">
+              <div className="border-b border-neutral-100 px-4 py-2 text-sm font-medium text-neutral-800">
+                Spend transactions (pending / submitted)
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[880px] text-left text-xs">
+                  <thead className="border-b border-neutral-100 bg-neutral-50/80 text-[10px] uppercase text-neutral-500">
+                    <tr>
+                      <th className="px-2 py-1.5 font-medium">Rail</th>
+                      <th className="px-2 py-1.5 font-medium">Network</th>
+                      <th className="px-2 py-1.5 font-medium">USDC</th>
+                      <th className="px-2 py-1.5 font-medium">User</th>
+                      <th className="px-2 py-1.5 font-medium">Session</th>
+                      <th className="px-2 py-1.5 font-medium">Status</th>
+                      <th className="px-2 py-1.5 font-medium">Age</th>
+                      <th className="px-2 py-1.5 font-medium">Safe error</th>
+                      <th className="px-2 py-1.5 font-medium">Tx</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityData.railVisibility.spendTransactionsInFlight.map(
+                      (r) => (
+                        <tr
+                          key={r.operationId}
+                          className="border-b border-neutral-50 last:border-0"
+                        >
+                          <td className="px-2 py-1.5 font-mono text-[11px]">
+                            {r.spendRail}
+                          </td>
+                          <td className="px-2 py-1.5">{r.networkLabel}</td>
+                          <td className="px-2 py-1.5 tabular-nums">
+                            {fmtUsdc(r.usdcAmount)}
+                          </td>
+                          <td className="px-2 py-1.5 font-mono text-[11px]">
+                            {shortenAddr(r.userId)}
+                          </td>
+                          <td className="px-2 py-1.5 font-mono text-[11px]">
+                            {shortenAddr(r.spendSessionId)}
+                          </td>
+                          <td className="px-2 py-1.5">{r.status}</td>
+                          <td className="px-2 py-1.5 tabular-nums text-neutral-600">
+                            {formatAgeFromIso(r.createdAt)}
+                          </td>
+                          <td className="max-w-[180px] truncate px-2 py-1.5 text-neutral-700">
+                            {r.safeErrorSummary ?? '—'}
+                          </td>
+                          <td className="px-2 py-1.5">
+                            {r.txHash ? (
+                              <LedgerTxLink
+                                spendRail={r.spendRail}
+                                explorerTxUrl={r.explorerTxUrl}
+                                txHash={r.txHash}
+                                className="text-blue-600 hover:underline"
+                              />
+                            ) : (
+                              '—'
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activityData.railVisibility.fundedUnpaid.length > 0 && (
+            <div className="rounded-lg border border-orange-200 bg-orange-50/40">
+              <div className="border-b border-orange-100 px-4 py-2 text-sm font-medium text-orange-950">
+                Funded — payment not confirmed (sessions)
+              </div>
+              <div className="overflow-x-auto bg-white/80">
+                <table className="w-full min-w-[960px] text-left text-xs">
+                  <thead className="border-b border-orange-100 bg-orange-50/80 text-[10px] uppercase text-orange-900/70">
+                    <tr>
+                      <th className="px-2 py-1.5 font-medium">Rail</th>
+                      <th className="px-2 py-1.5 font-medium">Network</th>
+                      <th className="px-2 py-1.5 font-medium">USDC</th>
+                      <th className="px-2 py-1.5 font-medium">User</th>
+                      <th className="px-2 py-1.5 font-medium">Session</th>
+                      <th className="px-2 py-1.5 font-medium">
+                        Session status
+                      </th>
+                      <th className="px-2 py-1.5 font-medium">Pay status</th>
+                      <th className="px-2 py-1.5 font-medium">Age (conv.)</th>
+                      <th className="px-2 py-1.5 font-medium">Funding tx</th>
+                      <th className="px-2 py-1.5 font-medium">Payment tx</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityData.railVisibility.fundedUnpaid.map((row) => (
+                      <tr
+                        key={row.conversion.id}
+                        className="border-b border-orange-50/80 last:border-0"
+                      >
+                        <td className="px-2 py-1.5 font-mono text-[11px]">
+                          {row.spendRail}
+                        </td>
+                        <td className="px-2 py-1.5">{row.networkLabel}</td>
+                        <td className="px-2 py-1.5 tabular-nums">
+                          {fmtUsdc(row.usdcAmount)}
+                        </td>
+                        <td className="px-2 py-1.5 font-mono text-[11px]">
+                          {shortenAddr(row.userId)}
+                        </td>
+                        <td className="px-2 py-1.5 font-mono text-[11px]">
+                          {shortenAddr(row.spendSessionId)}
+                        </td>
+                        <td className="px-2 py-1.5">
+                          {row.sessionStatus
+                            ? row.sessionStatus.replace(/_/g, ' ')
+                            : '—'}
+                        </td>
+                        <td className="px-2 py-1.5">
+                          {row.payment?.status ?? '—'}
+                        </td>
+                        <td className="px-2 py-1.5 tabular-nums text-neutral-600">
+                          {formatAgeFromIso(row.conversion.createdAt)}
+                        </td>
+                        <td className="px-2 py-1.5">
+                          {row.conversion.fundingTxHash ? (
+                            <LedgerTxLink
+                              spendRail={row.spendRail}
+                              explorerTxUrl={row.conversion.explorerTxUrl}
+                              txHash={row.conversion.fundingTxHash}
+                              className="text-blue-600 hover:underline"
+                            />
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td className="px-2 py-1.5">
+                          {row.payment?.paymentTxHash ? (
+                            <LedgerTxLink
+                              spendRail={row.spendRail}
+                              explorerTxUrl={row.payment.explorerTxUrl}
+                              txHash={row.payment.paymentTxHash}
+                              className="text-blue-600 hover:underline"
+                            />
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       {activityData &&
         (activityData.failedConversions.length > 0 ||
           activityData.failedPayments.length > 0) && (
@@ -585,8 +973,8 @@ export default function SpendExperienceDetailPage() {
               Failed transactions
             </h2>
             <p className="mt-1 text-sm text-red-800/90">
-              Reasons are truncated server-side; use tx hashes on BaseScan for
-              full detail.
+              Reasons are truncated server-side; use the explorer links for
+              chain detail.
             </p>
             <div className="mt-4 grid gap-6 md:grid-cols-2">
               {activityData.failedConversions.length > 0 && (
@@ -608,7 +996,11 @@ export default function SpendExperienceDetailPage() {
                         </div>
                         {c.funding_tx_hash && (
                           <div className="mt-1">
-                            <TxHashShortLink hash={c.funding_tx_hash} />
+                            <LedgerTxLink
+                              spendRail={c.spend_rail}
+                              explorerTxUrl={c.explorer_tx_url}
+                              txHash={c.funding_tx_hash}
+                            />
                           </div>
                         )}
                       </li>
@@ -635,7 +1027,11 @@ export default function SpendExperienceDetailPage() {
                         </div>
                         {p.payment_tx_hash && (
                           <div className="mt-1">
-                            <TxHashShortLink hash={p.payment_tx_hash} />
+                            <LedgerTxLink
+                              spendRail={p.spend_rail}
+                              explorerTxUrl={p.explorer_tx_url}
+                              txHash={p.payment_tx_hash}
+                            />
                           </div>
                         )}
                       </li>

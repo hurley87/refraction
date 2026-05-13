@@ -5,6 +5,7 @@ const mockRequireAdmin = vi.fn();
 const mockGetSpendExperienceById = vi.fn();
 const mockGetTotals = vi.fn();
 const mockListActivity = vi.fn();
+const mockGetRailVisibility = vi.fn();
 
 vi.mock('@/lib/auth', () => ({
   requireAdmin: (...args: unknown[]) => mockRequireAdmin(...args),
@@ -19,6 +20,8 @@ vi.mock('@/lib/db/spend-admin', () => ({
   getSpendPilotAdminTotals: (...args: unknown[]) => mockGetTotals(...args),
   listSpendPilotActivityForExperience: (...args: unknown[]) =>
     mockListActivity(...args),
+  getSpendPilotAdminRailVisibility: (...args: unknown[]) =>
+    mockGetRailVisibility(...args),
 }));
 
 import { GET } from '../route';
@@ -45,6 +48,24 @@ describe('GET /api/admin/spend-experiences/[experienceId]/activity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('NEXT_PUBLIC_MIXPANEL_TOKEN', 'proj-token');
+    mockGetRailVisibility.mockResolvedValue({
+      summary: {
+        walletReadiness: { pending: 0, needsReview: 0 },
+        conversions: {
+          pending: 0,
+          pointsDeducted: 0,
+          fundingPending: 0,
+          needsReview: 0,
+          inFlightTotal: 0,
+        },
+        spendTransactions: { pending: 0, submitted: 0 },
+        fundedUnpaidSessions: 0,
+      },
+      walletReadiness: [],
+      conversionsInFlight: [],
+      spendTransactionsInFlight: [],
+      fundedUnpaid: [],
+    });
   });
 
   it('returns totals and activity when admin', async () => {
@@ -77,6 +98,8 @@ describe('GET /api/admin/spend-experiences/[experienceId]/activity', () => {
     expect(res.status).toBe(200);
     expect(j.data.totals.usersConverted).toBe(2);
     expect(j.data.mixpanelInsightUrl).toContain('proj-token');
+    expect(mockGetRailVisibility).toHaveBeenCalledWith('exp-1');
+    expect(j.data.railVisibility.summary.fundedUnpaidSessions).toBe(0);
   });
 
   it('returns 404 when experience missing', async () => {

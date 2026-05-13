@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getSpendExperienceById } from '@/lib/db/spend-experiences';
 import {
   getSpendPilotAdminTotals,
+  getSpendPilotAdminRailVisibility,
   listSpendPilotActivityForExperience,
 } from '@/lib/db/spend-admin';
 import { apiSuccess, apiError } from '@/lib/api/response';
@@ -13,7 +14,7 @@ interface RouteParams {
 
 /**
  * GET /api/admin/spend-experiences/{experienceId}/activity
- * Sessions (recent), failed conversion/payment rows, and aggregate totals (PRD §12).
+ * Recent sessions, failed rows, totals, and rail ops visibility (IRL-26).
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
@@ -27,9 +28,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       return apiError('Spend experience not found', 404);
     }
 
-    const [totals, activity] = await Promise.all([
+    const [totals, activity, railVisibility] = await Promise.all([
       getSpendPilotAdminTotals(experience.id),
       listSpendPilotActivityForExperience(experience.id),
+      getSpendPilotAdminRailVisibility(experience.id),
     ]);
 
     const mixpanelProjectId = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN?.trim();
@@ -43,6 +45,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       sessions: activity.sessions,
       failedConversions: activity.failedConversions,
       failedPayments: activity.failedPayments,
+      railVisibility,
       mixpanelInsightUrl,
     });
   } catch (error) {
