@@ -24,6 +24,28 @@ export const WALLET_READINESS_COLS = `
   updated_at
 `;
 
+/** Admin reads: same as full row mapping but omit `internal_diagnostics` from selects. */
+export const WALLET_READINESS_ADMIN_COLS = `
+  id,
+  spend_session_id,
+  user_id,
+  spend_rail,
+  rail_user_wallet_address,
+  status,
+  step_metadata,
+  sanitized_error_category,
+  sanitized_error_code,
+  idempotency_key,
+  sponsor_treasury_transaction_id,
+  trustline_treasury_transaction_id,
+  created_at,
+  updated_at
+`;
+
+/** Literal for typed `.select()` with `spend_sessions` join (no template interpolation). */
+export const WALLET_READINESS_ADMIN_SESSION_JOIN_SELECT =
+  'id, spend_session_id, user_id, spend_rail, rail_user_wallet_address, status, step_metadata, sanitized_error_category, sanitized_error_code, idempotency_key, sponsor_treasury_transaction_id, trustline_treasury_transaction_id, created_at, updated_at, spend_sessions!inner(spend_experience_id)' as const;
+
 function parseJsonObject(value: unknown): Record<string, unknown> | null {
   if (value == null) return null;
   if (typeof value === 'object' && !Array.isArray(value)) {
