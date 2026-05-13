@@ -20,8 +20,8 @@ function formatUsdcAmountForStellar(amount: number): string {
   return floored.toFixed(7);
 }
 
-function classifySubmitMessage(raw: string): string {
-  const s = raw.toLowerCase();
+function classifySubmitMessage(raw: string, resultCodes?: unknown): string {
+  const s = `${raw} ${JSON.stringify(resultCodes ?? {})}`.toLowerCase();
   if (
     s.includes('fetch') ||
     s.includes('econn') ||
@@ -42,6 +42,38 @@ function classifySubmitMessage(raw: string): string {
     return 'insufficient_usdc_or_reserve';
   }
   return 'stellar_submit_failed';
+}
+
+function horizonResultCodesFromError(e: unknown): unknown {
+  const data = (e as { response?: { data?: unknown } })?.response?.data;
+  if (!data || typeof data !== 'object') return null;
+  const extras = (data as { extras?: unknown }).extras;
+  if (!extras || typeof extras !== 'object') return null;
+  return (extras as { result_codes?: unknown }).result_codes ?? null;
+}
+
+function horizonSubmitInternalMessage(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  const data = (e as { response?: { data?: unknown } })?.response?.data;
+  const resultCodes = horizonResultCodesFromError(e);
+  const title =
+    data &&
+    typeof data === 'object' &&
+    typeof (data as { title?: unknown }).title === 'string'
+      ? (data as { title: string }).title
+      : null;
+  const detail =
+    data &&
+    typeof data === 'object' &&
+    typeof (data as { detail?: unknown }).detail === 'string'
+      ? (data as { detail: string }).detail
+      : null;
+  return JSON.stringify({
+    message: msg.slice(0, 400),
+    ...(title ? { horizon_title: title } : {}),
+    ...(detail ? { horizon_detail: detail.slice(0, 800) } : {}),
+    ...(resultCodes ? { horizon_result_codes: resultCodes } : {}),
+  }).slice(0, 1200);
 }
 
 async function loadAccountOrThrow(
@@ -99,7 +131,7 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     const msg = e instanceof Error ? e.message : String(e);
     return {
       ok: false,
-      reason: classifySubmitMessage(msg),
+      reason: classifySubmitMessage(msg, horizonResultCodesFromError(e)),
       internalMessage: msg.slice(0, 500),
     };
   }
@@ -123,7 +155,7 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     )
     .addOperation(
       Operation.endSponsoringFutureReserves({
-        source: sponsor.publicKey(),
+        source: userPub,
       })
     )
     .setTimeout(180)
@@ -180,15 +212,10 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     return { ok: true, txHash: res.hash };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    const extras = (e as { response?: { data?: unknown } })?.response?.data;
-    const detail =
-      extras && typeof extras === 'object'
-        ? JSON.stringify(extras).slice(0, 800)
-        : '';
     return {
       ok: false,
-      reason: classifySubmitMessage(msg),
-      internalMessage: `${msg.slice(0, 400)} ${detail}`,
+      reason: classifySubmitMessage(msg, horizonResultCodesFromError(e)),
+      internalMessage: horizonSubmitInternalMessage(e),
     };
   }
 }
