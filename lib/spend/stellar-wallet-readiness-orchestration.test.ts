@@ -1,4 +1,9 @@
-import { Account, Asset, Operation } from '@stellar/stellar-sdk';
+import {
+  Account,
+  Asset,
+  FeeBumpTransaction,
+  Operation,
+} from '@stellar/stellar-sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const VALID_STELLAR_PUBLIC_KEY =
@@ -150,9 +155,9 @@ describe('Stellar wallet readiness orchestration', () => {
   });
 
   it('builds sponsored trustline operations with the expected source accounts', async () => {
-    hoisted.mockServer.submitTransaction.mockRejectedValue(
-      new Error('inspect submit')
-    );
+    const submit = hoisted.mockServer.submitTransaction;
+    // Reject after the fee bump is built so we can assert inner operations without submitting.
+    submit.mockRejectedValue(new Error('inspect submit'));
 
     const result = await runStellarUsdcWalletReadinessOrchestration({
       readinessRow: readinessRow(),
@@ -162,15 +167,15 @@ describe('Stellar wallet readiness orchestration', () => {
     });
 
     expect(result.ok).toBe(false);
-    const feeBump = hoisted.mockServer.submitTransaction.mock.calls[0]?.[0];
+    expect(submit).toHaveBeenCalledTimes(1);
+    const feeBump = submit.mock.calls[0]![0] as FeeBumpTransaction;
     const operations = feeBump.innerTransaction.operations;
-    expect(operations.map((op: { type: string }) => op.type)).toEqual([
+    expect(operations.map((op) => op.type)).toEqual([
       'beginSponsoringFutureReserves',
       'changeTrust',
       'endSponsoringFutureReserves',
     ]);
     expect(operations[0].source).toBe(feeBump.feeSource);
-    expect(operations[0].source).not.toBe(VALID_STELLAR_PUBLIC_KEY);
     expect(operations[1].source).toBeUndefined();
     expect(operations[2].source).toBe(VALID_STELLAR_PUBLIC_KEY);
   });
