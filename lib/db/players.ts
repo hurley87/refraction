@@ -165,8 +165,8 @@ export const getPlayerByStellarWallet = async (
 export async function getPlayersByEvmWalletCaseInsensitive(
   walletAddress: string
 ): Promise<Player[]> {
-  // TODO: after existing duplicates are merged, add a partial unique index on
-  // `lower(trim(wallet_address))` so EVM casing cannot create parallel players.
+  // Note: once duplicate lowercased wallet groups are merged, a partial unique
+  // index on `lower(trim(wallet_address))` would prevent parallel EVM rows.
   const t = walletAddress.trim();
   if (!t) return [];
   const evm = tryNormalizeEvmAddress(t);
@@ -189,7 +189,12 @@ export async function updatePlayerStellarWalletMetadata(
     stellarWalletId?: string;
   }
 ): Promise<Player> {
-  const updates: Record<string, string> = {
+  type Patch = {
+    updated_at: string;
+    stellar_wallet_address?: string;
+    stellar_wallet_id?: string;
+  };
+  const updates: Patch = {
     updated_at: new Date().toISOString(),
   };
   const stellarWalletAddress = input.stellarWalletAddress?.trim();
