@@ -583,7 +583,7 @@ export async function runStellarUsdcWalletReadinessOrchestration(input: {
       )
       .addOperation(
         Operation.endSponsoringFutureReserves({
-          source: sponsor.publicKey(),
+          source: userPub,
         })
       )
       .setTimeout(180)

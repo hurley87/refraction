@@ -1,4 +1,9 @@
-import { Account, Asset, Operation } from '@stellar/stellar-sdk';
+import {
+  Account,
+  Asset,
+  FeeBumpTransaction,
+  Operation,
+} from '@stellar/stellar-sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const VALID_STELLAR_PUBLIC_KEY =
@@ -147,6 +152,32 @@ describe('Stellar wallet readiness orchestration', () => {
     expect(op.body().changeTrustOp().limit().toString()).toBe(
       INVALID_TRUSTLINE_LIMIT_FORMAT
     );
+  });
+
+  it('builds sponsored trustline operations with the expected source accounts', async () => {
+    const submit = hoisted.mockServer.submitTransaction;
+    // Reject after the fee bump is built so we can assert inner operations without submitting.
+    submit.mockRejectedValue(new Error('inspect submit'));
+
+    const result = await runStellarUsdcWalletReadinessOrchestration({
+      readinessRow: readinessRow(),
+      spendSessionId: '770e8400-e29b-41d4-a716-446655440000',
+      spendExperienceId: '990e8400-e29b-41d4-a716-446655440003',
+      sessionOwnerPrivyUserId: 'privy-1',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(submit).toHaveBeenCalledTimes(1);
+    const feeBump = submit.mock.calls[0]![0] as FeeBumpTransaction;
+    const operations = feeBump.innerTransaction.operations;
+    expect(operations.map((op) => op.type)).toEqual([
+      'beginSponsoringFutureReserves',
+      'changeTrust',
+      'endSponsoringFutureReserves',
+    ]);
+    expect(operations[0].source).toBe(feeBump.feeSource);
+    expect(operations[1].source).toBeUndefined();
+    expect(operations[2].source).toBe(VALID_STELLAR_PUBLIC_KEY);
   });
 
   it('persists diagnostics when Privy raw signing fails during trustline setup', async () => {
