@@ -73,13 +73,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!result.ok) {
-      return apiError(result.error, result.httpStatus);
+      return apiError(result.error, result.httpStatus, result.details);
     }
 
     return apiSuccess({
       preparedAction: result.preparedAction,
       spendRailSummary: getSpendRailClientSummary(session.spend_rail),
       session: result.session,
+      paymentOperation: result.paymentOperation,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed to prepare payment';

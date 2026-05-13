@@ -1,6 +1,11 @@
-import { getPointConversionBySessionId } from '@/lib/db/spend-sessions';
+import {
+  getPointConversionBySessionId,
+  getSpendTransactionBySessionId,
+} from '@/lib/db/spend-sessions';
 import {
   insertSpendPaymentPrepareOrGet,
+  patchSpendPaymentPrepare,
+  spendPaymentOperationClientSummary,
   updateSpendPaymentPreparePayload,
 } from '@/lib/db/spend-payment-prepare';
 import {
@@ -21,18 +26,32 @@ import {
 } from '@/lib/walletconnect-poster-direct-usdc';
 import { trackSpendPilotRailMutationBlocked } from '@/lib/analytics/server';
 import type { SpendPilotApiHttpStatus } from '@/lib/spend-pilot-http-status';
-import type { SpendExperience, SpendSession } from '@/lib/types';
+import type {
+  SpendExperience,
+  SpendPaymentOperationClientSummary,
+  SpendSession,
+} from '@/lib/types';
 
 export type { SpendPilotApiHttpStatus } from '@/lib/spend-pilot-http-status';
 export { getSpendPaymentSessionContextOr404 as getSpendPaymentPrepareContextOr404 } from '@/lib/spend-payment-session-context';
+export { spendPaymentOperationClientSummary } from '@/lib/db/spend-payment-prepare';
+
+const NEEDS_REVIEW_PREPARE_MESSAGE =
+  'This payment is under review. Please contact support with your transaction hash if you already sent funds. Do not send another payment.';
 
 export type SpendPaymentPrepareResult =
   | {
       ok: true;
       preparedAction: Record<string, unknown>;
       session: Pick<SpendSession, 'id' | 'status' | 'expires_at'>;
+      paymentOperation: SpendPaymentOperationClientSummary;
     }
-  | { ok: false; error: string; httpStatus: SpendPilotApiHttpStatus };
+  | {
+      ok: false;
+      error: string;
+      httpStatus: SpendPilotApiHttpStatus;
+      details?: { paymentOperation?: SpendPaymentOperationClientSummary };
+    };
 
 /** Canonical JSON for compare — PostgreSQL jsonb does not preserve object key order. */
 function stableJsonStringify(value: unknown): string {
@@ -102,6 +121,14 @@ export async function runSpendPaymentPrepare(input: {
   const now = new Date();
   if (now > new Date(session.expires_at)) {
     return { ok: false, error: 'Spend session expired', httpStatus: 400 };
+  }
+
+  if (session.status === 'payment_complete') {
+    return {
+      ok: false,
+      error: 'Payment already completed for this session.',
+      httpStatus: 409,
+    };
   }
 
   const openGate = assertSpendExperienceOpenForSessions(spendExperience, now);
@@ -250,13 +277,77 @@ export async function runSpendPaymentPrepare(input: {
   const newAction = { ...preparedAction } as Record<string, unknown>;
   const newSnap = { ...verificationSnapshot } as Record<string, unknown>;
 
-  const { row, created } = await insertSpendPaymentPrepareOrGet({
+  const { row: initialRow, created } = await insertSpendPaymentPrepareOrGet({
     spendSessionId: session.id,
     userId: authUserId,
     spendRail: session.spend_rail,
     preparedAction: newAction,
     verificationSnapshot: newSnap,
   });
+  let row = initialRow;
+
+  const spendTx = await getSpendTransactionBySessionId(session.id);
+
+  if (spendTx?.status === 'confirmed' && row.status !== 'confirmed') {
+    row = await patchSpendPaymentPrepare(row.id, { status: 'confirmed' });
+  }
+
+  if (
+    spendTx?.status === 'failed' &&
+    (spendTx.payment_tx_hash ?? '').trim().length > 0 &&
+    row.status === 'submitted'
+  ) {
+    row = await patchSpendPaymentPrepare(row.id, {
+      status: 'failed',
+      lastFailureReason: spendTx.failed_reason ?? 'verification_failed',
+      lastFailureAt: spendTx.completed_at ?? new Date().toISOString(),
+      lastAmbiguityMetadata: null,
+    });
+  }
+
+  const opSummary = () => spendPaymentOperationClientSummary(row);
+
+  if (spendTx?.status === 'confirmed') {
+    return {
+      ok: false,
+      error: 'Payment already completed for this session.',
+      httpStatus: 409,
+      details: { paymentOperation: opSummary() },
+    };
+  }
+
+  if (row.status === 'needs_review') {
+    return {
+      ok: false,
+      error: NEEDS_REVIEW_PREPARE_MESSAGE,
+      httpStatus: 400,
+      details: { paymentOperation: opSummary() },
+    };
+  }
+
+  if (row.status === 'confirmed') {
+    return {
+      ok: false,
+      error: 'Payment already completed for this session.',
+      httpStatus: 409,
+      details: { paymentOperation: opSummary() },
+    };
+  }
+
+  if (row.status === 'failed') {
+    row = await patchSpendPaymentPrepare(row.id, {
+      status: 'prepared',
+      preparedAction: newAction,
+      verificationSnapshot: newSnap,
+      attemptCount: row.attempt_count + 1,
+    });
+    return {
+      ok: true,
+      preparedAction: row.prepared_action,
+      session: paymentPrepareResponseSession(session),
+      paymentOperation: spendPaymentOperationClientSummary(row),
+    };
+  }
 
   if (
     !created &&
@@ -271,6 +362,7 @@ export async function runSpendPaymentPrepare(input: {
       ok: true,
       preparedAction: row.prepared_action,
       session: paymentPrepareResponseSession(session),
+      paymentOperation: spendPaymentOperationClientSummary(row),
     };
   }
 
@@ -279,10 +371,12 @@ export async function runSpendPaymentPrepare(input: {
       preparedAction: newAction,
       verificationSnapshot: newSnap,
     });
+    row = updated;
     return {
       ok: true,
       preparedAction: updated.prepared_action,
       session: paymentPrepareResponseSession(session),
+      paymentOperation: spendPaymentOperationClientSummary(row),
     };
   }
 
@@ -290,5 +384,6 @@ export async function runSpendPaymentPrepare(input: {
     ok: true,
     preparedAction: row.prepared_action,
     session: paymentPrepareResponseSession(session),
+    paymentOperation: spendPaymentOperationClientSummary(row),
   };
 }

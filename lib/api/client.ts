@@ -4,7 +4,11 @@ import type { ApiResponse } from './response';
  * Custom error class for API errors with status code
  */
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+    public details?: unknown
+  ) {
     super(message);
     this.name = 'ApiError';
   }
@@ -23,11 +27,14 @@ export async function apiClient<T>(
 ): Promise<T> {
   const response = await fetch(endpoint, options);
   const json: ApiResponse<T> = await response.json();
-  
+
   if (!response.ok || !json.success) {
-    throw new ApiError(response.status, json.error || 'Request failed');
+    throw new ApiError(
+      response.status,
+      json.error || 'Request failed',
+      json.details
+    );
   }
-  
+
   return json.data as T;
 }
-

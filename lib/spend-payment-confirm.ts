@@ -7,7 +7,11 @@ import {
   updateSpendTransactionFields,
   confirmSpendTransactionIfSubmitted,
 } from '@/lib/db/spend-sessions';
-import { getSpendPaymentPrepareBySessionId } from '@/lib/db/spend-payment-prepare';
+import {
+  getSpendPaymentPrepareBySessionId,
+  patchSpendPaymentPrepare,
+  spendPaymentOperationClientSummary,
+} from '@/lib/db/spend-payment-prepare';
 import { insertTreasuryReceivePaymentLedgerIfAbsent } from '@/lib/db/treasury-transactions';
 import {
   explorerTxUrlForSpendLedger,
@@ -16,6 +20,7 @@ import {
 import { fetchUserUsdcBalanceSafe } from '@/lib/spend-conversion-preview';
 import { assertSpendExperienceOpenForSessions } from '@/lib/spend-experience-guard';
 import { verifySpendUsdcPaymentTx } from '@/lib/spend-payment-verify';
+import { isAmbiguousSpendPaymentVerifyFailure } from '@/lib/spend-payment-verify-ambiguous';
 import { getSpendPaymentRail } from '@/lib/spend/payment-rails';
 import {
   assertSpendRailAllowsMutatingSpendWork,
@@ -23,15 +28,17 @@ import {
   getSpendReceivingWalletAddress,
 } from '@/lib/spend-rail-config';
 import {
-  isEvmAddress,
-  POSTER_CHECKOUT_CHAIN_ID,
-} from '@/lib/walletconnect-poster-direct-usdc';
-import {
   isSpendBaseUsdcVerificationSnapshotV1,
   spendBaseUsdcSnapshotMatchesLiveRail,
 } from '@/lib/spend-payment-prepare-types';
+import {
+  isEvmAddress,
+  POSTER_CHECKOUT_CHAIN_ID,
+} from '@/lib/walletconnect-poster-direct-usdc';
 import type {
   SpendExperience,
+  SpendPaymentOperationClientSummary,
+  SpendPaymentPrepareOperation,
   SpendSession,
   SpendTransaction,
 } from '@/lib/types';
@@ -69,14 +76,14 @@ export type SpendPaymentConfirmResult =
       spendTransaction: SpendTransaction;
       session: SpendSession;
       resumed: boolean;
+      paymentOperation?: SpendPaymentOperationClientSummary;
     }
-  | { ok: false; error: string; httpStatus: SpendPilotApiHttpStatus };
-
-const PAYMENT_HASH_CONFLICT: SpendPaymentConfirmResult = {
-  ok: false,
-  error: 'A different payment is already in progress for this session',
-  httpStatus: 409,
-};
+  | {
+      ok: false;
+      error: string;
+      httpStatus: SpendPilotApiHttpStatus;
+      details?: { paymentOperation?: SpendPaymentOperationClientSummary };
+    };
 
 async function finalizeSuccess(params: {
   spendTransactionId: string;
@@ -222,11 +229,15 @@ export async function runSpendPaymentConfirm(input: {
     if (session.status === 'payment_complete') {
       const existing = await getSpendTransactionBySessionId(session.id);
       if (existing?.status === 'confirmed') {
+        const prepOp = await getSpendPaymentPrepareBySessionId(session.id);
         return {
           ok: true,
           spendTransaction: existing,
           session: { ...session, status: 'payment_complete' },
           resumed: true,
+          paymentOperation: prepOp
+            ? spendPaymentOperationClientSummary(prepOp)
+            : undefined,
         };
       }
     }
@@ -253,6 +264,7 @@ export async function runSpendPaymentConfirm(input: {
   let usdcAmount: number;
 
   let spendTx: SpendTransaction | null = null;
+  let basePaymentPrepare: SpendPaymentPrepareOperation | null = null;
 
   if (session.spend_rail === 'base_usdc') {
     const [preparedOp, tx] = await Promise.all([
@@ -268,6 +280,43 @@ export async function runSpendPaymentConfirm(input: {
         httpStatus: 400,
       };
     }
+    basePaymentPrepare = preparedOp;
+
+    if (preparedOp.status === 'needs_review') {
+      return {
+        ok: false,
+        error:
+          'This payment is under review. Please contact support with your transaction hash if you already sent funds. Do not send another payment.',
+        httpStatus: 400,
+        details: {
+          paymentOperation: spendPaymentOperationClientSummary(preparedOp),
+        },
+      };
+    }
+
+    if (preparedOp.status === 'failed') {
+      return {
+        ok: false,
+        error:
+          'Prepare your payment again in this app after a failed attempt, then submit a new transaction from your wallet.',
+        httpStatus: 400,
+        details: {
+          paymentOperation: spendPaymentOperationClientSummary(preparedOp),
+        },
+      };
+    }
+
+    if (preparedOp.status === 'confirmed' && spendTx?.status === 'confirmed') {
+      const fresh = await getSpendSessionById(session.id);
+      return {
+        ok: true,
+        spendTransaction: spendTx,
+        session: fresh ?? { ...session, status: 'payment_complete' },
+        resumed: true,
+        paymentOperation: spendPaymentOperationClientSummary(preparedOp),
+      };
+    }
+
     const snap = preparedOp.verification_snapshot;
     if (!isSpendBaseUsdcVerificationSnapshotV1(snap)) {
       return {
@@ -316,6 +365,18 @@ export async function runSpendPaymentConfirm(input: {
   }
   const requestedHashLower = txHash.toLowerCase();
 
+  const paymentHashConflict = async (): Promise<SpendPaymentConfirmResult> => {
+    const op = await getSpendPaymentPrepareBySessionId(session.id);
+    return {
+      ok: false,
+      error: 'A different payment is already in progress for this session',
+      httpStatus: 409,
+      details: op
+        ? { paymentOperation: spendPaymentOperationClientSummary(op) }
+        : undefined,
+    };
+  };
+
   const baseAnalytics: SpendPilotPaymentEventProperties = {
     spend_experience_id: spendExperience.id,
     event_id: spendExperience.event_id,
@@ -352,16 +413,20 @@ export async function runSpendPaymentConfirm(input: {
 
   if (spendTx?.status === 'confirmed') {
     const fresh = await getSpendSessionById(session.id);
+    const prepOp = await getSpendPaymentPrepareBySessionId(session.id);
     return {
       ok: true,
       spendTransaction: spendTx,
       session: fresh ?? { ...session, status: 'payment_complete' },
       resumed: true,
+      paymentOperation: prepOp
+        ? spendPaymentOperationClientSummary(prepOp)
+        : undefined,
     };
   }
 
   if (spendTx && submittedPaymentHashConflicts(spendTx, requestedHashLower)) {
-    return PAYMENT_HASH_CONFLICT;
+    return await paymentHashConflict();
   }
 
   if (spendTx?.status === 'failed') {
@@ -405,7 +470,7 @@ export async function runSpendPaymentConfirm(input: {
   }
 
   if (submittedPaymentHashConflicts(spendTx, requestedHashLower)) {
-    return PAYMENT_HASH_CONFLICT;
+    return await paymentHashConflict();
   }
 
   if (spendTx.status === 'pending') {
@@ -421,6 +486,17 @@ export async function runSpendPaymentConfirm(input: {
         error: 'Failed to load payment record',
         httpStatus: 500,
       };
+    }
+  }
+
+  if (session.spend_rail === 'base_usdc' && basePaymentPrepare) {
+    const aligned =
+      spendTx.status === 'submitted' &&
+      (spendTx.payment_tx_hash ?? '').toLowerCase() === requestedHashLower;
+    if (aligned) {
+      await patchSpendPaymentPrepare(basePaymentPrepare.id, {
+        status: 'submitted',
+      });
     }
   }
 
@@ -445,6 +521,36 @@ export async function runSpendPaymentConfirm(input: {
   });
 
   if (!verify.ok) {
+    if (session.spend_rail === 'base_usdc' && basePaymentPrepare) {
+      const nowIso = new Date().toISOString();
+      if (isAmbiguousSpendPaymentVerifyFailure(verify.reason)) {
+        const opRow = await patchSpendPaymentPrepare(basePaymentPrepare.id, {
+          status: 'needs_review',
+          lastFailureReason: verify.reason,
+          lastFailureAt: nowIso,
+          lastAmbiguityMetadata: {
+            spend_transaction_id: spendTx.id,
+            verify_reason: verify.reason,
+          },
+        });
+        return {
+          ok: false,
+          error:
+            'We could not fully verify this payment yet. Please contact support with your transaction hash and do not send another payment.',
+          httpStatus: 400,
+          details: {
+            paymentOperation: spendPaymentOperationClientSummary(opRow),
+          },
+        };
+      }
+      await patchSpendPaymentPrepare(basePaymentPrepare.id, {
+        status: 'failed',
+        lastFailureReason: verify.reason,
+        lastFailureAt: nowIso,
+        lastAmbiguityMetadata: null,
+      });
+    }
+
     await finalizeFailure({
       spendTransactionId: spendTx.id,
       sessionId: session.id,
@@ -452,11 +558,20 @@ export async function runSpendPaymentConfirm(input: {
       analytics: { ...baseAnalytics, spend_transaction_id: spendTx.id },
       reason: verify.reason,
     });
+
+    const opAfter =
+      session.spend_rail === 'base_usdc'
+        ? await getSpendPaymentPrepareBySessionId(session.id)
+        : null;
+
     return {
       ok: false,
       error:
         'Payment could not be verified on-chain. If funds left your wallet, contact support with your transaction hash.',
       httpStatus: 400,
+      details: opAfter
+        ? { paymentOperation: spendPaymentOperationClientSummary(opAfter) }
+        : undefined,
     };
   }
 
@@ -471,6 +586,21 @@ export async function runSpendPaymentConfirm(input: {
     getSpendTransactionBySessionId(session.id),
     getSpendSessionById(session.id),
   ]);
+
+  if (updatedTx?.status === 'confirmed' && basePaymentPrepare) {
+    await patchSpendPaymentPrepare(basePaymentPrepare.id, {
+      status: 'confirmed',
+      lastFailureReason: null,
+      lastFailureAt: null,
+      lastAmbiguityMetadata: null,
+    });
+  }
+
+  let paymentOpSummary: SpendPaymentOperationClientSummary | undefined;
+  if (session.spend_rail === 'base_usdc') {
+    const po = await getSpendPaymentPrepareBySessionId(session.id);
+    paymentOpSummary = po ? spendPaymentOperationClientSummary(po) : undefined;
+  }
 
   if (updatedTx?.status === 'confirmed' && updatedTx.payment_tx_hash) {
     void insertTreasuryReceivePaymentLedgerIfAbsent({
@@ -489,6 +619,7 @@ export async function runSpendPaymentConfirm(input: {
       spendTransaction: updatedTx,
       session: freshSession ?? { ...session, status: 'payment_complete' },
       resumed: true,
+      paymentOperation: paymentOpSummary,
     };
   }
 
@@ -501,5 +632,6 @@ export async function runSpendPaymentConfirm(input: {
       completed_at: new Date().toISOString(),
     },
     resumed: resumed || isSameSubmittedHash,
+    paymentOperation: paymentOpSummary,
   };
 }

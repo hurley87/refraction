@@ -15,9 +15,6 @@ export type SpendPaymentTxVerifyResult =
   | { ok: true }
   | { ok: false; reason: string };
 
-/**
- * Confirms a Base USDC transfer receipt: success, token, from, to, and amount (6 decimals).
- */
 export async function verifySpendUsdcPaymentTx(params: {
   txHash: `0x${string}`;
   expectedFrom: `0x${string}`;

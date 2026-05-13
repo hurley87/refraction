@@ -459,12 +459,20 @@ export type SpendWalletReadinessOperation = {
   updated_at: string;
 };
 
-/** v1 idempotency key `payment:{spend_session_id}` (distinct from `spend_payment:{sessionId}` on spend_transactions). */
-export type SpendPaymentPrepareOperationStatus = 'prepared';
+/**
+ * `spend_payment_prepare_operations.status` — aligned with `SpendRailPaymentOperationStatus`
+ * (IRL-28).
+ */
+export type SpendPaymentPrepareOperationStatus =
+  | 'prepared'
+  | 'submitted'
+  | 'confirmed'
+  | 'failed'
+  | 'needs_review';
 
 /**
- * Server-prepared payment action row (IRL-19). `prepared_action` / `verification_snapshot` are
- * rail-specific JSON; Base USDC uses `SpendPaymentPrepareStoredActionV1` + snapshot types in
+ * Server-prepared payment action row (IRL-19 / IRL-28). `prepared_action` / `verification_snapshot`
+ * are rail-specific JSON; Base USDC uses `SpendPaymentPrepareStoredActionV1` + snapshot types in
  * `lib/spend-payment-prepare-types.ts`.
  */
 export type SpendPaymentPrepareOperation = {
@@ -476,6 +484,19 @@ export type SpendPaymentPrepareOperation = {
   prepared_action: Record<string, unknown>;
   verification_snapshot: Record<string, unknown>;
   idempotency_key: string;
+  attempt_count: number;
+  last_failure_reason: string | null;
+  last_failure_at: string | null;
+  last_ambiguity_metadata: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
+};
+
+/** Client-safe subset for Pay / retry / needs_review gating (IRL-28). */
+export type SpendPaymentOperationClientSummary = {
+  id: string;
+  status: SpendPaymentPrepareOperationStatus;
+  attempt_count: number;
+  last_failure_reason: string | null;
+  last_failure_at: string | null;
 };

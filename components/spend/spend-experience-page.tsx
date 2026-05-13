@@ -10,6 +10,7 @@ import { SpendPrimaryButton } from '@/components/spend/spend-primary-button';
 import type {
   PointConversion,
   SpendExperience,
+  SpendPaymentOperationClientSummary,
   SpendSession,
   SpendTransaction,
 } from '@/lib/types';
@@ -78,12 +79,14 @@ type PaymentConfirmResponse = {
   spendRailSummary: SpendRailClientSummary;
   session: Pick<SpendSession, 'id' | 'status' | 'expires_at' | 'completed_at'>;
   resumed: boolean;
+  paymentOperation?: SpendPaymentOperationClientSummary;
 };
 
 type PaymentPrepareResponse = {
   preparedAction: Record<string, unknown>;
   spendRailSummary: SpendRailClientSummary;
   session: Pick<SpendSession, 'id' | 'status' | 'expires_at'>;
+  paymentOperation: SpendPaymentOperationClientSummary;
 };
 
 type ReceiptResponse = {
@@ -96,6 +99,14 @@ type ReceiptResponse = {
 };
 
 const WALLET_STEP_TIMEOUT_MS = 180_000;
+
+function isPaymentNeedsReviewFromApiError(error: unknown): boolean {
+  if (!(error instanceof ApiError)) return false;
+  const d = error.details as
+    | { paymentOperation?: { status?: string } }
+    | undefined;
+  return d?.paymentOperation?.status === 'needs_review';
+}
 
 function withTimeout<T>(
   promise: Promise<T>,
@@ -261,30 +272,38 @@ export function SpendExperiencePage({
     sessionStatusForPrepare !== 'payment_complete'
   );
 
-  const { data: paymentPrepareData, isFetching: paymentPrepareLoading } =
-    useQuery({
-      queryKey: [
-        'spend-payment-prepare',
-        sessionId,
-        user?.id,
-        walletAddress,
-      ] as const,
-      queryFn: async () => {
-        const token = await getAccessToken();
-        if (!token || !walletAddress || !sessionId) {
-          throw new Error('Missing auth or session');
-        }
-        return spendAuthedPost<PaymentPrepareResponse>(
-          token,
-          `/api/spend-sessions/${sessionId}/payment/prepare`,
-          { walletAddress }
-        );
-      },
-      enabled: basePayPrepareEnabled,
-      staleTime: Infinity,
-      refetchOnWindowFocus: false,
-      retry: false,
-    });
+  const {
+    data: paymentPrepareData,
+    isFetching: paymentPrepareLoading,
+    error: paymentPrepareError,
+  } = useQuery({
+    queryKey: [
+      'spend-payment-prepare',
+      sessionId,
+      user?.id,
+      walletAddress,
+    ] as const,
+    queryFn: async () => {
+      const token = await getAccessToken();
+      if (!token || !walletAddress || !sessionId) {
+        throw new Error('Missing auth or session');
+      }
+      return spendAuthedPost<PaymentPrepareResponse>(
+        token,
+        `/api/spend-sessions/${sessionId}/payment/prepare`,
+        { walletAddress }
+      );
+    },
+    enabled: basePayPrepareEnabled,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  const paymentPrepareNeedsReview = useMemo(
+    () => isPaymentNeedsReviewFromApiError(paymentPrepareError),
+    [paymentPrepareError]
+  );
 
   const sessionStatus = previewPayload?.session?.status;
 
@@ -525,6 +544,7 @@ export function SpendExperiencePage({
 
   const showBaseWalletPay =
     !isPaymentComplete &&
+    !paymentPrepareNeedsReview &&
     (elig?.status === 'ready_for_payment' ||
       elig?.status === 'ready_for_payment_own_usdc' ||
       elig?.status === 'payment_failed') &&
@@ -715,6 +735,18 @@ export function SpendExperiencePage({
                           : `Spend $${preview.usdcAmount.toFixed(2)} ${assetSymbol}`}
                       </SpendPrimaryButton>
                     )}
+
+                    {postPointsConversion &&
+                      paymentPrepareNeedsReview &&
+                      !isPaymentComplete &&
+                      resolvedSpendRail === 'base_usdc' && (
+                        <p className="body-small font-grotesk text-amber-900">
+                          We could not automatically confirm your last payment
+                          transaction. Please contact support with your
+                          transaction hash and do not pay again until support
+                          clears this session.
+                        </p>
+                      )}
 
                     {displayReceipt && (
                       <div className="space-y-3 rounded-sm border border-emerald-200/90 bg-emerald-50/90 p-4 text-[#171717]">

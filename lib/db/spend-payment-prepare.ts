@@ -1,6 +1,7 @@
 import { supabase } from './client';
 import { normalizeSpendRail } from './spend-rail';
 import type {
+  SpendPaymentOperationClientSummary,
   SpendPaymentPrepareOperation,
   SpendPaymentPrepareOperationStatus,
   SpendRail,
@@ -15,6 +16,10 @@ export const SPEND_PAYMENT_PREPARE_COLS = `
   prepared_action,
   verification_snapshot,
   idempotency_key,
+  attempt_count,
+  last_failure_reason,
+  last_failure_at,
+  last_ambiguity_metadata,
   created_at,
   updated_at
 `;
@@ -26,9 +31,25 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
   return {};
 }
 
+function parseNullableJsonObject(
+  value: unknown
+): Record<string, unknown> | null {
+  if (value == null) return null;
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
 export function rowToSpendPaymentPrepareOperation(
   row: Record<string, unknown>
 ): SpendPaymentPrepareOperation {
+  const attemptRaw = row.attempt_count;
+  const attemptCount =
+    typeof attemptRaw === 'number' && Number.isFinite(attemptRaw)
+      ? attemptRaw
+      : 0;
+
   return {
     id: String(row.id),
     spend_session_id: String(row.spend_session_id),
@@ -38,6 +59,14 @@ export function rowToSpendPaymentPrepareOperation(
     prepared_action: parseJsonObject(row.prepared_action),
     verification_snapshot: parseJsonObject(row.verification_snapshot),
     idempotency_key: String(row.idempotency_key),
+    attempt_count: attemptCount,
+    last_failure_reason:
+      row.last_failure_reason == null ? null : String(row.last_failure_reason),
+    last_failure_at:
+      row.last_failure_at == null ? null : String(row.last_failure_at),
+    last_ambiguity_metadata: parseNullableJsonObject(
+      row.last_ambiguity_metadata
+    ),
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
   };
@@ -151,6 +180,69 @@ export async function insertSpendPaymentPrepareOrGet(
   );
 }
 
+export type PatchSpendPaymentPrepareInput = {
+  status?: SpendPaymentPrepareOperationStatus;
+  preparedAction?: Record<string, unknown>;
+  verificationSnapshot?: Record<string, unknown>;
+  attemptCount?: number;
+  lastFailureReason?: string | null;
+  lastFailureAt?: string | null;
+  lastAmbiguityMetadata?: Record<string, unknown> | null;
+};
+
+export async function patchSpendPaymentPrepare(
+  id: string,
+  patch: PatchSpendPaymentPrepareInput
+): Promise<SpendPaymentPrepareOperation> {
+  const update: Record<string, unknown> = {};
+  if (patch.status !== undefined) update.status = patch.status;
+  if (patch.preparedAction !== undefined) {
+    update.prepared_action = patch.preparedAction;
+  }
+  if (patch.verificationSnapshot !== undefined) {
+    update.verification_snapshot = patch.verificationSnapshot;
+  }
+  if (patch.attemptCount !== undefined) {
+    update.attempt_count = patch.attemptCount;
+  }
+  if (patch.lastFailureReason !== undefined) {
+    update.last_failure_reason = patch.lastFailureReason;
+  }
+  if (patch.lastFailureAt !== undefined) {
+    update.last_failure_at = patch.lastFailureAt;
+  }
+  if (patch.lastAmbiguityMetadata !== undefined) {
+    update.last_ambiguity_metadata = patch.lastAmbiguityMetadata;
+  }
+
+  if (Object.keys(update).length === 0) {
+    const { data: existing, error: loadErr } = await supabase
+      .from('spend_payment_prepare_operations')
+      .select(SPEND_PAYMENT_PREPARE_COLS)
+      .eq('id', id)
+      .single();
+    if (loadErr || !existing) {
+      throw new Error(loadErr?.message || 'Failed to load payment prepare');
+    }
+    return rowToSpendPaymentPrepareOperation(
+      existing as Record<string, unknown>
+    );
+  }
+
+  const { data, error } = await supabase
+    .from('spend_payment_prepare_operations')
+    .update(update)
+    .eq('id', id)
+    .select(SPEND_PAYMENT_PREPARE_COLS)
+    .single();
+
+  if (error || !data) {
+    console.error('patchSpendPaymentPrepare:', error);
+    throw new Error(error?.message || 'Failed to patch payment prepare');
+  }
+  return rowToSpendPaymentPrepareOperation(data as Record<string, unknown>);
+}
+
 export async function updateSpendPaymentPreparePayload(
   id: string,
   patch: {
@@ -158,19 +250,20 @@ export async function updateSpendPaymentPreparePayload(
     verificationSnapshot: Record<string, unknown>;
   }
 ): Promise<SpendPaymentPrepareOperation> {
-  const { data, error } = await supabase
-    .from('spend_payment_prepare_operations')
-    .update({
-      prepared_action: patch.preparedAction,
-      verification_snapshot: patch.verificationSnapshot,
-    })
-    .eq('id', id)
-    .select(SPEND_PAYMENT_PREPARE_COLS)
-    .single();
+  return patchSpendPaymentPrepare(id, {
+    preparedAction: patch.preparedAction,
+    verificationSnapshot: patch.verificationSnapshot,
+  });
+}
 
-  if (error || !data) {
-    console.error('updateSpendPaymentPreparePayload:', error);
-    throw new Error(error?.message || 'Failed to update payment prepare');
-  }
-  return rowToSpendPaymentPrepareOperation(data as Record<string, unknown>);
+export function spendPaymentOperationClientSummary(
+  row: SpendPaymentPrepareOperation
+): SpendPaymentOperationClientSummary {
+  return {
+    id: row.id,
+    status: row.status,
+    attempt_count: row.attempt_count,
+    last_failure_reason: row.last_failure_reason,
+    last_failure_at: row.last_failure_at,
+  };
 }

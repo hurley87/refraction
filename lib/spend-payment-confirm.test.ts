@@ -35,11 +35,18 @@ vi.mock('@/lib/db/spend-sessions', () => ({
 }));
 
 const mockGetPaymentPrepare = vi.fn();
+const mockPatchPrepare = vi.fn();
 
-vi.mock('@/lib/db/spend-payment-prepare', () => ({
-  getSpendPaymentPrepareBySessionId: (...a: unknown[]) =>
-    mockGetPaymentPrepare(...a),
-}));
+vi.mock('@/lib/db/spend-payment-prepare', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/lib/db/spend-payment-prepare')>();
+  return {
+    ...actual,
+    getSpendPaymentPrepareBySessionId: (...a: unknown[]) =>
+      mockGetPaymentPrepare(...a),
+    patchSpendPaymentPrepare: (...a: unknown[]) => mockPatchPrepare(...a),
+  };
+});
 
 vi.mock('@/lib/db/treasury-transactions', () => ({
   insertTreasuryReceivePaymentLedgerIfAbsent: vi.fn(),
@@ -77,10 +84,12 @@ vi.mock('@/lib/analytics/server', () => ({
 import { runSpendPaymentConfirm } from '@/lib/spend-payment-confirm';
 import * as analytics from '@/lib/analytics/server';
 import * as spendSessions from '@/lib/db/spend-sessions';
+import * as spendPaymentVerify from '@/lib/spend-payment-verify';
 import type {
   PointConversion,
   SpendExperience,
   SpendSession,
+  SpendTransaction,
 } from '@/lib/types';
 
 const validHash =
@@ -153,6 +162,7 @@ function inProgressConversion(
 describe('runSpendPaymentConfirm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPatchPrepare.mockReset();
     mockFetchUserUsdc.mockResolvedValue(10);
     mockRailGate.mockReturnValue({ ok: true as const });
     mockGetSpendTransaction.mockResolvedValue(null);
@@ -174,6 +184,10 @@ describe('runSpendPaymentConfirm', () => {
         transfer_calldata: '0x',
       },
       idempotency_key: 'payment:sess-1',
+      attempt_count: 0,
+      last_failure_reason: null,
+      last_failure_at: null,
+      last_ambiguity_metadata: null,
       created_at: '2026-01-01T00:00:00.000Z',
       updated_at: '2026-01-01T00:00:00.000Z',
     });
@@ -297,5 +311,144 @@ describe('runSpendPaymentConfirm', () => {
     if (result.ok) throw new Error('expected failure');
     expect(result.httpStatus).toBe(400);
     expect(result.error).toMatch(/not ready to confirm/i);
+  });
+
+  it('rejects confirm while payment operation needs_review', async () => {
+    mockGetPointConversion.mockResolvedValue(inProgressConversion('funded'));
+    mockGetPaymentPrepare.mockResolvedValue({
+      id: 'prep-1',
+      spend_session_id: baseSession.id,
+      user_id: 'user-1',
+      spend_rail: 'base_usdc',
+      status: 'needs_review',
+      prepared_action: {},
+      verification_snapshot: {
+        v: 1,
+        spend_rail: 'base_usdc',
+        chain_id: 8453,
+        usdc_contract: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+        receiving_wallet: '0x2222222222222222222222222222222222222222',
+        from_wallet: baseSession.wallet_address.toLowerCase(),
+        usdc_amount: 5,
+        transfer_calldata: '0x',
+      },
+      idempotency_key: 'payment:sess-1',
+      attempt_count: 0,
+      last_failure_reason: 'timeout',
+      last_failure_at: '2026-01-01T00:00:01.000Z',
+      last_ambiguity_metadata: {},
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
+
+    const session = {
+      ...baseSession,
+      status: 'conversion_complete' as const,
+    };
+
+    const result = await runSpendPaymentConfirm({
+      session,
+      spendExperience: baseExperience,
+      normalizedWallet: baseSession.wallet_address.toLowerCase(),
+      authUserId: 'user-1',
+      distinctId: 'd1',
+      paymentTxHash: validHash,
+      usdcAmount: 5,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('expected failure');
+    expect(result.httpStatus).toBe(400);
+    expect(result.details?.paymentOperation?.status).toBe('needs_review');
+    expect(
+      spendSessions.insertSpendTransactionSubmitted
+    ).not.toHaveBeenCalled();
+  });
+
+  it('marks payment operation needs_review and does not mark spend transaction failed when verification is ambiguous', async () => {
+    mockGetPointConversion.mockResolvedValue(inProgressConversion('funded'));
+    mockGetSpendTransaction.mockResolvedValue(null);
+
+    const submittedTx: SpendTransaction = {
+      id: 'tx-1',
+      spend_experience_id: 'exp-1',
+      spend_session_id: 'sess-1',
+      user_id: 'user-1',
+      usdc_amount: 5,
+      spend_rail: 'base_usdc',
+      network: 'Base',
+      asset_symbol: 'USDC',
+      from_wallet_address: baseSession.wallet_address.toLowerCase(),
+      to_wallet_address: '0x2222222222222222222222222222222222222222',
+      status: 'submitted',
+      payment_tx_hash: validHash,
+      explorer_tx_url: null,
+      idempotency_key: null,
+      created_at: '2026-01-01T00:00:00.000Z',
+      completed_at: null,
+      failed_reason: null,
+      updated_at: '2026-01-01T00:00:00.000Z',
+    };
+
+    vi.mocked(spendSessions.insertSpendTransactionSubmitted).mockResolvedValue(
+      submittedTx
+    );
+
+    vi.mocked(spendPaymentVerify.verifySpendUsdcPaymentTx).mockResolvedValue({
+      ok: false,
+      reason: 'waitForTransactionReceipt timeout',
+    });
+
+    mockPatchPrepare.mockResolvedValue({
+      id: 'prep-1',
+      spend_session_id: baseSession.id,
+      user_id: 'user-1',
+      spend_rail: 'base_usdc',
+      status: 'needs_review',
+      prepared_action: {},
+      verification_snapshot: {
+        v: 1,
+        spend_rail: 'base_usdc',
+        chain_id: 8453,
+        usdc_contract: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+        receiving_wallet: '0x2222222222222222222222222222222222222222',
+        from_wallet: baseSession.wallet_address.toLowerCase(),
+        usdc_amount: 5,
+        transfer_calldata: '0x',
+      },
+      idempotency_key: 'payment:sess-1',
+      attempt_count: 0,
+      last_failure_reason: 'waitForTransactionReceipt timeout',
+      last_failure_at: '2026-01-01T00:00:02.000Z',
+      last_ambiguity_metadata: { spend_transaction_id: 'tx-1' },
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:02.000Z',
+    });
+
+    const session = {
+      ...baseSession,
+      status: 'conversion_complete' as const,
+    };
+
+    const result = await runSpendPaymentConfirm({
+      session,
+      spendExperience: baseExperience,
+      normalizedWallet: baseSession.wallet_address.toLowerCase(),
+      authUserId: 'user-1',
+      distinctId: 'd1',
+      paymentTxHash: validHash,
+      usdcAmount: 5,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('expected failure');
+    expect(result.httpStatus).toBe(400);
+    expect(
+      mockPatchPrepare.mock.calls.some(
+        (args) => (args[1] as { status?: string })?.status === 'needs_review'
+      )
+    ).toBe(true);
+    expect(spendSessions.updateSpendTransactionFields).not.toHaveBeenCalled();
+    expect(analytics.trackSpendPaymentFailed).not.toHaveBeenCalled();
   });
 });

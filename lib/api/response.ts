@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { ZodError } from "zod";
+import { NextResponse } from 'next/server';
+import { ZodError } from 'zod';
 
 /**
  * Standardized API response type
@@ -9,6 +9,8 @@ export type ApiResponse<T = unknown> = {
   data?: T;
   error?: string;
   message?: string;
+  /** Optional machine-readable context on errors (e.g. IRL-28 payment operation summary). */
+  details?: unknown;
 };
 
 /**
@@ -20,7 +22,7 @@ export type ApiResponse<T = unknown> = {
 export function apiSuccess<T>(
   data: T,
   message?: string,
-  status = 200,
+  status = 200
 ): NextResponse<ApiResponse<T>> {
   const response: ApiResponse<T> = {
     success: true,
@@ -42,13 +44,15 @@ export function apiSuccess<T>(
 export function apiError(
   error: string,
   status: 400 | 401 | 403 | 404 | 409 | 429 | 500 = 500,
+  details?: unknown
 ): NextResponse<ApiResponse> {
   return NextResponse.json(
     {
       success: false,
       error,
+      ...(details !== undefined ? { details } : {}),
     },
-    { status },
+    { status }
   );
 }
 
@@ -59,25 +63,24 @@ export function apiError(
  */
 export function apiValidationError(
   zodError: ZodError,
-  status = 400,
+  status = 400
 ): NextResponse<ApiResponse> {
   // Format Zod errors into a readable message
   const errorMessages = zodError.issues.map((issue) => {
-    const path = issue.path.join(".");
+    const path = issue.path.join('.');
     return path ? `${path}: ${issue.message}` : issue.message;
   });
 
   const errorMessage =
     errorMessages.length === 1
       ? errorMessages[0]
-      : `Validation failed: ${errorMessages.join("; ")}`;
+      : `Validation failed: ${errorMessages.join('; ')}`;
 
   return NextResponse.json(
     {
       success: false,
       error: errorMessage,
     },
-    { status },
+    { status }
   );
 }
-

@@ -63,6 +63,13 @@ describe('POST /api/spend-sessions/[sessionId]/payment/confirm', () => {
         completed_at: '2026-01-01T00:00:01.000Z',
       },
       resumed: false,
+      paymentOperation: {
+        id: 'prep-1',
+        status: 'confirmed',
+        attempt_count: 0,
+        last_failure_reason: null,
+        last_failure_at: null,
+      },
     });
   });
 
@@ -81,6 +88,7 @@ describe('POST /api/spend-sessions/[sessionId]/payment/confirm', () => {
     const j = await res.json();
     expect(res.status).toBe(200);
     expect(j.data.spendTransaction.id).toBe('tx-1');
+    expect(j.data.paymentOperation?.status).toBe('confirmed');
     expect(j.data.session.status).toBe('payment_complete');
     expect(j.data.spendRailSummary).toMatchObject({
       rail: 'base_usdc',
