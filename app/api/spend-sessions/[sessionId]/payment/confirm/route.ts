@@ -76,7 +76,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!result.ok) {
-      return apiError(result.error, result.httpStatus);
+      return apiError(result.error, result.httpStatus, result.details);
     }
 
     return apiSuccess({
@@ -89,6 +89,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         completed_at: result.session.completed_at,
       },
       resumed: result.resumed,
+      paymentOperation: result.paymentOperation,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed to confirm payment';

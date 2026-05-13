@@ -54,6 +54,13 @@ describe('POST /api/spend-sessions/[sessionId]/payment/prepare', () => {
         status: 'conversion_complete',
         expires_at: '2099-01-01T00:00:00.000Z',
       },
+      paymentOperation: {
+        id: 'prep-1',
+        status: 'prepared',
+        attempt_count: 0,
+        last_failure_reason: null,
+        last_failure_at: null,
+      },
     });
   });
 
@@ -71,6 +78,8 @@ describe('POST /api/spend-sessions/[sessionId]/payment/prepare', () => {
     const j = await res.json();
     expect(res.status).toBe(200);
     expect(j.data.preparedAction.evmTransactionRequest.gas).toBe('100000');
+    expect(j.data.paymentOperation.status).toBe('prepared');
+    expect(j.data.paymentOperation.attempt_count).toBe(0);
     expect(j.data.spendRailSummary).toMatchObject({
       rail: 'base_usdc',
       displayName: 'Base USDC',

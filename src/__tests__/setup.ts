@@ -122,6 +122,15 @@ vi.mock('@privy-io/react-auth', () => ({
   PrivyProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+/** happy-dom is a browser-like environment; server-auth throws on import without this mock. */
+vi.mock('@privy-io/server-auth', () => ({
+  PrivyClient: class MockPrivyServerClient {
+    constructor(..._args: unknown[]) {
+      void _args;
+    }
+  },
+}));
+
 // Mock Mapbox GL
 vi.mock('mapbox-gl', () => ({
   Map: vi.fn(),

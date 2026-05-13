@@ -21,8 +21,8 @@ export type SpendRailFundingOperationStatus =
   | 'needs_review';
 
 /**
- * Payment operation lifecycle at the **rail orchestration layer** (not `spend_transactions.status`;
- * DB alignment is deferred).
+ * Payment operation lifecycle at the **rail orchestration layer** and on
+ * `spend_payment_prepare_operations.status` (IRL-28).
  *
  * **confirmed** means on-chain (or network-appropriate) evidence consistent with spend payment
  * ledger confirmation semantics; verification lives in rail implementations.
