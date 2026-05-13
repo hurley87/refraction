@@ -210,3 +210,28 @@ export async function updateSpendWalletReadinessFields(
   }
   return rowToSpendWalletReadinessOperation(data as Record<string, unknown>);
 }
+
+/**
+ * Spend session ids with Stellar wallet readiness still in-flight (IRL-22 reconcile).
+ */
+export async function listSpendSessionIdsForStaleStellarWalletReadiness(input: {
+  olderThanIso: string;
+  limit: number;
+}): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('spend_wallet_readiness_operations')
+    .select('spend_session_id')
+    .eq('spend_rail', 'stellar_usdc')
+    .in('status', ['pending', 'needs_review'])
+    .lt('updated_at', input.olderThanIso)
+    .order('updated_at', { ascending: true })
+    .limit(input.limit);
+
+  if (error) {
+    console.error('listSpendSessionIdsForStaleStellarWalletReadiness:', error);
+    throw new Error(error.message || 'Failed to list readiness candidates');
+  }
+  return (data ?? []).map((row) =>
+    String((row as { spend_session_id: string }).spend_session_id)
+  );
+}

@@ -18,6 +18,12 @@ vi.mock('@/lib/spend/stellar-treasury-funding', () => ({
   getStellarTreasuryFundingTxOutcome: vi.fn(),
 }));
 
+vi.mock('@/lib/spend/reconcile-spend-rail-pending-operations', () => ({
+  reconcileSpendRailPendingOperationsFromRailContext: vi
+    .fn()
+    .mockResolvedValue({ ok: true }),
+}));
+
 import {
   SPEND_RAIL_ANALYTICS_CODES,
   spendRailErrorConversionFundingNotSupported,
@@ -145,7 +151,7 @@ describe('getSpendPaymentRail', () => {
     expect(gate.error.userMessage).toContain('not available in this release');
   });
 
-  it('Stellar rail rejects prepare/confirm/reconcile; treasury reads are rail-shaped', async () => {
+  it('Stellar rail rejects user-signed confirm; reconcile delegates to shared module', async () => {
     const rail = getSpendPaymentRail('stellar_usdc');
     const ctx = { spendSessionId: 's1', sessionOwnerPrivyUserId: 'p1' };
 
@@ -163,7 +169,7 @@ describe('getSpendPaymentRail', () => {
     });
     await expect(
       rail.reconcilePendingOperations({ spendSessionId: 's1' })
-    ).resolves.toMatchObject({ ok: false });
+    ).resolves.toMatchObject({ ok: true });
 
     expect(rail.explorerUrlForLedgerTx(null)).toBeNull();
   });

@@ -1185,6 +1185,49 @@ async function fundOrResumeUsdc(input: {
     conv = onward.conversion;
   }
 
+  return resumeSpendConversionFundingFromChainReferences({
+    pointConversion: conv,
+    session,
+    spendExperience,
+    treasuryMeta,
+    distinctId,
+    baseAnalytics,
+    privyResolveOptions: { timeoutMs: 120_000, pollIntervalMs: 1_000 },
+  });
+}
+
+type SpendTreasuryFundingWalletMeta = NonNullable<
+  ReturnType<typeof getSpendTreasuryFundingWalletMeta>
+>;
+
+/**
+ * Confirms conversion funding from stored tx references only (Privy pending
+ * resolution, on-chain recovery, receipt polling, finalize). Does not initiate
+ * new treasury sends or wallet readiness (IRL-22 cron / read-path reconcile).
+ */
+async function resumeSpendConversionFundingFromChainReferences(input: {
+  pointConversion: PointConversion;
+  session: SpendSession;
+  spendExperience: SpendExperience;
+  treasuryMeta: SpendTreasuryFundingWalletMeta;
+  distinctId: string;
+  baseAnalytics: SpendPilotConversionEventProperties;
+  /** Defaults match interactive confirm polling. */
+  privyResolveOptions?: { timeoutMs: number; pollIntervalMs: number };
+}): Promise<
+  | { conversion: PointConversion; error: null }
+  | { error: SpendConversionConfirmResult; conversion?: never }
+> {
+  const {
+    session,
+    spendExperience,
+    treasuryMeta,
+    distinctId,
+    baseAnalytics,
+    privyResolveOptions,
+  } = input;
+  let conv = input.pointConversion;
+
   let hash = conv.funding_tx_hash?.trim();
   const pendingPrefix = 'pending:';
   const trimmedFunding = conv.funding_tx_hash?.trim() ?? '';
@@ -1199,7 +1242,10 @@ async function fundOrResumeUsdc(input: {
       try {
         const polled = await resolvePrivyServerTransactionHash(
           { transactionId: privyId },
-          { timeoutMs: 120_000, pollIntervalMs: 1_000 }
+          privyResolveOptions ?? {
+            timeoutMs: 120_000,
+            pollIntervalMs: 1_000,
+          }
         );
         const normalized = polled?.trim();
         if (normalized && isEvmTxHash(normalized)) {
@@ -1311,6 +1357,79 @@ async function fundOrResumeUsdc(input: {
   });
 
   return { conversion: done, error: null };
+}
+
+/**
+ * Background-safe conversion funding reconciliation (cron / read-path).
+ * Never starts readiness or a new funding send; only chain confirmation and
+ * hash discovery from existing references.
+ */
+export async function reconcileSpendConversionFundingBackground(input: {
+  session: SpendSession;
+  spendExperience: SpendExperience;
+  distinctId: string;
+}): Promise<'advanced' | 'unchanged'> {
+  const pointConversion = await getPointConversionBySessionId(input.session.id);
+  if (!pointConversion || !RESUMABLE.includes(pointConversion.status)) {
+    return 'unchanged';
+  }
+
+  const normalizedWallet = input.session.wallet_address.toLowerCase();
+  const { usdcAmount } = computeConversionAmounts(input.spendExperience);
+  const baseAnalytics: SpendPilotConversionEventProperties = {
+    spend_experience_id: input.spendExperience.id,
+    event_id: input.spendExperience.event_id,
+    user_id: input.session.user_id,
+    wallet_address: normalizedWallet,
+    points_amount: pointConversion.points_deducted,
+    usdc_amount: usdcAmount,
+    status: 'confirm',
+  };
+
+  const finalized = await tryFinalizePendingSpendConversion({
+    pointConversion,
+    session: input.session,
+    spendExperience: input.spendExperience,
+    normalizedWallet,
+    distinctId: input.distinctId,
+    baseAnalytics,
+  });
+  if (finalized) {
+    return 'advanced';
+  }
+
+  const conv = await getPointConversionBySessionId(input.session.id);
+  if (!conv || !RESUMABLE.includes(conv.status)) {
+    return 'unchanged';
+  }
+
+  const fundingRef = conv.funding_tx_hash?.trim() ?? '';
+  if (!fundingRef && conv.status === 'points_deducted') {
+    return 'unchanged';
+  }
+
+  const treasuryMeta = getSpendTreasuryFundingWalletMeta(input.spendExperience);
+  if (!treasuryMeta) {
+    return 'unchanged';
+  }
+
+  const res = await resumeSpendConversionFundingFromChainReferences({
+    pointConversion: conv,
+    session: input.session,
+    spendExperience: input.spendExperience,
+    treasuryMeta,
+    distinctId: input.distinctId,
+    baseAnalytics,
+    privyResolveOptions: { timeoutMs: 20_000, pollIntervalMs: 2_000 },
+  });
+
+  if ('conversion' in res) {
+    return 'advanced';
+  }
+  const failure = res as {
+    error: Extract<SpendConversionConfirmResult, { ok: false }>;
+  };
+  return failure.error.httpStatus === 409 ? 'unchanged' : 'advanced';
 }
 
 /**

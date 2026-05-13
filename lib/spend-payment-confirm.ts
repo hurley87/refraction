@@ -1096,3 +1096,303 @@ export async function runSpendPaymentConfirm(input: {
     paymentOperation: paymentOpSummary,
   };
 }
+
+/**
+ * Confirms submitted on-chain payments from stored hashes only (cron / read-path).
+ * Does not submit new Stellar payments or accept new Base hashes.
+ */
+export async function reconcileSubmittedSpendPaymentBackground(input: {
+  session: SpendSession;
+  spendExperience: SpendExperience;
+  distinctId: string;
+}): Promise<'advanced' | 'unchanged'> {
+  const { session, spendExperience, distinctId } = input;
+  const [preparedOp, spendTx, fundedConversion] = await Promise.all([
+    getSpendPaymentPrepareBySessionId(session.id),
+    getSpendTransactionBySessionId(session.id),
+    getPointConversionBySessionId(session.id),
+  ]);
+
+  if (!preparedOp) {
+    return 'unchanged';
+  }
+
+  if (preparedOp.status === 'failed') {
+    return 'unchanged';
+  }
+
+  if (preparedOp.status === 'confirmed' && spendTx?.status === 'confirmed') {
+    return 'unchanged';
+  }
+
+  const receivingLive = getSpendReceivingWalletAddress(
+    spendExperience.spend_rail
+  ).trim();
+
+  if (session.spend_rail === 'stellar_usdc') {
+    if (
+      !stellarWalletAddressSchema.safeParse(receivingLive).success ||
+      preparedOp.status === 'needs_review'
+    ) {
+      return 'unchanged';
+    }
+
+    const snap = preparedOp.verification_snapshot;
+    if (!isSpendStellarUsdcVerificationSnapshotV1(snap)) {
+      return 'unchanged';
+    }
+
+    const railAddr = session.rail_user_wallet_address?.trim() ?? '';
+    if (!railAddr || snap.from_wallet !== railAddr) {
+      return 'unchanged';
+    }
+
+    const issuerLive = getStellarSpendUsdcIssuer();
+    const codeLive = getStellarSpendUsdcAssetCode();
+    if (
+      !issuerLive ||
+      !spendStellarUsdcSnapshotMatchesLiveRail({
+        snapshot: snap,
+        liveSpendRail: session.spend_rail,
+        liveReceiving: receivingLive,
+        liveUsdcIssuer: issuerLive,
+        liveUsdcCode: codeLive,
+      })
+    ) {
+      return 'unchanged';
+    }
+
+    const normalizedWallet = session.wallet_address.toLowerCase();
+    const stellarAnalyticsBase: SpendPilotPaymentEventProperties = {
+      spend_experience_id: spendExperience.id,
+      event_id: spendExperience.event_id,
+      user_id: session.user_id,
+      wallet_address: normalizedWallet,
+      points_amount: fundedConversion ? fundedConversion.points_deducted : 0,
+      usdc_amount: snap.usdc_amount,
+      status: 'submitted',
+      spend_session_id: session.id,
+      point_conversion_id: fundedConversion?.id,
+      payment_tx_hash: spendTx?.payment_tx_hash ?? '',
+    };
+
+    if (
+      spendTx?.status === 'submitted' &&
+      preparedOp.status === 'submitted' &&
+      spendTx.payment_tx_hash &&
+      isStellarTransactionHash(spendTx.payment_tx_hash)
+    ) {
+      const ledgerHash = spendTx.payment_tx_hash.trim().toLowerCase();
+      const verify = await verifySpendStellarUsdcPaymentTx({
+        txHash: ledgerHash,
+        expectedFrom: snap.from_wallet,
+        expectedTo: snap.receiving_wallet,
+        expectedUsdcAmount: snap.usdc_amount,
+        usdcIssuer: issuerLive,
+        usdcCode: codeLive,
+      });
+
+      if (verify.ok) {
+        await finalizeSuccess({
+          spendTransactionId: spendTx.id,
+          sessionId: session.id,
+          distinctId,
+          analytics: {
+            ...stellarAnalyticsBase,
+            spend_transaction_id: spendTx.id,
+            payment_tx_hash: ledgerHash,
+          },
+        });
+        await patchSpendPaymentPrepare(preparedOp.id, {
+          status: 'confirmed',
+          lastFailureReason: null,
+          lastFailureAt: null,
+          lastAmbiguityMetadata: null,
+        });
+        const updatedTx = await getSpendTransactionBySessionId(session.id);
+        if (updatedTx?.status === 'confirmed' && updatedTx.payment_tx_hash) {
+          void insertTreasuryReceivePaymentLedgerIfAbsent({
+            spendExperienceId: spendExperience.id,
+            spendRail: spendExperience.spend_rail,
+            amount: updatedTx.usdc_amount,
+            fromWalletAddress: updatedTx.from_wallet_address,
+            toWalletAddress: updatedTx.to_wallet_address,
+            txHash: updatedTx.payment_tx_hash,
+          });
+        }
+        return 'advanced';
+      }
+
+      const nowIso = new Date().toISOString();
+      if (isAmbiguousSpendPaymentVerifyFailure(verify.reason)) {
+        await patchSpendPaymentPrepare(preparedOp.id, {
+          status: 'needs_review',
+          lastFailureReason: verify.reason,
+          lastFailureAt: nowIso,
+          lastAmbiguityMetadata: {
+            spend_transaction_id: spendTx.id,
+            verify_reason: verify.reason,
+          },
+        });
+        return 'advanced';
+      }
+
+      await finalizeFailure({
+        spendTransactionId: spendTx.id,
+        sessionId: session.id,
+        distinctId,
+        analytics: {
+          ...stellarAnalyticsBase,
+          spend_transaction_id: spendTx.id,
+          payment_tx_hash: ledgerHash,
+        },
+        reason: verify.reason,
+      });
+      await patchSpendPaymentPrepare(preparedOp.id, {
+        status: 'failed',
+        lastFailureReason: verify.reason,
+        lastFailureAt: nowIso,
+        lastAmbiguityMetadata: null,
+      });
+      return 'advanced';
+    }
+
+    return 'unchanged';
+  }
+
+  if (session.spend_rail === 'base_usdc') {
+    if (!isEvmAddress(receivingLive)) {
+      return 'unchanged';
+    }
+    if (
+      !spendTx ||
+      spendTx.status !== 'submitted' ||
+      !spendTx.payment_tx_hash
+    ) {
+      return 'unchanged';
+    }
+    if (preparedOp.status !== 'submitted' && preparedOp.status !== 'prepared') {
+      return 'unchanged';
+    }
+
+    const snap = preparedOp.verification_snapshot;
+    if (!isSpendBaseUsdcVerificationSnapshotV1(snap)) {
+      return 'unchanged';
+    }
+
+    const normalizedWallet = session.wallet_address.toLowerCase();
+    if (snap.from_wallet !== normalizedWallet) {
+      return 'unchanged';
+    }
+    if (
+      !spendBaseUsdcSnapshotMatchesLiveRail({
+        snapshot: snap,
+        liveSpendRail: session.spend_rail,
+        liveReceivingLower: receivingLive.toLowerCase(),
+        liveUsdcContractLower:
+          getSpendRailBaseUsdcContractAddress().toLowerCase(),
+        liveChainId: POSTER_CHECKOUT_CHAIN_ID,
+      })
+    ) {
+      return 'unchanged';
+    }
+
+    const txHash = normalizeTxHash(spendTx.payment_tx_hash);
+    if (!txHash) {
+      return 'unchanged';
+    }
+
+    const fromAddr = snap.from_wallet as `0x${string}`;
+    const toAddr = snap.receiving_wallet as `0x${string}`;
+    const usdcAmount = snap.usdc_amount;
+    const requestedHashLower = txHash.toLowerCase();
+
+    const baseAnalytics: SpendPilotPaymentEventProperties = {
+      spend_experience_id: spendExperience.id,
+      event_id: spendExperience.event_id,
+      user_id: session.user_id,
+      wallet_address: normalizedWallet,
+      points_amount: fundedConversion ? fundedConversion.points_deducted : 0,
+      usdc_amount: usdcAmount,
+      status: 'submitted',
+      spend_session_id: session.id,
+      point_conversion_id: fundedConversion?.id,
+      payment_tx_hash: txHash,
+    };
+
+    const aligned =
+      (spendTx.payment_tx_hash ?? '').toLowerCase() === requestedHashLower;
+    if (preparedOp.status === 'prepared' && aligned) {
+      await patchSpendPaymentPrepare(preparedOp.id, { status: 'submitted' });
+    }
+
+    await updateSpendSessionStatus(session.id, 'payment_pending');
+
+    const verify = await verifySpendUsdcPaymentTx({
+      txHash,
+      expectedFrom: fromAddr,
+      expectedTo: toAddr,
+      expectedUsdcAmount: usdcAmount,
+    });
+
+    if (!verify.ok) {
+      const nowIso = new Date().toISOString();
+      if (isAmbiguousSpendPaymentVerifyFailure(verify.reason)) {
+        await patchSpendPaymentPrepare(preparedOp.id, {
+          status: 'needs_review',
+          lastFailureReason: verify.reason,
+          lastFailureAt: nowIso,
+          lastAmbiguityMetadata: {
+            spend_transaction_id: spendTx.id,
+            verify_reason: verify.reason,
+          },
+        });
+        return 'advanced';
+      }
+      await patchSpendPaymentPrepare(preparedOp.id, {
+        status: 'failed',
+        lastFailureReason: verify.reason,
+        lastFailureAt: nowIso,
+        lastAmbiguityMetadata: null,
+      });
+      await finalizeFailure({
+        spendTransactionId: spendTx.id,
+        sessionId: session.id,
+        distinctId,
+        analytics: { ...baseAnalytics, spend_transaction_id: spendTx.id },
+        reason: verify.reason,
+      });
+      return 'advanced';
+    }
+
+    await finalizeSuccess({
+      spendTransactionId: spendTx.id,
+      sessionId: session.id,
+      distinctId,
+      analytics: { ...baseAnalytics, spend_transaction_id: spendTx.id },
+    });
+
+    await patchSpendPaymentPrepare(preparedOp.id, {
+      status: 'confirmed',
+      lastFailureReason: null,
+      lastFailureAt: null,
+      lastAmbiguityMetadata: null,
+    });
+
+    const updatedTx = await getSpendTransactionBySessionId(session.id);
+    if (updatedTx?.status === 'confirmed' && updatedTx.payment_tx_hash) {
+      void insertTreasuryReceivePaymentLedgerIfAbsent({
+        spendExperienceId: spendExperience.id,
+        spendRail: spendExperience.spend_rail,
+        amount: updatedTx.usdc_amount,
+        fromWalletAddress: updatedTx.from_wallet_address,
+        toWalletAddress: updatedTx.to_wallet_address,
+        txHash: updatedTx.payment_tx_hash,
+      });
+    }
+
+    return 'advanced';
+  }
+
+  return 'unchanged';
+}

@@ -518,3 +518,58 @@ export async function refundSpendConversionOnFundingFailure(input: {
     );
   }
 }
+
+/**
+ * Sessions whose point conversion may need funding confirmation (IRL-22).
+ */
+export async function listSpendSessionIdsForStaleConversionFundingReconcile(input: {
+  olderThanIso: string;
+  limit: number;
+}): Promise<string[]> {
+  const half = Math.max(1, Math.ceil(input.limit / 2));
+  const [edgeRes, pointsRes] = await Promise.all([
+    supabase
+      .from('point_conversions')
+      .select('spend_session_id')
+      .in('status', ['funding_pending', 'needs_review'])
+      .lt('updated_at', input.olderThanIso)
+      .order('updated_at', { ascending: true })
+      .limit(half),
+    supabase
+      .from('point_conversions')
+      .select('spend_session_id')
+      .eq('status', 'points_deducted')
+      .not('funding_tx_hash', 'is', null)
+      .lt('updated_at', input.olderThanIso)
+      .order('updated_at', { ascending: true })
+      .limit(half),
+  ]);
+
+  if (edgeRes.error) {
+    console.error(
+      'listSpendSessionIdsForStaleConversionFundingReconcile:',
+      edgeRes.error
+    );
+    throw new Error(
+      edgeRes.error.message || 'Failed to list conversion funding candidates'
+    );
+  }
+  if (pointsRes.error) {
+    console.error(
+      'listSpendSessionIdsForStaleConversionFundingReconcile:',
+      pointsRes.error
+    );
+    throw new Error(
+      pointsRes.error.message || 'Failed to list conversion funding candidates'
+    );
+  }
+
+  const ids = new Set<string>();
+  for (const row of edgeRes.data ?? []) {
+    ids.add(String((row as { spend_session_id: string }).spend_session_id));
+  }
+  for (const row of pointsRes.data ?? []) {
+    ids.add(String((row as { spend_session_id: string }).spend_session_id));
+  }
+  return Array.from(ids).slice(0, input.limit);
+}
