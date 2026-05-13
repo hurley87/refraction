@@ -1,6 +1,6 @@
 # Spend rails end-to-end QA matrix (Base USDC vs Stellar USDC)
 
-Repeatable manual checklist for operators validating the **shared** IRL Spend flow (QR → session → conversion preview → conversion/funding → payment → receipt) on **Base** and **Stellar** rails. Product code paths: `app/spend/[id]/page.tsx` (`/spend/{experienceId}`), `components/spend/spend-experience-page.tsx`, admin under `app/admin/spend-experiences/`.
+Repeatable manual checklist for operators validating the **shared** IRL Spend flow (QR → session → conversion preview → conversion/funding → payment → receipt). Product code paths: `app/spend/[id]/page.tsx` (`/spend/{experienceId}`), `components/spend/spend-experience-page.tsx`, admin under `app/admin/spend-experiences/`.
 
 **PII / safety:** Use placeholders for addresses in notes; do not paste private keys or secrets into tickets. Server-only secrets are named only in [`.env.local.example`](../.env.local.example)—never commit real values.
 
@@ -11,7 +11,7 @@ Repeatable manual checklist for operators validating the **shared** IRL Spend fl
 - [ ] Staging or dev app deployed with valid **Privy**, **Supabase**, and **Mixpanel** (`NEXT_PUBLIC_MIXPANEL_TOKEN` / server secret per env).
 - [ ] Admin account can access `/admin/spend-experiences` and open an experience’s **QR** page (`/admin/spend-experiences/{experienceId}/qr`).
 - [ ] Test player has enough **IRL points** for the experience’s configured conversion (pilot defaults are often 1000 points = $1 USDC, capped per experience).
-- [ ] **Mixpanel** project selected; Live view or export usable for the test user’s `distinct_id` (see identity rules in [`docs/APP_OVERVIEW.md`](./APP_OVERVIEW.md) Mixpanel section).
+- [ ] **Mixpanel** project selected; Live view or export usable for the test user’s `distinct_id` (see identity rules in [`APP_OVERVIEW` — Mixpanel](./APP_OVERVIEW.md#mixpanel)).
 
 ---
 
@@ -77,7 +77,7 @@ Legend: **Shared** steps apply to both rails unless the row splits **Base** / **
 | 3.1 | [ ] With **Stellar disabled** or invalid Stellar config (`SPEND_RAIL_STELLAR_USDC_ENABLED=false` or missing required vars per server validation), attempt **admin create** for **Stellar USDC**: expect **blocked** with clear error (admin mutating path). |
 | 3.2 | [ ] With rail disabled/misconfigured, attempt **POST** `/api/spend-experiences/{experienceId}/sessions` for an experience on that rail: expect **400** and no new session when blocked.                                                                     |
 | 3.3 | [ ] For an existing session on a rail that becomes non-operational, attempt **conversion confirm** / **payment prepare** / **payment confirm** as applicable: mutating user paths return **blocked** messaging per IRL-10.                                  |
-| 3.4 | [ ] **Mixpanel:** When blocked, expect `spend_pilot_rail_mutation_blocked` (see §7) with `spend_rail` and `unavailable_reason_codes` populated.                                                                                                             |
+| 3.4 | [ ] **Mixpanel:** When blocked, expect `spend_pilot_rail_mutation_blocked` (see [Mixpanel spend pilot events](#mixpanel-spend-pilot-events-canonical-names)) with `spend_rail` and `unavailable_reason_codes` populated.                                    |
 
 ### 4. QR opens the same `/spend/{experienceId}` flow
 
@@ -138,7 +138,7 @@ Execute this **once per release** when Stellar changes land to ensure Base is no
 
 ## Stellar path (explicit mini-run)
 
-1. [ ] Enable and validate Stellar env per §“Stellar USDC”; confirm **treasury** and **sponsor** secrets exist only in secure env storage (never in QA notes).
+1. [ ] Enable and validate Stellar env per [Stellar USDC (public network testing)](#stellar-usdc-public-network-testing); confirm **treasury** and **sponsor** secrets exist only in secure env storage (never in QA notes).
 2. [ ] Create **Stellar USDC** experience; confirm receiving address shown read-only in admin matches config.
 3. [ ] QR → `/spend/{id}` → session create → preview shows Stellar rail summary.
 4. [ ] Complete **readiness** (account / trustline) and **treasury → user** funding; wait until conversion **funded** and session eligible for payment.
@@ -168,7 +168,7 @@ Constants live in [`lib/analytics/events.ts`](../lib/analytics/events.ts). Mixpa
 | `SPEND_RECEIPT_VIEWED`                | `spend_receipt_viewed`                |
 | `SPEND_PILOT_RAIL_MUTATION_BLOCKED`   | `spend_pilot_rail_mutation_blocked`   |
 
-### Verifying rail / network / asset context **on current `main`**
+### Verifying rail / network / asset context **in the build under test**
 
 - [ ] **Blocked mutations:** On `spend_pilot_rail_mutation_blocked`, confirm properties include **`spend_rail`**, **`rail_operational`:** `false`, **`unavailable_reason_codes`**, and **`mutation`** (e.g. `spend_session_create`, `conversion_confirm`, `payment_prepare`, `admin_spend_experience_create`). Shapes are defined in [`lib/analytics/types.ts`](../lib/analytics/types.ts) (`SpendPilotRailMutationBlockedProperties`).
 - [ ] **Session / conversion / payment / receipt events:** Typed payloads (`SpendPilotSessionEventProperties`, `SpendPilotConversionEventProperties`, `SpendPilotPaymentEventProperties`) **do not** currently include explicit `spend_rail`, `network`, or `asset` fields—emitters pass `spend_experience_id`, `spend_session_id`, amounts, hashes, and status. For rail attribution in Mixpanel today, **correlate** `spend_experience_id` (and session) with the experience’s rail in admin/DB, and cross-check in-app **API** responses that include `spendRailSummary` (`getSpendRailClientSummary`) for the same session.
@@ -187,6 +187,6 @@ Constants live in [`lib/analytics/events.ts`](../lib/analytics/events.ts). Mixpa
 
 ## Verification pass (operators)
 
-1. [ ] Walk **Base** column end-to-end on staging; tighten any ambiguous wording in this doc.
+1. [ ] Walk **Base** column end-to-end on staging; note any ambiguous wording here for a doc follow-up (optional).
 2. [ ] Walk **Stellar** column end-to-end on staging with **public** network settings.
-3. [ ] Confirm **Mixpanel** rows for §7 still match code on the branch you tested.
+3. [ ] Confirm **Mixpanel** rows in [Mixpanel spend pilot events](#mixpanel-spend-pilot-events-canonical-names) still match code on the branch you tested.
