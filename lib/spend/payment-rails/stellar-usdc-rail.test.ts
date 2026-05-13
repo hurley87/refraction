@@ -77,7 +77,12 @@ import { createStellarUsdcSpendPaymentRail } from './stellar-usdc-rail';
 const sessionId = '770e8400-e29b-41d4-a716-446655440000';
 const STELLAR_G = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
 
-function pendingRow(opts?: { status?: 'pending' | 'completed' | 'failed' }) {
+function pendingRow(opts?: {
+  status?: 'pending' | 'completed' | 'failed';
+  sanitized_error_category?: string | null;
+  sanitized_error_code?: string | null;
+  step_metadata?: Record<string, unknown>;
+}) {
   const status = opts?.status ?? 'pending';
   return {
     id: '880e8400-e29b-41d4-a716-446655440001',
@@ -86,9 +91,9 @@ function pendingRow(opts?: { status?: 'pending' | 'completed' | 'failed' }) {
     spend_rail: 'stellar_usdc' as const,
     rail_user_wallet_address: null as string | null,
     status,
-    step_metadata: {},
-    sanitized_error_category: null,
-    sanitized_error_code: null,
+    step_metadata: opts?.step_metadata ?? {},
+    sanitized_error_category: opts?.sanitized_error_category ?? null,
+    sanitized_error_code: opts?.sanitized_error_code ?? null,
     internal_diagnostics: null,
     idempotency_key: `wallet_readiness:${sessionId}`,
     sponsor_treasury_transaction_id: null,
@@ -240,8 +245,13 @@ describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-18)', () =
 
   it('failed row resets to pending and retries orchestration', async () => {
     const retryRow = pendingRow();
+    const failedRow = pendingRow({
+      status: 'failed',
+      sanitized_error_category: 'wallet_readiness',
+      sanitized_error_code: 'READINESS_FAILED',
+    });
     hoisted.mockInsertOrGet.mockResolvedValue({
-      row: pendingRow({ status: 'failed' }),
+      row: failedRow,
       created: false,
     });
     hoisted.mockUpdateReadiness.mockResolvedValueOnce(retryRow);
@@ -249,9 +259,14 @@ describe('createStellarUsdcSpendPaymentRail — wallet readiness (IRL-18)', () =
     const res = await rail.runWalletReadinessOrchestration(ctx);
     expect(res.ok).toBe(true);
     expect(hoisted.mockUpdateReadiness).toHaveBeenCalledWith(
-      pendingRow().id,
+      failedRow.id,
       expect.objectContaining({
         status: 'pending',
+        step_metadata: expect.objectContaining({
+          previous_sanitized_error_category: 'wallet_readiness',
+          previous_sanitized_error_code: 'READINESS_FAILED',
+          retried_from_failed_status_at: expect.any(String),
+        }),
         sanitized_error_category: null,
         sanitized_error_code: null,
         internal_diagnostics: null,
