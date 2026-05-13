@@ -22,6 +22,7 @@ import {
   SPEND_ELIGIBILITY_MESSAGES,
   type SpendEligibilityStatus,
 } from '@/lib/spend-eligibility-messages';
+import { spendPilotRailMixpanelFields } from '@/lib/analytics/spend-pilot-rail-context';
 import type { SpendRailClientSummary } from '@/lib/spend-rail-config/types';
 import {
   resolveSpendReceiptPaymentExplorerUrl,
@@ -545,11 +546,15 @@ export function SpendExperiencePage({
       if (token) {
         await initMixpanel(token);
       }
+      const rail = spendPilotRailMixpanelFields(initialExperience.spend_rail);
       trackEvent(ANALYTICS_EVENTS.SPEND_EXPERIENCE_QR_SCANNED, {
         spend_experience_id: experienceId,
         event_id: initialExperience.event_id ?? undefined,
         user_id: user?.id,
         wallet_address: walletAddress ?? undefined,
+        spend_rail: rail.spend_rail,
+        network: rail.network,
+        asset: rail.asset,
       });
       setTrackedScan(true);
     };
@@ -557,6 +562,7 @@ export function SpendExperiencePage({
   }, [
     experienceId,
     initialExperience.event_id,
+    initialExperience.spend_rail,
     user?.id,
     walletAddress,
     trackedScan,

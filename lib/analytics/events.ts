@@ -52,6 +52,10 @@ export const ANALYTICS_EVENTS = {
   SPEND_RECEIPT_VIEWED: 'spend_receipt_viewed',
   /** Spend rail disabled/misconfigured blocked a mutating API path (IRL-10). */
   SPEND_PILOT_RAIL_MUTATION_BLOCKED: 'spend_pilot_rail_mutation_blocked',
+  /** Wallet readiness funnel (IRL-23): Base = sync validation; Stellar = async orchestration. */
+  SPEND_WALLET_READINESS_STARTED: 'spend_wallet_readiness_started',
+  SPEND_WALLET_READINESS_COMPLETED: 'spend_wallet_readiness_completed',
+  SPEND_WALLET_READINESS_FAILED: 'spend_wallet_readiness_failed',
 } as const;
 
 export type AnalyticsEventName =

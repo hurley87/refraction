@@ -35,6 +35,7 @@ vi.mock('@/lib/analytics/server', () => ({
 }));
 
 import { POST } from '../route';
+import * as spendRailConfig from '@/lib/spend-rail-config';
 
 const experience = {
   id: 'exp-uuid',
@@ -149,7 +150,18 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
     process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS =
       'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
     process.env.NEXT_PUBLIC_STELLAR_NETWORK = 'PUBLIC';
+    let railSpy:
+      | ReturnType<
+          typeof vi.spyOn<
+            typeof spendRailConfig,
+            'assertSpendRailAllowsMutatingSpendWork'
+          >
+        >
+      | undefined;
     try {
+      railSpy = vi
+        .spyOn(spendRailConfig, 'assertSpendRailAllowsMutatingSpendWork')
+        .mockReturnValue({ ok: true as const });
       const stellarExp = { ...experience, spend_rail: 'stellar_usdc' as const };
       const stellarSession = {
         ...session,
@@ -178,6 +190,7 @@ describe('POST /api/spend-experiences/[experienceId]/sessions', () => {
       expect(j.data.session.rail_user_wallet_address).toBeNull();
       expect(j.data.spendRailSummary.rail).toBe('stellar_usdc');
     } finally {
+      railSpy?.mockRestore();
       process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = prevEnabled;
       process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = prevRecv;
       process.env.NEXT_PUBLIC_STELLAR_NETWORK = prevNet;

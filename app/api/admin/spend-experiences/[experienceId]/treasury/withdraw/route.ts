@@ -12,6 +12,7 @@ import {
 } from '@/lib/spend-server-wallet';
 import { assertSpendRailAllowsMutatingSpendWork } from '@/lib/spend-rail-config';
 import { trackSpendPilotRailMutationBlocked } from '@/lib/analytics/server';
+import { spendPilotRailMixpanelFields } from '@/lib/analytics/spend-pilot-rail-context';
 import {
   submitTreasuryUsdcTransfer,
   waitForTreasuryTxReceipt,
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         {
           mutation: 'admin_treasury_withdraw',
           ...railGate.analytics,
+          ...spendPilotRailMixpanelFields(experience.spend_rail),
           spend_experience_id: experience.id,
           event_id: experience.event_id,
           admin_actor: adminCheck.user?.email ?? null,

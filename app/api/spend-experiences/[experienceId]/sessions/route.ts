@@ -15,6 +15,7 @@ import {
   trackSpendSessionCreated,
   resolveServerIdentity,
 } from '@/lib/analytics/server';
+import { spendPilotRailMixpanelFields } from '@/lib/analytics/spend-pilot-rail-context';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     trackSpendPilotRailMutationBlocked(distinctId, {
       mutation: 'spend_session_create',
       ...railGate.analytics,
+      ...spendPilotRailMixpanelFields(experience.spend_rail),
       spend_experience_id: experienceId,
       event_id: experience.event_id,
       user_id: auth.userId,
@@ -106,6 +108,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         wallet_address: trimmedWallet.toLowerCase(),
         spend_session_id: session.id,
         created: true,
+        ...spendPilotRailMixpanelFields(experience.spend_rail),
       });
     }
 
