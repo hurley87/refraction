@@ -20,8 +20,8 @@ function formatUsdcAmountForStellar(amount: number): string {
   return floored.toFixed(7);
 }
 
-function classifySubmitMessage(raw: string): string {
-  const s = raw.toLowerCase();
+function classifySubmitMessage(raw: string, resultCodes?: unknown): string {
+  const s = `${raw} ${JSON.stringify(resultCodes ?? {})}`.toLowerCase();
   if (
     s.includes('fetch') ||
     s.includes('econn') ||
@@ -42,6 +42,40 @@ function classifySubmitMessage(raw: string): string {
     return 'insufficient_usdc_or_reserve';
   }
   return 'stellar_submit_failed';
+}
+
+function readHorizonHttpErrorData(e: unknown): {
+  data: Record<string, unknown> | null;
+  resultCodes: unknown;
+} {
+  const raw = (e as { response?: { data?: unknown } })?.response?.data;
+  if (!raw || typeof raw !== 'object') {
+    return { data: null, resultCodes: null };
+  }
+  const data = raw as Record<string, unknown>;
+  const extras = data.extras;
+  if (!extras || typeof extras !== 'object') {
+    return { data, resultCodes: null };
+  }
+  return {
+    data,
+    resultCodes: (extras as { result_codes?: unknown }).result_codes ?? null,
+  };
+}
+
+function formatHorizonSubmitInternalMessage(
+  msg: string,
+  data: Record<string, unknown> | null,
+  resultCodes: unknown
+): string {
+  const title = data && typeof data.title === 'string' ? data.title : null;
+  const detail = data && typeof data.detail === 'string' ? data.detail : null;
+  return JSON.stringify({
+    message: msg.slice(0, 400),
+    ...(title ? { horizon_title: title } : {}),
+    ...(detail ? { horizon_detail: detail.slice(0, 800) } : {}),
+    ...(resultCodes ? { horizon_result_codes: resultCodes } : {}),
+  }).slice(0, 1200);
 }
 
 async function loadAccountOrThrow(
@@ -97,9 +131,10 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     userAccount = await loadAccountOrThrow(server, userPub);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    const { resultCodes } = readHorizonHttpErrorData(e);
     return {
       ok: false,
-      reason: classifySubmitMessage(msg),
+      reason: classifySubmitMessage(msg, resultCodes),
       internalMessage: msg.slice(0, 500),
     };
   }
@@ -123,7 +158,7 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     )
     .addOperation(
       Operation.endSponsoringFutureReserves({
-        source: sponsor.publicKey(),
+        source: userPub,
       })
     )
     .setTimeout(180)
@@ -180,15 +215,15 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     return { ok: true, txHash: res.hash };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    const extras = (e as { response?: { data?: unknown } })?.response?.data;
-    const detail =
-      extras && typeof extras === 'object'
-        ? JSON.stringify(extras).slice(0, 800)
-        : '';
+    const { data, resultCodes } = readHorizonHttpErrorData(e);
     return {
       ok: false,
-      reason: classifySubmitMessage(msg),
-      internalMessage: `${msg.slice(0, 400)} ${detail}`,
+      reason: classifySubmitMessage(msg, resultCodes),
+      internalMessage: formatHorizonSubmitInternalMessage(
+        msg,
+        data,
+        resultCodes
+      ),
     };
   }
 }
