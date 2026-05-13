@@ -39,65 +39,75 @@ describe('spendServerWalletFundingMetadata', () => {
     expect(m.fundingCalloutBody).not.toMatch(/Privy/i);
   });
 
-  const prevStellar: Record<string, string | undefined> = {};
+  describe('stellar_usdc', () => {
+    const prevStellar: Record<string, string | undefined> = {};
 
-  beforeEach(() => {
-    for (const k of [
-      'SPEND_RAIL_STELLAR_USDC_ENABLED',
-      'SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS',
-      'SPEND_RAIL_STELLAR_USDC_TREASURY_ADDRESS',
-    ]) {
-      prevStellar[k] = process.env[k];
-    }
-    process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = 'true';
-    process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = VALID_STELLAR;
-    delete process.env.SPEND_RAIL_STELLAR_USDC_TREASURY_ADDRESS;
-  });
+    beforeEach(() => {
+      for (const k of [
+        'SPEND_RAIL_STELLAR_USDC_ENABLED',
+        'SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS',
+        'SPEND_RAIL_STELLAR_USDC_TREASURY_ADDRESS',
+      ]) {
+        prevStellar[k] = process.env[k];
+      }
+      process.env.SPEND_RAIL_STELLAR_USDC_ENABLED = 'true';
+      process.env.SPEND_RAIL_STELLAR_USDC_RECEIVING_ADDRESS = VALID_STELLAR;
+      delete process.env.SPEND_RAIL_STELLAR_USDC_TREASURY_ADDRESS;
+    });
 
-  afterEach(() => {
-    for (const [k, v] of Object.entries(prevStellar)) {
-      if (v === undefined) delete process.env[k];
-      else process.env[k] = v;
-    }
-  });
+    afterEach(() => {
+      for (const [k, v] of Object.entries(prevStellar)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    });
 
-  it('includes Stellar treasury copy for stellar_usdc', () => {
-    const m = spendServerWalletFundingMetadata(
-      { spend_rail: 'stellar_usdc', max_usdc_per_user: 3 },
-      null
+    it('includes Stellar treasury copy for stellar_usdc', () => {
+      const m = spendServerWalletFundingMetadata(
+        { spend_rail: 'stellar_usdc', max_usdc_per_user: 3 },
+        null
+      );
+      expect(m.spendRail).toBe('stellar_usdc');
+      expect(m.chain).toBe('stellar');
+      expect(m.paymentNetworkDisplayName).toBe('Stellar USDC');
+      expect(m.fundingNetworkLabel).toBe('Stellar');
+      expect(m.fundingCalloutTitle).toBe('Fund the Stellar treasury');
+      expect(m.fundingCalloutBody).toContain('Stellar');
+      expect(m.fundingCalloutBody).not.toContain('Base');
+    });
+
+    it.each([
+      {
+        max: 5,
+        balance: 5,
+        funded: true,
+        expectedUsdcBalance: 5,
+      },
+      {
+        max: 2,
+        balance: 10.5,
+        funded: true,
+        expectedUsdcBalance: undefined,
+      },
+      {
+        max: 5,
+        balance: 4.99,
+        funded: false,
+        expectedUsdcBalance: undefined,
+      },
+    ])(
+      'marks funded=$funded when balance=$balance vs max=$max',
+      ({ max, balance, funded, expectedUsdcBalance }) => {
+        const m = spendServerWalletFundingMetadata(
+          { spend_rail: 'stellar_usdc', max_usdc_per_user: max },
+          balance
+        );
+        expect(m.funded).toBe(funded);
+        if (expectedUsdcBalance !== undefined) {
+          expect(m.usdcBalance).toBe(expectedUsdcBalance);
+        }
+      }
     );
-    expect(m.spendRail).toBe('stellar_usdc');
-    expect(m.chain).toBe('stellar');
-    expect(m.paymentNetworkDisplayName).toBe('Stellar USDC');
-    expect(m.fundingNetworkLabel).toBe('Stellar');
-    expect(m.fundingCalloutTitle).toBe('Fund the Stellar treasury');
-    expect(m.fundingCalloutBody).toContain('Stellar');
-    expect(m.fundingCalloutBody).not.toContain('Base');
-  });
-
-  it('marks stellar_usdc as funded when balance meets max_usdc_per_user', () => {
-    const m = spendServerWalletFundingMetadata(
-      { spend_rail: 'stellar_usdc', max_usdc_per_user: 5 },
-      5
-    );
-    expect(m.funded).toBe(true);
-    expect(m.usdcBalance).toBe(5);
-  });
-
-  it('marks stellar_usdc as funded when balance exceeds max_usdc_per_user', () => {
-    const m = spendServerWalletFundingMetadata(
-      { spend_rail: 'stellar_usdc', max_usdc_per_user: 2 },
-      10.5
-    );
-    expect(m.funded).toBe(true);
-  });
-
-  it('marks stellar_usdc as not funded when balance is below minimum', () => {
-    const m = spendServerWalletFundingMetadata(
-      { spend_rail: 'stellar_usdc', max_usdc_per_user: 5 },
-      4.99
-    );
-    expect(m.funded).toBe(false);
   });
 });
 
@@ -143,16 +153,18 @@ describe('fetchServerWalletUsdcBalanceSafe', () => {
     const err = new Error('horizon down');
     vi.mocked(readStellarTreasuryConfirmedUsdcBalance).mockRejectedValue(err);
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const balance = await fetchServerWalletUsdcBalanceSafe({
+        spend_rail: 'stellar_usdc',
+      });
 
-    const balance = await fetchServerWalletUsdcBalanceSafe({
-      spend_rail: 'stellar_usdc',
-    });
-
-    expect(balance).toBeNull();
-    expect(spy).toHaveBeenCalledWith(
-      'fetchServerWalletUsdcBalanceSafe stellar:',
-      err
-    );
-    spy.mockRestore();
+      expect(balance).toBeNull();
+      expect(spy).toHaveBeenCalledWith(
+        'fetchServerWalletUsdcBalanceSafe stellar:',
+        err
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
