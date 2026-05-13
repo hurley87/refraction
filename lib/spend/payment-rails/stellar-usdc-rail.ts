@@ -283,7 +283,6 @@ export function createStellarUsdcSpendPaymentRail(): SpendPaymentRail {
               status: 'failed',
               sanitized_error_category: outcome.error.category,
               sanitized_error_code: outcome.error.analyticsCode,
-              internal_diagnostics: { phase: 'orchestration_pre_ledger' },
             });
           } catch (persistErr) {
             console.error(
