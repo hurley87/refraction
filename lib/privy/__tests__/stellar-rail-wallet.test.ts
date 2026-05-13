@@ -3,7 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockGetUser = vi.fn();
 const mockWalletCreate = vi.fn();
 const mockGetPlayerByEmail = vi.fn();
+const mockGetPlayerByStellarWallet = vi.fn();
+const mockGetPlayersByEvmWalletCaseInsensitive = vi.fn();
 const mockCreateOrUpdatePlayerForStellar = vi.fn();
+const mockUpdatePlayerStellarWalletMetadata = vi.fn();
 
 vi.mock('@/lib/api/privy', () => ({
   getPrivyClient: () => ({
@@ -16,8 +19,14 @@ vi.mock('@/lib/api/privy', () => ({
 
 vi.mock('@/lib/db/players', () => ({
   getPlayerByEmail: (...a: unknown[]) => mockGetPlayerByEmail(...a),
+  getPlayerByStellarWallet: (...a: unknown[]) =>
+    mockGetPlayerByStellarWallet(...a),
+  getPlayersByEvmWalletCaseInsensitive: (...a: unknown[]) =>
+    mockGetPlayersByEvmWalletCaseInsensitive(...a),
   createOrUpdatePlayerForStellar: (...a: unknown[]) =>
     mockCreateOrUpdatePlayerForStellar(...a),
+  updatePlayerStellarWalletMetadata: (...a: unknown[]) =>
+    mockUpdatePlayerStellarWalletMetadata(...a),
 }));
 
 import {
@@ -106,9 +115,29 @@ describe('ensureStellarRailUserWallet', () => {
 describe('resolveStellarPrivyWalletIdForUser', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetPlayerByStellarWallet.mockResolvedValue(null);
+    mockGetPlayersByEvmWalletCaseInsensitive.mockResolvedValue([]);
   });
 
-  it('returns the linked Stellar wallet id matching the address', async () => {
+  it('returns DB wallet id without requiring Privy linked account match', async () => {
+    mockGetPlayerByStellarWallet.mockResolvedValue({
+      id: 2,
+      stellar_wallet_address: 'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+      stellar_wallet_id: 'wid-db',
+    });
+    mockGetUser.mockResolvedValue({
+      linkedAccounts: [],
+    });
+    await expect(
+      resolveStellarPrivyWalletIdForUser(
+        'privy-u1',
+        'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+      )
+    ).resolves.toBe('wid-db');
+    expect(mockGetUser).not.toHaveBeenCalled();
+  });
+
+  it('falls back to linked Privy Stellar wallet id matching the address', async () => {
     mockGetUser.mockResolvedValue({
       linkedAccounts: [
         {
@@ -125,6 +154,75 @@ describe('resolveStellarPrivyWalletIdForUser', () => {
         'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
       )
     ).resolves.toBe('wid-99');
+  });
+
+  it('backfills missing DB wallet id when Privy fallback resolves it', async () => {
+    mockGetPlayerByStellarWallet.mockResolvedValue({
+      id: 2,
+      stellar_wallet_address: 'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+      stellar_wallet_id: null,
+    });
+    mockGetUser.mockResolvedValue({
+      linkedAccounts: [
+        {
+          type: 'wallet',
+          chainType: 'stellar',
+          address: 'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+          id: 'wid-99',
+        },
+      ],
+    });
+
+    await expect(
+      resolveStellarPrivyWalletIdForUser(
+        'privy-u1',
+        'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+      )
+    ).resolves.toBe('wid-99');
+    expect(mockUpdatePlayerStellarWalletMetadata).toHaveBeenCalledWith(2, {
+      stellarWalletAddress: 'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+      stellarWalletId: 'wid-99',
+    });
+  });
+
+  it('backfills an EVM-matched player case-insensitively when no Stellar row exists', async () => {
+    mockGetUser.mockResolvedValue({
+      linkedAccounts: [
+        {
+          type: 'wallet',
+          chainType: 'ethereum',
+          address: '0x4D418f71c531465337b65127B207aa849Fa5a9e3',
+        },
+        {
+          type: 'wallet',
+          chainType: 'stellar',
+          address: 'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+          id: 'wid-99',
+        },
+      ],
+    });
+    mockGetPlayersByEvmWalletCaseInsensitive.mockResolvedValue([
+      {
+        id: 1684,
+        wallet_address: '0x4d418f71c531465337b65127b207aa849fa5a9e3',
+        stellar_wallet_address: null,
+        stellar_wallet_id: null,
+      },
+    ]);
+
+    await expect(
+      resolveStellarPrivyWalletIdForUser(
+        'privy-u1',
+        'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB'
+      )
+    ).resolves.toBe('wid-99');
+    expect(mockGetPlayersByEvmWalletCaseInsensitive).toHaveBeenCalledWith(
+      '0x4D418f71c531465337b65127B207aa849Fa5a9e3'
+    );
+    expect(mockUpdatePlayerStellarWalletMetadata).toHaveBeenCalledWith(1684, {
+      stellarWalletAddress: 'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+      stellarWalletId: 'wid-99',
+    });
   });
 
   it('throws when no matching Stellar wallet is linked', async () => {

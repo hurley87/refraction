@@ -2,7 +2,11 @@ import { getPrivyClient } from '@/lib/api/privy';
 import {
   createOrUpdatePlayerForStellar,
   getPlayerByEmail,
+  getPlayerByStellarWallet,
+  getPlayersByEvmWalletCaseInsensitive,
+  updatePlayerStellarWalletMetadata,
 } from '@/lib/db/players';
+import type { Player } from '@/lib/types';
 
 export type EnsureStellarRailUserWalletResult = {
   address: string;
@@ -77,9 +81,23 @@ export async function resolveStellarPrivyWalletIdForUser(
   privyUserId: string,
   canonicalAddress: string
 ): Promise<string> {
+  const wanted = canonicalAddress.trim();
+  const stellarAddressSuffix = wanted.slice(-8);
+  const dbPlayer = await getPlayerByStellarWallet(wanted);
+  const dbWalletId = dbPlayer?.stellar_wallet_id?.trim();
+  if (dbWalletId) {
+    logStellarWalletIdResolution({
+      privyUserId,
+      stellarAddressSuffix,
+      dbLookupFoundWalletId: true,
+      privyLinkedAccountsFoundWalletId: false,
+      outcome: 'db_match',
+    });
+    return dbWalletId;
+  }
+
   const privy = getPrivyClient();
   const user = await privy.getUser(privyUserId);
-  const wanted = canonicalAddress.trim();
   const linked = user.linkedAccounts?.find((a) => {
     if (a.type !== 'wallet' || !('chainType' in a)) return false;
     if (a.chainType !== 'stellar') return false;
@@ -87,7 +105,111 @@ export async function resolveStellarPrivyWalletIdForUser(
     return a.address.trim() === wanted;
   });
   if (linked && 'id' in linked && linked.id != null && linked.id !== '') {
-    return String(linked.id);
+    const walletId = String(linked.id);
+    const backfillPlayer = await resolvePlayerForStellarWalletIdBackfill(
+      dbPlayer,
+      wanted,
+      user
+    );
+    if (backfillPlayer?.id != null) {
+      try {
+        await updatePlayerStellarWalletMetadata(backfillPlayer.id, {
+          stellarWalletAddress: wanted,
+          stellarWalletId: walletId,
+        });
+      } catch (e) {
+        console.warn('resolveStellarPrivyWalletIdForUser backfill failed:', {
+          privyUserId,
+          stellar_address_suffix: stellarAddressSuffix,
+          player_id: backfillPlayer.id,
+          error_name: e instanceof Error ? e.name : 'Unknown',
+          error_message: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+    logStellarWalletIdResolution({
+      privyUserId,
+      stellarAddressSuffix,
+      dbLookupFoundWalletId: false,
+      privyLinkedAccountsFoundWalletId: true,
+      outcome:
+        backfillPlayer?.id != null ? 'privy_match_backfilled' : 'privy_match',
+    });
+    return walletId;
   }
+  logStellarWalletIdResolution({
+    privyUserId,
+    stellarAddressSuffix,
+    dbLookupFoundWalletId: false,
+    privyLinkedAccountsFoundWalletId: false,
+    outcome: 'unresolved',
+  });
   throw new Error('stellar_privy_wallet_id_unresolved');
+}
+
+function logStellarWalletIdResolution(input: {
+  privyUserId: string;
+  stellarAddressSuffix: string;
+  dbLookupFoundWalletId: boolean;
+  privyLinkedAccountsFoundWalletId: boolean;
+  outcome: string;
+}) {
+  console.info('resolveStellarPrivyWalletIdForUser:', {
+    privyUserId: input.privyUserId,
+    stellar_address_suffix: input.stellarAddressSuffix,
+    db_lookup_found_wallet_id: input.dbLookupFoundWalletId,
+    privy_linked_accounts_found_wallet_id:
+      input.privyLinkedAccountsFoundWalletId,
+    outcome: input.outcome,
+  });
+}
+
+function linkedEvmAddresses(user: { linkedAccounts?: unknown[] }): string[] {
+  const addresses: string[] = [];
+  for (const account of user.linkedAccounts ?? []) {
+    const record =
+      account && typeof account === 'object'
+        ? (account as Record<string, unknown>)
+        : null;
+    if (!record) continue;
+    if (
+      record.type !== 'wallet' ||
+      typeof record.address !== 'string' ||
+      record.chainType === 'stellar'
+    ) {
+      continue;
+    }
+    const trimmed = record.address.trim();
+    if (trimmed && !addresses.includes(trimmed)) {
+      addresses.push(trimmed);
+    }
+  }
+  return addresses;
+}
+
+async function resolvePlayerForStellarWalletIdBackfill(
+  dbPlayer: Player | null,
+  wantedStellarAddress: string,
+  user: { linkedAccounts?: unknown[] }
+): Promise<Player | null> {
+  if (
+    dbPlayer?.stellar_wallet_address?.trim() === wantedStellarAddress &&
+    !dbPlayer.stellar_wallet_id?.trim()
+  ) {
+    return dbPlayer;
+  }
+
+  for (const evmAddress of linkedEvmAddresses(user)) {
+    const matches = await getPlayersByEvmWalletCaseInsensitive(evmAddress);
+    const exactStellarMatch = matches.find(
+      (player) => player.stellar_wallet_address?.trim() === wantedStellarAddress
+    );
+    if (exactStellarMatch) return exactStellarMatch;
+    const emptyStellarMatch = matches.find(
+      (player) => !player.stellar_wallet_address?.trim()
+    );
+    if (emptyStellarMatch) return emptyStellarMatch;
+  }
+
+  return null;
 }
