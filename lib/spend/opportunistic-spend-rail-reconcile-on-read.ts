@@ -1,7 +1,7 @@
 import type { SpendSession, SpendSessionStatus } from '@/lib/types';
 import {
   computeSpendRailReconcileOlderThanIso,
-  readSpendRailReconcileEnvConfig,
+  readSpendRailReconcileAgeWindowEnv,
   reconcileSpendRailPendingOperationsForSession,
 } from '@/lib/spend/reconcile-spend-rail-pending-operations';
 
@@ -19,11 +19,8 @@ export function spendSessionStatusAllowsOpportunisticRailReconcile(
 
 /**
  * One bounded reconciliation pass for GET session / GET receipt (IRL-25).
- *
- * Uses the same {@link computeSpendRailReconcileOlderThanIso} cutoff as
- * {@link runSpendRailReconciliationCron}. Terminal session rows are skipped here to
- * avoid pointless work; there is no cross-instance request throttle in v1 (no new DB
- * columns) — staleness and safe no-ops remain inside reconciliation helpers.
+ * Same env age window as cron; terminal sessions skipped. v1 has no per-request
+ * cross-instance throttle (no new DB columns).
  */
 export async function maybeReconcileSpendRailOnAuthorizedSessionRead(input: {
   spendSessionId: string;
@@ -35,7 +32,7 @@ export async function maybeReconcileSpendRailOnAuthorizedSessionRead(input: {
   ) {
     return;
   }
-  const cfg = readSpendRailReconcileEnvConfig();
+  const cfg = readSpendRailReconcileAgeWindowEnv();
   const nowMs = input.nowMs ?? Date.now();
   const olderThanIso = computeSpendRailReconcileOlderThanIso(nowMs, cfg);
   await reconcileSpendRailPendingOperationsForSession({

@@ -55,7 +55,13 @@ export type SpendRailReconcileEnvConfig = {
   batchSize: number;
 };
 
-export function readSpendRailReconcileEnvConfig(): SpendRailReconcileEnvConfig {
+/** Env-driven min/backoff window shared by cron and opportunistic read reconcile. */
+export type SpendRailReconcileAgeWindow = Pick<
+  SpendRailReconcileEnvConfig,
+  'minAgeSeconds' | 'backoffSeconds'
+>;
+
+export function readSpendRailReconcileAgeWindowEnv(): SpendRailReconcileAgeWindow {
   return {
     minAgeSeconds: parseNonNegativeIntEnv(
       process.env.SPEND_RAIL_CRON_MIN_AGE_SECONDS,
@@ -65,6 +71,12 @@ export function readSpendRailReconcileEnvConfig(): SpendRailReconcileEnvConfig {
       process.env.SPEND_RAIL_CRON_BACKOFF_SECONDS,
       DEFAULT_BACKOFF_SECONDS
     ),
+  };
+}
+
+export function readSpendRailReconcileEnvConfig(): SpendRailReconcileEnvConfig {
+  return {
+    ...readSpendRailReconcileAgeWindowEnv(),
     batchSize: parseBatchSizeEnv(
       process.env.SPEND_RAIL_CRON_BATCH_SIZE,
       DEFAULT_BATCH_SIZE
@@ -72,13 +84,10 @@ export function readSpendRailReconcileEnvConfig(): SpendRailReconcileEnvConfig {
   };
 }
 
-/**
- * ISO cutoff for “stale enough to reconcile” — identical to
- * {@link runSpendRailReconciliationCron} (IRL-22 / IRL-25).
- */
+/** ISO cutoff for “stale enough to reconcile” (IRL-22 / IRL-25). */
 export function computeSpendRailReconcileOlderThanIso(
   nowMs: number,
-  cfg: SpendRailReconcileEnvConfig
+  cfg: SpendRailReconcileAgeWindow
 ): string {
   const deltaMs = Math.max(cfg.minAgeSeconds, cfg.backoffSeconds) * 1000;
   return new Date(nowMs - deltaMs).toISOString();

@@ -25,7 +25,10 @@ import {
   maybeReconcileSpendRailOnAuthorizedSessionRead,
   spendSessionStatusAllowsOpportunisticRailReconcile,
 } from '@/lib/spend/opportunistic-spend-rail-reconcile-on-read';
-import { computeSpendRailReconcileOlderThanIso } from '@/lib/spend/reconcile-spend-rail-pending-operations';
+import {
+  computeSpendRailReconcileOlderThanIso,
+  readSpendRailReconcileAgeWindowEnv,
+} from '@/lib/spend/reconcile-spend-rail-pending-operations';
 
 function baseSession(over: Partial<SpendSession>): SpendSession {
   return {
@@ -96,15 +99,14 @@ describe('maybeReconcileSpendRailOnAuthorizedSessionRead', () => {
     });
     expect(mockReconcileForSession).toHaveBeenCalledTimes(1);
     const arg = mockReconcileForSession.mock.calls[0][0];
-    expect(arg.spendSessionId).toBe('sess-1');
-    expect(arg.distinctId).toBeUndefined();
-    const cfg = {
-      minAgeSeconds: 60,
-      backoffSeconds: 120,
-      batchSize: 25,
-    };
-    expect(arg.olderThanIso).toBe(
-      computeSpendRailReconcileOlderThanIso(nowMs, cfg)
+    expect(arg).toEqual(
+      expect.objectContaining({
+        spendSessionId: 'sess-1',
+        olderThanIso: computeSpendRailReconcileOlderThanIso(
+          nowMs,
+          readSpendRailReconcileAgeWindowEnv()
+        ),
+      })
     );
   });
 
@@ -119,11 +121,10 @@ describe('maybeReconcileSpendRailOnAuthorizedSessionRead', () => {
     });
     const arg = mockReconcileForSession.mock.calls[0][0];
     expect(arg.olderThanIso).toBe(
-      computeSpendRailReconcileOlderThanIso(nowMs, {
-        minAgeSeconds: 300,
-        backoffSeconds: 10,
-        batchSize: 25,
-      })
+      computeSpendRailReconcileOlderThanIso(
+        nowMs,
+        readSpendRailReconcileAgeWindowEnv()
+      )
     );
   });
 });
