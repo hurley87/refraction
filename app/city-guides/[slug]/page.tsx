@@ -122,6 +122,7 @@ export default async function CityGuideBySlugPage({
               title_prefix: row.title_prefix,
               city_name: row.city_name,
             })}
+            highlightWords={row.title_highlight_words}
             className="mb-4"
           />
 

@@ -1,30 +1,25 @@
-import { cn, splitTitleLastWord } from '@/lib/utils';
+import { GuideArticleHighlightedTitle } from '@/components/city-guides/guide-article-highlighted-title';
 
 export interface CityGuideArticleTitleProps {
   /** Full headline (e.g. prefix + city via `cityGuideDisplayTitle`). */
   title: string;
+  highlightWords?: string[] | null;
   className?: string;
 }
 
 /**
- * City guide article hero title: title1 (42px Gal Gothic); last word on IRL yellow highlight.
+ * City guide article hero title: title1 (42px Gal Gothic); highlighted phrases from CMS.
  */
 export function CityGuideArticleTitle({
   title,
+  highlightWords,
   className,
 }: CityGuideArticleTitleProps) {
-  const { beforeLastWord, lastWord } = splitTitleLastWord(title);
-
   return (
-    <div className={cn('w-full max-w-[361px]', className)}>
-      <div className="title1 text-[#313131]">
-        {beforeLastWord ? `${beforeLastWord} ` : null}
-        {lastWord ? (
-          <span className="box-decoration-clone bg-[#FFF200] px-1 py-0 text-[#171717]">
-            {lastWord}
-          </span>
-        ) : null}
-      </div>
-    </div>
+    <GuideArticleHighlightedTitle
+      title={title}
+      highlightWords={highlightWords}
+      className={className}
+    />
   );
 }

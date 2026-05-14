@@ -79,6 +79,7 @@ export function CityGuidesHubSection({
               key={item.id}
               guideKind={item.guideKind}
               title={item.title}
+              titleHighlightWords={item.titleHighlightWords}
               preview={item.preview}
               publishedAt={item.publishedAt}
               imageSrc={item.imageSrc}

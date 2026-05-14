@@ -57,6 +57,7 @@ export type GuideRow = {
   city_name: string | null;
   title_primary: string | null;
   title_secondary: string | null;
+  title_highlight_words: string[] | null;
   hero_image_url: string;
   hero_image_alt: string;
   lead_headline: string | null;
@@ -115,6 +116,7 @@ export type GuideHubListItem = {
   kind: GuideKindDb;
   guideKind: GuideKind;
   title: string;
+  titleHighlightWords: string[];
   preview: string;
   publishedAt: string;
   imageSrc: string;
@@ -128,6 +130,7 @@ export type GuideFeaturedPayload = {
   kind: GuideKindDb;
   guideKind: GuideKind;
   titleLine1: string;
+  titleHighlightWords: string[];
   featuredPeople: string[];
   heroImageSrc: string;
   heroImageAlt: string;
@@ -147,6 +150,12 @@ function featuredTitleLine(row: GuideRow): string {
   return row.title_primary?.trim() ?? '';
 }
 
+function normalizeTitleHighlightWords(
+  words: string[] | null | undefined
+): string[] {
+  return (words ?? []).map((w) => w.trim()).filter(Boolean);
+}
+
 function toHubListItem(row: GuideRow): GuideHubListItem {
   const published =
     row.published_at ??
@@ -159,6 +168,9 @@ function toHubListItem(row: GuideRow): GuideHubListItem {
     kind: row.kind,
     guideKind: guideKindToUi(row.kind),
     title: hubListTitle(row),
+    titleHighlightWords: normalizeTitleHighlightWords(
+      row.title_highlight_words
+    ),
     preview: row.card_preview?.trim() || row.lead_headline?.trim() || '',
     publishedAt: published,
     imageSrc: row.card_image_url?.trim() || row.hero_image_url || '',
@@ -176,6 +188,9 @@ function toFeaturedPayload(row: GuideRow): GuideFeaturedPayload {
     kind: row.kind,
     guideKind: guideKindToUi(row.kind),
     titleLine1,
+    titleHighlightWords: normalizeTitleHighlightWords(
+      row.title_highlight_words
+    ),
     featuredPeople: people,
     heroImageSrc: row.hero_image_url || '',
     heroImageAlt: row.hero_image_alt || '',
@@ -191,6 +206,7 @@ const GUIDE_LIST_COLUMNS = `
   city_name,
   title_primary,
   title_secondary,
+  title_highlight_words,
   hero_image_url,
   hero_image_alt,
   lead_headline,
@@ -693,6 +709,7 @@ export async function createGuide(input: CreateGuideInput): Promise<GuideRow> {
       card_image_url: '',
       card_image_alt: '',
       featured_people: [],
+      title_highlight_words: [],
       blocks: input.kind === 'editorial' ? [] : null,
       updated_at: now,
     })
@@ -710,6 +727,7 @@ export type UpdateGuidePayload = Partial<{
   city_name: string | null;
   title_primary: string | null;
   title_secondary: string | null;
+  title_highlight_words: string[];
   hero_image_url: string;
   hero_image_alt: string;
   lead_headline: string | null;

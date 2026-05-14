@@ -1,7 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import MapNav from '@/components/map/mapnav';
-import { cn, splitTitleLastWord } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { GuideArticleHighlightedTitle } from '@/components/city-guides/guide-article-highlighted-title';
 
 export type GuideKind = 'city-guide' | 'editorial';
 
@@ -9,6 +10,7 @@ export interface FeaturedEditorialHeroCardProps {
   /** Static for now; later from CMS */
   guideKind: GuideKind;
   titleLine1: string;
+  titleHighlightWords?: string[] | null;
   featuredPeople: string[];
   heroImageSrc: string;
   heroImageAlt: string;
@@ -33,6 +35,7 @@ export function defaultReadLabel(kind: GuideKind): string {
 export default function FeaturedEditorialHeroCard({
   guideKind,
   titleLine1,
+  titleHighlightWords,
   featuredPeople,
   heroImageSrc,
   readHref,
@@ -40,9 +43,6 @@ export default function FeaturedEditorialHeroCard({
   className,
 }: FeaturedEditorialHeroCardProps) {
   const resolvedReadLabel = readLabel ?? defaultReadLabel(guideKind);
-
-  const { beforeLastWord: line1BeforeLastWord, lastWord: line1LastWord } =
-    splitTitleLastWord(titleLine1);
 
   const ariaFeaturedTitle = titleLine1.trim() || resolvedReadLabel;
 
@@ -99,14 +99,12 @@ export default function FeaturedEditorialHeroCard({
           </div>
 
           <div id="featured-guide-title">
-            <div className="title1 font-bold uppercase tracking-tight text-[#171717] md:leading-none">
-              {line1BeforeLastWord ? `${line1BeforeLastWord} ` : null}
-              {line1LastWord ? (
-                <span className="box-decoration-clone bg-[#FFF200] px-1 py-0 text-[#171717]">
-                  {line1LastWord}
-                </span>
-              ) : null}
-            </div>
+            <GuideArticleHighlightedTitle
+              title={titleLine1}
+              highlightWords={titleHighlightWords}
+              className="w-full"
+              titleClassName="title1 font-bold uppercase tracking-tight text-[#171717] md:leading-none"
+            />
           </div>
 
           {featuredPeople.length > 0 ? (

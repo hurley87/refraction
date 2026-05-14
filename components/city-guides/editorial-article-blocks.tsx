@@ -8,11 +8,13 @@ export type { EditorialContentBlock };
 export interface EditorialArticleBlocksProps {
   blocks: EditorialContentBlock[];
   className?: string;
+  hyperlinkClassName?: string;
 }
 
 export function EditorialArticleBlocks({
   blocks,
   className,
+  hyperlinkClassName,
 }: EditorialArticleBlocksProps) {
   return (
     <div className={cn('flex w-full max-w-[361px] flex-col gap-6', className)}>
@@ -20,7 +22,13 @@ export function EditorialArticleBlocks({
         const key = `${block.type}-${index}`;
         switch (block.type) {
           case 'paragraph':
-            return <GuideArticleMarkdown key={key} markdown={block.text} />;
+            return (
+              <GuideArticleMarkdown
+                key={key}
+                markdown={block.text}
+                hyperlinkClassName={hyperlinkClassName}
+              />
+            );
           case 'subtitleTitle3':
             return (
               <div key={key} className="title3 text-[#171717]">

@@ -34,6 +34,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cityGuideDisplayTitle } from '@/lib/guides/city-guide-title';
+import {
+  formatTitleHighlightWordsForInput,
+  parseTitleHighlightWordsInput,
+} from '@/lib/guides/title-highlights';
 import type { AdminGuideDetail } from '@/lib/db/guides';
 import { normalizeContributorInstagramForDb } from '@/lib/guides/contributor-instagram';
 import type { LocationListWithCount } from '@/lib/types';
@@ -203,6 +207,7 @@ export default function AdminGuideEditPage() {
   const [slug, setSlug] = useState('');
   const [titlePrefix, setTitlePrefix] = useState('');
   const [titlePrimary, setTitlePrimary] = useState('');
+  const [titleHighlightWordsText, setTitleHighlightWordsText] = useState('');
   const [heroUrl, setHeroUrl] = useState('');
   const [heroAlt, setHeroAlt] = useState('');
   const [leadHeadline, setLeadHeadline] = useState('');
@@ -270,6 +275,9 @@ export default function AdminGuideEditPage() {
         : tp
     );
     setTitlePrimary(t1);
+    setTitleHighlightWordsText(
+      formatTitleHighlightWordsForInput(guide.title_highlight_words)
+    );
     setHeroUrl(guide.hero_image_url ?? '');
     setHeroAlt(guide.hero_image_alt ?? '');
     setLeadHeadline(guide.lead_headline ?? '');
@@ -348,6 +356,9 @@ export default function AdminGuideEditPage() {
             : (guide.city_name?.trim() ?? null) || null,
         title_primary: titlePrimary.trim() || null,
         title_secondary: null,
+        title_highlight_words: parseTitleHighlightWordsInput(
+          titleHighlightWordsText
+        ),
         hero_image_url: heroUrl.trim(),
         hero_image_alt: heroAlt.trim(),
         lead_headline: leadHeadline.trim() || null,
@@ -813,6 +824,19 @@ export default function AdminGuideEditPage() {
             />
           </div>
         )}
+        <div>
+          <Label>Title highlight words</Label>
+          <Input
+            value={titleHighlightWordsText}
+            onChange={(e) => setTitleHighlightWordsText(e.target.value)}
+            placeholder="e.g. Berlin, Guide"
+          />
+          <p className="mt-1 text-xs text-neutral-500">
+            Comma-separated words or phrases from the title to highlight in IRL
+            yellow on the article, hub cards, and featured hero. Leave empty to
+            highlight only the last word.
+          </p>
+        </div>
         <div className="space-y-3">
           <div>
             <Label>Hero image</Label>

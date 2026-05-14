@@ -24,6 +24,7 @@ export default async function CityGuidesHomePage() {
         <FeaturedEditorialHeroCard
           guideKind={featured.guideKind}
           titleLine1={featured.titleLine1}
+          titleHighlightWords={featured.titleHighlightWords}
           featuredPeople={featured.featuredPeople}
           heroImageSrc={featured.heroImageSrc}
           heroImageAlt={featured.heroImageAlt}
