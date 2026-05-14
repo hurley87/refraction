@@ -1,31 +1,27 @@
-import { cn, splitTitleLastWord } from '@/lib/utils';
+import { GuideArticleHighlightedTitle } from '@/components/city-guides/guide-article-highlighted-title';
 
 export interface EditorialArticleTitleProps {
-  /** Headline — `title1` scale; last word on IRL yellow (same pattern as city guides). */
+  /** Headline — `title1` scale; CMS-selected phrases on IRL yellow. */
   primary: string;
+  highlightWords?: string[] | null;
   className?: string;
 }
 
 /**
- * Editorial article hero title: single `title1` line; last word highlighted.
+ * Editorial article hero title: single `title1` line with CMS highlight phrases.
  */
 export function EditorialArticleTitle({
   primary,
+  highlightWords,
   className,
 }: EditorialArticleTitleProps) {
-  const title = primary.trim();
-  const { beforeLastWord, lastWord } = splitTitleLastWord(title);
-
   return (
-    <div className={cn('w-full max-w-[361px]', className)}>
-      <h1 className="title1 font-bold text-[#313131]">
-        {beforeLastWord ? `${beforeLastWord} ` : null}
-        {lastWord ? (
-          <span className="box-decoration-clone bg-[#FFF200] px-1 py-0 text-[#171717]">
-            {lastWord}
-          </span>
-        ) : null}
-      </h1>
-    </div>
+    <GuideArticleHighlightedTitle
+      title={primary}
+      highlightWords={highlightWords}
+      className={className}
+      as="h1"
+      bold
+    />
   );
 }

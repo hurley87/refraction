@@ -32,6 +32,7 @@ const patchSchema = z.object({
   city_name: z.string().nullable().optional(),
   title_primary: z.string().nullable().optional(),
   title_secondary: z.string().nullable().optional(),
+  title_highlight_words: z.array(z.string()).optional(),
   hero_image_url: z.string().optional(),
   hero_image_alt: z.string().optional(),
   lead_headline: z.string().nullable().optional(),

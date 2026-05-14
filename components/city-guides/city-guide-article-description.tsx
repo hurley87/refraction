@@ -13,6 +13,7 @@ export interface CityGuideArticleDescriptionProps {
    */
   paragraphsAreMarkdown?: boolean;
   className?: string;
+  hyperlinkClassName?: string;
 }
 
 function normalizedBodyParagraphs(paragraphs?: string[]): string[] {
@@ -28,6 +29,7 @@ export function CityGuideArticleDescription({
   paragraphs,
   paragraphsAreMarkdown = false,
   className,
+  hyperlinkClassName,
 }: CityGuideArticleDescriptionProps) {
   const head = headline?.trim() ?? '';
   const bodies = normalizedBodyParagraphs(paragraphs);
@@ -41,6 +43,7 @@ export function CityGuideArticleDescription({
             <GuideArticleMarkdown
               key={`${i}-${text.slice(0, 24)}`}
               markdown={text}
+              hyperlinkClassName={hyperlinkClassName}
             />
           ))
         : bodies.map((text, i) => (

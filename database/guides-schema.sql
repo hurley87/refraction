@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS guides (
   title_primary TEXT,
   title_secondary TEXT,
 
+  -- Phrases in the title to highlight (IRL yellow); empty = last word on public pages
+  title_highlight_words TEXT[] NOT NULL DEFAULT '{}',
+
   hero_image_url TEXT NOT NULL DEFAULT '',
   hero_image_alt TEXT NOT NULL DEFAULT '',
 

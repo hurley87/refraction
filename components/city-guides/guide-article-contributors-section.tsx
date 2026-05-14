@@ -1,6 +1,7 @@
 import Image from 'next/image';
 
 import { cn } from '@/lib/utils';
+import { IRL_YELLOW_TEXT_CLASS } from '@/components/city-guides/guide-article-markdown';
 
 export interface GuideArticleContributor {
   name: string;
@@ -13,6 +14,7 @@ export interface GuideArticleContributor {
 export interface GuideArticleContributorsSectionProps {
   contributors: readonly GuideArticleContributor[];
   className?: string;
+  hyperlinkClassName?: string;
 }
 
 /**
@@ -21,6 +23,7 @@ export interface GuideArticleContributorsSectionProps {
 export function GuideArticleContributorsSection({
   contributors,
   className,
+  hyperlinkClassName,
 }: GuideArticleContributorsSectionProps) {
   if (contributors.length === 0) return null;
 
@@ -64,7 +67,10 @@ export function GuideArticleContributorsSection({
                   href={contributor.instagramHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#171717] transition-opacity hover:opacity-70"
+                  className={cn(
+                    'transition-opacity hover:opacity-70',
+                    hyperlinkClassName ?? IRL_YELLOW_TEXT_CLASS
+                  )}
                   aria-label={`${contributor.name} on Instagram`}
                 >
                   <svg

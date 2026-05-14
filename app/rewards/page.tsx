@@ -183,12 +183,13 @@ function PerksPageInner() {
         )
       : undefined;
 
-  const universalDiscountCode = universalCodes[0]?.code;
+  const universalDiscountCode = universalCodes[0]?.code?.trim() || undefined;
   const individualDiscountCode =
-    redemptionForSelected?.perk_discount_codes?.code;
+    redemptionForSelected?.perk_discount_codes?.code?.trim() || undefined;
 
   const selectedDiscountCode =
-    universalDiscountCode ?? individualDiscountCode ?? 'IRL2026';
+    universalDiscountCode ?? individualDiscountCode ?? undefined;
+  const hasDiscountCode = Boolean(selectedDiscountCode);
 
   // Check if the code is a URL
   const isCodeUrl = (str: string) => {
@@ -200,10 +201,13 @@ function PerksPageInner() {
     }
   };
 
-  // Determine which URL to use for claim button
-  const claimUrl = isCodeUrl(selectedDiscountCode)
+  const codeIsClaimUrl =
+    hasDiscountCode && isCodeUrl(selectedDiscountCode as string);
+
+  // Partner site, or a code field that stores a full claim URL
+  const claimUrl = codeIsClaimUrl
     ? selectedDiscountCode
-    : selectedPerk?.website_url;
+    : selectedPerk?.website_url?.trim() || undefined;
 
   const handleCopyCode = async () => {
     if (!selectedDiscountCode) return;
@@ -1255,13 +1259,13 @@ function PerksPageInner() {
 
                       {/* Row 2: Instructions */}
                       <p className="body-medium text-[#4F4F4F]">
-                        {isCodeUrl(selectedDiscountCode)
+                        {codeIsClaimUrl || !hasDiscountCode
                           ? 'Click the link to claim your reward.'
                           : `Click the link and use code ${selectedDiscountCode} to claim your reward.`}
                       </p>
 
                       {/* Row 3: Pills */}
-                      {isCodeUrl(selectedDiscountCode) ? (
+                      {codeIsClaimUrl || !hasDiscountCode ? (
                         /* Full width claim button when code is a URL */
                         <div className="w-full">
                           {claimUrl ? (

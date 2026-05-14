@@ -65,6 +65,7 @@ export default async function EditorialBySlugPage({
         <article className="px-4 pb-16 pt-2">
           <EditorialArticleTitle
             primary={row.title_primary?.trim() ?? ''}
+            highlightWords={row.title_highlight_words}
             className="mb-4"
           />
 
