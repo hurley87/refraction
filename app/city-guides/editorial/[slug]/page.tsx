@@ -8,7 +8,8 @@ import { EditorialArticleBlocks } from '@/components/city-guides/editorial-artic
 import { EditorialArticleMetaRow } from '@/components/city-guides/editorial-article-meta-row';
 import { EditorialArticleTitle } from '@/components/city-guides/editorial-article-title';
 import { GuideArticleContributorsSection } from '@/components/city-guides/guide-article-contributors-section';
-import { getEditorialPageData, hubListTitle } from '@/lib/db/guides';
+import { getEditorialPageData } from '@/lib/db/guides';
+import { buildGuideArticleMetadata } from '@/lib/guides/article-metadata';
 import { DraftPreviewBanner } from '@/components/city-guides/draft-preview-banner';
 
 export const revalidate = 60;
@@ -27,15 +28,9 @@ export async function generateMetadata({
   if (!data) {
     return { title: 'Editorial | IRL' };
   }
-  const title = `${hubListTitle(data.row)} | IRL`;
-  const description =
-    data.row.card_preview?.trim() ||
-    data.row.lead_headline?.trim() ||
-    'IRL editorial';
-  if (previewToken) {
-    return { title, description, robots: { index: false, follow: false } };
-  }
-  return { title, description };
+  return buildGuideArticleMetadata(data.row, {
+    noIndex: Boolean(previewToken),
+  });
 }
 
 export default async function EditorialBySlugPage({
