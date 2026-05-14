@@ -11,7 +11,8 @@ import { CityGuideArticleMetaRow } from '@/components/city-guides/city-guide-art
 import { CityGuideArticleTitle } from '@/components/city-guides/city-guide-article-title';
 import { GuideArticleContributorsSection } from '@/components/city-guides/guide-article-contributors-section';
 import { DraftPreviewBanner } from '@/components/city-guides/draft-preview-banner';
-import { getCityGuidePageData, hubListTitle } from '@/lib/db/guides';
+import { getCityGuidePageData } from '@/lib/db/guides';
+import { buildGuideArticleMetadata } from '@/lib/guides/article-metadata';
 import { cityGuideDisplayTitle } from '@/lib/guides/city-guide-title';
 
 export const revalidate = 60;
@@ -30,15 +31,9 @@ export async function generateMetadata({
   if (!data) {
     return { title: 'City guide | IRL' };
   }
-  const title = `${hubListTitle(data.row)} | IRL`;
-  const description =
-    data.row.card_preview?.trim() ||
-    data.row.lead_headline?.trim() ||
-    'IRL city guide';
-  if (previewToken) {
-    return { title, description, robots: { index: false, follow: false } };
-  }
-  return { title, description };
+  return buildGuideArticleMetadata(data.row, {
+    noIndex: Boolean(previewToken),
+  });
 }
 
 function interactiveMapHrefForLocation(
