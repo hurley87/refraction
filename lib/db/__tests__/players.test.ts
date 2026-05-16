@@ -5,6 +5,9 @@ import type { Player } from '@/lib/types';
 const mockRpc = vi.fn();
 const mockSingle = vi.fn();
 const mockMaybeSingle = vi.fn();
+const mockLimit = vi.fn(() => ({
+  maybeSingle: mockMaybeSingle,
+}));
 const mockSelect = vi.fn(() => ({
   single: mockSingle,
   eq: vi.fn(() => ({ single: mockSingle })),
@@ -12,6 +15,7 @@ const mockSelect = vi.fn(() => ({
 const mockEq = vi.fn(() => ({
   single: mockSingle,
   maybeSingle: mockMaybeSingle,
+  limit: mockLimit,
   select: mockSelect,
 }));
 const mockInsert = vi.fn(() => ({ select: mockSelect }));
@@ -56,6 +60,7 @@ describe('Players Database Module', () => {
     mockEq.mockReturnValue({
       single: mockSingle,
       maybeSingle: mockMaybeSingle,
+      limit: mockLimit,
       select: mockSelect,
     });
     mockInsert.mockReturnValue({ select: mockSelect });
@@ -102,7 +107,7 @@ describe('Players Database Module', () => {
         total_points: 100,
       };
 
-      mockSingle.mockResolvedValueOnce({ data: mockPlayer, error: null });
+      mockMaybeSingle.mockResolvedValueOnce({ data: mockPlayer, error: null });
 
       const result = await getPlayerByWallet(
         '0x1234567890abcdef1234567890abcdef12345678'
@@ -122,17 +127,14 @@ describe('Players Database Module', () => {
         total_points: 10,
       };
 
-      mockSingle
-        .mockResolvedValueOnce({
-          data: null,
-          error: { code: 'PGRST116', message: 'Not found' },
-        })
+      mockMaybeSingle
+        .mockResolvedValueOnce({ data: null, error: null })
         .mockResolvedValueOnce({ data: mockPlayer, error: null });
 
       const result = await getPlayerByWallet(checksummed);
 
       expect(result).toEqual(mockPlayer);
-      expect(mockSingle).toHaveBeenCalledTimes(2);
+      expect(mockMaybeSingle).toHaveBeenCalledTimes(2);
     });
 
     it('prefers the checksummed EVM row before lowercase duplicates', async () => {
@@ -145,25 +147,19 @@ describe('Players Database Module', () => {
         total_points: 16000,
       };
 
-      mockSingle.mockResolvedValueOnce({ data: mockPlayer, error: null });
+      mockMaybeSingle.mockResolvedValueOnce({ data: mockPlayer, error: null });
 
       const result = await getPlayerByWallet(rawLower);
 
       expect(result).toEqual(mockPlayer);
       expect(mockEq).toHaveBeenCalledWith('wallet_address', checksummed);
-      expect(mockSingle).toHaveBeenCalledTimes(1);
+      expect(mockMaybeSingle).toHaveBeenCalledTimes(1);
     });
 
-    it('should return null when not found (PGRST116)', async () => {
-      mockSingle
-        .mockResolvedValueOnce({
-          data: null,
-          error: { code: 'PGRST116', message: 'Not found' },
-        })
-        .mockResolvedValueOnce({
-          data: null,
-          error: { code: 'PGRST116', message: 'Not found' },
-        });
+    it('should return null when not found', async () => {
+      mockMaybeSingle
+        .mockResolvedValueOnce({ data: null, error: null })
+        .mockResolvedValueOnce({ data: null, error: null });
 
       const result = await getPlayerByWallet(
         '0x1234567890abcdef1234567890abcdef12345678'
@@ -173,7 +169,7 @@ describe('Players Database Module', () => {
     });
 
     it('should throw error for other database errors', async () => {
-      mockSingle.mockResolvedValueOnce({
+      mockMaybeSingle.mockResolvedValueOnce({
         data: null,
         error: { code: 'PGRST500', message: 'Database error' },
       });
@@ -193,7 +189,7 @@ describe('Players Database Module', () => {
         total_points: 50,
       };
 
-      mockSingle.mockResolvedValueOnce({ data: mockPlayer, error: null });
+      mockMaybeSingle.mockResolvedValueOnce({ data: mockPlayer, error: null });
 
       const result = await getPlayerBySolanaWallet(
         '4Nd1mBQtrMJVYVfKf2PJy9NZUZdTAsp7D4xWLs4gDB4T'
@@ -203,9 +199,9 @@ describe('Players Database Module', () => {
     });
 
     it('should return null when not found (PGRST116)', async () => {
-      mockSingle.mockResolvedValueOnce({
+      mockMaybeSingle.mockResolvedValueOnce({
         data: null,
-        error: { code: 'PGRST116', message: 'Not found' },
+        error: null,
       });
 
       const result = await getPlayerBySolanaWallet(
@@ -226,7 +222,7 @@ describe('Players Database Module', () => {
         total_points: 75,
       };
 
-      mockSingle.mockResolvedValueOnce({ data: mockPlayer, error: null });
+      mockMaybeSingle.mockResolvedValueOnce({ data: mockPlayer, error: null });
 
       const result = await getPlayerByStellarWallet(
         'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H'
@@ -236,9 +232,9 @@ describe('Players Database Module', () => {
     });
 
     it('should return null when not found (PGRST116)', async () => {
-      mockSingle.mockResolvedValueOnce({
+      mockMaybeSingle.mockResolvedValueOnce({
         data: null,
-        error: { code: 'PGRST116', message: 'Not found' },
+        error: null,
       });
 
       const result = await getPlayerByStellarWallet(
@@ -258,7 +254,7 @@ describe('Players Database Module', () => {
         total_points: 200,
       };
 
-      mockSingle.mockResolvedValueOnce({ data: mockPlayer, error: null });
+      mockMaybeSingle.mockResolvedValueOnce({ data: mockPlayer, error: null });
 
       const result = await getPlayerByEmail('test@example.com');
 
@@ -266,9 +262,9 @@ describe('Players Database Module', () => {
     });
 
     it('should return null when not found (PGRST116)', async () => {
-      mockSingle.mockResolvedValueOnce({
+      mockMaybeSingle.mockResolvedValueOnce({
         data: null,
-        error: { code: 'PGRST116', message: 'Not found' },
+        error: null,
       });
 
       const result = await getPlayerByEmail('notfound@example.com');

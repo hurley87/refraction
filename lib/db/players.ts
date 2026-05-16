@@ -39,9 +39,10 @@ async function getPlayerByField(
     .from('players')
     .select(PLAYER_COLUMNS)
     .eq(field, value)
-    .single();
+    .limit(1)
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+  if (error) throw error;
   return data;
 }
 

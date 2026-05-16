@@ -6,6 +6,18 @@
 /* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind utilities;
 
+/* Figma / SDS-aligned tokens (e.g. events page meta pills) */
+:root {
+  --Text-Secondary-Text: #757575;
+  --Text-Primary-Text: #171717;
+  --Text-Primary-CTA: #fff;
+  --sds-size-space-050: 4px;
+  --sds-size-space-100: 8px;
+  --sds-size-space-200: 8px;
+  --sds-size-space-400: 16px;
+  --Backgrounds-Secondary-CTA-BG: #dbdbdb;
+}
+
 .mapboxgl-popup-content {
   background-color: transparent !important;
   width: min(361px, calc(100vw - 32px)) !important;
