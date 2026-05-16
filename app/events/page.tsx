@@ -4,14 +4,7 @@ import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Calendar,
-  CalendarX2,
-  Loader2,
-  MapPin,
-  SlidersHorizontal,
-  Ticket,
-} from 'lucide-react';
+import { Calendar, CalendarX2, Loader2, MapPin } from 'lucide-react';
 import {
   Dialog,
   DialogClose,
@@ -20,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
+import { cn } from '@/lib/utils';
 import type { DiceEvent, DiceImage, DiceVenue } from '@/lib/dice';
 
 interface EventsResponse {
@@ -51,9 +45,73 @@ interface ManualEvent {
   rsvpLink: string;
 }
 
-type SortBy = 'date' | 'title';
+type DateSortOrder = 'asc' | 'desc';
 
-const SECTION_TITLE_CLASS = 'px-2 text-black body-small font-monument-grotesk';
+const SECTION_TITLE_CLASS = 'text-black body-small font-monument-grotesk';
+
+const RESIDENT_ADVISOR_LOGO_PATH =
+  '/partner_logos/Resident Advisor white logo.svg';
+
+/** 24×24px circle, white fill — RA mark sits inside. */
+const RESIDENT_ADVISOR_LOGO_CIRCLE_CLASS =
+  'flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white';
+
+/** Featured REGISTER CTA (SDS: 44px bar, primary text fill, SDS padding). */
+const FIND_TICKETS_CTA_CLASS =
+  'flex h-11 min-h-[44px] w-full shrink-0 self-stretch items-center justify-between bg-[var(--Text-Primary-Text,#171717)] py-[var(--sds-size-space-200)] px-[var(--sds-size-space-400)] label-large uppercase tracking-wide text-[var(--Text-Primary-CTA,#FFF)]';
+
+/** Upcoming list REGISTER: gray bar, black label, RA logo on black circle. */
+const UPCOMING_REGISTER_CTA_CLASS =
+  'flex h-11 min-h-[44px] w-full shrink-0 self-stretch items-center justify-between bg-[#DBDBDB] py-[var(--sds-size-space-200)] px-[var(--sds-size-space-400)] label-large uppercase tracking-wide text-black';
+
+/** RA mark: white logo on black disc (upcoming cards). */
+const RESIDENT_ADVISOR_LOGO_CIRCLE_DARK_CLASS =
+  'flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-black';
+
+/** Date/location meta pills — 16px height (border-box), SDS gap/padding. */
+const EVENT_META_PILL_FEATURED_CLASS =
+  'flex h-4 shrink-0 items-center border border-solid box-border px-[var(--sds-size-space-100)] py-0 [border-color:var(--Text-Secondary-Text,#757575)] gap-[var(--sds-size-space-050)]';
+
+/** List card date/location pills — 16px height. */
+const EVENT_META_PILL_LIST_CLASS =
+  'flex h-4 shrink-0 items-center gap-1 border border-solid border-neutral-200 bg-neutral-50 px-2 py-0 box-border';
+
+/** List card poster thumb: 101×126px, aspect 97/121. */
+const EVENT_LIST_POSTER_IMAGE_CLASS =
+  'h-[126px] w-[101px] shrink-0 object-cover aspect-[97/121] transition-opacity hover:opacity-90';
+
+const EVENT_LIST_POSTER_PLACEHOLDER_CLASS =
+  'flex h-[126px] w-[101px] shrink-0 items-center justify-center border border-dashed border-neutral-300 bg-neutral-50 aspect-[97/121]';
+
+/** Map control: SDS secondary CTA bg, primary text underline bar, label-medium + arrow. */
+const EVENT_MAP_LINK_CLASS =
+  'flex h-[16px] shrink-0 items-center gap-[var(--sds-size-space-200)] border-b border-solid box-border bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-2 py-0 [border-bottom-color:var(--Text-Primary-Text,#171717)] transition-colors hover:bg-[#c9c9c9]';
+
+function EventsMapLink({ href }: { href: string }) {
+  return (
+    <Link href={href} className={EVENT_MAP_LINK_CLASS}>
+      <span className="label-medium uppercase leading-none text-[var(--Text-Primary-Text,#171717)]">
+        MAP
+      </span>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={16}
+        height={16}
+        viewBox="0 0 16 16"
+        fill="none"
+        className="size-[15px] shrink-0"
+        aria-hidden
+      >
+        <path
+          d="M13.1862 2.81317V10.2468H11.2604L11.4205 6.48407L11.4362 6.10712L11.1696 6.37469L4.4469 13.1247L2.87268 11.5485L9.60803 4.80243L9.87561 4.53485L9.49768 4.55243L5.76721 4.72333V2.81317H13.1862Z"
+          fill="#171717"
+          stroke="#757575"
+          strokeWidth="0.29358"
+        />
+      </svg>
+    </Link>
+  );
+}
 
 const parseEventDate = (value: string | null | undefined): Date | null => {
   if (!value) return null;
@@ -112,7 +170,7 @@ const toPublicEvent = (event: DiceEvent): PublicEvent => {
 };
 
 export default function EventsPage() {
-  const [sortBy, setSortBy] = useState<SortBy>('date');
+  const [dateSortOrder, setDateSortOrder] = useState<DateSortOrder>('asc');
   const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
 
   const {
@@ -184,33 +242,34 @@ export default function EventsPage() {
       : upcoming;
 
     return [...withoutNext].sort((a, b) => {
-      if (sortBy === 'title') return a.title.localeCompare(b.title);
       if (!a.start && !b.start) return a.title.localeCompare(b.title);
       if (!a.start) return 1;
       if (!b.start) return -1;
-      return a.start.getTime() - b.start.getTime();
+      const cmp = a.start.getTime() - b.start.getTime();
+      return dateSortOrder === 'asc' ? cmp : -cmp;
     });
-  }, [nextEvent, publicEvents, sortBy]);
+  }, [nextEvent, publicEvents, dateSortOrder]);
 
   const pastEvents = useMemo(() => {
     const onlyPast = publicEvents.filter(
       (event) => event.start && !isTodayOrFuture(event.start)
     );
     return [...onlyPast].sort((a, b) => {
-      if (sortBy === 'title') return a.title.localeCompare(b.title);
-      return b.start!.getTime() - a.start!.getTime();
+      const cmp = a.start!.getTime() - b.start!.getTime();
+      return dateSortOrder === 'asc' ? cmp : -cmp;
     });
-  }, [publicEvents, sortBy]);
+  }, [publicEvents, dateSortOrder]);
 
   const hasNoEvents =
     !isLoading &&
+    !manualLoading &&
     !error &&
     !nextEvent &&
     remainingUpcomingEvents.length === 0 &&
     pastEvents.length === 0;
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(0deg,_#61BFD1_0%,_#EE91B7_26.92%,_#FFE600_54.33%,_#1BA351_100%)] px-4 pb-20 pt-4 font-grotesk md:px-2">
+    <div className="min-h-screen bg-white px-4 pt-4 font-grotesk md:px-2">
       <div className="mx-auto max-w-md">
         <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
 
@@ -238,68 +297,85 @@ export default function EventsPage() {
 
           {nextEvent && (
             <section className="space-y-2">
-              <h2 className={SECTION_TITLE_CLASS}>NEXT EVENT</h2>
-              <article className="rounded-[26px] border border-white/30 bg-white/45 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.12)] backdrop-blur-sm">
-                <div className="space-y-4">
-                  {nextEvent.poster ? (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPoster(nextEvent.poster)}
-                      className="w-full overflow-hidden rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/30"
-                    >
-                      <Image
-                        src={nextEvent.poster}
-                        alt={nextEvent.title}
-                        width={768}
-                        height={960}
-                        className="h-auto w-full object-cover transition-opacity hover:opacity-95"
-                      />
-                    </button>
-                  ) : (
-                    <div className="flex aspect-[4/5] w-full items-center justify-center rounded-2xl border border-dashed border-neutral-400/60 bg-white/40">
-                      <Calendar className="h-8 w-8 text-neutral-500" />
-                    </div>
+              <article
+                className={cn(
+                  'overflow-hidden backdrop-blur-sm max-md:-mx-4 md:w-full md:max-w-none',
+                  'max-md:w-[calc(100%+2rem)]'
+                )}
+              >
+                {nextEvent.poster ? (
+                  <Image
+                    src={nextEvent.poster}
+                    alt={nextEvent.title}
+                    width={768}
+                    height={960}
+                    className="h-auto w-full object-cover transition-opacity hover:opacity-95"
+                  />
+                ) : (
+                  <div className="flex aspect-[4/5] flex-col items-center justify-center border-b border-dashed border-neutral-400/60 bg-neutral-100">
+                    <Calendar className="h-8 w-8 text-neutral-500" />
+                  </div>
+                )}
+
+                <div
+                  className={cn(
+                    'flex w-full max-md:w-[393px] max-md:max-w-full flex-col items-start gap-4 py-6',
+                    'max-md:mx-auto',
+                    'md:max-w-none'
                   )}
-
+                >
+                  <div className="text-[#757575] label-small">NEXT EVENT</div>
                   <div className="space-y-3">
-                    <h3 className="title2 text-[#313131]">{nextEvent.title}</h3>
-                    {nextEvent.description && (
-                      <p className="line-clamp-3 body-small text-[#4F4F4F]">
-                        {nextEvent.description}
-                      </p>
-                    )}
+                    <h2 className=" text-[#313131]">{nextEvent.title}</h2>
                   </div>
 
-                  <div className="flex w-full items-center gap-2">
-                    <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-full border border-black/25 bg-white/70 px-3 py-1.5">
-                      <Calendar className="h-4 w-4 shrink-0 text-neutral-600" />
-                      <span className="truncate text-[11px] uppercase tracking-wide text-black">
-                        {formatDateChip(nextEvent.start)}
-                      </span>
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className={EVENT_META_PILL_FEATURED_CLASS}>
+                        <Calendar className="size-3 shrink-0 text-[#757575]" />
+                        <span className="whitespace-nowrap text-[11px] uppercase leading-none tracking-wide text-[#757575]">
+                          {formatDateChip(nextEvent.start)}
+                        </span>
+                      </div>
+                      <div
+                        className={cn(
+                          EVENT_META_PILL_FEATURED_CLASS,
+                          'min-w-0 max-w-[11rem]'
+                        )}
+                      >
+                        <MapPin className="size-3 shrink-0 text-[#757575]" />
+                        <span className="truncate text-[11px] uppercase leading-none tracking-wide text-[#757575]">
+                          {nextEvent.location}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-full border border-black/25 bg-white/70 px-3 py-1.5">
-                      <MapPin className="h-4 w-4 shrink-0 text-neutral-600" />
-                      <span className="truncate text-[11px] uppercase tracking-wide text-black">
-                        {nextEvent.location}
-                      </span>
-                    </div>
-                    <Link
+                    <EventsMapLink
                       href={nextEvent.mapsUrl || EVENTS_MAP_HREF}
-                      className="rounded-full bg-white px-3 py-2 text-[11px] uppercase tracking-wide text-black transition-colors hover:bg-white/80"
-                    >
-                      Map
-                    </Link>
+                    />
                   </div>
 
-                  <a
-                    href={nextEvent.ticketsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex h-10 w-full items-center justify-between rounded-full bg-white px-4 font-pleasure text-black transition-colors hover:bg-neutral-100"
-                  >
-                    <span className="leading-none">Find Tickets</span>
-                    <Ticket className="h-4 w-4" />
-                  </a>
+                  <div className="w-full">
+                    <a
+                      href={nextEvent.ticketsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={FIND_TICKETS_CTA_CLASS}
+                    >
+                      <span className="text-left">REGISTER</span>
+                      <span
+                        className={RESIDENT_ADVISOR_LOGO_CIRCLE_CLASS}
+                        aria-hidden
+                      >
+                        <Image
+                          src={RESIDENT_ADVISOR_LOGO_PATH}
+                          alt=""
+                          width={1186}
+                          height={1186}
+                          className="size-4 object-contain invert"
+                        />
+                      </span>
+                    </a>
+                  </div>
                 </div>
               </article>
             </section>
@@ -307,27 +383,41 @@ export default function EventsPage() {
 
           {remainingUpcomingEvents.length > 0 && (
             <section className="space-y-2">
-              <h2 className={SECTION_TITLE_CLASS}>UPCOMING EVENTS</h2>
               <button
                 type="button"
-                onClick={() => setSortBy(sortBy === 'date' ? 'title' : 'date')}
-                className="flex h-10 w-full items-center justify-between rounded-full bg-white px-4 transition-colors hover:bg-neutral-50"
+                onClick={() =>
+                  setDateSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))
+                }
+                className="flex h-10 w-full items-center justify-between border-t border-solid bg-[var(--Text-Primary-CTA,#FFF)] px-4 [border-top-color:var(--Text-Secondary-Text,#757575)] transition-colors hover:bg-neutral-50"
               >
-                <span className="body-small uppercase tracking-wide text-[#5E5E5E]">
-                  Sort by {sortBy === 'date' ? 'title' : 'date'}
+                <span className="label-small uppercase tracking-wide text-[#757575]">
+                  FILTER
                 </span>
-                <SlidersHorizontal className="h-4 w-4 text-[#5E5E5E]" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width={24}
+                  height={24}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="aspect-square h-6 w-6 shrink-0"
+                  aria-hidden
+                >
+                  <path
+                    d="M21 8.15419H3V5.51102H21V8.15419ZM18.0463 10.6784H5.95374V13.3216H18.0463V10.6784ZM14.8711 15.8458H9.13216V18.489H14.8711V15.8458Z"
+                    fill="#757575"
+                  />
+                </svg>
               </button>
 
               <div className="space-y-2">
                 {remainingUpcomingEvents.map((event) => (
                   <article
                     key={event.id}
-                    className="rounded-[24px] border border-white/80 bg-white px-4 py-4 shadow-[0_8px_18px_rgba(0,0,0,0.08)]"
+                    className=" border-t border-solid bg-[var(--Text-Primary-CTA,#FFF)]  py-4 [border-top-color:var(--Text-Secondary-Text,#757575)]"
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-1 space-y-2">
-                        <h3 className="title3 text-[#313131]">{event.title}</h3>
+                        <h3 className="text-[#313131]">{event.title}</h3>
                         {event.description && (
                           <p className="line-clamp-2 body-small text-[#666]">
                             {event.description}
@@ -338,55 +428,68 @@ export default function EventsPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedPoster(event.poster)}
-                          className="overflow-hidden rounded-xl"
+                          className="overflow-hidden"
                         >
                           <Image
                             src={event.poster}
                             alt={event.title}
-                            width={84}
-                            height={108}
-                            className="h-[108px] w-[84px] rounded-xl object-cover transition-opacity hover:opacity-90"
+                            width={101}
+                            height={126}
+                            className={EVENT_LIST_POSTER_IMAGE_CLASS}
                           />
                         </button>
                       ) : (
-                        <div className="flex h-[108px] w-[84px] items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50">
+                        <div className={EVENT_LIST_POSTER_PLACEHOLDER_CLASS}>
                           <Calendar className="h-5 w-5 text-neutral-400" />
                         </div>
                       )}
                     </div>
 
-                    <div className="mt-3 flex items-center gap-1.5">
-                      <div className="flex min-w-0 flex-1 items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1.5">
-                        <Calendar className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                        <span className="truncate text-[11px] uppercase text-[#565656]">
-                          {formatDateChip(event.start)}
-                        </span>
+                    <div className="mt-3 flex w-full items-center justify-between gap-1.5">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <div className={EVENT_META_PILL_LIST_CLASS}>
+                          <Calendar className="size-3 shrink-0 text-neutral-500" />
+                          <span className="whitespace-nowrap text-[11px] uppercase leading-none text-[#565656]">
+                            {formatDateChip(event.start)}
+                          </span>
+                        </div>
+                        <div
+                          className={cn(
+                            EVENT_META_PILL_LIST_CLASS,
+                            'min-w-0 max-w-[10rem]'
+                          )}
+                        >
+                          <MapPin className="size-3 shrink-0 text-neutral-500" />
+                          <span className="truncate text-[11px] uppercase leading-none text-[#565656]">
+                            {event.location}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex min-w-0 flex-1 items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1.5">
-                        <MapPin className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                        <span className="truncate text-[11px] uppercase text-[#565656]">
-                          {event.location}
-                        </span>
-                      </div>
-                      <Link
-                        href={event.mapsUrl || EVENTS_MAP_HREF}
-                        className="rounded-full bg-neutral-100 px-3 py-2 text-[11px] uppercase tracking-wide text-[#4C4C4C] transition-colors hover:bg-neutral-200"
-                      >
-                        Map
-                      </Link>
+                      <EventsMapLink href={event.mapsUrl || EVENTS_MAP_HREF} />
                     </div>
 
-                    <a
-                      href={event.ticketsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 flex h-10 w-full items-center justify-between rounded-full bg-neutral-100 px-4 text-black transition-colors hover:bg-neutral-200"
-                    >
-                      <span className="font-pleasure leading-none">
-                        Find Tickets
-                      </span>
-                      <Ticket className="h-4 w-4" />
-                    </a>
+                    <div className="mt-3 w-full">
+                      <a
+                        href={event.ticketsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={UPCOMING_REGISTER_CTA_CLASS}
+                      >
+                        <span className="text-left">REGISTER</span>
+                        <span
+                          className={RESIDENT_ADVISOR_LOGO_CIRCLE_DARK_CLASS}
+                          aria-hidden
+                        >
+                          <Image
+                            src={RESIDENT_ADVISOR_LOGO_PATH}
+                            alt=""
+                            width={1186}
+                            height={1186}
+                            className="size-4 object-contain"
+                          />
+                        </span>
+                      </a>
+                    </div>
                   </article>
                 ))}
               </div>
@@ -404,7 +507,7 @@ export default function EventsPage() {
                   >
                     <div className="flex items-start gap-3">
                       <div className="flex-1 space-y-2">
-                        <h3 className="title3 text-[#313131]">{event.title}</h3>
+                        <h3 className="text-[#313131]">{event.title}</h3>
                         {event.description && (
                           <p className="line-clamp-2 body-small text-[#666]">
                             {event.description}
@@ -415,42 +518,44 @@ export default function EventsPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedPoster(event.poster)}
-                          className="overflow-hidden rounded-xl"
+                          className="overflow-hidden"
                         >
                           <Image
                             src={event.poster}
                             alt={event.title}
-                            width={84}
-                            height={108}
-                            className="h-[108px] w-[84px] rounded-xl object-cover transition-opacity hover:opacity-90"
+                            width={101}
+                            height={126}
+                            className={EVENT_LIST_POSTER_IMAGE_CLASS}
                           />
                         </button>
                       ) : (
-                        <div className="flex h-[108px] w-[84px] items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50">
+                        <div className={EVENT_LIST_POSTER_PLACEHOLDER_CLASS}>
                           <Calendar className="h-5 w-5 text-neutral-400" />
                         </div>
                       )}
                     </div>
 
-                    <div className="mt-3 flex items-center gap-1.5">
-                      <div className="flex min-w-0 flex-1 items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1.5">
-                        <Calendar className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                        <span className="truncate text-[11px] uppercase text-[#565656]">
-                          {formatDateChip(event.start)}
-                        </span>
+                    <div className="mt-3 flex w-full items-center justify-between gap-1.5">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <div className={EVENT_META_PILL_LIST_CLASS}>
+                          <Calendar className="size-3 shrink-0 text-neutral-500" />
+                          <span className="whitespace-nowrap text-[11px] uppercase leading-none text-[#565656]">
+                            {formatDateChip(event.start)}
+                          </span>
+                        </div>
+                        <div
+                          className={cn(
+                            EVENT_META_PILL_LIST_CLASS,
+                            'min-w-0 max-w-[10rem]'
+                          )}
+                        >
+                          <MapPin className="size-3 shrink-0 text-neutral-500" />
+                          <span className="truncate text-[11px] uppercase leading-none text-[#565656]">
+                            {event.location}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex min-w-0 flex-1 items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1.5">
-                        <MapPin className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                        <span className="truncate text-[11px] uppercase text-[#565656]">
-                          {event.location}
-                        </span>
-                      </div>
-                      <Link
-                        href={event.mapsUrl || EVENTS_MAP_HREF}
-                        className="rounded-full bg-neutral-100 px-3 py-2 text-[11px] uppercase tracking-wide text-[#4C4C4C] transition-colors hover:bg-neutral-200"
-                      >
-                        Map
-                      </Link>
+                      <EventsMapLink href={event.mapsUrl || EVENTS_MAP_HREF} />
                     </div>
                   </article>
                 ))}
@@ -509,7 +614,7 @@ export default function EventsPage() {
               </div>
 
               {/* Card with blurred poster background and sharp poster on top */}
-              <div className="relative flex flex-1 items-center justify-center overflow-hidden rounded-3xl border border-[#131313]/10">
+              <div className="relative flex flex-1 items-center justify-center overflow-hidden border border-[#131313]/10">
                 {/* Blurred background inside the card */}
                 <Image
                   src={selectedPoster}
@@ -525,7 +630,7 @@ export default function EventsPage() {
                     alt="Event poster"
                     width={900}
                     height={1200}
-                    className="h-auto max-h-[80vh] w-auto max-w-full rounded-xl object-contain shadow-2xl"
+                    className="h-auto max-h-[80vh] w-auto max-w-full object-contain shadow-2xl"
                   />
                 </div>
               </div>
