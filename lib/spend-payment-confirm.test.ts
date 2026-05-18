@@ -37,6 +37,10 @@ vi.mock('@/lib/db/spend-sessions', () => ({
 const mockGetPaymentPrepare = vi.fn();
 const mockPatchPrepare = vi.fn();
 
+const { mockTryClaim } = vi.hoisted(() => ({
+  mockTryClaim: vi.fn(),
+}));
+
 vi.mock('@/lib/db/spend-payment-prepare', async (importOriginal) => {
   const actual =
     await importOriginal<typeof import('@/lib/db/spend-payment-prepare')>();
@@ -45,6 +49,8 @@ vi.mock('@/lib/db/spend-payment-prepare', async (importOriginal) => {
     getSpendPaymentPrepareBySessionId: (...a: unknown[]) =>
       mockGetPaymentPrepare(...a),
     patchSpendPaymentPrepare: (...a: unknown[]) => mockPatchPrepare(...a),
+    tryClaimSpendPaymentPrepareForStellarSubmit: (...a: unknown[]) =>
+      mockTryClaim(...a),
   };
 });
 
@@ -64,6 +70,30 @@ vi.mock('@/lib/spend-conversion-preview', async (importOriginal) => {
 vi.mock('@/lib/spend-payment-verify', () => ({
   verifySpendUsdcPaymentTx: vi.fn(),
 }));
+
+vi.mock('@/lib/spend-payment-verify-stellar', () => ({
+  verifySpendStellarUsdcPaymentTx: vi.fn(),
+}));
+
+const { mockStellarConfirmPayment } = vi.hoisted(() => ({
+  mockStellarConfirmPayment: vi.fn(),
+}));
+
+vi.mock('@/lib/spend/payment-rails/registry', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/lib/spend/payment-rails/registry')>();
+  return {
+    ...actual,
+    getSpendPaymentRail: (rail: string) => {
+      if (rail === 'stellar_usdc') {
+        return { confirmPayment: mockStellarConfirmPayment };
+      }
+      return actual.getSpendPaymentRail(
+        rail as import('@/lib/types').SpendRail
+      );
+    },
+  };
+});
 
 vi.mock('@/lib/spend-rail-config', () => ({
   getSpendReceivingWalletAddress: (spendRail: string) =>
@@ -93,15 +123,61 @@ import { runSpendPaymentConfirm } from '@/lib/spend-payment-confirm';
 import * as analytics from '@/lib/analytics/server';
 import * as spendSessions from '@/lib/db/spend-sessions';
 import * as spendPaymentVerify from '@/lib/spend-payment-verify';
+import * as stellarVerify from '@/lib/spend-payment-verify-stellar';
+import { spendRailErrorPaymentFailed } from '@/lib/spend/payment-rails/errors';
+import { getSpendReceivingWalletAddress } from '@/lib/spend-rail-config';
+import {
+  getStellarSpendUsdcAssetCode,
+  getStellarSpendUsdcIssuer,
+} from '@/lib/spend/stellar-wallet-readiness-config';
 import type {
   PointConversion,
   SpendExperience,
+  SpendPaymentPrepareOperation,
+  SpendPaymentPrepareOperationStatus,
   SpendSession,
   SpendTransaction,
 } from '@/lib/types';
 
 const validHash =
   '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' as const;
+
+const STELLAR_RAIL_WALLET =
+  'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
+const STELLAR_LEDGER_HASH = 'a'.repeat(64);
+
+function buildStellarPrepareRow(
+  status: SpendPaymentPrepareOperationStatus,
+  sessionId: string
+): SpendPaymentPrepareOperation {
+  const receivingWallet = getSpendReceivingWalletAddress('stellar_usdc').trim();
+  const usdcIssuer = getStellarSpendUsdcIssuer() ?? '';
+  const usdcCode = getStellarSpendUsdcAssetCode();
+  return {
+    id: 'prep-stellar',
+    spend_session_id: sessionId,
+    user_id: 'user-1',
+    spend_rail: 'stellar_usdc',
+    status,
+    prepared_action: {},
+    verification_snapshot: {
+      v: 1,
+      spend_rail: 'stellar_usdc',
+      from_wallet: STELLAR_RAIL_WALLET,
+      receiving_wallet: receivingWallet,
+      usdc_amount: 5,
+      usdc_asset_code: usdcCode,
+      usdc_issuer: usdcIssuer,
+    },
+    idempotency_key: `payment:${sessionId}`,
+    attempt_count: 0,
+    last_failure_reason: null,
+    last_failure_at: null,
+    last_ambiguity_metadata: null,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  };
+}
 
 const baseSession: SpendSession = {
   id: 'sess-1',
@@ -141,6 +217,11 @@ const baseExperience: SpendExperience = {
   updated_at: '2026-01-01T00:00:00.000Z',
 };
 
+const stellarExperience: SpendExperience = {
+  ...baseExperience,
+  spend_rail: 'stellar_usdc',
+};
+
 function inProgressConversion(
   status: PointConversion['status']
 ): PointConversion {
@@ -173,6 +254,9 @@ describe('runSpendPaymentConfirm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPatchPrepare.mockReset();
+    mockTryClaim.mockReset();
+    mockStellarConfirmPayment.mockReset();
+    vi.mocked(stellarVerify.verifySpendStellarUsdcPaymentTx).mockReset();
     mockFetchUserUsdc.mockResolvedValue(10);
     mockRailGate.mockReturnValue({ ok: true as const });
     mockGetSpendTransaction.mockResolvedValue(null);
@@ -493,5 +577,255 @@ describe('runSpendPaymentConfirm', () => {
     ).toBe(true);
     expect(spendSessions.updateSpendTransactionFields).not.toHaveBeenCalled();
     expect(analytics.trackSpendPaymentFailed).not.toHaveBeenCalled();
+  });
+
+  it('Stellar backend: two parallel confirms invoke confirmPayment at most once (prepare lock)', async () => {
+    const sessionId = 'sess-stellar-lock';
+    const stellarSession: SpendSession = {
+      ...baseSession,
+      id: sessionId,
+      spend_experience_id: 'exp-1',
+      spend_rail: 'stellar_usdc',
+      status: 'conversion_complete',
+      rail_user_wallet_address: STELLAR_RAIL_WALLET,
+    };
+
+    mockGetPointConversion.mockResolvedValue({
+      ...inProgressConversion('funded'),
+      spend_session_id: sessionId,
+      spend_rail: 'stellar_usdc',
+    });
+
+    mockStellarConfirmPayment.mockResolvedValue({
+      ok: true,
+      value: {
+        status: 'submitted',
+        ledgerTxReference: STELLAR_LEDGER_HASH,
+      },
+    });
+    vi.mocked(stellarVerify.verifySpendStellarUsdcPaymentTx).mockResolvedValue({
+      ok: true,
+    });
+    vi.mocked(
+      spendSessions.confirmSpendTransactionIfSubmitted
+    ).mockResolvedValue({
+      completed_at: '2026-01-02T00:00:00.000Z',
+    } as never);
+    vi.mocked(spendSessions.insertSpendTransactionSubmitted).mockResolvedValue({
+      id: 'tx-stellar',
+      spend_experience_id: 'exp-1',
+      spend_session_id: sessionId,
+      user_id: 'user-1',
+      usdc_amount: 5,
+      spend_rail: 'stellar_usdc',
+      network: 'Stellar',
+      asset_symbol: 'USDC',
+      from_wallet_address: STELLAR_RAIL_WALLET,
+      to_wallet_address: getSpendReceivingWalletAddress('stellar_usdc').trim(),
+      status: 'submitted',
+      payment_tx_hash: STELLAR_LEDGER_HASH,
+      explorer_tx_url: null,
+      idempotency_key: null,
+      created_at: '2026-01-01T00:00:00.000Z',
+      completed_at: null,
+      failed_reason: null,
+      updated_at: '2026-01-01T00:00:00.000Z',
+    } satisfies SpendTransaction);
+
+    let livePrepare = buildStellarPrepareRow('prepared', sessionId);
+    mockPatchPrepare.mockImplementation(async (_id, patch) => {
+      livePrepare = {
+        ...livePrepare,
+        ...patch,
+        status: (patch.status ??
+          livePrepare.status) as SpendPaymentPrepareOperationStatus,
+        last_failure_reason:
+          patch.lastFailureReason !== undefined
+            ? patch.lastFailureReason
+            : livePrepare.last_failure_reason,
+        last_failure_at:
+          patch.lastFailureAt !== undefined
+            ? patch.lastFailureAt
+            : livePrepare.last_failure_at,
+        last_ambiguity_metadata:
+          patch.lastAmbiguityMetadata !== undefined
+            ? patch.lastAmbiguityMetadata
+            : livePrepare.last_ambiguity_metadata,
+      };
+      return livePrepare;
+    });
+
+    // Serialize tryClaim so concurrent confirms hit the mock like a single DB winner
+    // (only one call returns the claimed row; others see null then resume or 409).
+    let tryClaimChain = Promise.resolve();
+    const enqueueTryClaim = <T>(fn: () => Promise<T>): Promise<T> => {
+      const next = tryClaimChain.then(fn);
+      tryClaimChain = next.then(
+        () => undefined,
+        () => undefined
+      );
+      return next;
+    };
+
+    let winnerChosen = false;
+    let lostRaceNextPrepareRead = false;
+    mockTryClaim.mockImplementation(async () =>
+      enqueueTryClaim(async () => {
+        if (!winnerChosen) {
+          winnerChosen = true;
+          return buildStellarPrepareRow('submitting', sessionId);
+        }
+        lostRaceNextPrepareRead = true;
+        return null;
+      })
+    );
+
+    mockGetPaymentPrepare.mockImplementation(async () => {
+      if (lostRaceNextPrepareRead) {
+        lostRaceNextPrepareRead = false;
+        return buildStellarPrepareRow('submitting', sessionId);
+      }
+      return { ...livePrepare };
+    });
+
+    mockGetSpendTransaction.mockResolvedValue(null);
+    vi.mocked(spendSessions.getSpendSessionById).mockResolvedValue({
+      ...stellarSession,
+      status: 'payment_complete',
+    });
+
+    const confirmArgs = {
+      session: stellarSession,
+      spendExperience: stellarExperience,
+      normalizedWallet: baseSession.wallet_address.toLowerCase(),
+      authUserId: 'user-1',
+      distinctId: 'd1',
+      usdcAmount: 5,
+      stellarBackendConfirm: true as const,
+    };
+
+    const [first, second] = await Promise.all([
+      runSpendPaymentConfirm(confirmArgs),
+      runSpendPaymentConfirm(confirmArgs),
+    ]);
+
+    expect(mockStellarConfirmPayment).toHaveBeenCalledTimes(1);
+    const httpStatuses = [first, second].map((r) => r.httpStatus);
+    expect(httpStatuses).toContain(409);
+    expect([first, second].some((r) => r.ok)).toBe(true);
+  });
+
+  it('Stellar backend resume: submitted prepare + ledger hash skips confirmPayment', async () => {
+    const sessionId = 'sess-stellar-resume';
+    const stellarSession: SpendSession = {
+      ...baseSession,
+      id: sessionId,
+      spend_experience_id: 'exp-1',
+      spend_rail: 'stellar_usdc',
+      status: 'conversion_complete',
+      rail_user_wallet_address: STELLAR_RAIL_WALLET,
+    };
+
+    mockGetPointConversion.mockResolvedValue({
+      ...inProgressConversion('funded'),
+      spend_session_id: sessionId,
+      spend_rail: 'stellar_usdc',
+    });
+    mockGetPaymentPrepare.mockResolvedValue(
+      buildStellarPrepareRow('submitted', sessionId)
+    );
+    mockGetSpendTransaction.mockResolvedValue({
+      id: 'tx-resume',
+      spend_experience_id: 'exp-1',
+      spend_session_id: sessionId,
+      user_id: 'user-1',
+      usdc_amount: 5,
+      spend_rail: 'stellar_usdc',
+      network: 'Stellar',
+      asset_symbol: 'USDC',
+      from_wallet_address: STELLAR_RAIL_WALLET,
+      to_wallet_address: getSpendReceivingWalletAddress('stellar_usdc').trim(),
+      status: 'submitted',
+      payment_tx_hash: STELLAR_LEDGER_HASH,
+      explorer_tx_url: null,
+      idempotency_key: null,
+      created_at: '2026-01-01T00:00:00.000Z',
+      completed_at: null,
+      failed_reason: null,
+      updated_at: '2026-01-01T00:00:00.000Z',
+    } satisfies SpendTransaction);
+
+    vi.mocked(stellarVerify.verifySpendStellarUsdcPaymentTx).mockResolvedValue({
+      ok: true,
+    });
+    vi.mocked(
+      spendSessions.confirmSpendTransactionIfSubmitted
+    ).mockResolvedValue({
+      completed_at: '2026-01-02T00:00:00.000Z',
+    } as never);
+    vi.mocked(spendSessions.getSpendSessionById).mockResolvedValue({
+      ...stellarSession,
+      status: 'payment_complete',
+    });
+
+    await runSpendPaymentConfirm({
+      session: stellarSession,
+      spendExperience: stellarExperience,
+      normalizedWallet: baseSession.wallet_address.toLowerCase(),
+      authUserId: 'user-1',
+      distinctId: 'd1',
+      usdcAmount: 5,
+      stellarBackendConfirm: true,
+    });
+
+    expect(mockStellarConfirmPayment).not.toHaveBeenCalled();
+    expect(mockTryClaim).not.toHaveBeenCalled();
+  });
+
+  it('Stellar backend: rail rejects submit after winning prepare lock marks prepare failed', async () => {
+    const sessionId = 'sess-stellar-reject';
+    const stellarSession: SpendSession = {
+      ...baseSession,
+      id: sessionId,
+      spend_experience_id: 'exp-1',
+      spend_rail: 'stellar_usdc',
+      status: 'conversion_complete',
+      rail_user_wallet_address: STELLAR_RAIL_WALLET,
+    };
+
+    mockGetPointConversion.mockResolvedValue({
+      ...inProgressConversion('funded'),
+      spend_session_id: sessionId,
+      spend_rail: 'stellar_usdc',
+    });
+    mockGetPaymentPrepare.mockResolvedValue(
+      buildStellarPrepareRow('prepared', sessionId)
+    );
+    mockTryClaim.mockResolvedValue(
+      buildStellarPrepareRow('submitting', sessionId)
+    );
+    mockStellarConfirmPayment.mockResolvedValue({
+      ok: false,
+      error: spendRailErrorPaymentFailed(),
+    });
+
+    const result = await runSpendPaymentConfirm({
+      session: stellarSession,
+      spendExperience: stellarExperience,
+      normalizedWallet: baseSession.wallet_address.toLowerCase(),
+      authUserId: 'user-1',
+      distinctId: 'd1',
+      usdcAmount: 5,
+      stellarBackendConfirm: true,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error('expected failure');
+    expect(mockStellarConfirmPayment).toHaveBeenCalledTimes(1);
+    expect(
+      mockPatchPrepare.mock.calls.some(
+        (args) => (args[1] as { status?: string })?.status === 'failed'
+      )
+    ).toBe(true);
   });
 });

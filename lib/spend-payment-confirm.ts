@@ -11,6 +11,7 @@ import {
   getSpendPaymentPrepareBySessionId,
   patchSpendPaymentPrepare,
   spendPaymentOperationClientSummary,
+  tryClaimSpendPaymentPrepareForStellarSubmit,
 } from '@/lib/db/spend-payment-prepare';
 import { insertTreasuryReceivePaymentLedgerIfAbsent } from '@/lib/db/treasury-transactions';
 import {
@@ -189,12 +190,11 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
 
   const spendPaymentRail = getSpendPaymentRail('stellar_usdc');
 
-  const [preparedOp, spendTxInitial] = await Promise.all([
+  const [preparedOpInitial, spendTxInitial] = await Promise.all([
     getSpendPaymentPrepareBySessionId(session.id),
     getSpendTransactionBySessionId(session.id),
   ]);
-
-  if (!preparedOp) {
+  if (!preparedOpInitial) {
     return {
       ok: false,
       error:
@@ -202,6 +202,7 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
       httpStatus: 400,
     };
   }
+  let preparedOp: SpendPaymentPrepareOperation = preparedOpInitial;
 
   if (preparedOp.status === 'needs_review') {
     return {
@@ -429,12 +430,14 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
   };
 
   // Resume: already submitted on-chain; verify only (no second Privy submit).
+  const initialResumeLedger = spendTx?.payment_tx_hash?.trim();
   if (
     spendTx?.status === 'submitted' &&
     preparedOp.status === 'submitted' &&
-    isStellarTransactionHash(spendTx.payment_tx_hash)
+    initialResumeLedger &&
+    isStellarTransactionHash(initialResumeLedger)
   ) {
-    const ledgerHash = spendTx.payment_tx_hash!.trim().toLowerCase();
+    const ledgerHash = initialResumeLedger.toLowerCase();
     const verify = await verifySpendStellarUsdcPaymentTx({
       txHash: ledgerHash,
       expectedFrom: snap.from_wallet,
@@ -468,8 +471,10 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
   }
 
   if (spendTx?.status === 'confirmed') {
-    const fresh = await getSpendSessionById(session.id);
-    const prepOp = await getSpendPaymentPrepareBySessionId(session.id);
+    const [fresh, prepOp] = await Promise.all([
+      getSpendSessionById(session.id),
+      getSpendPaymentPrepareBySessionId(session.id),
+    ]);
     return {
       ok: true,
       spendTransaction: spendTx,
@@ -481,27 +486,135 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
     };
   }
 
-  const railConfirm = await spendPaymentRail.confirmPayment({
-    spendSessionId: session.id,
-    spendExperienceId: spendExperience.id,
-    sessionOwnerPrivyUserId: authUserId,
-    railUserWalletAddress: session.rail_user_wallet_address,
-    usdcAmount: snap.usdc_amount,
-  });
+  const stellarSubmitInProgressMessage =
+    'Payment submission is already in progress for this session. Wait a moment and refresh, or try again shortly.';
+
+  const claimedPrepare = await tryClaimSpendPaymentPrepareForStellarSubmit(
+    preparedOp.id
+  );
+  if (!claimedPrepare) {
+    const [freshPrepare, freshSpendTx] = await Promise.all([
+      getSpendPaymentPrepareBySessionId(session.id),
+      getSpendTransactionBySessionId(session.id),
+    ]);
+    if (!freshPrepare) {
+      return {
+        ok: false,
+        error:
+          'Payment is not ready to confirm. Refresh this page to prepare your payment.',
+        httpStatus: 400,
+      };
+    }
+
+    const loserResumeLedger = freshSpendTx?.payment_tx_hash?.trim();
+    if (
+      freshPrepare.status === 'submitted' &&
+      freshSpendTx?.status === 'submitted' &&
+      loserResumeLedger &&
+      isStellarTransactionHash(loserResumeLedger)
+    ) {
+      const resumeSnap = freshPrepare.verification_snapshot;
+      if (!isSpendStellarUsdcVerificationSnapshotV1(resumeSnap)) {
+        return {
+          ok: false,
+          error: stellarSubmitInProgressMessage,
+          httpStatus: 409,
+          details: {
+            paymentOperation: spendPaymentOperationClientSummary(freshPrepare),
+          },
+        };
+      }
+      const ledgerHash = loserResumeLedger.toLowerCase();
+      const verify = await verifySpendStellarUsdcPaymentTx({
+        txHash: ledgerHash,
+        expectedFrom: resumeSnap.from_wallet,
+        expectedTo: resumeSnap.receiving_wallet,
+        expectedUsdcAmount: resumeSnap.usdc_amount,
+        usdcIssuer: issuerLive,
+        usdcCode: codeLive,
+      });
+      spendTx = freshSpendTx;
+      preparedOp = freshPrepare;
+      await updateSpendSessionStatus(session.id, 'payment_pending');
+      return handleVerifyOutcome(ledgerHash, verify);
+    }
+
+    return {
+      ok: false,
+      error: stellarSubmitInProgressMessage,
+      httpStatus: 409,
+      details: {
+        paymentOperation: spendPaymentOperationClientSummary(freshPrepare),
+      },
+    };
+  }
+
+  preparedOp = claimedPrepare;
+
+  let railConfirm: Awaited<
+    ReturnType<(typeof spendPaymentRail)['confirmPayment']>
+  >;
+  try {
+    railConfirm = await spendPaymentRail.confirmPayment({
+      spendSessionId: session.id,
+      spendExperienceId: spendExperience.id,
+      sessionOwnerPrivyUserId: authUserId,
+      railUserWalletAddress: session.rail_user_wallet_address,
+      usdcAmount: snap.usdc_amount,
+    });
+  } catch (err) {
+    const nowIso = new Date().toISOString();
+    const reason =
+      err instanceof Error
+        ? err.message.slice(0, 500)
+        : 'payment_submit_exception';
+    await patchSpendPaymentPrepare(preparedOp.id, {
+      status: 'failed',
+      lastFailureReason: `payment_submit_exception:${reason}`,
+      lastFailureAt: nowIso,
+      lastAmbiguityMetadata: null,
+    });
+    trackSpendPaymentFailed(distinctId, {
+      ...stellarAnalyticsBase,
+      status: 'failed',
+      error_reason: 'payment_submit_exception',
+      ...spendPilotSanitizedRailErrorFields(spendRailErrorPaymentFailed()),
+    });
+    const opAfter = await getSpendPaymentPrepareBySessionId(session.id);
+    return {
+      ok: false,
+      error:
+        'Payment submission failed unexpectedly. Refresh this page to prepare your payment again, then retry.',
+      httpStatus: 500,
+      details: opAfter
+        ? { paymentOperation: spendPaymentOperationClientSummary(opAfter) }
+        : undefined,
+    };
+  }
 
   if (!railConfirm.ok) {
+    const nowIso = new Date().toISOString();
+    await patchSpendPaymentPrepare(preparedOp.id, {
+      status: 'failed',
+      lastFailureReason: 'payment_submit_rejected',
+      lastFailureAt: nowIso,
+      lastAmbiguityMetadata: null,
+    });
     trackSpendPaymentFailed(distinctId, {
       ...stellarAnalyticsBase,
       status: 'failed',
       error_reason: 'payment_submit_rejected',
       ...spendPilotSanitizedRailErrorFields(railConfirm.error),
     });
+    const opAfter = await getSpendPaymentPrepareBySessionId(session.id);
     return {
       ok: false,
       error: railConfirm.error.userMessage,
       httpStatus: 400,
       details: {
-        paymentOperation: spendPaymentOperationClientSummary(preparedOp),
+        paymentOperation: opAfter
+          ? spendPaymentOperationClientSummary(opAfter)
+          : spendPaymentOperationClientSummary(preparedOp),
       },
     };
   }
@@ -509,6 +622,13 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
   const outcome = railConfirm.value;
   const ledgerRef = outcome.ledgerTxReference?.trim() ?? '';
   if (!ledgerRef || !isStellarTransactionHash(ledgerRef)) {
+    const nowIso = new Date().toISOString();
+    await patchSpendPaymentPrepare(preparedOp.id, {
+      status: 'failed',
+      lastFailureReason: 'payment_submit_missing_ledger_ref',
+      lastFailureAt: nowIso,
+      lastAmbiguityMetadata: null,
+    });
     trackSpendPaymentFailed(distinctId, {
       ...stellarAnalyticsBase,
       ...(spendTx ? { spend_transaction_id: spendTx.id } : {}),
@@ -524,6 +644,13 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
   }
 
   if (outcome.status !== 'submitted') {
+    const nowIso = new Date().toISOString();
+    await patchSpendPaymentPrepare(preparedOp.id, {
+      status: 'failed',
+      lastFailureReason: 'payment_submit_unexpected_state',
+      lastFailureAt: nowIso,
+      lastAmbiguityMetadata: null,
+    });
     trackSpendPaymentFailed(distinctId, {
       ...stellarAnalyticsBase,
       ...(spendTx ? { spend_transaction_id: spendTx.id } : {}),
@@ -908,8 +1035,10 @@ export async function runSpendPaymentConfirm(input: {
   }
 
   if (spendTx?.status === 'confirmed') {
-    const fresh = await getSpendSessionById(session.id);
-    const prepOp = await getSpendPaymentPrepareBySessionId(session.id);
+    const [fresh, prepOp] = await Promise.all([
+      getSpendSessionById(session.id),
+      getSpendPaymentPrepareBySessionId(session.id),
+    ]);
     return {
       ok: true,
       spendTransaction: spendTx,
@@ -1142,11 +1271,14 @@ export async function reconcileSubmittedSpendPaymentBackground(input: {
   distinctId: string;
 }): Promise<'advanced' | 'unchanged'> {
   const { session, spendExperience, distinctId } = input;
-  const [preparedOp, spendTx, fundedConversion] = await Promise.all([
+  const load = await Promise.all([
     getSpendPaymentPrepareBySessionId(session.id),
     getSpendTransactionBySessionId(session.id),
     getPointConversionBySessionId(session.id),
   ]);
+  let preparedOp = load[0];
+  const spendTx = load[1];
+  const fundedConversion = load[2];
 
   if (!preparedOp) {
     return 'unchanged';
@@ -1210,6 +1342,26 @@ export async function reconcileSubmittedSpendPaymentBackground(input: {
       point_conversion_id: fundedConversion?.id,
       payment_tx_hash: spendTx?.payment_tx_hash ?? '',
     };
+
+    if (preparedOp.status === 'submitting') {
+      if (
+        spendTx?.status === 'submitted' &&
+        spendTx.payment_tx_hash &&
+        isStellarTransactionHash(spendTx.payment_tx_hash)
+      ) {
+        await patchSpendPaymentPrepare(preparedOp.id, { status: 'submitted' });
+        preparedOp = { ...preparedOp, status: 'submitted' };
+      } else {
+        const staleNow = new Date().toISOString();
+        await patchSpendPaymentPrepare(preparedOp.id, {
+          status: 'prepared',
+          lastFailureReason: 'payment_submit_stale_interrupt',
+          lastFailureAt: staleNow,
+          lastAmbiguityMetadata: null,
+        });
+        return 'advanced';
+      }
+    }
 
     if (
       spendTx?.status === 'submitted' &&
