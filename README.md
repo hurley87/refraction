@@ -24,6 +24,10 @@ cp .env.local.example .env.local   # then fill in credentials
 yarn dev                            # http://localhost:3000
 ```
 
+## Production operations
+
+For **v1 launch configuration** (Vercel + Supabase, env names, crons, and log checks), see [`docs/v1-launch-config-and-runbook.md`](docs/v1-launch-config-and-runbook.md).
+
 ## Environment variables
 
 Create `.env.local` from `.env.local.example`. Required variables:
@@ -40,9 +44,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
 
 # Analytics
-NEXT_PUBLIC_MIXPANEL_TOKEN=   # client-side project token
-MIXPANEL_TOKEN=               # server-side (falls back to NEXT_PUBLIC_MIXPANEL_TOKEN)
-MIXPANEL_SECRET=              # optional, for enhanced API security
+NEXT_PUBLIC_MIXPANEL_TOKEN=   # Mixpanel project token (client + default server token)
+MIXPANEL_SECRET=              # optional: project API secret for server SDK (see lib/analytics/server.ts)
+MIXPANEL_TOKEN=               # optional: override server token only (else NEXT_PUBLIC_MIXPANEL_TOKEN)
 
 # Blockchain
 SERVER_WALLET_PRIVATE_KEY=
@@ -184,4 +188,4 @@ Response shape: `{ success: boolean; data?: T; error?: string; message?: string 
 2. Commit with clear messages: `fix: handle edge case in login form`
 3. Open a PR targeting `main`; ensure lint and tests pass
 
-See `docs/APP_OVERVIEW.md` for product context, funnel definitions, and data source rules.
+See [APP_OVERVIEW.md](docs/APP_OVERVIEW.md) for product context, funnel definitions, and data source rules.
