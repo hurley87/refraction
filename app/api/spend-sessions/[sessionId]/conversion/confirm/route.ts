@@ -7,6 +7,7 @@ import { apiError, apiSuccess, apiValidationError } from '@/lib/api/response';
 import { captureHandledException } from '@/lib/monitoring/capture-handled-exception';
 import { resolveServerIdentity } from '@/lib/analytics/server';
 import { getSpendWalletReadinessBySessionId } from '@/lib/db/spend-wallet-readiness';
+import { toSpendWalletReadinessClientDto } from '@/lib/spend/spend-wallet-readiness-client-dto';
 import {
   getSpendContextOr404,
   runSpendConversionConfirm,
@@ -105,10 +106,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return apiError(result.error, result.httpStatus);
     }
 
-    const walletReadiness =
+    const walletReadinessRow =
       spendExperience.spend_rail === 'stellar_usdc'
         ? await getSpendWalletReadinessBySessionId(session.id)
         : null;
+    const walletReadiness = walletReadinessRow
+      ? toSpendWalletReadinessClientDto(walletReadinessRow)
+      : null;
 
     return apiSuccess({
       pointConversion: result.pointConversion,

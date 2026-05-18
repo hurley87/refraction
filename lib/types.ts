@@ -472,6 +472,21 @@ export type SpendWalletReadinessOperation = {
   updated_at: string;
 };
 
+/** Client-safe wallet readiness snapshot (conversion confirm / Stellar); excludes server diagnostics. */
+export type SpendWalletReadinessClientDto = {
+  id: string;
+  status: SpendWalletReadinessStatus;
+  rail_user_wallet_address: string | null;
+  sanitized_error_category: string | null;
+  sanitized_error_code: string | null;
+  /** From persisted `step_metadata.current_step` when it is a non-empty string. */
+  current_step: string | null;
+  sponsor_treasury_transaction_id: string | null;
+  trustline_treasury_transaction_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 /**
  * `spend_payment_prepare_operations.status` — aligned with `SpendRailPaymentOperationStatus`
  * (IRL-28).
