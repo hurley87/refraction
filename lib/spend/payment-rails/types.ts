@@ -29,6 +29,7 @@ export type SpendRailFundingOperationStatus =
  */
 export type SpendRailPaymentOperationStatus =
   | 'prepared'
+  | 'submitting'
   | 'submitted'
   | 'confirmed'
   | 'failed'

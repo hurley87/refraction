@@ -190,6 +190,31 @@ export type PatchSpendPaymentPrepareInput = {
   lastAmbiguityMetadata?: Record<string, unknown> | null;
 };
 
+/**
+ * Atomically claims a `prepared` row for Stellar backend submit (`prepared` → `submitting`).
+ * Returns the updated row when this request won the race; otherwise `null`.
+ */
+export async function tryClaimSpendPaymentPrepareForStellarSubmit(
+  prepareOperationId: string
+): Promise<SpendPaymentPrepareOperation | null> {
+  const { data, error } = await supabase
+    .from('spend_payment_prepare_operations')
+    .update({ status: 'submitting' })
+    .eq('id', prepareOperationId)
+    .eq('status', 'prepared')
+    .select(SPEND_PAYMENT_PREPARE_COLS)
+    .maybeSingle();
+
+  if (error) {
+    console.error('tryClaimSpendPaymentPrepareForStellarSubmit:', error);
+    throw new Error(
+      error.message || 'Failed to claim payment prepare for Stellar submit'
+    );
+  }
+  if (!data) return null;
+  return rowToSpendPaymentPrepareOperation(data as Record<string, unknown>);
+}
+
 export async function patchSpendPaymentPrepare(
   id: string,
   patch: PatchSpendPaymentPrepareInput
@@ -278,7 +303,7 @@ export async function listSpendSessionIdsForStalePaymentPrepareReconcile(input: 
   const { data, error } = await supabase
     .from('spend_payment_prepare_operations')
     .select('spend_session_id')
-    .in('status', ['submitted', 'prepared'])
+    .in('status', ['submitted', 'prepared', 'submitting'])
     .lt('updated_at', input.olderThanIso)
     .order('updated_at', { ascending: true })
     .limit(input.limit);

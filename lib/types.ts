@@ -478,6 +478,7 @@ export type SpendWalletReadinessOperation = {
  */
 export type SpendPaymentPrepareOperationStatus =
   | 'prepared'
+  | 'submitting'
   | 'submitted'
   | 'confirmed'
   | 'failed'
