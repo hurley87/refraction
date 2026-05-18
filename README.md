@@ -44,8 +44,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
 
 # Analytics
-NEXT_PUBLIC_MIXPANEL_TOKEN=   # client-side project token (also default server token)
-MIXPANEL_SECRET=              # server-side project secret (recommended for server Mixpanel API)
+NEXT_PUBLIC_MIXPANEL_TOKEN=   # Mixpanel project token (client + default server token)
+MIXPANEL_SECRET=              # optional: project API secret for server SDK (see lib/analytics/server.ts)
 MIXPANEL_TOKEN=               # optional: override server token only (else NEXT_PUBLIC_MIXPANEL_TOKEN)
 
 # Blockchain
@@ -188,4 +188,4 @@ Response shape: `{ success: boolean; data?: T; error?: string; message?: string 
 2. Commit with clear messages: `fix: handle edge case in login form`
 3. Open a PR targeting `main`; ensure lint and tests pass
 
-See `docs/APP_OVERVIEW.md` for product context, funnel definitions, and data source rules. See `docs/v1-launch-config-and-runbook.md` for production config and operations on Vercel and Supabase.
+See [APP_OVERVIEW.md](docs/APP_OVERVIEW.md) for product context, funnel definitions, and data source rules.

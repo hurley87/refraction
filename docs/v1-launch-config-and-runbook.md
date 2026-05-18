@@ -4,14 +4,14 @@ This document describes **production configuration** for the IRL **web applicati
 
 **Secrets policy:** Never copy real API keys, tokens, or private keys into Linear, GitHub issues, or chat. In Vercel and local `.env.local`, store values only as **environment variables**. This document names variables and files; it does not contain production values.
 
-**Canonical env list:** See [`.env.local.example`](../.env.local.example) in the repository for every variable, defaults, and inline comments.
+**Primary env reference:** See [`.env.local.example`](../.env.local.example) for variable names, defaults, and inline comments.
 
 ---
 
 ## Quick path (operators)
 
 1. **Configuration** lives in the [Vercel](https://vercel.com) project → **Settings → Environment Variables** (per environment: Production / Preview / Development).
-2. **Deployments** → **Deployments** tab: confirm the latest production deployment is **Ready** and matches the intended Git branch or commit.
+2. **Deployments** tab: confirm the latest production deployment is **Ready** and matches the intended Git branch or commit.
 3. **When something looks wrong**, the on-call engineer checks:
    - **Vercel:** Project → **Logs** (or **Runtime Logs**) for the production deployment and for **Cron** executions if applicable.
    - **Supabase:** Project → **Logs** (API, Postgres, Auth, Edge as relevant) for errors tied to the same time window.
@@ -63,12 +63,12 @@ Operational verification in production is normally done in the **Vercel dashboar
 
 [`vercel.json`](../vercel.json) defines:
 
-| Path                             | Schedule (UTC)             | Notes                                                                                                                                                                                                                                        |
-| -------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/update-airtable`           | `0 0 * * *` (daily)        | Scheduled in this repo. **Confirm in the deployed app** that this route exists and behaves as expected; if the handler is missing, cron requests may return **404** until the route is implemented or the cron entry is removed.             |
-| `/api/cron/spend-rail-reconcile` | `* * * * *` (every minute) | **Requires** `CRON_SECRET` in Vercel. Vercel sends `Authorization: Bearer <CRON_SECRET>` when the secret is configured on the cron job per Vercel’s behavior. Without `CRON_SECRET`, the handler returns **500** (“Cron is not configured”). |
+| Path                             | Schedule (UTC)             | Notes                                                                                                                                                                                                                                                                          |
+| -------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/api/update-airtable`           | `0 0 * * *` (daily)        | Scheduled in this repo. **Confirm in the deployed app** that this route exists and behaves as expected; if the handler is missing, cron requests may return **404** until the route is implemented or the cron entry is removed.                                               |
+| `/api/cron/spend-rail-reconcile` | `* * * * *` (every minute) | **Requires** `CRON_SECRET` in Vercel. Cron requests use `Authorization: Bearer <CRON_SECRET>` when that secret is configured on the job (confirm in the Vercel cron / env UI for your project). Without `CRON_SECRET`, the handler returns **500** (“Cron is not configured”). |
 
-Optional tuning for spend reconcile cron (see `.env.local.example`): `SPEND_RAIL_CRON_MIN_AGE_SECONDS`, `SPEND_RAIL_CRON_BACKOFF_SECONDS`, `SPEND_RAIL_CRON_BATCH_SIZE`.
+Optional tuning for spend reconcile cron (see `.env.local.example`): `SPEND_RAIL_CRON_MIN_AGE_SECONDS`, `SPEND_RAIL_CRON_BACKOFF_SECONDS`, `SPEND_RAIL_CRON_BATCH_SIZE`. Because this job can run every minute, watch for overlapping runs if a single invocation exceeds one minute, and tune batch/backoff envs if logs show sustained DB or RPC pressure.
 
 ---
 
@@ -137,10 +137,4 @@ Spend availability depends on env-backed **rail enablement** and validation in c
 - [`APP_OVERVIEW.md`](./APP_OVERVIEW.md) — product flows and data source rules
 - [`spend-rails-e2e-qa-matrix.md`](./spend-rails-e2e-qa-matrix.md) — spend rail QA
 - [`stellar-baselines-and-chain-architecture.md`](./stellar-baselines-and-chain-architecture.md) — Stellar architecture context
-- [`AGENTS.md`](../AGENTS.md) — contributor commands (local **Yarn** workflow; Vercel `vercel.json` may use `npm` for install/build—see file if you align them)
-
----
-
-## Open questions (operational)
-
-None tracked in-repo. If the `/api/update-airtable` cron is still required, confirm the implementation is deployed or adjust `vercel.json` accordingly.
+- [`AGENTS.md`](../AGENTS.md) — contributor commands (local **Yarn** per `AGENTS.md`; production builds use `npm install` / `npm run build` from [`vercel.json`](../vercel.json))
