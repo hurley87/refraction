@@ -7,6 +7,12 @@ const mockGetSpendContext = vi.fn();
 const mockRunConfirm = vi.fn();
 const mockResolve = vi.fn();
 const mockCaptureHandledException = vi.fn();
+const mockGetSpendWalletReadinessBySessionId = vi.fn();
+
+vi.mock('@/lib/db/spend-wallet-readiness', () => ({
+  getSpendWalletReadinessBySessionId: (...a: unknown[]) =>
+    mockGetSpendWalletReadinessBySessionId(...a),
+}));
 
 vi.mock('@/lib/api/privy', () => ({
   getPrivyUserIdFromRequest: (...a: unknown[]) => mockGetPrivyUserId(...a),
@@ -194,6 +200,113 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/confirm', () => {
         statusCode: 400,
       })
     );
+  });
+
+  it('Stellar success returns client-safe walletReadiness without internal_diagnostics', async () => {
+    const stellarSession = {
+      ...session,
+      spend_rail: 'stellar_usdc' as const,
+    };
+    const stellarExperience = {
+      ...spendExperience,
+      spend_rail: 'stellar_usdc' as const,
+    };
+
+    mockVerifyWallet.mockResolvedValue({
+      authorized: true,
+      userId: 'privy-1',
+    });
+    mockGetPrivyUserId.mockResolvedValue('privy-1');
+    mockGetSpendContext.mockResolvedValue({
+      session: stellarSession,
+      spendExperience: stellarExperience,
+      usdcAmount: 5,
+      pointsRequired: 5000,
+    });
+    mockResolve.mockReturnValue('distinct-1');
+    mockRunConfirm.mockResolvedValue({
+      ok: true,
+      pointConversion: {
+        id: 'conv-1',
+        spend_experience_id: stellarExperience.id,
+        spend_session_id: stellarSession.id,
+        user_id: 'privy-1',
+        points_deducted: 5000,
+        usdc_amount: 5,
+        status: 'funded',
+        spend_rail: 'stellar_usdc',
+        network: 'Stellar',
+        asset_symbol: 'USDC',
+        treasury_wallet_address: stellarExperience.treasury_wallet_address,
+        user_wallet_address: stellarSession.wallet_address,
+        funding_tx_hash: 'abc',
+        explorer_tx_url: null,
+        idempotency_key: null,
+        conversion_attempt_count: 1,
+        conversion_last_failure: null,
+        created_at: '2026-01-01T00:00:00.000Z',
+        completed_at: '2026-01-01T00:00:01.000Z',
+        failed_reason: null,
+        updated_at: '2026-01-01T00:00:01.000Z',
+      },
+      session: { ...stellarSession, status: 'conversion_complete' as const },
+      resumed: false,
+      clientHint: 'funded',
+    });
+
+    mockGetSpendWalletReadinessBySessionId.mockResolvedValue({
+      id: 'wro-1',
+      spend_session_id: stellarSession.id,
+      user_id: 'privy-1',
+      spend_rail: 'stellar_usdc',
+      rail_user_wallet_address:
+        'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+      status: 'pending',
+      step_metadata: {
+        current_step: 'trustline_confirming',
+        server_only_field: 'must-not-leak',
+      },
+      sanitized_error_category: null,
+      sanitized_error_code: null,
+      internal_diagnostics: { horizon_body: 'secret' },
+      idempotency_key: `wallet_readiness:${stellarSession.id}`,
+      sponsor_treasury_transaction_id: 'sp-1',
+      trustline_treasury_transaction_id: 'tl-1',
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
+
+    const req = new NextRequest(
+      'http://localhost:3000/api/spend-sessions/sess-1/conversion/confirm',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          walletAddress: stellarSession.wallet_address,
+        }),
+      }
+    );
+    const res = await POST(req, { params: { sessionId: 'sess-1' } });
+    expect(res.status).toBe(200);
+
+    const json = (await res.json()) as {
+      success: boolean;
+      data: {
+        walletReadiness: Record<string, unknown>;
+      };
+    };
+    const raw = JSON.stringify(json);
+    expect(raw).not.toContain('internal_diagnostics');
+    expect(raw).not.toContain('horizon_body');
+    expect(raw).not.toContain('server_only_field');
+    expect(raw).not.toContain('step_metadata');
+
+    expect(json.success).toBe(true);
+    const wr = json.data.walletReadiness;
+    expect(wr).toBeDefined();
+    expect(wr).not.toHaveProperty('internal_diagnostics');
+    expect(wr).not.toHaveProperty('step_metadata');
+    expect(wr.current_step).toBe('trustline_confirming');
+    expect(wr.id).toBe('wro-1');
   });
 
   it('forwards retry_conversion intent to domain logic', async () => {
