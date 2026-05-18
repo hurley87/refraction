@@ -57,4 +57,13 @@ describe('toSpendWalletReadinessClientDto', () => {
       }).current_step
     ).toBeNull();
   });
+
+  it('trims whitespace from current_step', () => {
+    expect(
+      toSpendWalletReadinessClientDto({
+        ...baseOp,
+        step_metadata: { current_step: '  trustline_confirming  ' },
+      }).current_step
+    ).toBe('trustline_confirming');
+  });
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import type { SpendWalletReadinessClientDto } from '@/lib/types';
 
 const mockVerifyWallet = vi.fn();
 const mockGetPrivyUserId = vi.fn();
@@ -290,23 +291,22 @@ describe('POST /api/spend-sessions/[sessionId]/conversion/confirm', () => {
 
     const json = (await res.json()) as {
       success: boolean;
-      data: {
-        walletReadiness: Record<string, unknown>;
-      };
+      data: { walletReadiness: SpendWalletReadinessClientDto };
     };
-    const raw = JSON.stringify(json);
-    expect(raw).not.toContain('internal_diagnostics');
-    expect(raw).not.toContain('horizon_body');
-    expect(raw).not.toContain('server_only_field');
-    expect(raw).not.toContain('step_metadata');
-
     expect(json.success).toBe(true);
-    const wr = json.data.walletReadiness;
-    expect(wr).toBeDefined();
-    expect(wr).not.toHaveProperty('internal_diagnostics');
-    expect(wr).not.toHaveProperty('step_metadata');
-    expect(wr.current_step).toBe('trustline_confirming');
-    expect(wr.id).toBe('wro-1');
+    expect(json.data.walletReadiness).toEqual({
+      id: 'wro-1',
+      status: 'pending',
+      rail_user_wallet_address:
+        'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+      sanitized_error_category: null,
+      sanitized_error_code: null,
+      current_step: 'trustline_confirming',
+      sponsor_treasury_transaction_id: 'sp-1',
+      trustline_treasury_transaction_id: 'tl-1',
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    } satisfies SpendWalletReadinessClientDto);
   });
 
   it('forwards retry_conversion intent to domain logic', async () => {
