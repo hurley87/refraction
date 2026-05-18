@@ -430,12 +430,14 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
   };
 
   // Resume: already submitted on-chain; verify only (no second Privy submit).
+  const initialResumeLedger = spendTx?.payment_tx_hash?.trim();
   if (
     spendTx?.status === 'submitted' &&
     preparedOp.status === 'submitted' &&
-    isStellarTransactionHash(spendTx.payment_tx_hash)
+    initialResumeLedger &&
+    isStellarTransactionHash(initialResumeLedger)
   ) {
-    const ledgerHash = spendTx.payment_tx_hash!.trim().toLowerCase();
+    const ledgerHash = initialResumeLedger.toLowerCase();
     const verify = await verifySpendStellarUsdcPaymentTx({
       txHash: ledgerHash,
       expectedFrom: snap.from_wallet,
@@ -469,8 +471,10 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
   }
 
   if (spendTx?.status === 'confirmed') {
-    const fresh = await getSpendSessionById(session.id);
-    const prepOp = await getSpendPaymentPrepareBySessionId(session.id);
+    const [fresh, prepOp] = await Promise.all([
+      getSpendSessionById(session.id),
+      getSpendPaymentPrepareBySessionId(session.id),
+    ]);
     return {
       ok: true,
       spendTransaction: spendTx,
@@ -502,10 +506,12 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
       };
     }
 
+    const loserResumeLedger = freshSpendTx?.payment_tx_hash?.trim();
     if (
       freshPrepare.status === 'submitted' &&
       freshSpendTx?.status === 'submitted' &&
-      isStellarTransactionHash(freshSpendTx.payment_tx_hash)
+      loserResumeLedger &&
+      isStellarTransactionHash(loserResumeLedger)
     ) {
       const resumeSnap = freshPrepare.verification_snapshot;
       if (!isSpendStellarUsdcVerificationSnapshotV1(resumeSnap)) {
@@ -518,7 +524,7 @@ async function runSpendPaymentConfirmStellarUsdc(input: {
           },
         };
       }
-      const ledgerHash = freshSpendTx.payment_tx_hash!.trim().toLowerCase();
+      const ledgerHash = loserResumeLedger.toLowerCase();
       const verify = await verifySpendStellarUsdcPaymentTx({
         txHash: ledgerHash,
         expectedFrom: resumeSnap.from_wallet,
@@ -1029,8 +1035,10 @@ export async function runSpendPaymentConfirm(input: {
   }
 
   if (spendTx?.status === 'confirmed') {
-    const fresh = await getSpendSessionById(session.id);
-    const prepOp = await getSpendPaymentPrepareBySessionId(session.id);
+    const [fresh, prepOp] = await Promise.all([
+      getSpendSessionById(session.id),
+      getSpendPaymentPrepareBySessionId(session.id),
+    ]);
     return {
       ok: true,
       spendTransaction: spendTx,

@@ -655,6 +655,8 @@ describe('runSpendPaymentConfirm', () => {
       return livePrepare;
     });
 
+    // Serialize tryClaim so concurrent confirms hit the mock like a single DB winner
+    // (only one call returns the claimed row; others see null then resume or 409).
     let tryClaimChain = Promise.resolve();
     const enqueueTryClaim = <T>(fn: () => Promise<T>): Promise<T> => {
       const next = tryClaimChain.then(fn);
