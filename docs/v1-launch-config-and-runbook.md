@@ -137,4 +137,4 @@ Spend availability depends on env-backed **rail enablement** and validation in c
 - [`APP_OVERVIEW.md`](./APP_OVERVIEW.md) — product flows and data source rules
 - [`spend-rails-e2e-qa-matrix.md`](./spend-rails-e2e-qa-matrix.md) — spend rail QA
 - [`stellar-baselines-and-chain-architecture.md`](./stellar-baselines-and-chain-architecture.md) — Stellar architecture context
-- [`AGENTS.md`](../AGENTS.md) — contributor commands (local **Yarn** per `AGENTS.md`; production builds use `npm install` / `npm run build` from [`vercel.json`](../vercel.json))
+- [`AGENTS.md`](../AGENTS.md) — contributor commands (local **Yarn** per `AGENTS.md`; Vercel install and build commands are declared in [`vercel.json`](../vercel.json) and follow the same Yarn 1 workflow as the repo)
