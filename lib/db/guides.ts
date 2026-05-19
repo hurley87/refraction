@@ -122,6 +122,7 @@ export type GuideHubListItem = {
   imageSrc: string;
   imageAlt: string;
   readHref: string;
+  authors: string[];
 };
 
 export type GuideFeaturedPayload = {
@@ -156,7 +157,65 @@ function normalizeTitleHighlightWords(
   return (words ?? []).map((w) => w.trim()).filter(Boolean);
 }
 
-function toHubListItem(row: GuideRow): GuideHubListItem {
+function resolveHubAuthors(
+  row: GuideRow,
+  contributorNamesByGuideId: Map<string, string[]>
+): string[] {
+  const fromFeatured = row.featured_people?.filter((p) => p.trim()) ?? [];
+  if (fromFeatured.length > 0) return fromFeatured;
+  return contributorNamesByGuideId.get(row.id) ?? [];
+}
+
+async function fetchContributorNamesByGuideIds(
+  guideIds: string[]
+): Promise<Map<string, string[]>> {
+  const uniqueIds = [...new Set(guideIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from('guide_contributors')
+    .select('guide_id, name, position')
+    .in('guide_id', uniqueIds)
+    .order('position', { ascending: true });
+
+  if (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[guides] fetchContributorNamesByGuideIds:', error.message);
+    }
+    return new Map();
+  }
+
+  const byGuide = new Map<string, string[]>();
+  for (const row of data ?? []) {
+    const name = row.name?.trim();
+    if (!name) continue;
+    const list = byGuide.get(row.guide_id) ?? [];
+    list.push(name);
+    byGuide.set(row.guide_id, list);
+  }
+  return byGuide;
+}
+
+async function contributorMapForRowsMissingFeaturedPeople(
+  rows: GuideRow[]
+): Promise<Map<string, string[]>> {
+  const guideIds = rows
+    .filter((row) => !row.featured_people?.some((person) => person.trim()))
+    .map((row) => row.id);
+  const mapOrTimeout = await withQueryTimeout(
+    fetchContributorNamesByGuideIds(guideIds)
+  );
+  if (mapOrTimeout === GUIDE_QUERY_TIMEOUT) {
+    logTimeout('fetchContributorNamesByGuideIds');
+    return new Map();
+  }
+  return mapOrTimeout ?? new Map();
+}
+
+function toHubListItem(
+  row: GuideRow,
+  contributorNamesByGuideId: Map<string, string[]> = new Map()
+): GuideHubListItem {
   const published =
     row.published_at ??
     row.updated_at ??
@@ -176,12 +235,15 @@ function toHubListItem(row: GuideRow): GuideHubListItem {
     imageSrc: row.card_image_url?.trim() || row.hero_image_url || '',
     imageAlt: row.card_image_alt?.trim() || row.hero_image_alt || '',
     readHref: readHrefFor(row),
+    authors: resolveHubAuthors(row, contributorNamesByGuideId),
   };
 }
 
-function toFeaturedPayload(row: GuideRow): GuideFeaturedPayload {
+function toFeaturedPayload(
+  row: GuideRow,
+  contributorNamesByGuideId: Map<string, string[]> = new Map()
+): GuideFeaturedPayload {
   const titleLine1 = featuredTitleLine(row);
-  const people = row.featured_people?.filter((p) => p.trim()) ?? [];
   return {
     id: row.id,
     slug: row.slug,
@@ -191,7 +253,7 @@ function toFeaturedPayload(row: GuideRow): GuideFeaturedPayload {
     titleHighlightWords: normalizeTitleHighlightWords(
       row.title_highlight_words
     ),
-    featuredPeople: people,
+    featuredPeople: resolveHubAuthors(row, contributorNamesByGuideId),
     heroImageSrc: row.hero_image_url || '',
     heroImageAlt: row.hero_image_alt || '',
     readHref: readHrefFor(row),
@@ -311,7 +373,9 @@ export async function getPublishedGuides(options?: {
   if (options?.excludeId) {
     rows = rows.filter((r) => r.id !== options.excludeId);
   }
-  return rows.map(toHubListItem);
+  const contributorNamesByGuideId =
+    await contributorMapForRowsMissingFeaturedPeople(rows);
+  return rows.map((row) => toHubListItem(row, contributorNamesByGuideId));
 }
 
 /**
@@ -328,7 +392,9 @@ export async function getFeaturedGuide(): Promise<GuideFeaturedPayload | null> {
     return null;
   }
   if (featuredOrTimeout) {
-    return toFeaturedPayload(featuredOrTimeout);
+    const contributorNamesByGuideId =
+      await contributorMapForRowsMissingFeaturedPeople([featuredOrTimeout]);
+    return toFeaturedPayload(featuredOrTimeout, contributorNamesByGuideId);
   }
 
   const newestOrTimeout = await withQueryTimeout(
@@ -339,7 +405,9 @@ export async function getFeaturedGuide(): Promise<GuideFeaturedPayload | null> {
     return null;
   }
   if (!newestOrTimeout) return null;
-  return toFeaturedPayload(newestOrTimeout);
+  const contributorNamesByGuideId =
+    await contributorMapForRowsMissingFeaturedPeople([newestOrTimeout]);
+  return toFeaturedPayload(newestOrTimeout, contributorNamesByGuideId);
 }
 
 async function fetchContributorsForGuide(

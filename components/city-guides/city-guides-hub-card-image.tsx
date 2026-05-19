@@ -17,11 +17,10 @@ export interface CityGuidesHubCardImageProps {
 }
 
 /**
- * Non-featured hub list cards: 361×360.08 frame (matches featured scale), 8px top and
- * ~7.35px side inset, image fills the slot with `object-cover` (no side letterboxing).
+ * Non-featured hub list cards: 361×360.08 frame; image fills the slot with `object-cover`.
  */
 const shellClass =
-  'mx-auto box-border flex w-full max-w-[361px] flex-col items-stretch justify-center aspect-[361/360.08] px-[7.349px] pt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2';
+  'box-border flex w-full flex-col items-stretch justify-center aspect-[361/360.08] focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400 focus-visible:ring-offset-2';
 
 export function CityGuidesHubCardImage({
   src,

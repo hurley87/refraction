@@ -1,7 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import MapNav from '@/components/map/mapnav';
 import { cn } from '@/lib/utils';
+import { CityGuideArticleMetaRow } from '@/components/city-guides/city-guide-article-meta-row';
+import { EditorialArticleMetaRow } from '@/components/city-guides/editorial-article-meta-row';
 import { GuideArticleHighlightedTitle } from '@/components/city-guides/guide-article-highlighted-title';
 
 export type GuideKind = 'city-guide' | 'editorial';
@@ -28,9 +29,8 @@ export function defaultReadLabel(kind: GuideKind): string {
 }
 
 /**
- * Featured editorial / city guide — square hero (max `393px` wide, same hub column as
- * list rail) with image under `MapNav`; summary uses the 361px hub rail; list cards
- * use `city-guides-hub-card-image`.
+ * Featured editorial / city guide — full-bleed square hero on mobile; 393px column on
+ * desktop. Summary and list use 16px gutters.
  */
 export default function FeaturedEditorialHeroCard({
   guideKind,
@@ -51,53 +51,28 @@ export default function FeaturedEditorialHeroCard({
       className={cn('w-full overflow-hidden bg-white', className)}
       aria-labelledby="featured-guide-title"
     >
-      <div className="mx-auto w-full max-w-[393px]">
-        <div className="relative aspect-square w-full shrink-0 overflow-hidden">
-          <Link
-            href={readHref}
-            className="absolute inset-0 z-[1] block bg-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400"
-            aria-label={`${resolvedReadLabel}: ${ariaFeaturedTitle}`}
-          >
-            <Image
-              src={heroImageSrc}
-              alt=""
-              fill
-              priority
-              className="object-cover object-center"
-              sizes="(max-width: 393px) 100vw, 393px"
-            />
-          </Link>
-          <MapNav className="absolute top-0 right-0 left-0 z-10 w-full max-w-none min-w-0 bg-transparent px-4 pt-2" />
-        </div>
+      <div className="relative mx-auto aspect-square w-full max-w-none shrink-0 overflow-hidden md:max-w-[393px]">
+        <Link
+          href={readHref}
+          className="absolute inset-0 z-[1] block bg-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400"
+          aria-label={`${resolvedReadLabel}: ${ariaFeaturedTitle}`}
+        >
+          <Image
+            src={heroImageSrc}
+            alt=""
+            fill
+            priority
+            className="object-cover object-center"
+            sizes="(max-width: 767px) 100vw, 393px"
+          />
+        </Link>
       </div>
 
-      <div className="mx-auto flex w-full max-w-[393px] justify-center bg-white px-4 pb-10">
+      <div className="mx-auto w-full max-w-[393px] bg-white  pt-4 pb-10">
         <div
-          className="flex w-[361px] max-w-full flex-col gap-2 bg-white p-4"
+          className="flex w-full flex-col gap-2 bg-white"
           aria-label="Featured guide summary"
         >
-          <div
-            className="flex h-5 w-fit min-w-[82px] shrink-0 items-center gap-1 py-0.5 pl-1 pr-2.5"
-            style={{
-              border: '1px solid var(--Borders-Heavy-Border, #454545)',
-            }}
-          >
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="size-3 shrink-0 text-[#171717]"
-              aria-hidden
-            >
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-              <circle cx="12" cy="9" r="2.25" fill="white" />
-            </svg>
-            <span className="min-w-0 flex-1 whitespace-nowrap label-small uppercase leading-none tracking-wide text-[#171717]">
-              {guideKindLabel(guideKind)}
-            </span>
-          </div>
-
           <div id="featured-guide-title">
             <GuideArticleHighlightedTitle
               title={titleLine1}
@@ -107,40 +82,23 @@ export default function FeaturedEditorialHeroCard({
             />
           </div>
 
-          {featuredPeople.length > 0 ? (
-            <>
-              <p className="label-small uppercase tracking-wide text-[#757575]">
-                Featuring
-              </p>
-              <ul className="flex min-h-0 flex-1 list-none flex-row flex-wrap content-start items-center gap-2">
-                {featuredPeople.map((name, index) => (
-                  <li
-                    key={`${name}-${index}`}
-                    className="flex h-5 w-fit min-w-0 max-w-full shrink-0 items-center gap-1 py-0.5 pl-1 pr-1"
-                    style={{
-                      border: '1px solid var(--Borders-Heavy-Border, #454545)',
-                    }}
-                  >
-                    <Image
-                      src="/city-guides/user-icon.svg"
-                      alt=""
-                      width={12}
-                      height={12}
-                      className="size-3 shrink-0"
-                    />
-                    <span className="min-w-0  label-small leading-none text-[#171717]">
-                      {name}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : null}
+          {guideKind === 'editorial' ? (
+            <EditorialArticleMetaRow
+              contributors={featuredPeople}
+              creditLabel="WORDS BY"
+            />
+          ) : (
+            <CityGuideArticleMetaRow
+              guideKind={guideKind}
+              contributors={featuredPeople}
+              creditLabel="WORDS BY"
+            />
+          )}
 
           <div className="shrink-0 pt-1">
             <Link
               href={readHref}
-              className="flex h-8 w-full flex-[1_0_0] items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-2 py-1 transition-colors hover:bg-black"
+              className="flex h-11 w-full flex-[1_0_0] items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-2 py-1 transition-colors hover:bg-black"
             >
               <span className="label-large uppercase text-white">
                 {resolvedReadLabel}

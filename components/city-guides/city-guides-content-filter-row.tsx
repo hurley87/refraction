@@ -9,25 +9,14 @@ export type CityGuidesSortOrder = 'date-desc' | 'date-asc';
 const OPTIONS: { key: CityGuidesContentFilter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'guides', label: 'Guides' },
-  { key: 'editorials', label: 'Editorials' },
+  { key: 'editorials', label: 'Editorial' },
 ];
 
 /** Same paths as `public/filter.svg` (rewards page), stroke for #171717. */
 function FilterIcon() {
   return (
-    <svg
-      width={20}
-      height={20}
-      viewBox="0 0 23 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="pointer-events-none shrink-0"
-      aria-hidden
-    >
-      <path
-        d="M2 7H20M5.78947 12H16.2105M9.57895 17H12.4211"
-        stroke="#171717"
-      />
+    <svg xmlns="http://www.w3.org/2000/svg" width="23" height="24" viewBox="0 0 23 24" fill="none">
+      <path d="M20 8.15416H2V5.51099H20V8.15416ZM17.0463 10.6784H4.95374V13.3216H17.0463V10.6784ZM13.8711 15.8458H8.13216V18.489H13.8711V15.8458Z" fill="#171717"/>
     </svg>
   );
 }
@@ -51,12 +40,12 @@ export default function CityGuidesContentFilterRow({
 }: CityGuidesContentFilterRowProps) {
   return (
     <div
-      className="mx-auto flex h-[52px] w-full max-w-[369px] items-stretch gap-4 border-b border-[#E5E5E5]"
+      className="flex h-[52px] w-full items-stretch gap-4 border-b border-t border-[#E5E5E5]"
       role="region"
       aria-label="Content filter"
     >
       <div
-        className="flex h-[52px] w-[298px] shrink-0 gap-1"
+        className="flex h-[52px] min-w-0 flex-1 gap-1"
         role="group"
         aria-label="Filter by content type"
       >
@@ -76,7 +65,7 @@ export default function CityGuidesContentFilterRow({
                   : 'bg-transparent text-[#757575]'
               )}
             >
-              <span className="truncate">{label}</span>
+              <h4 className="truncate">{label}</h4>
             </button>
           );
         })}
@@ -86,7 +75,7 @@ export default function CityGuidesContentFilterRow({
         type="button"
         onClick={onSortToggle}
         className={cn(
-          'box-border flex h-[52px] w-[55px] shrink-0 items-center justify-center p-4 outline-none transition-colors',
+          'box-border flex h-[52px] w-[55px] shrink-0 items-center justify-center outline-none transition-colors',
           'focus-visible:ring-2 focus-visible:ring-[#171717] focus-visible:ring-offset-2'
         )}
         aria-label={

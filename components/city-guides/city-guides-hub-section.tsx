@@ -85,6 +85,7 @@ export function CityGuidesHubSection({
               imageSrc={item.imageSrc}
               imageAlt={item.imageAlt}
               readHref={item.readHref}
+              authors={item.authors}
               className={index === 0 ? 'border-t-0' : undefined}
             />
           ))
