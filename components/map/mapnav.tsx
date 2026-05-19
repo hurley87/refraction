@@ -19,6 +19,8 @@ interface MapNavProps {
   irlLogoVariant?: 'default' | 'dashboard' | 'light';
   /** Merged onto the nav bar row (e.g. `MAP_NAV_MOBILE_FLUSH_X` when parent supplies horizontal padding). */
   className?: string;
+  /** Merged onto the hamburger menu button (e.g. secondary CTA background on light pages). */
+  menuButtonClassName?: string;
   /** When set, replaces the IRL logo (e.g. city guide article back control). */
   leftSlot?: ReactNode;
 }
@@ -38,6 +40,7 @@ export default function MapNav({
   center,
   irlLogoVariant = 'default',
   className,
+  menuButtonClassName,
   leftSlot,
 }: MapNavProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -108,7 +111,10 @@ export default function MapNav({
         <button
           type="button"
           onClick={handleNavigationMenuClick}
-          className="relative z-10 flex size-[40px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#ffffff] shadow-md transition-colors hover:bg-[#5a5a5a]"
+          className={cn(
+            'relative z-10 flex size-[40px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#ffffff] shadow-md transition-colors hover:bg-[#5a5a5a]',
+            menuButtonClassName
+          )}
         >
           <Image
             src="/menu/HAMBURGER-MENU.svg"

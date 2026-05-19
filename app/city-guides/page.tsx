@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { CityGuidesHubSection } from '@/components/city-guides/city-guides-hub-section';
 import FeaturedEditorialHeroCard from '@/components/city-guides/featured-editorial-hero-card';
+import MapNav, { MAP_NAV_SAFE_AREA_X } from '@/components/map/mapnav';
+import { cn } from '@/lib/utils';
 import { getFeaturedGuide, getPublishedGuides } from '@/lib/db/guides';
 
 export const metadata: Metadata = {
@@ -20,6 +22,15 @@ export default async function CityGuidesHomePage() {
 
   return (
     <main className="min-h-screen w-full bg-[#F5F5F5] font-grotesk">
+      <div className="bg-white pt-4">
+        <div className="mx-auto w-full max-w-[393px] ">
+          <MapNav
+            className={cn(MAP_NAV_SAFE_AREA_X, 'max-w-none')}
+            menuButtonClassName="bg-[#DBDBDB] hover:bg-[#c9c9c9]"
+          />
+        </div>
+      </div>
+
       {featured ? (
         <FeaturedEditorialHeroCard
           guideKind={featured.guideKind}
@@ -41,7 +52,7 @@ export default async function CityGuidesHomePage() {
       {hasPublishedGuides ? (
         featured ? (
           <div className="w-full bg-white">
-            <div className="mx-auto w-full max-w-[393px] px-4 pb-16">
+            <div className="mx-auto w-full max-w-[393px]  pb-16">
               <CityGuidesHubSection entries={listRows} />
             </div>
           </div>

@@ -1,10 +1,10 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GuideArticleHighlightedTitle } from '@/components/city-guides/guide-article-highlighted-title';
 import { CityGuidesHubCardImage } from '@/components/city-guides/city-guides-hub-card-image';
 import {
-  defaultReadLabel,
   guideKindLabel,
   type GuideKind,
 } from '@/components/city-guides/featured-editorial-hero-card';
@@ -17,6 +17,7 @@ export interface CityGuideListCardProps {
   imageSrc: string;
   imageAlt: string;
   readHref: string;
+  authors?: string[];
   titleHighlightWords?: string[] | null;
   className?: string;
 }
@@ -52,15 +53,16 @@ export default function CityGuideListCard({
   imageSrc,
   imageAlt,
   readHref,
+  authors = [],
   titleHighlightWords,
   className,
 }: CityGuideListCardProps) {
-  const readLabel = defaultReadLabel(guideKind);
+  const contributorNames = authors.filter((name) => name.trim());
 
   return (
     <article
       className={cn(
-        'mx-auto flex w-full max-w-[361px] flex-col gap-4 border-t border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFFFFF)] pb-6',
+        'flex w-full flex-col gap-4 border-t border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFFFFF)] py-6',
         className
       )}
     >
@@ -113,7 +115,7 @@ export default function CityGuideListCard({
         highlightWords={titleHighlightWords}
         as="h2"
         className="min-h-8"
-        titleClassName="title1 min-h-8 text-[#171717]"
+        titleClassName="title2 min-h-8 text-[#171717]"
         highlightClassName="box-decoration-clone bg-[#FFE600] px-1 py-0"
       />
 
@@ -121,28 +123,52 @@ export default function CityGuideListCard({
         {preview}
       </p>
 
-      <Link
-        href={readHref}
-        className="flex h-8 w-full flex-[1_0_0] items-center justify-between bg-[#DBDBDB] px-2 py-1 transition-colors hover:bg-[#cfcfcf]"
-      >
-        <span className="label-large uppercase text-[#171717]">
-          {readLabel}
-        </span>
-        <svg
-          width={24}
-          height={24}
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className="size-6 shrink-0"
-          aria-hidden
+      <div className="flex w-full min-h-6 items-center justify-between gap-3">
+        {contributorNames.length > 0 ? (
+          <ul className="flex min-w-0 list-none flex-row flex-wrap items-center gap-2">
+            {contributorNames.map((name, index) => (
+              <li
+                key={`${name}-${index}`}
+                className="flex min-w-0 max-w-full shrink-0 items-center gap-1"
+              >
+                <Image
+                  src="/city-guides/user-icon.svg"
+                  alt=""
+                  width={12}
+                  height={12}
+                  className="size-3 shrink-0"
+                />
+                <span className="min-w-0 label-small leading-none text-[#171717]">
+                  {name}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span className="min-w-0 flex-1" aria-hidden />
+        )}
+
+        <Link
+          href={readHref}
+          className="flex shrink-0 items-center gap-1 label-medium uppercase text-[#171717] transition-opacity hover:opacity-70 border-b border-[var(--Borders-Light-Border,#171717)] pb-px"
         >
-          <path
-            d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
-            fill="#171717"
-          />
-        </svg>
-      </Link>
+          READ MORE
+          <svg
+            width={24}
+            height={24}
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="size-6 shrink-0"
+            aria-hidden
+          >
+            <path
+              d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+              fill="#171717"
+            />
+          </svg>
+        </Link>
+      </div>
     </article>
   );
 }
