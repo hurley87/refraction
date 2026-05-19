@@ -49,23 +49,22 @@ type DateSortOrder = 'asc' | 'desc';
 
 const SECTION_TITLE_CLASS = 'text-black body-small font-monument-grotesk';
 
-const RESIDENT_ADVISOR_LOGO_PATH =
-  '/partner_logos/Resident Advisor white logo.svg';
+const REGISTER_ARROW_PATH = '/right-arrow.svg';
 
-/** 24×24px circle, white fill — RA mark sits inside. */
-const RESIDENT_ADVISOR_LOGO_CIRCLE_CLASS =
+/** 24×24px circle, white fill — arrow icon sits inside. */
+const REGISTER_ICON_CIRCLE_LIGHT_CLASS =
   'flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white';
 
 /** Featured REGISTER CTA (SDS: 44px bar, primary text fill, SDS padding). */
 const FIND_TICKETS_CTA_CLASS =
   'flex h-11 min-h-[44px] w-full shrink-0 self-stretch items-center justify-between bg-[var(--Text-Primary-Text,#171717)] py-[var(--sds-size-space-200)] px-[var(--sds-size-space-400)] label-large uppercase tracking-wide text-[var(--Text-Primary-CTA,#FFF)]';
 
-/** Upcoming list REGISTER: gray bar, black label, RA logo on black circle. */
+/** Upcoming list REGISTER: gray bar, black label, arrow on black circle. */
 const UPCOMING_REGISTER_CTA_CLASS =
   'flex h-11 min-h-[44px] w-full shrink-0 self-stretch items-center justify-between bg-[#DBDBDB] py-[var(--sds-size-space-200)] px-[var(--sds-size-space-400)] label-large uppercase tracking-wide text-black';
 
-/** RA mark: white logo on black disc (upcoming cards). */
-const RESIDENT_ADVISOR_LOGO_CIRCLE_DARK_CLASS =
+/** Arrow icon on black disc (upcoming cards). */
+const REGISTER_ICON_CIRCLE_DARK_CLASS =
   'flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-black';
 
 /** Date/location meta pills — 16px height (border-box), SDS gap/padding. */
@@ -363,15 +362,15 @@ export default function EventsPage() {
                     >
                       <span className="text-left">REGISTER</span>
                       <span
-                        className={RESIDENT_ADVISOR_LOGO_CIRCLE_CLASS}
+                        className={REGISTER_ICON_CIRCLE_LIGHT_CLASS}
                         aria-hidden
                       >
                         <Image
-                          src={RESIDENT_ADVISOR_LOGO_PATH}
+                          src={REGISTER_ARROW_PATH}
                           alt=""
-                          width={1186}
-                          height={1186}
-                          className="size-4 object-contain invert"
+                          width={24}
+                          height={24}
+                          className="size-4 object-contain"
                         />
                       </span>
                     </a>
@@ -477,15 +476,15 @@ export default function EventsPage() {
                       >
                         <span className="text-left">REGISTER</span>
                         <span
-                          className={RESIDENT_ADVISOR_LOGO_CIRCLE_DARK_CLASS}
+                          className={REGISTER_ICON_CIRCLE_DARK_CLASS}
                           aria-hidden
                         >
                           <Image
-                            src={RESIDENT_ADVISOR_LOGO_PATH}
+                            src={REGISTER_ARROW_PATH}
                             alt=""
-                            width={1186}
-                            height={1186}
-                            className="size-4 object-contain"
+                            width={24}
+                            height={24}
+                            className="size-4 object-contain invert"
                           />
                         </span>
                       </a>
