@@ -495,24 +495,6 @@ Properties: `activation_id`, `settlement_rail`, `user_id`, `reward_item_id`, `re
 
 ---
 
-## Open questions
-
-| #    | Question                                                              | Owner       | Blocks         |
-| ---- | --------------------------------------------------------------------- | ----------- | -------------- |
-| OQ-1 | USDC amount per drink (Base vs Stellar same nominal?)                 | Sponsor/Ops | Config         |
-| OQ-2 | Points cost for Public Records confirm (99 PTS placeholder in Figma?) | Product     | Reward config  |
-| OQ-3 | Swipe timeout duration before `expired`                               | Product     | State machine  |
-| OQ-4 | Campaign wallet per rail: shared treasury vs dedicated PR wallets     | Eng/Ops     | Runbook        |
-| OQ-5 | Auto-pause activation on insufficient campaign USDC                   | Product     | Ops            |
-| OQ-6 | Public Records checkpoint id(s) and ticket integration                | Ops         | Eligibility    |
-| OQ-7 | Stellar USDC issuer for production settlement                         | Eng         | Stellar config |
-| OQ-8 | Legal copy for sponsor-funded venue settlement                        | Legal       | Terms only     |
-| OQ-9 | Manual settlement retry permissions                                   | Eng         | Admin UI       |
-
-**Closed for v1 (deferred):** staff auth, payment confirmation, CSV export, sponsor portal.
-
----
-
 ## Acceptance criteria
 
 ### Configuration
@@ -568,12 +550,3 @@ Properties: `activation_id`, `settlement_rail`, `user_id`, `reward_item_id`, `re
 6. **Do not** implement staff or export surfaces in v1.
 
 **Reuse:** `lib/privy/stellar-rail-wallet.ts`, Base spend-rail treasury code; **do not** reuse user USDC funding paths.
-
----
-
-## Document history
-
-| Version | Date       | Author | Notes                                                                         |
-| ------- | ---------- | ------ | ----------------------------------------------------------------------------- |
-| 0.1     | 2026-05-20 | Agent  | Initial PRD                                                                   |
-| 0.2     | 2026-05-20 | Agent  | Base+Stellar v1; Figma swipe UX; removed staff/sponsor/export/payment confirm |
