@@ -5,9 +5,9 @@ import Image from 'next/image';
 
 import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 
-const POSTER_SRC = '/homepage/irl-tour-event-flyer.png';
-const MOBILE_BG_IMAGE = '/homepage/irl-tour-event-flyer.png';
-const DESKTOP_BG_IMAGE = '/homepage/irl-tour-event-flyer.png';
+const POSTER_SRC = '/homepage/irl-tour-june.png';
+const MOBILE_BG_IMAGE = '/homepage/irl-tour-june.png';
+const DESKTOP_BG_IMAGE = '/homepage/irl-tour-june.png';
 
 /**
  * IRL Tour section - Latest tour poster, Join Us Worldwide
@@ -16,12 +16,10 @@ const DESKTOP_BG_IMAGE = '/homepage/irl-tour-event-flyer.png';
 export default function IRLTourSection() {
   return (
     <section className="relative w-full bg-[#131313] px-4 pt-[128px] pb-16 md:py-24 overflow-hidden">
-      {/* Mobile-only: blurred background layer */}
+      {/* Mobile-only: blurred background between section gutters (px-4) */}
       <div
-        className="absolute md:hidden w-[640px] h-[852px] opacity-70 pointer-events-none"
+        className="absolute inset-x-4 top-0 bottom-0 md:hidden opacity-70 pointer-events-none"
         style={{
-          right: '-124px',
-          aspectRatio: '160/213',
           background: `url(${MOBILE_BG_IMAGE}) lightgray 50% / cover no-repeat`,
           filter: 'blur(59.4px)',
         }}
@@ -95,7 +93,7 @@ export default function IRLTourSection() {
             >
               <button
                 type="button"
-                className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[var(--Backgrounds-Highlight,#FFF200)] py-2 pr-2 pl-4 text-[#171717]"
+                className="label-large flex h-[44px] w-full cursor-pointer uppercase items-center justify-between bg-[#ffffff] py-2 pr-2 pl-4 text-[#171717]"
               >
                 <span className="whitespace-nowrap">Browse Events</span>
                 <svg
@@ -117,14 +115,14 @@ export default function IRLTourSection() {
           </div>
         </div>
 
-        {/* Right column: poster (on desktop); first on mobile */}
-        <div className="order-1 md:order-2 relative w-[237px] mx-auto md:mx-0 md:w-[500px] md:flex-shrink-0 aspect-[3/4] rounded-none mb-12 md:mb-0">
+        {/* Right column: poster (on desktop); first on mobile — full content width */}
+        <div className="order-1 md:order-2 relative w-full md:w-[500px] md:flex-shrink-0 aspect-[3/4] rounded-none mb-12 md:mb-0">
           <Image
             src={POSTER_SRC}
             alt="IRL Tour poster"
             fill
             className="object-contain"
-            sizes="(max-width: 768px) 237px, 500px"
+            sizes="(max-width: 768px) 100vw, 500px"
             priority={false}
           />
         </div>

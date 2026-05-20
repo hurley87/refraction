@@ -17,7 +17,10 @@ export function isSupabaseEnvConfigured(): boolean {
   return Boolean(supabaseUrl.trim() && supabaseServiceRoleKey.trim());
 }
 
-if (!supabaseUrl || !supabaseServiceRoleKey) {
+if (
+  typeof window === 'undefined' &&
+  (!supabaseUrl.trim() || !supabaseServiceRoleKey.trim())
+) {
   console.warn(
     '[lib/db/client] Supabase URL or key missing. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, or use NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (anon key only if RLS allows the query).'
   );
