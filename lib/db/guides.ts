@@ -11,7 +11,12 @@ import {
   resolveContributorInstagramProfileUrl,
 } from '@/lib/guides/contributor-instagram';
 import { cityGuideDisplayTitle } from '@/lib/guides/city-guide-title';
+import { guideReadHref } from '@/lib/guides/guide-paths';
+import type { GuideKindDb } from '@/lib/guides/guide-paths';
 import type { GuideKind } from '@/components/city-guides/featured-editorial-hero-card';
+
+export type { GuideKindDb } from '@/lib/guides/guide-paths';
+export { guideReadHref } from '@/lib/guides/guide-paths';
 
 const GUIDES_QUERY_MS = 12_000;
 const GUIDE_QUERY_TIMEOUT = Symbol('guideQueryTimeout');
@@ -34,8 +39,6 @@ function logTimeout(context: string) {
     );
   }
 }
-
-export type GuideKindDb = 'city_guide' | 'editorial';
 
 export type GuideContributorRow = {
   guide_id: string;
@@ -139,9 +142,7 @@ export type GuideFeaturedPayload = {
 };
 
 function readHrefFor(row: GuideRow): string {
-  return row.kind === 'editorial'
-    ? `/city-guides/editorial/${row.slug}`
-    : `/city-guides/${row.slug}`;
+  return guideReadHref(row.slug, row.kind);
 }
 
 function featuredTitleLine(row: GuideRow): string {

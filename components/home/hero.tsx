@@ -49,7 +49,7 @@ export default function Hero() {
           >
             <button
               type="button"
-              className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[var(--Backgrounds-Highlight,#FFF200)] py-2 pr-2 pl-4 text-[#171717]"
+              className="label-large flex h-[44px] w-full cursor-pointer uppercase items-center justify-between bg-[#ffffff] py-2 pr-2 pl-4 text-[#171717]"
             >
               <span className="whitespace-nowrap">Find Spots Nearby</span>
               <svg

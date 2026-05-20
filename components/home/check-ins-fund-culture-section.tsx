@@ -50,7 +50,7 @@ export default function CheckInsFundCultureSection() {
             </div>
             <div className="flex justify-center md:justify-start w-full mt-6 md:mt-0">
               <Link href="/interactive-map">
-                <button className="flex w-[220px] h-[52px] justify-center items-center gap-6 rounded-full bg-white cursor-pointer hover:bg-gray-100 transition-colors">
+                <button className="flex w-[220px] h-[52px] uppercase justify-center items-center gap-6 rounded-full bg-[#ffffff] cursor-pointer hover:bg-gray-100 transition-colors">
                   <span className="title3 text-[#313131] md:hidden">
                     Check In
                   </span>

@@ -6,43 +6,52 @@ import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
+import { guideReadHref, type GuideKindDb } from '@/lib/guides/guide-paths';
 
-const COVER_IMAGES = [
+/** Homepage carousel entries — `slug` must match Admin → Guides. */
+const COVER_GUIDES: {
+  src: string;
+  alt: string;
+  name: string;
+  slug: string;
+  kind: GuideKindDb;
+}[] = [
   {
     src: '/homepage/city-guides-covers/jiminal.png',
     alt: 'City guide cover',
     name: "Jiminal's Hangover Guide to Amsterdam",
-    url: 'https://substack.com/@refractiondao/p-189246596',
+    slug: 'fermi-guide-to-amsterdam-with-jiminal',
+    kind: 'city_guide',
   },
   {
     src: '/homepage/city-guides-covers/danielle-guide.jpg',
     alt: 'Danielle Paterson’s Guide to Lower Manhattan',
     name: 'Danielle Paterson’s Guide to Lower Manhattan',
-    url: 'https://refractiondao.substack.com/p/a-freelancers-lower-manhattan-day',
+    slug: 'a-freelancers-lower-manhattan-day-circuit-with-danielle-paterson',
+    kind: 'city_guide',
   },
   {
     src: '/homepage/city-guides-covers/sunshine-cdmx.png',
     alt: 'Sunshine Vendetta’s Phone-Free Music Spots in CDMX',
     name: 'Sunshine Vendetta’s Phone-Free Music Spots in CDMX',
-    url: 'https://refractiondao.substack.com/p/6-phone-free-music-spots-to-visit',
+    slug: '6-phone-free-music-spots-in-mexico-city-with-sunshine-vendetta',
+    kind: 'city_guide',
   },
   {
     src: '/homepage/city-guides-covers/jordan-denver.jpg',
     alt: 'Jordan Hubner’s Cultural Guide to Denver',
     name: 'Jordan Hubner’s Cultural Guide to Denver',
-    url: 'https://refractiondao.substack.com/p/jordan-hubners-guide-to-culture-and',
+    slug: 'jordan-hubner-guide-to-culture-community-in-denver',
+    kind: 'city_guide',
   },
-
   {
     src: '/homepage/city-guides-covers/meniac.png',
     alt: 'Meniac’s Disco Map to Amsterdam',
     name: "Meniac's Disco Map to Amsterdam",
-    url: 'https://substack.com/@refractiondao/p-189245087',
+    slug: 'digging-for-disco-and-asian-soul-meniac-fermi-map-to-amsterdam',
+    kind: 'city_guide',
   },
 ];
-
-// Update with actual Refraction Substack URL
-const SUBSTACK_GUIDES_URL = 'https://substack.com/@refractiondao';
 
 const CARD_WIDTH = 252;
 const GAP = 16;
@@ -123,14 +132,12 @@ export default function CityGuidesCoverSection() {
           </p>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 w-full -mx-2 md:mx-0 md:justify-start">
             <Link
-              href={SUBSTACK_GUIDES_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/city-guides"
               className="inline-flex w-[361px] max-w-full shrink-0"
             >
               <button
                 type="button"
-                className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[var(--Backgrounds-Highlight,#FFF200)] py-2 pr-2 pl-4 text-[#171717]"
+                className="label-large flex h-[44px] w-full cursor-pointer  uppercase items-center justify-between bg-[#ffffff] py-2 pr-2 pl-4 text-[#171717]"
               >
                 <span className="whitespace-nowrap">Read the Guides</span>
                 <svg
@@ -168,77 +175,70 @@ export default function CityGuidesCoverSection() {
             onScroll={updateArrows}
             className="mb-0 grid auto-cols-[252px] grid-flow-col gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory scroll-smooth md:pl-14 md:pr-14"
           >
-            {COVER_IMAGES.map((img, i) => (
-              <div
-                key={i}
-                className="group flex h-full min-h-0 min-w-0 snap-center flex-col items-center"
-                style={{ background: 'var(--Dark-Tint-100, #313131)' }}
-              >
-                <Link
-                  href={img.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full"
+            {COVER_GUIDES.map((guide) => {
+              const href = guideReadHref(guide.slug, guide.kind);
+              return (
+                <div
+                  key={guide.slug}
+                  className="group flex h-full min-h-0 min-w-0 snap-center flex-col items-center"
+                  style={{ background: 'var(--Dark-Tint-100, #313131)' }}
                 >
-                  <div
-                    className="relative h-[251px] self-stretch overflow-hidden bg-[#1a1a1a]"
-                    style={{ aspectRatio: '252/251' }}
-                  >
-                    <Image
-                      src={img.src}
-                      alt={`${img.alt} ${i + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="320px"
-                    />
-                  </div>
-                </Link>
-                <div className="flex min-h-0 flex-1 flex-col justify-between gap-4 self-stretch border-t border-white/25 pt-6 pr-6 pb-6 pl-6 md:gap-3 md:border-white md:pt-6 md:pr-6 md:pb-12 md:pl-6">
-                  <span
-                    className="min-w-0 self-stretch"
-                    style={{
-                      color: 'var(--UI-White, #FFF)',
-                      fontFamily:
-                        '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-                      fontSize: '25px',
-                      fontStyle: 'normal',
-                      fontWeight: 500,
-                      lineHeight: '32px',
-                      letterSpacing: '-0.25px',
-                    }}
-                  >
-                    {img.name}
-                  </span>
-                  <Link
-                    href={img.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex w-full shrink-0"
-                  >
-                    <button
-                      type="button"
-                      className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[var(--Backgrounds-Highlight,#FFF200)] py-2 pr-2 pl-4 text-[#171717]"
+                  <Link href={href} className="block w-full">
+                    <div
+                      className="relative h-[251px] self-stretch overflow-hidden bg-[#1a1a1a]"
+                      style={{ aspectRatio: '252/251' }}
                     >
-                      <span className="whitespace-nowrap">Read Guide</span>
-                      <svg
-                        width={24}
-                        height={24}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="shrink-0"
-                        aria-hidden
-                      >
-                        <path
-                          d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
-                          fill="#171717"
-                        />
-                      </svg>
-                    </button>
+                      <Image
+                        src={guide.src}
+                        alt={guide.alt}
+                        fill
+                        className="object-cover"
+                        sizes="320px"
+                      />
+                    </div>
                   </Link>
+                  <div className="flex min-h-0 flex-1 flex-col justify-between gap-4 self-stretch border-t border-white/25 pt-6 pr-6 pb-6 pl-6 md:gap-3 md:border-white md:pt-6 md:pr-6 md:pb-12 md:pl-6">
+                    <span
+                      className="min-w-0 self-stretch"
+                      style={{
+                        color: 'var(--UI-White, #FFF)',
+                        fontFamily:
+                          '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
+                        fontSize: '25px',
+                        fontStyle: 'normal',
+                        fontWeight: 500,
+                        lineHeight: '32px',
+                        letterSpacing: '-0.25px',
+                      }}
+                    >
+                      {guide.name}
+                    </span>
+                    <Link href={href} className="inline-flex w-full shrink-0">
+                      <button
+                        type="button"
+                        className="label-large flex h-[44px] w-full cursor-pointer uppercase items-center justify-between bg-[#ffffff] py-2 pr-2 pl-4 text-[#171717]"
+                      >
+                        <span className="whitespace-nowrap">Read Guide</span>
+                        <svg
+                          width={24}
+                          height={24}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="shrink-0"
+                          aria-hidden
+                        >
+                          <path
+                            d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                            fill="#171717"
+                          />
+                        </svg>
+                      </button>
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <button
             type="button"
