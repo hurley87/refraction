@@ -53,7 +53,7 @@ export function CityGuideArticleMetaRow({
       </div>
 
       {contributors.length > 0 ? (
-        <div className="flex min-w-0 flex-col items-end gap-0.5">
+        <div className="ml-auto flex min-w-0 shrink-0 flex-col items-end gap-0.5 text-right">
           <span className="label-small leading-none text-[#757575]">
             {creditLabel}
           </span>
