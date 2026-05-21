@@ -123,7 +123,7 @@ export default function CityGuideListCard({
         {preview}
       </p>
 
-      <div className="flex w-full min-h-6 items-center justify-between gap-3">
+      <div className="flex w-full items-end justify-between gap-3">
         {contributorNames.length > 0 ? (
           <ul className="flex min-w-0 list-none flex-row flex-wrap items-center gap-2">
             {contributorNames.map((name, index) => (

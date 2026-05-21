@@ -86,12 +86,14 @@ export default function FeaturedEditorialHeroCard({
             <EditorialArticleMetaRow
               contributors={featuredPeople}
               creditLabel="WORDS BY"
+              className="w-full max-w-none"
             />
           ) : (
             <CityGuideArticleMetaRow
               guideKind={guideKind}
               contributors={featuredPeople}
               creditLabel="WORDS BY"
+              className="w-full max-w-none"
             />
           )}
 
