@@ -95,7 +95,9 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     message.includes('receiving end does not exist') ||
     message.includes('runtime.lasterror') ||
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
-    message.includes('called from a webpage must specify an extension id');
+    message.includes('called from a webpage must specify an extension id') ||
+    // Extensions messaging a closed or unknown tab (Chrome MV3).
+    message.includes('invalid call to runtime.sendmessage');
 
   if (isKnownNoise) {
     return null;
