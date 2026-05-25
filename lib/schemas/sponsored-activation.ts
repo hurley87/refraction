@@ -54,6 +54,45 @@ export const stellarUsdcAssetConfigSchema = z
   })
   .strict();
 
+/**
+ * Full settlement bundle — rail must match wallet formats and `usdc_asset_config`.
+ * Used after admin PATCH merges existing row + patch so draft updates cannot save incoherent combinations.
+ */
+export const sponsoredActivationSettlementBundleSchema = z
+  .discriminatedUnion('settlement_rail', [
+    z
+      .object({
+        settlement_rail: z.literal('base'),
+        campaign_wallet_address: normalizedEvmAddressSchema,
+        venue_settlement_wallet_address: normalizedEvmAddressSchema,
+        usdc_asset_config: baseUsdcAssetConfigSchema,
+      })
+      .strict(),
+    z
+      .object({
+        settlement_rail: z.literal('stellar'),
+        campaign_wallet_address: stellarGAddressSchema,
+        venue_settlement_wallet_address: stellarGAddressSchema,
+        usdc_asset_config: stellarUsdcAssetConfigSchema,
+      })
+      .strict(),
+  ])
+  .superRefine((data, ctx) => {
+    if (
+      sameWalletAddress(
+        data.campaign_wallet_address,
+        data.venue_settlement_wallet_address
+      )
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'campaign_wallet_address must differ from venue_settlement_wallet_address',
+        path: ['venue_settlement_wallet_address'],
+      });
+    }
+  });
+
 const positiveIntOrNullSchema = z.union([
   z.null(),
   z.number().int().positive(),

@@ -218,6 +218,15 @@ export async function createSponsoredActivation(
     .select('*')
     .single();
   if (error) {
+    if (
+      (error as { code?: string }).code === '23505' &&
+      input.activation_create_idempotency_key
+    ) {
+      const existing = await getSponsoredActivationByCreateIdempotencyKey(
+        input.activation_create_idempotency_key
+      );
+      if (existing) return existing;
+    }
     console.error('createSponsoredActivation:', error);
     throw new Error(error.message || 'Failed to create sponsored activation');
   }

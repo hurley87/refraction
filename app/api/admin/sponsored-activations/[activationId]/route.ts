@@ -6,7 +6,10 @@ import {
   getSponsoredActivationById,
   updateSponsoredActivation,
 } from '@/lib/db/sponsored-activations';
-import { updateSponsoredActivationSchema } from '@/lib/schemas/sponsored-activation';
+import {
+  sponsoredActivationSettlementBundleSchema,
+  updateSponsoredActivationSchema,
+} from '@/lib/schemas/sponsored-activation';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
 import { sponsoredActivationAdminEnvelope } from '@/lib/activation/explorer-url';
@@ -94,6 +97,26 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (locked && patchTouchesImmutableWalletFields(v)) {
       return immutabilityViolationError();
+    }
+
+    if (!locked && patchTouchesImmutableWalletFields(v)) {
+      const merged = {
+        settlement_rail: v.settlement_rail ?? existing.settlement_rail,
+        campaign_wallet_address:
+          v.campaign_wallet_address ?? existing.campaign_wallet_address,
+        venue_settlement_wallet_address:
+          v.venue_settlement_wallet_address ??
+          existing.venue_settlement_wallet_address,
+        usdc_asset_config:
+          v.usdc_asset_config !== undefined
+            ? v.usdc_asset_config
+            : existing.usdc_asset_config,
+      };
+      const bundle =
+        sponsoredActivationSettlementBundleSchema.safeParse(merged);
+      if (!bundle.success) {
+        return apiValidationError(bundle.error);
+      }
     }
 
     if (v.status === 'active' && existing.status !== 'active') {
