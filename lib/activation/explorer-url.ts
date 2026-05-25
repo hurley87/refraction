@@ -5,24 +5,17 @@ import {
   getSettlementExplorerTxUrlTemplate,
 } from '@/lib/spend-rail-config';
 
-export { formatSettlementExplorerTxUrl } from '@/lib/spend-rail-config';
-
 export type SponsoredActivationExplorerPack = {
   campaign_wallet_explorer_url: string | null;
   venue_settlement_wallet_explorer_url: string | null;
   settlement_explorer_tx_url_template: string;
 };
 
-export function sponsoredActivationExplorerPack(
-  row: Pick<
-    SponsoredActivationRow,
-    | 'settlement_rail'
-    | 'campaign_wallet_address'
-    | 'venue_settlement_wallet_address'
-  >
-): SponsoredActivationExplorerPack {
+export function sponsoredActivationAdminEnvelope(
+  row: SponsoredActivationRow
+): SponsoredActivationRow & SponsoredActivationExplorerPack {
   const rail = row.settlement_rail as SettlementExplorerRail;
-  return {
+  const explorer: SponsoredActivationExplorerPack = {
     campaign_wallet_explorer_url: formatSettlementWalletExplorerUrl(
       rail,
       row.campaign_wallet_address
@@ -34,10 +27,5 @@ export function sponsoredActivationExplorerPack(
     settlement_explorer_tx_url_template:
       getSettlementExplorerTxUrlTemplate(rail),
   };
-}
-
-export function sponsoredActivationAdminEnvelope(
-  row: SponsoredActivationRow
-): SponsoredActivationRow & SponsoredActivationExplorerPack {
-  return { ...row, ...sponsoredActivationExplorerPack(row) };
+  return { ...row, ...explorer };
 }

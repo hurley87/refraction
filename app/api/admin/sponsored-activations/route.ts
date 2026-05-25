@@ -11,14 +11,7 @@ import { requireAdmin } from '@/lib/auth';
 import { createSponsoredActivationPrivyCampaignWallet } from '@/lib/api/privy';
 import { sameWalletAddress } from '@/lib/utils/wallets';
 import { sponsoredActivationAdminEnvelope } from '@/lib/activation/explorer-url';
-
-function createIdempotencyKey(request: NextRequest): string {
-  return (
-    request.headers.get('idempotency-key') ??
-    request.headers.get('x-idempotency-key') ??
-    crypto.randomUUID()
-  ).trim();
-}
+import { adminCreateIdempotencyKey } from '@/lib/api/idempotency';
 
 /** GET /api/admin/sponsored-activations */
 export async function GET(request: NextRequest) {
@@ -46,7 +39,7 @@ export async function POST(request: NextRequest) {
       return apiError('Unauthorized - Admin access required', 403);
     }
 
-    const idempotencyKey = createIdempotencyKey(request);
+    const idempotencyKey = adminCreateIdempotencyKey(request);
     if (!idempotencyKey) {
       return apiError('Missing idempotency key', 400);
     }
@@ -93,8 +86,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const adminEmail = adminCheck.user?.email ?? undefined;
-
     const row = await createSponsoredActivation({
       slug: data.slug,
       title: data.title,
@@ -113,7 +104,7 @@ export async function POST(request: NextRequest) {
       starts_at: data.starts_at,
       ends_at: data.ends_at,
       eligibility_config: data.eligibility_config as Record<string, unknown>,
-      created_by: data.created_by ?? adminEmail ?? null,
+      created_by: data.created_by ?? adminCheck.user?.email ?? null,
       activation_create_idempotency_key: idempotencyKey,
       privy_campaign_wallet_id: wallet.privy_campaign_wallet_id,
     });

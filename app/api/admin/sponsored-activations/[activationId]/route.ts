@@ -15,6 +15,13 @@ interface RouteParams {
   params: { activationId: string };
 }
 
+const IMMUTABLE_WALLET_PATCH_KEYS = [
+  'settlement_rail',
+  'campaign_wallet_address',
+  'venue_settlement_wallet_address',
+  'usdc_asset_config',
+] as const;
+
 function immutabilityViolationError() {
   return apiValidationError(
     new z.ZodError([
@@ -26,6 +33,12 @@ function immutabilityViolationError() {
       },
     ])
   );
+}
+
+function patchTouchesImmutableWalletFields(
+  v: z.infer<typeof updateSponsoredActivationSchema>
+): boolean {
+  return IMMUTABLE_WALLET_PATCH_KEYS.some((key) => v[key] !== undefined);
 }
 
 /** GET /api/admin/sponsored-activations/{activationId} */
@@ -73,18 +86,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
     const v = validation.data;
 
-    const redemptionCount = await countActivationRedemptions(existing.id);
+    const redemptionCount =
+      existing.status === 'draft'
+        ? await countActivationRedemptions(existing.id)
+        : 0;
     const locked = existing.status !== 'draft' || redemptionCount > 0;
 
-    if (locked) {
-      if (
-        v.settlement_rail !== undefined ||
-        v.campaign_wallet_address !== undefined ||
-        v.venue_settlement_wallet_address !== undefined ||
-        v.usdc_asset_config !== undefined
-      ) {
-        return immutabilityViolationError();
-      }
+    if (locked && patchTouchesImmutableWalletFields(v)) {
+      return immutabilityViolationError();
     }
 
     if (v.status === 'active' && existing.status !== 'active') {
@@ -110,18 +119,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       if (val !== undefined) {
         patch[key] = val;
       }
-    }
-
-    if (Object.keys(patch).length === 0) {
-      return apiValidationError(
-        new z.ZodError([
-          {
-            code: z.ZodIssueCode.custom,
-            message: 'No fields to update',
-            path: [],
-          },
-        ])
-      );
     }
 
     const nextStarts = (v.starts_at ?? existing.starts_at) as string;
