@@ -78,3 +78,123 @@ export async function getActivationSettlementTransactionByRedemptionId(
   if (!data) return null;
   return normalizeRow(data as Record<string, unknown>);
 }
+
+const MAX_SETTLEMENT_BATCH = 500;
+
+function parseBatchSizeEnv(raw: string | undefined, fallback: number): number {
+  const n = Number.parseInt(raw ?? `${fallback}`, 10);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(n, MAX_SETTLEMENT_BATCH);
+}
+
+/** Env-driven batch size for sponsored settlement cron (IRL-58). */
+export function getSponsoredSettlementBatchSize(): number {
+  return parseBatchSizeEnv(process.env.SPONSORED_SETTLEMENT_BATCH_SIZE, 25);
+}
+
+/**
+ * Stellar settlements eligible for worker: `queued` (submit) or `submitted` with tx_hash (poll only).
+ */
+export async function listStellarActivationSettlementsForWorker(
+  limit: number
+): Promise<ActivationSettlementTransactionRow[]> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .eq('settlement_rail', 'stellar')
+    .in('status', ['queued', 'submitted'])
+    .order('queued_at', { ascending: true, nullsFirst: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('listStellarActivationSettlementsForWorker:', error);
+    throw new Error(error.message || 'Failed to list settlement transactions');
+  }
+  return (data ?? []).map((r) => normalizeRow(r as Record<string, unknown>));
+}
+
+export async function markActivationSettlementSubmitted(input: {
+  settlementId: string;
+  txHash: string;
+}): Promise<boolean> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({
+      status: 'submitted',
+      tx_hash: input.txHash.trim(),
+      submitted_at: new Date().toISOString(),
+      submission_attempt: 1,
+    })
+    .eq('id', input.settlementId)
+    .eq('status', 'queued')
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    console.error('markActivationSettlementSubmitted:', error);
+    throw new Error(error.message || 'Failed to mark settlement submitted');
+  }
+  return data != null;
+}
+
+export type ConfirmActivationSettlementRpcOutcome =
+  | 'confirmed'
+  | 'already_confirmed';
+
+export async function confirmActivationSettlementAtomic(input: {
+  settlementId: string;
+  txHash: string;
+}): Promise<ConfirmActivationSettlementRpcOutcome> {
+  const { data, error } = await supabase.rpc(
+    'confirm_activation_settlement_atomic',
+    {
+      p_settlement_id: input.settlementId,
+      p_tx_hash: input.txHash,
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      error.message || 'confirm_activation_settlement_atomic failed'
+    );
+  }
+
+  const outcome = typeof data === 'string' ? data : String(data ?? '');
+  if (outcome === 'already_confirmed') return 'already_confirmed';
+  if (outcome === 'confirmed') return 'confirmed';
+  throw new Error(
+    'Unexpected RPC response from confirm_activation_settlement_atomic'
+  );
+}
+
+export type FailActivationSettlementRpcOutcome =
+  | 'failed'
+  | 'already_confirmed'
+  | 'already_failed';
+
+export async function failActivationSettlementAtomic(input: {
+  settlementId: string;
+  lastErrorCode: string;
+}): Promise<FailActivationSettlementRpcOutcome> {
+  const { data, error } = await supabase.rpc(
+    'fail_activation_settlement_atomic',
+    {
+      p_settlement_id: input.settlementId,
+      p_last_error_code: input.lastErrorCode,
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      error.message || 'fail_activation_settlement_atomic failed'
+    );
+  }
+
+  const outcome = typeof data === 'string' ? data : String(data ?? '');
+  if (outcome === 'already_confirmed') return 'already_confirmed';
+  if (outcome === 'already_failed') return 'already_failed';
+  if (outcome === 'failed') return 'failed';
+  throw new Error(
+    'Unexpected RPC response from fail_activation_settlement_atomic'
+  );
+}
