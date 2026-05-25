@@ -72,6 +72,7 @@ export function SponsoredActivationFlow({
   const [venueStep, setVenueStep] = useState<'success' | 'swipe'>('success');
   const [redemptionOverride, setRedemptionOverride] =
     useState<ActivationRedemptionRow | null>(null);
+  const [swipeSliderKey, setSwipeSliderKey] = useState(0);
 
   const deeplink = useMemo(
     () => parseSponsoredActivationEligibilityDeeplink(source, sourceRefId),
@@ -109,6 +110,11 @@ export function SponsoredActivationFlow({
           source_ref_id: input.sourceRefId,
         }
       );
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['sponsored-activation-eligibility-get', activationKey],
+      });
     },
   });
 
@@ -152,19 +158,22 @@ export function SponsoredActivationFlow({
         `/api/sponsored-activations/${encodeURIComponent(activationKey)}/eligibility?walletAddress=${encodeURIComponent(walletAddress)}`
       );
     },
-    enabled: Boolean(user && walletAddress && readQuery.isSuccess && !deeplink),
+    enabled: Boolean(user && walletAddress && readQuery.isSuccess),
     retry: false,
   });
 
   const redemptionsFromServer = useMemo(() => {
-    if (deeplink && recordEligibility.data) {
-      return recordEligibility.data.redemptions;
+    const fromGet = resumeEligibility.data?.redemptions ?? [];
+    const fromPost = recordEligibility.data?.redemptions ?? [];
+    const byId = new Map<string, ActivationRedemptionRow>();
+    for (const row of fromGet) {
+      byId.set(row.id, row);
     }
-    if (!deeplink && resumeEligibility.data) {
-      return resumeEligibility.data.redemptions;
+    for (const row of fromPost) {
+      byId.set(row.id, row);
     }
-    return [];
-  }, [deeplink, recordEligibility.data, resumeEligibility.data]);
+    return Array.from(byId.values());
+  }, [recordEligibility.data, resumeEligibility.data]);
 
   const rewardItemId = readQuery.data?.rewardItem.id;
 
@@ -234,6 +243,7 @@ export function SponsoredActivationFlow({
       }
       const msg = err instanceof Error ? err.message : 'Something went wrong';
       toast.error(msg);
+      setSwipeSliderKey((k) => k + 1);
     },
   });
 
@@ -255,7 +265,7 @@ export function SponsoredActivationFlow({
     !recordEligibility.isError;
 
   const resumeFlowLoading =
-    Boolean(!deeplink && user && walletAddress && readQuery.isSuccess) &&
+    Boolean(user && walletAddress && readQuery.isSuccess) &&
     resumeEligibility.isLoading;
 
   const eligibilityLoading =
@@ -338,7 +348,7 @@ export function SponsoredActivationFlow({
     );
   }
 
-  if (!deeplink && resumeEligibility.isError) {
+  if (resumeEligibility.isError) {
     return (
       <SponsoredActivationPageShell>
         <p className="body-medium font-grotesk p-6 text-center text-white/80">
@@ -434,6 +444,7 @@ export function SponsoredActivationFlow({
               </p>
             </div>
             <SponsoredActivationSwipeSlider
+              key={swipeSliderKey}
               disabled={swipeDisabled}
               onComplete={handleSwipeComplete}
             />

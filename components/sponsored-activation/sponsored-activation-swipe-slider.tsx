@@ -24,6 +24,7 @@ export function SponsoredActivationSwipeSlider({
   const [dragPx, setDragPx] = useState(0);
   const dragPxRef = useRef(0);
   const [completed, setCompleted] = useState(false);
+  const completionSentRef = useRef(false);
   const activePointerId = useRef<number | null>(null);
 
   const maxTravel = useCallback(() => {
@@ -35,9 +36,11 @@ export function SponsoredActivationSwipeSlider({
 
   const finishIfNeeded = useCallback(
     (px: number) => {
+      if (completionSentRef.current) return;
       const max = maxTravel();
       if (max <= 0) return;
       if (px >= max * COMPLETE_RATIO) {
+        completionSentRef.current = true;
         setCompleted(true);
         setDragPx(max);
         dragPxRef.current = max;
@@ -49,6 +52,7 @@ export function SponsoredActivationSwipeSlider({
 
   useEffect(() => {
     if (disabled || completed) return;
+    completionSentRef.current = false;
     setDragPx(0);
     dragPxRef.current = 0;
   }, [disabled, completed]);
@@ -88,9 +92,10 @@ export function SponsoredActivationSwipeSlider({
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (disabled || completed) return;
+    if (disabled || completed || completionSentRef.current) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
+      completionSentRef.current = true;
       const max = maxTravel();
       dragPxRef.current = max;
       setDragPx(max);
