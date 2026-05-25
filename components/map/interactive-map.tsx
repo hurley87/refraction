@@ -2446,7 +2446,7 @@ export default function InteractiveMap({
                                                     />
                                                   </svg>
                                                   <span className="label-small text-[#171717]">
-                                                    '+'{entry.pointsEarned}
+                                                    +{entry.pointsEarned}
                                                   </span>
                                                 </div>
                                               </div>

@@ -4,6 +4,7 @@ import { getAuthenticatedAdminEmail } from '@/lib/auth';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { trackLocationCreated, resolveServerIdentity } from '@/lib/analytics';
 import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 import { uploadProcessedLocationImages } from '@/lib/utils/upload-location-image';
 
 export const maxDuration = 60;

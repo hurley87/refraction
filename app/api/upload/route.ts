@@ -1,4 +1,3 @@
-import { supabase } from '@/lib/db/client';
 import { z, ZodError } from 'zod';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { uploadProcessedLocationImages } from '@/lib/utils/upload-location-image';
