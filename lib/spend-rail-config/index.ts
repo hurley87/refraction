@@ -1,3 +1,4 @@
+import { getAddress } from 'viem';
 import {
   POSTER_CHECKOUT_USDC_ADDRESS_BASE,
   isEvmAddress,
@@ -431,6 +432,57 @@ export function formatExplorerTxUrlForSpendLedger(
   }
 
   return null;
+}
+
+/** DB `settlement_rail` on `sponsored_activation` (Base vs Stellar USDC settlement). */
+export type SettlementExplorerRail = 'base' | 'stellar';
+
+export function getSettlementExplorerTxUrlTemplate(
+  rail: SettlementExplorerRail
+): string {
+  const parsed = parseRailsConfig();
+  return rail === 'base'
+    ? parsed.base.explorerTxUrlTemplate
+    : parsed.stellar.explorerTxUrlTemplate;
+}
+
+/**
+ * Explorer link for a settlement tx hash, using the same env templates as the spend ledger.
+ */
+export function formatSettlementExplorerTxUrl(
+  rail: SettlementExplorerRail,
+  txHash: string | null | undefined
+): string | null {
+  const spendRail = rail === 'base' ? 'base_usdc' : 'stellar_usdc';
+  return formatExplorerTxUrlForSpendLedger(spendRail, txHash);
+}
+
+/**
+ * Explorer link for a wallet/account on the activation settlement rail.
+ * Base: `{basescan-origin}/address/{checksummed}` derived from the Base tx template origin.
+ * Stellar: `{stellar expert explorer prefix}/account/{G-address}` from the Stellar tx template path.
+ */
+export function formatSettlementWalletExplorerUrl(
+  rail: SettlementExplorerRail,
+  walletAddress: string | null | undefined
+): string | null {
+  const trimmed = walletAddress?.trim();
+  if (!trimmed) return null;
+  const parsed = parseRailsConfig();
+  if (rail === 'base') {
+    if (!isEvmAddress(trimmed)) return null;
+    const addr = getAddress(trimmed as `0x${string}`);
+    const tpl = parsed.base.explorerTxUrlTemplate;
+    const m = tpl.match(/^(https?:\/\/[^/?#]+)/);
+    const origin = m?.[1] ?? 'https://basescan.org';
+    return `${origin}/address/${addr}`;
+  }
+  const st = stellarWalletAddressSchema.safeParse(trimmed.toUpperCase());
+  if (!st.success) return null;
+  const addr = st.data;
+  const tpl = parsed.stellar.explorerTxUrlTemplate;
+  const basePath = tpl.replace(/\/tx\/\{txHash\}\s*$/i, '').trimEnd();
+  return `${basePath}/account/${encodeURIComponent(addr)}`;
 }
 
 export function getSpendTreasuryWalletAddress(spendRail: SpendRail): string {

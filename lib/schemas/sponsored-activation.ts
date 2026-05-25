@@ -54,6 +54,45 @@ export const stellarUsdcAssetConfigSchema = z
   })
   .strict();
 
+/**
+ * Full settlement bundle — rail must match wallet formats and `usdc_asset_config`.
+ * Used after admin PATCH merges existing row + patch so draft updates cannot save incoherent combinations.
+ */
+export const sponsoredActivationSettlementBundleSchema = z
+  .discriminatedUnion('settlement_rail', [
+    z
+      .object({
+        settlement_rail: z.literal('base'),
+        campaign_wallet_address: normalizedEvmAddressSchema,
+        venue_settlement_wallet_address: normalizedEvmAddressSchema,
+        usdc_asset_config: baseUsdcAssetConfigSchema,
+      })
+      .strict(),
+    z
+      .object({
+        settlement_rail: z.literal('stellar'),
+        campaign_wallet_address: stellarGAddressSchema,
+        venue_settlement_wallet_address: stellarGAddressSchema,
+        usdc_asset_config: stellarUsdcAssetConfigSchema,
+      })
+      .strict(),
+  ])
+  .superRefine((data, ctx) => {
+    if (
+      sameWalletAddress(
+        data.campaign_wallet_address,
+        data.venue_settlement_wallet_address
+      )
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'campaign_wallet_address must differ from venue_settlement_wallet_address',
+        path: ['venue_settlement_wallet_address'],
+      });
+    }
+  });
+
 const positiveIntOrNullSchema = z.union([
   z.null(),
   z.number().int().positive(),
@@ -142,6 +181,46 @@ export const createSponsoredActivationSchema =
       });
     }
   });
+
+const adminCreateSponsoredActivationBaseObject =
+  createSponsoredActivationBaseObject.omit({ campaign_wallet_address: true });
+const adminCreateSponsoredActivationStellarObject =
+  createSponsoredActivationStellarObject.omit({
+    campaign_wallet_address: true,
+  });
+
+/**
+ * Admin POST body: `campaign_wallet_address` is provisioned server-side (Privy), not supplied by the client.
+ */
+export const adminCreateSponsoredActivationRequestSchema = z
+  .discriminatedUnion('settlement_rail', [
+    adminCreateSponsoredActivationBaseObject,
+    adminCreateSponsoredActivationStellarObject,
+  ])
+  .superRefine((data, ctx) => {
+    if (new Date(data.ends_at) <= new Date(data.starts_at)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'ends_at must be after starts_at',
+        path: ['ends_at'],
+      });
+    }
+    const hasRedemptions =
+      data.max_redemptions != null && data.max_redemptions > 0;
+    const hasBudget = data.max_usdc_budget != null && data.max_usdc_budget > 0;
+    if (!hasRedemptions && !hasBudget) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'At least one of max_redemptions or max_usdc_budget is required on create',
+        path: ['max_redemptions'],
+      });
+    }
+  });
+
+export type AdminCreateSponsoredActivationRequest = z.infer<
+  typeof adminCreateSponsoredActivationRequestSchema
+>;
 
 function mergeConfigParseIssues(
   result: z.SafeParseReturnType<unknown, unknown>,

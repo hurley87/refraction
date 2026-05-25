@@ -381,3 +381,48 @@ export async function createSpendPrivyServerWallet(params: {
     throw new Error('Privy server wallet could not be created');
   }
 }
+
+export type SponsoredActivationCampaignWalletMetadata = {
+  privy_campaign_wallet_id: string;
+  campaign_wallet_address: string;
+  campaign_wallet_chain: string;
+  campaign_wallet_created_at: string;
+};
+
+/**
+ * Provisions a Privy server wallet for a sponsored activation campaign.
+ * Base rail uses an Ethereum-format address on Base; Stellar rail uses a Stellar account.
+ */
+export async function createSponsoredActivationPrivyCampaignWallet(params: {
+  idempotencyKey: string;
+  settlementRail: 'base' | 'stellar';
+}): Promise<SponsoredActivationCampaignWalletMetadata> {
+  try {
+    const client = getPrivyClient();
+    if (params.settlementRail === 'base') {
+      const wallet = await client.walletApi.createWallet({
+        chainType: 'ethereum',
+        idempotencyKey: params.idempotencyKey,
+      });
+      return {
+        privy_campaign_wallet_id: wallet.id,
+        campaign_wallet_address: wallet.address,
+        campaign_wallet_chain: 'base-mainnet',
+        campaign_wallet_created_at: wallet.createdAt.toISOString(),
+      };
+    }
+    const wallet = await client.walletApi.createWallet({
+      chainType: 'stellar',
+      idempotencyKey: params.idempotencyKey,
+    });
+    return {
+      privy_campaign_wallet_id: wallet.id,
+      campaign_wallet_address: wallet.address,
+      campaign_wallet_chain: 'stellar',
+      campaign_wallet_created_at: wallet.createdAt.toISOString(),
+    };
+  } catch (error) {
+    console.error('createSponsoredActivationPrivyCampaignWallet:', error);
+    throw new Error('Privy campaign wallet could not be created');
+  }
+}

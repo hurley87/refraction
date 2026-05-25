@@ -19,14 +19,7 @@ import {
 } from '@/lib/spend-rail-config';
 import { trackSpendPilotRailMutationBlocked } from '@/lib/analytics/server';
 import { spendPilotRailMixpanelFields } from '@/lib/analytics/spend-pilot-rail-context';
-
-function createIdempotencyKey(request: NextRequest): string {
-  return (
-    request.headers.get('idempotency-key') ??
-    request.headers.get('x-idempotency-key') ??
-    crypto.randomUUID()
-  ).trim();
-}
+import { adminCreateIdempotencyKey } from '@/lib/api/idempotency';
 
 /** GET /api/admin/spend-experiences */
 export async function GET(request: NextRequest) {
@@ -58,7 +51,7 @@ export async function POST(request: NextRequest) {
       return apiValidationError(validation.error);
     }
 
-    const idempotencyKey = createIdempotencyKey(request);
+    const idempotencyKey = adminCreateIdempotencyKey(request);
     if (!idempotencyKey) {
       return apiError('Missing idempotency key', 400);
     }
