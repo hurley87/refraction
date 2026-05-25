@@ -1,9 +1,6 @@
 import { z } from 'zod';
 import { getAddress, isAddress } from 'viem';
-import {
-  eligibilityConfigSchema,
-  eligibilityConfigValueSchema,
-} from '@/lib/schemas/activation-eligibility';
+import { activationEligibilityRulesConfigSchema } from '@/lib/schemas/activation-eligibility-config';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import { sameWalletAddress, tryNormalizeEvmAddress } from '@/lib/utils/wallets';
 
@@ -113,7 +110,7 @@ const sponsoredActivationCommonCreateFields = {
   max_usdc_budget: positiveDecimalOrNullSchema.optional(),
   starts_at: z.string().datetime({ offset: true }),
   ends_at: z.string().datetime({ offset: true }),
-  eligibility_config: eligibilityConfigSchema,
+  eligibility_config: activationEligibilityRulesConfigSchema,
   created_by: z.string().max(255).optional().nullable(),
 };
 
@@ -248,7 +245,7 @@ const updateSponsoredActivationBaseObject = z
     max_usdc_budget: positiveDecimalOrNullSchema.optional(),
     starts_at: z.string().datetime({ offset: true }).optional(),
     ends_at: z.string().datetime({ offset: true }).optional(),
-    eligibility_config: eligibilityConfigValueSchema.optional(),
+    eligibility_config: activationEligibilityRulesConfigSchema.optional(),
     created_by: z.string().max(255).optional().nullable(),
     settlement_rail: settlementRailSchema.optional(),
     campaign_wallet_address: z.string().optional(),
