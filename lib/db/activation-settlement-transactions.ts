@@ -36,6 +36,18 @@ function toInt(value: unknown): number {
   return Number.isNaN(n) ? 0 : Math.trunc(n);
 }
 
+function parseSettlementRpcTextOutcome<T extends string>(
+  data: unknown,
+  allowed: readonly T[],
+  rpcLabel: string
+): T {
+  const outcome = typeof data === 'string' ? data : String(data ?? '');
+  if ((allowed as readonly string[]).includes(outcome)) {
+    return outcome as T;
+  }
+  throw new Error(`Unexpected RPC response from ${rpcLabel}`);
+}
+
 function normalizeRow(
   row: Record<string, unknown>
 ): ActivationSettlementTransactionRow {
@@ -174,45 +186,39 @@ export function getSponsoredSettlementBatchSize(): number {
 }
 
 /**
- * Stellar settlements eligible for worker: `queued` (submit) or `submitted` with tx_hash (poll only).
+ * Settlements eligible for worker dequeue: `queued` (submit) or `submitted` (poll / finalize).
  */
-export async function listStellarActivationSettlementsForWorker(
+export async function listActivationSettlementsForWorker(
+  rail: SettlementRail,
   limit: number
 ): Promise<ActivationSettlementTransactionRow[]> {
   const { data, error } = await supabase
     .from(TABLE)
     .select('*')
-    .eq('settlement_rail', 'stellar')
+    .eq('settlement_rail', rail)
     .in('status', ['queued', 'submitted'])
     .order('queued_at', { ascending: true, nullsFirst: false })
     .limit(limit);
 
   if (error) {
-    console.error('listStellarActivationSettlementsForWorker:', error);
+    console.error('listActivationSettlementsForWorker:', { rail, error });
     throw new Error(error.message || 'Failed to list settlement transactions');
   }
   return (data ?? []).map((r) => normalizeRow(r as Record<string, unknown>));
 }
 
-/**
- * Base settlements eligible for worker dequeue (IRL-56 library; cron wiring in IRL-60).
- */
+/** Stellar rail; see {@link listActivationSettlementsForWorker}. */
+export async function listStellarActivationSettlementsForWorker(
+  limit: number
+): Promise<ActivationSettlementTransactionRow[]> {
+  return listActivationSettlementsForWorker('stellar', limit);
+}
+
+/** Base rail; see {@link listActivationSettlementsForWorker}. */
 export async function listBaseActivationSettlementsForWorker(
   limit: number
 ): Promise<ActivationSettlementTransactionRow[]> {
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select('*')
-    .eq('settlement_rail', 'base')
-    .in('status', ['queued', 'submitted'])
-    .order('queued_at', { ascending: true, nullsFirst: false })
-    .limit(limit);
-
-  if (error) {
-    console.error('listBaseActivationSettlementsForWorker:', error);
-    throw new Error(error.message || 'Failed to list settlement transactions');
-  }
-  return (data ?? []).map((r) => normalizeRow(r as Record<string, unknown>));
+  return listActivationSettlementsForWorker('base', limit);
 }
 
 export async function markActivationSettlementSubmitted(input: {
@@ -260,11 +266,10 @@ export async function confirmActivationSettlementAtomic(input: {
     );
   }
 
-  const outcome = typeof data === 'string' ? data : String(data ?? '');
-  if (outcome === 'already_confirmed') return 'already_confirmed';
-  if (outcome === 'confirmed') return 'confirmed';
-  throw new Error(
-    'Unexpected RPC response from confirm_activation_settlement_atomic'
+  return parseSettlementRpcTextOutcome(
+    data,
+    ['confirmed', 'already_confirmed'] as const,
+    'confirm_activation_settlement_atomic'
   );
 }
 
@@ -292,13 +297,15 @@ export async function recordActivationSettlementFailureAtomic(input: {
     );
   }
 
-  const outcome = typeof data === 'string' ? data : String(data ?? '');
-  if (outcome === 'already_confirmed') return 'already_confirmed';
-  if (outcome === 'already_failed') return 'already_failed';
-  if (outcome === 'exhausted') return 'exhausted';
-  if (outcome === 'retry_scheduled') return 'retry_scheduled';
-  throw new Error(
-    'Unexpected RPC response from record_activation_settlement_failure_atomic'
+  return parseSettlementRpcTextOutcome(
+    data,
+    [
+      'retry_scheduled',
+      'exhausted',
+      'already_confirmed',
+      'already_failed',
+    ] as const,
+    'record_activation_settlement_failure_atomic'
   );
 }
 
@@ -340,9 +347,9 @@ export async function adminResetActivationSettlementForRetryAtomic(input: {
         'admin_reset_activation_settlement_for_retry_atomic failed'
     );
   }
-  const outcome = typeof data === 'string' ? data : String(data ?? '');
-  if (outcome === 'reset') return 'reset';
-  throw new Error(
-    'Unexpected RPC response from admin_reset_activation_settlement_for_retry_atomic'
+  return parseSettlementRpcTextOutcome(
+    data,
+    ['reset'] as const,
+    'admin_reset_activation_settlement_for_retry_atomic'
   );
 }

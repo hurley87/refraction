@@ -136,18 +136,6 @@ async function recordFailureAndShapeResult(
   return { outcome: 'terminal_failed', settlement, lastErrorCode: code };
 }
 
-async function recordFailureAfterWorkerError(
-  row: ActivationSettlementTransactionRow,
-  lastErrorCode: BaseActivationSettlementErrorCode
-): Promise<
-  Extract<
-    ProcessBaseActivationSettlementResult,
-    { outcome: 'retry_scheduled' | 'terminal_failed' }
-  >
-> {
-  return recordFailureAndShapeResult(row, lastErrorCode);
-}
-
 /**
  * Base (EVM) campaign-wallet → venue-wallet USDC settlement for one
  * `activation_settlement_transaction` row (`settlement_rail = base`).
@@ -163,13 +151,13 @@ export async function processBaseActivationSettlement(input: {
     );
   }
 
-  const rowResult = await getActivationSettlementTransactionById(settlementId);
-  if (!rowResult) {
+  const loaded = await getActivationSettlementTransactionById(settlementId);
+  if (!loaded) {
     throw new Error(
       BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.settlement_not_found
     );
   }
-  const row = rowResult;
+  const row = loaded;
 
   if (row.settlement_rail !== 'base') {
     return { outcome: 'skipped', reason: 'settlement_rail_not_base' };
@@ -233,7 +221,7 @@ export async function processBaseActivationSettlement(input: {
   );
 
   if (!venueExpected || !campaignExpected || !toParsed || !fromParsed) {
-    return recordFailureAfterWorkerError(
+    return recordFailureAndShapeResult(
       row,
       BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.settlement_wallet_invalid
     );
@@ -245,7 +233,7 @@ export async function processBaseActivationSettlement(input: {
       activation.venue_settlement_wallet_address
     )
   ) {
-    return recordFailureAfterWorkerError(
+    return recordFailureAndShapeResult(
       row,
       BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.venue_wallet_mismatch
     );
@@ -257,7 +245,7 @@ export async function processBaseActivationSettlement(input: {
       activation.campaign_wallet_address
     )
   ) {
-    return recordFailureAfterWorkerError(
+    return recordFailureAndShapeResult(
       row,
       BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_mismatch
     );
@@ -267,7 +255,7 @@ export async function processBaseActivationSettlement(input: {
   if (userWallet) {
     const userNorm = tryNormalizeEvmAddress(userWallet) ?? userWallet.trim();
     if (userNorm && sameWalletAddress(toParsed, userNorm)) {
-      return recordFailureAfterWorkerError(
+      return recordFailureAndShapeResult(
         row,
         BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.recipient_is_user_wallet
       );
@@ -278,7 +266,7 @@ export async function processBaseActivationSettlement(input: {
     activation.usdc_asset_config
   );
   if (!cfgParse.success) {
-    return recordFailureAfterWorkerError(
+    return recordFailureAndShapeResult(
       row,
       BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.invalid_usdc_contract
     );
@@ -287,7 +275,7 @@ export async function processBaseActivationSettlement(input: {
 
   const privyWalletId = activation.privy_campaign_wallet_id?.trim();
   if (!privyWalletId) {
-    return recordFailureAfterWorkerError(
+    return recordFailureAndShapeResult(
       row,
       BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_not_configured
     );
@@ -295,7 +283,7 @@ export async function processBaseActivationSettlement(input: {
 
   if (redemption.status !== 'settlement_pending') {
     if (row.status === 'submitted' || row.status === 'queued') {
-      return recordFailureAfterWorkerError(
+      return recordFailureAndShapeResult(
         row,
         BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.redemption_status_invalid
       );
@@ -446,7 +434,7 @@ export async function processBaseActivationSettlement(input: {
           e.message
         ))
     ) {
-      return recordFailureAfterWorkerError(
+      return recordFailureAndShapeResult(
         row,
         BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.privy_not_configured
       );

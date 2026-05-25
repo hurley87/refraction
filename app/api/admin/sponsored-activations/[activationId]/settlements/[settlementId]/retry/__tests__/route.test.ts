@@ -81,4 +81,14 @@ describe('POST /api/admin/.../settlements/.../retry', () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it('maps REDEMPTION_NOT_ELIGIBLE_FOR_RETRY to 400', async () => {
+    mockAdminReset.mockRejectedValue(
+      new Error('REDEMPTION_NOT_ELIGIBLE_FOR_RETRY')
+    );
+    const res = await POST(new NextRequest('http://localhost'), {
+      params: { activationId: 'act-1', settlementId: 'set-1' },
+    });
+    expect(res.status).toBe(400);
+  });
 });

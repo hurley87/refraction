@@ -10,7 +10,6 @@ interface RouteParams {
   params: { activationId: string; settlementId: string };
 }
 
-/** POST /api/admin/sponsored-activations/{activationId}/settlements/{settlementId}/retry */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const adminCheck = await requireAdmin(request);
@@ -40,6 +39,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const message = error instanceof Error ? error.message : '';
     if (message.includes('SETTLEMENT_NOT_ELIGIBLE_FOR_RETRY')) {
       return apiError('Settlement cannot be retried in its current state', 400);
+    }
+    if (message.includes('REDEMPTION_NOT_ELIGIBLE_FOR_RETRY')) {
+      return apiError('Redemption cannot be retried in its current state', 400);
     }
     console.error(
       'POST /api/admin/sponsored-activations/[activationId]/settlements/[settlementId]/retry:',
