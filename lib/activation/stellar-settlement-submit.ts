@@ -7,6 +7,8 @@ import {
   xdr,
 } from '@stellar/stellar-sdk';
 import { privyWalletRawSignTransactionHash } from '@/lib/privy-server-rest';
+import { stellarWalletAddressSchema } from '@/lib/schemas/player';
+import { stellarUsdcAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
 import {
   classifyStellarHorizonSubmitError,
   formatUsdcAmountForStellar,
@@ -16,45 +18,53 @@ import {
 import {
   createStellarSpendHorizonServer,
   getStellarSpendNetworkPassphrase,
-  getStellarSpendUsdcAssetCode,
-  getStellarSpendUsdcIssuer,
   parseStellarSpendSponsorKeypair,
 } from '@/lib/spend/stellar-wallet-readiness-config';
 
-function formatHorizonSubmitInternalMessage(
-  msg: string,
-  data: Record<string, unknown> | null,
-  resultCodes: unknown
-): string {
-  const title = data && typeof data.title === 'string' ? data.title : null;
-  const detail = data && typeof data.detail === 'string' ? data.detail : null;
-  return JSON.stringify({
-    message: msg.slice(0, 400),
-    ...(title ? { horizon_title: title } : {}),
-    ...(detail ? { horizon_detail: detail.slice(0, 800) } : {}),
-    ...(resultCodes ? { horizon_result_codes: resultCodes } : {}),
-  }).slice(0, 1200);
+export type StellarSettlementAssetConfig = {
+  asset_code: string;
+  issuer: string;
+};
+
+export function parseStellarSettlementAssetConfig(
+  usdcAssetConfig: Record<string, unknown>
+):
+  | { ok: true; config: StellarSettlementAssetConfig }
+  | { ok: false; reason: string } {
+  const parsed = stellarUsdcAssetConfigSchema.safeParse(usdcAssetConfig);
+  if (!parsed.success) {
+    return { ok: false, reason: 'stellar_usdc_asset_misconfigured' };
+  }
+  return { ok: true, config: parsed.data };
 }
 
-/**
- * One Horizon submit attempt: sponsored-fee USDC payment from the user's Stellar account
- * to the configured receiver (IRL-24). User authorization is a single Privy `raw_sign` call.
- */
-export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
-  userPublicKey: string;
-  privyStellarWalletId: string;
-  destinationPublicKey: string;
+/** USDC asset comes from activation `usdc_asset_config`, not spend-rail env. */
+export async function submitStellarActivationSettlementFromCampaign(input: {
+  campaignPublicKey: string;
+  privyCampaignWalletId: string;
+  venueSettlementPublicKey: string;
   usdcAmount: number;
+  usdcAssetConfig: Record<string, unknown>;
 }): Promise<
   | { ok: true; txHash: string }
   | { ok: false; reason: string; internalMessage?: string }
 > {
-  const passphrase = getStellarSpendNetworkPassphrase();
-  const usdcIssuer = getStellarSpendUsdcIssuer();
-  if (!usdcIssuer) {
-    return { ok: false, reason: 'stellar_usdc_misconfigured' };
+  const assetParsed = parseStellarSettlementAssetConfig(input.usdcAssetConfig);
+  if (!assetParsed.ok) {
+    return { ok: false, reason: assetParsed.reason };
   }
-  const usdcCode = getStellarSpendUsdcAssetCode();
+
+  const campaignParse = stellarWalletAddressSchema.safeParse(
+    input.campaignPublicKey.trim().toUpperCase()
+  );
+  const venueParse = stellarWalletAddressSchema.safeParse(
+    input.venueSettlementPublicKey.trim().toUpperCase()
+  );
+  if (!campaignParse.success || !venueParse.success) {
+    return { ok: false, reason: 'stellar_address_invalid' };
+  }
+
+  const passphrase = getStellarSpendNetworkPassphrase();
   const server = createStellarSpendHorizonServer();
 
   let sponsor: Keypair;
@@ -64,14 +74,15 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     return { ok: false, reason: 'stellar_sponsor_misconfigured' };
   }
 
-  const userPub = input.userPublicKey.trim();
-  const dest = input.destinationPublicKey.trim();
+  const campaignPub = campaignParse.data;
+  const dest = venueParse.data;
+  const { asset_code: usdcCode, issuer: usdcIssuer } = assetParsed.config;
   const usdcAsset = new Asset(usdcCode, usdcIssuer);
   const payAmount = formatUsdcAmountForStellar(input.usdcAmount);
 
-  let userAccount: Horizon.AccountResponse;
+  let campaignAccount: Horizon.AccountResponse;
   try {
-    userAccount = await loadAccountOrThrow(server, userPub);
+    campaignAccount = await loadAccountOrThrow(server, campaignPub);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     const { resultCodes } = readHorizonHttpErrorData(e);
@@ -82,13 +93,13 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     };
   }
 
-  const inner = new TransactionBuilder(userAccount, {
+  const inner = new TransactionBuilder(campaignAccount, {
     fee: '0',
     networkPassphrase: passphrase,
   })
     .addOperation(
       Operation.beginSponsoringFutureReserves({
-        sponsoredId: userPub,
+        sponsoredId: campaignPub,
         source: sponsor.publicKey(),
       })
     )
@@ -101,7 +112,7 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     )
     .addOperation(
       Operation.endSponsoringFutureReserves({
-        source: userPub,
+        source: campaignPub,
       })
     )
     .setTimeout(180)
@@ -110,10 +121,10 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
   inner.sign(sponsor);
 
   const hash32 = inner.hash();
-  let userSig: Buffer;
+  let campaignSig: Buffer;
   try {
-    userSig = await privyWalletRawSignTransactionHash({
-      walletId: input.privyStellarWalletId,
+    campaignSig = await privyWalletRawSignTransactionHash({
+      walletId: input.privyCampaignWalletId,
       hash32,
     });
   } catch (e) {
@@ -125,11 +136,11 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     };
   }
 
-  const userKp = Keypair.fromPublicKey(userPub);
+  const campaignKp = Keypair.fromPublicKey(campaignPub);
   inner.addDecoratedSignature(
     new xdr.DecoratedSignature({
-      hint: userKp.signatureHint(),
-      signature: userSig,
+      hint: campaignKp.signatureHint(),
+      signature: campaignSig,
     })
   );
 
@@ -162,11 +173,11 @@ export async function submitSponsoredStellarUsdcPaymentFromUser(input: {
     return {
       ok: false,
       reason: classifyStellarHorizonSubmitError(msg, resultCodes),
-      internalMessage: formatHorizonSubmitInternalMessage(
-        msg,
-        data,
-        resultCodes
-      ),
+      internalMessage: JSON.stringify({
+        message: msg.slice(0, 400),
+        ...(data?.title ? { horizon_title: data.title } : {}),
+        ...(resultCodes ? { horizon_result_codes: resultCodes } : {}),
+      }).slice(0, 1200),
     };
   }
 }
