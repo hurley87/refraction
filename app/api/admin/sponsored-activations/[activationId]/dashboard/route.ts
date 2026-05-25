@@ -16,8 +16,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return apiError('Unauthorized - Admin access required', 403);
     }
 
-    const key = params.activationId?.trim();
-    if (!key) {
+    const key = params.activationId;
+    if (!key?.trim()) {
       return apiError('Missing activation id', 400);
     }
 

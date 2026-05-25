@@ -68,6 +68,8 @@ export default function AdminSponsoredActivationsListPage() {
       return (data.activations ?? []) as ActivationListRow[];
     },
     enabled: !!isAdmin && !!user?.email?.address,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   if (adminLoading || (user && isAdmin === null)) {

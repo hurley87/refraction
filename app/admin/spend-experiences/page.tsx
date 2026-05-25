@@ -18,6 +18,7 @@ import { SpendExperienceFormPanel } from './spend-experience-form-panel';
 import { SpendExperienceList } from './spend-experience-list';
 import type { SpendServerWalletFundingMetadata } from '@/lib/spend-server-wallet';
 import type { SpendRailCatalogEntry } from '@/lib/spend-rail-config/types';
+import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 
 const QUERY_KEY = ['admin-spend-experiences'] as const;
 const RAILS_CATALOG_QUERY_KEY = ['admin-spend-rails-catalog'] as const;
@@ -113,15 +114,6 @@ export default function AdminSpendExperiencesPage() {
     setPanelOpen(false);
     setEditing(null);
   }, []);
-
-  const readApiErrorMessage = useCallback(
-    (body: Record<string, unknown>, fallback: string) => {
-      if (typeof body.error === 'string') return body.error;
-      if (typeof body.message === 'string') return body.message;
-      return fallback;
-    },
-    []
-  );
 
   const saveMutation = useMutation<CreateSpendExperienceResponse, Error>({
     mutationFn: async () => {

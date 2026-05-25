@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
+import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import { Loader2, ArrowLeft, ExternalLink, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -17,12 +18,16 @@ import type {
   SponsoredActivationConfirmedSettlementRow,
   SponsoredActivationPendingSettlementRow,
 } from '@/lib/db/sponsored-activation-admin';
+import type {
+  SettlementRail,
+  SponsoredActivationStatus,
+} from '@/lib/db/sponsored-activations';
 
 type ActivationEnvelope = {
   id: string;
   title: string;
-  status: 'draft' | 'active' | 'paused' | 'ended';
-  settlement_rail: 'base' | 'stellar';
+  status: SponsoredActivationStatus;
+  settlement_rail: SettlementRail;
   max_usdc_budget: number | null;
   max_redemptions: number | null;
 };
@@ -35,18 +40,31 @@ type DashboardApiResponse = {
   redemptions: SponsoredActivationAdminRedemptionRow[];
 };
 
-function fmtUsdc(n: number | null | undefined): string {
+function formatIfNumber(
+  n: number | null | undefined,
+  format: (v: number) => string
+): string {
   if (n === null || n === undefined || Number.isNaN(n)) return '—';
-  const rounded = Math.round(n * 1e6) / 1e6;
-  return `$${rounded.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 6,
-  })}`;
+  return format(n);
+}
+
+function fmtUsdc(n: number | null | undefined): string {
+  return formatIfNumber(n, (v) => {
+    const rounded = Math.round(v * 1e6) / 1e6;
+    return `$${rounded.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 6,
+    })}`;
+  });
 }
 
 function fmtInt(n: number | null | undefined): string {
-  if (n === null || n === undefined || Number.isNaN(n)) return '—';
-  return n.toLocaleString();
+  return formatIfNumber(n, (v) => v.toLocaleString());
+}
+
+function fmtLocalDateTime(value: string | null | undefined): string {
+  if (!value) return '—';
+  return new Date(value).toLocaleString();
 }
 
 function statusBadgeClass(status: ActivationEnvelope['status']): string {
@@ -60,6 +78,47 @@ function statusBadgeClass(status: ActivationEnvelope['status']): string {
     default:
       return 'bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200';
   }
+}
+
+function SettlementExplorerTxLink({
+  explorerTxUrl,
+  txHash,
+  variant,
+}: {
+  explorerTxUrl: string | null;
+  txHash: string | null;
+  variant: 'compact' | 'full';
+}) {
+  if (!txHash?.trim()) {
+    return <span className="text-neutral-400">—</span>;
+  }
+  if (!explorerTxUrl?.trim()) {
+    return (
+      <span className="break-all font-mono text-[11px] text-neutral-700 dark:text-neutral-300">
+        {txHash}
+      </span>
+    );
+  }
+  const label = variant === 'compact' ? `${txHash.slice(0, 10)}…` : txHash;
+  return (
+    <a
+      href={explorerTxUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={
+        variant === 'compact'
+          ? 'inline-flex items-center gap-0.5 text-blue-700 hover:underline dark:text-blue-400'
+          : 'inline-flex flex-wrap items-center gap-0.5 break-all text-blue-700 hover:underline dark:text-blue-400'
+      }
+    >
+      {variant === 'compact' ? (
+        <span className="font-mono text-[11px]">{label}</span>
+      ) : (
+        <span>{label}</span>
+      )}
+      <ExternalLink className="size-3 shrink-0" />
+    </a>
+  );
 }
 
 export default function AdminSponsoredActivationDetailPage() {
@@ -105,10 +164,10 @@ export default function AdminSponsoredActivationDetailPage() {
     void verify();
   }, [user, checkAdminStatus]);
 
-  const dashboardQueryKey = useMemo(
-    () => ['admin-sponsored-activation-dashboard', activationId] as const,
-    [activationId]
-  );
+  const dashboardQueryKey = [
+    'admin-sponsored-activation-dashboard',
+    activationId,
+  ] as const;
 
   const {
     data: dashboard,
@@ -117,21 +176,24 @@ export default function AdminSponsoredActivationDetailPage() {
   } = useQuery<DashboardApiResponse>({
     queryKey: dashboardQueryKey,
     queryFn: async () => {
+      if (!activationId) throw new Error('Missing activation id');
       const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(
-        `/api/admin/sponsored-activations/${encodeURIComponent(activationId!)}/dashboard`,
+        `/api/admin/sponsored-activations/${encodeURIComponent(activationId)}/dashboard`,
         { headers: auth }
       );
       if (response.status === 404) {
         throw new Error('Activation not found');
       }
       if (!response.ok) throw new Error('Failed to load dashboard');
-      const j = await response.json();
+      const j = (await response.json()) as Record<string, unknown>;
       const payload = j.data as DashboardApiResponse | undefined;
       if (!payload?.activation) throw new Error('Invalid dashboard response');
       return payload;
     },
     enabled: Boolean(activationId && isAdmin && user?.email?.address),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
@@ -162,23 +224,17 @@ export default function AdminSponsoredActivationDetailPage() {
 
   const retryMutation = useMutation({
     mutationFn: async (settlementId: string) => {
+      if (!activationId) throw new Error('Missing activation id');
       const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(
-        `/api/admin/sponsored-activations/${encodeURIComponent(activationId!)}/settlements/${encodeURIComponent(settlementId)}/retry`,
+        `/api/admin/sponsored-activations/${encodeURIComponent(activationId)}/settlements/${encodeURIComponent(settlementId)}/retry`,
         { method: 'POST', headers: auth }
       );
-      const body = (await response.json()) as {
-        error?: string;
-        message?: string;
-      };
+      const body = (await response.json()) as Record<string, unknown>;
       if (!response.ok) {
-        const msg =
-          typeof body.error === 'string'
-            ? body.error
-            : typeof body.message === 'string'
-              ? body.message
-              : `Request failed (${response.status})`;
-        throw new Error(msg);
+        throw new Error(
+          readApiErrorMessage(body, `Request failed (${response.status})`)
+        );
       }
       return body;
     },
@@ -191,12 +247,11 @@ export default function AdminSponsoredActivationDetailPage() {
     },
   });
 
-  const selectedRedemption = useMemo(() => {
-    if (!dashboard || !selectedRedemptionId) return null;
-    return (
-      dashboard.redemptions.find((r) => r.id === selectedRedemptionId) ?? null
-    );
-  }, [dashboard, selectedRedemptionId]);
+  const selectedRedemption =
+    dashboard && selectedRedemptionId
+      ? (dashboard.redemptions.find((r) => r.id === selectedRedemptionId) ??
+        null)
+      : null;
 
   if (adminLoading || (user && isAdmin === null)) {
     return (
@@ -351,29 +406,17 @@ export default function AdminSponsoredActivationDetailPage() {
                           className="border-b border-neutral-100 last:border-0 dark:border-neutral-800"
                         >
                           <td className="px-3 py-2 text-xs text-neutral-700 dark:text-neutral-300">
-                            {row.confirmedAt
-                              ? new Date(row.confirmedAt).toLocaleString()
-                              : '—'}
+                            {fmtLocalDateTime(row.confirmedAt)}
                           </td>
                           <td className="px-3 py-2 font-mono text-xs">
                             {fmtUsdc(row.amount)}
                           </td>
                           <td className="px-3 py-2">
-                            {row.explorerTxUrl && row.txHash ? (
-                              <a
-                                href={row.explorerTxUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-0.5 text-blue-700 hover:underline dark:text-blue-400"
-                              >
-                                <span className="font-mono text-[11px]">
-                                  {row.txHash.slice(0, 10)}…
-                                </span>
-                                <ExternalLink className="size-3" />
-                              </a>
-                            ) : (
-                              <span className="text-neutral-400">—</span>
-                            )}
+                            <SettlementExplorerTxLink
+                              explorerTxUrl={row.explorerTxUrl}
+                              txHash={row.txHash}
+                              variant="compact"
+                            />
                           </td>
                           <td className="px-3 py-2 font-mono text-[11px] text-neutral-600 dark:text-neutral-400">
                             {row.redemptionId}
@@ -586,26 +629,17 @@ export default function AdminSponsoredActivationDetailPage() {
                 </div>
                 <ul className="mt-1 space-y-1 text-xs text-neutral-700 dark:text-neutral-300">
                   <li>
-                    Created:{' '}
-                    {new Date(selectedRedemption.createdAt).toLocaleString()}
+                    Created: {fmtLocalDateTime(selectedRedemption.createdAt)}
                   </li>
                   <li>
                     Purchase confirmed:{' '}
-                    {selectedRedemption.purchaseConfirmedAt
-                      ? new Date(
-                          selectedRedemption.purchaseConfirmedAt
-                        ).toLocaleString()
-                      : '—'}
+                    {fmtLocalDateTime(selectedRedemption.purchaseConfirmedAt)}
                   </li>
                   <li>
-                    Redeemed:{' '}
-                    {selectedRedemption.redeemedAt
-                      ? new Date(selectedRedemption.redeemedAt).toLocaleString()
-                      : '—'}
+                    Redeemed: {fmtLocalDateTime(selectedRedemption.redeemedAt)}
                   </li>
                   <li>
-                    Updated:{' '}
-                    {new Date(selectedRedemption.updatedAt).toLocaleString()}
+                    Updated: {fmtLocalDateTime(selectedRedemption.updatedAt)}
                   </li>
                 </ul>
               </div>
@@ -623,43 +657,29 @@ export default function AdminSponsoredActivationDetailPage() {
                     </li>
                     <li className="break-all">
                       Tx:{' '}
-                      {selectedRedemption.settlement.explorerTxUrl &&
-                      selectedRedemption.settlement.txHash ? (
-                        <a
-                          href={selectedRedemption.settlement.explorerTxUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-700 hover:underline dark:text-blue-400"
-                        >
-                          {selectedRedemption.settlement.txHash}
-                        </a>
-                      ) : (
-                        (selectedRedemption.settlement.txHash ?? '—')
-                      )}
+                      <SettlementExplorerTxLink
+                        explorerTxUrl={
+                          selectedRedemption.settlement.explorerTxUrl
+                        }
+                        txHash={selectedRedemption.settlement.txHash}
+                        variant="full"
+                      />
                     </li>
                     <li>
                       Queued:{' '}
-                      {selectedRedemption.settlement.queuedAt
-                        ? new Date(
-                            selectedRedemption.settlement.queuedAt
-                          ).toLocaleString()
-                        : '—'}
+                      {fmtLocalDateTime(selectedRedemption.settlement.queuedAt)}
                     </li>
                     <li>
                       Submitted:{' '}
-                      {selectedRedemption.settlement.submittedAt
-                        ? new Date(
-                            selectedRedemption.settlement.submittedAt
-                          ).toLocaleString()
-                        : '—'}
+                      {fmtLocalDateTime(
+                        selectedRedemption.settlement.submittedAt
+                      )}
                     </li>
                     <li>
                       Confirmed:{' '}
-                      {selectedRedemption.settlement.confirmedAt
-                        ? new Date(
-                            selectedRedemption.settlement.confirmedAt
-                          ).toLocaleString()
-                        : '—'}
+                      {fmtLocalDateTime(
+                        selectedRedemption.settlement.confirmedAt
+                      )}
                     </li>
                     {selectedRedemption.settlement.lastErrorCode && (
                       <li className="text-red-700 dark:text-red-400">
@@ -683,9 +703,9 @@ export default function AdminSponsoredActivationDetailPage() {
                   </li>
                   <li>
                     Occurred:{' '}
-                    {new Date(
+                    {fmtLocalDateTime(
                       selectedRedemption.eligibility.occurredAt
-                    ).toLocaleString()}
+                    )}
                   </li>
                 </ul>
               </div>

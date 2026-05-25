@@ -2,7 +2,10 @@ import { supabase } from '@/lib/db/client';
 import type { SponsoredActivationRow } from '@/lib/db/sponsored-activations';
 import { getSponsoredActivationByIdOrSlug } from '@/lib/db/sponsored-activations';
 import type { ActivationRedemptionRow } from '@/lib/db/activation-redemptions';
-import type { ActivationSettlementTransactionRow } from '@/lib/db/activation-settlement-transactions';
+import {
+  normalizeActivationSettlementTransactionRow,
+  type ActivationSettlementTransactionRow,
+} from '@/lib/db/activation-settlement-transactions';
 import type { ActivationRedemptionStatus } from '@/lib/schemas/activation-redemption';
 import { formatSettlementExplorerTxUrl } from '@/lib/spend-rail-config';
 
@@ -39,10 +42,10 @@ function toNumber(value: unknown): number {
   return NaN;
 }
 
-function sumNumeric(rows: { amount?: unknown }[], key: 'amount'): number {
+function sumInflightSettlementAmounts(rows: { amount?: unknown }[]): number {
   let t = 0;
   for (const r of rows) {
-    const n = toNumber(r[key]);
+    const n = toNumber(r.amount);
     if (!Number.isNaN(n)) t += n;
   }
   return t;
@@ -67,7 +70,7 @@ export function computeReservedUsdcFromRaw(input: {
   committedRedemptionRows: { usdc_amount_snapshot: unknown }[];
 }): number {
   return (
-    sumNumeric(input.inflightSettlementRows, 'amount') +
+    sumInflightSettlementAmounts(input.inflightSettlementRows) +
     sumUsdcSnapshots(input.committedRedemptionRows)
   );
 }
@@ -278,26 +281,9 @@ async function listPendingSettlements(
     console.error('listPendingSettlements:', error);
     throw new Error(error.message || 'Failed to list pending settlements');
   }
-  return (data ?? []).map((r) => ({
-    id: String(r.id),
-    redemption_id: String(r.redemption_id),
-    activation_id: String(r.activation_id),
-    settlement_rail:
-      r.settlement_rail as SponsoredActivationRow['settlement_rail'],
-    status: r.status as ActivationSettlementTransactionRow['status'],
-    amount: toNumber(r.amount),
-    from_wallet_address: String(r.from_wallet_address),
-    to_wallet_address: String(r.to_wallet_address),
-    tx_hash: r.tx_hash == null ? null : String(r.tx_hash),
-    submission_attempt: Number(r.submission_attempt) || 0,
-    last_error_code:
-      r.last_error_code == null ? null : String(r.last_error_code),
-    queued_at: r.queued_at == null ? null : String(r.queued_at),
-    submitted_at: r.submitted_at == null ? null : String(r.submitted_at),
-    confirmed_at: r.confirmed_at == null ? null : String(r.confirmed_at),
-    privy_transaction_id:
-      r.privy_transaction_id == null ? null : String(r.privy_transaction_id),
-  }));
+  return (data ?? []).map((r) =>
+    normalizeActivationSettlementTransactionRow(r as Record<string, unknown>)
+  );
 }
 
 async function listLatestRedemptions(
@@ -435,26 +421,9 @@ async function fetchSettlementsByRedemptionIds(
     throw new Error(error.message || 'Failed to load settlements');
   }
   for (const r of data ?? []) {
-    const row: ActivationSettlementTransactionRow = {
-      id: String(r.id),
-      redemption_id: String(r.redemption_id),
-      activation_id: String(r.activation_id),
-      settlement_rail:
-        r.settlement_rail as SponsoredActivationRow['settlement_rail'],
-      status: r.status as ActivationSettlementTransactionRow['status'],
-      amount: toNumber(r.amount),
-      from_wallet_address: String(r.from_wallet_address),
-      to_wallet_address: String(r.to_wallet_address),
-      tx_hash: r.tx_hash == null ? null : String(r.tx_hash),
-      submission_attempt: Number(r.submission_attempt) || 0,
-      last_error_code:
-        r.last_error_code == null ? null : String(r.last_error_code),
-      queued_at: r.queued_at == null ? null : String(r.queued_at),
-      submitted_at: r.submitted_at == null ? null : String(r.submitted_at),
-      confirmed_at: r.confirmed_at == null ? null : String(r.confirmed_at),
-      privy_transaction_id:
-        r.privy_transaction_id == null ? null : String(r.privy_transaction_id),
-    };
+    const row = normalizeActivationSettlementTransactionRow(
+      r as Record<string, unknown>
+    );
     map.set(row.redemption_id, row);
   }
   return map;
@@ -530,10 +499,10 @@ export async function loadSponsoredActivationAdminDashboard(
   const redemptionStatusById = new Map(
     redemptionRows.map((r) => [r.id, r.status])
   );
+  const mergedStatusMap = new Map(redemptionStatusById);
   const extraRedemptionIds = pendingSettlementRows
     .map((s) => s.redemption_id)
-    .filter((rid) => !redemptionStatusById.has(rid));
-  let mergedStatusMap = redemptionStatusById;
+    .filter((rid) => !mergedStatusMap.has(rid));
   if (extraRedemptionIds.length > 0) {
     const { data, error } = await supabase
       .from('activation_redemption')
@@ -543,7 +512,6 @@ export async function loadSponsoredActivationAdminDashboard(
       console.error('load pending redemption statuses:', error);
       throw new Error(error.message || 'Failed to load redemption statuses');
     }
-    mergedStatusMap = new Map(mergedStatusMap);
     for (const row of data ?? []) {
       mergedStatusMap.set(
         String(row.id),
@@ -592,7 +560,6 @@ export async function loadSponsoredActivationAdminDashboard(
       const reward = rewardsById.get(r.reward_item_id);
       const elig = eligById.get(r.eligibility_event_id);
       const st = settlementByRedemptionId.get(r.id);
-      const txHash = st?.tx_hash ?? null;
       return {
         id: r.id,
         userId: r.user_id,
@@ -611,7 +578,10 @@ export async function loadSponsoredActivationAdminDashboard(
               status: st.status,
               amount: st.amount,
               txHash: st.tx_hash,
-              explorerTxUrl: formatSettlementExplorerTxUrl(rail, txHash),
+              explorerTxUrl: formatSettlementExplorerTxUrl(
+                rail,
+                st.tx_hash ?? null
+              ),
               queuedAt: st.queued_at,
               submittedAt: st.submitted_at,
               confirmedAt: st.confirmed_at,
