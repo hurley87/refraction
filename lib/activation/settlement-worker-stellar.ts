@@ -100,9 +100,7 @@ async function confirmWithTxHash(
   return outcome === 'already_confirmed' ? 'already_confirmed' : 'confirmed';
 }
 
-/**
- * Processes one Stellar settlement row (queued submit or submitted poll-only).
- */
+/** Queued rows submit then confirm; `submitted` rows poll Horizon only. */
 export async function processStellarActivationSettlement(
   settlement: ActivationSettlementTransactionRow
 ): Promise<StellarSettlementWorkerItemResult> {
@@ -153,10 +151,18 @@ export async function processStellarActivationSettlement(
     return failSettlement(settlement.id, submit.reason);
   }
 
-  await markActivationSettlementSubmitted({
+  const markedSubmitted = await markActivationSettlementSubmitted({
     settlementId: settlement.id,
     txHash: submit.txHash,
   });
+  if (!markedSubmitted) {
+    // Row was no longer `queued` (concurrent worker or DB race). Do not re-submit; still try to confirm this hash on-ledger.
+    console.warn(
+      'markActivationSettlementSubmitted: no row updated',
+      settlement.id,
+      submit.txHash
+    );
+  }
 
   return confirmWithTxHash(settlement.id, submit.txHash);
 }
@@ -192,9 +198,9 @@ export async function runStellarSettlementWorkerBatch(
         summary.skipped += 1;
       }
     } catch (e) {
-      console.error('processStellarActivationSettlement:', settlement.id, e);
+      console.error('processStellarActivationSettlement:', row.id, e);
       try {
-        await failSettlement(settlement.id, 'worker_exception');
+        await failSettlement(row.id, 'worker_exception');
         summary.failed += 1;
       } catch (failErr) {
         console.error('failSettlement after worker_exception:', failErr);

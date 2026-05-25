@@ -2,7 +2,6 @@ import type { NextRequest } from 'next/server';
 import { apiError, apiSuccess } from '@/lib/api/response';
 import { runSponsoredSettlementCron } from '@/lib/activation/run-sponsored-settlement-cron';
 
-/** Vercel Cron (IRL-58): sponsored activation settlement; Stellar branch in this issue. */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET?.trim();
   if (!secret) {

@@ -98,10 +98,7 @@ export function parseStellarSettlementAssetConfig(
   return { ok: true, config: parsed.data };
 }
 
-/**
- * Campaign → venue USDC payment: Privy signs campaign wallet; sponsor fee-bump (IRL-58).
- * Asset from activation `usdc_asset_config`, not spend-rail env.
- */
+/** USDC asset comes from activation `usdc_asset_config`, not spend-rail env. */
 export async function submitStellarActivationSettlementFromCampaign(input: {
   campaignPublicKey: string;
   privyCampaignWalletId: string;

@@ -6,7 +6,6 @@ const HORIZON_TX_POLL_INTERVAL_MS = 1500;
 
 export type HorizonTxPollResult = 'success' | 'failed' | 'pending';
 
-/** Poll Horizon until tx is successful, failed on-ledger, or still pending after max attempts. */
 export async function pollStellarSettlementTxOutcome(
   txHash: string,
   server?: Horizon.Server
