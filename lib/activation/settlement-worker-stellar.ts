@@ -93,7 +93,9 @@ async function confirmWithTxHash(
     return recordSettlementFailure(settlementId, 'stellar_tx_failed_on_ledger');
   }
   if (poll === 'pending') {
-    return recordSettlementFailure(settlementId, 'stellar_tx_poll_pending');
+    // Keep `submitted` + tx_hash for the next cron tick; never clear the hash or
+    // re-queue, or a second submit could double-pay while the first tx settles.
+    return 'skipped';
   }
 
   const outcome = await confirmActivationSettlementAtomic({

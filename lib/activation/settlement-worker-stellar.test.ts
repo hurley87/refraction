@@ -145,20 +145,16 @@ describe('processStellarActivationSettlement', () => {
     expect(mockConfirm).not.toHaveBeenCalled();
   });
 
-  it('schedules retry when Horizon poll is still pending', async () => {
+  it('leaves submitted row unchanged when Horizon poll is still pending', async () => {
     mockPoll.mockResolvedValue('pending');
-    mockRecord.mockResolvedValue('retry_scheduled');
     const result = await processStellarActivationSettlement(
       settlementRow({
         status: 'submitted',
         tx_hash: 'existing-hash',
       })
     );
-    expect(result).toBe('retry_scheduled');
-    expect(mockRecord).toHaveBeenCalledWith({
-      settlementId: 'set-1',
-      lastErrorCode: 'stellar_tx_poll_pending',
-    });
+    expect(result).toBe('skipped');
+    expect(mockRecord).not.toHaveBeenCalled();
     expect(mockConfirm).not.toHaveBeenCalled();
   });
 
