@@ -2,8 +2,10 @@ import { randomUUID } from 'crypto';
 import {
   encodeFunctionData,
   erc20Abi,
+  getAddress,
   http,
   hexToBigInt,
+  isAddress,
   parseAbiItem,
   parseUnits,
 } from 'viem';
@@ -87,11 +89,28 @@ async function publicBaseClient() {
   });
 }
 
+function resolveErc20LogAddress(
+  erc20ContractAddress?: string | null
+): `0x${string}` {
+  const trimmed = erc20ContractAddress?.trim();
+  if (trimmed) {
+    if (!isAddress(trimmed)) {
+      throw new Error(
+        'resolveErc20LogAddress: invalid ERC-20 contract address'
+      );
+    }
+    return getAddress(trimmed as `0x${string}`);
+  }
+  return getSpendRailBaseUsdcContractAddress();
+}
+
 async function findRecentTreasuryTransferHash(params: {
   serverWalletAddress: `0x${string}`;
   recipientAddress: `0x${string}`;
   usdcAmount: number;
   fromBlock: bigint | null;
+  /** When set (e.g. activation `usdc_asset_config.contract_address`), scan this contract instead of the spend-rail default. */
+  erc20ContractAddress?: string | null;
 }): Promise<`0x${string}` | null> {
   const publicClient = await publicBaseClient();
   const latest = await publicClient.getBlockNumber();
@@ -141,7 +160,7 @@ async function findRecentTreasuryTransferHash(params: {
     const maxFrom = chunkTo - (MAX_LOG_BLOCK_SPAN - 1n);
     const fromBlock = maxFrom > scanFrom ? maxFrom : scanFrom;
     const logs = await publicClient.getLogs({
-      address: getSpendRailBaseUsdcContractAddress(),
+      address: resolveErc20LogAddress(params.erc20ContractAddress),
       event: TRANSFER_EVENT,
       args: {
         from: params.serverWalletAddress,
@@ -173,6 +192,7 @@ export function findRecentTreasuryUsdcTransfer(params: {
   serverWalletAddress: `0x${string}`;
   recipientAddress: `0x${string}`;
   usdcAmount: number;
+  erc20ContractAddress?: string | null;
 }): Promise<`0x${string}` | null> {
   return findRecentTreasuryTransferHash({ ...params, fromBlock: null });
 }
@@ -187,6 +207,11 @@ export async function submitTreasuryUsdcTransfer(params: {
   recipientAddress: `0x${string}`;
   /** Human-readable USDC amount (6 decimals). */
   usdcAmount: number;
+  /**
+   * ERC-20 contract for the transfer `to` field (USDC on Base).
+   * When omitted, uses the spend-rail env default (`getSpendRailBaseUsdcContractAddress`).
+   */
+  usdcContractAddress?: string | null;
   /** Override Privy poll (e.g. tests). */
   privyHashResolveOptions?: { timeoutMs?: number; pollIntervalMs?: number };
   /** Optional Privy `reference_id` (default: random UUID). */
@@ -205,6 +230,12 @@ export async function submitTreasuryUsdcTransfer(params: {
   }
 
   const referenceId = params.referenceId?.trim() || randomUUID();
+  let usdcContract: `0x${string}`;
+  try {
+    usdcContract = resolveErc20LogAddress(params.usdcContractAddress);
+  } catch {
+    return { ok: false, error: 'Invalid USDC contract address.' };
+  }
   const pollOpts = params.privyHashResolveOptions ?? {};
   // 10 s keeps total function time well within Vercel's 15 s default limit;
   // if Privy hasn't confirmed by then we return submittedPending and the
@@ -241,7 +272,7 @@ export async function submitTreasuryUsdcTransfer(params: {
 
     const sent = await signAndSendTransaction({
       walletId,
-      to: getSpendRailBaseUsdcContractAddress(),
+      to: usdcContract,
       data: transferData,
       value: '0x0',
       sponsor: true,
