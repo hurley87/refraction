@@ -19,6 +19,22 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for extension runtime.sendMessage tab-not-found noise', () => {
+    const event = {
+      request: { url: 'https://example.com/dashboard' },
+      exception: {
+        values: [
+          {
+            value:
+              'Error: Invalid call to runtime.sendMessage(). Tab not found.',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('still forwards unrelated errors', () => {
     const event = {
       request: { url: 'https://example.com/events' },
