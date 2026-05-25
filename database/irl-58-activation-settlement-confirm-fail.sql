@@ -1,4 +1,6 @@
 -- IRL-58: Atomic settlement confirm/fail with redemption status sync (no usdc_settled_total).
+-- Follow-on: database/irl-60-settlement-retry-budget.sql replaces confirm/fail with retry policy,
+-- usdc_settled_total finalize, Stellar submit RPC, promote + admin reset (run migrations in order).
 
 CREATE OR REPLACE FUNCTION confirm_activation_settlement_atomic(
   p_settlement_id UUID,

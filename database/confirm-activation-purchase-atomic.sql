@@ -1,6 +1,7 @@
 -- IRL-54: Atomic confirm purchase for sponsored activations (points + redemption + cap increment).
+-- IRL-60: Optional USDC budget cap at confirm (settled + inflight settlements + committed snapshots + this reward).
 -- Idempotent when redemption is already past `available` (no second deduct, no cap bump).
-
+-- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION confirm_activation_purchase_atomic(
   p_redemption_id UUID,
   p_player_id BIGINT,
@@ -21,6 +22,9 @@ DECLARE
   v_nt INTEGER;
   v_lifetime_confirms INTEGER;
   v_daily_confirms INTEGER;
+  v_inflight NUMERIC(24, 8);
+  v_committed NUMERIC(24, 8);
+  v_this_usdc NUMERIC(24, 8);
 BEGIN
   IF p_wallet_address IS NULL OR length(trim(p_wallet_address)) = 0 THEN
     RAISE EXCEPTION 'ACTIVATION_PURCHASE_WALLET_REQUIRED';
@@ -40,7 +44,6 @@ BEGIN
     RAISE EXCEPTION 'ACTIVATION_PURCHASE_PLAYER_MISMATCH';
   END IF;
 
-  -- Idempotent: already confirmed or later success path (no mutation).
   IF v_red.status IN (
     'ready_to_redeem',
     'redeemed',
@@ -76,8 +79,6 @@ BEGIN
     RAISE EXCEPTION 'ACTIVATION_PURCHASE_ACTIVATION_NOT_FOUND';
   END IF;
 
-  -- Per-user purchase caps (activation eligibility config), evaluated after activation row lock
-  -- so concurrent confirms for the same user cannot race past limits (IRL-54).
   SELECT COUNT(*)::INTEGER
   INTO v_lifetime_confirms
   FROM activation_redemption ar
@@ -144,6 +145,28 @@ BEGIN
     RAISE EXCEPTION 'ACTIVATION_PURCHASE_INVALID_POINTS_COST';
   END IF;
 
+  v_this_usdc := COALESCE(v_item.usdc_amount, 0);
+  IF v_act.max_usdc_budget IS NOT NULL AND v_this_usdc > 0 THEN
+    SELECT COALESCE(SUM(st.amount), 0)
+    INTO v_inflight
+    FROM activation_settlement_transaction st
+    WHERE st.activation_id = v_act.id
+      AND st.status IN ('not_started', 'queued', 'submitted', 'retrying');
+
+    SELECT COALESCE(SUM(ar.usdc_amount_snapshot), 0)
+    INTO v_committed
+    FROM activation_redemption ar
+    WHERE ar.activation_id = v_act.id
+      AND ar.id IS DISTINCT FROM v_red.id
+      AND ar.status IN ('purchase_confirmed', 'ready_to_redeem')
+      AND ar.usdc_amount_snapshot IS NOT NULL
+      AND ar.usdc_amount_snapshot > 0;
+
+    IF (v_act.usdc_settled_total + v_inflight + v_committed + v_this_usdc) > v_act.max_usdc_budget THEN
+      RAISE EXCEPTION 'ACTIVATION_PURCHASE_USDC_BUDGET_EXCEEDED';
+    END IF;
+  END IF;
+
   SELECT id, COALESCE(total_points, 0)::INTEGER
   INTO v_player_row_id, v_player_total
   FROM players
@@ -188,6 +211,5 @@ END;
 $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION confirm_activation_purchase_atomic IS
-  'IRL-54: Atomically deduct points (when points_cost > 0), bump activation redemption_count_confirmed, '
-  'and move activation_redemption from available to ready_to_redeem. Idempotent for later statuses. '
-  'Enforces per-user lifetime and UTC-daily purchase caps after locking the activation row.';
+  'IRL-54 + IRL-60: Atomically confirm purchase; optional USDC budget cap (settled + inflight settlements + '
+  'committed redemption snapshots + this reward) vs max_usdc_budget.';

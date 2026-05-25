@@ -1,36 +1,11 @@
-import {
-  getSponsoredSettlementBatchSize,
-  listStellarActivationSettlementsForWorker,
-} from '@/lib/db/activation-settlement-transactions';
-import { runStellarSettlementWorkerBatch } from '@/lib/activation/settlement-worker-stellar';
+import { runSponsoredSettlementCronOrchestrated } from '@/lib/activation/settlement-orchestration';
+import type { SponsoredSettlementCronResult } from '@/lib/activation/settlement-orchestration';
 
-export type SponsoredSettlementCronResult = {
-  batchSize: number;
-  candidateSettlements: number;
-  stellar: {
-    processed: number;
-    confirmed: number;
-    failed: number;
-    skipped: number;
-  };
-  base: {
-    processed: 0;
-    message: 'deferred_to_irl_56';
-  };
-};
+export type { SponsoredSettlementCronResult };
 
 /**
- * Shared sponsored-settlement cron (IRL-58: Stellar branch; Base deferred to IRL-56).
+ * Shared sponsored-settlement cron (IRL-60): promote `retrying` → `queued`, then Base + Stellar workers.
  */
 export async function runSponsoredSettlementCron(): Promise<SponsoredSettlementCronResult> {
-  const batchSize = getSponsoredSettlementBatchSize();
-  const candidates = await listStellarActivationSettlementsForWorker(batchSize);
-  const stellarSummary = await runStellarSettlementWorkerBatch(candidates);
-
-  return {
-    batchSize,
-    candidateSettlements: candidates.length,
-    stellar: stellarSummary,
-    base: { processed: 0, message: 'deferred_to_irl_56' },
-  };
+  return runSponsoredSettlementCronOrchestrated();
 }

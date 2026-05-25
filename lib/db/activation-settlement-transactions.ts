@@ -219,24 +219,19 @@ export async function markActivationSettlementSubmitted(input: {
   settlementId: string;
   txHash: string;
 }): Promise<boolean> {
-  const { data, error } = await supabase
-    .from(TABLE)
-    .update({
-      status: 'submitted',
-      tx_hash: input.txHash.trim(),
-      submitted_at: new Date().toISOString(),
-      submission_attempt: 1,
-    })
-    .eq('id', input.settlementId)
-    .eq('status', 'queued')
-    .select('id')
-    .maybeSingle();
+  const { data, error } = await supabase.rpc(
+    'mark_activation_settlement_submitted_atomic',
+    {
+      p_settlement_id: input.settlementId,
+      p_tx_hash: input.txHash,
+    }
+  );
 
   if (error) {
     console.error('markActivationSettlementSubmitted:', error);
     throw new Error(error.message || 'Failed to mark settlement submitted');
   }
-  return data != null;
+  return data === true;
 }
 
 export type ConfirmActivationSettlementRpcOutcome =
@@ -246,12 +241,16 @@ export type ConfirmActivationSettlementRpcOutcome =
 export async function confirmActivationSettlementAtomic(input: {
   settlementId: string;
   txHash: string;
+  privyTransactionId?: string | null;
+  preserveSubmittedAt?: string | null;
 }): Promise<ConfirmActivationSettlementRpcOutcome> {
   const { data, error } = await supabase.rpc(
     'confirm_activation_settlement_atomic',
     {
       p_settlement_id: input.settlementId,
       p_tx_hash: input.txHash,
+      p_privy_transaction_id: input.privyTransactionId ?? null,
+      p_preserve_submitted_at: input.preserveSubmittedAt ?? null,
     }
   );
 
@@ -269,17 +268,18 @@ export async function confirmActivationSettlementAtomic(input: {
   );
 }
 
-export type FailActivationSettlementRpcOutcome =
-  | 'failed'
+export type RecordActivationSettlementFailureRpcOutcome =
+  | 'retry_scheduled'
+  | 'exhausted'
   | 'already_confirmed'
   | 'already_failed';
 
-export async function failActivationSettlementAtomic(input: {
+export async function recordActivationSettlementFailureAtomic(input: {
   settlementId: string;
   lastErrorCode: string;
-}): Promise<FailActivationSettlementRpcOutcome> {
+}): Promise<RecordActivationSettlementFailureRpcOutcome> {
   const { data, error } = await supabase.rpc(
-    'fail_activation_settlement_atomic',
+    'record_activation_settlement_failure_atomic',
     {
       p_settlement_id: input.settlementId,
       p_last_error_code: input.lastErrorCode,
@@ -288,15 +288,61 @@ export async function failActivationSettlementAtomic(input: {
 
   if (error) {
     throw new Error(
-      error.message || 'fail_activation_settlement_atomic failed'
+      error.message || 'record_activation_settlement_failure_atomic failed'
     );
   }
 
   const outcome = typeof data === 'string' ? data : String(data ?? '');
   if (outcome === 'already_confirmed') return 'already_confirmed';
   if (outcome === 'already_failed') return 'already_failed';
-  if (outcome === 'failed') return 'failed';
+  if (outcome === 'exhausted') return 'exhausted';
+  if (outcome === 'retry_scheduled') return 'retry_scheduled';
   throw new Error(
-    'Unexpected RPC response from fail_activation_settlement_atomic'
+    'Unexpected RPC response from record_activation_settlement_failure_atomic'
+  );
+}
+
+export async function promoteActivationSettlementRetryingToQueued(): Promise<number> {
+  const { data, error } = await supabase.rpc(
+    'promote_activation_settlement_retrying_to_queued',
+    {}
+  );
+
+  if (error) {
+    console.error('promoteActivationSettlementRetryingToQueued:', error);
+    throw new Error(
+      error.message || 'promote_activation_settlement_retrying_to_queued failed'
+    );
+  }
+  if (typeof data === 'number' && Number.isFinite(data)) return data;
+  if (typeof data === 'string') {
+    const n = Number.parseInt(data, 10);
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+}
+
+export async function adminResetActivationSettlementForRetryAtomic(input: {
+  settlementId: string;
+  activationId: string;
+}): Promise<'reset'> {
+  const { data, error } = await supabase.rpc(
+    'admin_reset_activation_settlement_for_retry_atomic',
+    {
+      p_settlement_id: input.settlementId,
+      p_activation_id: input.activationId,
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      error.message ||
+        'admin_reset_activation_settlement_for_retry_atomic failed'
+    );
+  }
+  const outcome = typeof data === 'string' ? data : String(data ?? '');
+  if (outcome === 'reset') return 'reset';
+  throw new Error(
+    'Unexpected RPC response from admin_reset_activation_settlement_for_retry_atomic'
   );
 }

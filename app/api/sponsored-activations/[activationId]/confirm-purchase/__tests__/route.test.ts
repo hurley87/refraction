@@ -208,6 +208,20 @@ describe('POST /api/sponsored-activations/[activationId]/confirm-purchase', () =
     expect(j.error).toBe('This reward is no longer available');
   });
 
+  it('returns 400 when USDC budget cap would be exceeded (RPC)', async () => {
+    mockGetRedemptionById.mockResolvedValue(redemptionRow('available'));
+    mockConfirmRpc.mockRejectedValue(
+      new Error('ACTIVATION_PURCHASE_USDC_BUDGET_EXCEEDED')
+    );
+
+    const res = await POST(postReq({ walletAddress: wallet, redemptionId }), {
+      params: { activationId: activeActivation.id },
+    });
+    expect(res.status).toBe(400);
+    const j = await res.json();
+    expect(j.error).toBe('This reward is no longer available');
+  });
+
   it('is idempotent when redemption is already ready_to_redeem', async () => {
     mockGetRedemptionById.mockResolvedValue(redemptionRow('ready_to_redeem'));
     mockConfirmRpc.mockResolvedValue({

@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetSettlementById = vi.fn();
-const mockUpdateSettlement = vi.fn();
 const mockUpdateSettlementIfStatus = vi.fn();
+const mockConfirmSettlement = vi.fn();
+const mockRecordFailure = vi.fn();
 const mockGetActivationById = vi.fn();
 const mockGetRedemptionById = vi.fn();
 const mockSyncRedemption = vi.fn();
@@ -15,10 +16,12 @@ const mockWaitForTransaction = vi.fn();
 vi.mock('@/lib/db/activation-settlement-transactions', () => ({
   getActivationSettlementTransactionById: (...a: unknown[]) =>
     mockGetSettlementById(...a),
-  updateActivationSettlementTransaction: (...a: unknown[]) =>
-    mockUpdateSettlement(...a),
   updateActivationSettlementIfStatus: (...a: unknown[]) =>
     mockUpdateSettlementIfStatus(...a),
+  confirmActivationSettlementAtomic: (...a: unknown[]) =>
+    mockConfirmSettlement(...a),
+  recordActivationSettlementFailureAtomic: (...a: unknown[]) =>
+    mockRecordFailure(...a),
 }));
 
 vi.mock('@/lib/db/sponsored-activations', () => ({
@@ -130,12 +133,6 @@ function baseRedemption(overrides: Record<string, unknown> = {}) {
 describe('processBaseActivationSettlement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUpdateSettlement.mockImplementation(
-      async (_id: string, patch: object) => ({
-        ...baseSettlement(),
-        ...patch,
-      })
-    );
     mockUpdateSettlementIfStatus.mockImplementation(
       async (_input: { patch: object }) => ({
         ...baseSettlement({ status: 'submitted' }),
@@ -144,6 +141,8 @@ describe('processBaseActivationSettlement', () => {
     );
     mockGetReceiptStatus.mockResolvedValue('success');
     mockGetPlayerWallet.mockResolvedValue(null);
+    mockConfirmSettlement.mockResolvedValue('confirmed');
+    mockRecordFailure.mockResolvedValue('retry_scheduled');
   });
 
   it('skips when settlement rail is not base', async () => {
@@ -175,7 +174,7 @@ describe('processBaseActivationSettlement', () => {
     expect(mockSubmitTreasury).not.toHaveBeenCalled();
   });
 
-  it('happy path: submits with activation USDC contract, confirms, syncs redemption', async () => {
+  it('happy path: submits with activation USDC contract, confirms via RPC', async () => {
     mockGetSettlementById
       .mockResolvedValueOnce(baseSettlement())
       .mockResolvedValue({
@@ -219,18 +218,31 @@ describe('processBaseActivationSettlement', () => {
     if (r.outcome === 'confirmed') {
       expect(r.txHash).toBe(txHash);
     }
-    expect(mockSyncRedemption).toHaveBeenCalledWith({
-      redemptionId: 'red-1',
-      nextStatus: 'settlement_confirmed',
-    });
-  });
-
-  it('fails venue guard when to_wallet_address does not match activation venue', async () => {
-    mockGetSettlementById.mockResolvedValue(
-      baseSettlement({
-        to_wallet_address: '0x3333333333333333333333333333333333333333',
+    expect(mockConfirmSettlement).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settlementId: 'settle-1',
+        txHash,
+        privyTransactionId: 'privy-tx-1',
       })
     );
+    expect(mockSyncRedemption).not.toHaveBeenCalled();
+  });
+
+  it('records retry when venue guard fails', async () => {
+    mockGetSettlementById
+      .mockResolvedValueOnce(
+        baseSettlement({
+          to_wallet_address: '0x3333333333333333333333333333333333333333',
+        })
+      )
+      .mockResolvedValue(
+        baseSettlement({
+          to_wallet_address: '0x3333333333333333333333333333333333333333',
+          status: 'retrying',
+          last_error_code:
+            BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.venue_wallet_mismatch,
+        })
+      );
     mockGetActivationById.mockResolvedValue(baseActivation());
     mockGetRedemptionById.mockResolvedValue(baseRedemption());
 
@@ -238,20 +250,25 @@ describe('processBaseActivationSettlement', () => {
       settlementId: 'settle-1',
     });
 
-    expect(r.outcome).toBe('config_or_validation_failed');
+    expect(r.outcome).toBe('retry_scheduled');
     expect(mockSubmitTreasury).not.toHaveBeenCalled();
-    expect(mockUpdateSettlement).toHaveBeenCalledWith(
-      'settle-1',
-      expect.objectContaining({
-        status: 'failed',
-        last_error_code:
-          BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.venue_wallet_mismatch,
-      })
-    );
+    expect(mockRecordFailure).toHaveBeenCalledWith({
+      settlementId: 'settle-1',
+      lastErrorCode:
+        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.venue_wallet_mismatch,
+    });
   });
 
-  it('fails when recipient would be user embedded wallet', async () => {
-    mockGetSettlementById.mockResolvedValue(baseSettlement());
+  it('records retry when recipient would be user embedded wallet', async () => {
+    mockGetSettlementById
+      .mockResolvedValueOnce(baseSettlement())
+      .mockResolvedValue(
+        baseSettlement({
+          status: 'retrying',
+          last_error_code:
+            BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.recipient_is_user_wallet,
+        })
+      );
     mockGetActivationById.mockResolvedValue(baseActivation());
     mockGetRedemptionById.mockResolvedValue(baseRedemption());
     mockGetPlayerWallet.mockResolvedValue(venue);
@@ -260,15 +277,13 @@ describe('processBaseActivationSettlement', () => {
       settlementId: 'settle-1',
     });
 
-    expect(r.outcome).toBe('config_or_validation_failed');
+    expect(r.outcome).toBe('retry_scheduled');
     expect(mockSubmitTreasury).not.toHaveBeenCalled();
-    expect(mockUpdateSettlement).toHaveBeenCalledWith(
-      'settle-1',
-      expect.objectContaining({
-        last_error_code:
-          BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.recipient_is_user_wallet,
-      })
-    );
+    expect(mockRecordFailure).toHaveBeenCalledWith({
+      settlementId: 'settle-1',
+      lastErrorCode:
+        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.recipient_is_user_wallet,
+    });
   });
 
   it('idempotent when already confirmed', async () => {
@@ -329,16 +344,26 @@ describe('processBaseActivationSettlement', () => {
       })
     );
     expect(r.outcome).toBe('confirmed');
+    expect(mockConfirmSettlement).toHaveBeenCalled();
   });
 
-  it('insufficient campaign USDC → settlement_failed + error code', async () => {
-    mockGetSettlementById.mockResolvedValue(baseSettlement());
+  it('exhausts after insufficient campaign USDC when policy says so', async () => {
+    mockGetSettlementById
+      .mockResolvedValueOnce(baseSettlement())
+      .mockResolvedValue(
+        baseSettlement({
+          status: 'failed',
+          last_error_code:
+            BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.insufficient_campaign_usdc,
+        })
+      );
     mockGetActivationById.mockResolvedValue(baseActivation());
     mockGetRedemptionById.mockResolvedValue(baseRedemption());
     mockSubmitTreasury.mockResolvedValue({
       ok: false,
       error: 'ERC20: transfer amount exceeds balance',
     });
+    mockRecordFailure.mockResolvedValue('exhausted');
 
     const r = await processBaseActivationSettlement({
       settlementId: 'settle-1',
@@ -350,16 +375,19 @@ describe('processBaseActivationSettlement', () => {
         BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.insufficient_campaign_usdc
       );
     }
-    expect(mockUpdateSettlement).toHaveBeenCalledWith(
-      'settle-1',
-      expect.objectContaining({
-        status: 'failed',
-      })
-    );
+    expect(mockRecordFailure).toHaveBeenCalled();
   });
 
-  it('missing privy_campaign_wallet_id → failed without submit', async () => {
-    mockGetSettlementById.mockResolvedValue(baseSettlement());
+  it('records retry when privy campaign wallet id is missing', async () => {
+    mockGetSettlementById
+      .mockResolvedValueOnce(baseSettlement())
+      .mockResolvedValue(
+        baseSettlement({
+          status: 'retrying',
+          last_error_code:
+            BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_not_configured,
+        })
+      );
     mockGetActivationById.mockResolvedValue(
       baseActivation({ privy_campaign_wallet_id: null })
     );
@@ -369,21 +397,27 @@ describe('processBaseActivationSettlement', () => {
       settlementId: 'settle-1',
     });
 
-    expect(r.outcome).toBe('config_or_validation_failed');
+    expect(r.outcome).toBe('retry_scheduled');
     expect(mockSubmitTreasury).not.toHaveBeenCalled();
-    expect(mockUpdateSettlement).toHaveBeenCalledWith(
-      'settle-1',
-      expect.objectContaining({
-        last_error_code:
-          BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_not_configured,
-      })
-    );
+    expect(mockRecordFailure).toHaveBeenCalledWith({
+      settlementId: 'settle-1',
+      lastErrorCode:
+        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_not_configured,
+    });
   });
 
-  it('Privy REST not configured → config failure after submit attempt', async () => {
+  it('records retry when Privy REST is not configured', async () => {
     const { PrivyRestNotConfiguredError } =
       await import('@/lib/privy-server-rest');
-    mockGetSettlementById.mockResolvedValue(baseSettlement());
+    mockGetSettlementById
+      .mockResolvedValueOnce(baseSettlement())
+      .mockResolvedValue(
+        baseSettlement({
+          status: 'retrying',
+          last_error_code:
+            BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.privy_not_configured,
+        })
+      );
     mockGetActivationById.mockResolvedValue(baseActivation());
     mockGetRedemptionById.mockResolvedValue(baseRedemption());
     mockSubmitTreasury.mockRejectedValue(new PrivyRestNotConfiguredError());
@@ -392,7 +426,8 @@ describe('processBaseActivationSettlement', () => {
       settlementId: 'settle-1',
     });
 
-    expect(r.outcome).toBe('config_or_validation_failed');
+    expect(r.outcome).toBe('retry_scheduled');
     expect(mockSubmitTreasury).toHaveBeenCalled();
+    expect(mockRecordFailure).toHaveBeenCalled();
   });
 });

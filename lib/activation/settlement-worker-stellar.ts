@@ -1,8 +1,8 @@
 import type { ActivationSettlementTransactionRow } from '@/lib/db/activation-settlement-transactions';
 import {
   confirmActivationSettlementAtomic,
-  failActivationSettlementAtomic,
   markActivationSettlementSubmitted,
+  recordActivationSettlementFailureAtomic,
 } from '@/lib/db/activation-settlement-transactions';
 import {
   getSponsoredActivationById,
@@ -17,13 +17,15 @@ export type StellarSettlementWorkerItemResult =
   | 'confirmed'
   | 'already_confirmed'
   | 'failed'
-  | 'already_failed';
+  | 'already_failed'
+  | 'retry_scheduled';
 
 export type StellarSettlementWorkerRunSummary = {
   processed: number;
   confirmed: number;
   failed: number;
   skipped: number;
+  scheduledRetry: number;
 };
 
 function normalizeG(address: string): string | null {
@@ -68,16 +70,17 @@ function validateSettlementBundle(
   return null;
 }
 
-async function failSettlement(
+async function recordSettlementFailure(
   settlementId: string,
   errorCode: string
 ): Promise<StellarSettlementWorkerItemResult> {
-  const outcome = await failActivationSettlementAtomic({
+  const outcome = await recordActivationSettlementFailureAtomic({
     settlementId,
     lastErrorCode: errorCode,
   });
   if (outcome === 'already_confirmed') return 'already_confirmed';
   if (outcome === 'already_failed') return 'already_failed';
+  if (outcome === 'retry_scheduled') return 'retry_scheduled';
   return 'failed';
 }
 
@@ -87,10 +90,10 @@ async function confirmWithTxHash(
 ): Promise<StellarSettlementWorkerItemResult> {
   const poll = await pollStellarSettlementTxOutcome(txHash);
   if (poll === 'failed') {
-    return failSettlement(settlementId, 'stellar_tx_failed_on_ledger');
+    return recordSettlementFailure(settlementId, 'stellar_tx_failed_on_ledger');
   }
   if (poll === 'pending') {
-    return failSettlement(settlementId, 'stellar_tx_poll_pending');
+    return recordSettlementFailure(settlementId, 'stellar_tx_poll_pending');
   }
 
   const outcome = await confirmActivationSettlementAtomic({
@@ -114,15 +117,18 @@ export async function processStellarActivationSettlement(
   if (settlement.status === 'failed') {
     return 'already_failed';
   }
+  if (settlement.status === 'retrying') {
+    return 'skipped';
+  }
 
   const activation = await getSponsoredActivationById(settlement.activation_id);
   if (!activation) {
-    return failSettlement(settlement.id, 'activation_not_found');
+    return recordSettlementFailure(settlement.id, 'activation_not_found');
   }
 
   const validationError = validateSettlementBundle(settlement, activation);
   if (validationError) {
-    return failSettlement(settlement.id, validationError);
+    return recordSettlementFailure(settlement.id, validationError);
   }
 
   const privyCampaignWalletId = activation.privy_campaign_wallet_id!.trim();
@@ -130,7 +136,10 @@ export async function processStellarActivationSettlement(
   if (settlement.status === 'submitted') {
     const txHash = settlement.tx_hash?.trim();
     if (!txHash) {
-      return failSettlement(settlement.id, 'submitted_missing_tx_hash');
+      return recordSettlementFailure(
+        settlement.id,
+        'submitted_missing_tx_hash'
+      );
     }
     return confirmWithTxHash(settlement.id, txHash);
   }
@@ -148,7 +157,7 @@ export async function processStellarActivationSettlement(
   });
 
   if (!submit.ok) {
-    return failSettlement(settlement.id, submit.reason);
+    return recordSettlementFailure(settlement.id, submit.reason);
   }
 
   const markedSubmitted = await markActivationSettlementSubmitted({
@@ -175,6 +184,7 @@ export async function runStellarSettlementWorkerBatch(
     confirmed: 0,
     failed: 0,
     skipped: 0,
+    scheduledRetry: 0,
   };
 
   for (const row of settlements) {
@@ -190,16 +200,30 @@ export async function runStellarSettlementWorkerBatch(
         summary.confirmed += 1;
       } else if (result === 'failed' || result === 'already_failed') {
         summary.failed += 1;
+      } else if (result === 'retry_scheduled') {
+        summary.scheduledRetry += 1;
       } else {
         summary.skipped += 1;
       }
     } catch (e) {
       console.error('processStellarActivationSettlement:', row.id, e);
       try {
-        await failSettlement(row.id, 'worker_exception');
-        summary.failed += 1;
+        const r = await recordActivationSettlementFailureAtomic({
+          settlementId: row.id,
+          lastErrorCode: 'worker_exception',
+        });
+        if (r === 'exhausted' || r === 'already_failed') {
+          summary.failed += 1;
+        } else if (r === 'retry_scheduled') {
+          summary.scheduledRetry += 1;
+        } else {
+          summary.skipped += 1;
+        }
       } catch (failErr) {
-        console.error('failSettlement after worker_exception:', failErr);
+        console.error(
+          'recordActivationSettlementFailureAtomic after worker_exception:',
+          failErr
+        );
         summary.skipped += 1;
       }
     }

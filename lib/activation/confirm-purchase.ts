@@ -92,7 +92,8 @@ function mapRpcOrUnexpectedError(message: string): {
   if (
     message.includes('ACTIVATION_PURCHASE_CAP_EXCEEDED') ||
     message.includes('ACTIVATION_PURCHASE_MAX_PER_USER') ||
-    message.includes('ACTIVATION_PURCHASE_REWARD_INACTIVE')
+    message.includes('ACTIVATION_PURCHASE_REWARD_INACTIVE') ||
+    message.includes('ACTIVATION_PURCHASE_USDC_BUDGET_EXCEEDED')
   ) {
     return { status: 400, error: 'This reward is no longer available' };
   }
