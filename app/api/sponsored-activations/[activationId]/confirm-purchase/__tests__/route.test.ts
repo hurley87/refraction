@@ -6,8 +6,6 @@ const mockGetPrivyUserId = vi.fn();
 const mockGetActivation = vi.fn();
 const mockGetRedemptionById = vi.fn();
 const mockGetRewardItem = vi.fn();
-const mockCountLifetime = vi.fn();
-const mockCountDaily = vi.fn();
 const mockConfirmRpc = vi.fn();
 const mockGetPlayerByWallet = vi.fn();
 const mockCreateOrUpdatePlayer = vi.fn();
@@ -24,11 +22,6 @@ vi.mock('@/lib/db/sponsored-activations', () => ({
 
 vi.mock('@/lib/db/activation-redemptions', () => ({
   getActivationRedemptionById: (...a: unknown[]) => mockGetRedemptionById(...a),
-  countActivationPurchaseConfirmsForUserActivation: (...a: unknown[]) =>
-    mockCountLifetime(...a),
-  countActivationPurchaseConfirmsForUserActivationInUtcWindow: (
-    ...a: unknown[]
-  ) => mockCountDaily(...a),
   confirmActivationPurchaseAtomic: (...a: unknown[]) => mockConfirmRpc(...a),
 }));
 
@@ -139,8 +132,6 @@ beforeEach(() => {
     total_points: 100,
   });
   mockGetRewardItem.mockResolvedValue(rewardItem);
-  mockCountLifetime.mockResolvedValue(0);
-  mockCountDaily.mockResolvedValue(0);
   mockConfirmRpc.mockResolvedValue({
     outcome: 'created',
     playerTotalPoints: 90,
@@ -168,8 +159,10 @@ describe('POST /api/sponsored-activations/[activationId]/confirm-purchase', () =
       redemptionId,
       playerId: 1,
       walletAddress: expect.stringMatching(/^0x[a-fA-F0-9]{40}$/),
+      maxPurchaseConfirmsPerUser: eligibilityConfig.max_events_per_user,
+      maxPurchaseConfirmsPerUserPerDay:
+        eligibilityConfig.max_events_per_user_per_day,
     });
-    expect(mockCountLifetime).toHaveBeenCalled();
   });
 
   it('returns 400 when points are insufficient', async () => {
@@ -229,8 +222,25 @@ describe('POST /api/sponsored-activations/[activationId]/confirm-purchase', () =
     const j = await res.json();
     expect(j.data.redemption.status).toBe('ready_to_redeem');
     expect(j.data.player.total_points).toBe(90);
-    expect(mockCountLifetime).not.toHaveBeenCalled();
-    expect(mockCountDaily).not.toHaveBeenCalled();
+    expect(mockGetRewardItem).not.toHaveBeenCalled();
+  });
+
+  it('allows idempotent confirm when activation is paused (replay)', async () => {
+    mockGetActivation.mockResolvedValue({
+      ...activeActivation,
+      status: 'paused',
+    });
+    mockGetRedemptionById.mockResolvedValue(redemptionRow('ready_to_redeem'));
+    mockConfirmRpc.mockResolvedValue({
+      outcome: 'already_confirmed',
+      playerTotalPoints: 90,
+    });
+
+    const res = await POST(postReq({ walletAddress: wallet, redemptionId }), {
+      params: { activationId: activeActivation.id },
+    });
+    expect(res.status).toBe(200);
+    expect(mockConfirmRpc).toHaveBeenCalled();
   });
 
   it('returns 400 when max_per_user is exceeded (RPC)', async () => {
@@ -273,9 +283,11 @@ describe('POST /api/sponsored-activations/[activationId]/confirm-purchase', () =
     expect(res.status).toBe(401);
   });
 
-  it('returns 429 when daily confirm rate limit is exceeded', async () => {
+  it('returns 429 when daily confirm rate limit is exceeded (RPC)', async () => {
     mockGetRedemptionById.mockResolvedValue(redemptionRow('available'));
-    mockCountDaily.mockResolvedValue(2);
+    mockConfirmRpc.mockRejectedValue(
+      new Error('ACTIVATION_PURCHASE_DAILY_USER_LIMIT_EXCEEDED')
+    );
 
     const res = await POST(postReq({ walletAddress: wallet, redemptionId }), {
       params: { activationId: activeActivation.id },

@@ -4,7 +4,9 @@
 CREATE OR REPLACE FUNCTION confirm_activation_purchase_atomic(
   p_redemption_id UUID,
   p_player_id BIGINT,
-  p_wallet_address TEXT
+  p_wallet_address TEXT,
+  p_max_purchase_confirms_per_user INTEGER,
+  p_max_purchase_confirms_per_user_per_day INTEGER
 ) RETURNS TABLE (
   outcome TEXT,
   player_total_points INTEGER
@@ -17,6 +19,8 @@ DECLARE
   v_player_row_id BIGINT;
   v_points INTEGER;
   v_nt INTEGER;
+  v_lifetime_confirms INTEGER;
+  v_daily_confirms INTEGER;
 BEGIN
   IF p_wallet_address IS NULL OR length(trim(p_wallet_address)) = 0 THEN
     RAISE EXCEPTION 'ACTIVATION_PURCHASE_WALLET_REQUIRED';
@@ -70,6 +74,32 @@ BEGIN
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'ACTIVATION_PURCHASE_ACTIVATION_NOT_FOUND';
+  END IF;
+
+  -- Per-user purchase caps (activation eligibility config), evaluated after activation row lock
+  -- so concurrent confirms for the same user cannot race past limits (IRL-54).
+  SELECT COUNT(*)::INTEGER
+  INTO v_lifetime_confirms
+  FROM activation_redemption ar
+  WHERE ar.activation_id = v_act.id
+    AND ar.user_id = v_red.user_id
+    AND ar.purchase_confirmed_at IS NOT NULL;
+
+  IF v_lifetime_confirms >= p_max_purchase_confirms_per_user THEN
+    RAISE EXCEPTION 'ACTIVATION_PURCHASE_LIFETIME_USER_LIMIT_EXCEEDED';
+  END IF;
+
+  SELECT COUNT(*)::INTEGER
+  INTO v_daily_confirms
+  FROM activation_redemption ar
+  WHERE ar.activation_id = v_act.id
+    AND ar.user_id = v_red.user_id
+    AND ar.purchase_confirmed_at IS NOT NULL
+    AND (ar.purchase_confirmed_at AT TIME ZONE 'UTC')::date =
+        (now() AT TIME ZONE 'UTC')::date;
+
+  IF v_daily_confirms >= p_max_purchase_confirms_per_user_per_day THEN
+    RAISE EXCEPTION 'ACTIVATION_PURCHASE_DAILY_USER_LIMIT_EXCEEDED';
   END IF;
 
   SELECT *
@@ -159,4 +189,5 @@ $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION confirm_activation_purchase_atomic IS
   'IRL-54: Atomically deduct points (when points_cost > 0), bump activation redemption_count_confirmed, '
-  'and move activation_redemption from available to ready_to_redeem. Idempotent for later statuses.';
+  'and move activation_redemption from available to ready_to_redeem. Idempotent for later statuses. '
+  'Enforces per-user lifetime and UTC-daily purchase caps after locking the activation row.';

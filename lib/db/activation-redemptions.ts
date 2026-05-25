@@ -223,11 +223,14 @@ function readConfirmActivationPurchaseRpcRow(
 /**
  * Atomically deduct points (when configured), bump activation cap counter, and move redemption
  * to `ready_to_redeem`. Requires `confirm_activation_purchase_atomic` in the database (IRL-54).
+ * Passes eligibility per-user caps so limits are enforced inside the RPC after locking the activation.
  */
 export async function confirmActivationPurchaseAtomic(input: {
   redemptionId: string;
   playerId: number;
   walletAddress: string;
+  maxPurchaseConfirmsPerUser: number;
+  maxPurchaseConfirmsPerUserPerDay: number;
 }): Promise<ConfirmActivationPurchaseRpcResult> {
   const { data, error } = await supabase.rpc(
     'confirm_activation_purchase_atomic',
@@ -235,6 +238,9 @@ export async function confirmActivationPurchaseAtomic(input: {
       p_redemption_id: input.redemptionId,
       p_player_id: input.playerId,
       p_wallet_address: input.walletAddress,
+      p_max_purchase_confirms_per_user: input.maxPurchaseConfirmsPerUser,
+      p_max_purchase_confirms_per_user_per_day:
+        input.maxPurchaseConfirmsPerUserPerDay,
     }
   );
 

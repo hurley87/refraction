@@ -8,15 +8,10 @@ import {
   apiValidationError,
   type ApiResponse,
 } from '@/lib/api/response';
-import {
-  buildActivationRedemptionIdempotencyKey,
-  checkEligibilityEventRateLimits,
-} from '@/lib/activation/eligibility';
+import { buildActivationRedemptionIdempotencyKey } from '@/lib/activation/eligibility';
 import { canActivationAcceptUserRedemptionFlow } from '@/lib/activation/lifecycle';
 import {
   confirmActivationPurchaseAtomic,
-  countActivationPurchaseConfirmsForUserActivation,
-  countActivationPurchaseConfirmsForUserActivationInUtcWindow,
   getActivationRedemptionById,
   type ActivationRedemptionRow,
   type ConfirmActivationPurchaseRpcResult,
@@ -26,13 +21,30 @@ import { createOrUpdatePlayer, getPlayerByWallet } from '@/lib/db/players';
 import { getSponsoredActivationByIdOrSlug } from '@/lib/db/sponsored-activations';
 import { safeParseActivationEligibilityRulesConfig } from '@/lib/schemas/activation-eligibility-config';
 import { activationConfirmPurchaseBodySchema } from '@/lib/schemas/activation-confirm-purchase';
-import { getUtcDayBounds } from '@/lib/utils/date';
+import type { ActivationRedemptionStatus } from '@/lib/schemas/activation-redemption';
 import { tryNormalizeEvmAddress } from '@/lib/utils/wallets';
 
 export type ConfirmPurchaseSuccessBody = {
   redemption: ActivationRedemptionRow;
   player: { total_points: number };
 };
+
+/** Matches `confirm_activation_purchase_atomic` idempotent early-return statuses. */
+const PURCHASE_CONFIRM_IDEMPOTENT_STATUSES =
+  new Set<ActivationRedemptionStatus>([
+    'ready_to_redeem',
+    'redeemed',
+    'settlement_pending',
+    'settlement_confirmed',
+    'settlement_failed',
+    'purchase_confirmed',
+  ]);
+
+function isActivationPurchaseConfirmIdempotentReplay(
+  status: ActivationRedemptionStatus
+): boolean {
+  return PURCHASE_CONFIRM_IDEMPOTENT_STATUSES.has(status);
+}
 
 async function assertPrivyWalletAuth(
   request: NextRequest,
@@ -68,7 +80,7 @@ async function resolvePlayerForWallet(
 }
 
 function mapRpcOrUnexpectedError(message: string): {
-  status: 400 | 404 | 500;
+  status: 400 | 404 | 429 | 500;
   error: string;
 } {
   if (message.includes('ACTIVATION_PURCHASE_INSUFFICIENT_POINTS')) {
@@ -83,6 +95,18 @@ function mapRpcOrUnexpectedError(message: string): {
     message.includes('ACTIVATION_PURCHASE_REWARD_INACTIVE')
   ) {
     return { status: 400, error: 'This reward is no longer available' };
+  }
+  if (message.includes('ACTIVATION_PURCHASE_DAILY_USER_LIMIT_EXCEEDED')) {
+    return {
+      status: 429,
+      error: 'Too many eligibility requests today',
+    };
+  }
+  if (message.includes('ACTIVATION_PURCHASE_LIFETIME_USER_LIMIT_EXCEEDED')) {
+    return {
+      status: 400,
+      error: 'Eligibility limit reached for this activation',
+    };
   }
   if (message.includes('ACTIVATION_PURCHASE_INVALID_STATUS')) {
     return { status: 400, error: 'Unable to confirm this purchase' };
@@ -156,22 +180,6 @@ export async function runConfirmActivationPurchase(input: {
   }
   const rulesConfig = configParse.data;
 
-  if (
-    !canActivationAcceptUserRedemptionFlow({
-      status: activation.status,
-      starts_at: activation.starts_at,
-      ends_at: activation.ends_at,
-    })
-  ) {
-    return {
-      ok: false,
-      response: apiError(
-        'Activation is not accepting redemptions right now',
-        400
-      ),
-    };
-  }
-
   let playerId: number;
   try {
     const resolved = await resolvePlayerForWallet(walletKey);
@@ -210,67 +218,37 @@ export async function runConfirmActivationPurchase(input: {
     };
   }
 
-  const rewardItem = await getActivationRewardItemById(
-    activation.id,
-    redemption.reward_item_id
-  );
-  if (!rewardItem) {
-    return {
-      ok: false,
-      response: apiError('Unable to confirm this purchase', 404),
-    };
-  }
-  if (!rewardItem.is_active) {
-    return {
-      ok: false,
-      response: apiError('This reward is no longer available', 400),
-    };
-  }
-
-  if (redemption.status === 'available') {
-    let lifetimeCount: number;
-    let dailyCount: number;
-    try {
-      const { startIso, endIso } = getUtcDayBounds();
-      const results = await Promise.all([
-        countActivationPurchaseConfirmsForUserActivation({
-          activationId: activation.id,
-          userId: playerId,
-        }),
-        countActivationPurchaseConfirmsForUserActivationInUtcWindow({
-          activationId: activation.id,
-          userId: playerId,
-          purchaseConfirmedAtGte: startIso,
-          purchaseConfirmedAtLt: endIso,
-        }),
-      ]);
-      [lifetimeCount, dailyCount] = results;
-    } catch (e) {
-      console.error('confirm purchase (rate limit counts):', e);
-      return {
-        ok: false,
-        response: apiError('Something went wrong', 500),
-      };
-    }
-
-    const rate = checkEligibilityEventRateLimits({
-      config: rulesConfig,
-      lifetimeCountBeforeInsert: lifetimeCount,
-      dailyCountBeforeInsert: dailyCount,
-    });
-    if (rate === 'daily_exceeded') {
-      return {
-        ok: false,
-        response: apiError('Too many eligibility requests today', 429),
-      };
-    }
-    if (rate === 'lifetime_exceeded') {
+  if (!isActivationPurchaseConfirmIdempotentReplay(redemption.status)) {
+    if (
+      !canActivationAcceptUserRedemptionFlow({
+        status: activation.status,
+        starts_at: activation.starts_at,
+        ends_at: activation.ends_at,
+      })
+    ) {
       return {
         ok: false,
         response: apiError(
-          'Eligibility limit reached for this activation',
+          'Activation is not accepting redemptions right now',
           400
         ),
+      };
+    }
+
+    const rewardItem = await getActivationRewardItemById(
+      activation.id,
+      redemption.reward_item_id
+    );
+    if (!rewardItem) {
+      return {
+        ok: false,
+        response: apiError('Unable to confirm this purchase', 404),
+      };
+    }
+    if (!rewardItem.is_active) {
+      return {
+        ok: false,
+        response: apiError('This reward is no longer available', 400),
       };
     }
   }
@@ -281,6 +259,8 @@ export async function runConfirmActivationPurchase(input: {
       redemptionId,
       playerId,
       walletAddress: walletKey,
+      maxPurchaseConfirmsPerUser: rulesConfig.max_events_per_user,
+      maxPurchaseConfirmsPerUserPerDay: rulesConfig.max_events_per_user_per_day,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : '';
