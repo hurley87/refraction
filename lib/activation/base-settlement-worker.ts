@@ -1,5 +1,11 @@
 import { getAddress, isAddress } from 'viem';
 import {
+  resolveServerIdentity,
+  trackSponsoredSettlementConfirmed,
+  trackSponsoredSettlementFailed,
+  trackSponsoredSettlementSubmitted,
+} from '@/lib/analytics/server';
+import {
   getActivationRedemptionById,
   syncActivationRedemptionSettlementOutcome,
 } from '@/lib/db/activation-redemptions';
@@ -115,6 +121,31 @@ function requireEvm0x(value: string, ctx: string): `0x${string}` | null {
   return getAddress(t as `0x${string}`);
 }
 
+async function emitSponsoredSettlementFailedOnExhausted(
+  row: ActivationSettlementTransactionRow,
+  settlement: ActivationSettlementTransactionRow
+): Promise<void> {
+  const redemptionTr = await getActivationRedemptionById(row.redemption_id);
+  if (!redemptionTr) return;
+  try {
+    const distinctId = resolveServerIdentity({
+      playerId: redemptionTr.user_id,
+    });
+    trackSponsoredSettlementFailed(distinctId, {
+      activation_id: row.activation_id,
+      settlement_rail: row.settlement_rail,
+      user_id: redemptionTr.user_id,
+      reward_item_id: redemptionTr.reward_item_id,
+      redemption_id: row.redemption_id,
+      settlement_id: row.id,
+      status: settlement.status,
+      usdc_amount: settlement.amount,
+    });
+  } catch {
+    /* best-effort */
+  }
+}
+
 async function recordFailureAndShapeResult(
   row: ActivationSettlementTransactionRow,
   code: string
@@ -130,6 +161,9 @@ async function recordFailureAndShapeResult(
   });
   const settlement =
     (await getActivationSettlementTransactionById(row.id)) ?? row;
+  if (rec === 'exhausted') {
+    await emitSponsoredSettlementFailedOnExhausted(row, settlement);
+  }
   if (rec === 'retry_scheduled') {
     return { outcome: 'retry_scheduled', settlement, lastErrorCode: code };
   }
@@ -317,12 +351,39 @@ export async function processBaseActivationSettlement(input: {
       );
     }
     if (receipt === 'success') {
-      await confirmActivationSettlementAtomic({
+      const confirmOutcome = await confirmActivationSettlementAtomic({
         settlementId: params.settlementId,
         txHash: params.txHash,
         privyTransactionId: params.privyTransactionId,
         preserveSubmittedAt: params.submittedAtPreserve ?? null,
       });
+      if (confirmOutcome === 'confirmed') {
+        const settlementAfter =
+          (await getActivationSettlementTransactionById(params.settlementId)) ??
+          row;
+        const redemptionTr = await getActivationRedemptionById(
+          row.redemption_id
+        );
+        if (redemptionTr) {
+          try {
+            const distinctId = resolveServerIdentity({
+              playerId: redemptionTr.user_id,
+            });
+            trackSponsoredSettlementConfirmed(distinctId, {
+              activation_id: row.activation_id,
+              settlement_rail: row.settlement_rail,
+              user_id: redemptionTr.user_id,
+              reward_item_id: redemptionTr.reward_item_id,
+              redemption_id: row.redemption_id,
+              settlement_id: row.id,
+              status: settlementAfter.status,
+              usdc_amount: settlementAfter.amount,
+            });
+          } catch {
+            /* best-effort */
+          }
+        }
+      }
     }
     return null;
   }
@@ -477,6 +538,29 @@ export async function processBaseActivationSettlement(input: {
     throw new Error('Settlement row disappeared after Privy submit');
   }
 
+  {
+    const redemptionTr = await getActivationRedemptionById(row.redemption_id);
+    if (redemptionTr) {
+      try {
+        const distinctId = resolveServerIdentity({
+          playerId: redemptionTr.user_id,
+        });
+        trackSponsoredSettlementSubmitted(distinctId, {
+          activation_id: row.activation_id,
+          settlement_rail: row.settlement_rail,
+          user_id: redemptionTr.user_id,
+          reward_item_id: redemptionTr.reward_item_id,
+          redemption_id: row.redemption_id,
+          settlement_id: row.id,
+          status: updatedQueued.status,
+          usdc_amount: updatedQueued.amount,
+        });
+      } catch {
+        /* best-effort */
+      }
+    }
+  }
+
   let txHash: `0x${string}` | null = null;
   if ('submittedPending' in submit && submit.submittedPending) {
     txHash = await tryResolveHashFromChain();
@@ -561,6 +645,12 @@ export async function runBaseSettlementWorkerBatch(
           settlementId: row.id,
           lastErrorCode: 'worker_exception',
         });
+        if (rec === 'exhausted') {
+          const latest = await getActivationSettlementTransactionById(row.id);
+          if (latest) {
+            await emitSponsoredSettlementFailedOnExhausted(row, latest);
+          }
+        }
         if (rec === 'exhausted' || rec === 'already_failed') {
           summary.failed += 1;
         } else if (rec === 'retry_scheduled') {

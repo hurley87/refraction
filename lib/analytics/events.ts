@@ -56,6 +56,23 @@ export const ANALYTICS_EVENTS = {
   SPEND_WALLET_READINESS_STARTED: 'spend_wallet_readiness_started',
   SPEND_WALLET_READINESS_COMPLETED: 'spend_wallet_readiness_completed',
   SPEND_WALLET_READINESS_FAILED: 'spend_wallet_readiness_failed',
+
+  /** Public Records sponsored activation funnel (IRL-61). */
+  SPONSORED_ACTIVATION_VIEWED: 'sponsored_activation_viewed',
+  SPONSORED_ACTIVATION_ELIGIBILITY_RECORDED:
+    'sponsored_activation_eligibility_recorded',
+  SPONSORED_REDEMPTION_CONFIRM_VIEWED: 'sponsored_redemption_confirm_viewed',
+  SPONSORED_REDEMPTION_PURCHASE_CONFIRMED:
+    'sponsored_redemption_purchase_confirmed',
+  SPONSORED_REDEMPTION_SWIPE_STARTED: 'sponsored_redemption_swipe_started',
+  SPONSORED_REDEMPTION_REDEEMED: 'sponsored_redemption_redeemed',
+  SPONSORED_REDEMPTION_CANCELLED: 'sponsored_redemption_cancelled',
+  SPONSORED_REDEMPTION_EXPIRED: 'sponsored_redemption_expired',
+  SPONSORED_SETTLEMENT_QUEUED: 'sponsored_settlement_queued',
+  SPONSORED_SETTLEMENT_SUBMITTED: 'sponsored_settlement_submitted',
+  SPONSORED_SETTLEMENT_CONFIRMED: 'sponsored_settlement_confirmed',
+  SPONSORED_SETTLEMENT_FAILED: 'sponsored_settlement_failed',
+  SPONSORED_ACTIVATION_CAP_REACHED: 'sponsored_activation_cap_reached',
 } as const;
 
 export type AnalyticsEventName =

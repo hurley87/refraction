@@ -17,6 +17,15 @@ const mockGetTiers = vi.fn();
 const mockGetPlayerByWallet = vi.fn();
 const mockCreateOrUpdatePlayer = vi.fn();
 
+const mockTrackEligibilityRecorded = vi.fn();
+const mockResolveIdentity = vi.fn();
+
+vi.mock('@/lib/analytics/server', () => ({
+  resolveServerIdentity: (...a: unknown[]) => mockResolveIdentity(...a),
+  trackSponsoredActivationEligibilityRecorded: (...a: unknown[]) =>
+    mockTrackEligibilityRecorded(...a),
+}));
+
 vi.mock('@/lib/api/privy', () => ({
   verifyWalletOwnership: (...a: unknown[]) => mockVerifyWallet(...a),
   getPrivyUserIdFromRequest: (...a: unknown[]) => mockGetPrivyUserId(...a),
@@ -133,6 +142,7 @@ describe('POST /api/sponsored-activations/[activationId]/eligibility', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-15T12:00:00.000Z'));
     vi.clearAllMocks();
+    mockResolveIdentity.mockReturnValue('mixpanel-distinct');
     mockVerifyWallet.mockResolvedValue({
       authorized: true,
       userId: 'privy-user-1',
@@ -284,6 +294,14 @@ describe('POST /api/sponsored-activations/[activationId]/eligibility', () => {
     expect(j.data.eligible).toBe(true);
     expect(mockInsertEvent).toHaveBeenCalled();
     expect(mockInsertRedemption).toHaveBeenCalled();
+    expect(mockTrackEligibilityRecorded).toHaveBeenCalledTimes(1);
+    expect(mockTrackEligibilityRecorded).toHaveBeenCalledWith(
+      'mixpanel-distinct',
+      expect.objectContaining({
+        activation_id: activeActivation.id,
+        user_id: 99,
+      })
+    );
   });
 
   it('returns 429 when daily cap is already reached', async () => {
@@ -353,6 +371,7 @@ describe('POST /api/sponsored-activations/[activationId]/eligibility', () => {
     expect(j.data.eligibilityEvent.id).toBe(existing.id);
     expect(j.data.eligible).toBe(true);
     expect(mockInsertEvent).not.toHaveBeenCalled();
+    expect(mockTrackEligibilityRecorded).not.toHaveBeenCalled();
   });
 
   it('resolves activation by slug when path is not a UUID', async () => {

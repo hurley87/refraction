@@ -29,6 +29,18 @@ vi.mock('@/lib/db/activation-reward-items', () => ({
   getActivationRewardItemById: (...a: unknown[]) => mockGetRewardItem(...a),
 }));
 
+const mockTrackPurchaseConfirmed = vi.fn();
+const mockTrackCapReached = vi.fn();
+const mockResolveIdentity = vi.fn();
+
+vi.mock('@/lib/analytics/server', () => ({
+  resolveServerIdentity: (...a: unknown[]) => mockResolveIdentity(...a),
+  trackSponsoredRedemptionPurchaseConfirmed: (...a: unknown[]) =>
+    mockTrackPurchaseConfirmed(...a),
+  trackSponsoredActivationCapReached: (...a: unknown[]) =>
+    mockTrackCapReached(...a),
+}));
+
 vi.mock('@/lib/db/players', () => ({
   getPlayerByWallet: (...a: unknown[]) => mockGetPlayerByWallet(...a),
   createOrUpdatePlayer: (...a: unknown[]) => mockCreateOrUpdatePlayer(...a),
@@ -120,6 +132,7 @@ function postReq(body: unknown, activationSegment = activeActivation.id) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockResolveIdentity.mockReturnValue('mixpanel-distinct');
   mockVerifyWallet.mockResolvedValue({
     authorized: true,
     userId: 'privy-user-1',
@@ -163,6 +176,20 @@ describe('POST /api/sponsored-activations/[activationId]/confirm-purchase', () =
       maxPurchaseConfirmsPerUserPerDay:
         eligibilityConfig.max_events_per_user_per_day,
     });
+    expect(mockTrackPurchaseConfirmed).toHaveBeenCalledTimes(1);
+    expect(mockTrackPurchaseConfirmed).toHaveBeenCalledWith(
+      'mixpanel-distinct',
+      expect.objectContaining({
+        activation_id: activeActivation.id,
+        redemption_id: redemptionId,
+        user_id: 1,
+        reward_item_id: rewardItem.id,
+        status: 'ready_to_redeem',
+      })
+    );
+    expect(mockTrackPurchaseConfirmed.mock.calls[0][1]).not.toHaveProperty(
+      'wallet_address'
+    );
   });
 
   it('returns 400 when points are insufficient', async () => {
@@ -206,6 +233,15 @@ describe('POST /api/sponsored-activations/[activationId]/confirm-purchase', () =
     expect(res.status).toBe(400);
     const j = await res.json();
     expect(j.error).toBe('This reward is no longer available');
+    expect(mockTrackCapReached).toHaveBeenCalledTimes(1);
+    expect(mockTrackCapReached).toHaveBeenCalledWith(
+      'mixpanel-distinct',
+      expect.objectContaining({
+        activation_id: activeActivation.id,
+        redemption_id: redemptionId,
+        user_id: 1,
+      })
+    );
   });
 
   it('returns 400 when USDC budget cap would be exceeded (RPC)', async () => {
@@ -220,6 +256,7 @@ describe('POST /api/sponsored-activations/[activationId]/confirm-purchase', () =
     expect(res.status).toBe(400);
     const j = await res.json();
     expect(j.error).toBe('This reward is no longer available');
+    expect(mockTrackCapReached).not.toHaveBeenCalled();
   });
 
   it('is idempotent when redemption is already ready_to_redeem', async () => {
@@ -237,6 +274,7 @@ describe('POST /api/sponsored-activations/[activationId]/confirm-purchase', () =
     expect(j.data.redemption.status).toBe('ready_to_redeem');
     expect(j.data.player.total_points).toBe(90);
     expect(mockGetRewardItem).not.toHaveBeenCalled();
+    expect(mockTrackPurchaseConfirmed).not.toHaveBeenCalled();
   });
 
   it('allows idempotent confirm when activation is paused (replay)', async () => {
@@ -255,6 +293,7 @@ describe('POST /api/sponsored-activations/[activationId]/confirm-purchase', () =
     });
     expect(res.status).toBe(200);
     expect(mockConfirmRpc).toHaveBeenCalled();
+    expect(mockTrackPurchaseConfirmed).not.toHaveBeenCalled();
   });
 
   it('returns 400 when max_per_user is exceeded (RPC)', async () => {
@@ -269,6 +308,7 @@ describe('POST /api/sponsored-activations/[activationId]/confirm-purchase', () =
     expect(res.status).toBe(400);
     const j = await res.json();
     expect(j.error).toBe('This reward is no longer available');
+    expect(mockTrackCapReached).not.toHaveBeenCalled();
   });
 
   it('returns 401 when Privy wallet auth fails', async () => {

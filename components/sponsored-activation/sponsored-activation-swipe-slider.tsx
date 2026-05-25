@@ -8,6 +8,8 @@ const COMPLETE_RATIO = 0.82;
 type SponsoredActivationSwipeSliderProps = {
   disabled: boolean;
   onComplete: () => void;
+  /** Fires when the user begins a swipe (pointer down on knob). */
+  onSwipeGestureStart?: () => void;
   label?: string;
 };
 
@@ -17,6 +19,7 @@ type SponsoredActivationSwipeSliderProps = {
 export function SponsoredActivationSwipeSlider({
   disabled,
   onComplete,
+  onSwipeGestureStart,
   label = 'Swipe to redeem',
 }: SponsoredActivationSwipeSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -59,6 +62,7 @@ export function SponsoredActivationSwipeSlider({
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (disabled || completed) return;
+    onSwipeGestureStart?.();
     activePointerId.current = e.pointerId;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
@@ -95,6 +99,7 @@ export function SponsoredActivationSwipeSlider({
     if (disabled || completed || completionSentRef.current) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
+      onSwipeGestureStart?.();
       completionSentRef.current = true;
       const max = maxTravel();
       dragPxRef.current = max;

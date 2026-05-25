@@ -3,6 +3,10 @@ import {
   getPrivyUserIdFromRequest,
   verifyWalletOwnership,
 } from '@/lib/api/privy';
+import {
+  resolveServerIdentity,
+  trackSponsoredActivationEligibilityRecorded,
+} from '@/lib/analytics/server';
 import { apiError, apiSuccess, apiValidationError } from '@/lib/api/response';
 import {
   buildActivationRedemptionIdempotencyKey,
@@ -242,6 +246,22 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   } catch (e) {
     console.error('POST sponsored activation eligibility (insert event):', e);
     return apiError('Failed to record eligibility', 500);
+  }
+
+  try {
+    const privyUserId = await getPrivyUserIdFromRequest(request);
+    const distinctId = resolveServerIdentity({
+      privyUserId: privyUserId ?? undefined,
+      walletAddress: walletStored,
+      playerId,
+    });
+    trackSponsoredActivationEligibilityRecorded(distinctId, {
+      activation_id: activation.id,
+      settlement_rail: activation.settlement_rail,
+      user_id: playerId,
+    });
+  } catch {
+    /* analytics best-effort */
   }
 
   const rewardItems = await listActivationRewardItems(activation.id);

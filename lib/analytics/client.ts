@@ -1,6 +1,10 @@
 'use client';
 
-import type { UserProperties } from './types';
+import { ANALYTICS_EVENTS } from './events';
+import type {
+  SponsoredActivationClientEventProps,
+  UserProperties,
+} from './types';
 
 let _mixpanelInitialized = false;
 let _mixpanelInstance: typeof import('mixpanel-browser').default | null = null;
@@ -157,6 +161,34 @@ export function trackPageView(
   };
 
   mixpanel.track('$pageview', pageProperties);
+}
+
+/** Sponsored activation funnel (IRL-61) — client payloads must not include USDC or wallet addresses. */
+export function trackSponsoredActivationViewed(
+  properties: SponsoredActivationClientEventProps
+): void {
+  trackEvent(
+    ANALYTICS_EVENTS.SPONSORED_ACTIVATION_VIEWED,
+    compactMixpanelProps(properties as Record<string, unknown>)
+  );
+}
+
+export function trackSponsoredRedemptionConfirmViewed(
+  properties: SponsoredActivationClientEventProps
+): void {
+  trackEvent(
+    ANALYTICS_EVENTS.SPONSORED_REDEMPTION_CONFIRM_VIEWED,
+    compactMixpanelProps(properties as Record<string, unknown>)
+  );
+}
+
+export function trackSponsoredRedemptionSwipeStarted(
+  properties: SponsoredActivationClientEventProps
+): void {
+  trackEvent(
+    ANALYTICS_EVENTS.SPONSORED_REDEMPTION_SWIPE_STARTED,
+    compactMixpanelProps(properties as Record<string, unknown>)
+  );
 }
 
 /**

@@ -270,3 +270,28 @@ export interface SpendPilotWalletReadinessEventProperties {
   /** True when Stellar readiness was already `completed` in the database (no new orchestration). */
   resumed_from_completed_row?: boolean;
 }
+
+/** Client-safe sponsored activation analytics (no USDC amounts, no wallet addresses). */
+export type SponsoredActivationClientEventProps = {
+  activation_id: string;
+  settlement_rail?: string;
+  user_id?: number;
+  reward_item_id?: string;
+  redemption_id?: string;
+  settlement_id?: string;
+  status?: string;
+  points_spent?: number;
+};
+
+/** Server sponsored redemption / eligibility events (no wallet addresses). */
+export type SponsoredActivationServerRedemptionEventProps =
+  SponsoredActivationClientEventProps;
+
+/**
+ * Server-only settlement lifecycle events — may include `usdc_amount` (IRL-61).
+ * Do not send these payloads to the browser.
+ */
+export type SponsoredActivationServerSettlementEventProps =
+  SponsoredActivationClientEventProps & {
+    usdc_amount?: number;
+  };

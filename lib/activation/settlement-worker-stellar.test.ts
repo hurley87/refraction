@@ -11,10 +11,24 @@ const mockRecord = vi.fn();
 const mockMarkSubmitted = vi.fn();
 const mockSubmit = vi.fn();
 const mockPoll = vi.fn();
+const mockGetSettlementById = vi.fn();
+const mockGetRedemptionById = vi.fn();
+
+vi.mock('@/lib/analytics/server', () => ({
+  resolveServerIdentity: vi.fn(() => 'mixpanel-test'),
+  trackSponsoredSettlementSubmitted: vi.fn(),
+  trackSponsoredSettlementConfirmed: vi.fn(),
+  trackSponsoredSettlementFailed: vi.fn(),
+}));
 
 vi.mock('@/lib/db/sponsored-activations', () => ({
   getSponsoredActivationById: (...args: unknown[]) =>
     mockGetActivation(...args),
+}));
+
+vi.mock('@/lib/db/activation-redemptions', () => ({
+  getActivationRedemptionById: (...args: unknown[]) =>
+    mockGetRedemptionById(...args),
 }));
 
 vi.mock('@/lib/db/activation-settlement-transactions', () => ({
@@ -24,6 +38,8 @@ vi.mock('@/lib/db/activation-settlement-transactions', () => ({
     mockRecord(...args),
   markActivationSettlementSubmitted: (...args: unknown[]) =>
     mockMarkSubmitted(...args),
+  getActivationSettlementTransactionById: (...args: unknown[]) =>
+    mockGetSettlementById(...args),
 }));
 
 vi.mock('@/lib/activation/stellar-settlement-submit', () => ({
@@ -94,6 +110,25 @@ describe('processStellarActivationSettlement', () => {
     mockPoll.mockResolvedValue('success');
     mockConfirm.mockResolvedValue('confirmed');
     mockRecord.mockResolvedValue('exhausted');
+    mockGetSettlementById.mockImplementation(async (id: string) =>
+      settlementRow({ id })
+    );
+    mockGetRedemptionById.mockResolvedValue({
+      id: 'red-1',
+      activation_id: 'act-1',
+      reward_item_id: 'ri-1',
+      user_id: 7,
+      eligibility_event_id: 'e',
+      status: 'settlement_pending',
+      idempotency_key: 'k',
+      points_spent: 10,
+      usdc_amount_snapshot: 1,
+      purchase_confirmed_at: '2026-01-01T00:00:00.000Z',
+      redeemed_at: '2026-01-01T00:01:00.000Z',
+      cancelled_reason: null,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
   });
 
   it('skips non-stellar rail', async () => {

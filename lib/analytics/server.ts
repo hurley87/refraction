@@ -16,6 +16,8 @@ import type {
   SpendPilotPaymentEventProperties,
   SpendPilotRailMutationBlockedProperties,
   SpendPilotWalletReadinessEventProperties,
+  SponsoredActivationServerRedemptionEventProps,
+  SponsoredActivationServerSettlementEventProps,
 } from './types';
 import { ANALYTICS_EVENTS } from './events';
 import { resolveDistinctId, type IdentityInput } from './identity';
@@ -404,4 +406,125 @@ export function trackSpendWalletReadinessFailed(
   properties: SpendPilotWalletReadinessEventProperties
 ): void {
   trackSpendWalletReadiness('failed', distinctId, properties);
+}
+
+function compactAnalyticsProps(
+  properties: Record<string, unknown>
+): Record<string, string | number | boolean> {
+  return Object.fromEntries(
+    Object.entries(properties).filter(
+      ([, v]) => v !== undefined && v !== null && v !== ''
+    )
+  ) as Record<string, string | number | boolean>;
+}
+
+/** Sponsored activation: eligibility row inserted (POST, not idempotent replay). */
+export function trackSponsoredActivationEligibilityRecorded(
+  distinctId: string,
+  properties: SponsoredActivationServerRedemptionEventProps
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPONSORED_ACTIVATION_ELIGIBILITY_RECORDED,
+    compactAnalyticsProps({ ...properties })
+  );
+}
+
+export function trackSponsoredRedemptionPurchaseConfirmed(
+  distinctId: string,
+  properties: SponsoredActivationServerRedemptionEventProps
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPONSORED_REDEMPTION_PURCHASE_CONFIRMED,
+    compactAnalyticsProps({ ...properties })
+  );
+}
+
+export function trackSponsoredActivationCapReached(
+  distinctId: string,
+  properties: SponsoredActivationServerRedemptionEventProps
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPONSORED_ACTIVATION_CAP_REACHED,
+    compactAnalyticsProps({ ...properties })
+  );
+}
+
+export function trackSponsoredRedemptionRedeemed(
+  distinctId: string,
+  properties: SponsoredActivationServerRedemptionEventProps
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPONSORED_REDEMPTION_REDEEMED,
+    compactAnalyticsProps({ ...properties })
+  );
+}
+
+export function trackSponsoredRedemptionCancelled(
+  distinctId: string,
+  properties: SponsoredActivationServerRedemptionEventProps
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPONSORED_REDEMPTION_CANCELLED,
+    compactAnalyticsProps({ ...properties })
+  );
+}
+
+export function trackSponsoredRedemptionExpired(
+  distinctId: string,
+  properties: SponsoredActivationServerRedemptionEventProps
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPONSORED_REDEMPTION_EXPIRED,
+    compactAnalyticsProps({ ...properties })
+  );
+}
+
+export function trackSponsoredSettlementQueued(
+  distinctId: string,
+  properties: SponsoredActivationServerSettlementEventProps
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPONSORED_SETTLEMENT_QUEUED,
+    compactAnalyticsProps({ ...properties })
+  );
+}
+
+export function trackSponsoredSettlementSubmitted(
+  distinctId: string,
+  properties: SponsoredActivationServerSettlementEventProps
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPONSORED_SETTLEMENT_SUBMITTED,
+    compactAnalyticsProps({ ...properties })
+  );
+}
+
+export function trackSponsoredSettlementConfirmed(
+  distinctId: string,
+  properties: SponsoredActivationServerSettlementEventProps
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPONSORED_SETTLEMENT_CONFIRMED,
+    compactAnalyticsProps({ ...properties })
+  );
+}
+
+export function trackSponsoredSettlementFailed(
+  distinctId: string,
+  properties: SponsoredActivationServerSettlementEventProps
+): void {
+  trackEvent(
+    distinctId,
+    ANALYTICS_EVENTS.SPONSORED_SETTLEMENT_FAILED,
+    compactAnalyticsProps({ ...properties })
+  );
 }

@@ -4,6 +4,11 @@ import {
   verifyWalletOwnership,
 } from '@/lib/api/privy';
 import {
+  resolveServerIdentity,
+  trackSponsoredActivationCapReached,
+  trackSponsoredRedemptionPurchaseConfirmed,
+} from '@/lib/analytics/server';
+import {
   apiError,
   apiValidationError,
   type ApiResponse,
@@ -89,9 +94,13 @@ function mapRpcOrUnexpectedError(message: string): {
       error: 'You do not have enough points for this reward',
     };
   }
+  if (message.includes('ACTIVATION_PURCHASE_CAP_EXCEEDED')) {
+    return { status: 400, error: 'This reward is no longer available' };
+  }
+  if (message.includes('ACTIVATION_PURCHASE_MAX_PER_USER')) {
+    return { status: 400, error: 'This reward is no longer available' };
+  }
   if (
-    message.includes('ACTIVATION_PURCHASE_CAP_EXCEEDED') ||
-    message.includes('ACTIVATION_PURCHASE_MAX_PER_USER') ||
     message.includes('ACTIVATION_PURCHASE_REWARD_INACTIVE') ||
     message.includes('ACTIVATION_PURCHASE_USDC_BUDGET_EXCEEDED')
   ) {
@@ -265,6 +274,25 @@ export async function runConfirmActivationPurchase(input: {
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : '';
+    if (msg.includes('ACTIVATION_PURCHASE_CAP_EXCEEDED')) {
+      try {
+        const privyUserId = await getPrivyUserIdFromRequest(input.request);
+        const distinctId = resolveServerIdentity({
+          privyUserId: privyUserId ?? undefined,
+          walletAddress: walletKey,
+          playerId,
+        });
+        trackSponsoredActivationCapReached(distinctId, {
+          activation_id: activation.id,
+          settlement_rail: activation.settlement_rail,
+          user_id: playerId,
+          reward_item_id: redemption.reward_item_id,
+          redemption_id: redemptionId,
+        });
+      } catch {
+        /* analytics best-effort */
+      }
+    }
     const mapped = mapRpcOrUnexpectedError(msg);
     return {
       ok: false,
@@ -287,6 +315,28 @@ export async function runConfirmActivationPurchase(input: {
       ok: false,
       response: apiError('Something went wrong', 500),
     };
+  }
+
+  if (rpc.outcome === 'created') {
+    try {
+      const privyUserId = await getPrivyUserIdFromRequest(input.request);
+      const distinctId = resolveServerIdentity({
+        privyUserId: privyUserId ?? undefined,
+        walletAddress: walletKey,
+        playerId,
+      });
+      trackSponsoredRedemptionPurchaseConfirmed(distinctId, {
+        activation_id: activation.id,
+        settlement_rail: activation.settlement_rail,
+        user_id: playerId,
+        reward_item_id: fresh.reward_item_id,
+        redemption_id: fresh.id,
+        status: fresh.status,
+        points_spent: fresh.points_spent ?? undefined,
+      });
+    } catch {
+      /* analytics best-effort */
+    }
   }
 
   return {

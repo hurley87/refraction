@@ -65,6 +65,13 @@ vi.mock('@/lib/privy-server-rest', () => {
   };
 });
 
+vi.mock('@/lib/analytics/server', () => ({
+  resolveServerIdentity: vi.fn(() => 'mixpanel-test'),
+  trackSponsoredSettlementSubmitted: vi.fn(),
+  trackSponsoredSettlementConfirmed: vi.fn(),
+  trackSponsoredSettlementFailed: vi.fn(),
+}));
+
 import {
   BASE_ACTIVATION_SETTLEMENT_ERROR_CODES,
   processBaseActivationSettlement,
