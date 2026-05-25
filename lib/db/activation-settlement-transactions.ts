@@ -78,3 +78,84 @@ export async function getActivationSettlementTransactionByRedemptionId(
   if (!data) return null;
   return normalizeRow(data as Record<string, unknown>);
 }
+
+export async function getActivationSettlementTransactionById(
+  settlementId: string
+): Promise<ActivationSettlementTransactionRow | null> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .eq('id', settlementId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('getActivationSettlementTransactionById:', error);
+    throw new Error(error.message || 'Failed to load settlement transaction');
+  }
+  if (!data) return null;
+  return normalizeRow(data as Record<string, unknown>);
+}
+
+export type ActivationSettlementTransactionPatch = {
+  status?: ActivationSettlementStatus;
+  tx_hash?: string | null;
+  privy_transaction_id?: string | null;
+  last_error_code?: string | null;
+  queued_at?: string | null;
+  submitted_at?: string | null;
+  confirmed_at?: string | null;
+  submission_attempt?: number;
+};
+
+/**
+ * Updates a settlement row by id (no status guard). Prefer
+ * {@link updateActivationSettlementIfStatus} when moving `queued` → `submitted`
+ * so concurrent workers do not double-apply patches.
+ */
+export async function updateActivationSettlementTransaction(
+  settlementId: string,
+  patch: ActivationSettlementTransactionPatch
+): Promise<ActivationSettlementTransactionRow | null> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update(patch)
+    .eq('id', settlementId)
+    .select('*')
+    .maybeSingle();
+
+  if (error) {
+    console.error('updateActivationSettlementTransaction:', error);
+    throw new Error(error.message || 'Failed to update settlement transaction');
+  }
+  if (!data) return null;
+  return normalizeRow(data as Record<string, unknown>);
+}
+
+/**
+ * Conditional update: only rows whose `status` is in `ifStatusIn` are updated.
+ * Returns the updated row, or null when no row matched (e.g. another worker moved status).
+ */
+export async function updateActivationSettlementIfStatus(input: {
+  settlementId: string;
+  ifStatusIn: ActivationSettlementStatus[];
+  patch: ActivationSettlementTransactionPatch;
+}): Promise<ActivationSettlementTransactionRow | null> {
+  let q = supabase.from(TABLE).update(input.patch).eq('id', input.settlementId);
+
+  if (input.ifStatusIn.length === 1) {
+    q = q.eq('status', input.ifStatusIn[0]!);
+  } else {
+    q = q.in('status', input.ifStatusIn);
+  }
+
+  const { data, error } = await q.select('*').maybeSingle();
+
+  if (error) {
+    console.error('updateActivationSettlementIfStatus:', error);
+    throw new Error(
+      error.message || 'Failed to conditionally update settlement transaction'
+    );
+  }
+  if (!data) return null;
+  return normalizeRow(data as Record<string, unknown>);
+}

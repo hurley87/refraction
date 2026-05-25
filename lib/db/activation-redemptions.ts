@@ -387,3 +387,33 @@ export async function getActivationRedemptionByIdempotencyKey(
   if (!data) return null;
   return normalizeRow(data as Record<string, unknown>);
 }
+
+/**
+ * Moves redemption out of `settlement_pending` after settlement worker outcome (IRL-56).
+ * Only updates when the row is still `settlement_pending` so duplicate invocations stay idempotent.
+ */
+export async function syncActivationRedemptionSettlementOutcome(input: {
+  redemptionId: string;
+  nextStatus: Extract<
+    ActivationRedemptionStatus,
+    'settlement_confirmed' | 'settlement_failed'
+  >;
+}): Promise<ActivationRedemptionRow | null> {
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from(TABLE)
+    .update({ status: input.nextStatus, updated_at: now })
+    .eq('id', input.redemptionId)
+    .eq('status', 'settlement_pending')
+    .select('*')
+    .maybeSingle();
+
+  if (error) {
+    console.error('syncActivationRedemptionSettlementOutcome:', error);
+    throw new Error(
+      error.message || 'Failed to sync redemption settlement status'
+    );
+  }
+  if (!data) return null;
+  return normalizeRow(data as Record<string, unknown>);
+}

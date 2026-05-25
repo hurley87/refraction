@@ -111,6 +111,29 @@ export const getPlayerByWallet = async (walletAddress: string) => {
 };
 
 /**
+ * Primary EVM `wallet_address` for a player, when set (trimmed non-empty).
+ * Used by activation settlement to ensure venue payouts never target the attendee wallet.
+ */
+export async function getPlayerEvmWalletAddressById(
+  playerId: number
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('players')
+    .select('wallet_address')
+    .eq('id', playerId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('getPlayerEvmWalletAddressById:', error);
+    throw new Error(error.message || 'Failed to load player wallet');
+  }
+  const w = data?.wallet_address;
+  if (typeof w !== 'string') return null;
+  const t = w.trim();
+  return t.length > 0 ? t : null;
+}
+
+/**
  * Resolve `players.id` for a wallet string. Tries EIP-55 form and the raw
  * trimmed value so lookups work whether the row stores checksummed or
  * all-lowercase EVM addresses.
