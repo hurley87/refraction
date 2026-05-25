@@ -123,6 +123,44 @@ export async function getSponsoredActivationById(
   return normalizeRow(data as Record<string, unknown>);
 }
 
+const UUID_SEGMENT =
+  '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}';
+const UUID_ONLY_RE = new RegExp(`^${UUID_SEGMENT}$`);
+
+/**
+ * True when `value` is a UUID-shaped string (used to route `.../{idOrSlug}` to id vs slug lookup).
+ */
+export function isSponsoredActivationUuidPathSegment(value: string): boolean {
+  return UUID_ONLY_RE.test(value.trim());
+}
+
+export async function getSponsoredActivationBySlug(
+  slug: string
+): Promise<SponsoredActivationRow | null> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .eq('slug', slug.trim())
+    .maybeSingle();
+  if (error) {
+    console.error('getSponsoredActivationBySlug:', error);
+    throw new Error(error.message || 'Failed to load sponsored activation');
+  }
+  if (!data) return null;
+  return normalizeRow(data as Record<string, unknown>);
+}
+
+export async function getSponsoredActivationByIdOrSlug(
+  activationIdOrSlug: string
+): Promise<SponsoredActivationRow | null> {
+  const key = activationIdOrSlug.trim();
+  if (!key) return null;
+  if (isSponsoredActivationUuidPathSegment(key)) {
+    return getSponsoredActivationById(key);
+  }
+  return getSponsoredActivationBySlug(key);
+}
+
 export async function getSponsoredActivationByCreateIdempotencyKey(
   key: string
 ): Promise<SponsoredActivationRow | null> {

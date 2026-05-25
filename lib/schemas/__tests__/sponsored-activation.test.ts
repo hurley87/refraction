@@ -11,6 +11,13 @@ const SAMPLE_EVM_CONTRACT = '0x2222222222222222222222222222222222222222';
 const STELLAR_A = 'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
 const STELLAR_B = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
 
+/** Strict `eligibility_config` (IRL-57) — use in create/update schema tests. */
+const sampleEligibilityConfig = {
+  max_events_per_user: 100,
+  max_events_per_user_per_day: 20,
+  required_checkpoint_ids: ['checkpoint-a'],
+};
+
 const validTime = {
   starts_at: '2026-06-01T12:00:00.000Z',
   ends_at: '2026-06-30T12:00:00.000Z',
@@ -27,7 +34,7 @@ describe('createSponsoredActivationSchema', () => {
       sponsor_name: 'Acme',
       max_redemptions: 500,
       ...validTime,
-      eligibility_config: { min_tier: 1 },
+      eligibility_config: { ...sampleEligibilityConfig, min_tier: 1 },
       campaign_wallet_address: campaign,
       venue_settlement_wallet_address: venue,
       usdc_asset_config: { contract_address: SAMPLE_EVM_CONTRACT },
@@ -54,7 +61,7 @@ describe('createSponsoredActivationSchema', () => {
       sponsor_name: 'Acme',
       max_usdc_budget: 1000,
       ...validTime,
-      eligibility_config: {},
+      eligibility_config: sampleEligibilityConfig,
       campaign_wallet_address: STELLAR_A,
       venue_settlement_wallet_address: STELLAR_B,
       usdc_asset_config: {
@@ -77,7 +84,7 @@ describe('createSponsoredActivationSchema', () => {
       sponsor_name: 's',
       max_redemptions: 1,
       ...validTime,
-      eligibility_config: {},
+      eligibility_config: sampleEligibilityConfig,
       campaign_wallet_address: STELLAR_A,
       venue_settlement_wallet_address:
         '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
@@ -94,7 +101,7 @@ describe('createSponsoredActivationSchema', () => {
       sponsor_name: 's',
       max_redemptions: 1,
       ...validTime,
-      eligibility_config: {},
+      eligibility_config: sampleEligibilityConfig,
       campaign_wallet_address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
       venue_settlement_wallet_address: STELLAR_B,
       usdc_asset_config: {
@@ -113,7 +120,7 @@ describe('createSponsoredActivationSchema', () => {
       sponsor_name: 's',
       max_redemptions: 1,
       ...validTime,
-      eligibility_config: {},
+      eligibility_config: sampleEligibilityConfig,
       campaign_wallet_address: STELLAR_A,
       venue_settlement_wallet_address: STELLAR_A,
       usdc_asset_config: {
@@ -133,7 +140,7 @@ describe('createSponsoredActivationSchema', () => {
       sponsor_name: 's',
       max_redemptions: 1,
       ...validTime,
-      eligibility_config: {},
+      eligibility_config: sampleEligibilityConfig,
       campaign_wallet_address: addr,
       venue_settlement_wallet_address: addr.toLowerCase(),
       usdc_asset_config: { contract_address: SAMPLE_EVM_CONTRACT },
@@ -148,7 +155,7 @@ describe('createSponsoredActivationSchema', () => {
       title: 't',
       sponsor_name: 's',
       ...validTime,
-      eligibility_config: {},
+      eligibility_config: sampleEligibilityConfig,
       campaign_wallet_address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
       venue_settlement_wallet_address:
         '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
@@ -166,7 +173,7 @@ describe('createSponsoredActivationSchema', () => {
       max_redemptions: 1,
       starts_at: '2026-06-30T12:00:00.000Z',
       ends_at: '2026-06-01T12:00:00.000Z',
-      eligibility_config: {},
+      eligibility_config: sampleEligibilityConfig,
       campaign_wallet_address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
       venue_settlement_wallet_address:
         '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
@@ -183,7 +190,7 @@ describe('createSponsoredActivationSchema', () => {
       sponsor_name: 's',
       max_redemptions: 1,
       ...validTime,
-      eligibility_config: {},
+      eligibility_config: sampleEligibilityConfig,
       campaign_wallet_address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
       venue_settlement_wallet_address:
         '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
@@ -193,23 +200,21 @@ describe('createSponsoredActivationSchema', () => {
     expect(r.success).toBe(false);
   });
 
-  it('allows optional event_id on create', () => {
+  it('rejects unknown keys in eligibility_config on create', () => {
     const r = createSponsoredActivationSchema.safeParse({
       settlement_rail: 'base',
       slug: 'x',
       title: 't',
       sponsor_name: 's',
-      event_id: 'evt_123',
       max_redemptions: 1,
       ...validTime,
-      eligibility_config: {},
+      eligibility_config: { ...sampleEligibilityConfig, unknown_key: true },
       campaign_wallet_address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
       venue_settlement_wallet_address:
         '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
       usdc_asset_config: { contract_address: SAMPLE_EVM_CONTRACT },
     });
-    expect(r.success).toBe(true);
-    if (r.success) expect(r.data.event_id).toBe('evt_123');
+    expect(r.success).toBe(false);
   });
 });
 
@@ -222,7 +227,7 @@ describe('adminCreateSponsoredActivationRequestSchema', () => {
       sponsor_name: 'Acme',
       max_redemptions: 100,
       ...validTime,
-      eligibility_config: { min_tier: 1 },
+      eligibility_config: { ...sampleEligibilityConfig, min_tier: 1 },
       venue_settlement_wallet_address:
         '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
       usdc_asset_config: { contract_address: SAMPLE_EVM_CONTRACT },
@@ -238,7 +243,7 @@ describe('adminCreateSponsoredActivationRequestSchema', () => {
       sponsor_name: 's',
       max_redemptions: 1,
       ...validTime,
-      eligibility_config: {},
+      eligibility_config: sampleEligibilityConfig,
       venue_settlement_wallet_address:
         '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
       usdc_asset_config: { contract_address: SAMPLE_EVM_CONTRACT },
@@ -249,6 +254,13 @@ describe('adminCreateSponsoredActivationRequestSchema', () => {
 });
 
 describe('updateSponsoredActivationSchema', () => {
+  it('rejects unknown keys in eligibility_config on update', () => {
+    const r = updateSponsoredActivationSchema.safeParse({
+      eligibility_config: { ...sampleEligibilityConfig, extra: 1 },
+    });
+    expect(r.success).toBe(false);
+  });
+
   it('does not require caps on update', () => {
     const r = updateSponsoredActivationSchema.safeParse({
       title: 'Only title',

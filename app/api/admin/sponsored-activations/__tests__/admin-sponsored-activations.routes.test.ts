@@ -76,6 +76,12 @@ const validWindow = {
   ends_at: '2026-06-30T12:00:00.000Z',
 };
 
+const testEligibilityConfig = {
+  max_events_per_user: 50,
+  max_events_per_user_per_day: 10,
+  required_checkpoint_ids: ['cp-1'],
+};
+
 const baseFixture = {
   id: 'act-1',
   slug: 's1',
@@ -92,7 +98,7 @@ const baseFixture = {
   usdc_settled_total: 0,
   redemption_count_confirmed: 0,
   ...validWindow,
-  eligibility_config: {},
+  eligibility_config: testEligibilityConfig,
   created_by: 'a@b.com',
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
@@ -167,7 +173,7 @@ describe('POST /api/admin/sponsored-activations', () => {
         sponsor_name: 's',
         max_redemptions: 1,
         ...validWindow,
-        eligibility_config: {},
+        eligibility_config: testEligibilityConfig,
         venue_settlement_wallet_address:
           '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
         usdc_asset_config: { contract_address: SAMPLE_CONTRACT },
@@ -185,7 +191,7 @@ describe('POST /api/admin/sponsored-activations', () => {
         sponsor_name: 's',
         max_redemptions: 1,
         ...validWindow,
-        eligibility_config: {},
+        eligibility_config: testEligibilityConfig,
         venue_settlement_wallet_address: STELLAR,
         usdc_asset_config: { contract_address: SAMPLE_CONTRACT },
       })
@@ -207,7 +213,7 @@ describe('POST /api/admin/sponsored-activations', () => {
           sponsor_name: 's',
           max_redemptions: 1,
           ...validWindow,
-          eligibility_config: {},
+          eligibility_config: testEligibilityConfig,
           venue_settlement_wallet_address:
             '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
           usdc_asset_config: { contract_address: SAMPLE_CONTRACT },

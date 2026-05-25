@@ -17,11 +17,35 @@ export type ActivationEligibilitySource = z.infer<
 >;
 
 /**
- * v1 activation-side eligibility rules: permissive object (not a strict rules engine).
+ * v1 user-facing eligibility recording (IRL-57): only checkpoint + QR.
+ * Other DB enum values are rejected at the API layer with validation errors.
  */
-export const eligibilityConfigValueSchema = z.object({}).catchall(z.unknown());
+export const sponsoredActivationUserEligibilitySourceSchema = z.enum([
+  'checkpoint_checkin',
+  'qr_scan',
+]);
 
-/** JSON object with optional loose keys; defaults to `{}` for create payloads. */
-export const eligibilityConfigSchema = eligibilityConfigValueSchema.default({});
+export type SponsoredActivationUserEligibilitySource = z.infer<
+  typeof sponsoredActivationUserEligibilitySourceSchema
+>;
 
-export type EligibilityConfig = z.infer<typeof eligibilityConfigValueSchema>;
+const eligibilityWalletAddressSchema = z
+  .string()
+  .min(1, 'walletAddress is required')
+  .refine((s) => /^0x[a-fA-F0-9]{40}$/.test(s.trim()), {
+    message: 'walletAddress must be a valid EVM address',
+  });
+
+/** POST /api/sponsored-activations/{activationIdOrSlug}/eligibility */
+export const recordSponsoredActivationEligibilityBodySchema = z
+  .object({
+    walletAddress: eligibilityWalletAddressSchema,
+    source: sponsoredActivationUserEligibilitySourceSchema,
+    source_ref_id: z.string().min(1),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict();
+
+export type RecordSponsoredActivationEligibilityBody = z.infer<
+  typeof recordSponsoredActivationEligibilityBodySchema
+>;
