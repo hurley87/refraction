@@ -53,6 +53,8 @@ BEGIN
     RAISE EXCEPTION 'ACTIVATION_SWIPE_MISSING_USDC_SNAPSHOT';
   END IF;
 
+  v_snapshot := v_red.usdc_amount_snapshot;
+
   SELECT *
   INTO v_act
   FROM sponsored_activation
@@ -139,7 +141,6 @@ BEGIN
     WHERE st.activation_id = v_act.id
       AND st.status IN ('not_started', 'queued', 'submitted', 'retrying');
 
-    v_snapshot := v_red.usdc_amount_snapshot;
     v_budget_cap := v_act.max_usdc_budget;
 
     IF (v_settled + v_inflight + v_snapshot) > v_budget_cap THEN
