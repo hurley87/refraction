@@ -1,15 +1,11 @@
 import type { Tier } from '@/lib/types';
+import { resolveTierForPoints } from '@/lib/tier-for-points';
 
-/** Client-safe tier resolution (mirrors `lib/db/tiers.resolveTierForPoints`). */
+/** Tier title for display after a points balance change (uses shared tier window logic). */
 export function resolveTierTitleForPoints(
   tiers: Tier[] | undefined,
   totalPoints: number
 ): string | null {
   if (!tiers?.length) return null;
-  const tier = tiers.find(
-    (t) =>
-      totalPoints >= t.min_points &&
-      (t.max_points === null || totalPoints < t.max_points)
-  );
-  return tier?.title ?? null;
+  return resolveTierForPoints(tiers, totalPoints)?.title ?? null;
 }

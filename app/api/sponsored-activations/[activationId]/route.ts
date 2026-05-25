@@ -30,14 +30,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     return apiError('Something went wrong', 500);
   }
 
-  const active = items
-    .filter((i) => i.is_active)
-    .sort((a, b) => {
-      if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-      return a.created_at.localeCompare(b.created_at);
-    });
-
-  const reward = active[0];
+  // `listActivationRewardItems` orders by sort_order, then created_at ascending.
+  const reward = items.find((i) => i.is_active);
   if (!reward) {
     return apiError('Sponsored activation not found', 404);
   }

@@ -17,6 +17,10 @@ import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useTiers } from '@/hooks/useTiers';
 import type { ActivationRedemptionRow } from '@/lib/db/activation-redemptions';
 import { apiClient, ApiError } from '@/lib/api/client';
+import {
+  apiClientBearerGet,
+  apiClientBearerPost,
+} from '@/lib/api/privy-bearer-client';
 import { parseSponsoredActivationEligibilityDeeplink } from '@/lib/sponsored-activation/eligibility-deeplink';
 import {
   isRedeemedLikeStatus,
@@ -34,8 +38,6 @@ type EligibilityPostResponse = {
 };
 
 type EligibilityGetResponse = {
-  activationId: string;
-  eligibilityEvents: unknown[];
   redemptions: ActivationRedemptionRow[];
 };
 
@@ -46,30 +48,7 @@ type ConfirmPurchaseResponse = {
 
 type SwipeRedeemResponse = {
   redemption: ActivationRedemptionRow;
-  settlement: unknown;
 };
-
-async function authedPost<T>(
-  token: string,
-  path: string,
-  body: Record<string, unknown>
-): Promise<T> {
-  return apiClient<T>(path, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-}
-
-async function authedGet<T>(token: string, path: string): Promise<T> {
-  return apiClient<T>(path, {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-}
 
 type SponsoredActivationFlowProps = {
   activationKey: string;
@@ -121,7 +100,7 @@ export function SponsoredActivationFlow({
     }) => {
       const token = await getAccessToken();
       if (!token) throw new Error('Missing auth');
-      return authedPost<EligibilityPostResponse>(
+      return apiClientBearerPost<EligibilityPostResponse>(
         token,
         `/api/sponsored-activations/${encodeURIComponent(activationKey)}/eligibility`,
         {
@@ -168,7 +147,7 @@ export function SponsoredActivationFlow({
     queryFn: async () => {
       const token = await getAccessToken();
       if (!token || !walletAddress) throw new Error('Missing auth');
-      return authedGet<EligibilityGetResponse>(
+      return apiClientBearerGet<EligibilityGetResponse>(
         token,
         `/api/sponsored-activations/${encodeURIComponent(activationKey)}/eligibility?walletAddress=${encodeURIComponent(walletAddress)}`
       );
@@ -202,7 +181,7 @@ export function SponsoredActivationFlow({
     mutationFn: async (redemptionId: string) => {
       const token = await getAccessToken();
       if (!token || !walletAddress) throw new Error('Missing auth');
-      return authedPost<ConfirmPurchaseResponse>(
+      return apiClientBearerPost<ConfirmPurchaseResponse>(
         token,
         `/api/sponsored-activations/${encodeURIComponent(activationKey)}/confirm-purchase`,
         { walletAddress, redemptionId }
@@ -228,7 +207,7 @@ export function SponsoredActivationFlow({
     mutationFn: async (redemptionId: string) => {
       const token = await getAccessToken();
       if (!token || !walletAddress) throw new Error('Missing auth');
-      return authedPost<SwipeRedeemResponse>(
+      return apiClientBearerPost<SwipeRedeemResponse>(
         token,
         `/api/sponsored-activations/${encodeURIComponent(activationKey)}/swipe-redeem`,
         { walletAddress, redemptionId }
@@ -369,7 +348,7 @@ export function SponsoredActivationFlow({
     );
   }
 
-  if (!redemption && !eligibilityLoading) {
+  if (!redemption) {
     return (
       <SponsoredActivationPageShell>
         <div className="flex flex-col gap-4 p-6 text-center">
@@ -382,10 +361,6 @@ export function SponsoredActivationFlow({
         </div>
       </SponsoredActivationPageShell>
     );
-  }
-
-  if (!redemption) {
-    return null;
   }
 
   if (baseScreen === 'expired') {

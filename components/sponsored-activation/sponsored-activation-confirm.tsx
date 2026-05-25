@@ -20,7 +20,6 @@ export function SponsoredActivationConfirm({
   onConfirm,
 }: SponsoredActivationConfirmProps) {
   const { rewardItem, activation } = read;
-  const hero = rewardItem.hero_image_url;
 
   return (
     <div className="flex min-h-[70vh] flex-col">
@@ -31,9 +30,9 @@ export function SponsoredActivationConfirm({
         <h1 className="title2 text-white">{activation.title}</h1>
 
         <div className="relative aspect-[4/5] w-full overflow-hidden rounded-md bg-white/5">
-          {hero ? (
+          {rewardItem.hero_image_url ? (
             <Image
-              src={hero}
+              src={rewardItem.hero_image_url}
               alt={rewardItem.name}
               fill
               className="object-cover"

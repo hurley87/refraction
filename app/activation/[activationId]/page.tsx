@@ -12,7 +12,13 @@ function ActivationRouteInner() {
   const activationId = params.activationId?.trim();
 
   if (!activationId) {
-    return null;
+    return (
+      <SponsoredActivationPageShell>
+        <p className="body-medium font-grotesk p-6 text-center text-white/80">
+          This activation link is not valid.
+        </p>
+      </SponsoredActivationPageShell>
+    );
   }
 
   return (

@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 
 type SponsoredActivationPageShellProps = {
   children: ReactNode;
-  /** When false, full-bleed content (e.g. loading). */
   showCard?: boolean;
   className?: string;
 };
