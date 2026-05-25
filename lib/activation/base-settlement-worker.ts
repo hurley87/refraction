@@ -4,9 +4,10 @@ import {
   syncActivationRedemptionSettlementOutcome,
 } from '@/lib/db/activation-redemptions';
 import {
+  confirmActivationSettlementAtomic,
   getActivationSettlementTransactionById,
+  recordActivationSettlementFailureAtomic,
   updateActivationSettlementIfStatus,
-  updateActivationSettlementTransaction,
   type ActivationSettlementTransactionRow,
 } from '@/lib/db/activation-settlement-transactions';
 import { getPlayerEvmWalletAddressById } from '@/lib/db/players';
@@ -49,12 +50,20 @@ export type BaseActivationSettlementErrorCode =
 export type ProcessBaseActivationSettlementResult =
   | {
       outcome: 'skipped';
-      reason: 'settlement_rail_not_base' | 'activation_rail_not_base';
+      reason:
+        | 'settlement_rail_not_base'
+        | 'activation_rail_not_base'
+        | 'settlement_in_retry_backoff';
     }
   | {
       outcome: 'idempotent_confirmed';
       settlement: ActivationSettlementTransactionRow;
       txHash: string;
+    }
+  | {
+      outcome: 'retry_scheduled';
+      settlement: ActivationSettlementTransactionRow;
+      lastErrorCode: string;
     }
   | {
       outcome: 'terminal_failed';
@@ -70,12 +79,15 @@ export type ProcessBaseActivationSettlementResult =
       outcome: 'submitted_pending';
       settlement: ActivationSettlementTransactionRow;
       privyTransactionId: string;
-    }
-  | {
-      outcome: 'config_or_validation_failed';
-      settlement: ActivationSettlementTransactionRow;
-      lastErrorCode: BaseActivationSettlementErrorCode;
     };
+
+export type BaseSettlementWorkerRunSummary = {
+  processed: number;
+  confirmed: number;
+  failed: number;
+  skipped: number;
+  scheduledRetry: number;
+};
 
 const INSUFFICIENT_ERC20_RE =
   /exceeds\s+balance|insufficient\s+funds|transfer\s+amount|ERC20:\s+transfer\s+amount/i;
@@ -103,63 +115,25 @@ function requireEvm0x(value: string, ctx: string): `0x${string}` | null {
   return getAddress(t as `0x${string}`);
 }
 
-async function markSettlementAndRedemptionFailed(input: {
-  settlementId: string;
-  redemptionId: string;
-  lastErrorCode: string;
-}): Promise<void> {
-  await updateActivationSettlementTransaction(input.settlementId, {
-    status: 'failed',
-    last_error_code: input.lastErrorCode,
-  });
-  await syncActivationRedemptionSettlementOutcome({
-    redemptionId: input.redemptionId,
-    nextStatus: 'settlement_failed',
-  });
-}
-
-async function returnConfigValidationFailed(
+async function recordFailureAndShapeResult(
   row: ActivationSettlementTransactionRow,
-  lastErrorCode: BaseActivationSettlementErrorCode
+  code: string
 ): Promise<
   Extract<
     ProcessBaseActivationSettlementResult,
-    { outcome: 'config_or_validation_failed' }
+    { outcome: 'retry_scheduled' | 'terminal_failed' }
   >
 > {
-  await markSettlementAndRedemptionFailed({
+  const rec = await recordActivationSettlementFailureAtomic({
     settlementId: row.id,
-    redemptionId: row.redemption_id,
-    lastErrorCode,
+    lastErrorCode: code,
   });
   const settlement =
     (await getActivationSettlementTransactionById(row.id)) ?? row;
-  return { outcome: 'config_or_validation_failed', settlement, lastErrorCode };
-}
-
-async function confirmSettlementAndRedemption(input: {
-  settlementId: string;
-  redemptionId: string;
-  txHash: string;
-  privyTransactionId: string | null;
-  submissionAttempt: number;
-  /** When already set (e.g. `submitted_at` from the submit step), preserve it. */
-  submittedAt?: string | null;
-}): Promise<void> {
-  const ts = nowIso();
-  await updateActivationSettlementTransaction(input.settlementId, {
-    status: 'confirmed',
-    tx_hash: input.txHash,
-    privy_transaction_id: input.privyTransactionId,
-    confirmed_at: ts,
-    submitted_at: input.submittedAt?.trim() || ts,
-    last_error_code: null,
-    submission_attempt: input.submissionAttempt,
-  });
-  await syncActivationRedemptionSettlementOutcome({
-    redemptionId: input.redemptionId,
-    nextStatus: 'settlement_confirmed',
-  });
+  if (rec === 'retry_scheduled') {
+    return { outcome: 'retry_scheduled', settlement, lastErrorCode: code };
+  }
+  return { outcome: 'terminal_failed', settlement, lastErrorCode: code };
 }
 
 /**
@@ -177,12 +151,13 @@ export async function processBaseActivationSettlement(input: {
     );
   }
 
-  const row = await getActivationSettlementTransactionById(settlementId);
-  if (!row) {
+  const loaded = await getActivationSettlementTransactionById(settlementId);
+  if (!loaded) {
     throw new Error(
       BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.settlement_not_found
     );
   }
+  const row = loaded;
 
   if (row.settlement_rail !== 'base') {
     return { outcome: 'skipped', reason: 'settlement_rail_not_base' };
@@ -220,6 +195,10 @@ export async function processBaseActivationSettlement(input: {
     };
   }
 
+  if (row.status === 'retrying') {
+    return { outcome: 'skipped', reason: 'settlement_in_retry_backoff' };
+  }
+
   const redemption = await getActivationRedemptionById(row.redemption_id);
   if (!redemption) {
     throw new Error(
@@ -242,7 +221,7 @@ export async function processBaseActivationSettlement(input: {
   );
 
   if (!venueExpected || !campaignExpected || !toParsed || !fromParsed) {
-    return returnConfigValidationFailed(
+    return recordFailureAndShapeResult(
       row,
       BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.settlement_wallet_invalid
     );
@@ -254,7 +233,7 @@ export async function processBaseActivationSettlement(input: {
       activation.venue_settlement_wallet_address
     )
   ) {
-    return returnConfigValidationFailed(
+    return recordFailureAndShapeResult(
       row,
       BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.venue_wallet_mismatch
     );
@@ -266,7 +245,7 @@ export async function processBaseActivationSettlement(input: {
       activation.campaign_wallet_address
     )
   ) {
-    return returnConfigValidationFailed(
+    return recordFailureAndShapeResult(
       row,
       BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_mismatch
     );
@@ -276,7 +255,7 @@ export async function processBaseActivationSettlement(input: {
   if (userWallet) {
     const userNorm = tryNormalizeEvmAddress(userWallet) ?? userWallet.trim();
     if (userNorm && sameWalletAddress(toParsed, userNorm)) {
-      return returnConfigValidationFailed(
+      return recordFailureAndShapeResult(
         row,
         BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.recipient_is_user_wallet
       );
@@ -287,7 +266,7 @@ export async function processBaseActivationSettlement(input: {
     activation.usdc_asset_config
   );
   if (!cfgParse.success) {
-    return returnConfigValidationFailed(
+    return recordFailureAndShapeResult(
       row,
       BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.invalid_usdc_contract
     );
@@ -296,7 +275,7 @@ export async function processBaseActivationSettlement(input: {
 
   const privyWalletId = activation.privy_campaign_wallet_id?.trim();
   if (!privyWalletId) {
-    return returnConfigValidationFailed(
+    return recordFailureAndShapeResult(
       row,
       BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_not_configured
     );
@@ -304,7 +283,7 @@ export async function processBaseActivationSettlement(input: {
 
   if (redemption.status !== 'settlement_pending') {
     if (row.status === 'submitted' || row.status === 'queued') {
-      return returnConfigValidationFailed(
+      return recordFailureAndShapeResult(
         row,
         BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.redemption_status_invalid
       );
@@ -323,31 +302,29 @@ export async function processBaseActivationSettlement(input: {
 
   async function finalizeFromTxHash(params: {
     settlementId: string;
-    redemptionId: string;
     txHash: `0x${string}`;
     privyTransactionId: string | null;
-    submissionAttempt: number;
     submittedAtPreserve?: string | null;
-  }): Promise<void> {
+  }): Promise<Extract<
+    ProcessBaseActivationSettlementResult,
+    { outcome: 'retry_scheduled' | 'terminal_failed' }
+  > | null> {
     const receipt = await getTreasuryTxReceiptStatus(params.txHash);
     if (receipt === 'reverted') {
-      await markSettlementAndRedemptionFailed({
-        settlementId: params.settlementId,
-        redemptionId: params.redemptionId,
-        lastErrorCode: BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.onchain_reverted,
-      });
-      return;
+      return recordFailureAndShapeResult(
+        row,
+        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.onchain_reverted
+      );
     }
     if (receipt === 'success') {
-      await confirmSettlementAndRedemption({
+      await confirmActivationSettlementAtomic({
         settlementId: params.settlementId,
-        redemptionId: params.redemptionId,
         txHash: params.txHash,
         privyTransactionId: params.privyTransactionId,
-        submissionAttempt: params.submissionAttempt,
-        submittedAt: params.submittedAtPreserve,
+        preserveSubmittedAt: params.submittedAtPreserve ?? null,
       });
     }
+    return null;
   }
 
   async function tryResolveHashFromChain(): Promise<`0x${string}` | null> {
@@ -376,21 +353,10 @@ export async function processBaseActivationSettlement(input: {
         txHash = waited.transactionHash;
       } catch (e) {
         if (e instanceof PrivyRestTransactionFailedError) {
-          await markSettlementAndRedemptionFailed({
-            settlementId: row.id,
-            redemptionId: row.redemption_id,
-            lastErrorCode:
-              BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.privy_transaction_failed,
-          });
-          const refreshed = await getActivationSettlementTransactionById(
-            row.id
+          return recordFailureAndShapeResult(
+            row,
+            BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.privy_transaction_failed
           );
-          return {
-            outcome: 'terminal_failed',
-            settlement: refreshed ?? row,
-            lastErrorCode:
-              BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.privy_transaction_failed,
-          };
         }
         if (!(e instanceof PrivyRestTransactionTimeoutError)) {
           throw e;
@@ -403,20 +369,26 @@ export async function processBaseActivationSettlement(input: {
     }
 
     if (txHash) {
-      await finalizeFromTxHash({
+      const early = await finalizeFromTxHash({
         settlementId: row.id,
-        redemptionId: row.redemption_id,
         txHash,
         privyTransactionId: row.privy_transaction_id,
-        submissionAttempt: row.submission_attempt,
         submittedAtPreserve: row.submitted_at,
       });
+      if (early) return early;
       const after = await getActivationSettlementTransactionById(row.id);
       if (after?.status === 'confirmed' && after.tx_hash) {
         return {
           outcome: 'confirmed',
           settlement: after,
           txHash: after.tx_hash,
+        };
+      }
+      if (after?.status === 'retrying') {
+        return {
+          outcome: 'retry_scheduled',
+          settlement: after,
+          lastErrorCode: after.last_error_code ?? '',
         };
       }
       if (after?.status === 'failed') {
@@ -462,7 +434,7 @@ export async function processBaseActivationSettlement(input: {
           e.message
         ))
     ) {
-      return returnConfigValidationFailed(
+      return recordFailureAndShapeResult(
         row,
         BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.privy_not_configured
       );
@@ -472,17 +444,7 @@ export async function processBaseActivationSettlement(input: {
 
   if (!submit.ok) {
     const code = classifyPrivySubmitError(submit.error);
-    await markSettlementAndRedemptionFailed({
-      settlementId: row.id,
-      redemptionId: row.redemption_id,
-      lastErrorCode: code,
-    });
-    const refreshed = await getActivationSettlementTransactionById(row.id);
-    return {
-      outcome: 'terminal_failed',
-      settlement: refreshed ?? row,
-      lastErrorCode: code,
-    };
+    return recordFailureAndShapeResult(row, code);
   }
 
   const privyTransactionId = submit.privyTransactionId;
@@ -523,17 +485,23 @@ export async function processBaseActivationSettlement(input: {
   }
 
   if (txHash) {
-    await finalizeFromTxHash({
+    const early = await finalizeFromTxHash({
       settlementId: row.id,
-      redemptionId: row.redemption_id,
       txHash,
       privyTransactionId,
-      submissionAttempt: nextAttempt,
       submittedAtPreserve: submittedAt,
     });
+    if (early) return early;
     const after = await getActivationSettlementTransactionById(row.id);
     if (after?.status === 'confirmed' && after.tx_hash) {
       return { outcome: 'confirmed', settlement: after, txHash: after.tx_hash };
+    }
+    if (after?.status === 'retrying') {
+      return {
+        outcome: 'retry_scheduled',
+        settlement: after,
+        lastErrorCode: after.last_error_code ?? '',
+      };
     }
     if (after?.status === 'failed') {
       return {
@@ -550,4 +518,65 @@ export async function processBaseActivationSettlement(input: {
     settlement: latest ?? updatedQueued,
     privyTransactionId,
   };
+}
+
+export async function runBaseSettlementWorkerBatch(
+  settlements: ActivationSettlementTransactionRow[]
+): Promise<BaseSettlementWorkerRunSummary> {
+  const summary: BaseSettlementWorkerRunSummary = {
+    processed: 0,
+    confirmed: 0,
+    failed: 0,
+    skipped: 0,
+    scheduledRetry: 0,
+  };
+
+  for (const row of settlements) {
+    if (row.settlement_rail !== 'base') {
+      summary.skipped += 1;
+      continue;
+    }
+
+    summary.processed += 1;
+    try {
+      const result = await processBaseActivationSettlement({
+        settlementId: row.id,
+      });
+      if (
+        result.outcome === 'confirmed' ||
+        result.outcome === 'idempotent_confirmed'
+      ) {
+        summary.confirmed += 1;
+      } else if (result.outcome === 'terminal_failed') {
+        summary.failed += 1;
+      } else if (result.outcome === 'retry_scheduled') {
+        summary.scheduledRetry += 1;
+      } else {
+        summary.skipped += 1;
+      }
+    } catch (e) {
+      console.error('processBaseActivationSettlement:', row.id, e);
+      try {
+        const rec = await recordActivationSettlementFailureAtomic({
+          settlementId: row.id,
+          lastErrorCode: 'worker_exception',
+        });
+        if (rec === 'exhausted' || rec === 'already_failed') {
+          summary.failed += 1;
+        } else if (rec === 'retry_scheduled') {
+          summary.scheduledRetry += 1;
+        } else {
+          summary.skipped += 1;
+        }
+      } catch (failErr) {
+        console.error(
+          'recordActivationSettlementFailureAtomic after worker_exception:',
+          failErr
+        );
+        summary.skipped += 1;
+      }
+    }
+  }
+
+  return summary;
 }

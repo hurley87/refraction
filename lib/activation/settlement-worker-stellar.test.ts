@@ -7,7 +7,7 @@ const VENUE = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
 
 const mockGetActivation = vi.fn();
 const mockConfirm = vi.fn();
-const mockFail = vi.fn();
+const mockRecord = vi.fn();
 const mockMarkSubmitted = vi.fn();
 const mockSubmit = vi.fn();
 const mockPoll = vi.fn();
@@ -20,7 +20,8 @@ vi.mock('@/lib/db/sponsored-activations', () => ({
 vi.mock('@/lib/db/activation-settlement-transactions', () => ({
   confirmActivationSettlementAtomic: (...args: unknown[]) =>
     mockConfirm(...args),
-  failActivationSettlementAtomic: (...args: unknown[]) => mockFail(...args),
+  recordActivationSettlementFailureAtomic: (...args: unknown[]) =>
+    mockRecord(...args),
   markActivationSettlementSubmitted: (...args: unknown[]) =>
     mockMarkSubmitted(...args),
 }));
@@ -92,7 +93,7 @@ describe('processStellarActivationSettlement', () => {
     mockMarkSubmitted.mockResolvedValue(true);
     mockPoll.mockResolvedValue('success');
     mockConfirm.mockResolvedValue('confirmed');
-    mockFail.mockResolvedValue('failed');
+    mockRecord.mockResolvedValue('exhausted');
   });
 
   it('skips non-stellar rail', async () => {
@@ -137,10 +138,23 @@ describe('processStellarActivationSettlement', () => {
     });
     const result = await processStellarActivationSettlement(settlementRow());
     expect(result).toBe('failed');
-    expect(mockFail).toHaveBeenCalledWith({
+    expect(mockRecord).toHaveBeenCalledWith({
       settlementId: 'set-1',
       lastErrorCode: 'insufficient_usdc_or_reserve',
     });
+    expect(mockConfirm).not.toHaveBeenCalled();
+  });
+
+  it('leaves submitted row unchanged when Horizon poll is still pending', async () => {
+    mockPoll.mockResolvedValue('pending');
+    const result = await processStellarActivationSettlement(
+      settlementRow({
+        status: 'submitted',
+        tx_hash: 'existing-hash',
+      })
+    );
+    expect(result).toBe('skipped');
+    expect(mockRecord).not.toHaveBeenCalled();
     expect(mockConfirm).not.toHaveBeenCalled();
   });
 

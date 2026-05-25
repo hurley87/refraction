@@ -36,6 +36,18 @@ function toInt(value: unknown): number {
   return Number.isNaN(n) ? 0 : Math.trunc(n);
 }
 
+function parseSettlementRpcTextOutcome<T extends string>(
+  data: unknown,
+  allowed: readonly T[],
+  rpcLabel: string
+): T {
+  const outcome = typeof data === 'string' ? data : String(data ?? '');
+  if ((allowed as readonly string[]).includes(outcome)) {
+    return outcome as T;
+  }
+  throw new Error(`Unexpected RPC response from ${rpcLabel}`);
+}
+
 function normalizeRow(
   row: Record<string, unknown>
 ): ActivationSettlementTransactionRow {
@@ -174,69 +186,58 @@ export function getSponsoredSettlementBatchSize(): number {
 }
 
 /**
- * Stellar settlements eligible for worker: `queued` (submit) or `submitted` with tx_hash (poll only).
+ * Settlements eligible for worker dequeue: `queued` (submit) or `submitted` (poll / finalize).
  */
-export async function listStellarActivationSettlementsForWorker(
+export async function listActivationSettlementsForWorker(
+  rail: SettlementRail,
   limit: number
 ): Promise<ActivationSettlementTransactionRow[]> {
   const { data, error } = await supabase
     .from(TABLE)
     .select('*')
-    .eq('settlement_rail', 'stellar')
+    .eq('settlement_rail', rail)
     .in('status', ['queued', 'submitted'])
     .order('queued_at', { ascending: true, nullsFirst: false })
     .limit(limit);
 
   if (error) {
-    console.error('listStellarActivationSettlementsForWorker:', error);
+    console.error('listActivationSettlementsForWorker:', { rail, error });
     throw new Error(error.message || 'Failed to list settlement transactions');
   }
   return (data ?? []).map((r) => normalizeRow(r as Record<string, unknown>));
 }
 
-/**
- * Base settlements eligible for worker dequeue (IRL-56 library; cron wiring in IRL-60).
- */
+/** Stellar rail; see {@link listActivationSettlementsForWorker}. */
+export async function listStellarActivationSettlementsForWorker(
+  limit: number
+): Promise<ActivationSettlementTransactionRow[]> {
+  return listActivationSettlementsForWorker('stellar', limit);
+}
+
+/** Base rail; see {@link listActivationSettlementsForWorker}. */
 export async function listBaseActivationSettlementsForWorker(
   limit: number
 ): Promise<ActivationSettlementTransactionRow[]> {
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select('*')
-    .eq('settlement_rail', 'base')
-    .in('status', ['queued', 'submitted'])
-    .order('queued_at', { ascending: true, nullsFirst: false })
-    .limit(limit);
-
-  if (error) {
-    console.error('listBaseActivationSettlementsForWorker:', error);
-    throw new Error(error.message || 'Failed to list settlement transactions');
-  }
-  return (data ?? []).map((r) => normalizeRow(r as Record<string, unknown>));
+  return listActivationSettlementsForWorker('base', limit);
 }
 
 export async function markActivationSettlementSubmitted(input: {
   settlementId: string;
   txHash: string;
 }): Promise<boolean> {
-  const { data, error } = await supabase
-    .from(TABLE)
-    .update({
-      status: 'submitted',
-      tx_hash: input.txHash.trim(),
-      submitted_at: new Date().toISOString(),
-      submission_attempt: 1,
-    })
-    .eq('id', input.settlementId)
-    .eq('status', 'queued')
-    .select('id')
-    .maybeSingle();
+  const { data, error } = await supabase.rpc(
+    'mark_activation_settlement_submitted_atomic',
+    {
+      p_settlement_id: input.settlementId,
+      p_tx_hash: input.txHash,
+    }
+  );
 
   if (error) {
     console.error('markActivationSettlementSubmitted:', error);
     throw new Error(error.message || 'Failed to mark settlement submitted');
   }
-  return data != null;
+  return data === true;
 }
 
 export type ConfirmActivationSettlementRpcOutcome =
@@ -246,12 +247,16 @@ export type ConfirmActivationSettlementRpcOutcome =
 export async function confirmActivationSettlementAtomic(input: {
   settlementId: string;
   txHash: string;
+  privyTransactionId?: string | null;
+  preserveSubmittedAt?: string | null;
 }): Promise<ConfirmActivationSettlementRpcOutcome> {
   const { data, error } = await supabase.rpc(
     'confirm_activation_settlement_atomic',
     {
       p_settlement_id: input.settlementId,
       p_tx_hash: input.txHash,
+      p_privy_transaction_id: input.privyTransactionId ?? null,
+      p_preserve_submitted_at: input.preserveSubmittedAt ?? null,
     }
   );
 
@@ -261,25 +266,25 @@ export async function confirmActivationSettlementAtomic(input: {
     );
   }
 
-  const outcome = typeof data === 'string' ? data : String(data ?? '');
-  if (outcome === 'already_confirmed') return 'already_confirmed';
-  if (outcome === 'confirmed') return 'confirmed';
-  throw new Error(
-    'Unexpected RPC response from confirm_activation_settlement_atomic'
+  return parseSettlementRpcTextOutcome(
+    data,
+    ['confirmed', 'already_confirmed'] as const,
+    'confirm_activation_settlement_atomic'
   );
 }
 
-export type FailActivationSettlementRpcOutcome =
-  | 'failed'
+export type RecordActivationSettlementFailureRpcOutcome =
+  | 'retry_scheduled'
+  | 'exhausted'
   | 'already_confirmed'
   | 'already_failed';
 
-export async function failActivationSettlementAtomic(input: {
+export async function recordActivationSettlementFailureAtomic(input: {
   settlementId: string;
   lastErrorCode: string;
-}): Promise<FailActivationSettlementRpcOutcome> {
+}): Promise<RecordActivationSettlementFailureRpcOutcome> {
   const { data, error } = await supabase.rpc(
-    'fail_activation_settlement_atomic',
+    'record_activation_settlement_failure_atomic',
     {
       p_settlement_id: input.settlementId,
       p_last_error_code: input.lastErrorCode,
@@ -288,15 +293,63 @@ export async function failActivationSettlementAtomic(input: {
 
   if (error) {
     throw new Error(
-      error.message || 'fail_activation_settlement_atomic failed'
+      error.message || 'record_activation_settlement_failure_atomic failed'
     );
   }
 
-  const outcome = typeof data === 'string' ? data : String(data ?? '');
-  if (outcome === 'already_confirmed') return 'already_confirmed';
-  if (outcome === 'already_failed') return 'already_failed';
-  if (outcome === 'failed') return 'failed';
-  throw new Error(
-    'Unexpected RPC response from fail_activation_settlement_atomic'
+  return parseSettlementRpcTextOutcome(
+    data,
+    [
+      'retry_scheduled',
+      'exhausted',
+      'already_confirmed',
+      'already_failed',
+    ] as const,
+    'record_activation_settlement_failure_atomic'
+  );
+}
+
+export async function promoteActivationSettlementRetryingToQueued(): Promise<number> {
+  const { data, error } = await supabase.rpc(
+    'promote_activation_settlement_retrying_to_queued',
+    {}
+  );
+
+  if (error) {
+    console.error('promoteActivationSettlementRetryingToQueued:', error);
+    throw new Error(
+      error.message || 'promote_activation_settlement_retrying_to_queued failed'
+    );
+  }
+  if (typeof data === 'number' && Number.isFinite(data)) return data;
+  if (typeof data === 'string') {
+    const n = Number.parseInt(data, 10);
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+}
+
+export async function adminResetActivationSettlementForRetryAtomic(input: {
+  settlementId: string;
+  activationId: string;
+}): Promise<'reset'> {
+  const { data, error } = await supabase.rpc(
+    'admin_reset_activation_settlement_for_retry_atomic',
+    {
+      p_settlement_id: input.settlementId,
+      p_activation_id: input.activationId,
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      error.message ||
+        'admin_reset_activation_settlement_for_retry_atomic failed'
+    );
+  }
+  return parseSettlementRpcTextOutcome(
+    data,
+    ['reset'] as const,
+    'admin_reset_activation_settlement_for_retry_atomic'
   );
 }
