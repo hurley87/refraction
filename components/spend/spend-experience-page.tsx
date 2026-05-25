@@ -17,7 +17,11 @@ import type {
 } from '@/lib/types';
 import { initMixpanel, trackEvent } from '@/lib/analytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
-import { apiClient, ApiError } from '@/lib/api/client';
+import { ApiError } from '@/lib/api/client';
+import {
+  apiClientBearerGet,
+  apiClientBearerPost,
+} from '@/lib/api/privy-bearer-client';
 import {
   SPEND_ELIGIBILITY_MESSAGES,
   type SpendEligibilityStatus,
@@ -147,29 +151,6 @@ function withTimeout<T>(
   });
 }
 
-/** POST with Bearer token + JSON body. */
-async function spendAuthedPost<T>(
-  token: string,
-  path: string,
-  body: Record<string, unknown>
-): Promise<T> {
-  return apiClient<T>(path, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-}
-
-async function spendAuthedGet<T>(token: string, path: string): Promise<T> {
-  return apiClient<T>(path, {
-    method: 'GET',
-    headers: { Authorization: `Bearer ${token}` },
-  });
-}
-
 function eligibilityToneClass(status: SpendEligibilityStatus): string {
   if (
     status === 'eligible' ||
@@ -234,7 +215,7 @@ export function SpendExperiencePage({
       if (!token || !walletAddress) {
         throw new Error('Missing auth');
       }
-      return spendAuthedPost<SessionResponse>(
+      return apiClientBearerPost<SessionResponse>(
         token,
         `/api/spend-experiences/${experienceId}/sessions`,
         { walletAddress }
@@ -258,7 +239,7 @@ export function SpendExperiencePage({
       if (!token || !walletAddress || !sessionId) {
         throw new Error('Missing auth or session');
       }
-      return spendAuthedPost<ConversionPreviewResponse>(
+      return apiClientBearerPost<ConversionPreviewResponse>(
         token,
         `/api/spend-sessions/${sessionId}/conversion/preview`,
         { walletAddress }
@@ -324,7 +305,7 @@ export function SpendExperiencePage({
       if (!token || !walletAddress || !sessionId) {
         throw new Error('Missing auth or session');
       }
-      return spendAuthedPost<PaymentPrepareResponse>(
+      return apiClientBearerPost<PaymentPrepareResponse>(
         token,
         `/api/spend-sessions/${sessionId}/payment/prepare`,
         { walletAddress }
@@ -350,7 +331,7 @@ export function SpendExperiencePage({
       if (!token || !walletAddress || !sessionId) {
         throw new Error('Missing auth or session');
       }
-      return spendAuthedGet<ReceiptResponse>(
+      return apiClientBearerGet<ReceiptResponse>(
         token,
         `/api/spend-sessions/${sessionId}/receipt`
       );
@@ -382,7 +363,7 @@ export function SpendExperiencePage({
       if (!token || !walletAddress || !sessionId) {
         throw new Error('Missing auth or session');
       }
-      return spendAuthedPost<ConversionConfirmResponse>(
+      return apiClientBearerPost<ConversionConfirmResponse>(
         token,
         `/api/spend-sessions/${sessionId}/conversion/confirm`,
         { walletAddress, intent }
@@ -416,7 +397,7 @@ export function SpendExperiencePage({
       } else if (input.paymentTxHash) {
         body.paymentTxHash = input.paymentTxHash;
       }
-      return spendAuthedPost<PaymentConfirmResponse>(
+      return apiClientBearerPost<PaymentConfirmResponse>(
         token,
         `/api/spend-sessions/${sessionId}/payment/confirm`,
         body

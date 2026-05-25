@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import type { Tier } from '../types';
+import { resolveTierForPoints } from '@/lib/tier-for-points';
 
 // Select specific columns for tier queries
 const TIER_COLUMNS = `
@@ -28,21 +29,7 @@ export const getTiers = async (): Promise<Tier[]> => {
   return (data ?? []) as Tier[];
 };
 
-/**
- * Resolve which tier a player belongs to based on their total points
- */
-export const resolveTierForPoints = (
-  tiers: Tier[],
-  totalPoints: number
-): Tier | null => {
-  return (
-    tiers.find(
-      (tier) =>
-        totalPoints >= tier.min_points &&
-        (tier.max_points === null || totalPoints < tier.max_points)
-    ) ?? null
-  );
-};
+export { resolveTierForPoints };
 
 /**
  * Get the tier for a given point total
