@@ -34,6 +34,7 @@ export const createLocationSchema = z.object({
   coin_symbol: z.string().optional(),
   coin_name: z.string().optional(),
   coin_image_url: z.string().url().nullable().optional(),
+  coin_image_thumb_url: z.string().url().nullable().optional(),
   coin_transaction_hash: z.string().optional(),
   creator_wallet_address: z.string().optional(),
   creator_username: z.string().optional(),
@@ -51,6 +52,7 @@ export const updateLocationSchema = z.object({
   creator_wallet_address: z.string().optional(),
   creator_username: z.string().optional(),
   coin_image_url: z.string().url().nullable().optional(),
+  coin_image_thumb_url: z.string().url().nullable().optional(),
   type: z.string().optional(),
   event_url: z.string().url().nullable().optional(),
 });

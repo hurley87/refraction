@@ -38,6 +38,7 @@ export type Location = {
   coin_symbol?: string;
   coin_name?: string;
   coin_image_url?: string | null;
+  coin_image_thumb_url?: string | null;
   coin_transaction_hash?: string;
   creator_wallet_address?: string;
   creator_username?: string;

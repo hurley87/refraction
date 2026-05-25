@@ -1,10 +1,11 @@
-import { NextRequest } from "next/server";
-import { supabase } from "@/lib/db/client";
-import { getAuthenticatedAdminEmail } from "@/lib/auth";
-import { apiSuccess, apiError } from "@/lib/api/response";
-import { trackLocationCreated, resolveServerIdentity } from "@/lib/analytics";
-import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
+import { NextRequest } from 'next/server';
+import { supabase } from '@/lib/db/client';
+import { getAuthenticatedAdminEmail } from '@/lib/auth';
+import { apiSuccess, apiError } from '@/lib/api/response';
+import { trackLocationCreated, resolveServerIdentity } from '@/lib/analytics';
+import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
+import { uploadProcessedLocationImages } from '@/lib/utils/upload-location-image';
 
 export const maxDuration = 60;
 
@@ -27,7 +28,7 @@ type CsvRow = {
 type ImportResult = {
   row: number;
   name: string;
-  status: "created" | "skipped" | "failed";
+  status: 'created' | 'skipped' | 'failed';
   reason?: string;
 };
 
@@ -39,14 +40,14 @@ function parseCsvLine(line: string): string[] {
       i += 1;
       let end = i;
       while (end < line.length && line[end] !== '"') {
-        if (line[end] === "\\") end += 2;
+        if (line[end] === '\\') end += 2;
         else end += 1;
       }
       fields.push(line.slice(i, end).replace(/""/g, '"'));
       i = end + 1;
-      if (line[i] === ",") i += 1;
+      if (line[i] === ',') i += 1;
     } else {
-      const comma = line.indexOf(",", i);
+      const comma = line.indexOf(',', i);
       if (comma === -1) {
         fields.push(line.slice(i).trim());
         break;
@@ -66,12 +67,12 @@ function parseCsv(content: string): CsvRow[] {
     const values = parseCsvLine(lines[i]);
     if (values.length < 5) continue;
     rows.push({
-      category: (values[0] ?? "").trim(),
-      location: (values[1] ?? "").trim(),
-      address: (values[2] ?? "").trim(),
-      quote: (values[3] ?? "").trim(),
-      imageLink: (values[4] ?? "").trim(),
-      recommendedBy: (values[5] ?? "").trim(),
+      category: (values[0] ?? '').trim(),
+      location: (values[1] ?? '').trim(),
+      address: (values[2] ?? '').trim(),
+      quote: (values[3] ?? '').trim(),
+      imageLink: (values[4] ?? '').trim(),
+      recommendedBy: (values[5] ?? '').trim(),
     });
   }
   return rows;
@@ -80,10 +81,10 @@ function parseCsv(content: string): CsvRow[] {
 function slugify(value: string): string {
   return value
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 async function geocodeAddress(
@@ -108,14 +109,14 @@ async function geocodeAddress(
 function isLocalHostname(hostname: string): boolean {
   const lower = hostname.toLowerCase();
   return (
-    lower === "localhost" ||
-    lower.endsWith(".localhost") ||
-    lower.endsWith(".local")
+    lower === 'localhost' ||
+    lower.endsWith('.localhost') ||
+    lower.endsWith('.local')
   );
 }
 
 function isPrivateIpv4(ip: string): boolean {
-  const parts = ip.split(".").map((part) => Number(part));
+  const parts = ip.split('.').map((part) => Number(part));
   if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
     return false;
   }
@@ -134,12 +135,12 @@ function isPrivateIpv4(ip: string): boolean {
 function isPrivateIpv6(ip: string): boolean {
   const normalized = ip.toLowerCase();
   return (
-    normalized === "::1" ||
-    normalized === "::" ||
-    normalized.startsWith("fc") ||
-    normalized.startsWith("fd") ||
-    normalized.startsWith("fe80:") ||
-    normalized.startsWith("::ffff:127.")
+    normalized === '::1' ||
+    normalized === '::' ||
+    normalized.startsWith('fc') ||
+    normalized.startsWith('fd') ||
+    normalized.startsWith('fe80:') ||
+    normalized.startsWith('::ffff:127.')
   );
 }
 
@@ -158,7 +159,7 @@ async function isSafeImageUrl(rawUrl: string): Promise<boolean> {
     return false;
   }
 
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     return false;
   }
 
@@ -167,7 +168,10 @@ async function isSafeImageUrl(rawUrl: string): Promise<boolean> {
   if (isPrivateIp(parsed.hostname)) return false;
 
   try {
-    const resolved = await lookup(parsed.hostname, { all: true, verbatim: true });
+    const resolved = await lookup(parsed.hostname, {
+      all: true,
+      verbatim: true,
+    });
     if (resolved.length === 0) return false;
     for (const addr of resolved) {
       if (isPrivateIp(addr.address)) return false;
@@ -223,17 +227,17 @@ async function ensureUniqueSlug(base: string): Promise<string> {
   while (attempt < 50) {
     const candidate = attempt === 0 ? normalized : `${normalized}-${attempt}`;
     const { data, error } = await supabase
-      .from("location_lists")
-      .select("id")
-      .eq("slug", candidate)
+      .from('location_lists')
+      .select('id')
+      .eq('slug', candidate)
       .maybeSingle();
 
-    if (error && error.code !== "PGRST116") throw error;
+    if (error && error.code !== 'PGRST116') throw error;
     if (!data) return candidate;
     attempt += 1;
   }
 
-  throw new Error("Unable to generate unique slug");
+  throw new Error('Unable to generate unique slug');
 }
 
 const PLACE_ID_MAX = 50;
@@ -289,22 +293,22 @@ async function downloadImageFromUrl(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
     const res = await fetch(targetUrl, {
-      redirect: "follow",
+      redirect: 'follow',
       signal: controller.signal,
     }).finally(() => clearTimeout(timeout));
     if (!res.ok) return null;
 
-    const contentLengthHeader = res.headers.get("content-length");
+    const contentLengthHeader = res.headers.get('content-length');
     const contentLength = contentLengthHeader
       ? Number.parseInt(contentLengthHeader, 10)
       : null;
     if (contentLength && contentLength > MAX_IMAGE_BYTES) return null;
 
-    const contentType = res.headers.get("content-type") || "image/jpeg";
-    if (contentType.includes("text/html")) return null;
+    const contentType = res.headers.get('content-type') || 'image/jpeg';
+    if (contentType.includes('text/html')) return null;
     if (
-      !contentType.toLowerCase().startsWith("image/") &&
-      !contentType.toLowerCase().startsWith("application/octet-stream")
+      !contentType.toLowerCase().startsWith('image/') &&
+      !contentType.toLowerCase().startsWith('application/octet-stream')
     ) {
       return null;
     }
@@ -328,13 +332,13 @@ function resolveUploadedImage(
   const lower = imageLink.toLowerCase();
   if (imageMap.has(lower)) return imageMap.get(lower);
 
-  const withoutExt = lower.replace(/\.[^.]+$/, "");
+  const withoutExt = lower.replace(/\.[^.]+$/, '');
   if (imageMap.has(withoutExt)) return imageMap.get(withoutExt);
 
-  const basename = lower.split("/").pop();
+  const basename = lower.split('/').pop();
   if (basename && imageMap.has(basename)) return imageMap.get(basename);
 
-  const basenameNoExt = basename?.replace(/\.[^.]+$/, "");
+  const basenameNoExt = basename?.replace(/\.[^.]+$/, '');
   if (basenameNoExt && imageMap.has(basenameNoExt))
     return imageMap.get(basenameNoExt);
 
@@ -359,16 +363,26 @@ async function processRow(
   const name = row.location;
 
   if (!name) {
-    return { row: rowNum, name: "(empty)", status: "skipped", reason: "Missing location name" };
+    return {
+      row: rowNum,
+      name: '(empty)',
+      status: 'skipped',
+      reason: 'Missing location name',
+    };
   }
 
   if (!row.imageLink) {
-    return { row: rowNum, name, status: "skipped", reason: "No image link provided" };
+    return {
+      row: rowNum,
+      name,
+      status: 'skipped',
+      reason: 'No image link provided',
+    };
   }
 
   try {
     const locationSlug = slugify(name);
-    const address = row.address || "";
+    const address = row.address || '';
     let latitude: number | null = null;
     let longitude: number | null = null;
 
@@ -383,53 +397,57 @@ async function processRow(
       return {
         row: rowNum,
         name,
-        status: "skipped",
+        status: 'skipped',
         reason: address
-          ? "Address could not be geocoded"
-          : "No address provided for geocoding",
+          ? 'Address could not be geocoded'
+          : 'No address provided for geocoding',
       };
     }
 
     let imageBytes: ArrayBuffer;
-    let imageContentType: string;
-    let imageExt: string;
 
     if (isUrl(row.imageLink)) {
       const downloaded = await downloadImageFromUrl(row.imageLink);
       if (!downloaded) {
-        return { row: rowNum, name, status: "skipped", reason: "Image URL could not be downloaded" };
+        return {
+          row: rowNum,
+          name,
+          status: 'skipped',
+          reason: 'Image URL could not be downloaded',
+        };
       }
       imageBytes = downloaded.buffer;
-      imageContentType = downloaded.contentType;
-      imageExt = imageContentType.split("/")[1]?.split(";")[0] || "jpg";
     } else {
       const imageFile = resolveUploadedImage(row.imageLink, ctx.imageMap);
       if (!imageFile) {
-        return { row: rowNum, name, status: "skipped", reason: "No matching image file found" };
+        return {
+          row: rowNum,
+          name,
+          status: 'skipped',
+          reason: 'No matching image file found',
+        };
       }
       imageBytes = await imageFile.arrayBuffer();
-      imageContentType = imageFile.type || "image/jpeg";
-      imageExt = imageFile.name.split(".").pop() || "jpg";
     }
 
-    const storagePath = `location-images/${ctx.listSlug}-r${rowNum}-${locationSlug}.${imageExt}`;
+    const imageBaseId = `${ctx.listSlug}-r${rowNum}-${locationSlug}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("images")
-      .upload(storagePath, imageBytes, {
-        contentType: imageContentType,
-        cacheControl: "3600",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      return { row: rowNum, name, status: "failed", reason: `Image upload failed: ${uploadError.message}` };
+    let coinImageUrl: string;
+    let coinImageThumbUrl: string;
+    try {
+      const uploaded = await uploadProcessedLocationImages(
+        Buffer.from(imageBytes),
+        { baseId: imageBaseId, folder: 'location-images' }
+      );
+      coinImageUrl = uploaded.imageUrl;
+      coinImageThumbUrl = uploaded.thumbnailUrl;
+    } catch (uploadError) {
+      const message =
+        uploadError instanceof Error
+          ? uploadError.message
+          : 'Image upload failed';
+      return { row: rowNum, name, status: 'failed', reason: message };
     }
-
-    const { data: urlData } = supabase.storage
-      .from("images")
-      .getPublicUrl(storagePath);
-    const coinImageUrl = urlData.publicUrl;
 
     const addressSlug = slugify(address);
     const placeId = buildPlaceId(
@@ -437,11 +455,10 @@ async function processRow(
       locationSlug,
       addressSlug || `row${rowNum}`
     );
-    const rowDescription =
-      row.quote?.slice(0, DESCRIPTION_MAX_LENGTH) || null;
+    const rowDescription = row.quote?.slice(0, DESCRIPTION_MAX_LENGTH) || null;
 
     const { data: locationData, error: locationError } = await supabase
-      .from("locations")
+      .from('locations')
       .upsert(
         {
           place_id: placeId,
@@ -458,25 +475,36 @@ async function processRow(
             created_at: new Date().toISOString(),
           }),
           coin_image_url: coinImageUrl,
+          coin_image_thumb_url: coinImageThumbUrl,
           creator_wallet_address: ctx.creatorWalletAddress || null,
           creator_username: ctx.creatorUsername || null,
           is_visible: true,
         },
-        { onConflict: "place_id" }
+        { onConflict: 'place_id' }
       )
-      .select("id")
+      .select('id')
       .single();
 
     if (locationError) {
-      return { row: rowNum, name, status: "failed", reason: `Location insert failed: ${locationError.message}` };
+      return {
+        row: rowNum,
+        name,
+        status: 'failed',
+        reason: `Location insert failed: ${locationError.message}`,
+      };
     }
 
     const { error: memberError } = await supabase
-      .from("location_list_members")
+      .from('location_list_members')
       .insert({ list_id: ctx.listId, location_id: locationData.id });
 
-    if (memberError && memberError.code !== "23505") {
-      return { row: rowNum, name, status: "failed", reason: `Failed to add to list: ${memberError.message}` };
+    if (memberError && memberError.code !== '23505') {
+      return {
+        row: rowNum,
+        name,
+        status: 'failed',
+        reason: `Failed to add to list: ${memberError.message}`,
+      };
     }
 
     trackLocationCreated(ctx.adminDistinctId, {
@@ -486,10 +514,10 @@ async function processRow(
       creator_wallet_address: ctx.creatorWalletAddress || undefined,
     });
 
-    return { row: rowNum, name, status: "created" };
+    return { row: rowNum, name, status: 'created' };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return { row: rowNum, name, status: "failed", reason: message };
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { row: rowNum, name, status: 'failed', reason: message };
   }
 }
 
@@ -497,49 +525,47 @@ export async function POST(request: NextRequest) {
   try {
     const adminEmail = await getAuthenticatedAdminEmail(request);
     if (!adminEmail) {
-      return apiError("Unauthorized", 403);
+      return apiError('Unauthorized', 403);
     }
 
     const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
     if (!mapboxToken) {
-      return apiError("Mapbox token not configured", 500);
+      return apiError('Mapbox token not configured', 500);
     }
 
     const formData = await request.formData();
 
-    const csvFile = formData.get("csv") as File | null;
-    const title = formData.get("title") as string | null;
-    const listDescription = (formData.get("description") as string) || "";
-    const accentColor =
-      (formData.get("accentColor") as string) || "#111827";
-    const isActive = formData.get("isActive") !== "false";
+    const csvFile = formData.get('csv') as File | null;
+    const title = formData.get('title') as string | null;
+    const listDescription = (formData.get('description') as string) || '';
+    const accentColor = (formData.get('accentColor') as string) || '#111827';
+    const isActive = formData.get('isActive') !== 'false';
     const creatorWalletAddress =
-      (formData.get("creatorWalletAddress") as string) || "";
-    const creatorUsername =
-      (formData.get("creatorUsername") as string) || "";
+      (formData.get('creatorWalletAddress') as string) || '';
+    const creatorUsername = (formData.get('creatorUsername') as string) || '';
 
     const imageFiles: File[] = [];
-    for (const entry of formData.getAll("images")) {
+    for (const entry of formData.getAll('images')) {
       if (entry instanceof File) imageFiles.push(entry);
     }
 
     if (!csvFile) {
-      return apiError("CSV file is required", 400);
+      return apiError('CSV file is required', 400);
     }
     if (!title || title.trim().length < 3) {
-      return apiError("Title must be at least 3 characters", 400);
+      return apiError('Title must be at least 3 characters', 400);
     }
 
     const csvContent = await csvFile.text();
     const rows = parseCsv(csvContent);
     if (rows.length === 0) {
-      return apiError("CSV contains no data rows", 400);
+      return apiError('CSV contains no data rows', 400);
     }
 
     const imageMap = new Map<string, File>();
     for (const file of imageFiles) {
       imageMap.set(file.name.toLowerCase(), file);
-      const nameWithoutExt = file.name.replace(/\.[^.]+$/, "").toLowerCase();
+      const nameWithoutExt = file.name.replace(/\.[^.]+$/, '').toLowerCase();
       if (!imageMap.has(nameWithoutExt)) {
         imageMap.set(nameWithoutExt, file);
       }
@@ -548,7 +574,7 @@ export async function POST(request: NextRequest) {
     const listSlug = await ensureUniqueSlug(slugify(title.trim()));
 
     const { data: listData, error: listError } = await supabase
-      .from("location_lists")
+      .from('location_lists')
       .insert({
         title: title.trim(),
         slug: listSlug,
@@ -588,8 +614,8 @@ export async function POST(request: NextRequest) {
       );
       for (const result of batchResults) {
         results.push(result);
-        if (result.status === "created") created++;
-        else if (result.status === "skipped") skipped++;
+        if (result.status === 'created') created++;
+        else if (result.status === 'skipped') skipped++;
         else failed++;
       }
     }
@@ -600,9 +626,9 @@ export async function POST(request: NextRequest) {
       results,
     });
   } catch (error) {
-    console.error("CSV upload error:", error);
+    console.error('CSV upload error:', error);
     return apiError(
-      error instanceof Error ? error.message : "Failed to process CSV upload",
+      error instanceof Error ? error.message : 'Failed to process CSV upload',
       500
     );
   }

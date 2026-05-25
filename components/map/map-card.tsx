@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import {
   Tooltip,
   TooltipContent,
@@ -138,19 +139,23 @@ export default function MapCard({
 
   const descriptionText = description?.trim() || address;
   return (
-    <div
-      className="flex h-[288px] min-h-[288px] max-h-[288px] w-[calc(100vw-32px)] max-w-[361px] flex-col items-end gap-2 overflow-hidden border border-[rgba(255,255,255,0.15)] p-2 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px]"
-      style={{
-        background: imageUrl
-          ? `url(${imageUrl}) lightgray center top / cover no-repeat`
-          : 'lightgray',
-      }}
-    >
+    <div className="relative flex h-[288px] min-h-[288px] max-h-[288px] w-[calc(100vw-32px)] max-w-[361px] flex-col items-end gap-2 overflow-hidden border border-[rgba(255,255,255,0.15)] bg-lightgray p-2 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px]">
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 361px) 100vw, 361px"
+          className="object-cover object-top"
+        />
+      ) : null}
+
       {/* Close Button Overlay */}
       {onClose && (
         <button
           onClick={onClose}
-          className="cursor-pointer self-start flex h-7 w-7 items-center justify-center gap-4 border border-[#DBDBDB] bg-white p-1 transition-colors hover:bg-white"
+          className="relative z-10 cursor-pointer self-start flex h-7 w-7 items-center justify-center gap-4 border border-[#DBDBDB] bg-white p-1 transition-colors hover:bg-white"
           aria-label="Close"
         >
           <svg
@@ -170,7 +175,7 @@ export default function MapCard({
       )}
 
       {/* Card Content */}
-      <div className="mt-auto flex self-stretch flex-col items-start gap-2 bg-white p-2">
+      <div className="relative z-10 mt-auto flex self-stretch flex-col items-start gap-2 bg-white p-2">
         {/* Location Info */}
         <div className="flex self-stretch flex-col items-start justify-center gap-[5px] pb-1">
           {/* Name */}

@@ -26,6 +26,7 @@ const LOCATION_COLUMNS = `
   coin_symbol,
   coin_name,
   coin_image_url,
+  coin_image_thumb_url,
   coin_transaction_hash,
   creator_wallet_address,
   creator_username,
@@ -133,6 +134,7 @@ export const updateLocationById = async (
       | 'creator_wallet_address'
       | 'creator_username'
       | 'coin_image_url'
+      | 'coin_image_thumb_url'
       | 'type'
       | 'event_url'
       | 'is_visible'
