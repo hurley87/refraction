@@ -8,7 +8,7 @@ IRL is a rewards app for cultural events and locations. Users sign in with Privy
 
 The homepage suggests the current focus is **activation into real-world discovery and attendance**, with the clearest user path being:
 
-- landing page -> interactive map (`Find Spots Nearby`)
+- landing page -> interactive map (`Find Spots Nearby`) and **city guides** entry points on the homepage
 - nearby spot or event discovery
 - real-world visit
 - first successful `checkin_completed`
@@ -125,10 +125,11 @@ Important: perk claims do **not** deduct points. Points act as a qualification t
 
 ### Planned but not live
 
-| Feature name                   | What it does                                                                                                                         | Who uses it                   | Status             |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- | ------------------ |
-| IRL Spend                      | Add a staff-friendly event checkout flow that ties a live purchase to a user and event, confirms payment, and issues points.         | End users + staff + operators | `planned-not-live` |
-| Bridge-powered IRL Member Card | Add a dedicated IRL member card product that acts as in-person identity and spend instrument, with website account access via Privy. | End users + internal team     | `planned-not-live` |
+| Feature name                             | What it does                                                                                                                                                                                                                                                                                                                          | Who uses it                      | Status             |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ------------------ |
+| IRL Spend                                | Add a staff-friendly event checkout flow that ties a live purchase to a user and event, confirms payment, and issues points.                                                                                                                                                                                                          | End users + staff + operators    | `planned-not-live` |
+| Public Records sponsored USDC activation | Draft PRD for a sponsor-funded venue activation: campaign wallet → venue settlement on Base or Stellar, no user-custody USDC; distinct from the user-wallet spend pilot. See [`docs/plans/public-records-sponsored-usdc-activation-prd.md`](./plans/public-records-sponsored-usdc-activation-prd.md). **Implementation not started.** | End users + sponsors + operators | `planned-not-live` |
+| Bridge-powered IRL Member Card           | Add a dedicated IRL member card product that acts as in-person identity and spend instrument, with website account access via Privy.                                                                                                                                                                                                  | End users + internal team        | `planned-not-live` |
 
 ## Key data sources and definitions
 
