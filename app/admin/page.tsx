@@ -16,6 +16,7 @@ import {
   BookOpen,
   Users,
   CreditCard,
+  CircleDollarSign,
   Globe,
 } from 'lucide-react';
 
@@ -83,6 +84,13 @@ const SECTIONS: AdminSection[] = [
     href: '/admin/spend-experiences',
     icon: <CreditCard className="h-6 w-6" />,
     color: 'bg-amber-50 text-amber-600 border-amber-200',
+  },
+  {
+    title: 'Sponsored Activations',
+    description: 'Sponsor-funded activations, settlements, and redemptions',
+    href: '/admin/sponsored-activations',
+    icon: <CircleDollarSign className="h-6 w-6" />,
+    color: 'bg-lime-50 text-lime-700 border-lime-200',
   },
   {
     title: 'City Guides',
