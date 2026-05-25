@@ -259,6 +259,119 @@ export async function confirmActivationPurchaseAtomic(input: {
   return parsed;
 }
 
+export type SwipeActivationRedeemRpcOutcome =
+  | 'created'
+  | 'already_redeemed'
+  | 'expired';
+
+export type SwipeActivationRedeemRpcResult = {
+  outcome: SwipeActivationRedeemRpcOutcome;
+};
+
+function readSwipeActivationRedeemRpcRow(
+  data: unknown
+): SwipeActivationRedeemRpcResult | null {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row !== 'object') return null;
+  const r = row as Record<string, unknown>;
+  const outcome = r.outcome;
+  if (
+    outcome !== 'created' &&
+    outcome !== 'already_redeemed' &&
+    outcome !== 'expired'
+  ) {
+    return null;
+  }
+  return { outcome };
+}
+
+/**
+ * Atomically completes in-venue swipe: `ready_to_redeem` → `settlement_pending`, one queued settlement row.
+ * Requires `swipe_activation_redeem_atomic` in the database (IRL-55).
+ */
+export async function swipeActivationRedeemAtomic(input: {
+  redemptionId: string;
+  playerId: number;
+  walletAddress: string;
+  maxSwipeRedeemsPerUser: number;
+  maxSwipeRedeemsPerUserPerDay: number;
+}): Promise<SwipeActivationRedeemRpcResult> {
+  const { data, error } = await supabase.rpc('swipe_activation_redeem_atomic', {
+    p_redemption_id: input.redemptionId,
+    p_player_id: input.playerId,
+    p_wallet_address: input.walletAddress,
+    p_max_swipe_redeems_per_user: input.maxSwipeRedeemsPerUser,
+    p_max_swipe_redeems_per_user_per_day: input.maxSwipeRedeemsPerUserPerDay,
+  });
+
+  if (error) {
+    throw new Error(error.message || 'swipe_activation_redeem_atomic failed');
+  }
+
+  const parsed = readSwipeActivationRedeemRpcRow(data);
+  if (!parsed) {
+    throw new Error(
+      'Unexpected RPC response from swipe_activation_redeem_atomic'
+    );
+  }
+  return parsed;
+}
+
+export type CancelActivationRedemptionRpcOutcome =
+  | 'cancelled'
+  | 'already_cancelled';
+
+export type CancelActivationRedemptionRpcResult = {
+  outcome: CancelActivationRedemptionRpcOutcome;
+};
+
+function readCancelActivationRedemptionRpcRow(
+  data: unknown
+): CancelActivationRedemptionRpcResult | null {
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row || typeof row !== 'object') return null;
+  const r = row as Record<string, unknown>;
+  const outcome = r.outcome;
+  if (outcome !== 'cancelled' && outcome !== 'already_cancelled') {
+    return null;
+  }
+  return { outcome };
+}
+
+/**
+ * User cancel from `ready_to_redeem` only. Requires `cancel_activation_redemption_atomic` (IRL-55).
+ */
+export async function cancelActivationRedemptionAtomic(input: {
+  redemptionId: string;
+  playerId: number;
+  walletAddress: string;
+  reason: string | null;
+}): Promise<CancelActivationRedemptionRpcResult> {
+  const { data, error } = await supabase.rpc(
+    'cancel_activation_redemption_atomic',
+    {
+      p_redemption_id: input.redemptionId,
+      p_player_id: input.playerId,
+      p_wallet_address: input.walletAddress,
+      p_reason: input.reason,
+    }
+  );
+
+  if (error) {
+    throw new Error(
+      error.message || 'cancel_activation_redemption_atomic failed'
+    );
+  }
+
+  const parsed = readCancelActivationRedemptionRpcRow(data);
+  if (!parsed) {
+    throw new Error(
+      'Unexpected RPC response from cancel_activation_redemption_atomic'
+    );
+  }
+  return parsed;
+}
+
 export async function getActivationRedemptionByIdempotencyKey(
   idempotencyKey: string
 ): Promise<ActivationRedemptionRow | null> {
