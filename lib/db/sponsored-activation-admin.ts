@@ -1,7 +1,10 @@
 import { supabase } from '@/lib/db/client';
 import type { SponsoredActivationRow } from '@/lib/db/sponsored-activations';
 import { getSponsoredActivationByIdOrSlug } from '@/lib/db/sponsored-activations';
-import type { ActivationRedemptionRow } from '@/lib/db/activation-redemptions';
+import {
+  normalizeActivationRedemptionRow,
+  type ActivationRedemptionRow,
+} from '@/lib/db/activation-redemptions';
 import {
   normalizeActivationSettlementTransactionRow,
   type ActivationSettlementTransactionRow,
@@ -299,30 +302,9 @@ async function listLatestRedemptions(
     console.error('listLatestRedemptions:', error);
     throw new Error(error.message || 'Failed to list redemptions');
   }
-  return (data ?? []).map((r) => ({
-    id: String(r.id),
-    activation_id: String(r.activation_id),
-    reward_item_id: String(r.reward_item_id),
-    user_id: Number(r.user_id),
-    eligibility_event_id: String(r.eligibility_event_id),
-    status: r.status as ActivationRedemptionStatus,
-    idempotency_key: String(r.idempotency_key),
-    points_spent:
-      r.points_spent === null || r.points_spent === undefined
-        ? null
-        : Number(r.points_spent),
-    usdc_amount_snapshot:
-      r.usdc_amount_snapshot === null || r.usdc_amount_snapshot === undefined
-        ? null
-        : toNumber(r.usdc_amount_snapshot),
-    purchase_confirmed_at:
-      r.purchase_confirmed_at == null ? null : String(r.purchase_confirmed_at),
-    redeemed_at: r.redeemed_at == null ? null : String(r.redeemed_at),
-    cancelled_reason:
-      r.cancelled_reason == null ? null : String(r.cancelled_reason),
-    created_at: String(r.created_at),
-    updated_at: String(r.updated_at),
-  }));
+  return (data ?? []).map((r) =>
+    normalizeActivationRedemptionRow(r as Record<string, unknown>)
+  );
 }
 
 type PlayerMini = { id: number; username: string | null };

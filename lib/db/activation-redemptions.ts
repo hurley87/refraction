@@ -35,7 +35,9 @@ function toIntOrNull(value: unknown): number | null {
   return Number.isNaN(n) ? null : Math.trunc(n);
 }
 
-function normalizeRow(row: Record<string, unknown>): ActivationRedemptionRow {
+export function normalizeActivationRedemptionRow(
+  row: Record<string, unknown>
+): ActivationRedemptionRow {
   return {
     id: String(row.id),
     activation_id: String(row.activation_id),
@@ -76,7 +78,9 @@ export async function listRedemptionsForUserActivation(input: {
     console.error('listRedemptionsForUserActivation:', error);
     throw new Error(error.message || 'Failed to list redemptions');
   }
-  return (data ?? []).map((r) => normalizeRow(r as Record<string, unknown>));
+  return (data ?? []).map((r) =>
+    normalizeActivationRedemptionRow(r as Record<string, unknown>)
+  );
 }
 
 export async function listRedemptionsForEligibilityEvent(
@@ -91,7 +95,9 @@ export async function listRedemptionsForEligibilityEvent(
     console.error('listRedemptionsForEligibilityEvent:', error);
     throw new Error(error.message || 'Failed to list redemptions for event');
   }
-  return (data ?? []).map((r) => normalizeRow(r as Record<string, unknown>));
+  return (data ?? []).map((r) =>
+    normalizeActivationRedemptionRow(r as Record<string, unknown>)
+  );
 }
 
 export type InsertActivationRedemptionInput = {
@@ -130,7 +136,7 @@ export async function insertActivationRedemption(
     console.error('insertActivationRedemption:', error);
     throw new Error(error.message || 'Failed to create redemption');
   }
-  return normalizeRow(data as Record<string, unknown>);
+  return normalizeActivationRedemptionRow(data as Record<string, unknown>);
 }
 
 export async function getActivationRedemptionById(
@@ -146,7 +152,7 @@ export async function getActivationRedemptionById(
     throw new Error(error.message || 'Failed to load redemption');
   }
   if (!data) return null;
-  return normalizeRow(data as Record<string, unknown>);
+  return normalizeActivationRedemptionRow(data as Record<string, unknown>);
 }
 
 /** Counts completed confirm-purchase outcomes for rate limits (IRL-54). */
@@ -385,7 +391,7 @@ export async function getActivationRedemptionByIdempotencyKey(
     throw new Error(error.message || 'Failed to load redemption');
   }
   if (!data) return null;
-  return normalizeRow(data as Record<string, unknown>);
+  return normalizeActivationRedemptionRow(data as Record<string, unknown>);
 }
 
 /**
@@ -415,5 +421,5 @@ export async function syncActivationRedemptionSettlementOutcome(input: {
     );
   }
   if (!data) return null;
-  return normalizeRow(data as Record<string, unknown>);
+  return normalizeActivationRedemptionRow(data as Record<string, unknown>);
 }
