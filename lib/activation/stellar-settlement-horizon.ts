@@ -6,6 +6,25 @@ const HORIZON_TX_POLL_INTERVAL_MS = 1500;
 
 export type HorizonTxPollResult = 'success' | 'failed' | 'pending';
 
+function isRetryableHorizonTxLookupError(e: unknown): boolean {
+  const status = (e as { response?: { status?: number } })?.response?.status;
+  if (status === 404) return true;
+  if (status === 429) return true;
+  if (typeof status === 'number' && status >= 500 && status < 600) {
+    return true;
+  }
+  const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
+  return (
+    msg.includes('fetch') ||
+    msg.includes('econn') ||
+    msg.includes('timeout') ||
+    msg.includes('socket') ||
+    msg.includes('502') ||
+    msg.includes('503') ||
+    msg.includes('504')
+  );
+}
+
 export async function pollStellarSettlementTxOutcome(
   txHash: string,
   server?: Horizon.Server
@@ -19,9 +38,7 @@ export async function pollStellarSettlementTxOutcome(
       if (tx.successful) return 'success';
       return 'failed';
     } catch (e: unknown) {
-      const status = (e as { response?: { status?: number } })?.response
-        ?.status;
-      if (status === 404) {
+      if (isRetryableHorizonTxLookupError(e)) {
         await new Promise((r) => setTimeout(r, HORIZON_TX_POLL_INTERVAL_MS));
         continue;
       }

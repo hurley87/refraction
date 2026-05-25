@@ -182,10 +182,6 @@ export async function runStellarSettlementWorkerBatch(
       summary.skipped += 1;
       continue;
     }
-    if (row.status === 'submitted' && !row.tx_hash?.trim()) {
-      summary.skipped += 1;
-      continue;
-    }
 
     summary.processed += 1;
     try {
