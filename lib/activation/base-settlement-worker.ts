@@ -80,7 +80,9 @@ export type ProcessBaseActivationSettlementResult =
 const INSUFFICIENT_ERC20_RE =
   /exceeds\s+balance|insufficient\s+funds|transfer\s+amount|ERC20:\s+transfer\s+amount/i;
 
-function classifyPrivySubmitError(message: string): string {
+function classifyPrivySubmitError(
+  message: string
+): BaseActivationSettlementErrorCode {
   const m = message.trim();
   if (INSUFFICIENT_ERC20_RE.test(m)) {
     return BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.insufficient_campaign_usdc;
@@ -114,6 +116,25 @@ async function markSettlementAndRedemptionFailed(input: {
     redemptionId: input.redemptionId,
     nextStatus: 'settlement_failed',
   });
+}
+
+async function returnConfigValidationFailed(
+  row: ActivationSettlementTransactionRow,
+  lastErrorCode: BaseActivationSettlementErrorCode
+): Promise<
+  Extract<
+    ProcessBaseActivationSettlementResult,
+    { outcome: 'config_or_validation_failed' }
+  >
+> {
+  await markSettlementAndRedemptionFailed({
+    settlementId: row.id,
+    redemptionId: row.redemption_id,
+    lastErrorCode,
+  });
+  const settlement =
+    (await getActivationSettlementTransactionById(row.id)) ?? row;
+  return { outcome: 'config_or_validation_failed', settlement, lastErrorCode };
 }
 
 async function confirmSettlementAndRedemption(input: {
@@ -221,19 +242,10 @@ export async function processBaseActivationSettlement(input: {
   );
 
   if (!venueExpected || !campaignExpected || !toParsed || !fromParsed) {
-    await markSettlementAndRedemptionFailed({
-      settlementId: row.id,
-      redemptionId: row.redemption_id,
-      lastErrorCode:
-        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.settlement_wallet_invalid,
-    });
-    const refreshed = await getActivationSettlementTransactionById(row.id);
-    return {
-      outcome: 'config_or_validation_failed',
-      settlement: refreshed ?? row,
-      lastErrorCode:
-        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.settlement_wallet_invalid,
-    };
+    return returnConfigValidationFailed(
+      row,
+      BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.settlement_wallet_invalid
+    );
   }
 
   if (
@@ -242,19 +254,10 @@ export async function processBaseActivationSettlement(input: {
       activation.venue_settlement_wallet_address
     )
   ) {
-    await markSettlementAndRedemptionFailed({
-      settlementId: row.id,
-      redemptionId: row.redemption_id,
-      lastErrorCode:
-        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.venue_wallet_mismatch,
-    });
-    const refreshed = await getActivationSettlementTransactionById(row.id);
-    return {
-      outcome: 'config_or_validation_failed',
-      settlement: refreshed ?? row,
-      lastErrorCode:
-        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.venue_wallet_mismatch,
-    };
+    return returnConfigValidationFailed(
+      row,
+      BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.venue_wallet_mismatch
+    );
   }
 
   if (
@@ -263,38 +266,20 @@ export async function processBaseActivationSettlement(input: {
       activation.campaign_wallet_address
     )
   ) {
-    await markSettlementAndRedemptionFailed({
-      settlementId: row.id,
-      redemptionId: row.redemption_id,
-      lastErrorCode:
-        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_mismatch,
-    });
-    const refreshed = await getActivationSettlementTransactionById(row.id);
-    return {
-      outcome: 'config_or_validation_failed',
-      settlement: refreshed ?? row,
-      lastErrorCode:
-        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_mismatch,
-    };
+    return returnConfigValidationFailed(
+      row,
+      BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_mismatch
+    );
   }
 
   const userWallet = await getPlayerEvmWalletAddressById(redemption.user_id);
   if (userWallet) {
     const userNorm = tryNormalizeEvmAddress(userWallet) ?? userWallet.trim();
     if (userNorm && sameWalletAddress(toParsed, userNorm)) {
-      await markSettlementAndRedemptionFailed({
-        settlementId: row.id,
-        redemptionId: row.redemption_id,
-        lastErrorCode:
-          BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.recipient_is_user_wallet,
-      });
-      const refreshed = await getActivationSettlementTransactionById(row.id);
-      return {
-        outcome: 'config_or_validation_failed',
-        settlement: refreshed ?? row,
-        lastErrorCode:
-          BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.recipient_is_user_wallet,
-      };
+      return returnConfigValidationFailed(
+        row,
+        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.recipient_is_user_wallet
+      );
     }
   }
 
@@ -302,54 +287,27 @@ export async function processBaseActivationSettlement(input: {
     activation.usdc_asset_config
   );
   if (!cfgParse.success) {
-    await markSettlementAndRedemptionFailed({
-      settlementId: row.id,
-      redemptionId: row.redemption_id,
-      lastErrorCode:
-        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.invalid_usdc_contract,
-    });
-    const refreshed = await getActivationSettlementTransactionById(row.id);
-    return {
-      outcome: 'config_or_validation_failed',
-      settlement: refreshed ?? row,
-      lastErrorCode:
-        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.invalid_usdc_contract,
-    };
+    return returnConfigValidationFailed(
+      row,
+      BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.invalid_usdc_contract
+    );
   }
   const usdcContract = cfgParse.data.contract_address;
 
   const privyWalletId = activation.privy_campaign_wallet_id?.trim();
   if (!privyWalletId) {
-    await markSettlementAndRedemptionFailed({
-      settlementId: row.id,
-      redemptionId: row.redemption_id,
-      lastErrorCode:
-        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_not_configured,
-    });
-    const refreshed = await getActivationSettlementTransactionById(row.id);
-    return {
-      outcome: 'config_or_validation_failed',
-      settlement: refreshed ?? row,
-      lastErrorCode:
-        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_not_configured,
-    };
+    return returnConfigValidationFailed(
+      row,
+      BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.campaign_wallet_not_configured
+    );
   }
 
   if (redemption.status !== 'settlement_pending') {
     if (row.status === 'submitted' || row.status === 'queued') {
-      await markSettlementAndRedemptionFailed({
-        settlementId: row.id,
-        redemptionId: row.redemption_id,
-        lastErrorCode:
-          BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.redemption_status_invalid,
-      });
-      const refreshed = await getActivationSettlementTransactionById(row.id);
-      return {
-        outcome: 'config_or_validation_failed',
-        settlement: refreshed ?? row,
-        lastErrorCode:
-          BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.redemption_status_invalid,
-      };
+      return returnConfigValidationFailed(
+        row,
+        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.redemption_status_invalid
+      );
     }
     return {
       outcome: 'terminal_failed',
@@ -434,9 +392,7 @@ export async function processBaseActivationSettlement(input: {
               BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.privy_transaction_failed,
           };
         }
-        if (e instanceof PrivyRestTransactionTimeoutError) {
-          txHash = await tryResolveHashFromChain();
-        } else {
+        if (!(e instanceof PrivyRestTransactionTimeoutError)) {
           throw e;
         }
       }
@@ -506,19 +462,10 @@ export async function processBaseActivationSettlement(input: {
           e.message
         ))
     ) {
-      await markSettlementAndRedemptionFailed({
-        settlementId: row.id,
-        redemptionId: row.redemption_id,
-        lastErrorCode:
-          BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.privy_not_configured,
-      });
-      const refreshed = await getActivationSettlementTransactionById(row.id);
-      return {
-        outcome: 'config_or_validation_failed',
-        settlement: refreshed ?? row,
-        lastErrorCode:
-          BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.privy_not_configured,
-      };
+      return returnConfigValidationFailed(
+        row,
+        BASE_ACTIVATION_SETTLEMENT_ERROR_CODES.privy_not_configured
+      );
     }
     throw e;
   }
@@ -569,14 +516,10 @@ export async function processBaseActivationSettlement(input: {
   }
 
   let txHash: `0x${string}` | null = null;
-  if (submit.ok && !('submittedPending' in submit && submit.submittedPending)) {
-    txHash = submit.txHash;
-  } else if (
-    submit.ok &&
-    'submittedPending' in submit &&
-    submit.submittedPending
-  ) {
+  if ('submittedPending' in submit && submit.submittedPending) {
     txHash = await tryResolveHashFromChain();
+  } else {
+    txHash = submit.txHash;
   }
 
   if (txHash) {
