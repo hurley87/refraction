@@ -143,6 +143,46 @@ export const createSponsoredActivationSchema =
     }
   });
 
+const adminCreateSponsoredActivationBaseObject =
+  createSponsoredActivationBaseObject.omit({ campaign_wallet_address: true });
+const adminCreateSponsoredActivationStellarObject =
+  createSponsoredActivationStellarObject.omit({
+    campaign_wallet_address: true,
+  });
+
+/**
+ * Admin POST body: `campaign_wallet_address` is provisioned server-side (Privy), not supplied by the client.
+ */
+export const adminCreateSponsoredActivationRequestSchema = z
+  .discriminatedUnion('settlement_rail', [
+    adminCreateSponsoredActivationBaseObject,
+    adminCreateSponsoredActivationStellarObject,
+  ])
+  .superRefine((data, ctx) => {
+    if (new Date(data.ends_at) <= new Date(data.starts_at)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'ends_at must be after starts_at',
+        path: ['ends_at'],
+      });
+    }
+    const hasRedemptions =
+      data.max_redemptions != null && data.max_redemptions > 0;
+    const hasBudget = data.max_usdc_budget != null && data.max_usdc_budget > 0;
+    if (!hasRedemptions && !hasBudget) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'At least one of max_redemptions or max_usdc_budget is required on create',
+        path: ['max_redemptions'],
+      });
+    }
+  });
+
+export type AdminCreateSponsoredActivationRequest = z.infer<
+  typeof adminCreateSponsoredActivationRequestSchema
+>;
+
 function mergeConfigParseIssues(
   result: z.SafeParseReturnType<unknown, unknown>,
   ctx: z.RefinementCtx,
