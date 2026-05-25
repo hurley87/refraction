@@ -204,12 +204,13 @@ function readConfirmActivationPurchaseRpcRow(
   const r = row as Record<string, unknown>;
   const outcome = r.outcome;
   const ptsRaw = r.player_total_points ?? r.playerTotalPoints;
-  const pts =
-    typeof ptsRaw === 'number' && Number.isFinite(ptsRaw)
-      ? ptsRaw
-      : typeof ptsRaw === 'string'
-        ? parseInt(ptsRaw, 10)
-        : NaN;
+  let pts = NaN;
+  if (typeof ptsRaw === 'number' && Number.isFinite(ptsRaw)) {
+    pts = ptsRaw;
+  } else if (typeof ptsRaw === 'string') {
+    const parsedPts = parseInt(ptsRaw, 10);
+    pts = Number.isNaN(parsedPts) ? NaN : parsedPts;
+  }
   if (
     (outcome !== 'created' && outcome !== 'already_confirmed') ||
     !Number.isFinite(pts)

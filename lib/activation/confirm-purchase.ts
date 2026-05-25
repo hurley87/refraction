@@ -19,6 +19,7 @@ import {
   countActivationPurchaseConfirmsForUserActivationInUtcWindow,
   getActivationRedemptionById,
   type ActivationRedemptionRow,
+  type ConfirmActivationPurchaseRpcResult,
 } from '@/lib/db/activation-redemptions';
 import { getActivationRewardItemById } from '@/lib/db/activation-reward-items';
 import { createOrUpdatePlayer, getPlayerByWallet } from '@/lib/db/players';
@@ -51,14 +52,12 @@ async function assertPrivyWalletAuth(
 }
 
 async function resolvePlayerForWallet(
-  walletAddress: string
+  normalizedWalletAddress: string
 ): Promise<{ playerId: number }> {
-  const trimmed = walletAddress.trim();
-  const normalized = tryNormalizeEvmAddress(trimmed) ?? trimmed;
-  let player = await getPlayerByWallet(normalized);
+  let player = await getPlayerByWallet(normalizedWalletAddress);
   if (!player?.id) {
     player = await createOrUpdatePlayer({
-      wallet_address: normalized,
+      wallet_address: normalizedWalletAddress,
       total_points: 0,
     });
   }
@@ -104,9 +103,6 @@ function mapRpcOrUnexpectedError(message: string): {
   return { status: 500, error: 'Something went wrong' };
 }
 
-/**
- * POST handler body for sponsored activation confirm purchase (IRL-54).
- */
 export async function runConfirmActivationPurchase(input: {
   request: NextRequest;
   activationKey: string;
@@ -132,8 +128,10 @@ export async function runConfirmActivationPurchase(input: {
   }
 
   const { walletAddress, redemptionId } = parsed.data;
+  const walletKey =
+    tryNormalizeEvmAddress(walletAddress.trim()) ?? walletAddress.trim();
 
-  const gate = await assertPrivyWalletAuth(input.request, walletAddress);
+  const gate = await assertPrivyWalletAuth(input.request, walletKey);
   if (!gate.ok) return { ok: false, response: gate.response };
 
   const activation = await getSponsoredActivationByIdOrSlug(activationSegment);
@@ -176,7 +174,7 @@ export async function runConfirmActivationPurchase(input: {
 
   let playerId: number;
   try {
-    const resolved = await resolvePlayerForWallet(walletAddress);
+    const resolved = await resolvePlayerForWallet(walletKey);
     playerId = resolved.playerId;
   } catch (e) {
     console.error('confirm purchase (resolve player):', e);
@@ -229,25 +227,24 @@ export async function runConfirmActivationPurchase(input: {
     };
   }
 
-  const walletForRpc =
-    tryNormalizeEvmAddress(walletAddress.trim()) ?? walletAddress.trim();
-
   if (redemption.status === 'available') {
     let lifetimeCount: number;
     let dailyCount: number;
     try {
-      lifetimeCount = await countActivationPurchaseConfirmsForUserActivation({
-        activationId: activation.id,
-        userId: playerId,
-      });
       const { startIso, endIso } = getUtcDayBounds();
-      dailyCount =
-        await countActivationPurchaseConfirmsForUserActivationInUtcWindow({
+      const results = await Promise.all([
+        countActivationPurchaseConfirmsForUserActivation({
+          activationId: activation.id,
+          userId: playerId,
+        }),
+        countActivationPurchaseConfirmsForUserActivationInUtcWindow({
           activationId: activation.id,
           userId: playerId,
           purchaseConfirmedAtGte: startIso,
           purchaseConfirmedAtLt: endIso,
-        });
+        }),
+      ]);
+      [lifetimeCount, dailyCount] = results;
     } catch (e) {
       console.error('confirm purchase (rate limit counts):', e);
       return {
@@ -278,12 +275,12 @@ export async function runConfirmActivationPurchase(input: {
     }
   }
 
-  let rpc: { outcome: string; playerTotalPoints: number };
+  let rpc: ConfirmActivationPurchaseRpcResult;
   try {
     rpc = await confirmActivationPurchaseAtomic({
       redemptionId,
       playerId,
-      walletAddress: walletForRpc,
+      walletAddress: walletKey,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : '';

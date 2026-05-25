@@ -152,9 +152,8 @@ describe('POST /api/sponsored-activations/[activationId]/confirm-purchase', () =
     let load = 0;
     mockGetRedemptionById.mockImplementation(async () => {
       load += 1;
-      return load === 1
-        ? redemptionRow('available')
-        : redemptionRow('ready_to_redeem');
+      if (load === 1) return redemptionRow('available');
+      return redemptionRow('ready_to_redeem');
     });
 
     const res = await POST(postReq({ walletAddress: wallet, redemptionId }), {

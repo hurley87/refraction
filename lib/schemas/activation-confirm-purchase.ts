@@ -7,7 +7,6 @@ const confirmPurchaseWalletAddressSchema = z
     message: 'walletAddress must be a valid EVM address',
   });
 
-/** POST /api/sponsored-activations/{activationIdOrSlug}/confirm-purchase (IRL-54). */
 export const activationConfirmPurchaseBodySchema = z
   .object({
     walletAddress: confirmPurchaseWalletAddressSchema,
