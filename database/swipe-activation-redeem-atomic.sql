@@ -14,7 +14,6 @@ DECLARE
   v_red activation_redemption%ROWTYPE;
   v_act sponsored_activation%ROWTYPE;
   v_item activation_reward_item%ROWTYPE;
-  v_player_row_id BIGINT;
   v_lifetime_swipes INTEGER;
   v_daily_swipes INTEGER;
   v_nt INTEGER;
@@ -148,8 +147,7 @@ BEGIN
     END IF;
   END IF;
 
-  SELECT id
-  INTO v_player_row_id
+  PERFORM 1
   FROM players
   WHERE id = p_player_id
     AND lower(trim(wallet_address)) = lower(trim(p_wallet_address))

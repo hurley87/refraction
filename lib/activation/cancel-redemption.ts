@@ -1,20 +1,19 @@
 import { NextRequest, type NextResponse } from 'next/server';
 import {
-  getPrivyUserIdFromRequest,
-  verifyWalletOwnership,
-} from '@/lib/api/privy';
+  assertPrivyWalletAuth,
+  resolvePlayerForWallet,
+} from '@/lib/activation/activation-wallet-gate';
+import { buildActivationRedemptionIdempotencyKey } from '@/lib/activation/eligibility';
 import {
   apiError,
   apiValidationError,
   type ApiResponse,
 } from '@/lib/api/response';
-import { buildActivationRedemptionIdempotencyKey } from '@/lib/activation/eligibility';
 import {
   cancelActivationRedemptionAtomic,
   getActivationRedemptionById,
   type ActivationRedemptionRow,
 } from '@/lib/db/activation-redemptions';
-import { createOrUpdatePlayer, getPlayerByWallet } from '@/lib/db/players';
 import { getSponsoredActivationByIdOrSlug } from '@/lib/db/sponsored-activations';
 import { activationCancelRedemptionBodySchema } from '@/lib/schemas/activation-cancel-redemption';
 import { tryNormalizeEvmAddress } from '@/lib/utils/wallets';
@@ -22,39 +21,6 @@ import { tryNormalizeEvmAddress } from '@/lib/utils/wallets';
 export type CancelRedemptionSuccessBody = {
   redemption: ActivationRedemptionRow;
 };
-
-async function assertPrivyWalletAuth(
-  request: NextRequest,
-  walletAddress: string
-): Promise<
-  { ok: true } | { ok: false; response: NextResponse<ApiResponse<unknown>> }
-> {
-  const auth = await verifyWalletOwnership(request, walletAddress);
-  if (!auth.authorized || !auth.userId) {
-    return { ok: false, response: apiError(auth.error ?? 'Unauthorized', 401) };
-  }
-  const tokenUser = await getPrivyUserIdFromRequest(request);
-  if (!tokenUser || tokenUser !== auth.userId) {
-    return { ok: false, response: apiError('Unauthorized', 401) };
-  }
-  return { ok: true };
-}
-
-async function resolvePlayerForWallet(
-  normalizedWalletAddress: string
-): Promise<{ playerId: number }> {
-  let player = await getPlayerByWallet(normalizedWalletAddress);
-  if (!player?.id) {
-    player = await createOrUpdatePlayer({
-      wallet_address: normalizedWalletAddress,
-      total_points: 0,
-    });
-  }
-  if (!player?.id) {
-    throw new Error('Failed to resolve player for wallet');
-  }
-  return { playerId: player.id };
-}
 
 function mapCancelRpcOrUnexpectedError(message: string): {
   status: 400 | 404 | 500;
@@ -154,7 +120,7 @@ export async function runCancelActivationRedemption(input: {
       redemptionId,
       playerId,
       walletAddress: walletKey,
-      reason: reason?.trim() ? reason.trim() : null,
+      reason: reason ?? null,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : '';

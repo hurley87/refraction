@@ -1,65 +1,33 @@
 import { NextRequest, type NextResponse } from 'next/server';
 import {
-  getPrivyUserIdFromRequest,
-  verifyWalletOwnership,
-} from '@/lib/api/privy';
+  assertPrivyWalletAuth,
+  resolvePlayerForWallet,
+} from '@/lib/activation/activation-wallet-gate';
+import { buildActivationRedemptionIdempotencyKey } from '@/lib/activation/eligibility';
 import {
   apiError,
   apiValidationError,
   type ApiResponse,
 } from '@/lib/api/response';
-import { buildActivationRedemptionIdempotencyKey } from '@/lib/activation/eligibility';
 import {
   getActivationRedemptionById,
   swipeActivationRedeemAtomic,
   type ActivationRedemptionRow,
   type SwipeActivationRedeemRpcResult,
 } from '@/lib/db/activation-redemptions';
-import { getActivationSettlementTransactionByRedemptionId } from '@/lib/db/activation-settlement-transactions';
-import { createOrUpdatePlayer, getPlayerByWallet } from '@/lib/db/players';
+import {
+  getActivationSettlementTransactionByRedemptionId,
+  type ActivationSettlementTransactionRow,
+} from '@/lib/db/activation-settlement-transactions';
 import { getSponsoredActivationByIdOrSlug } from '@/lib/db/sponsored-activations';
 import { safeParseActivationEligibilityRulesConfig } from '@/lib/schemas/activation-eligibility-config';
 import { activationSwipeRedeemBodySchema } from '@/lib/schemas/activation-swipe-redeem';
-import type { ActivationSettlementTransactionRow } from '@/lib/db/activation-settlement-transactions';
 import { tryNormalizeEvmAddress } from '@/lib/utils/wallets';
 
 export type SwipeRedeemSuccessBody = {
   redemption: ActivationRedemptionRow;
   settlement: ActivationSettlementTransactionRow;
 };
-
-async function assertPrivyWalletAuth(
-  request: NextRequest,
-  walletAddress: string
-): Promise<
-  { ok: true } | { ok: false; response: NextResponse<ApiResponse<unknown>> }
-> {
-  const auth = await verifyWalletOwnership(request, walletAddress);
-  if (!auth.authorized || !auth.userId) {
-    return { ok: false, response: apiError(auth.error ?? 'Unauthorized', 401) };
-  }
-  const tokenUser = await getPrivyUserIdFromRequest(request);
-  if (!tokenUser || tokenUser !== auth.userId) {
-    return { ok: false, response: apiError('Unauthorized', 401) };
-  }
-  return { ok: true };
-}
-
-async function resolvePlayerForWallet(
-  normalizedWalletAddress: string
-): Promise<{ playerId: number }> {
-  let player = await getPlayerByWallet(normalizedWalletAddress);
-  if (!player?.id) {
-    player = await createOrUpdatePlayer({
-      wallet_address: normalizedWalletAddress,
-      total_points: 0,
-    });
-  }
-  if (!player?.id) {
-    throw new Error('Failed to resolve player for wallet');
-  }
-  return { playerId: player.id };
-}
 
 function mapSwipeRpcOrUnexpectedError(message: string): {
   status: 400 | 404 | 429 | 500;
@@ -106,17 +74,6 @@ function mapSwipeRpcOrUnexpectedError(message: string): {
     return { status: 400, error: 'Unable to complete this redemption' };
   }
   return { status: 500, error: 'Something went wrong' };
-}
-
-async function loadSettlementOrThrow(
-  redemptionId: string
-): Promise<ActivationSettlementTransactionRow> {
-  const settlement =
-    await getActivationSettlementTransactionByRedemptionId(redemptionId);
-  if (!settlement) {
-    throw new Error('ACTIVATION_SWIPE_SETTLEMENT_ROW_MISSING');
-  }
-  return settlement;
 }
 
 export async function runSwipeActivationRedeem(input: {
@@ -225,44 +182,48 @@ export async function runSwipeActivationRedeem(input: {
     };
   }
 
-  if (rpc.outcome === 'expired') {
-    let fresh: ActivationRedemptionRow | null;
-    try {
-      fresh = await getActivationRedemptionById(redemptionId);
-    } catch (err) {
-      console.error('swipe redeem (reload redemption after expire):', err);
-      return {
-        ok: false,
-        response: apiError('Something went wrong', 500),
-      };
-    }
-    if (!fresh) {
-      return {
-        ok: false,
-        response: apiError('Something went wrong', 500),
-      };
-    }
-    return {
-      ok: false,
-      response: apiError('This redemption is no longer valid', 400, {
-        redemption: fresh,
-      }),
-    };
-  }
-
   let freshRedemption: ActivationRedemptionRow | null;
-  let settlement: ActivationSettlementTransactionRow;
   try {
     freshRedemption = await getActivationRedemptionById(redemptionId);
-    settlement = await loadSettlementOrThrow(redemptionId);
-  } catch (e) {
-    console.error('swipe redeem (reload redemption/settlement):', e);
+  } catch (err) {
+    console.error('swipe redeem (reload redemption after RPC):', err);
     return {
       ok: false,
       response: apiError('Something went wrong', 500),
     };
   }
   if (!freshRedemption) {
+    return {
+      ok: false,
+      response: apiError('Something went wrong', 500),
+    };
+  }
+
+  if (rpc.outcome === 'expired') {
+    return {
+      ok: false,
+      response: apiError('This redemption is no longer valid', 400, {
+        redemption: freshRedemption,
+      }),
+    };
+  }
+
+  let settlement: ActivationSettlementTransactionRow | null;
+  try {
+    settlement =
+      await getActivationSettlementTransactionByRedemptionId(redemptionId);
+  } catch (e) {
+    console.error('swipe redeem (load settlement):', e);
+    return {
+      ok: false,
+      response: apiError('Something went wrong', 500),
+    };
+  }
+  if (!settlement) {
+    console.error(
+      'swipe redeem: settlement row missing after successful swipe RPC',
+      { redemptionId }
+    );
     return {
       ok: false,
       response: apiError('Something went wrong', 500),

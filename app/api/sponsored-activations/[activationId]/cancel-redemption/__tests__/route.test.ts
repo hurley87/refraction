@@ -7,7 +7,6 @@ const mockGetActivation = vi.fn();
 const mockGetRedemptionById = vi.fn();
 const mockCancelRpc = vi.fn();
 const mockGetPlayerByWallet = vi.fn();
-const mockCreateOrUpdatePlayer = vi.fn();
 
 vi.mock('@/lib/api/privy', () => ({
   verifyWalletOwnership: (...a: unknown[]) => mockVerifyWallet(...a),
@@ -26,7 +25,7 @@ vi.mock('@/lib/db/activation-redemptions', () => ({
 
 vi.mock('@/lib/db/players', () => ({
   getPlayerByWallet: (...a: unknown[]) => mockGetPlayerByWallet(...a),
-  createOrUpdatePlayer: (...a: unknown[]) => mockCreateOrUpdatePlayer(...a),
+  createOrUpdatePlayer: vi.fn(),
 }));
 
 import { POST } from '../route';

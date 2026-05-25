@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 type RouteParams = { params: { activationId: string } };
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  const activationKey = params.activationId?.trim() ?? '';
+  const activationKey = params.activationId ?? '';
 
   let body: unknown;
   try {

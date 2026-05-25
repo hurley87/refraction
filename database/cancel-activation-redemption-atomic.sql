@@ -10,7 +10,6 @@ CREATE OR REPLACE FUNCTION cancel_activation_redemption_atomic(
 ) AS $$
 DECLARE
   v_red activation_redemption%ROWTYPE;
-  v_player_row_id BIGINT;
   v_reason TEXT;
 BEGIN
   IF p_wallet_address IS NULL OR length(trim(p_wallet_address)) = 0 THEN
@@ -40,8 +39,7 @@ BEGIN
     RAISE EXCEPTION 'ACTIVATION_CANCEL_INVALID_STATUS';
   END IF;
 
-  SELECT id
-  INTO v_player_row_id
+  PERFORM 1
   FROM players
   WHERE id = p_player_id
     AND lower(trim(wallet_address)) = lower(trim(p_wallet_address))
