@@ -117,8 +117,7 @@ CREATE TABLE IF NOT EXISTS activation_eligibility_event (
         )),
     source_ref_id TEXT,
     occurred_at TIMESTAMPTZ NOT NULL,
-    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 
 CREATE INDEX IF NOT EXISTS idx_activation_eligibility_event_activation
@@ -229,8 +228,7 @@ CREATE TABLE IF NOT EXISTS activation_settlement_transaction (
     queued_at TIMESTAMPTZ,
     submitted_at TIMESTAMPTZ,
     confirmed_at TIMESTAMPTZ,
-    privy_transaction_id TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    privy_transaction_id TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_activation_settlement_redemption
