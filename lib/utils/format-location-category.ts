@@ -6,3 +6,9 @@ export function formatLocationCategory(type?: string | null) {
     .replace(/[-_]+/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
+
+/** True when the formatted category is a single word (e.g. "Restaurant", not "Coffee Shop"). */
+export function isSingleWordLocationCategory(type?: string | null): boolean {
+  const label = formatLocationCategory(type);
+  return !/\s/.test(label.trim());
+}

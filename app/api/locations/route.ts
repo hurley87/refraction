@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('locations')
       .select(
-        'id, name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible'
+        'id, name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, coin_image_thumb_url, creator_wallet_address, creator_username, is_visible'
       )
       .not('coin_image_url', 'is', null);
 
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
         .select(
           `
           locations!inner (
-            id, name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, creator_wallet_address, creator_username, is_visible
+            id, name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, coin_image_thumb_url, creator_wallet_address, creator_username, is_visible
           )
         `
         )
@@ -124,6 +124,7 @@ export async function POST(request: NextRequest) {
       walletAddress,
       username,
       locationImage,
+      locationImageThumb,
     } = body;
 
     const latProvided =
@@ -178,6 +179,10 @@ export async function POST(request: NextRequest) {
     const sanitizedWalletAddress = walletAddress.trim();
     const sanitizedUsername = sanitizeOptionalVarchar(username);
     const normalizedLocationImage = locationImage.trim();
+    const normalizedLocationImageThumb =
+      typeof locationImageThumb === 'string' && locationImageThumb.trim()
+        ? locationImageThumb.trim()
+        : null;
 
     const parsedLat = parseFloat(String(lat));
     const parsedLon = parseFloat(String(lon));
@@ -257,6 +262,7 @@ export async function POST(request: NextRequest) {
       creator_wallet_address: sanitizedWalletAddress,
       creator_username: sanitizedUsername,
       coin_image_url: normalizedLocationImage,
+      coin_image_thumb_url: normalizedLocationImageThumb,
       is_visible: true,
       city: resolvedCity,
       context: JSON.stringify({

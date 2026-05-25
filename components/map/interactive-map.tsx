@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import Map, { Marker } from 'react-map-gl/mapbox';
@@ -17,6 +17,7 @@ import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
 import MapNav from '@/components/map/mapnav';
 import MapCard from '@/components/map/map-card';
+import { MapPinImage } from '@/components/map/map-pin-image';
 import LocationListsDrawer, {
   DrawerLocationSummary,
 } from '@/components/location-lists-drawer';
@@ -24,8 +25,12 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { formatLocationCategory } from '@/lib/utils/format-location-category';
+import {
+  formatLocationCategory,
+  isSingleWordLocationCategory,
+} from '@/lib/utils/format-location-category';
 import { buildDeepLinkMarkerFromQueryCoords } from '@/lib/utils/map-deep-link-marker';
+import { filterByMapBounds } from '@/lib/utils/map-bounds';
 
 interface MarkerData {
   latitude: number;
@@ -37,6 +42,7 @@ interface MarkerData {
   creator_wallet_address?: string | null;
   creator_username?: string | null;
   imageUrl?: string | null;
+  imageThumbUrl?: string | null;
   type?: string;
   event_url?: string | null;
   points_value?: number | null;
@@ -228,6 +234,8 @@ export default function InteractiveMap({
   } | null>(null);
   /** Set when Mapbox / WebGL fails so we can show guidance instead of a blank map. */
   const [mapRenderError, setMapRenderError] = useState<string | null>(null);
+  /** Defer discover drawer list fetch until after the map has loaded. */
+  const [discoverListsEnabled, setDiscoverListsEnabled] = useState(false);
 
   const mapRef = useRef<any>(null);
   const hasSetInitialLocationRef = useRef(false);
@@ -423,6 +431,7 @@ export default function InteractiveMap({
             creator_wallet_address: loc.creator_wallet_address ?? null,
             creator_username: loc.creator_username ?? null,
             imageUrl: loc.coin_image_url ?? null,
+            imageThumbUrl: loc.coin_image_thumb_url ?? null,
             type: loc.type ?? 'location',
             event_url: loc.event_url ?? null,
             points_value: loc.points_value ?? 100,
@@ -435,6 +444,19 @@ export default function InteractiveMap({
     };
     loadMarkers();
   }, []);
+
+  const visibleMarkers = useMemo(() => {
+    if (!mapBounds) return [];
+
+    const alwaysInclude = [
+      selectedMarker?.place_id,
+      popupInfo?.place_id,
+    ].filter((id): id is string => Boolean(id));
+
+    return filterByMapBounds(markers, mapBounds, {
+      alwaysIncludePlaceIds: alwaysInclude,
+    });
+  }, [markers, mapBounds, selectedMarker?.place_id, popupInfo?.place_id]);
 
   /**
    * Calculate map bounds from mapRef or fallback to viewState.
@@ -1164,6 +1186,7 @@ export default function InteractiveMap({
     try {
       // Upload location image
       let locationImageUrl = '';
+      let locationImageThumbUrl: string | null = null;
 
       if (formData.locationImage) {
         const uploadFormData = new FormData();
@@ -1185,6 +1208,7 @@ export default function InteractiveMap({
         // Unwrap the apiSuccess wrapper
         const uploadResult = uploadResponseData.data || uploadResponseData;
         locationImageUrl = uploadResult.imageUrl || uploadResult.url;
+        locationImageThumbUrl = uploadResult.thumbnailUrl ?? null;
         if (!locationImageUrl) {
           throw new Error('Image upload succeeded but no URL was returned');
         }
@@ -1217,6 +1241,7 @@ export default function InteractiveMap({
           walletAddress: walletAddress,
           username: userUsername,
           locationImage: locationImageUrl,
+          locationImageThumb: locationImageThumbUrl,
         }),
       });
 
@@ -1277,6 +1302,7 @@ export default function InteractiveMap({
                     existingLocation.creator_wallet_address ?? null,
                   creator_username: existingLocation.creator_username ?? null,
                   imageUrl: existingLocation.coin_image_url ?? null,
+                  imageThumbUrl: existingLocation.coin_image_thumb_url ?? null,
                 };
                 showExistingLocation(existingMarker);
                 setIsCreatingLocation(false);
@@ -1300,6 +1326,7 @@ export default function InteractiveMap({
                 result.location.creator_wallet_address ?? null,
               creator_username: result.location.creator_username ?? null,
               imageUrl: result.location.coin_image_url ?? null,
+              imageThumbUrl: result.location.coin_image_thumb_url ?? null,
             };
             showExistingLocation(existingMarker);
           } else {
@@ -1325,6 +1352,7 @@ export default function InteractiveMap({
             creator_wallet_address?: string | null;
             creator_username?: string | null;
             coin_image_url?: string | null;
+            coin_image_thumb_url?: string | null;
             type?: string | null;
             points_value?: number | null;
             event_url?: string | null;
@@ -1350,6 +1378,8 @@ export default function InteractiveMap({
               apiLocation.creator_wallet_address ?? walletAddress ?? null,
             creator_username: apiLocation.creator_username ?? userUsername,
             imageUrl: apiLocation.coin_image_url ?? locationImageUrl ?? null,
+            imageThumbUrl:
+              apiLocation.coin_image_thumb_url ?? locationImageThumbUrl,
             type: apiLocation.type ?? 'location',
             points_value: apiLocation.points_value ?? 100,
             event_url: apiLocation.event_url ?? null,
@@ -1361,6 +1391,7 @@ export default function InteractiveMap({
               formData.address || selectedMarker.address || selectedMarker.name,
             description: formData.description,
             imageUrl: locationImageUrl,
+            imageThumbUrl: locationImageThumbUrl,
           };
 
       setMarkers((current) => {
@@ -1475,6 +1506,7 @@ export default function InteractiveMap({
             : `list-${Date.now()}`),
         name: location.name,
         imageUrl: location.coin_image_url ?? null,
+        imageThumbUrl: location.coin_image_thumb_url ?? null,
         creator_wallet_address: null,
         creator_username: null,
         type: location.type ?? 'location',
@@ -1757,6 +1789,7 @@ export default function InteractiveMap({
         onLocationFocus={handleFocusLocationFromList}
         mapBounds={mapBounds}
         userLocation={userLocation}
+        fetchEnabled={discoverListsEnabled}
         collapseForMapCard={Boolean(popupInfo || pendingMapCreateMarker)}
       />
 
@@ -1789,13 +1822,13 @@ export default function InteractiveMap({
         }}
         onLoad={() => {
           setMapRenderError(null);
-          // Calculate initial bounds after map loads
           setTimeout(() => {
             const bounds = calculateMapBounds();
             if (bounds) {
               setMapBounds(bounds);
             }
-          }, 100);
+            setDiscoverListsEnabled(true);
+          }, 500);
         }}
         onError={(evt) => {
           const raw =
@@ -1817,15 +1850,15 @@ export default function InteractiveMap({
           }
         }}
         onClick={onMapClick}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
+        mapStyle="mapbox://styles/cdammr/cmnosp61u002u01sv5o4x8sop"
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
         style={{ position: 'absolute', inset: 0 }}
         cursor="crosshair"
       >
         {/* Permanent Markers (existing locations) */}
-        {markers.map((marker, index) => (
+        {visibleMarkers.map((marker) => (
           <Marker
-            key={`perm-${index}`}
+            key={marker.place_id}
             latitude={marker.latitude}
             longitude={marker.longitude}
             anchor="bottom"
@@ -1905,8 +1938,9 @@ export default function InteractiveMap({
                 </svg>
                 {/* Image inside pin */}
                 {marker.imageUrl && (
-                  <img
-                    src={marker.imageUrl}
+                  <MapPinImage
+                    imageUrl={marker.imageUrl}
+                    imageThumbUrl={marker.imageThumbUrl}
                     alt={marker.name}
                     className="absolute rounded-full object-cover"
                     style={{
@@ -2012,17 +2046,18 @@ export default function InteractiveMap({
           <div className="flex h-full w-full min-h-0 max-w-[393px] flex-col items-stretch overflow-hidden bg-white pb-2 pt-0 mx-auto">
             {/* Hero: location image — first row */}
             {!checkInSuccess && (
-              <div
-                className="flex h-[258px] w-full shrink-0 items-start gap-2 border border-white/15 p-2 bg-cover bg-center bg-no-repeat bg-[lightgray]"
-                style={
-                  checkInTarget?.imageUrl
-                    ? {
-                        backgroundImage: `url(${checkInTarget.imageUrl})`,
-                      }
-                    : undefined
-                }
-              >
-                <div className="flex min-w-0 items-center gap-2">
+              <div className="relative flex h-[258px] w-full shrink-0 items-start gap-2 overflow-hidden border border-white/15 bg-lightgray p-2">
+                {checkInTarget?.imageUrl ? (
+                  <Image
+                    src={checkInTarget.imageUrl}
+                    alt=""
+                    fill
+                    priority
+                    sizes="393px"
+                    className="object-cover object-center"
+                  />
+                ) : null}
+                <div className="relative z-10 flex min-w-0 items-center gap-2">
                   <button
                     onClick={handleCloseCheckInModal}
                     className={`flex h-6 w-6 shrink-0 aspect-square items-center justify-center rounded-full bg-white transition-colors disabled:opacity-50 ${
@@ -2049,8 +2084,8 @@ export default function InteractiveMap({
                     </svg>
                   </button>
                 </div>
-                <div className="min-w-2 flex-1" aria-hidden />
-                <div className="flex shrink-0 items-center gap-1">
+                <div className="relative z-10 min-w-2 flex-1" aria-hidden />
+                <div className="relative z-10 flex shrink-0 items-center gap-1">
                   <button
                     onClick={() => {
                       if (!checkInTarget) return;
@@ -2144,10 +2179,14 @@ export default function InteractiveMap({
                           {checkInTarget.name || 'Selected Location'}
                         </h3>
                       </div>
-                      <div className="flex w-full items-center justify-between self-stretch">
-                        <p className="flex label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5  uppercase tracking-[0.3px] text-[#171717]">
-                          {formatLocationCategory(checkInTarget.type)}
-                        </p>
+                      <div
+                        className={`flex w-full items-center self-stretch ${isSingleWordLocationCategory(checkInTarget.type) ? 'justify-between' : 'justify-end'}`}
+                      >
+                        {isSingleWordLocationCategory(checkInTarget.type) ? (
+                          <p className="flex label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5  uppercase tracking-[0.3px] text-[#171717]">
+                            {formatLocationCategory(checkInTarget.type)}
+                          </p>
+                        ) : null}
                         <a
                           href={`https://www.google.com/maps/search/?api=1&query=${checkInTarget.latitude},${checkInTarget.longitude}`}
                           target="_blank"
@@ -2218,10 +2257,18 @@ export default function InteractiveMap({
                                   </h3>
                                 </div>
 
-                                <div className="flex w-full items-center justify-between self-stretch">
-                                  <p className="flex label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5  uppercase tracking-[0.3px] text-[#171717]">
-                                    {formatLocationCategory(checkInTarget.type)}
-                                  </p>
+                                <div
+                                  className={`flex w-full items-center self-stretch ${isSingleWordLocationCategory(checkInTarget.type) ? 'justify-between' : 'justify-end'}`}
+                                >
+                                  {isSingleWordLocationCategory(
+                                    checkInTarget.type
+                                  ) ? (
+                                    <p className="flex label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5  uppercase tracking-[0.3px] text-[#171717]">
+                                      {formatLocationCategory(
+                                        checkInTarget.type
+                                      )}
+                                    </p>
+                                  ) : null}
                                   <a
                                     href={`https://www.google.com/maps/search/?api=1&query=${checkInTarget.latitude},${checkInTarget.longitude}`}
                                     target="_blank"
@@ -2384,7 +2431,7 @@ export default function InteractiveMap({
                                                 <p className="leading-snug text-[#454545] mt-0.5 body-small">
                                                   {entry.comment}
                                                 </p>
-                                                <div className="mt-2 inline-flex h-7 self-start items-center justify-center gap-2 border border-[#DBDBDB] px-2 py-1 pr-4">
+                                                <div className="mt-2 inline-flex self-start items-center justify-center gap-[var(--sds-size-space-050)] border border-solid border-[var(--Text-Support-Text,#A9A9A9)] px-[var(--sds-size-space-100)] py-[var(--sds-size-space-050)]">
                                                   <svg
                                                     width="16"
                                                     height="16"
@@ -2398,8 +2445,8 @@ export default function InteractiveMap({
                                                       fill="#757575"
                                                     />
                                                   </svg>
-                                                  <span className="label-small text-[#757575]">
-                                                    {entry.pointsEarned}
+                                                  <span className="label-small text-[#171717]">
+                                                    '+'{entry.pointsEarned}
                                                   </span>
                                                 </div>
                                               </div>
@@ -2497,8 +2544,11 @@ export default function InteractiveMap({
                                       left: '10px',
                                     }}
                                   >
-                                    <img
-                                      src={checkInTarget.imageUrl}
+                                    <MapPinImage
+                                      imageUrl={checkInTarget.imageUrl}
+                                      imageThumbUrl={
+                                        checkInTarget.imageThumbUrl
+                                      }
                                       alt={checkInTarget.name}
                                       className="w-full h-full rounded-full object-cover"
                                     />
@@ -2658,7 +2708,7 @@ export default function InteractiveMap({
                                     <p className="leading-snug text-[#454545] mt-0.5 body-small">
                                       {entry.comment}
                                     </p>
-                                    <div className="mt-2 inline-flex h-7 self-start items-center justify-center gap-2 border border-[#DBDBDB] py-1 pr-4">
+                                    <div className="mt-2 inline-flex self-start items-center justify-center gap-[var(--sds-size-space-050)] border border-solid border-[var(--Text-Support-Text,#A9A9A9)] px-[var(--sds-size-space-100)] py-[var(--sds-size-space-050)]">
                                       <svg
                                         width="16"
                                         height="16"
@@ -2672,8 +2722,8 @@ export default function InteractiveMap({
                                           fill="#757575"
                                         />
                                       </svg>
-                                      <span className="label-small text-[#757575]">
-                                        {entry.pointsEarned}
+                                      <span className="label-small text-[#171717]">
+                                        +{entry.pointsEarned}
                                       </span>
                                     </div>
                                   </div>
@@ -2768,8 +2818,9 @@ export default function InteractiveMap({
                             left: '10px',
                           }}
                         >
-                          <img
-                            src={checkInTarget.imageUrl}
+                          <MapPinImage
+                            imageUrl={checkInTarget.imageUrl}
+                            imageThumbUrl={checkInTarget.imageThumbUrl}
                             alt={checkInTarget.name}
                             className="w-full h-full rounded-full object-cover"
                           />

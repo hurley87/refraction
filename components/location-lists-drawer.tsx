@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
-import {
-  // MapPin, CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
+import Image from 'next/image';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { LocationListWithCount, Location } from '@/lib/types';
+import {
+  filterByMapBounds,
+  getEffectiveMapBounds,
+  type MapBounds,
+} from '@/lib/utils/map-bounds';
 
 export type DrawerLocationSummary = Pick<
   Location,
@@ -20,6 +22,7 @@ export type DrawerLocationSummary = Pick<
   | 'type'
   | 'points_value'
   | 'coin_image_url'
+  | 'coin_image_thumb_url'
   | 'event_url'
 >;
 
@@ -31,187 +34,41 @@ type DrawerList = LocationListWithCount & {
   >;
 };
 
-interface MapBounds {
-  north: number;
-  south: number;
-  east: number;
-  west: number;
-}
-
 interface UserLocation {
   latitude: number;
   longitude: number;
 }
-
-/** Include list locations within this distance (km) of the visible viewport, not only strictly inside it. */
-const VIEWPORT_NEARBY_RADIUS_KM = 25;
 
 const isDev = process.env.NODE_ENV === 'development';
 
 interface LocationListsDrawerProps {
   walletAddress?: string | null;
   onLocationFocus?: (location: DrawerLocationSummary) => void;
-  mapBounds?: MapBounds | null; // Current map viewport bounds (what's visible on screen)
-  userLocation?: UserLocation | null; // Not used for filtering, kept for potential future use
-  /** Collapse list content while the map location card is open to avoid overlapping UI. */
+  mapBounds?: MapBounds | null;
+  userLocation?: UserLocation | null;
+  /** When false, defer loading list data until enabled (after map idle). */
+  fetchEnabled?: boolean;
   collapseForMapCard?: boolean;
 }
-
-/**
- * Normalize API coordinates (PostgREST may return numbers; some paths use strings).
- */
-const toLngLat = (
-  location: DrawerLocationSummary
-): { latitude: number; longitude: number } | null => {
-  const { latitude: latRaw, longitude: lngRaw } = location;
-  const lat =
-    typeof latRaw === 'number'
-      ? latRaw
-      : typeof latRaw === 'string'
-        ? parseFloat(latRaw)
-        : NaN;
-  const lng =
-    typeof lngRaw === 'number'
-      ? lngRaw
-      : typeof lngRaw === 'string'
-        ? parseFloat(lngRaw)
-        : NaN;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return null;
-  }
-  return { latitude: lat, longitude: lng };
-};
-
-/**
- * Check if a location is within map bounds.
- * Handles longitude wrapping across the anti-meridian.
- */
-const isLocationInBounds = (
-  location: DrawerLocationSummary,
-  bounds: MapBounds
-): boolean => {
-  const coords = toLngLat(location);
-  if (!coords) {
-    if (isDev) {
-      console.log('[Filter] Location missing coordinates:', location.name);
-    }
-    return false;
-  }
-
-  const { latitude, longitude } = coords;
-  const { north, south, east, west } = bounds;
-
-  // Check latitude bounds
-  const latInBounds = latitude >= south && latitude <= north;
-  if (!latInBounds) {
-    if (isDev) {
-      console.log(
-        `[Filter] Location "${location.name}" FAILED latitude check:`,
-        {
-          locationLat: latitude,
-          boundsSouth: south,
-          boundsNorth: north,
-        }
-      );
-    }
-    return false;
-  }
-
-  // Handle longitude wrapping (e.g., crossing 180/-180)
-  // If bounds cross the anti-meridian (west > east), we need special handling
-  let lonInBounds: boolean;
-  if (west > east) {
-    // Bounds cross the anti-meridian
-    lonInBounds = longitude >= west || longitude <= east;
-  } else {
-    // Normal case: bounds don't cross the anti-meridian
-    lonInBounds = longitude >= west && longitude <= east;
-  }
-
-  if (!lonInBounds) {
-    if (isDev) {
-      console.log(
-        `[Filter] Location "${location.name}" FAILED longitude check:`,
-        { locationLon: longitude, boundsWest: west, boundsEast: east }
-      );
-    }
-    return false;
-  }
-
-  if (isDev) {
-    console.log(`[Filter] Location "${location.name}" PASSED:`, {
-      lat: latitude,
-      lon: longitude,
-      bounds,
-    });
-  }
-  return true;
-};
-
-/**
- * Expand a lat/lng bounding box by roughly `radiusKm` in all directions (good for "near viewport" filtering).
- * Uses the box center latitude for longitude scaling. Typical viewports do not cross the anti-meridian.
- */
-function expandMapBoundsByKm(bounds: MapBounds, radiusKm: number): MapBounds {
-  const centerLat = (bounds.north + bounds.south) / 2;
-  const latRad = (centerLat * Math.PI) / 180;
-  const mPerDegLat = 111_320;
-  const mPerDegLng = 111_320 * Math.cos(latRad);
-  const radiusM = radiusKm * 1000;
-  const deltaLat = radiusM / mPerDegLat;
-  const deltaLng = mPerDegLng > 1e-6 ? radiusM / mPerDegLng : 360;
-
-  const north = Math.min(90, bounds.north + deltaLat);
-  const south = Math.max(-90, bounds.south - deltaLat);
-
-  if (bounds.west <= bounds.east) {
-    return {
-      north,
-      south,
-      west: Math.max(-180, bounds.west - deltaLng),
-      east: Math.min(180, bounds.east + deltaLng),
-    };
-  }
-
-  // Anti-meridian span: widen longitudes outward from the visible meridian band.
-  return {
-    north,
-    south,
-    west: bounds.west - deltaLng,
-    east: bounds.east + deltaLng,
-  };
-}
-
-/**
- * Effective bounds for filtering: visible viewport expanded by {@link VIEWPORT_NEARBY_RADIUS_KM}.
- * Returns null when the parent has not supplied bounds yet (briefly on first paint).
- */
-const getEffectiveBounds = (
-  mapBounds: MapBounds | null | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _userLocation: UserLocation | null | undefined // Not used for filtering, kept for API compatibility
-): MapBounds | null => {
-  if (!mapBounds) return null;
-  return expandMapBoundsByKm(mapBounds, VIEWPORT_NEARBY_RADIUS_KM);
-};
 
 export default function LocationListsDrawer({
   walletAddress: _walletAddress, // eslint-disable-line @typescript-eslint/no-unused-vars
   onLocationFocus,
   mapBounds,
-  userLocation,
+  userLocation: _userLocation, // eslint-disable-line @typescript-eslint/no-unused-vars
+  fetchEnabled = false,
   collapseForMapCard = false,
 }: LocationListsDrawerProps) {
   const [lists, setLists] = useState<DrawerList[]>([]);
-  const [isLoadingLists, setIsLoadingLists] = useState(true);
+  const [isLoadingLists, setIsLoadingLists] = useState(false);
+  const [hasFetchedLists, setHasFetchedLists] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const prevHasVisibleLocationsRef = useRef(false);
   const prevCollapseForMapCardRef = useRef(collapseForMapCard);
-  // const [visitedLocationIds, setVisitedLocationIds] = useState<Set<number>>(
-  //   new Set(),
-  // );
 
   useEffect(() => {
+    if (!fetchEnabled || hasFetchedLists) return;
+
     const controller = new AbortController();
     const loadLists = async () => {
       setIsLoadingLists(true);
@@ -222,10 +79,10 @@ export default function LocationListsDrawer({
         );
         if (!response.ok) throw new Error('Failed to load lists');
         const responseData = await response.json();
-        // Unwrap the apiSuccess wrapper
         const data = responseData.data || responseData;
         const fetchedLists: DrawerList[] = data.lists || [];
         setLists(fetchedLists);
+        setHasFetchedLists(true);
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
           console.error('Failed to load location lists', error);
@@ -236,14 +93,13 @@ export default function LocationListsDrawer({
     };
     loadLists();
     return () => controller.abort();
-  }, []);
+  }, [fetchEnabled, hasFetchedLists]);
 
-  // Filter locations based on map bounds
   const filteredLists = useMemo(() => {
     if (isDev) {
       console.log('[Filter] Starting filter with mapBounds:', mapBounds);
     }
-    const effectiveBounds = getEffectiveBounds(mapBounds, userLocation);
+    const effectiveBounds = getEffectiveMapBounds(mapBounds);
     if (isDev) {
       console.log('[Filter] Effective bounds:', effectiveBounds);
     }
@@ -264,15 +120,7 @@ export default function LocationListsDrawer({
       .map((list) => {
         const locs = list.locations ?? [];
         const totalLocations = locs.length;
-        if (isDev) {
-          console.log(
-            `[Filter] Filtering list "${list.title}" with ${totalLocations} locations`
-          );
-        }
-
-        const filteredLocations = locs.filter((location) =>
-          isLocationInBounds(location, effectiveBounds)
-        );
+        const filteredLocations = filterByMapBounds(locs, mapBounds);
 
         if (isDev) {
           console.log(
@@ -303,78 +151,31 @@ export default function LocationListsDrawer({
 
     if (isDev && totalFiltered === 0 && totalOriginal > 0) {
       console.warn(
-        `[Filter] ⚠️ All ${totalOriginal} locations were filtered out!`,
-        `No list locations within viewport + ${VIEWPORT_NEARBY_RADIUS_KM}km buffer.`,
-        `Bounds:`,
+        `[Filter] All ${totalOriginal} locations were filtered out!`,
+        'Bounds:',
         effectiveBounds
       );
     }
 
     return filtered;
-  }, [lists, mapBounds, userLocation]);
+  }, [lists, mapBounds]);
 
-  // useEffect(() => {
-  //   if (!walletAddress) {
-  //     setVisitedLocationIds(new Set());
-  //     return;
-  //   }
-
-  //   const controller = new AbortController();
-  //   const loadVisitedLocations = async () => {
-  //     try {
-  //       const response = await fetch(
-  //         `/api/locations?walletAddress=${encodeURIComponent(walletAddress)}`,
-  //         { signal: controller.signal },
-  //       );
-  //       if (!response.ok) throw new Error("Failed to load visited locations");
-  //       const data = await response.json();
-  //       const ids = new Set<number>(
-  //         (data.locations || [])
-  //           .map((location: Location) => location.id)
-  //           .filter(
-  //             (id: number | undefined): id is number => typeof id === "number",
-  //           ),
-  //       );
-  //       setVisitedLocationIds(ids);
-  //     } catch (error) {
-  //       if ((error as Error).name !== "AbortError") {
-  //         console.error("Failed to load visited locations", error);
-  //       }
-  //     }
-  //   };
-
-  //   loadVisitedLocations();
-  //   return () => controller.abort();
-  // }, [walletAddress]);
-
-  // const visitedCount = useMemo(() => {
-  //   if (!activeList?.locations?.length) return 0;
-  //   return activeList.locations.reduce((count, location) => {
-  //     if (location.id && visitedLocationIds.has(location.id)) {
-  //       return count + 1;
-  //     }
-  //     return count;
-  //   }, 0);
-  // }, [activeList, visitedLocationIds]);
-
-  // Check if there are any visible locations after filtering
   const hasVisibleLocations = useMemo(() => {
-    if (isLoadingLists) return false;
+    if (isLoadingLists || !hasFetchedLists) return false;
     return filteredLists.some(
       (list) => list.locations && list.locations.length > 0
     );
-  }, [filteredLists, isLoadingLists]);
+  }, [filteredLists, isLoadingLists, hasFetchedLists]);
 
-  /** Lists that have at least one spot in the current map view (no empty section headers). */
   const listsWithSpotsInView = useMemo(
     () => filteredLists.filter((list) => (list.locations?.length ?? 0) > 0),
     [filteredLists]
   );
 
   const hasAnyListLocations = useMemo(() => {
-    if (isLoadingLists) return false;
+    if (isLoadingLists || !hasFetchedLists) return false;
     return lists.some((list) => (list.locations?.length ?? 0) > 0);
-  }, [lists, isLoadingLists]);
+  }, [lists, isLoadingLists, hasFetchedLists]);
 
   useEffect(() => {
     if (collapseForMapCard) {
@@ -405,14 +206,12 @@ export default function LocationListsDrawer({
     return null;
   }
 
-  /** Sync in render so the drawer shrinks immediately; effects alone run after paint. */
   const showDiscoverBody = !collapseForMapCard;
   const listGridOpen = showDiscoverBody && isExpanded;
 
   return (
     <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex justify-center px-3 pb-3">
       <div className="pointer-events-auto w-full max-w-md overflow-hidden rounded-2xl border border-black/[0.06] bg-white/90 shadow-[0_4px_24px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all duration-300">
-        {/* Handle */}
         <button
           type="button"
           onClick={() => setIsExpanded((prev) => !prev)}
@@ -430,7 +229,6 @@ export default function LocationListsDrawer({
 
         {showDiscoverBody && (
           <div className="px-4 pb-3">
-            {/* Header */}
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <p className="text-[15px]  font-medium tracking-[-0.3px] text-[#1a1a1a] title3">
@@ -444,6 +242,7 @@ export default function LocationListsDrawer({
                 type="button"
                 onClick={() => setIsExpanded((prev) => !prev)}
                 className="flex items-center gap-1.5 rounded-full bg-black/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[1px] text-[#1a1a1a] transition-all hover:bg-black/[0.08] active:scale-95"
+                aria-label={isExpanded ? 'Collapse lists' : 'Expand lists'}
               >
                 {isExpanded ? 'Hide' : 'View'}
                 {isExpanded ? (
@@ -454,7 +253,6 @@ export default function LocationListsDrawer({
               </button>
             </div>
 
-            {/* Expandable content */}
             <div
               className={`grid transition-all duration-300 ease-out ${
                 listGridOpen
@@ -485,11 +283,13 @@ export default function LocationListsDrawer({
                             >
                               <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
                                 {location.coin_image_url ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
+                                  <Image
                                     src={location.coin_image_url}
                                     alt={location.name}
-                                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                    fill
+                                    sizes="144px"
+                                    loading="lazy"
+                                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                                   />
                                 ) : (
                                   <div className="flex h-full w-full items-center justify-center bg-black/[0.04] text-[10px] font-anonymous text-[#999]">
