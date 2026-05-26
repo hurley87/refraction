@@ -56,6 +56,10 @@ export const ANALYTICS_EVENTS = {
   SPEND_WALLET_READINESS_STARTED: 'spend_wallet_readiness_started',
   SPEND_WALLET_READINESS_COMPLETED: 'spend_wallet_readiness_completed',
   SPEND_WALLET_READINESS_FAILED: 'spend_wallet_readiness_failed',
+
+  /** Admin ops dashboard for sponsored activations (IRL-62 / FR-9). */
+  SPONSORED_ACTIVATION_ADMIN_DASHBOARD_VIEWED:
+    'sponsored_activation_admin_dashboard_viewed',
 } as const;
 
 export type AnalyticsEventName =
