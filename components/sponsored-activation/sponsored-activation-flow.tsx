@@ -28,6 +28,7 @@ import {
   pickPrimaryActivationRedemption,
   resolveSponsoredActivationBaseScreen,
 } from '@/lib/sponsored-activation/flow-routing';
+import { resolveSponsoredActivationDescription } from '@/lib/sponsored-activation/public-read-display';
 import type { SponsoredActivationPublicReadResponse } from '@/lib/sponsored-activation/public-read';
 import {
   isInitialized,
@@ -381,10 +382,8 @@ export function SponsoredActivationFlow({
   const read = readQuery.data;
 
   if (!user) {
-    const unauthDescription =
-      read.activation.description?.trim() ||
-      read.rewardItem.description?.trim() ||
-      read.activation.sponsor_name;
+    const description = resolveSponsoredActivationDescription(read);
+    const perkValueLabel = read.rewardItem.perk_value_label.trim();
 
     return (
       <SponsoredActivationPageShell flush>
@@ -399,14 +398,14 @@ export function SponsoredActivationFlow({
               <h1 className="title3 font-medium text-[#171717]">
                 {read.activation.title}
               </h1>
-              {unauthDescription ? (
+              {description ? (
                 <p className="body-small font-grotesk text-[#757575]">
-                  {unauthDescription}
+                  {description}
                 </p>
               ) : null}
-              {read.rewardItem.perk_value_label.trim() ? (
+              {perkValueLabel ? (
                 <p className="label-small font-grotesk font-semibold uppercase tracking-wide text-[#a9a9a9]">
-                  {read.rewardItem.perk_value_label.trim()}
+                  {perkValueLabel}
                 </p>
               ) : null}
             </div>

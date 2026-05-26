@@ -5,6 +5,7 @@ import { SponsoredActivationLandingHero } from '@/components/sponsored-activatio
 import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
 import { SponsoredActivationPointsValue } from '@/components/sponsored-activation/sponsored-activation-points-value';
 import { cn } from '@/lib/utils';
+import { resolveSponsoredActivationDescription } from '@/lib/sponsored-activation/public-read-display';
 import type { SponsoredActivationPublicReadResponse } from '@/lib/sponsored-activation/public-read';
 
 type SponsoredActivationConfirmProps = {
@@ -22,10 +23,7 @@ export function SponsoredActivationConfirm({
   primaryActionLabel,
 }: SponsoredActivationConfirmProps) {
   const { activation, rewardItem } = read;
-  const description =
-    activation.description?.trim() ||
-    rewardItem.description?.trim() ||
-    activation.sponsor_name;
+  const description = resolveSponsoredActivationDescription(read);
 
   const perkValueLabel = rewardItem.perk_value_label.trim();
 
