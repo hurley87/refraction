@@ -1,18 +1,16 @@
 import Image from 'next/image';
-import { SponsoredActivationPointsValue } from '@/components/sponsored-activation/sponsored-activation-points-value';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { SPONSORED_ACTIVATION_EXIT_URL } from '@/lib/sponsored-activation/exit-url';
 
 type SponsoredActivationLandingHeroProps = {
   heroImageUrl: string | null;
   itemName: string;
-  pointsCost: number;
-  perkValueLabel: string;
 };
 
 export function SponsoredActivationLandingHero({
   heroImageUrl,
   itemName,
-  pointsCost,
-  perkValueLabel,
 }: SponsoredActivationLandingHeroProps) {
   return (
     <section className="relative min-h-[470px] w-full overflow-hidden bg-neutral-200">
@@ -30,16 +28,25 @@ export function SponsoredActivationLandingHero({
         <div className="absolute inset-0 bg-neutral-300" aria-hidden />
       )}
 
-      <div className="absolute inset-x-0 bottom-0 flex justify-center px-4 pb-5 pt-[156px]">
-        <div className="w-full max-w-[361px] rounded-sm bg-white p-4 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
-          <div className="flex items-start justify-between gap-3">
-            <h2 className="title4 min-w-0 flex-1 text-[#171717]">{itemName}</h2>
-            <SponsoredActivationPointsValue points={pointsCost} />
-          </div>
-          <p className="label-small mt-2 text-right font-grotesk font-semibold uppercase tracking-wide text-[#a9a9a9]">
-            {perkValueLabel}
-          </p>
-        </div>
+      <Link
+        href={SPONSORED_ACTIVATION_EXIT_URL}
+        className="absolute left-4 top-[max(1rem,env(safe-area-inset-top))] z-10 flex size-10 items-center justify-center rounded-full bg-white shadow-sm transition-opacity hover:opacity-90"
+        aria-label="Back to IRL"
+      >
+        <ArrowLeft className="size-5 text-[#171717]" strokeWidth={2} />
+      </Link>
+
+      <div
+        className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 bg-white px-4 py-4"
+        role="group"
+        aria-label="You receive"
+      >
+        <span className="label-small font-grotesk uppercase tracking-wide text-[#757575]">
+          You receive
+        </span>
+        <span className="label-small max-w-[55%] truncate text-right font-grotesk font-semibold uppercase tracking-wide text-[#171717]">
+          {itemName}
+        </span>
       </div>
     </section>
   );

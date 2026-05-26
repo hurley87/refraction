@@ -20,7 +20,7 @@ export function SponsoredActivationRedeemed({
   balanceAfter,
 }: SponsoredActivationRedeemedProps) {
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] flex-col bg-white">
+    <div className="flex min-h-screen flex-col bg-white">
       <SponsoredActivationHero
         heroImageUrl={heroImageUrl}
         itemName={perkName}

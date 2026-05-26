@@ -475,7 +475,7 @@ export function SponsoredActivationFlow({
 
   if (baseScreen === 'redeemed') {
     return (
-      <SponsoredActivationPageShell>
+      <SponsoredActivationPageShell flush>
         <SponsoredActivationRedeemed
           heroImageUrl={read.rewardItem.hero_image_url}
           perkName={read.rewardItem.name}

@@ -1,13 +1,12 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import Header from '@/components/layout/header';
 import { cn } from '@/lib/utils';
 
 type SponsoredActivationPageShellProps = {
   children: ReactNode;
   className?: string;
-  /** Full-bleed activation screens (hero edge-to-edge). */
+  /** Full-bleed activation screens (hero edge-to-edge, no top inset). */
   flush?: boolean;
 };
 
@@ -23,11 +22,10 @@ export function SponsoredActivationPageShell({
         className
       )}
     >
-      <Header />
       <main
         className={cn(
           'relative z-0 mx-auto w-full max-w-[420px] md:max-w-lg',
-          flush ? 'px-0 pb-0 pt-20 md:pt-24' : 'px-0 pb-8 pt-20 md:pt-24'
+          flush ? 'px-0 pb-0 pt-0' : 'px-0 pb-8 pt-4'
         )}
       >
         {children}

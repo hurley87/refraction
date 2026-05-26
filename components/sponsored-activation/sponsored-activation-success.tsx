@@ -33,7 +33,7 @@ export function SponsoredActivationSuccess({
   onBack,
 }: SponsoredActivationSuccessProps) {
   return (
-    <div className="fixed inset-0 top-20 z-30 flex justify-center">
+    <div className="fixed inset-0 z-30 flex justify-center">
       <div
         className="absolute inset-0 bg-[#171717]/70 backdrop-blur-[16px]"
         aria-hidden
