@@ -11,7 +11,6 @@ type SponsoredActivationCtaButtonProps =
     pending?: boolean;
   };
 
-/** Primary CTAs for activation purchase / redeemed states (Figma prod flow). */
 export function SponsoredActivationCtaButton({
   children,
   variant,
@@ -22,6 +21,19 @@ export function SponsoredActivationCtaButton({
 }: SponsoredActivationCtaButtonProps) {
   const isBusy = Boolean(pending);
   const isRedeemed = variant === 'redeemed';
+
+  let trailingIcon: ReactNode;
+  if (isBusy) {
+    trailingIcon = <span className="size-5 shrink-0" aria-hidden />;
+  } else if (isRedeemed) {
+    trailingIcon = (
+      <Check className="size-5 shrink-0" strokeWidth={2.5} aria-hidden />
+    );
+  } else {
+    trailingIcon = (
+      <Trophy className="size-5 shrink-0" strokeWidth={2} aria-hidden />
+    );
+  }
 
   return (
     <button
@@ -44,15 +56,7 @@ export function SponsoredActivationCtaButton({
           {children}
         </span>
       </span>
-      {!isBusy ? (
-        isRedeemed ? (
-          <Check className="size-5 shrink-0" strokeWidth={2.5} aria-hidden />
-        ) : (
-          <Trophy className="size-5 shrink-0" strokeWidth={2} aria-hidden />
-        )
-      ) : (
-        <span className="size-5 shrink-0" aria-hidden />
-      )}
+      {trailingIcon}
     </button>
   );
 }

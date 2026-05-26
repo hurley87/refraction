@@ -8,6 +8,8 @@ type SponsoredActivationDetailRowProps = {
   value: ReactNode;
   subValue?: ReactNode;
   className?: string;
+  /** Skip default value typography (e.g. bordered badge). */
+  bareValue?: boolean;
 };
 
 export function SponsoredActivationDetailRow({
@@ -15,6 +17,7 @@ export function SponsoredActivationDetailRow({
   value,
   subValue,
   className,
+  bareValue,
 }: SponsoredActivationDetailRowProps) {
   return (
     <div
@@ -27,9 +30,13 @@ export function SponsoredActivationDetailRow({
         {label}
       </span>
       <div className="min-w-0 text-right">
-        <div className="body-medium font-grotesk font-semibold text-[#171717]">
-          {value}
-        </div>
+        {bareValue ? (
+          <div className="flex justify-end">{value}</div>
+        ) : (
+          <div className="body-medium font-grotesk font-semibold text-[#171717]">
+            {value}
+          </div>
+        )}
         {subValue ? (
           <div className="mt-0.5 body-small font-grotesk font-semibold text-[#e53935]">
             {subValue}

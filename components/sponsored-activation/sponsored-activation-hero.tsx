@@ -11,7 +11,6 @@ type SponsoredActivationHeroProps = {
   className?: string;
 };
 
-/** Full-bleed hero with back control and “You receive” strip (Figma / prod mock). */
 export function SponsoredActivationHero({
   heroImageUrl,
   itemName,

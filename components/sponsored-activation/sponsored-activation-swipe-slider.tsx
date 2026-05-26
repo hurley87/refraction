@@ -1,6 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -14,9 +20,6 @@ type SponsoredActivationSwipeSliderProps = {
   label?: string;
 };
 
-/**
- * Drag-to-complete slider — requires deliberate swipe (not a single tap).
- */
 export function SponsoredActivationSwipeSlider({
   disabled,
   onComplete,
@@ -30,6 +33,8 @@ export function SponsoredActivationSwipeSlider({
   const [completed, setCompleted] = useState(false);
   const completionSentRef = useRef(false);
   const activePointerId = useRef<number | null>(null);
+  /** Cached max travel for a11y ratio; avoids reading layout in render. */
+  const maxTravelForAriaRef = useRef(1);
 
   const maxTravel = useCallback(() => {
     const track = trackRef.current;
@@ -42,6 +47,7 @@ export function SponsoredActivationSwipeSlider({
     (px: number) => {
       if (completionSentRef.current) return;
       const max = maxTravel();
+      maxTravelForAriaRef.current = Math.max(1, max);
       if (max <= 0) return;
       if (px >= max * COMPLETE_RATIO) {
         completionSentRef.current = true;
@@ -61,11 +67,21 @@ export function SponsoredActivationSwipeSlider({
     dragPxRef.current = 0;
   }, [disabled, completed]);
 
-  const onPointerDown = (e: React.PointerEvent) => {
+  const syncMaxTravelForAria = useCallback(() => {
+    maxTravelForAriaRef.current = Math.max(1, maxTravel());
+  }, [maxTravel]);
+
+  useLayoutEffect(() => {
+    syncMaxTravelForAria();
+    window.addEventListener('resize', syncMaxTravelForAria);
+    return () => window.removeEventListener('resize', syncMaxTravelForAria);
+  }, [syncMaxTravelForAria, disabled, completed]);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (disabled || completed) return;
     onSwipeGestureStart?.();
     activePointerId.current = e.pointerId;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -77,6 +93,7 @@ export function SponsoredActivationSwipeSlider({
     const rect = track.getBoundingClientRect();
     const knobW = knob.offsetWidth;
     const max = Math.max(0, rect.width - knobW - 8);
+    maxTravelForAriaRef.current = Math.max(1, max);
     const x = e.clientX - rect.left - knobW / 2;
     const clamped = Math.min(max, Math.max(0, x));
     dragPxRef.current = clamped;
@@ -103,6 +120,7 @@ export function SponsoredActivationSwipeSlider({
       onSwipeGestureStart?.();
       completionSentRef.current = true;
       const max = maxTravel();
+      maxTravelForAriaRef.current = Math.max(1, max);
       dragPxRef.current = max;
       setDragPx(max);
       setCompleted(true);
@@ -122,7 +140,7 @@ export function SponsoredActivationSwipeSlider({
         aria-valuenow={
           completed
             ? 100
-            : Math.round((dragPx / Math.max(1, maxTravel())) * 100)
+            : Math.round((dragPx / maxTravelForAriaRef.current) * 100)
         }
         aria-disabled={disabled || completed}
         aria-label={label}

@@ -310,11 +310,14 @@ export function SponsoredActivationFlow({
     },
   });
 
+  const { mutate: mutateSwipeRedeem, isPending: swipeRedeemPending } =
+    swipeMutation;
+
   const handleSwipeComplete = useCallback(() => {
-    if (!redemption?.id || swipeMutation.isPending) return;
+    if (!redemption?.id || swipeRedeemPending) return;
     if (!isSwipeAllowedForStatus(redemption.status)) return;
-    swipeMutation.mutate(redemption.id);
-  }, [redemption, swipeMutation]);
+    mutateSwipeRedeem(redemption.id);
+  }, [redemption, swipeRedeemPending, mutateSwipeRedeem]);
 
   const handleSwipeGestureStart = useCallback(() => {
     if (!readQuery.data || swipeGestureReportedRef.current) return;
@@ -335,10 +338,10 @@ export function SponsoredActivationFlow({
     confirmMutation.data?.player.total_points ?? player?.total_points ?? 0;
   const pointsSpent =
     redemption?.points_spent ?? readQuery.data?.rewardItem.points_cost ?? 0;
-  const currentTier =
-    tiers?.length && balanceAfterPoints >= 0
-      ? resolveTierForPoints(tiers, balanceAfterPoints)
-      : null;
+  const currentTier = useMemo(() => {
+    if (!tiers?.length || balanceAfterPoints < 0) return null;
+    return resolveTierForPoints(tiers, balanceAfterPoints);
+  }, [tiers, balanceAfterPoints]);
 
   const recordFlowLoading =
     Boolean(deeplink) &&
@@ -501,7 +504,7 @@ export function SponsoredActivationFlow({
 
   if (baseScreen === 'success_swipe') {
     const swipeDisabled =
-      swipeMutation.isPending ||
+      swipeRedeemPending ||
       isRedeemedLikeStatus(redemption.status) ||
       !isSwipeAllowedForStatus(redemption.status);
 

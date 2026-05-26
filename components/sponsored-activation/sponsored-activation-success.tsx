@@ -3,6 +3,7 @@
 import { SponsoredActivationHero } from '@/components/sponsored-activation/sponsored-activation-hero';
 import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
 import { SponsoredActivationSwipeSlider } from '@/components/sponsored-activation/sponsored-activation-swipe-slider';
+import { formatActivationTierBadge } from '@/lib/sponsored-activation/tier-label';
 import type { Tier } from '@/lib/types';
 
 type SponsoredActivationSuccessProps = {
@@ -16,12 +17,6 @@ type SponsoredActivationSuccessProps = {
   onSwipeGestureStart?: () => void;
   onSwipeComplete: () => void;
 };
-
-function formatTierBadge(tier: Tier): string {
-  const title = tier.title.trim().toUpperCase();
-  const floor = tier.min_points.toLocaleString();
-  return `${title} • ${floor}+`;
-}
 
 export function SponsoredActivationSuccess({
   heroImageUrl,
@@ -56,14 +51,15 @@ export function SponsoredActivationSuccess({
             value={`${balanceAfter.toLocaleString()} PTS`}
           />
           {tier ? (
-            <div className="flex items-start justify-between gap-4 border-b border-[#171717]/10 py-3">
-              <span className="label-small shrink-0 font-grotesk uppercase tracking-wide text-[#757575]">
-                Current tier
-              </span>
-              <span className="inline-block border border-[#171717] px-2.5 py-1 label-small font-grotesk font-semibold uppercase tracking-wide text-[#171717]">
-                {formatTierBadge(tier)}
-              </span>
-            </div>
+            <SponsoredActivationDetailRow
+              label="Current tier"
+              bareValue
+              value={
+                <span className="inline-block border border-[#171717] px-2.5 py-1 label-small font-grotesk font-semibold uppercase tracking-wide text-[#171717]">
+                  {formatActivationTierBadge(tier)}
+                </span>
+              }
+            />
           ) : null}
         </div>
 
