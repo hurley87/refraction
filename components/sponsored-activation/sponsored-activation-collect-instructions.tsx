@@ -3,7 +3,7 @@ const COLLECT_INSTRUCTIONS =
 
 export function SponsoredActivationCollectInstructions() {
   return (
-    <section className="border-t border-[#171717]/10 pt-4">
+    <section>
       <h2 className="label-small font-grotesk uppercase tracking-wide text-[#757575]">
         How to Collect
       </h2>
