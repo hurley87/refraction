@@ -6,7 +6,6 @@ type SponsoredActivationPointsValueProps = {
   className?: string;
 };
 
-/** Figma Data Line: bold number + muted suffix (PTS or $IRL). */
 export function SponsoredActivationPointsValue({
   points,
   suffix = 'PTS',

@@ -153,12 +153,7 @@ export function SponsoredActivationSwipeSlider({
         )}
       >
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span
-            className={cn(
-              'label-large font-grotesk uppercase tracking-[0.0625em]',
-              completed ? 'text-[#a9a9a9]' : 'text-[#a9a9a9]'
-            )}
-          >
+          <span className="label-large font-grotesk uppercase tracking-[0.0625em] text-[#a9a9a9]">
             {displayLabel}
           </span>
         </div>
@@ -175,9 +170,9 @@ export function SponsoredActivationSwipeSlider({
             disabled || completed ? 'pointer-events-none' : 'touch-none'
           )}
         >
-          {!completed ? (
+          {!completed && (
             <ArrowRight className="size-5" strokeWidth={2.5} aria-hidden />
-          ) : null}
+          )}
         </div>
       </div>
       <p className="sr-only">

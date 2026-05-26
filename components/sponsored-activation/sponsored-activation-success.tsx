@@ -19,9 +19,6 @@ type SponsoredActivationSuccessProps = {
   onSwipeComplete: () => void;
 };
 
-/**
- * Figma Generic Drawer — post-purchase success with swipe-to-redeem (no current tier row).
- */
 export function SponsoredActivationSuccess({
   heroImageUrl,
   perkName,

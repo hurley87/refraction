@@ -11,9 +11,6 @@ type SponsoredActivationPageShellProps = {
   flush?: boolean;
 };
 
-/**
- * Mobile-first shell for `/activation/:id` — light canvas aligned with Figma prod flow.
- */
 export function SponsoredActivationPageShell({
   children,
   className,

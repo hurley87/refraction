@@ -1,7 +1,4 @@
-/**
- * User-facing retail value label for sponsored activation reward items (Figma: "$9 USD value").
- * Derived from backend `usdc_amount`; not shown as crypto or settlement copy.
- */
+/** Retail-style label from reward `usdc_amount` (not settlement/onchain copy). */
 export function formatPerkValueUsdLabel(usdcAmount: number): string {
   const dollars = Number.isFinite(usdcAmount) ? usdcAmount : 0;
   const rounded =
@@ -11,7 +8,7 @@ export function formatPerkValueUsdLabel(usdcAmount: number): string {
   return `$${rounded} USD value`;
 }
 
-/** Whole-dollar display amount for public read (no chain/settlement semantics). */
+/** Numeric USD for public read; non-finite or non-positive values become 0 (two decimal places max). */
 export function perkValueUsdFromUsdcAmount(usdcAmount: number): number {
   if (!Number.isFinite(usdcAmount) || usdcAmount <= 0) return 0;
   return Math.round(usdcAmount * 100) / 100;

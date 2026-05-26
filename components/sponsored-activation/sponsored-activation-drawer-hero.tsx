@@ -1,5 +1,3 @@
-'use client';
-
 import Image from 'next/image';
 
 type SponsoredActivationDrawerHeroProps = {
@@ -7,7 +5,6 @@ type SponsoredActivationDrawerHeroProps = {
   itemName: string;
 };
 
-/** Figma Generic Drawer hero: image with "You receive" strip overlay. */
 export function SponsoredActivationDrawerHero({
   heroImageUrl,
   itemName,

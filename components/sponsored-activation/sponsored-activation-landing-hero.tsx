@@ -1,5 +1,3 @@
-'use client';
-
 import Image from 'next/image';
 import { SponsoredActivationPointsValue } from '@/components/sponsored-activation/sponsored-activation-points-value';
 
@@ -10,9 +8,6 @@ type SponsoredActivationLandingHeroProps = {
   perkValueLabel: string;
 };
 
-/**
- * Figma spend activation landing: full-bleed hero with white perk card anchored at bottom.
- */
 export function SponsoredActivationLandingHero({
   heroImageUrl,
   itemName,
