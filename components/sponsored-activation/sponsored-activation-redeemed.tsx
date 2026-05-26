@@ -26,7 +26,7 @@ export function SponsoredActivationRedeemed({
         itemName={perkName}
       />
 
-      <div className="flex flex-1 flex-col gap-6 px-4 pb-28 pt-6">
+      <div className="flex flex-1 flex-col gap-4 px-4 pb-28 pt-4">
         <h1 className="title2 text-[#171717]">Success!</h1>
 
         <div>

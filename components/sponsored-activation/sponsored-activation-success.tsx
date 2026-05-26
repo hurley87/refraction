@@ -95,9 +95,7 @@ export function SponsoredActivationSuccess({
             />
           </div>
 
-          <div className="pt-4">
-            <SponsoredActivationCollectInstructions />
-          </div>
+          <SponsoredActivationCollectInstructions />
 
           <SponsoredActivationSwipeSlider
             key={swipeSliderKey}
