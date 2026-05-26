@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
+import { unwrapAdminJson } from '@/lib/admin/unwrap-admin-json';
 import { Loader2, ArrowLeft, CircleDollarSign, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -17,11 +18,6 @@ import {
   type SponsoredActivationFormState,
 } from './form-state';
 import { SponsoredActivationFormPanel } from './sponsored-activation-form-panel';
-
-function unwrapAdminJson<T>(responseData: unknown): T {
-  const body = responseData as { data?: T };
-  return (body.data ?? body) as T;
-}
 
 /** Mirrors `GET /api/admin/sponsored-activations` rows (avoid `lib/db` in client bundles). */
 type ActivationListRow = {

@@ -1,11 +1,11 @@
-/** Public App Router path for a sponsored activation (id or slug). */
+/** `/activation/{key}` for sharing; empty key yields `/activation`. */
 export function sponsoredActivationPublicPath(activationKey: string): string {
   const key = activationKey.trim();
   if (!key) return '/activation';
   return `/activation/${encodeURIComponent(key)}`;
 }
 
-/** Absolute URL for sharing (requires a browser or configured site origin). */
+/** Joins normalized `origin` with the public activation path. */
 export function sponsoredActivationPublicUrl(
   activationKey: string,
   origin: string
