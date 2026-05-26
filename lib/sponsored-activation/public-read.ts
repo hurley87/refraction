@@ -20,5 +20,8 @@ export type SponsoredActivationPublicReadResponse = {
     hero_image_url: string | null;
     description: string | null;
     points_cost: number;
+    /** Retail-style USD value for UI (from reward `usdc_amount`, not onchain copy). */
+    perk_value_usd: number;
+    perk_value_label: string;
   };
 };

@@ -3,6 +3,7 @@
 import { SponsoredActivationHero } from '@/components/sponsored-activation/sponsored-activation-hero';
 import { SponsoredActivationCollectInstructions } from '@/components/sponsored-activation/sponsored-activation-collect-instructions';
 import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
+import { SponsoredActivationPointsValue } from '@/components/sponsored-activation/sponsored-activation-points-value';
 import { SponsoredActivationCtaButton } from '@/components/sponsored-activation/sponsored-activation-cta-button';
 
 type SponsoredActivationRedeemedProps = {
@@ -30,12 +31,24 @@ export function SponsoredActivationRedeemed({
 
         <div>
           <SponsoredActivationDetailRow
-            label="You spent"
-            value={`${pointsSpent.toLocaleString()} PTS`}
+            label="You Spent"
+            value={
+              <SponsoredActivationPointsValue
+                points={pointsSpent}
+                suffix="PTS"
+              />
+            }
+            bareValue
           />
           <SponsoredActivationDetailRow
-            label="Your points balance"
-            value={`${balanceAfter.toLocaleString()} $IRL`}
+            label="Your Points Balance"
+            value={
+              <SponsoredActivationPointsValue
+                points={balanceAfter}
+                suffix="$IRL"
+              />
+            }
+            bareValue
           />
         </div>
 

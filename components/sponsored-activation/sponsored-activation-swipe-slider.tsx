@@ -18,19 +18,22 @@ type SponsoredActivationSwipeSliderProps = {
   /** Fires when the user begins a swipe (pointer down on knob). */
   onSwipeGestureStart?: () => void;
   label?: string;
+  /** True after swipe-redeem has completed successfully. */
+  redeemRequestSucceeded?: boolean;
 };
 
 export function SponsoredActivationSwipeSlider({
   disabled,
   onComplete,
   onSwipeGestureStart,
-  label = 'Swipe to redeem',
+  label = 'Swipe to Redeem',
+  redeemRequestSucceeded = false,
 }: SponsoredActivationSwipeSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const knobRef = useRef<HTMLDivElement>(null);
   const [dragPx, setDragPx] = useState(0);
   const dragPxRef = useRef(0);
-  const [completed, setCompleted] = useState(false);
+  const [swipeCommitted, setSwipeCommitted] = useState(false);
   const completionSentRef = useRef(false);
   const activePointerId = useRef<number | null>(null);
   /** Cached max travel for a11y ratio; avoids reading layout in render. */
@@ -51,7 +54,7 @@ export function SponsoredActivationSwipeSlider({
       if (max <= 0) return;
       if (px >= max * COMPLETE_RATIO) {
         completionSentRef.current = true;
-        setCompleted(true);
+        setSwipeCommitted(true);
         setDragPx(max);
         dragPxRef.current = max;
         onComplete();
@@ -61,11 +64,11 @@ export function SponsoredActivationSwipeSlider({
   );
 
   useEffect(() => {
-    if (disabled || completed) return;
+    if (disabled || swipeCommitted) return;
     completionSentRef.current = false;
     setDragPx(0);
     dragPxRef.current = 0;
-  }, [disabled, completed]);
+  }, [disabled, swipeCommitted]);
 
   const syncMaxTravelForAria = useCallback(() => {
     maxTravelForAriaRef.current = Math.max(1, maxTravel());
@@ -75,17 +78,17 @@ export function SponsoredActivationSwipeSlider({
     syncMaxTravelForAria();
     window.addEventListener('resize', syncMaxTravelForAria);
     return () => window.removeEventListener('resize', syncMaxTravelForAria);
-  }, [syncMaxTravelForAria, disabled, completed]);
+  }, [syncMaxTravelForAria, disabled, swipeCommitted]);
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (disabled || completed) return;
+    if (disabled || swipeCommitted) return;
     onSwipeGestureStart?.();
     activePointerId.current = e.pointerId;
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (disabled || completed) return;
+    if (disabled || swipeCommitted) return;
     if (activePointerId.current !== e.pointerId) return;
     const track = trackRef.current;
     const knob = knobRef.current;
@@ -104,7 +107,7 @@ export function SponsoredActivationSwipeSlider({
   const onPointerUp = (e: React.PointerEvent) => {
     if (activePointerId.current !== e.pointerId) return;
     activePointerId.current = null;
-    if (disabled || completed) return;
+    if (disabled || swipeCommitted) return;
     const max = maxTravel();
     const px = dragPxRef.current;
     if (max > 0 && px < max * COMPLETE_RATIO) {
@@ -114,7 +117,7 @@ export function SponsoredActivationSwipeSlider({
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (disabled || completed || completionSentRef.current) return;
+    if (disabled || swipeCommitted || completionSentRef.current) return;
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       onSwipeGestureStart?.();
@@ -123,12 +126,16 @@ export function SponsoredActivationSwipeSlider({
       maxTravelForAriaRef.current = Math.max(1, max);
       dragPxRef.current = max;
       setDragPx(max);
-      setCompleted(true);
+      setSwipeCommitted(true);
       onComplete();
     }
   };
 
-  const displayLabel = completed ? 'Redeeming…' : label;
+  const displayLabel = redeemRequestSucceeded
+    ? 'Redeemed'
+    : swipeCommitted
+      ? 'Redeeming…'
+      : label;
 
   return (
     <div className="w-full">
@@ -138,21 +145,22 @@ export function SponsoredActivationSwipeSlider({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={
-          completed
+          swipeCommitted
             ? 100
             : Math.round((dragPx / maxTravelForAriaRef.current) * 100)
         }
-        aria-disabled={disabled || completed}
-        aria-label={label}
-        tabIndex={disabled || completed ? -1 : 0}
+        aria-disabled={disabled || swipeCommitted}
+        aria-label={displayLabel}
+        tabIndex={disabled || swipeCommitted ? -1 : 0}
         onKeyDown={onKeyDown}
         className={cn(
-          'relative flex h-14 w-full select-none items-center rounded-md border border-[#171717] bg-white px-1',
-          disabled || completed ? 'opacity-60' : 'cursor-pointer'
+          'relative flex h-[52px] w-full select-none items-center rounded-md border-2 border-[#171717] bg-white px-0',
+          disabled ? 'opacity-60' : 'cursor-pointer',
+          redeemRequestSucceeded && 'border-[#14a64a]'
         )}
       >
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="label-small font-grotesk uppercase tracking-wide text-[#171717]">
+          <span className="label-large font-grotesk uppercase tracking-[0.0625em] text-[#a9a9a9]">
             {displayLabel}
           </span>
         </div>
@@ -164,11 +172,14 @@ export function SponsoredActivationSwipeSlider({
           onPointerCancel={onPointerUp}
           style={{ transform: `translateX(${dragPx}px)` }}
           className={cn(
-            'relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-[#171717] text-white',
-            disabled || completed ? 'pointer-events-none' : 'touch-none'
+            'relative z-10 flex h-[52px] min-w-[52px] shrink-0 items-center justify-center rounded-sm px-4 text-white',
+            redeemRequestSucceeded ? 'bg-[#14a64a]' : 'bg-[#171717]',
+            disabled || swipeCommitted ? 'pointer-events-none' : 'touch-none'
           )}
         >
-          <ArrowRight className="size-5" strokeWidth={2.5} aria-hidden />
+          {!swipeCommitted && (
+            <ArrowRight className="size-5" strokeWidth={2.5} aria-hidden />
+          )}
         </div>
       </div>
       <p className="sr-only">

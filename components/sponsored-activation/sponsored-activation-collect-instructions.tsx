@@ -15,7 +15,7 @@ export function SponsoredActivationCollectInstructions() {
           'font-semibold uppercase tracking-wide text-[#757575]'
         )}
       >
-        How to collect
+        How to Collect
       </h2>
       <p className={cn(collectSectionClass, 'mt-2')}>{COLLECT_INSTRUCTIONS}</p>
     </section>

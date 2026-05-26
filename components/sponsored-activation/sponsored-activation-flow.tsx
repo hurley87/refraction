@@ -74,7 +74,6 @@ export function SponsoredActivationFlow({
 }: SponsoredActivationFlowProps) {
   const { user, login, getAccessToken } = usePrivy();
   const walletAddress = user?.wallet?.address ?? null;
-  const accountEmail = user?.email?.address ?? null;
   const queryClient = useQueryClient();
 
   const { data: player, isFetched: playerDetailsFetched } = useCurrentPlayer();
@@ -82,6 +81,7 @@ export function SponsoredActivationFlow({
   const [redemptionOverride, setRedemptionOverride] =
     useState<ActivationRedemptionRow | null>(null);
   const [swipeSliderKey, setSwipeSliderKey] = useState(0);
+  const [successOverlayDismissed, setSuccessOverlayDismissed] = useState(false);
 
   const activationViewEmittedRef = useRef(false);
   const confirmScreenEmittedRef = useRef(false);
@@ -97,6 +97,7 @@ export function SponsoredActivationFlow({
     activationViewEmittedRef.current = false;
     confirmScreenEmittedRef.current = false;
     swipeGestureReportedRef.current = false;
+    setSuccessOverlayDismissed(false);
   }, [activationKey]);
 
   useEffect(() => {
@@ -307,8 +308,14 @@ export function SponsoredActivationFlow({
     },
   });
 
-  const { mutate: mutateSwipeRedeem, isPending: swipeRedeemPending } =
-    swipeMutation;
+  const {
+    mutate: mutateSwipeRedeem,
+    isPending: swipeRedeemPending,
+    isSuccess: swipeRedeemMutationSuccess,
+  } = swipeMutation;
+
+  const swipeRedeemSucceeded =
+    swipeRedeemMutationSuccess && !swipeRedeemPending;
 
   const handleSwipeComplete = useCallback(() => {
     if (!redemption?.id || swipeRedeemPending) return;
@@ -481,11 +488,9 @@ export function SponsoredActivationFlow({
 
   if (baseScreen === 'confirm') {
     return (
-      <SponsoredActivationPageShell>
+      <SponsoredActivationPageShell flush>
         <SponsoredActivationConfirm
           read={read}
-          accountEmail={accountEmail}
-          currentPoints={player?.total_points ?? 0}
           pending={confirmMutation.isPending}
           onConfirm={() => {
             if (!redemption.id) return;
@@ -502,8 +507,21 @@ export function SponsoredActivationFlow({
       isRedeemedLikeStatus(redemption.status) ||
       !isSwipeAllowedForStatus(redemption.status);
 
+    if (successOverlayDismissed) {
+      return (
+        <SponsoredActivationPageShell flush>
+          <SponsoredActivationConfirm
+            read={read}
+            pending={false}
+            onConfirm={() => setSuccessOverlayDismissed(false)}
+            primaryActionLabel="Swipe to redeem"
+          />
+        </SponsoredActivationPageShell>
+      );
+    }
+
     return (
-      <SponsoredActivationPageShell>
+      <SponsoredActivationPageShell flush>
         <SponsoredActivationSuccess
           heroImageUrl={read.rewardItem.hero_image_url}
           perkName={read.rewardItem.name}
@@ -511,8 +529,10 @@ export function SponsoredActivationFlow({
           balanceAfter={balanceAfterPoints}
           swipeDisabled={swipeDisabled}
           swipeSliderKey={swipeSliderKey}
+          redeemRequestSucceeded={swipeRedeemSucceeded}
           onSwipeGestureStart={handleSwipeGestureStart}
           onSwipeComplete={handleSwipeComplete}
+          onBack={() => setSuccessOverlayDismissed(true)}
         />
       </SponsoredActivationPageShell>
     );
