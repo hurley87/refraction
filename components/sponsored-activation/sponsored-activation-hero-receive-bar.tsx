@@ -8,7 +8,7 @@ export function SponsoredActivationHeroReceiveBar({
 }: SponsoredActivationHeroReceiveBarProps) {
   return (
     <div
-      className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 bg-white px-4 py-4"
+      className="absolute inset-x-0 bottom-0 z-10 flex w-full items-center justify-between gap-3 border-t border-white/40 bg-white/85 px-4 py-4 backdrop-blur-md supports-[backdrop-filter]:bg-white/75"
       role="group"
       aria-label="You receive"
     >
