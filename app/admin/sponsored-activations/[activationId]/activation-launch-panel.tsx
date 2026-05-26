@@ -26,8 +26,8 @@ import type {
   SponsoredActivationStatus,
 } from '@/lib/db/sponsored-activations';
 import {
-  sponsoredActivationPublicPath,
-  sponsoredActivationPublicUrl,
+  sponsoredActivationQrGuestSharePath,
+  sponsoredActivationQrGuestShareUrl,
 } from '@/lib/sponsored-activation/admin-public-url';
 
 type ActivationAdminRow = {
@@ -263,11 +263,17 @@ export function ActivationLaunchPanel({
 
   const activeRewardCount = rewardItems.filter((i) => i.is_active).length;
 
-  const publicUrl =
-    typeof window !== 'undefined' && activation
-      ? sponsoredActivationPublicUrl(
+  /** `source_ref_id` for QR deeplinks: activation display name, then slug, then id. */
+  const activationNameForGuestRef = activation
+    ? activation.title.trim() || activation.slug.trim() || activation.id
+    : '';
+
+  const guestShareUrl =
+    typeof window !== 'undefined' && activation && activationNameForGuestRef
+      ? sponsoredActivationQrGuestShareUrl(
           activation.slug || activation.id,
-          window.location.origin
+          window.location.origin,
+          activationNameForGuestRef
         )
       : '';
 
@@ -445,7 +451,7 @@ export function ActivationLaunchPanel({
       id: 'share',
       done: isLive,
       title: 'Share the guest link',
-      body: 'Send this URL (not the admin dashboard URL). Optional QR check-in params: ?source=qr_scan&source_ref_id=YOUR_REF',
+      body: 'Send this URL (not the admin dashboard URL). It includes QR check-in params (?source=qr_scan&source_ref_id); source_ref_id is this activation’s name (title), or slug/id if the title is blank.',
     },
   ];
 
@@ -500,12 +506,12 @@ export function ActivationLaunchPanel({
               Resume
             </Button>
           )}
-          {publicUrl && (
+          {guestShareUrl && (
             <Button
               type="button"
               variant="outline"
               className="gap-1"
-              onClick={() => void copyText(publicUrl, 'Guest link copied')}
+              onClick={() => void copyText(guestShareUrl, 'Guest link copied')}
             >
               <Copy className="size-3.5" />
               Copy guest link
@@ -730,10 +736,10 @@ export function ActivationLaunchPanel({
                 </div>
               )}
 
-              {step.id === 'share' && publicUrl && (
+              {step.id === 'share' && guestShareUrl && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <code className="block max-w-full flex-1 break-all rounded-lg bg-neutral-50 p-2 text-xs text-blue-800 dark:bg-neutral-950 dark:text-blue-300">
-                    {publicUrl}
+                    {guestShareUrl}
                   </code>
                   <Button
                     type="button"
@@ -741,7 +747,7 @@ export function ActivationLaunchPanel({
                     variant="outline"
                     className="gap-1"
                     onClick={() =>
-                      void copyText(publicUrl, 'Guest link copied')
+                      void copyText(guestShareUrl, 'Guest link copied')
                     }
                   >
                     <Copy className="size-3.5" />
@@ -749,8 +755,9 @@ export function ActivationLaunchPanel({
                   </Button>
                   <Button type="button" size="sm" variant="outline" asChild>
                     <Link
-                      href={sponsoredActivationPublicPath(
-                        activation.slug || activation.id
+                      href={sponsoredActivationQrGuestSharePath(
+                        activation.slug || activation.id,
+                        activationNameForGuestRef
                       )}
                       target="_blank"
                       rel="noopener noreferrer"

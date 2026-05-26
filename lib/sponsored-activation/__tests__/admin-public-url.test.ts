@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   sponsoredActivationPublicPath,
   sponsoredActivationPublicUrl,
+  sponsoredActivationQrGuestSharePath,
+  sponsoredActivationQrGuestShareUrl,
 } from '@/lib/sponsored-activation/admin-public-url';
 
 describe('sponsoredActivationPublicPath', () => {
@@ -27,6 +29,40 @@ describe('sponsoredActivationPublicUrl', () => {
     );
     expect(sponsoredActivationPublicUrl('abc', 'https://irl.energy/')).toBe(
       'https://irl.energy/activation/abc'
+    );
+  });
+});
+
+describe('sponsoredActivationQrGuestSharePath', () => {
+  it('appends qr_scan and source_ref_id', () => {
+    expect(sponsoredActivationQrGuestSharePath('my-slug', 'Launch Party')).toBe(
+      '/activation/my-slug?source=qr_scan&source_ref_id=Launch+Party'
+    );
+  });
+
+  it('trims source_ref_id', () => {
+    expect(sponsoredActivationQrGuestSharePath('x', '  ref  ')).toBe(
+      '/activation/x?source=qr_scan&source_ref_id=ref'
+    );
+  });
+
+  it('omits query when ref is blank after trim', () => {
+    expect(sponsoredActivationQrGuestSharePath('x', '   ')).toBe(
+      '/activation/x'
+    );
+  });
+});
+
+describe('sponsoredActivationQrGuestShareUrl', () => {
+  it('joins origin, path, and QR params', () => {
+    expect(
+      sponsoredActivationQrGuestShareUrl(
+        'my-slug',
+        'https://example.test',
+        'Launch Party'
+      )
+    ).toBe(
+      'https://example.test/activation/my-slug?source=qr_scan&source_ref_id=Launch+Party'
     );
   });
 });
