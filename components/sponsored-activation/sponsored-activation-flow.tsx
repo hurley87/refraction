@@ -81,6 +81,7 @@ export function SponsoredActivationFlow({
   const [redemptionOverride, setRedemptionOverride] =
     useState<ActivationRedemptionRow | null>(null);
   const [swipeSliderKey, setSwipeSliderKey] = useState(0);
+  const [successOverlayDismissed, setSuccessOverlayDismissed] = useState(false);
 
   const activationViewEmittedRef = useRef(false);
   const confirmScreenEmittedRef = useRef(false);
@@ -96,6 +97,7 @@ export function SponsoredActivationFlow({
     activationViewEmittedRef.current = false;
     confirmScreenEmittedRef.current = false;
     swipeGestureReportedRef.current = false;
+    setSuccessOverlayDismissed(false);
   }, [activationKey]);
 
   useEffect(() => {
@@ -306,8 +308,14 @@ export function SponsoredActivationFlow({
     },
   });
 
-  const { mutate: mutateSwipeRedeem, isPending: swipeRedeemPending } =
-    swipeMutation;
+  const {
+    mutate: mutateSwipeRedeem,
+    isPending: swipeRedeemPending,
+    isSuccess: swipeRedeemMutationSuccess,
+  } = swipeMutation;
+
+  const swipeRedeemSucceeded =
+    swipeRedeemMutationSuccess && !swipeRedeemPending;
 
   const handleSwipeComplete = useCallback(() => {
     if (!redemption?.id || swipeRedeemPending) return;
@@ -499,6 +507,19 @@ export function SponsoredActivationFlow({
       isRedeemedLikeStatus(redemption.status) ||
       !isSwipeAllowedForStatus(redemption.status);
 
+    if (successOverlayDismissed) {
+      return (
+        <SponsoredActivationPageShell flush>
+          <SponsoredActivationConfirm
+            read={read}
+            pending={false}
+            onConfirm={() => setSuccessOverlayDismissed(false)}
+            primaryActionLabel="Swipe to redeem"
+          />
+        </SponsoredActivationPageShell>
+      );
+    }
+
     return (
       <SponsoredActivationPageShell flush>
         <SponsoredActivationSuccess
@@ -508,8 +529,10 @@ export function SponsoredActivationFlow({
           balanceAfter={balanceAfterPoints}
           swipeDisabled={swipeDisabled}
           swipeSliderKey={swipeSliderKey}
+          redeemRequestSucceeded={swipeRedeemSucceeded}
           onSwipeGestureStart={handleSwipeGestureStart}
           onSwipeComplete={handleSwipeComplete}
+          onBack={() => setSuccessOverlayDismissed(true)}
         />
       </SponsoredActivationPageShell>
     );

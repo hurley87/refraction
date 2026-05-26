@@ -9,12 +9,15 @@ type SponsoredActivationConfirmProps = {
   read: SponsoredActivationPublicReadResponse;
   pending: boolean;
   onConfirm: () => void;
+  /** Replaces the idle primary action label (default: "Pay With Points"). */
+  primaryActionLabel?: string;
 };
 
 export function SponsoredActivationConfirm({
   read,
   pending,
   onConfirm,
+  primaryActionLabel,
 }: SponsoredActivationConfirmProps) {
   const { activation, rewardItem } = read;
   const description = rewardItem.description?.trim() || activation.sponsor_name;
@@ -54,7 +57,9 @@ export function SponsoredActivationConfirm({
               <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
             ) : null}
             <span className="truncate text-left">
-              {pending ? 'Processing…' : 'Pay With Points'}
+              {pending
+                ? 'Processing…'
+                : (primaryActionLabel ?? 'Pay With Points')}
             </span>
           </span>
           <ArrowRight className="size-6 shrink-0" strokeWidth={2} aria-hidden />

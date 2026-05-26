@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { SponsoredActivationDrawerHero } from '@/components/sponsored-activation/sponsored-activation-drawer-hero';
 import { SponsoredActivationCollectInstructions } from '@/components/sponsored-activation/sponsored-activation-collect-instructions';
@@ -15,8 +14,10 @@ type SponsoredActivationSuccessProps = {
   balanceAfter: number;
   swipeDisabled: boolean;
   swipeSliderKey: number;
+  redeemRequestSucceeded: boolean;
   onSwipeGestureStart?: () => void;
   onSwipeComplete: () => void;
+  onBack: () => void;
 };
 
 export function SponsoredActivationSuccess({
@@ -26,11 +27,11 @@ export function SponsoredActivationSuccess({
   balanceAfter,
   swipeDisabled,
   swipeSliderKey,
+  redeemRequestSucceeded,
   onSwipeGestureStart,
   onSwipeComplete,
+  onBack,
 }: SponsoredActivationSuccessProps) {
-  const router = useRouter();
-
   return (
     <div className="fixed inset-0 top-20 z-30 flex justify-center">
       <div
@@ -50,7 +51,7 @@ export function SponsoredActivationSuccess({
 
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={onBack}
           className="absolute left-3 top-3 z-20 flex size-10 items-center justify-center rounded-full border border-[#dbdbdb] bg-white shadow-sm transition-opacity hover:opacity-90"
           aria-label="Go back"
         >
@@ -100,6 +101,7 @@ export function SponsoredActivationSuccess({
           <SponsoredActivationSwipeSlider
             key={swipeSliderKey}
             disabled={swipeDisabled}
+            redeemRequestSucceeded={redeemRequestSucceeded}
             onSwipeGestureStart={onSwipeGestureStart}
             onComplete={onSwipeComplete}
           />
