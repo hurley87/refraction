@@ -17,6 +17,7 @@ import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
 import MapNav from '@/components/map/mapnav';
 import MapCard from '@/components/map/map-card';
+import { CheckInSuccessScreen } from '@/components/map/check-in-success-screen';
 import { MapPinImage } from '@/components/map/map-pin-image';
 import LocationListsDrawer, {
   DrawerLocationSummary,
@@ -209,6 +210,7 @@ export default function InteractiveMap({
   const [checkInComment, setCheckInComment] = useState('');
   const [checkInSuccess, setCheckInSuccess] = useState(false);
   const [checkInPointsEarned, setCheckInPointsEarned] = useState(0);
+  const [checkInTotalPoints, setCheckInTotalPoints] = useState(0);
   const [locationCheckins, setLocationCheckins] = useState<
     LocationCheckinPreview[]
   >([]);
@@ -1056,6 +1058,7 @@ export default function InteractiveMap({
     setCheckInTarget(null);
     setCheckInSuccess(false);
     setCheckInPointsEarned(0);
+    setCheckInTotalPoints(0);
     setLocationCheckins([]);
     setLocationCheckinsError(null);
     setIsLoadingLocationCheckins(false);
@@ -1088,6 +1091,7 @@ export default function InteractiveMap({
           locationData: {
             place_id: checkInTarget.place_id,
             name: checkInTarget.name,
+            address: checkInTarget.address ?? checkInTarget.name,
             lat: checkInTarget.latitude.toString(),
             lon: checkInTarget.longitude.toString(),
             type: 'location',
@@ -1109,8 +1113,16 @@ export default function InteractiveMap({
         throw new Error(result.error || 'Failed to check in');
       }
 
+      const payload = result.data ?? result;
+
       // Show success screen
-      setCheckInPointsEarned(result.pointsEarned || 100);
+      setCheckInPointsEarned(
+        payload.pointsEarned ??
+          payload.checkin?.points_earned ??
+          checkInTarget.points_value ??
+          100
+      );
+      setCheckInTotalPoints(payload.player?.total_points ?? 0);
       setCheckInSuccess(true);
       setHasUserCheckedInAtLocation(true);
       setShowCheckInCommentModal(false);
@@ -1118,13 +1130,16 @@ export default function InteractiveMap({
       if (trimmedComment.length > 0) {
         setLocationCheckins((prev) => [
           {
-            id: result.checkin?.id ?? Date.now(),
+            id: payload.checkin?.id ?? Date.now(),
             comment: trimmedComment,
             imageUrl:
-              result.checkin?.image_url ?? checkInTarget.imageUrl ?? null,
+              payload.checkin?.image_url ?? checkInTarget.imageUrl ?? null,
             pointsEarned:
-              result.checkin?.points_earned || result.pointsEarned || 100,
-            createdAt: result.checkin?.created_at || new Date().toISOString(),
+              payload.checkin?.points_earned ||
+              payload.pointsEarned ||
+              checkInTarget.points_value ||
+              100,
+            createdAt: payload.checkin?.created_at || new Date().toISOString(),
             username: userUsername,
             walletAddress: walletAddress || null,
           },
@@ -2043,7 +2058,14 @@ export default function InteractiveMap({
         }}
       >
         <DialogContent className="fixed left-0 top-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center gap-0 bg-transparent p-0 shadow-none [&>button]:hidden">
-          <div className="flex h-full w-full min-h-0 max-w-[393px] flex-col items-stretch overflow-hidden bg-white pb-2 pt-0 mx-auto">
+          <div
+            className={cn(
+              'flex h-full w-full min-h-0 flex-col items-stretch overflow-hidden bg-white pt-0',
+              checkInSuccess
+                ? 'max-w-none pb-0 md:max-w-[393px] md:mx-auto'
+                : 'max-w-[393px] pb-2 mx-auto'
+            )}
+          >
             {/* Hero: location image — first row */}
             {!checkInSuccess && (
               <div className="relative flex h-[258px] w-full shrink-0 items-start gap-2 overflow-hidden border border-white/15 bg-lightgray p-2">
@@ -2736,160 +2758,14 @@ export default function InteractiveMap({
                     </div>
                   )}
                 </>
-              ) : (
-                /* Success Screen */
-                <div
-                  className="relative flex flex-col items-center justify-center min-h-[400px] w-full overflow-hidden"
-                  style={{
-                    backgroundImage: "url('/city-bg.jpg')",
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                  }}
-                >
-                  <div className="relative z-10 flex flex-col items-center gap-7 px-4 py-16 w-full h-full justify-center">
-                    {/* Location Marker Icon */}
-                    <div
-                      className="relative shrink-0"
-                      style={{ width: '46px', height: '66px' }}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="46"
-                        height="66"
-                        viewBox="0 0 46 66"
-                        fill="none"
-                        className="absolute inset-0"
-                      >
-                        <g filter="url(#filter_checkin_success)">
-                          <path
-                            d="M41.2 16.6438C41.2 25.836 25.9572 45 25.2 45C24.4429 45 9.20001 25.836 9.20001 16.6438C9.20001 7.4517 16.3635 0 25.2 0C34.0366 0 41.2 7.4517 41.2 16.6438Z"
-                            fill="white"
-                          />
-                        </g>
-                        <defs>
-                          <filter
-                            id="filter_checkin_success"
-                            x="0"
-                            y="0"
-                            width="50.4"
-                            height="64.2"
-                            filterUnits="userSpaceOnUse"
-                            colorInterpolationFilters="sRGB"
-                          >
-                            <feFlood
-                              floodOpacity="0"
-                              result="BackgroundImageFix"
-                            />
-                            <feColorMatrix
-                              in="SourceAlpha"
-                              type="matrix"
-                              values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                              result="hardAlpha"
-                            />
-                            <feOffset dy="10" />
-                            <feGaussianBlur stdDeviation="4.6" />
-                            <feComposite in2="hardAlpha" operator="out" />
-                            <feColorMatrix
-                              type="matrix"
-                              values="0 0 0 0 1 0 0 0 0 0.949019608 0 0 0 0 0 0 0 0 1 0"
-                            />
-                            <feBlend
-                              mode="normal"
-                              in2="BackgroundImageFix"
-                              result="effect1_dropShadow_7557_31214"
-                            />
-                            <feBlend
-                              mode="normal"
-                              in="SourceGraphic"
-                              in2="effect1_dropShadow_7557_31214"
-                              result="shape"
-                            />
-                          </filter>
-                        </defs>
-                      </svg>
-                      {checkInTarget?.imageUrl && (
-                        <div
-                          className="absolute bg-[#ededed] rounded-full shadow-[0px_0px_16px_0px_rgba(255,255,255,0.7)]"
-                          style={{
-                            width: '30px',
-                            height: '30px',
-                            top: '0px',
-                            left: '10px',
-                          }}
-                        >
-                          <MapPinImage
-                            imageUrl={checkInTarget.imageUrl}
-                            imageThumbUrl={checkInTarget.imageThumbUrl}
-                            alt={checkInTarget.name}
-                            className="w-full h-full rounded-full object-cover"
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Upper Section */}
-                    <div className="flex flex-col gap-4 items-center w-full">
-                      {/* Reward Section */}
-                      <div className="flex flex-col gap-2 items-center w-full">
-                        <p className="text-[11px] text-white uppercase tracking-[0.44px] font-medium">
-                          You Earned
-                        </p>
-                        <p
-                          className="text-6xl text-white tracking-[-4px] font-bold"
-                          style={{
-                            fontFamily: '"Pleasure Variable Trial", sans-serif',
-                          }}
-                        >
-                          {checkInPointsEarned}
-                        </p>
-                      </div>
-
-                      {/* Checking In At Section */}
-                      <div className="flex flex-col gap-2 items-center w-full">
-                        <p
-                          className="text-[11px] text-white uppercase tracking-[0.44px]"
-                          style={{
-                            fontFamily:
-                              '"ABC Monument Grotesk Semi-Mono Unlicensed Trial", sans-serif',
-                            fontWeight: 500,
-                          }}
-                        >
-                          Checking In At
-                        </p>
-                        <div className="flex items-center">
-                          <div className="flex gap-1 items-center justify-center border border-white rounded-full px-2 py-1.5">
-                            <div className="shrink-0 w-4 h-4">
-                              <svg
-                                className="w-4 h-4 text-white"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                              </svg>
-                            </div>
-                            <p className="text-[11px] text-white uppercase tracking-[0.44px] font-medium">
-                              {checkInTarget?.name || 'Location'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              ) : checkInTarget ? (
+                <CheckInSuccessScreen
+                  target={checkInTarget}
+                  pointsEarned={checkInPointsEarned}
+                  totalPoints={checkInTotalPoints}
+                  onBackToMap={handleCloseCheckInModal}
+                />
+              ) : null}
             </div>
 
             {/* Footer */}
@@ -2972,32 +2848,7 @@ export default function InteractiveMap({
                   </button>
                 </div>
               </div>
-            ) : (
-              <div className="w-full px-4 py-2">
-                <button
-                  onClick={handleCloseCheckInModal}
-                  className="flex h-11 w-full items-center justify-between bg-black px-4 py-2 transition-colors"
-                >
-                  <span className="label-medium label-large uppercase text-[#ffffff]">
-                    Done
-                  </span>
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="block size-6 max-w-none"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
-                      fill="#DBDBDB"
-                    />
-                  </svg>
-                </button>
-              </div>
-            )}
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
