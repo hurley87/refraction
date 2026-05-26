@@ -287,9 +287,6 @@ export default function AdminSponsoredActivationsListPage() {
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-neutral-100">
                   Sponsored activations
                 </h1>
-                <p className="text-sm text-gray-500 dark:text-neutral-400">
-                  Public Records activation health and settlement ops.
-                </p>
               </div>
             </div>
             <Button

@@ -107,6 +107,7 @@ const positiveDecimalOrNullSchema = z.union([
 const sponsoredActivationCommonCreateFields = {
   slug: z.string().min(1).max(256),
   title: z.string().min(1).max(512),
+  description: z.string().trim().max(10000).optional().nullable(),
   sponsor_name: z.string().min(1).max(512),
   event_id: z.string().min(1).max(512).optional().nullable(),
   status: sponsoredActivationStatusSchema.default('draft'),
