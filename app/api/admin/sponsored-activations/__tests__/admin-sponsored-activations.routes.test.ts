@@ -58,6 +58,8 @@ vi.mock('@/lib/activation/explorer-url', () => ({
   }),
 }));
 
+import { POSTER_CHECKOUT_USDC_ADDRESS_BASE } from '@/lib/walletconnect-poster-direct-usdc';
+import { DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG } from '@/lib/schemas/activation-eligibility-config';
 import { GET as listGET, POST as listPOST } from '../route';
 import { GET as oneGET, PATCH as onePATCH } from '../[activationId]/route';
 import {
@@ -76,12 +78,6 @@ const validWindow = {
   ends_at: '2026-06-30T12:00:00.000Z',
 };
 
-const testEligibilityConfig = {
-  max_events_per_user: 50,
-  max_events_per_user_per_day: 10,
-  required_checkpoint_ids: ['cp-1'],
-};
-
 const baseFixture = {
   id: 'act-1',
   slug: 's1',
@@ -98,7 +94,7 @@ const baseFixture = {
   usdc_settled_total: 0,
   redemption_count_confirmed: 0,
   ...validWindow,
-  eligibility_config: testEligibilityConfig,
+  eligibility_config: DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG,
   created_by: 'a@b.com',
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
@@ -168,15 +164,12 @@ describe('POST /api/admin/sponsored-activations', () => {
     const res = await listPOST(
       jsonReq('POST', 'http://localhost/api/admin/sponsored-activations', {
         settlement_rail: 'base',
-        slug: 'x',
         title: 't',
         sponsor_name: 's',
         max_redemptions: 1,
         ...validWindow,
-        eligibility_config: testEligibilityConfig,
         venue_settlement_wallet_address:
           '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-        usdc_asset_config: { contract_address: SAMPLE_CONTRACT },
       })
     );
     expect(res.status).toBe(403);
@@ -186,14 +179,11 @@ describe('POST /api/admin/sponsored-activations', () => {
     const res = await listPOST(
       jsonReq('POST', 'http://localhost/api/admin/sponsored-activations', {
         settlement_rail: 'base',
-        slug: 'x',
         title: 't',
         sponsor_name: 's',
         max_redemptions: 1,
         ...validWindow,
-        eligibility_config: testEligibilityConfig,
         venue_settlement_wallet_address: STELLAR,
-        usdc_asset_config: { contract_address: SAMPLE_CONTRACT },
       })
     );
     expect(res.status).toBe(400);
@@ -208,15 +198,12 @@ describe('POST /api/admin/sponsored-activations', () => {
         'http://localhost/api/admin/sponsored-activations',
         {
           settlement_rail: 'base',
-          slug: 'new-slug',
           title: 't',
           sponsor_name: 's',
           max_redemptions: 1,
           ...validWindow,
-          eligibility_config: testEligibilityConfig,
           venue_settlement_wallet_address:
             '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-          usdc_asset_config: { contract_address: SAMPLE_CONTRACT },
         },
         'idem-xyz'
       )
@@ -227,8 +214,21 @@ describe('POST /api/admin/sponsored-activations', () => {
       settlementRail: 'base',
     });
     expect(mockCreate).toHaveBeenCalled();
-    const createArg = mockCreate.mock.calls[0][0] as { status: string };
+    const createArg = mockCreate.mock.calls[0][0] as {
+      status: string;
+      id: string;
+      slug: string;
+      usdc_asset_config: { contract_address: string };
+      eligibility_config: typeof DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG;
+    };
     expect(createArg.status).toBe('draft');
+    expect(createArg.id).toBe(createArg.slug);
+    expect(createArg.usdc_asset_config.contract_address).toBe(
+      POSTER_CHECKOUT_USDC_ADDRESS_BASE
+    );
+    expect(createArg.eligibility_config).toEqual(
+      DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG
+    );
   });
 });
 

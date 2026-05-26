@@ -21,7 +21,6 @@ import { SponsoredActivationFormPanel } from './sponsored-activation-form-panel'
 /** Mirrors `GET /api/admin/sponsored-activations` rows (avoid `lib/db` in client bundles). */
 type ActivationListRow = {
   id: string;
-  slug: string;
   title: string;
   sponsor_name: string;
   status: string;
@@ -81,7 +80,7 @@ const SponsoredActivationsListBody = memo(
                 Rail
               </th>
               <th className="px-4 py-3 font-medium text-gray-700 dark:text-neutral-300">
-                Slug
+                Activation ID
               </th>
             </tr>
           </thead>
@@ -109,7 +108,7 @@ const SponsoredActivationsListBody = memo(
                   {a.settlement_rail}
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-neutral-600 dark:text-neutral-400">
-                  {a.slug}
+                  {a.id}
                 </td>
               </tr>
             ))}

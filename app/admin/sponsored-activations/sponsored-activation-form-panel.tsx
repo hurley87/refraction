@@ -3,7 +3,6 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -69,21 +68,6 @@ export function SponsoredActivationFormPanel({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sa-slug">Slug</Label>
-            <Input
-              id="sa-slug"
-              value={form.slug}
-              onChange={(ev) =>
-                setForm((f) => ({ ...f, slug: ev.target.value }))
-              }
-              placeholder="public-records-drink"
-              className="font-mono text-sm"
-            />
-            <p className="text-xs text-neutral-500">
-              Public path: /activation/{'{slug}'}
-            </p>
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="sa-sponsor">Sponsor name</Label>
             <Input
               id="sa-sponsor"
@@ -142,22 +126,7 @@ export function SponsoredActivationFormPanel({
               className="font-mono text-sm"
             />
           </div>
-          {isBase ? (
-            <div className="space-y-2">
-              <Label htmlFor="sa-base-contract">Base USDC contract</Label>
-              <Input
-                id="sa-base-contract"
-                value={form.base_usdc_contract}
-                onChange={(ev) =>
-                  setForm((f) => ({
-                    ...f,
-                    base_usdc_contract: ev.target.value,
-                  }))
-                }
-                className="font-mono text-sm"
-              />
-            </div>
-          ) : (
+          {!isBase ? (
             <>
               <div className="space-y-2">
                 <Label htmlFor="sa-stellar-code">Stellar asset code</Label>
@@ -188,7 +157,7 @@ export function SponsoredActivationFormPanel({
                 />
               </div>
             </>
-          )}
+          ) : null}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="sa-max-redemptions">Max redemptions</Label>
@@ -242,74 +211,6 @@ export function SponsoredActivationFormPanel({
                   setForm((f) => ({ ...f, ends_at_local: ev.target.value }))
                 }
               />
-            </div>
-          </div>
-          <div className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-700">
-            <p className="mb-3 text-sm font-medium text-neutral-800 dark:text-neutral-200">
-              Eligibility
-            </p>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="sa-max-events">Max events / user</Label>
-                  <Input
-                    id="sa-max-events"
-                    type="number"
-                    min={1}
-                    value={form.max_events_per_user}
-                    onChange={(ev) =>
-                      setForm((f) => ({
-                        ...f,
-                        max_events_per_user: ev.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sa-max-events-day">
-                    Max events / user / day
-                  </Label>
-                  <Input
-                    id="sa-max-events-day"
-                    type="number"
-                    min={1}
-                    value={form.max_events_per_user_per_day}
-                    onChange={(ev) =>
-                      setForm((f) => ({
-                        ...f,
-                        max_events_per_user_per_day: ev.target.value,
-                      }))
-                    }
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sa-checkpoints">Required checkpoint IDs</Label>
-                <Textarea
-                  id="sa-checkpoints"
-                  className="min-h-[72px] font-mono text-sm"
-                  value={form.required_checkpoint_ids}
-                  onChange={(ev) =>
-                    setForm((f) => ({
-                      ...f,
-                      required_checkpoint_ids: ev.target.value,
-                    }))
-                  }
-                  placeholder="cp-abc, cp-def (comma or newline separated)"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sa-min-tier">Min tier (optional)</Label>
-                <Input
-                  id="sa-min-tier"
-                  type="number"
-                  min={1}
-                  value={form.min_tier}
-                  onChange={(ev) =>
-                    setForm((f) => ({ ...f, min_tier: ev.target.value }))
-                  }
-                />
-              </div>
             </div>
           </div>
         </div>

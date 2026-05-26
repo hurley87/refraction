@@ -17,6 +17,14 @@ export type ActivationEligibilityRulesConfig = z.infer<
   typeof activationEligibilityRulesConfigSchema
 >;
 
+/** Default eligibility rules for new sponsored activations (admin create). */
+export const DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG: ActivationEligibilityRulesConfig =
+  {
+    max_events_per_user: 50,
+    max_events_per_user_per_day: 10,
+    required_checkpoint_ids: [],
+  };
+
 export function parseActivationEligibilityRulesConfig(
   raw: unknown
 ): ActivationEligibilityRulesConfig {
