@@ -1,6 +1,7 @@
 'use client';
 
 import { SponsoredActivationHero } from '@/components/sponsored-activation/sponsored-activation-hero';
+import { SponsoredActivationCollectInstructions } from '@/components/sponsored-activation/sponsored-activation-collect-instructions';
 import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
 import { SponsoredActivationSwipeSlider } from '@/components/sponsored-activation/sponsored-activation-swipe-slider';
 
@@ -46,16 +47,7 @@ export function SponsoredActivationSuccess({
           />
         </div>
 
-        <section>
-          <h2 className="label-small font-grotesk uppercase tracking-wide text-[#757575]">
-            How to collect
-          </h2>
-          <p className="mt-2 body-medium font-grotesk leading-relaxed text-[#171717]">
-            Swipe below and show this screen to the event staff. Swipe only when
-            you&apos;re ready to purchase – once you&apos;ve redeemed you
-            can&apos;t redeem again!
-          </p>
-        </section>
+        <SponsoredActivationCollectInstructions />
 
         <SponsoredActivationSwipeSlider
           key={swipeSliderKey}
