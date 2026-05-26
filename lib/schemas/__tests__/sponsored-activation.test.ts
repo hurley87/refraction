@@ -219,34 +219,45 @@ describe('createSponsoredActivationSchema', () => {
 });
 
 describe('adminCreateSponsoredActivationRequestSchema', () => {
-  it('accepts Base create without campaign_wallet_address', () => {
+  it('accepts Base create without campaign_wallet_address, slug, or usdc_asset_config', () => {
     const r = adminCreateSponsoredActivationRequestSchema.safeParse({
       settlement_rail: 'base',
-      slug: 'pr-admin',
       title: 'Public Records',
       sponsor_name: 'Acme',
       max_redemptions: 100,
       ...validTime,
-      eligibility_config: { ...sampleEligibilityConfig, min_tier: 1 },
       venue_settlement_wallet_address:
         '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
-      usdc_asset_config: { contract_address: SAMPLE_EVM_CONTRACT },
     });
     expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.eligibility_config.required_checkpoint_ids).toEqual([]);
+    }
+  });
+
+  it('rejects slug on admin create (strict)', () => {
+    const r = adminCreateSponsoredActivationRequestSchema.safeParse({
+      settlement_rail: 'base',
+      slug: 'pr-admin',
+      title: 't',
+      sponsor_name: 's',
+      max_redemptions: 1,
+      ...validTime,
+      venue_settlement_wallet_address:
+        '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
+    });
+    expect(r.success).toBe(false);
   });
 
   it('rejects extra campaign_wallet_address (strict)', () => {
     const r = adminCreateSponsoredActivationRequestSchema.safeParse({
       settlement_rail: 'base',
-      slug: 'x',
       title: 't',
       sponsor_name: 's',
       max_redemptions: 1,
       ...validTime,
-      eligibility_config: sampleEligibilityConfig,
       venue_settlement_wallet_address:
         '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
-      usdc_asset_config: { contract_address: SAMPLE_EVM_CONTRACT },
       campaign_wallet_address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
     });
     expect(r.success).toBe(false);

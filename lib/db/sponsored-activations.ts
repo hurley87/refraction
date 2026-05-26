@@ -209,6 +209,7 @@ export async function countActiveRewardItemsForActivation(
 }
 
 export type CreateSponsoredActivationDbInput = {
+  id?: string;
   slug: string;
   title: string;
   sponsor_name: string;
@@ -234,6 +235,7 @@ export async function createSponsoredActivation(
   const { data, error } = await supabase
     .from(TABLE)
     .insert({
+      ...(input.id != null ? { id: input.id } : {}),
       slug: input.slug,
       title: input.title,
       sponsor_name: input.sponsor_name,

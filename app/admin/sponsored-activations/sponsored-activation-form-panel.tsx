@@ -3,7 +3,6 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -11,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { SettlementRail } from '@/lib/db/sponsored-activations';
 import type { SponsoredActivationFormState } from './form-state';
 
 export type SponsoredActivationFormPanelProps = {
@@ -34,6 +32,11 @@ export function SponsoredActivationFormPanel({
   if (!open) return null;
 
   const isBase = form.settlement_rail === 'base';
+
+  const setField =
+    <K extends keyof SponsoredActivationFormState>(key: K) =>
+    (value: SponsoredActivationFormState[K]) =>
+      setForm((f) => ({ ...f, [key]: value }));
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -62,35 +65,16 @@ export function SponsoredActivationFormPanel({
             <Input
               id="sa-title"
               value={form.title}
-              onChange={(ev) =>
-                setForm((f) => ({ ...f, title: ev.target.value }))
-              }
+              onChange={(ev) => setField('title')(ev.target.value)}
               placeholder="e.g. Public Records drink credit"
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="sa-slug">Slug</Label>
-            <Input
-              id="sa-slug"
-              value={form.slug}
-              onChange={(ev) =>
-                setForm((f) => ({ ...f, slug: ev.target.value }))
-              }
-              placeholder="public-records-drink"
-              className="font-mono text-sm"
-            />
-            <p className="text-xs text-neutral-500">
-              Public path: /activation/{'{slug}'}
-            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="sa-sponsor">Sponsor name</Label>
             <Input
               id="sa-sponsor"
               value={form.sponsor_name}
-              onChange={(ev) =>
-                setForm((f) => ({ ...f, sponsor_name: ev.target.value }))
-              }
+              onChange={(ev) => setField('sponsor_name')(ev.target.value)}
               placeholder="e.g. Public Records"
             />
           </div>
@@ -99,21 +83,18 @@ export function SponsoredActivationFormPanel({
             <Input
               id="sa-event"
               value={form.event_id}
-              onChange={(ev) =>
-                setForm((f) => ({ ...f, event_id: ev.target.value }))
-              }
+              onChange={(ev) => setField('event_id')(ev.target.value)}
             />
           </div>
           <div className="space-y-2">
             <Label>Settlement rail</Label>
             <Select
               value={form.settlement_rail}
-              onValueChange={(v) =>
-                setForm((f) => ({
-                  ...f,
-                  settlement_rail: v as SettlementRail,
-                }))
-              }
+              onValueChange={(v) => {
+                if (v === 'base' || v === 'stellar') {
+                  setField('settlement_rail')(v);
+                }
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select rail" />
@@ -133,31 +114,13 @@ export function SponsoredActivationFormPanel({
               id="sa-venue"
               value={form.venue_settlement_wallet_address}
               onChange={(ev) =>
-                setForm((f) => ({
-                  ...f,
-                  venue_settlement_wallet_address: ev.target.value,
-                }))
+                setField('venue_settlement_wallet_address')(ev.target.value)
               }
               placeholder={isBase ? '0x…' : 'G…'}
               className="font-mono text-sm"
             />
           </div>
-          {isBase ? (
-            <div className="space-y-2">
-              <Label htmlFor="sa-base-contract">Base USDC contract</Label>
-              <Input
-                id="sa-base-contract"
-                value={form.base_usdc_contract}
-                onChange={(ev) =>
-                  setForm((f) => ({
-                    ...f,
-                    base_usdc_contract: ev.target.value,
-                  }))
-                }
-                className="font-mono text-sm"
-              />
-            </div>
-          ) : (
+          {!isBase && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="sa-stellar-code">Stellar asset code</Label>
@@ -165,10 +128,7 @@ export function SponsoredActivationFormPanel({
                   id="sa-stellar-code"
                   value={form.stellar_asset_code}
                   onChange={(ev) =>
-                    setForm((f) => ({
-                      ...f,
-                      stellar_asset_code: ev.target.value,
-                    }))
+                    setField('stellar_asset_code')(ev.target.value)
                   }
                 />
               </div>
@@ -178,10 +138,7 @@ export function SponsoredActivationFormPanel({
                   id="sa-stellar-issuer"
                   value={form.stellar_usdc_issuer}
                   onChange={(ev) =>
-                    setForm((f) => ({
-                      ...f,
-                      stellar_usdc_issuer: ev.target.value,
-                    }))
+                    setField('stellar_usdc_issuer')(ev.target.value)
                   }
                   placeholder="G…"
                   className="font-mono text-sm"
@@ -197,9 +154,7 @@ export function SponsoredActivationFormPanel({
                 type="number"
                 min={1}
                 value={form.max_redemptions}
-                onChange={(ev) =>
-                  setForm((f) => ({ ...f, max_redemptions: ev.target.value }))
-                }
+                onChange={(ev) => setField('max_redemptions')(ev.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -210,9 +165,7 @@ export function SponsoredActivationFormPanel({
                 min={0}
                 step="any"
                 value={form.max_usdc_budget}
-                onChange={(ev) =>
-                  setForm((f) => ({ ...f, max_usdc_budget: ev.target.value }))
-                }
+                onChange={(ev) => setField('max_usdc_budget')(ev.target.value)}
                 placeholder="Optional"
               />
             </div>
@@ -227,9 +180,7 @@ export function SponsoredActivationFormPanel({
                 id="sa-starts"
                 type="datetime-local"
                 value={form.starts_at_local}
-                onChange={(ev) =>
-                  setForm((f) => ({ ...f, starts_at_local: ev.target.value }))
-                }
+                onChange={(ev) => setField('starts_at_local')(ev.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -238,78 +189,8 @@ export function SponsoredActivationFormPanel({
                 id="sa-ends"
                 type="datetime-local"
                 value={form.ends_at_local}
-                onChange={(ev) =>
-                  setForm((f) => ({ ...f, ends_at_local: ev.target.value }))
-                }
+                onChange={(ev) => setField('ends_at_local')(ev.target.value)}
               />
-            </div>
-          </div>
-          <div className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-700">
-            <p className="mb-3 text-sm font-medium text-neutral-800 dark:text-neutral-200">
-              Eligibility
-            </p>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="sa-max-events">Max events / user</Label>
-                  <Input
-                    id="sa-max-events"
-                    type="number"
-                    min={1}
-                    value={form.max_events_per_user}
-                    onChange={(ev) =>
-                      setForm((f) => ({
-                        ...f,
-                        max_events_per_user: ev.target.value,
-                      }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sa-max-events-day">
-                    Max events / user / day
-                  </Label>
-                  <Input
-                    id="sa-max-events-day"
-                    type="number"
-                    min={1}
-                    value={form.max_events_per_user_per_day}
-                    onChange={(ev) =>
-                      setForm((f) => ({
-                        ...f,
-                        max_events_per_user_per_day: ev.target.value,
-                      }))
-                    }
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sa-checkpoints">Required checkpoint IDs</Label>
-                <Textarea
-                  id="sa-checkpoints"
-                  className="min-h-[72px] font-mono text-sm"
-                  value={form.required_checkpoint_ids}
-                  onChange={(ev) =>
-                    setForm((f) => ({
-                      ...f,
-                      required_checkpoint_ids: ev.target.value,
-                    }))
-                  }
-                  placeholder="cp-abc, cp-def (comma or newline separated)"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sa-min-tier">Min tier (optional)</Label>
-                <Input
-                  id="sa-min-tier"
-                  type="number"
-                  min={1}
-                  value={form.min_tier}
-                  onChange={(ev) =>
-                    setForm((f) => ({ ...f, min_tier: ev.target.value }))
-                  }
-                />
-              </div>
             </div>
           </div>
         </div>

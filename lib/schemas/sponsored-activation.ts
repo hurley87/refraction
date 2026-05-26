@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { getAddress, isAddress } from 'viem';
-import { activationEligibilityRulesConfigSchema } from '@/lib/schemas/activation-eligibility-config';
+import {
+  activationEligibilityRulesConfigSchema,
+  DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG,
+} from '@/lib/schemas/activation-eligibility-config';
+import { POSTER_CHECKOUT_USDC_ADDRESS_BASE } from '@/lib/walletconnect-poster-direct-usdc';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import { sameWalletAddress, tryNormalizeEvmAddress } from '@/lib/utils/wallets';
 
@@ -180,11 +184,29 @@ export const createSponsoredActivationSchema =
   });
 
 const adminCreateSponsoredActivationBaseObject =
-  createSponsoredActivationBaseObject.omit({ campaign_wallet_address: true });
+  createSponsoredActivationBaseObject
+    .omit({
+      campaign_wallet_address: true,
+      slug: true,
+      usdc_asset_config: true,
+    })
+    .extend({
+      eligibility_config: activationEligibilityRulesConfigSchema
+        .optional()
+        .default(DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG),
+    });
 const adminCreateSponsoredActivationStellarObject =
-  createSponsoredActivationStellarObject.omit({
-    campaign_wallet_address: true,
-  });
+  createSponsoredActivationStellarObject
+    .omit({ campaign_wallet_address: true, slug: true })
+    .extend({
+      eligibility_config: activationEligibilityRulesConfigSchema
+        .optional()
+        .default(DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG),
+    });
+
+/** Canonical Base USDC contract for sponsored activations (admin create default). */
+export const DEFAULT_SPONSORED_ACTIVATION_BASE_USDC_CONTRACT =
+  POSTER_CHECKOUT_USDC_ADDRESS_BASE;
 
 /**
  * Admin POST body: `campaign_wallet_address` is provisioned server-side (Privy), not supplied by the client.

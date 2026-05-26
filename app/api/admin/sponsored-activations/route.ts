@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import {
@@ -5,7 +6,10 @@ import {
   getSponsoredActivationByCreateIdempotencyKey,
   listSponsoredActivations,
 } from '@/lib/db/sponsored-activations';
-import { adminCreateSponsoredActivationRequestSchema } from '@/lib/schemas/sponsored-activation';
+import {
+  adminCreateSponsoredActivationRequestSchema,
+  DEFAULT_SPONSORED_ACTIVATION_BASE_USDC_CONTRACT,
+} from '@/lib/schemas/sponsored-activation';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
 import { createSponsoredActivationPrivyCampaignWallet } from '@/lib/api/privy';
@@ -86,8 +90,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const activationId = randomUUID();
+    const usdc_asset_config =
+      data.settlement_rail === 'base'
+        ? { contract_address: DEFAULT_SPONSORED_ACTIVATION_BASE_USDC_CONTRACT }
+        : (data.usdc_asset_config as Record<string, unknown>);
+
     const row = await createSponsoredActivation({
-      slug: data.slug,
+      id: activationId,
+      slug: activationId,
       title: data.title,
       sponsor_name: data.sponsor_name,
       event_id: data.event_id ?? null,
@@ -95,10 +106,7 @@ export async function POST(request: NextRequest) {
       settlement_rail: data.settlement_rail,
       campaign_wallet_address: wallet.campaign_wallet_address,
       venue_settlement_wallet_address: data.venue_settlement_wallet_address,
-      usdc_asset_config: data.usdc_asset_config as unknown as Record<
-        string,
-        unknown
-      >,
+      usdc_asset_config,
       max_redemptions: data.max_redemptions ?? null,
       max_usdc_budget: data.max_usdc_budget ?? null,
       starts_at: data.starts_at,
