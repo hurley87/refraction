@@ -14,7 +14,7 @@ export function SponsoredActivationHero({
   itemName,
 }: SponsoredActivationHeroProps) {
   return (
-    <div className="relative min-h-[470px] w-full overflow-hidden bg-neutral-100">
+    <div className="relative h-[320px] w-full shrink-0 overflow-hidden bg-neutral-100">
       {heroImageUrl ? (
         <Image
           src={heroImageUrl}
@@ -26,7 +26,7 @@ export function SponsoredActivationHero({
           unoptimized
         />
       ) : (
-        <div className="flex h-full min-h-[470px] items-center justify-center px-6 text-center body-medium font-grotesk text-[#757575]">
+        <div className="flex h-full items-center justify-center px-6 text-center body-medium font-grotesk text-[#757575]">
           {itemName}
         </div>
       )}
