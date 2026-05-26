@@ -6,7 +6,6 @@ type SponsoredActivationHeroReceiveBarProps = {
   className?: string;
 };
 
-/** Bottom "You receive" strip shared by page and drawer activation heroes. */
 export function SponsoredActivationHeroReceiveBar({
   itemName,
   className,
