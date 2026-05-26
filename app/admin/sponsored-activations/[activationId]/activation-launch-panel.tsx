@@ -19,7 +19,10 @@ import { Label } from '@/components/ui/label';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import type { SponsoredActivationStatus } from '@/lib/db/sponsored-activations';
-import { sponsoredActivationPublicUrl } from '@/lib/sponsored-activation/admin-public-url';
+import {
+  sponsoredActivationPublicPath,
+  sponsoredActivationPublicUrl,
+} from '@/lib/sponsored-activation/admin-public-url';
 
 type ActivationAdminRow = {
   id: string;
@@ -535,7 +538,13 @@ export function ActivationLaunchPanel({
                     Copy
                   </Button>
                   <Button type="button" size="sm" variant="outline" asChild>
-                    <Link href={publicUrl.replace(window.location.origin, '')}>
+                    <Link
+                      href={sponsoredActivationPublicPath(
+                        activation.slug || activation.id
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       Preview
                     </Link>
                   </Button>
