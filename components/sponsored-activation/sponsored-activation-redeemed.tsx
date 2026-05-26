@@ -1,6 +1,7 @@
 'use client';
 
 import { SponsoredActivationHero } from '@/components/sponsored-activation/sponsored-activation-hero';
+import { SponsoredActivationCollectInstructions } from '@/components/sponsored-activation/sponsored-activation-collect-instructions';
 import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
 import { SponsoredActivationCtaButton } from '@/components/sponsored-activation/sponsored-activation-cta-button';
 
@@ -38,14 +39,7 @@ export function SponsoredActivationRedeemed({
           />
         </div>
 
-        <section>
-          <h2 className="label-small font-grotesk uppercase tracking-wide text-[#757575]">
-            How to collect
-          </h2>
-          <p className="mt-2 body-medium font-grotesk leading-relaxed text-[#171717]">
-            Show this screen to the event staff if they ask for confirmation.
-          </p>
-        </section>
+        <SponsoredActivationCollectInstructions />
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#171717]/10 bg-white/95 px-4 py-4 backdrop-blur-sm">
