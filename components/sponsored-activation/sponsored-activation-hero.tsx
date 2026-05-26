@@ -45,7 +45,7 @@ export function SponsoredActivationHero({
           <ArrowLeft className="size-5 text-[#171717]" strokeWidth={2} />
         </button>
       </div>
-      <div className="flex items-center justify-between gap-3 border-y border-[#171717]/10 bg-white px-4 py-2.5">
+      <div className="flex items-center justify-between gap-3 border-y border-[#171717]/10 bg-white px-4 py-4">
         <span className="label-small font-grotesk uppercase tracking-wide text-[#757575]">
           You receive
         </span>

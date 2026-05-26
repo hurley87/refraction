@@ -13,7 +13,6 @@ import { SponsoredActivationExpired } from '@/components/sponsored-activation/sp
 import { SponsoredActivationCancelled } from '@/components/sponsored-activation/sponsored-activation-cancelled';
 import { SpendPrimaryButton } from '@/components/spend/spend-primary-button';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
-import { useTiers } from '@/hooks/useTiers';
 import type { ActivationRedemptionRow } from '@/lib/db/activation-redemptions';
 import { apiClient, ApiError } from '@/lib/api/client';
 import {
@@ -28,7 +27,6 @@ import {
   resolveSponsoredActivationBaseScreen,
 } from '@/lib/sponsored-activation/flow-routing';
 import type { SponsoredActivationPublicReadResponse } from '@/lib/sponsored-activation/public-read';
-import { resolveTierForPoints } from '@/lib/tier-for-points';
 import {
   isInitialized,
   trackSponsoredActivationViewed,
@@ -80,7 +78,6 @@ export function SponsoredActivationFlow({
   const queryClient = useQueryClient();
 
   const { data: player, isFetched: playerDetailsFetched } = useCurrentPlayer();
-  const { data: tiers } = useTiers();
 
   const [redemptionOverride, setRedemptionOverride] =
     useState<ActivationRedemptionRow | null>(null);
@@ -338,10 +335,6 @@ export function SponsoredActivationFlow({
     confirmMutation.data?.player.total_points ?? player?.total_points ?? 0;
   const pointsSpent =
     redemption?.points_spent ?? readQuery.data?.rewardItem.points_cost ?? 0;
-  const currentTier = useMemo(() => {
-    if (!tiers?.length || balanceAfterPoints < 0) return null;
-    return resolveTierForPoints(tiers, balanceAfterPoints);
-  }, [tiers, balanceAfterPoints]);
 
   const recordFlowLoading =
     Boolean(deeplink) &&
@@ -480,6 +473,7 @@ export function SponsoredActivationFlow({
           heroImageUrl={read.rewardItem.hero_image_url}
           perkName={read.rewardItem.name}
           pointsSpent={pointsSpent}
+          balanceAfter={balanceAfterPoints}
         />
       </SponsoredActivationPageShell>
     );
@@ -515,7 +509,6 @@ export function SponsoredActivationFlow({
           perkName={read.rewardItem.name}
           pointsSpent={pointsSpent}
           balanceAfter={balanceAfterPoints}
-          tier={currentTier}
           swipeDisabled={swipeDisabled}
           swipeSliderKey={swipeSliderKey}
           onSwipeGestureStart={handleSwipeGestureStart}
