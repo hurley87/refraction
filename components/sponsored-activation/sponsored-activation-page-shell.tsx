@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils';
 type SponsoredActivationPageShellProps = {
   children: ReactNode;
   className?: string;
+  /** Full-bleed activation screens (hero edge-to-edge). */
+  flush?: boolean;
 };
 
 /**
@@ -15,6 +17,7 @@ type SponsoredActivationPageShellProps = {
 export function SponsoredActivationPageShell({
   children,
   className,
+  flush = false,
 }: SponsoredActivationPageShellProps) {
   return (
     <div
@@ -24,7 +27,12 @@ export function SponsoredActivationPageShell({
       )}
     >
       <Header />
-      <main className="relative z-0 mx-auto w-full max-w-[420px] pb-8 pt-20 md:max-w-lg md:pt-24">
+      <main
+        className={cn(
+          'relative z-0 mx-auto w-full max-w-[420px] md:max-w-lg',
+          flush ? 'px-0 pb-0 pt-20 md:pt-24' : 'px-0 pb-8 pt-20 md:pt-24'
+        )}
+      >
         {children}
       </main>
     </div>

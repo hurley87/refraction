@@ -24,7 +24,7 @@ export function SponsoredActivationSwipeSlider({
   disabled,
   onComplete,
   onSwipeGestureStart,
-  label = 'Swipe to redeem',
+  label = 'Swipe to Redeem',
 }: SponsoredActivationSwipeSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const knobRef = useRef<HTMLDivElement>(null);
@@ -128,7 +128,7 @@ export function SponsoredActivationSwipeSlider({
     }
   };
 
-  const displayLabel = completed ? 'Redeeming…' : label;
+  const displayLabel = completed ? 'Redeemed' : label;
 
   return (
     <div className="w-full">
@@ -147,12 +147,18 @@ export function SponsoredActivationSwipeSlider({
         tabIndex={disabled || completed ? -1 : 0}
         onKeyDown={onKeyDown}
         className={cn(
-          'relative flex h-14 w-full select-none items-center rounded-md border border-[#171717] bg-white px-1',
-          disabled || completed ? 'opacity-60' : 'cursor-pointer'
+          'relative flex h-[52px] w-full select-none items-center rounded-md border-2 border-[#171717] bg-white px-0',
+          disabled ? 'opacity-60' : 'cursor-pointer',
+          completed && 'border-[#14a64a]'
         )}
       >
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="label-small font-grotesk uppercase tracking-wide text-[#171717]">
+          <span
+            className={cn(
+              'label-large font-grotesk uppercase tracking-[0.0625em]',
+              completed ? 'text-[#a9a9a9]' : 'text-[#a9a9a9]'
+            )}
+          >
             {displayLabel}
           </span>
         </div>
@@ -164,11 +170,14 @@ export function SponsoredActivationSwipeSlider({
           onPointerCancel={onPointerUp}
           style={{ transform: `translateX(${dragPx}px)` }}
           className={cn(
-            'relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-[#171717] text-white',
+            'relative z-10 flex h-[52px] min-w-[52px] shrink-0 items-center justify-center rounded-sm px-4 text-white',
+            completed ? 'bg-[#14a64a]' : 'bg-[#171717]',
             disabled || completed ? 'pointer-events-none' : 'touch-none'
           )}
         >
-          <ArrowRight className="size-5" strokeWidth={2.5} aria-hidden />
+          {!completed ? (
+            <ArrowRight className="size-5" strokeWidth={2.5} aria-hidden />
+          ) : null}
         </div>
       </div>
       <p className="sr-only">

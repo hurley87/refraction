@@ -91,6 +91,8 @@ describe('GET /api/sponsored-activations/[activationId]', () => {
       hero_image_url: activeItem.hero_image_url,
       description: activeItem.description,
       points_cost: activeItem.points_cost,
+      perk_value_usd: 7,
+      perk_value_label: '$7 USD value',
     });
     expect(json.data.rewardItem).not.toHaveProperty('usdc_amount');
   });

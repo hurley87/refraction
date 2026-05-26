@@ -2,6 +2,10 @@ import { NextRequest } from 'next/server';
 import { listActivationRewardItems } from '@/lib/db/activation-reward-items';
 import { getSponsoredActivationByIdOrSlug } from '@/lib/db/sponsored-activations';
 import { apiError, apiSuccess } from '@/lib/api/response';
+import {
+  formatPerkValueUsdLabel,
+  perkValueUsdFromUsdcAmount,
+} from '@/lib/sponsored-activation/format-perk-value';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +59,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       hero_image_url: reward.hero_image_url,
       description: reward.description,
       points_cost: reward.points_cost,
+      perk_value_usd: perkValueUsdFromUsdcAmount(reward.usdc_amount),
+      perk_value_label: formatPerkValueUsdLabel(reward.usdc_amount),
     },
   });
 }

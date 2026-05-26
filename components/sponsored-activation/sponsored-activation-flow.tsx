@@ -74,7 +74,6 @@ export function SponsoredActivationFlow({
 }: SponsoredActivationFlowProps) {
   const { user, login, getAccessToken } = usePrivy();
   const walletAddress = user?.wallet?.address ?? null;
-  const accountEmail = user?.email?.address ?? null;
   const queryClient = useQueryClient();
 
   const { data: player, isFetched: playerDetailsFetched } = useCurrentPlayer();
@@ -481,11 +480,9 @@ export function SponsoredActivationFlow({
 
   if (baseScreen === 'confirm') {
     return (
-      <SponsoredActivationPageShell>
+      <SponsoredActivationPageShell flush>
         <SponsoredActivationConfirm
           read={read}
-          accountEmail={accountEmail}
-          currentPoints={player?.total_points ?? 0}
           pending={confirmMutation.isPending}
           onConfirm={() => {
             if (!redemption.id) return;
@@ -503,7 +500,7 @@ export function SponsoredActivationFlow({
       !isSwipeAllowedForStatus(redemption.status);
 
     return (
-      <SponsoredActivationPageShell>
+      <SponsoredActivationPageShell flush>
         <SponsoredActivationSuccess
           heroImageUrl={read.rewardItem.hero_image_url}
           perkName={read.rewardItem.name}
