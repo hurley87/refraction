@@ -10,7 +10,7 @@ export function SponsoredActivationDrawerHero({
   itemName,
 }: SponsoredActivationDrawerHeroProps) {
   return (
-    <div className="relative -mx-4 h-[323px] w-[calc(100%+2rem)] overflow-hidden bg-neutral-100">
+    <div className="relative -mx-4 h-[320px] w-[calc(100%+2rem)] overflow-hidden bg-neutral-100">
       {heroImageUrl ? (
         <Image
           src={heroImageUrl}
@@ -25,14 +25,14 @@ export function SponsoredActivationDrawerHero({
         <div className="absolute inset-0 bg-neutral-200" aria-hidden />
       )}
       <div
-        className="absolute inset-x-4 bottom-0 flex items-center justify-between gap-3 border-t border-[#454545]/20 bg-white px-2 py-2"
+        className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between gap-3 bg-white px-4 py-4"
         role="group"
         aria-label="You receive"
       >
-        <span className="label-small font-grotesk font-bold uppercase tracking-wide text-[#757575]">
+        <span className="label-small font-grotesk uppercase tracking-wide text-[#757575]">
           You receive
         </span>
-        <span className="title5 max-w-[60%] truncate text-right font-grotesk font-semibold text-[#171717]">
+        <span className="label-small max-w-[55%] truncate text-right font-grotesk font-semibold uppercase tracking-wide text-[#171717]">
           {itemName}
         </span>
       </div>

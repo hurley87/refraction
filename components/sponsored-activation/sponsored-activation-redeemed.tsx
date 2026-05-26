@@ -27,7 +27,7 @@ export function SponsoredActivationRedeemed({
       />
 
       <div className="flex flex-1 flex-col gap-6 px-4 pb-28 pt-6">
-        <h1 className="title2 text-[#171717]">Success</h1>
+        <h1 className="title2 text-[#171717]">Success!</h1>
 
         <div>
           <SponsoredActivationDetailRow
@@ -39,6 +39,7 @@ export function SponsoredActivationRedeemed({
               />
             }
             bareValue
+            className="border-b-0"
           />
           <SponsoredActivationDetailRow
             label="Your Points Balance"
