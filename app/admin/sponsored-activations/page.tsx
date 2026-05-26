@@ -18,6 +18,11 @@ import {
 } from './form-state';
 import { SponsoredActivationFormPanel } from './sponsored-activation-form-panel';
 
+function unwrapAdminJson<T>(responseData: unknown): T {
+  const body = responseData as { data?: T };
+  return (body.data ?? body) as T;
+}
+
 /** Mirrors `GET /api/admin/sponsored-activations` rows (avoid `lib/db` in client bundles). */
 type ActivationListRow = {
   id: string;
@@ -142,7 +147,7 @@ export default function AdminSponsoredActivationsListPage() {
         body: JSON.stringify({}),
       });
       const responseData = await response.json();
-      const data = responseData.data || responseData;
+      const data = unwrapAdminJson<{ isAdmin: boolean }>(responseData);
       return data.isAdmin;
     } catch {
       return false;
@@ -171,17 +176,15 @@ export default function AdminSponsoredActivationsListPage() {
       });
       if (!response.ok) throw new Error('Failed to load activations');
       const responseData = await response.json();
-      const data = responseData.data || responseData;
-      return (data.activations ?? []) as ActivationListRow[];
+      const data = unwrapAdminJson<{ activations?: ActivationListRow[] }>(
+        responseData
+      );
+      return data.activations ?? [];
     },
     enabled: !!isAdmin && !!user?.email?.address,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
-
-  const closePanel = useCallback(() => {
-    setPanelOpen(false);
-  }, []);
 
   const openCreate = useCallback(() => {
     setForm(emptySponsoredActivationForm());
@@ -211,8 +214,8 @@ export default function AdminSponsoredActivationsListPage() {
       if (!response.ok) {
         throw new Error(readApiErrorMessage(j, 'Create failed'));
       }
-      const dataObj = j.data as { activation?: { id: string } } | undefined;
-      const activation = dataObj?.activation;
+      const dataObj = unwrapAdminJson<{ activation?: { id: string } }>(j);
+      const activation = dataObj.activation;
       if (!activation?.id) {
         throw new Error(readApiErrorMessage(j, 'Create failed'));
       }
@@ -227,7 +230,7 @@ export default function AdminSponsoredActivationsListPage() {
         `/admin/sponsored-activations/${encodeURIComponent(activation.id)}`
       );
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e) => toast.error(e.message),
   });
 
   const handleCreate = useCallback(() => {
@@ -316,7 +319,7 @@ export default function AdminSponsoredActivationsListPage() {
         form={form}
         setForm={setForm}
         isSaving={createMutation.isPending}
-        onClose={closePanel}
+        onClose={() => setPanelOpen(false)}
         onSubmit={handleCreate}
       />
     </div>

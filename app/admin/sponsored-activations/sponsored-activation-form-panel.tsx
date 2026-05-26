@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { SettlementRail } from '@/lib/db/sponsored-activations';
 import type { SponsoredActivationFormState } from './form-state';
 
 export type SponsoredActivationFormPanelProps = {
@@ -33,6 +32,11 @@ export function SponsoredActivationFormPanel({
   if (!open) return null;
 
   const isBase = form.settlement_rail === 'base';
+
+  const setField =
+    <K extends keyof SponsoredActivationFormState>(key: K) =>
+    (value: SponsoredActivationFormState[K]) =>
+      setForm((f) => ({ ...f, [key]: value }));
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -61,9 +65,7 @@ export function SponsoredActivationFormPanel({
             <Input
               id="sa-title"
               value={form.title}
-              onChange={(ev) =>
-                setForm((f) => ({ ...f, title: ev.target.value }))
-              }
+              onChange={(ev) => setField('title')(ev.target.value)}
               placeholder="e.g. Public Records drink credit"
             />
           </div>
@@ -72,9 +74,7 @@ export function SponsoredActivationFormPanel({
             <Input
               id="sa-sponsor"
               value={form.sponsor_name}
-              onChange={(ev) =>
-                setForm((f) => ({ ...f, sponsor_name: ev.target.value }))
-              }
+              onChange={(ev) => setField('sponsor_name')(ev.target.value)}
               placeholder="e.g. Public Records"
             />
           </div>
@@ -83,21 +83,18 @@ export function SponsoredActivationFormPanel({
             <Input
               id="sa-event"
               value={form.event_id}
-              onChange={(ev) =>
-                setForm((f) => ({ ...f, event_id: ev.target.value }))
-              }
+              onChange={(ev) => setField('event_id')(ev.target.value)}
             />
           </div>
           <div className="space-y-2">
             <Label>Settlement rail</Label>
             <Select
               value={form.settlement_rail}
-              onValueChange={(v) =>
-                setForm((f) => ({
-                  ...f,
-                  settlement_rail: v as SettlementRail,
-                }))
-              }
+              onValueChange={(v) => {
+                if (v === 'base' || v === 'stellar') {
+                  setField('settlement_rail')(v);
+                }
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select rail" />
@@ -117,16 +114,13 @@ export function SponsoredActivationFormPanel({
               id="sa-venue"
               value={form.venue_settlement_wallet_address}
               onChange={(ev) =>
-                setForm((f) => ({
-                  ...f,
-                  venue_settlement_wallet_address: ev.target.value,
-                }))
+                setField('venue_settlement_wallet_address')(ev.target.value)
               }
               placeholder={isBase ? '0x…' : 'G…'}
               className="font-mono text-sm"
             />
           </div>
-          {!isBase ? (
+          {!isBase && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="sa-stellar-code">Stellar asset code</Label>
@@ -134,10 +128,7 @@ export function SponsoredActivationFormPanel({
                   id="sa-stellar-code"
                   value={form.stellar_asset_code}
                   onChange={(ev) =>
-                    setForm((f) => ({
-                      ...f,
-                      stellar_asset_code: ev.target.value,
-                    }))
+                    setField('stellar_asset_code')(ev.target.value)
                   }
                 />
               </div>
@@ -147,17 +138,14 @@ export function SponsoredActivationFormPanel({
                   id="sa-stellar-issuer"
                   value={form.stellar_usdc_issuer}
                   onChange={(ev) =>
-                    setForm((f) => ({
-                      ...f,
-                      stellar_usdc_issuer: ev.target.value,
-                    }))
+                    setField('stellar_usdc_issuer')(ev.target.value)
                   }
                   placeholder="G…"
                   className="font-mono text-sm"
                 />
               </div>
             </>
-          ) : null}
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="sa-max-redemptions">Max redemptions</Label>
@@ -166,9 +154,7 @@ export function SponsoredActivationFormPanel({
                 type="number"
                 min={1}
                 value={form.max_redemptions}
-                onChange={(ev) =>
-                  setForm((f) => ({ ...f, max_redemptions: ev.target.value }))
-                }
+                onChange={(ev) => setField('max_redemptions')(ev.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -179,9 +165,7 @@ export function SponsoredActivationFormPanel({
                 min={0}
                 step="any"
                 value={form.max_usdc_budget}
-                onChange={(ev) =>
-                  setForm((f) => ({ ...f, max_usdc_budget: ev.target.value }))
-                }
+                onChange={(ev) => setField('max_usdc_budget')(ev.target.value)}
                 placeholder="Optional"
               />
             </div>
@@ -196,9 +180,7 @@ export function SponsoredActivationFormPanel({
                 id="sa-starts"
                 type="datetime-local"
                 value={form.starts_at_local}
-                onChange={(ev) =>
-                  setForm((f) => ({ ...f, starts_at_local: ev.target.value }))
-                }
+                onChange={(ev) => setField('starts_at_local')(ev.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -207,9 +189,7 @@ export function SponsoredActivationFormPanel({
                 id="sa-ends"
                 type="datetime-local"
                 value={form.ends_at_local}
-                onChange={(ev) =>
-                  setForm((f) => ({ ...f, ends_at_local: ev.target.value }))
-                }
+                onChange={(ev) => setField('ends_at_local')(ev.target.value)}
               />
             </div>
           </div>

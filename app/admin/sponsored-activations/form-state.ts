@@ -16,24 +16,19 @@ export type SponsoredActivationFormState = {
   ends_at_local: string;
 };
 
-export function isoToDatetimeLocalValue(iso: string): string {
+function isoToDatetimeLocalValue(iso: string): string {
   const d = new Date(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function datetimeLocalToIso(value: string): string {
+function datetimeLocalToIso(value: string): string {
   return new Date(value).toISOString();
 }
 
-function defaultWindow(): { start: string; end: string } {
+export function emptySponsoredActivationForm(): SponsoredActivationFormState {
   const start = new Date();
   const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
-  return { start: start.toISOString(), end: end.toISOString() };
-}
-
-export function emptySponsoredActivationForm(): SponsoredActivationFormState {
-  const { start, end } = defaultWindow();
   return {
     title: '',
     sponsor_name: '',
@@ -44,8 +39,8 @@ export function emptySponsoredActivationForm(): SponsoredActivationFormState {
     stellar_usdc_issuer: '',
     max_redemptions: '100',
     max_usdc_budget: '',
-    starts_at_local: isoToDatetimeLocalValue(start),
-    ends_at_local: isoToDatetimeLocalValue(end),
+    starts_at_local: isoToDatetimeLocalValue(start.toISOString()),
+    ends_at_local: isoToDatetimeLocalValue(end.toISOString()),
   };
 }
 
@@ -75,7 +70,6 @@ function parseOptionalPositiveDecimal(
   return n;
 }
 
-/** Builds the admin POST body from panel form state. */
 export function formStateToCreatePayload(
   form: SponsoredActivationFormState
 ): AdminCreateSponsoredActivationRequest {
@@ -95,7 +89,7 @@ export function formStateToCreatePayload(
     form.max_usdc_budget,
     'Max USDC budget'
   );
-  if (max_redemptions == null && max_usdc_budget == null) {
+  if (max_redemptions === undefined && max_usdc_budget === null) {
     throw new Error('Set max redemptions and/or max USDC budget');
   }
 
