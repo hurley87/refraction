@@ -19,6 +19,7 @@ const activation = {
   id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
   slug: 'pr-drink',
   title: 'Public Records Drink',
+  description: 'A complimentary drink at Public Records.',
   sponsor_name: 'Public Records',
   event_id: null,
   status: 'active' as const,
@@ -76,6 +77,7 @@ describe('GET /api/sponsored-activations/[activationId]', () => {
     expect(json.data.activation).toEqual({
       id: activation.id,
       title: activation.title,
+      description: activation.description,
       sponsor_name: activation.sponsor_name,
       slug: activation.slug,
       status: activation.status,

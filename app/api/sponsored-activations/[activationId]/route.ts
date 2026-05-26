@@ -44,6 +44,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     activation: {
       id: activation.id,
       title: activation.title,
+      description: activation.description,
       sponsor_name: activation.sponsor_name,
       slug: activation.slug,
       status: activation.status,

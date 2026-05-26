@@ -57,6 +57,7 @@ const activationFixture: SponsoredActivationRow = {
   id: 'act-1',
   slug: 'test',
   title: 't',
+  description: null,
   sponsor_name: 's',
   event_id: null,
   status: 'active',
