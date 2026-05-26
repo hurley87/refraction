@@ -81,6 +81,7 @@ export function SponsoredActivationSuccess({
                 />
               }
               bareValue
+              className="border-b-0"
             />
             <SponsoredActivationDetailRow
               label="Your Points Balance"
@@ -91,10 +92,11 @@ export function SponsoredActivationSuccess({
                 />
               }
               bareValue
+              className="!border-b"
             />
           </div>
 
-          <div className="border-t border-[#dbdbdb] pt-4">
+          <div className="pt-4">
             <SponsoredActivationCollectInstructions />
           </div>
 
