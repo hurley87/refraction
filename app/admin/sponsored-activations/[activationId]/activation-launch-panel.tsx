@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -18,7 +18,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
-import type { SponsoredActivationStatus } from '@/lib/db/sponsored-activations';
+import { unwrapAdminJson } from '@/lib/admin/unwrap-admin-json';
+import type {
+  SettlementRail,
+  SponsoredActivationStatus,
+} from '@/lib/db/sponsored-activations';
 import {
   sponsoredActivationPublicPath,
   sponsoredActivationPublicUrl,
@@ -29,7 +33,7 @@ type ActivationAdminRow = {
   slug: string;
   title: string;
   status: SponsoredActivationStatus;
-  settlement_rail: 'base' | 'stellar';
+  settlement_rail: SettlementRail;
   campaign_wallet_address: string;
   campaign_wallet_explorer_url: string | null;
   venue_settlement_wallet_address: string;
@@ -52,11 +56,6 @@ type ActivationLaunchPanelProps = {
   dashboardQueryKey: readonly ['admin-sponsored-activation-dashboard', string];
 };
 
-function unwrapData<T>(body: unknown): T {
-  const j = body as { data?: T };
-  return (j.data ?? body) as T;
-}
-
 function fmtUsdcHint(n: number | null): string {
   if (n == null || Number.isNaN(n)) return 'your planned USDC budget';
   return `$${n.toLocaleString(undefined, {
@@ -65,12 +64,22 @@ function fmtUsdcHint(n: number | null): string {
   })}`;
 }
 
-function railLabel(rail: ActivationAdminRow['settlement_rail']): string {
+function railLabel(rail: SettlementRail): string {
   return rail === 'base' ? 'Base' : 'Stellar';
 }
 
-function usdcAssetHint(rail: ActivationAdminRow['settlement_rail']): string {
+function usdcAssetHint(rail: SettlementRail): string {
   return rail === 'base' ? 'USDC on Base' : 'USDC on Stellar';
+}
+
+function statusUpdateToastLabel(status: SponsoredActivationStatus): string {
+  if (status === 'active') return 'Activation is live';
+  if (status === 'paused') return 'Activation paused';
+  return 'Activation updated';
+}
+
+function mutationErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Something went wrong';
 }
 
 export function ActivationLaunchPanel({
@@ -101,16 +110,23 @@ export function ActivationLaunchPanel({
           `/api/admin/sponsored-activations/${encodeURIComponent(activationId)}`,
           { headers: auth }
         );
+        const json = await response.json();
         if (!response.ok) {
-          throw new Error('Failed to load activation');
+          throw new Error(
+            readApiErrorMessage(
+              json as Record<string, unknown>,
+              'Failed to load activation'
+            )
+          );
         }
-        const payload = unwrapData<{ activation: ActivationAdminRow }>(
-          await response.json()
+        const payload = unwrapAdminJson<{ activation: ActivationAdminRow }>(
+          json
         );
         if (!payload.activation) throw new Error('Invalid activation response');
         return payload.activation;
       },
       staleTime: 30_000,
+      refetchOnWindowFocus: false,
     });
 
   const { data: rewardItems = [], isLoading: itemsLoading } = useQuery<
@@ -123,27 +139,31 @@ export function ActivationLaunchPanel({
         `/api/admin/sponsored-activations/${encodeURIComponent(activationId)}/reward-items`,
         { headers: auth }
       );
-      if (!response.ok) throw new Error('Failed to load reward items');
-      const payload = unwrapData<{ rewardItems: RewardItemRow[] }>(
-        await response.json()
-      );
+      const json = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          readApiErrorMessage(
+            json as Record<string, unknown>,
+            'Failed to load reward items'
+          )
+        );
+      }
+      const payload = unwrapAdminJson<{ rewardItems: RewardItemRow[] }>(json);
       return payload.rewardItems ?? [];
     },
     staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 
-  const activeRewardCount = useMemo(
-    () => rewardItems.filter((i) => i.is_active).length,
-    [rewardItems]
-  );
+  const activeRewardCount = rewardItems.filter((i) => i.is_active).length;
 
-  const publicUrl = useMemo(() => {
-    if (!activation || typeof window === 'undefined') return '';
-    return sponsoredActivationPublicUrl(
-      activation.slug || activation.id,
-      window.location.origin
-    );
-  }, [activation]);
+  const publicUrl =
+    typeof window !== 'undefined' && activation
+      ? sponsoredActivationPublicUrl(
+          activation.slug || activation.id,
+          window.location.origin
+        )
+      : '';
 
   const invalidateAll = async () => {
     await Promise.all([
@@ -174,16 +194,10 @@ export function ActivationLaunchPanel({
       return body;
     },
     onSuccess: async (_data, status) => {
-      const label =
-        status === 'active'
-          ? 'Activation is live'
-          : status === 'paused'
-            ? 'Activation paused'
-            : 'Activation updated';
-      toast.success(label);
+      toast.success(statusUpdateToastLabel(status));
       await invalidateAll();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
   });
 
   const createRewardMutation = useMutation({
@@ -225,7 +239,7 @@ export function ActivationLaunchPanel({
       setRewardName('');
       await invalidateAll();
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
   });
 
   const copyText = async (text: string, successMessage: string) => {
@@ -252,6 +266,16 @@ export function ActivationLaunchPanel({
   const isPaused = activation.status === 'paused';
   const canGoLive = isDraft && hasActiveReward;
 
+  let liveStepBody: string;
+  if (isDraft) {
+    liveStepBody =
+      'While status is Draft, the public link shows the activation as unavailable.';
+  } else if (isPaused) {
+    liveStepBody = 'Paused activations are hidden from new redemptions.';
+  } else {
+    liveStepBody = 'This activation is live for eligible guests.';
+  }
+
   const steps = [
     {
       id: 'reward',
@@ -271,11 +295,7 @@ export function ActivationLaunchPanel({
       id: 'live',
       done: isLive || isPaused,
       title: 'Set status to Active',
-      body: isDraft
-        ? 'While status is Draft, the public link shows the activation as unavailable.'
-        : isPaused
-          ? 'Paused activations are hidden from new redemptions.'
-          : 'This activation is live for eligible guests.',
+      body: liveStepBody,
     },
     {
       id: 'share',

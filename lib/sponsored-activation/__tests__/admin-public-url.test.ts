@@ -13,11 +13,19 @@ describe('sponsoredActivationPublicPath', () => {
       sponsoredActivationPublicPath('01a3e4bd-a585-45b1-ae68-ec38b3a4df3f')
     ).toBe('/activation/01a3e4bd-a585-45b1-ae68-ec38b3a4df3f');
   });
+
+  it('treats blank keys as bare activation route', () => {
+    expect(sponsoredActivationPublicPath('')).toBe('/activation');
+    expect(sponsoredActivationPublicPath('   ')).toBe('/activation');
+  });
 });
 
 describe('sponsoredActivationPublicUrl', () => {
   it('joins origin and path', () => {
     expect(sponsoredActivationPublicUrl('abc', 'https://irl.energy')).toBe(
+      'https://irl.energy/activation/abc'
+    );
+    expect(sponsoredActivationPublicUrl('abc', 'https://irl.energy/')).toBe(
       'https://irl.energy/activation/abc'
     );
   });
