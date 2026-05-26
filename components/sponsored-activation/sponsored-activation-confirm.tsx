@@ -2,6 +2,8 @@
 
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { SponsoredActivationLandingHero } from '@/components/sponsored-activation/sponsored-activation-landing-hero';
+import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
+import { SponsoredActivationPointsValue } from '@/components/sponsored-activation/sponsored-activation-points-value';
 import { cn } from '@/lib/utils';
 import type { SponsoredActivationPublicReadResponse } from '@/lib/sponsored-activation/public-read';
 
@@ -22,13 +24,13 @@ export function SponsoredActivationConfirm({
   const { activation, rewardItem } = read;
   const description = rewardItem.description?.trim() || activation.sponsor_name;
 
+  const perkValueLabel = rewardItem.perk_value_label?.trim();
+
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] flex-col bg-white">
+    <div className="flex min-h-screen flex-col bg-white">
       <SponsoredActivationLandingHero
         heroImageUrl={rewardItem.hero_image_url}
         itemName={rewardItem.name}
-        pointsCost={rewardItem.points_cost}
-        perkValueLabel={rewardItem.perk_value_label}
       />
 
       <div className="flex flex-1 flex-col gap-6 px-4 pb-10 pt-4">
@@ -41,6 +43,24 @@ export function SponsoredActivationConfirm({
               {description}
             </p>
           ) : null}
+          {perkValueLabel ? (
+            <p className="label-small font-grotesk font-semibold uppercase tracking-wide text-[#a9a9a9]">
+              {perkValueLabel}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="w-full">
+          <SponsoredActivationDetailRow
+            label="You send"
+            value={
+              <SponsoredActivationPointsValue
+                points={rewardItem.points_cost}
+                suffix="PTS"
+              />
+            }
+            bareValue
+          />
         </div>
 
         <button

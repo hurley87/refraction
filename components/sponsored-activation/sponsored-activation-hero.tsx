@@ -1,8 +1,9 @@
 'use client';
 
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { SPONSORED_ACTIVATION_EXIT_URL } from '@/lib/sponsored-activation/exit-url';
 
 type SponsoredActivationHeroProps = {
   heroImageUrl: string | null;
@@ -13,11 +14,9 @@ export function SponsoredActivationHero({
   heroImageUrl,
   itemName,
 }: SponsoredActivationHeroProps) {
-  const router = useRouter();
-
   return (
     <div className="relative w-full">
-      <div className="relative h-[320px] w-full overflow-hidden bg-neutral-100">
+      <div className="relative min-h-[470px] w-full overflow-hidden bg-neutral-100">
         {heroImageUrl ? (
           <Image
             src={heroImageUrl}
@@ -29,19 +28,22 @@ export function SponsoredActivationHero({
             unoptimized
           />
         ) : (
-          <div className="flex h-full items-center justify-center px-6 text-center body-medium font-grotesk text-[#757575]">
+          <div className="flex h-full min-h-[470px] items-center justify-center px-6 text-center body-medium font-grotesk text-[#757575]">
             {itemName}
           </div>
         )}
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="absolute left-4 top-4 z-10 flex size-10 items-center justify-center rounded-full bg-white shadow-sm transition-opacity hover:opacity-90"
-          aria-label="Go back"
+        <Link
+          href={SPONSORED_ACTIVATION_EXIT_URL}
+          className="absolute left-4 top-[max(1rem,env(safe-area-inset-top))] z-10 flex size-10 items-center justify-center rounded-full bg-white shadow-sm transition-opacity hover:opacity-90"
+          aria-label="Back to IRL"
         >
           <ArrowLeft className="size-5 text-[#171717]" strokeWidth={2} />
-        </button>
-        <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center justify-between gap-3 bg-white px-4 py-4">
+        </Link>
+        <div
+          className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 bg-white px-4 py-4"
+          role="group"
+          aria-label="You receive"
+        >
           <span className="label-small font-grotesk uppercase tracking-wide text-[#757575]">
             You receive
           </span>
