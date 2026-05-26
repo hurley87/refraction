@@ -8,6 +8,7 @@ export type SponsoredActivationPublicReadResponse = {
   activation: {
     id: string;
     title: string;
+    description: string | null;
     sponsor_name: string;
     slug: string;
     status: SponsoredActivationStatus;

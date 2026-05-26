@@ -3,15 +3,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
-import { Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SponsoredActivationPageShell } from '@/components/sponsored-activation/sponsored-activation-page-shell';
 import { SponsoredActivationConfirm } from '@/components/sponsored-activation/sponsored-activation-confirm';
+import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
+import { SponsoredActivationLandingHero } from '@/components/sponsored-activation/sponsored-activation-landing-hero';
+import { SponsoredActivationPointsValue } from '@/components/sponsored-activation/sponsored-activation-points-value';
 import { SponsoredActivationSuccess } from '@/components/sponsored-activation/sponsored-activation-success';
 import { SponsoredActivationRedeemed } from '@/components/sponsored-activation/sponsored-activation-redeemed';
 import { SponsoredActivationExpired } from '@/components/sponsored-activation/sponsored-activation-expired';
 import { SponsoredActivationCancelled } from '@/components/sponsored-activation/sponsored-activation-cancelled';
-import { SpendPrimaryButton } from '@/components/spend/spend-primary-button';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import type { ActivationRedemptionRow } from '@/lib/db/activation-redemptions';
 import { apiClient, ApiError } from '@/lib/api/client';
@@ -379,16 +381,60 @@ export function SponsoredActivationFlow({
   const read = readQuery.data;
 
   if (!user) {
+    const unauthDescription =
+      read.activation.description?.trim() ||
+      read.rewardItem.description?.trim() ||
+      read.activation.sponsor_name;
+
     return (
-      <SponsoredActivationPageShell>
-        <div className="flex flex-col gap-6 p-6">
-          <h1 className="title2 text-[#171717]">{read.activation.title}</h1>
-          <p className="body-medium font-grotesk text-[#757575]">
-            Log in to continue with this activation.
-          </p>
-          <SpendPrimaryButton onClick={login}>
-            Log in to continue
-          </SpendPrimaryButton>
+      <SponsoredActivationPageShell flush>
+        <div className="flex min-h-screen flex-col bg-white">
+          <SponsoredActivationLandingHero
+            heroImageUrl={read.rewardItem.hero_image_url}
+            itemName={read.rewardItem.name}
+          />
+
+          <div className="flex flex-1 flex-col gap-6 px-4 pb-10 pt-4">
+            <div className="flex flex-col gap-2">
+              <h1 className="title3 font-medium text-[#171717]">
+                {read.activation.title}
+              </h1>
+              {unauthDescription ? (
+                <p className="body-small font-grotesk text-[#757575]">
+                  {unauthDescription}
+                </p>
+              ) : null}
+              {read.rewardItem.perk_value_label.trim() ? (
+                <p className="label-small font-grotesk font-semibold uppercase tracking-wide text-[#a9a9a9]">
+                  {read.rewardItem.perk_value_label.trim()}
+                </p>
+              ) : null}
+            </div>
+
+            <SponsoredActivationDetailRow
+              label="You send"
+              value={
+                <SponsoredActivationPointsValue
+                  points={read.rewardItem.points_cost}
+                  suffix="PTS"
+                />
+              }
+              bareValue
+            />
+
+            <button
+              type="button"
+              onClick={login}
+              className="label-large flex h-11 w-full items-center justify-between gap-2 rounded-md bg-[#171717] px-4 font-grotesk uppercase tracking-[0.0625em] text-white transition-opacity hover:opacity-95"
+            >
+              <span className="truncate text-left">Sign Up</span>
+              <ArrowRight
+                className="size-6 shrink-0"
+                strokeWidth={2}
+                aria-hidden
+              />
+            </button>
+          </div>
         </div>
       </SponsoredActivationPageShell>
     );

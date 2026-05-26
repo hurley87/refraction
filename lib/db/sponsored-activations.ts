@@ -8,6 +8,7 @@ export type SponsoredActivationRow = {
   id: string;
   slug: string;
   title: string;
+  description: string | null;
   sponsor_name: string;
   event_id: string | null;
   status: SponsoredActivationStatus;
@@ -51,6 +52,7 @@ function normalizeRow(row: Record<string, unknown>): SponsoredActivationRow {
     id: String(row.id),
     slug: String(row.slug),
     title: String(row.title),
+    description: row.description == null ? null : String(row.description),
     sponsor_name: String(row.sponsor_name),
     event_id: row.event_id == null ? null : String(row.event_id),
     status: row.status as SponsoredActivationStatus,
@@ -212,6 +214,7 @@ export type CreateSponsoredActivationDbInput = {
   id?: string;
   slug: string;
   title: string;
+  description?: string | null;
   sponsor_name: string;
   event_id?: string | null;
   status: SponsoredActivationStatus;
@@ -238,6 +241,7 @@ export async function createSponsoredActivation(
       ...(input.id != null ? { id: input.id } : {}),
       slug: input.slug,
       title: input.title,
+      description: input.description ?? null,
       sponsor_name: input.sponsor_name,
       event_id: input.event_id ?? null,
       status: input.status,

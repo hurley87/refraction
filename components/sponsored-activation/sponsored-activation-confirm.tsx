@@ -22,7 +22,10 @@ export function SponsoredActivationConfirm({
   primaryActionLabel,
 }: SponsoredActivationConfirmProps) {
   const { activation, rewardItem } = read;
-  const description = rewardItem.description?.trim() || activation.sponsor_name;
+  const description =
+    activation.description?.trim() ||
+    rewardItem.description?.trim() ||
+    activation.sponsor_name;
 
   const perkValueLabel = rewardItem.perk_value_label.trim();
 
