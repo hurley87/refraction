@@ -99,9 +99,7 @@ export function formStateToCreatePayload(
 
   const common = {
     title,
-    ...(descriptionTrimmed
-      ? { description: descriptionTrimmed }
-      : { description: null }),
+    description: descriptionTrimmed || null,
     sponsor_name,
     event_id: form.event_id.trim() || null,
     max_redemptions: max_redemptions ?? null,

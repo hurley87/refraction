@@ -7,14 +7,21 @@ import { DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG } from '@/lib/schemas/a
 
 const VENUE_WALLET = '0x70997970C51812dc3A010C7d01b50e0d17dc79C8' as const;
 
+function minimalBaseCreateForm(
+  overrides: Partial<ReturnType<typeof emptySponsoredActivationForm>> = {}
+) {
+  return {
+    ...emptySponsoredActivationForm(),
+    title: 'Drink credit',
+    sponsor_name: 'Public Records',
+    venue_settlement_wallet_address: VENUE_WALLET,
+    ...overrides,
+  };
+}
+
 describe('formStateToCreatePayload', () => {
   it('builds a base rail create body with default eligibility', () => {
-    const form = {
-      ...emptySponsoredActivationForm(),
-      title: 'Drink credit',
-      sponsor_name: 'Public Records',
-      venue_settlement_wallet_address: VENUE_WALLET,
-    };
+    const form = minimalBaseCreateForm();
     const payload = formStateToCreatePayload(form);
     expect(payload.settlement_rail).toBe('base');
     expect(payload.eligibility_config).toEqual(
@@ -24,26 +31,16 @@ describe('formStateToCreatePayload', () => {
   });
 
   it('includes trimmed description when set', () => {
-    const form = {
-      ...emptySponsoredActivationForm(),
-      title: 'Drink credit',
-      sponsor_name: 'Public Records',
-      venue_settlement_wallet_address: VENUE_WALLET,
-      description: '  Free drink with check-in  ',
-    };
-    const payload = formStateToCreatePayload(form);
+    const payload = formStateToCreatePayload(
+      minimalBaseCreateForm({ description: '  Free drink with check-in  ' })
+    );
     expect(payload.description).toBe('Free drink with check-in');
   });
 
   it('sends null description when empty', () => {
-    const form = {
-      ...emptySponsoredActivationForm(),
-      title: 'Drink credit',
-      sponsor_name: 'Public Records',
-      venue_settlement_wallet_address: VENUE_WALLET,
-      description: '   ',
-    };
-    const payload = formStateToCreatePayload(form);
+    const payload = formStateToCreatePayload(
+      minimalBaseCreateForm({ description: '   ' })
+    );
     expect(payload.description).toBeNull();
   });
 

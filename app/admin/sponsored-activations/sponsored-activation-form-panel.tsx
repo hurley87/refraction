@@ -78,6 +78,7 @@ export function SponsoredActivationFormPanel({
               onChange={(ev) => setField('description')(ev.target.value)}
               placeholder="Shown on the activation landing page"
               rows={4}
+              maxLength={10000}
               className="resize-y"
             />
           </div>

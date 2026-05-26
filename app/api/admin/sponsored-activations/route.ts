@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         : (data.usdc_asset_config as Record<string, unknown>);
 
     const description =
-      data.description == null ? null : String(data.description).trim() || null;
+      data.description == null ? null : data.description.trim() || null;
 
     const row = await createSponsoredActivation({
       id: activationId,
