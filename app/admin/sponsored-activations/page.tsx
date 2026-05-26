@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +10,7 @@ import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import { Loader2, ArrowLeft, CircleDollarSign, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import type { AdminCreateSponsoredActivationRequest } from '@/lib/schemas/sponsored-activation';
 import {
   emptySponsoredActivationForm,
   formStateToCreatePayload,
@@ -28,6 +29,96 @@ type ActivationListRow = {
 };
 
 const LIST_QUERY_KEY = ['admin-sponsored-activations-list'] as const;
+
+type SponsoredActivationsListBodyProps = {
+  isLoading: boolean;
+  activations: ActivationListRow[];
+  onNew: () => void;
+};
+
+const SponsoredActivationsListBody = memo(
+  function SponsoredActivationsListBody({
+    isLoading,
+    activations,
+    onNew,
+  }: SponsoredActivationsListBodyProps) {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center py-16">
+          <Loader2 className="size-8 animate-spin text-neutral-400" />
+        </div>
+      );
+    }
+    if (activations.length === 0) {
+      return (
+        <div className="rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center dark:border-neutral-700 dark:bg-neutral-900">
+          <p className="text-neutral-600 dark:text-neutral-400">
+            No sponsored activations yet.
+          </p>
+          <Button
+            type="button"
+            className="mt-4 gap-1 bg-black text-white hover:bg-black/85"
+            onClick={onNew}
+          >
+            <Plus className="size-4" />
+            Create your first activation
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-gray-200 bg-gray-50 dark:border-neutral-800 dark:bg-neutral-950">
+            <tr>
+              <th className="px-4 py-3 font-medium text-gray-700 dark:text-neutral-300">
+                Title
+              </th>
+              <th className="px-4 py-3 font-medium text-gray-700 dark:text-neutral-300">
+                Status
+              </th>
+              <th className="px-4 py-3 font-medium text-gray-700 dark:text-neutral-300">
+                Rail
+              </th>
+              <th className="px-4 py-3 font-medium text-gray-700 dark:text-neutral-300">
+                Slug
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {activations.map((a) => (
+              <tr
+                key={a.id}
+                className="border-b border-gray-100 last:border-0 dark:border-neutral-800"
+              >
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/admin/sponsored-activations/${encodeURIComponent(a.id)}`}
+                    className="font-medium text-blue-700 hover:underline dark:text-blue-400"
+                  >
+                    {a.title}
+                  </Link>
+                  <div className="text-xs text-neutral-500">
+                    {a.sponsor_name}
+                  </div>
+                </td>
+                <td className="px-4 py-3 capitalize text-neutral-800 dark:text-neutral-200">
+                  {a.status}
+                </td>
+                <td className="px-4 py-3 font-mono text-xs text-neutral-700 dark:text-neutral-300">
+                  {a.settlement_rail}
+                </td>
+                <td className="px-4 py-3 font-mono text-xs text-neutral-600 dark:text-neutral-400">
+                  {a.slug}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+);
 
 export default function AdminSponsoredActivationsListPage() {
   const router = useRouter();
@@ -98,9 +189,12 @@ export default function AdminSponsoredActivationsListPage() {
     setPanelOpen(true);
   }, []);
 
-  const createMutation = useMutation({
-    mutationFn: async () => {
-      const payload = formStateToCreatePayload(form);
+  const createMutation = useMutation<
+    { id: string },
+    Error,
+    AdminCreateSponsoredActivationRequest
+  >({
+    mutationFn: async (payload) => {
       const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/sponsored-activations', {
         method: 'POST',
@@ -118,10 +212,8 @@ export default function AdminSponsoredActivationsListPage() {
       if (!response.ok) {
         throw new Error(readApiErrorMessage(j, 'Create failed'));
       }
-      const dataWrap = j.data as { activation?: { id: string } } | undefined;
-      const activation =
-        dataWrap?.activation ??
-        (j as { activation?: { id: string } }).activation;
+      const dataObj = j.data as { activation?: { id: string } } | undefined;
+      const activation = dataObj?.activation;
       if (!activation?.id) {
         throw new Error(readApiErrorMessage(j, 'Create failed'));
       }
@@ -140,13 +232,14 @@ export default function AdminSponsoredActivationsListPage() {
   });
 
   const handleCreate = useCallback(() => {
+    let payload: AdminCreateSponsoredActivationRequest;
     try {
-      formStateToCreatePayload(form);
+      payload = formStateToCreatePayload(form);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Invalid form');
       return;
     }
-    createMutation.mutate();
+    createMutation.mutate(payload);
   }, [form, createMutation]);
 
   if (adminLoading || (user && isAdmin === null)) {
@@ -212,75 +305,11 @@ export default function AdminSponsoredActivationsListPage() {
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="size-8 animate-spin text-neutral-400" />
-          </div>
-        ) : activations.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center dark:border-neutral-700 dark:bg-neutral-900">
-            <p className="text-neutral-600 dark:text-neutral-400">
-              No sponsored activations yet.
-            </p>
-            <Button
-              type="button"
-              className="mt-4 gap-1 bg-black text-white hover:bg-black/85"
-              onClick={openCreate}
-            >
-              <Plus className="size-4" />
-              Create your first activation
-            </Button>
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50 dark:border-neutral-800 dark:bg-neutral-950">
-                <tr>
-                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-neutral-300">
-                    Title
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-neutral-300">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-neutral-300">
-                    Rail
-                  </th>
-                  <th className="px-4 py-3 font-medium text-gray-700 dark:text-neutral-300">
-                    Slug
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {activations.map((a) => (
-                  <tr
-                    key={a.id}
-                    className="border-b border-gray-100 last:border-0 dark:border-neutral-800"
-                  >
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/admin/sponsored-activations/${encodeURIComponent(a.id)}`}
-                        className="font-medium text-blue-700 hover:underline dark:text-blue-400"
-                      >
-                        {a.title}
-                      </Link>
-                      <div className="text-xs text-neutral-500">
-                        {a.sponsor_name}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 capitalize text-neutral-800 dark:text-neutral-200">
-                      {a.status}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-neutral-700 dark:text-neutral-300">
-                      {a.settlement_rail}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-neutral-600 dark:text-neutral-400">
-                      {a.slug}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <SponsoredActivationsListBody
+          isLoading={isLoading}
+          activations={activations}
+          onNew={openCreate}
+        />
       </div>
 
       <SponsoredActivationFormPanel

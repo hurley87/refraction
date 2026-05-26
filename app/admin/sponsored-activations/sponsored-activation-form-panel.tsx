@@ -1,4 +1,4 @@
-import type { Dispatch, ReactNode, SetStateAction } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,18 +22,6 @@ export type SponsoredActivationFormPanelProps = {
   onClose: () => void;
   onSubmit: () => void;
 };
-
-function submitButtonContent(isSaving: boolean): ReactNode {
-  if (isSaving) {
-    return (
-      <>
-        <Loader2 className="mr-2 size-4 animate-spin" />
-        Creating…
-      </>
-    );
-  }
-  return 'Create activation';
-}
 
 export function SponsoredActivationFormPanel({
   open,
@@ -340,7 +328,14 @@ export function SponsoredActivationFormPanel({
             disabled={isSaving}
             onClick={onSubmit}
           >
-            {submitButtonContent(isSaving)}
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Creating…
+              </>
+            ) : (
+              'Create activation'
+            )}
           </Button>
         </div>
       </div>

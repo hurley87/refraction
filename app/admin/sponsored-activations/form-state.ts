@@ -1,9 +1,9 @@
 import type { SettlementRail } from '@/lib/db/sponsored-activations';
 import type { AdminCreateSponsoredActivationRequest } from '@/lib/schemas/sponsored-activation';
+import { POSTER_CHECKOUT_USDC_ADDRESS_BASE } from '@/lib/walletconnect-poster-direct-usdc';
 
-/** Mainnet Base USDC — same default as `SPEND_RAIL_BASE_USDC_USDC_CONTRACT` in `.env.local.example`. */
-export const DEFAULT_BASE_USDC_CONTRACT =
-  '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+/** Default Base USDC mint (canonical `POSTER_CHECKOUT_USDC_ADDRESS_BASE`). */
+export const DEFAULT_BASE_USDC_CONTRACT = POSTER_CHECKOUT_USDC_ADDRESS_BASE;
 
 export type SponsoredActivationFormState = {
   slug: string;
@@ -67,7 +67,7 @@ export function emptySponsoredActivationForm(): SponsoredActivationFormState {
 function parsePositiveIntField(
   raw: string,
   fieldLabel: string
-): number | null | undefined {
+): number | undefined {
   const trimmed = raw.trim();
   if (!trimmed) return undefined;
   const n = Number(trimmed);
