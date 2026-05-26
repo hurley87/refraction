@@ -8,6 +8,15 @@ const mockGetRedemptionById = vi.fn();
 const mockCancelRpc = vi.fn();
 const mockGetPlayerByWallet = vi.fn();
 
+const mockTrackCancelled = vi.fn();
+const mockResolveIdentity = vi.fn();
+
+vi.mock('@/lib/analytics/server', () => ({
+  resolveServerIdentity: (...a: unknown[]) => mockResolveIdentity(...a),
+  trackSponsoredRedemptionCancelled: (...a: unknown[]) =>
+    mockTrackCancelled(...a),
+}));
+
 vi.mock('@/lib/api/privy', () => ({
   verifyWalletOwnership: (...a: unknown[]) => mockVerifyWallet(...a),
   getPrivyUserIdFromRequest: (...a: unknown[]) => mockGetPrivyUserId(...a),
@@ -96,6 +105,7 @@ function postReq(body: unknown, activationSegment = activeActivation.id) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockResolveIdentity.mockReturnValue('mixpanel-distinct');
   mockVerifyWallet.mockResolvedValue({
     authorized: true,
     userId: 'privy-user-1',
@@ -133,6 +143,7 @@ describe('POST /api/sponsored-activations/[activationId]/cancel-redemption', () 
       walletAddress: expect.stringMatching(/^0x[a-fA-F0-9]{40}$/),
       reason: 'changed mind',
     });
+    expect(mockTrackCancelled).toHaveBeenCalledTimes(1);
   });
 
   it('is idempotent when redemption is already cancelled', async () => {
@@ -145,6 +156,7 @@ describe('POST /api/sponsored-activations/[activationId]/cancel-redemption', () 
     expect(res.status).toBe(200);
     const j = await res.json();
     expect(j.data.redemption.status).toBe('cancelled');
+    expect(mockTrackCancelled).not.toHaveBeenCalled();
   });
 
   it('returns 400 when redemption is not ready_to_redeem', async () => {

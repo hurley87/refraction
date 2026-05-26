@@ -1,9 +1,5 @@
 import { NextRequest } from 'next/server';
-import {
-  getPrivyUserIdFromRequest,
-  verifyWalletOwnership,
-} from '@/lib/api/privy';
-import { apiError, apiSuccess, apiValidationError } from '@/lib/api/response';
+import { assertPrivyWalletAuth } from '@/lib/activation/activation-wallet-gate';
 import {
   buildActivationRedemptionIdempotencyKey,
   checkEligibilityEventRateLimits,
@@ -11,6 +7,9 @@ import {
   userHasBlockingRedemptionForRewardItem,
 } from '@/lib/activation/eligibility';
 import { canActivationAcceptUserRedemptionFlow } from '@/lib/activation/lifecycle';
+import { trackSponsoredActivationEligibilityRecorded } from '@/lib/analytics/server';
+import { emitSponsoredAnalyticsForWalletRequest } from '@/lib/analytics/sponsored-wallet-request-tracking';
+import { apiError, apiSuccess, apiValidationError } from '@/lib/api/response';
 import {
   countEligibilityEventsForUserActivation,
   countEligibilityEventsForUserActivationInUtcWindow,
@@ -48,32 +47,7 @@ const eligibilityWalletQuerySchema = z
     message: 'walletAddress must be a valid EVM address',
   });
 
-function mapEligibilityFailureMessage(reason: string): string {
-  if (
-    reason === 'checkpoint_requirement_not_met' ||
-    reason === 'tier_requirement_not_met'
-  ) {
-    return 'Eligibility requirements were not met';
-  }
-  return 'Eligibility requirements were not met';
-}
-
-async function assertPrivyWalletAuth(
-  request: NextRequest,
-  walletAddress: string
-): Promise<
-  { ok: true } | { ok: false; response: ReturnType<typeof apiError> }
-> {
-  const auth = await verifyWalletOwnership(request, walletAddress);
-  if (!auth.authorized || !auth.userId) {
-    return { ok: false, response: apiError(auth.error ?? 'Unauthorized', 401) };
-  }
-  const tokenUser = await getPrivyUserIdFromRequest(request);
-  if (!tokenUser || tokenUser !== auth.userId) {
-    return { ok: false, response: apiError('Unauthorized', 401) };
-  }
-  return { ok: true };
-}
+const ELIGIBILITY_RULES_NOT_MET = 'Eligibility requirements were not met';
 
 async function resolvePlayerForEligibility(walletAddress: string): Promise<{
   playerId: number;
@@ -190,7 +164,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     playerTotalPoints: totalPoints,
   });
   if (!rules.ok) {
-    return apiError(mapEligibilityFailureMessage(rules.reason), 400);
+    return apiError(ELIGIBILITY_RULES_NOT_MET, 400);
   }
 
   const { startIso, endIso } = getUtcDayBounds();
@@ -243,6 +217,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     console.error('POST sponsored activation eligibility (insert event):', e);
     return apiError('Failed to record eligibility', 500);
   }
+
+  await emitSponsoredAnalyticsForWalletRequest(
+    request,
+    walletStored,
+    playerId,
+    (distinctId) =>
+      trackSponsoredActivationEligibilityRecorded(distinctId, {
+        activation_id: activation.id,
+        settlement_rail: activation.settlement_rail,
+        user_id: playerId,
+      })
+  );
 
   const rewardItems = await listActivationRewardItems(activation.id);
   const activeItems = rewardItems.filter((i) => i.is_active);

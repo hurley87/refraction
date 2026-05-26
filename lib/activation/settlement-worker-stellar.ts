@@ -1,9 +1,17 @@
 import type { ActivationSettlementTransactionRow } from '@/lib/db/activation-settlement-transactions';
 import {
+  resolveServerIdentity,
+  trackSponsoredSettlementConfirmed,
+  trackSponsoredSettlementFailed,
+  trackSponsoredSettlementSubmitted,
+} from '@/lib/analytics/server';
+import {
   confirmActivationSettlementAtomic,
+  getActivationSettlementTransactionById,
   markActivationSettlementSubmitted,
   recordActivationSettlementFailureAtomic,
 } from '@/lib/db/activation-settlement-transactions';
+import { getActivationRedemptionById } from '@/lib/db/activation-redemptions';
 import {
   getSponsoredActivationById,
   type SponsoredActivationRow,
@@ -81,6 +89,33 @@ async function recordSettlementFailure(
   if (outcome === 'already_confirmed') return 'already_confirmed';
   if (outcome === 'already_failed') return 'already_failed';
   if (outcome === 'retry_scheduled') return 'retry_scheduled';
+  if (outcome === 'exhausted') {
+    const stRow = await getActivationSettlementTransactionById(settlementId);
+    if (stRow) {
+      const redemptionTr = await getActivationRedemptionById(
+        stRow.redemption_id
+      );
+      if (redemptionTr) {
+        try {
+          const distinctId = resolveServerIdentity({
+            playerId: redemptionTr.user_id,
+          });
+          trackSponsoredSettlementFailed(distinctId, {
+            activation_id: stRow.activation_id,
+            settlement_rail: stRow.settlement_rail,
+            user_id: redemptionTr.user_id,
+            reward_item_id: redemptionTr.reward_item_id,
+            redemption_id: stRow.redemption_id,
+            settlement_id: stRow.id,
+            status: stRow.status,
+            usdc_amount: stRow.amount,
+          });
+        } catch {
+          /* best-effort */
+        }
+      }
+    }
+  }
   return 'failed';
 }
 
@@ -102,6 +137,31 @@ async function confirmWithTxHash(
     settlementId,
     txHash,
   });
+  if (outcome === 'confirmed') {
+    const stRow = await getActivationSettlementTransactionById(settlementId);
+    const redemptionTr = stRow
+      ? await getActivationRedemptionById(stRow.redemption_id)
+      : null;
+    if (stRow && redemptionTr) {
+      try {
+        const distinctId = resolveServerIdentity({
+          playerId: redemptionTr.user_id,
+        });
+        trackSponsoredSettlementConfirmed(distinctId, {
+          activation_id: stRow.activation_id,
+          settlement_rail: stRow.settlement_rail,
+          user_id: redemptionTr.user_id,
+          reward_item_id: redemptionTr.reward_item_id,
+          redemption_id: stRow.redemption_id,
+          settlement_id: stRow.id,
+          status: stRow.status,
+          usdc_amount: stRow.amount,
+        });
+      } catch {
+        /* best-effort */
+      }
+    }
+  }
   return outcome === 'already_confirmed' ? 'already_confirmed' : 'confirmed';
 }
 
@@ -133,13 +193,8 @@ export async function processStellarActivationSettlement(
     return recordSettlementFailure(settlement.id, validationError);
   }
 
-  const privyCampaignWalletId = activation.privy_campaign_wallet_id?.trim();
-  if (!privyCampaignWalletId) {
-    return recordSettlementFailure(
-      settlement.id,
-      'missing_privy_campaign_wallet_id'
-    );
-  }
+  // `validateSettlementBundle` rejects missing `privy_campaign_wallet_id`.
+  const privyCampaignWalletId = activation.privy_campaign_wallet_id!.trim();
 
   if (settlement.status === 'submitted') {
     const txHash = settlement.tx_hash?.trim();
@@ -172,6 +227,33 @@ export async function processStellarActivationSettlement(
     settlementId: settlement.id,
     txHash: submit.txHash,
   });
+  if (markedSubmitted) {
+    const redemptionTr = await getActivationRedemptionById(
+      settlement.redemption_id
+    );
+    const stRow =
+      (await getActivationSettlementTransactionById(settlement.id)) ??
+      settlement;
+    if (redemptionTr) {
+      try {
+        const distinctId = resolveServerIdentity({
+          playerId: redemptionTr.user_id,
+        });
+        trackSponsoredSettlementSubmitted(distinctId, {
+          activation_id: stRow.activation_id,
+          settlement_rail: stRow.settlement_rail,
+          user_id: redemptionTr.user_id,
+          reward_item_id: redemptionTr.reward_item_id,
+          redemption_id: stRow.redemption_id,
+          settlement_id: stRow.id,
+          status: stRow.status,
+          usdc_amount: stRow.amount,
+        });
+      } catch {
+        /* best-effort */
+      }
+    }
+  }
   if (!markedSubmitted) {
     // Row was no longer `queued` (concurrent worker or DB race). Do not re-submit; still try to confirm this hash on-ledger.
     console.warn(
@@ -220,6 +302,33 @@ export async function runStellarSettlementWorkerBatch(
           settlementId: row.id,
           lastErrorCode: 'worker_exception',
         });
+        if (r === 'exhausted') {
+          const latest = await getActivationSettlementTransactionById(row.id);
+          if (latest) {
+            const redemptionTr = await getActivationRedemptionById(
+              latest.redemption_id
+            );
+            if (redemptionTr) {
+              try {
+                const distinctId = resolveServerIdentity({
+                  playerId: redemptionTr.user_id,
+                });
+                trackSponsoredSettlementFailed(distinctId, {
+                  activation_id: latest.activation_id,
+                  settlement_rail: latest.settlement_rail,
+                  user_id: redemptionTr.user_id,
+                  reward_item_id: redemptionTr.reward_item_id,
+                  redemption_id: latest.redemption_id,
+                  settlement_id: latest.id,
+                  status: latest.status,
+                  usdc_amount: latest.amount,
+                });
+              } catch {
+                /* best-effort */
+              }
+            }
+          }
+        }
         if (r === 'exhausted' || r === 'already_failed') {
           summary.failed += 1;
         } else if (r === 'retry_scheduled') {

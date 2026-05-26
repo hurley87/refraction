@@ -5,6 +5,12 @@ import {
 } from '@/lib/activation/activation-wallet-gate';
 import { buildActivationRedemptionIdempotencyKey } from '@/lib/activation/eligibility';
 import {
+  trackSponsoredRedemptionExpired,
+  trackSponsoredRedemptionRedeemed,
+  trackSponsoredSettlementQueued,
+} from '@/lib/analytics/server';
+import { emitSponsoredAnalyticsForWalletRequest } from '@/lib/analytics/sponsored-wallet-request-tracking';
+import {
   apiError,
   apiValidationError,
   type ApiResponse,
@@ -200,6 +206,21 @@ export async function runSwipeActivationRedeem(input: {
   }
 
   if (rpc.outcome === 'expired') {
+    await emitSponsoredAnalyticsForWalletRequest(
+      input.request,
+      walletKey,
+      playerId,
+      (distinctId) =>
+        trackSponsoredRedemptionExpired(distinctId, {
+          activation_id: activation.id,
+          settlement_rail: activation.settlement_rail,
+          user_id: playerId,
+          reward_item_id: freshRedemption.reward_item_id,
+          redemption_id: freshRedemption.id,
+          status: freshRedemption.status,
+          points_spent: freshRedemption.points_spent ?? undefined,
+        })
+    );
     return {
       ok: false,
       response: apiError('This redemption is no longer valid', 400, {
@@ -228,6 +249,31 @@ export async function runSwipeActivationRedeem(input: {
       ok: false,
       response: apiError('Something went wrong', 500),
     };
+  }
+
+  if (rpc.outcome === 'created') {
+    await emitSponsoredAnalyticsForWalletRequest(
+      input.request,
+      walletKey,
+      playerId,
+      (distinctId) => {
+        const redemptionProps = {
+          activation_id: activation.id,
+          settlement_rail: activation.settlement_rail,
+          user_id: playerId,
+          reward_item_id: freshRedemption.reward_item_id,
+          redemption_id: freshRedemption.id,
+          status: freshRedemption.status,
+          points_spent: freshRedemption.points_spent ?? undefined,
+        };
+        trackSponsoredRedemptionRedeemed(distinctId, redemptionProps);
+        trackSponsoredSettlementQueued(distinctId, {
+          ...redemptionProps,
+          settlement_id: settlement.id,
+          usdc_amount: settlement.amount,
+        });
+      }
+    );
   }
 
   return {

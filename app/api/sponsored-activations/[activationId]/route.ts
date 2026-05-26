@@ -38,10 +38,12 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
   return apiSuccess({
     activation: {
+      id: activation.id,
       title: activation.title,
       sponsor_name: activation.sponsor_name,
       slug: activation.slug,
       status: activation.status,
+      settlement_rail: activation.settlement_rail,
       window: {
         starts_at: activation.starts_at,
         ends_at: activation.ends_at,

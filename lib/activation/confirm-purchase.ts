@@ -1,8 +1,13 @@
 import { NextRequest, type NextResponse } from 'next/server';
 import {
-  getPrivyUserIdFromRequest,
-  verifyWalletOwnership,
-} from '@/lib/api/privy';
+  assertPrivyWalletAuth,
+  resolvePlayerForWallet,
+} from '@/lib/activation/activation-wallet-gate';
+import {
+  trackSponsoredActivationCapReached,
+  trackSponsoredRedemptionPurchaseConfirmed,
+} from '@/lib/analytics/server';
+import { emitSponsoredAnalyticsForWalletRequest } from '@/lib/analytics/sponsored-wallet-request-tracking';
 import {
   apiError,
   apiValidationError,
@@ -17,7 +22,6 @@ import {
   type ConfirmActivationPurchaseRpcResult,
 } from '@/lib/db/activation-redemptions';
 import { getActivationRewardItemById } from '@/lib/db/activation-reward-items';
-import { createOrUpdatePlayer, getPlayerByWallet } from '@/lib/db/players';
 import { getSponsoredActivationByIdOrSlug } from '@/lib/db/sponsored-activations';
 import { safeParseActivationEligibilityRulesConfig } from '@/lib/schemas/activation-eligibility-config';
 import { activationConfirmPurchaseBodySchema } from '@/lib/schemas/activation-confirm-purchase';
@@ -46,39 +50,6 @@ function isActivationPurchaseConfirmIdempotentReplay(
   return PURCHASE_CONFIRM_IDEMPOTENT_STATUSES.has(status);
 }
 
-async function assertPrivyWalletAuth(
-  request: NextRequest,
-  walletAddress: string
-): Promise<
-  { ok: true } | { ok: false; response: NextResponse<ApiResponse<unknown>> }
-> {
-  const auth = await verifyWalletOwnership(request, walletAddress);
-  if (!auth.authorized || !auth.userId) {
-    return { ok: false, response: apiError(auth.error ?? 'Unauthorized', 401) };
-  }
-  const tokenUser = await getPrivyUserIdFromRequest(request);
-  if (!tokenUser || tokenUser !== auth.userId) {
-    return { ok: false, response: apiError('Unauthorized', 401) };
-  }
-  return { ok: true };
-}
-
-async function resolvePlayerForWallet(
-  normalizedWalletAddress: string
-): Promise<{ playerId: number }> {
-  let player = await getPlayerByWallet(normalizedWalletAddress);
-  if (!player?.id) {
-    player = await createOrUpdatePlayer({
-      wallet_address: normalizedWalletAddress,
-      total_points: 0,
-    });
-  }
-  if (!player?.id) {
-    throw new Error('Failed to resolve player for wallet');
-  }
-  return { playerId: player.id };
-}
-
 function mapRpcOrUnexpectedError(message: string): {
   status: 400 | 404 | 429 | 500;
   error: string;
@@ -89,9 +60,13 @@ function mapRpcOrUnexpectedError(message: string): {
       error: 'You do not have enough points for this reward',
     };
   }
+  if (message.includes('ACTIVATION_PURCHASE_CAP_EXCEEDED')) {
+    return { status: 400, error: 'This reward is no longer available' };
+  }
+  if (message.includes('ACTIVATION_PURCHASE_MAX_PER_USER')) {
+    return { status: 400, error: 'This reward is no longer available' };
+  }
   if (
-    message.includes('ACTIVATION_PURCHASE_CAP_EXCEEDED') ||
-    message.includes('ACTIVATION_PURCHASE_MAX_PER_USER') ||
     message.includes('ACTIVATION_PURCHASE_REWARD_INACTIVE') ||
     message.includes('ACTIVATION_PURCHASE_USDC_BUDGET_EXCEEDED')
   ) {
@@ -265,6 +240,21 @@ export async function runConfirmActivationPurchase(input: {
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : '';
+    if (msg.includes('ACTIVATION_PURCHASE_CAP_EXCEEDED')) {
+      await emitSponsoredAnalyticsForWalletRequest(
+        input.request,
+        walletKey,
+        playerId,
+        (distinctId) =>
+          trackSponsoredActivationCapReached(distinctId, {
+            activation_id: activation.id,
+            settlement_rail: activation.settlement_rail,
+            user_id: playerId,
+            reward_item_id: redemption.reward_item_id,
+            redemption_id: redemptionId,
+          })
+      );
+    }
     const mapped = mapRpcOrUnexpectedError(msg);
     return {
       ok: false,
@@ -287,6 +277,24 @@ export async function runConfirmActivationPurchase(input: {
       ok: false,
       response: apiError('Something went wrong', 500),
     };
+  }
+
+  if (rpc.outcome === 'created') {
+    await emitSponsoredAnalyticsForWalletRequest(
+      input.request,
+      walletKey,
+      playerId,
+      (distinctId) =>
+        trackSponsoredRedemptionPurchaseConfirmed(distinctId, {
+          activation_id: activation.id,
+          settlement_rail: activation.settlement_rail,
+          user_id: playerId,
+          reward_item_id: fresh.reward_item_id,
+          redemption_id: fresh.id,
+          status: fresh.status,
+          points_spent: fresh.points_spent ?? undefined,
+        })
+    );
   }
 
   return {

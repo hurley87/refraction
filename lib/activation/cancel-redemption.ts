@@ -4,6 +4,8 @@ import {
   resolvePlayerForWallet,
 } from '@/lib/activation/activation-wallet-gate';
 import { buildActivationRedemptionIdempotencyKey } from '@/lib/activation/eligibility';
+import { trackSponsoredRedemptionCancelled } from '@/lib/analytics/server';
+import { emitSponsoredAnalyticsForWalletRequest } from '@/lib/analytics/sponsored-wallet-request-tracking';
 import {
   apiError,
   apiValidationError,
@@ -13,6 +15,7 @@ import {
   cancelActivationRedemptionAtomic,
   getActivationRedemptionById,
   type ActivationRedemptionRow,
+  type CancelActivationRedemptionRpcResult,
 } from '@/lib/db/activation-redemptions';
 import { getSponsoredActivationByIdOrSlug } from '@/lib/db/sponsored-activations';
 import { activationCancelRedemptionBodySchema } from '@/lib/schemas/activation-cancel-redemption';
@@ -115,8 +118,9 @@ export async function runCancelActivationRedemption(input: {
     };
   }
 
+  let cancelRpc: CancelActivationRedemptionRpcResult;
   try {
-    await cancelActivationRedemptionAtomic({
+    cancelRpc = await cancelActivationRedemptionAtomic({
       redemptionId,
       playerId,
       walletAddress: walletKey,
@@ -129,6 +133,22 @@ export async function runCancelActivationRedemption(input: {
       ok: false,
       response: apiError(mapped.error, mapped.status),
     };
+  }
+
+  if (cancelRpc.outcome === 'cancelled') {
+    await emitSponsoredAnalyticsForWalletRequest(
+      input.request,
+      walletKey,
+      playerId,
+      (distinctId) =>
+        trackSponsoredRedemptionCancelled(distinctId, {
+          activation_id: activation.id,
+          settlement_rail: activation.settlement_rail,
+          user_id: playerId,
+          reward_item_id: redemption.reward_item_id,
+          redemption_id: redemptionId,
+        })
+    );
   }
 
   let fresh: ActivationRedemptionRow | null;

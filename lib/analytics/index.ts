@@ -18,6 +18,9 @@ export {
   hasOptedOutTracking,
   registerSuperProperties,
   registerSuperPropertiesOnce,
+  trackSponsoredActivationViewed,
+  trackSponsoredRedemptionConfirmViewed,
+  trackSponsoredRedemptionSwipeStarted,
 } from './client';
 
 // Identity resolver
@@ -41,6 +44,16 @@ export {
   trackSpendRedemptionStarted,
   trackSpendRedemptionCompleted,
   trackCityMilestone,
+  trackSponsoredActivationEligibilityRecorded,
+  trackSponsoredRedemptionPurchaseConfirmed,
+  trackSponsoredActivationCapReached,
+  trackSponsoredRedemptionRedeemed,
+  trackSponsoredRedemptionCancelled,
+  trackSponsoredRedemptionExpired,
+  trackSponsoredSettlementQueued,
+  trackSponsoredSettlementSubmitted,
+  trackSponsoredSettlementConfirmed,
+  trackSponsoredSettlementFailed,
 } from './server';
 
 // Event constants
@@ -60,4 +73,7 @@ export type {
   SpendRedemptionStartedProperties,
   SpendRedemptionCompletedProperties,
   CityMilestoneProperties,
+  SponsoredActivationClientEventProps,
+  SponsoredActivationServerRedemptionEventProps,
+  SponsoredActivationServerSettlementEventProps,
 } from './types';

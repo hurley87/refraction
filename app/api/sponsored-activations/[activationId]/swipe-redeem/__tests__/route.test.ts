@@ -10,6 +10,19 @@ const mockGetPlayerByWallet = vi.fn();
 const mockCreateOrUpdatePlayer = vi.fn();
 const mockGetSettlementByRedemptionId = vi.fn();
 
+const mockTrackRedeemed = vi.fn();
+const mockTrackQueued = vi.fn();
+const mockTrackExpired = vi.fn();
+const mockResolveIdentity = vi.fn();
+
+vi.mock('@/lib/analytics/server', () => ({
+  resolveServerIdentity: (...a: unknown[]) => mockResolveIdentity(...a),
+  trackSponsoredRedemptionRedeemed: (...a: unknown[]) =>
+    mockTrackRedeemed(...a),
+  trackSponsoredSettlementQueued: (...a: unknown[]) => mockTrackQueued(...a),
+  trackSponsoredRedemptionExpired: (...a: unknown[]) => mockTrackExpired(...a),
+}));
+
 vi.mock('@/lib/api/privy', () => ({
   verifyWalletOwnership: (...a: unknown[]) => mockVerifyWallet(...a),
   getPrivyUserIdFromRequest: (...a: unknown[]) => mockGetPrivyUserId(...a),
@@ -126,6 +139,7 @@ function postReq(body: unknown, activationSegment = activeActivation.id) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockResolveIdentity.mockReturnValue('mixpanel-distinct');
   mockVerifyWallet.mockResolvedValue({
     authorized: true,
     userId: 'privy-user-1',
@@ -167,6 +181,16 @@ describe('POST /api/sponsored-activations/[activationId]/swipe-redeem', () => {
       maxSwipeRedeemsPerUserPerDay:
         eligibilityConfig.max_events_per_user_per_day,
     });
+    expect(mockTrackRedeemed).toHaveBeenCalledTimes(1);
+    expect(mockTrackQueued).toHaveBeenCalledTimes(1);
+    expect(mockTrackQueued).toHaveBeenCalledWith(
+      'mixpanel-distinct',
+      expect.objectContaining({
+        settlement_id: settlementRow.id,
+        usdc_amount: settlementRow.amount,
+        redemption_id: redemptionId,
+      })
+    );
   });
 
   it('returns 400 when redemption is not ready_to_redeem (wrong status)', async () => {
@@ -197,6 +221,8 @@ describe('POST /api/sponsored-activations/[activationId]/swipe-redeem', () => {
     const j = await res.json();
     expect(j.data.redemption.status).toBe('settlement_pending');
     expect(j.data.settlement.id).toBe(settlementRow.id);
+    expect(mockTrackRedeemed).not.toHaveBeenCalled();
+    expect(mockTrackQueued).not.toHaveBeenCalled();
   });
 
   it('returns idempotent 200 when activation is paused but redemption already swiped', async () => {
@@ -259,6 +285,9 @@ describe('POST /api/sponsored-activations/[activationId]/swipe-redeem', () => {
     const j = await res.json();
     expect(j.error).toBe('This redemption is no longer valid');
     expect(j.details?.redemption?.status).toBe('expired');
+    expect(mockTrackExpired).toHaveBeenCalledTimes(1);
+    expect(mockTrackRedeemed).not.toHaveBeenCalled();
+    expect(mockTrackQueued).not.toHaveBeenCalled();
   });
 
   it('returns 400 when activation is paused on a new swipe (not idempotent)', async () => {

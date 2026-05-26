@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { Loader2 } from 'lucide-react';
@@ -30,6 +30,20 @@ import {
 } from '@/lib/sponsored-activation/flow-routing';
 import type { SponsoredActivationPublicReadResponse } from '@/lib/sponsored-activation/public-read';
 import { resolveTierTitleForPoints } from '@/lib/sponsored-activation/tier-label';
+import {
+  isInitialized,
+  trackSponsoredActivationViewed,
+  trackSponsoredRedemptionConfirmViewed,
+  trackSponsoredRedemptionSwipeStarted,
+  waitForInitialization,
+} from '@/lib/analytics';
+
+function runWhenMixpanelReady(run: () => void): void {
+  void waitForInitialization().then(() => {
+    if (!isInitialized()) return;
+    run();
+  });
+}
 
 type EligibilityPostResponse = {
   eligibilityEvent: { id: string; activation_id: string };
@@ -66,13 +80,17 @@ export function SponsoredActivationFlow({
   const accountEmail = user?.email?.address ?? null;
   const queryClient = useQueryClient();
 
-  const { data: player } = useCurrentPlayer();
+  const { data: player, isFetched: playerDetailsFetched } = useCurrentPlayer();
   const { data: tiers } = useTiers();
 
   const [venueStep, setVenueStep] = useState<'success' | 'swipe'>('success');
   const [redemptionOverride, setRedemptionOverride] =
     useState<ActivationRedemptionRow | null>(null);
   const [swipeSliderKey, setSwipeSliderKey] = useState(0);
+
+  const activationViewEmittedRef = useRef(false);
+  const confirmScreenEmittedRef = useRef(false);
+  const swipeGestureReportedRef = useRef(false);
 
   const deeplink = useMemo(
     () => parseSponsoredActivationEligibilityDeeplink(source, sourceRefId),
@@ -82,7 +100,14 @@ export function SponsoredActivationFlow({
   useEffect(() => {
     setVenueStep('success');
     setRedemptionOverride(null);
+    activationViewEmittedRef.current = false;
+    confirmScreenEmittedRef.current = false;
+    swipeGestureReportedRef.current = false;
   }, [activationKey]);
+
+  useEffect(() => {
+    swipeGestureReportedRef.current = false;
+  }, [swipeSliderKey]);
 
   const readQuery = useQuery({
     queryKey: ['sponsored-activation-read', activationKey] as const,
@@ -162,6 +187,32 @@ export function SponsoredActivationFlow({
     retry: false,
   });
 
+  const eligibilityResumeReady =
+    !readQuery.isSuccess || !walletAddress || resumeEligibility.isFetched;
+
+  const playerIdentityReady = !walletAddress || playerDetailsFetched;
+
+  const activationViewReady =
+    readQuery.isSuccess &&
+    Boolean(readQuery.data) &&
+    eligibilityResumeReady &&
+    playerIdentityReady;
+
+  useEffect(() => {
+    if (!activationViewReady || !readQuery.data) return;
+    if (activationViewEmittedRef.current) return;
+    activationViewEmittedRef.current = true;
+    const snapshot = readQuery.data;
+    runWhenMixpanelReady(() => {
+      trackSponsoredActivationViewed({
+        activation_id: snapshot.activation.id,
+        settlement_rail: snapshot.activation.settlement_rail,
+        user_id: player?.id,
+        reward_item_id: snapshot.rewardItem.id,
+      });
+    });
+  }, [activationViewReady, readQuery.data, player?.id]);
+
   const redemptionsFromServer = useMemo(() => {
     const fromGet = resumeEligibility.data?.redemptions ?? [];
     const fromPost = recordEligibility.data?.redemptions ?? [];
@@ -185,6 +236,22 @@ export function SponsoredActivationFlow({
   const redemption = redemptionOverride ?? pickedRedemption;
 
   const baseScreen = resolveSponsoredActivationBaseScreen(redemption?.status);
+
+  useEffect(() => {
+    if (baseScreen !== 'confirm' || !readQuery.data) return;
+    if (confirmScreenEmittedRef.current) return;
+    confirmScreenEmittedRef.current = true;
+    const snapshot = readQuery.data;
+    runWhenMixpanelReady(() => {
+      trackSponsoredRedemptionConfirmViewed({
+        activation_id: snapshot.activation.id,
+        settlement_rail: snapshot.activation.settlement_rail,
+        user_id: player?.id,
+        reward_item_id: snapshot.rewardItem.id,
+        redemption_id: redemption?.id,
+      });
+    });
+  }, [baseScreen, readQuery.data, redemption?.id, player?.id]);
 
   const confirmMutation = useMutation({
     mutationFn: async (redemptionId: string) => {
@@ -252,6 +319,21 @@ export function SponsoredActivationFlow({
     if (!isSwipeAllowedForStatus(redemption.status)) return;
     swipeMutation.mutate(redemption.id);
   }, [redemption, swipeMutation]);
+
+  const handleSwipeGestureStart = useCallback(() => {
+    if (!readQuery.data || swipeGestureReportedRef.current) return;
+    swipeGestureReportedRef.current = true;
+    const read = readQuery.data;
+    runWhenMixpanelReady(() => {
+      trackSponsoredRedemptionSwipeStarted({
+        activation_id: read.activation.id,
+        settlement_rail: read.activation.settlement_rail,
+        user_id: player?.id,
+        reward_item_id: read.rewardItem.id,
+        redemption_id: redemption?.id,
+      });
+    });
+  }, [readQuery.data, player?.id, redemption?.id]);
 
   const balanceAfterPoints =
     confirmMutation.data?.player.total_points ?? player?.total_points ?? 0;
@@ -446,6 +528,7 @@ export function SponsoredActivationFlow({
             <SponsoredActivationSwipeSlider
               key={swipeSliderKey}
               disabled={swipeDisabled}
+              onSwipeGestureStart={handleSwipeGestureStart}
               onComplete={handleSwipeComplete}
             />
           </div>

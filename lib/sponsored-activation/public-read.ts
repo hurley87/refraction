@@ -1,12 +1,17 @@
-import type { SponsoredActivationStatus } from '@/lib/db/sponsored-activations';
+import type {
+  SettlementRail,
+  SponsoredActivationStatus,
+} from '@/lib/db/sponsored-activations';
 
 /** Public GET `/api/sponsored-activations/[activationIdOrSlug]` — safe for unauthenticated clients. */
 export type SponsoredActivationPublicReadResponse = {
   activation: {
+    id: string;
     title: string;
     sponsor_name: string;
     slug: string;
     status: SponsoredActivationStatus;
+    settlement_rail: SettlementRail;
     window: { starts_at: string; ends_at: string };
   };
   rewardItem: {

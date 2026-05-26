@@ -74,10 +74,12 @@ describe('GET /api/sponsored-activations/[activationId]', () => {
     expect(res.status).toBe(200);
     expect(json.success).toBe(true);
     expect(json.data.activation).toEqual({
+      id: activation.id,
       title: activation.title,
       sponsor_name: activation.sponsor_name,
       slug: activation.slug,
       status: activation.status,
+      settlement_rail: activation.settlement_rail,
       window: {
         starts_at: activation.starts_at,
         ends_at: activation.ends_at,
