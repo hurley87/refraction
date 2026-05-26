@@ -231,9 +231,9 @@ export default function NavigationMenu({
           <button
             type="button"
             onClick={handleLogin}
-            className="mt-1 box-border flex h-[56px] w-full shrink-0 items-center justify-between rounded-[26px] bg-[#b5b5b5] px-[24px] py-[8px] transition-colors hover:bg-[#a0a0a0]"
+            className="box-border flex w-[393px] max-w-full shrink-0 items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-6 py-[19px] transition-opacity hover:opacity-90"
           >
-            <span className={menuTextClassName}>Log In</span>
+            <span className={menuTextOnInkClassName}>Log In</span>
             <div className="relative flex size-[24px] shrink-0 items-center justify-center overflow-clip"></div>
           </button>
         )}
