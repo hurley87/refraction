@@ -73,6 +73,10 @@ export const ANALYTICS_EVENTS = {
   SPONSORED_SETTLEMENT_CONFIRMED: 'sponsored_settlement_confirmed',
   SPONSORED_SETTLEMENT_FAILED: 'sponsored_settlement_failed',
   SPONSORED_ACTIVATION_CAP_REACHED: 'sponsored_activation_cap_reached',
+
+  /** Admin ops dashboard for sponsored activations (IRL-62 / FR-9). */
+  SPONSORED_ACTIVATION_ADMIN_DASHBOARD_VIEWED:
+    'sponsored_activation_admin_dashboard_viewed',
 } as const;
 
 export type AnalyticsEventName =

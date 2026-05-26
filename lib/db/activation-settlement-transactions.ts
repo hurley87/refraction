@@ -48,7 +48,7 @@ function parseSettlementRpcTextOutcome<T extends string>(
   throw new Error(`Unexpected RPC response from ${rpcLabel}`);
 }
 
-function normalizeRow(
+export function normalizeActivationSettlementTransactionRow(
   row: Record<string, unknown>
 ): ActivationSettlementTransactionRow {
   return {
@@ -88,7 +88,9 @@ export async function getActivationSettlementTransactionByRedemptionId(
     throw new Error(error.message || 'Failed to load settlement transaction');
   }
   if (!data) return null;
-  return normalizeRow(data as Record<string, unknown>);
+  return normalizeActivationSettlementTransactionRow(
+    data as Record<string, unknown>
+  );
 }
 
 export async function getActivationSettlementTransactionById(
@@ -105,7 +107,9 @@ export async function getActivationSettlementTransactionById(
     throw new Error(error.message || 'Failed to load settlement transaction');
   }
   if (!data) return null;
-  return normalizeRow(data as Record<string, unknown>);
+  return normalizeActivationSettlementTransactionRow(
+    data as Record<string, unknown>
+  );
 }
 
 export type ActivationSettlementTransactionPatch = {
@@ -140,7 +144,9 @@ export async function updateActivationSettlementTransaction(
     throw new Error(error.message || 'Failed to update settlement transaction');
   }
   if (!data) return null;
-  return normalizeRow(data as Record<string, unknown>);
+  return normalizeActivationSettlementTransactionRow(
+    data as Record<string, unknown>
+  );
 }
 
 /**
@@ -169,7 +175,9 @@ export async function updateActivationSettlementIfStatus(input: {
     );
   }
   if (!data) return null;
-  return normalizeRow(data as Record<string, unknown>);
+  return normalizeActivationSettlementTransactionRow(
+    data as Record<string, unknown>
+  );
 }
 
 const MAX_SETTLEMENT_BATCH = 500;
@@ -204,7 +212,9 @@ export async function listActivationSettlementsForWorker(
     console.error('listActivationSettlementsForWorker:', { rail, error });
     throw new Error(error.message || 'Failed to list settlement transactions');
   }
-  return (data ?? []).map((r) => normalizeRow(r as Record<string, unknown>));
+  return (data ?? []).map((r) =>
+    normalizeActivationSettlementTransactionRow(r as Record<string, unknown>)
+  );
 }
 
 /** Stellar rail; see {@link listActivationSettlementsForWorker}. */
