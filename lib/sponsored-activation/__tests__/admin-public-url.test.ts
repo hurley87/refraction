@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   sponsoredActivationPublicPath,
   sponsoredActivationPublicUrl,
+  sponsoredActivationQrGuestSharePath,
+  sponsoredActivationQrGuestShareSourceRefId,
+  sponsoredActivationQrGuestShareUrl,
 } from '@/lib/sponsored-activation/admin-public-url';
 
 describe('sponsoredActivationPublicPath', () => {
@@ -27,6 +30,69 @@ describe('sponsoredActivationPublicUrl', () => {
     );
     expect(sponsoredActivationPublicUrl('abc', 'https://irl.energy/')).toBe(
       'https://irl.energy/activation/abc'
+    );
+  });
+});
+
+describe('sponsoredActivationQrGuestShareSourceRefId', () => {
+  it('prefers trimmed title over slug and id', () => {
+    expect(
+      sponsoredActivationQrGuestShareSourceRefId({
+        id: 'id-1',
+        slug: 'slug-1',
+        title: '  Launch  ',
+      })
+    ).toBe('Launch');
+  });
+
+  it('falls back to trimmed slug then id when title is blank', () => {
+    expect(
+      sponsoredActivationQrGuestShareSourceRefId({
+        id: 'id-1',
+        slug: '  slug-1  ',
+        title: '   ',
+      })
+    ).toBe('slug-1');
+    expect(
+      sponsoredActivationQrGuestShareSourceRefId({
+        id: 'id-1',
+        slug: '   ',
+        title: '   ',
+      })
+    ).toBe('id-1');
+  });
+});
+
+describe('sponsoredActivationQrGuestSharePath', () => {
+  it('appends qr_scan and source_ref_id', () => {
+    expect(sponsoredActivationQrGuestSharePath('my-slug', 'Launch Party')).toBe(
+      '/activation/my-slug?source=qr_scan&source_ref_id=Launch+Party'
+    );
+  });
+
+  it('trims source_ref_id', () => {
+    expect(sponsoredActivationQrGuestSharePath('x', '  ref  ')).toBe(
+      '/activation/x?source=qr_scan&source_ref_id=ref'
+    );
+  });
+
+  it('omits query when ref is blank after trim', () => {
+    expect(sponsoredActivationQrGuestSharePath('x', '   ')).toBe(
+      '/activation/x'
+    );
+  });
+});
+
+describe('sponsoredActivationQrGuestShareUrl', () => {
+  it('joins origin, path, and QR params', () => {
+    expect(
+      sponsoredActivationQrGuestShareUrl(
+        'my-slug',
+        'https://example.test',
+        'Launch Party'
+      )
+    ).toBe(
+      'https://example.test/activation/my-slug?source=qr_scan&source_ref_id=Launch+Party'
     );
   });
 });
