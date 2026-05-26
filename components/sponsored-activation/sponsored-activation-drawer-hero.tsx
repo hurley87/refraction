@@ -17,7 +17,7 @@ export function SponsoredActivationDrawerHero({
           src={heroImageUrl}
           alt=""
           fill
-          className="object-cover"
+          className="z-0 object-cover"
           sizes="(max-width: 768px) 100vw, 420px"
           priority
           unoptimized
