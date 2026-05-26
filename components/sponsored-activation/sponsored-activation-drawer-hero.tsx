@@ -29,10 +29,10 @@ export function SponsoredActivationDrawerHero({
         role="group"
         aria-label="You receive"
       >
-        <span className="label-small font-grotesk tracking-wide text-[#757575]">
+        <span className="label-small font-grotesk uppercase tracking-wide text-[#757575]">
           You receive
         </span>
-        <span className="label-small max-w-[55%] truncate text-right font-grotesk font-semibold tracking-wide text-[#171717]">
+        <span className="label-small max-w-[55%] truncate text-right font-grotesk font-semibold uppercase tracking-wide text-[#171717]">
           {itemName}
         </span>
       </div>

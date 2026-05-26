@@ -92,7 +92,6 @@ export function SponsoredActivationSuccess({
                 />
               }
               bareValue
-              className="!border-b"
             />
           </div>
 

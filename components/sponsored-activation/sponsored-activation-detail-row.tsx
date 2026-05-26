@@ -22,7 +22,7 @@ export function SponsoredActivationDetailRow({
   return (
     <div
       className={cn(
-        'flex items-start justify-between gap-4 border-b border-[#171717]/10 py-3 last:border-b-0',
+        'flex items-start justify-between gap-4 border-b border-[#171717]/10 py-3',
         className
       )}
     >

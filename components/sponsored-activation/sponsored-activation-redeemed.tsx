@@ -50,7 +50,6 @@ export function SponsoredActivationRedeemed({
               />
             }
             bareValue
-            className="!border-b"
           />
         </div>
 
