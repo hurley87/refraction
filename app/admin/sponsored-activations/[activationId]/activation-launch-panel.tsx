@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -111,6 +112,71 @@ function mutationErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Something went wrong';
 }
 
+type RewardItemHeroUploadProps = {
+  item: RewardItemRow;
+  isRowUploading: boolean;
+  onFilePicked: (file: File) => void;
+};
+
+function RewardItemHeroUpload({
+  item,
+  isRowUploading,
+  onFilePicked,
+}: RewardItemHeroUploadProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  let buttonContent: ReactNode;
+  if (isRowUploading) {
+    buttonContent = <Loader2 className="size-4 animate-spin" />;
+  } else if (item.hero_image_url) {
+    buttonContent = 'Replace hero image';
+  } else {
+    buttonContent = 'Upload hero image';
+  }
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-3">
+      {item.hero_image_url ? (
+        <Image
+          src={item.hero_image_url}
+          alt={`${item.name} hero`}
+          width={64}
+          height={80}
+          className="h-20 w-16 rounded-md border object-cover"
+          unoptimized
+        />
+      ) : (
+        <div className="flex h-20 w-16 items-center justify-center rounded-md border border-dashed border-neutral-300 text-[10px] text-neutral-500">
+          No image
+        </div>
+      )}
+      <div className="space-y-1">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = '';
+            if (!file) return;
+            onFilePicked(file);
+          }}
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={isRowUploading}
+          onClick={() => inputRef.current?.click()}
+        >
+          {buttonContent}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function ActivationLaunchPanel({
   activationId,
   getAccessToken,
@@ -121,16 +187,16 @@ export function ActivationLaunchPanel({
   const [rewardPoints, setRewardPoints] = useState('0');
   const [rewardUsdc, setRewardUsdc] = useState('1');
   const [rewardHeroFile, setRewardHeroFile] = useState<File | null>(null);
-  const [rewardHeroPreview, setRewardHeroPreview] = useState<string | null>(
-    null
+  const rewardHeroPreviewUrl = useMemo(
+    () => (rewardHeroFile ? URL.createObjectURL(rewardHeroFile) : null),
+    [rewardHeroFile]
   );
-  const [uploadingRewardHeroItemId, setUploadingRewardHeroItemId] = useState<
-    string | null
-  >(null);
+  useEffect(() => {
+    return () => {
+      if (rewardHeroPreviewUrl) URL.revokeObjectURL(rewardHeroPreviewUrl);
+    };
+  }, [rewardHeroPreviewUrl]);
   const rewardHeroInputRef = useRef<HTMLInputElement>(null);
-  const existingRewardHeroInputRefs = useRef<Record<string, HTMLInputElement>>(
-    {}
-  );
 
   const activationQueryKey = [
     'admin-sponsored-activation-detail',
@@ -242,7 +308,6 @@ export function ActivationLaunchPanel({
 
   const patchRewardHeroMutation = useMutation({
     mutationFn: async (input: { itemId: string; file: File }) => {
-      setUploadingRewardHeroItemId(input.itemId);
       const heroImageUrl = await uploadActivationHeroImage(input.file);
       const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(
@@ -269,7 +334,6 @@ export function ActivationLaunchPanel({
       await invalidateAll();
     },
     onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
-    onSettled: () => setUploadingRewardHeroItemId(null),
   });
 
   const createRewardMutation = useMutation({
@@ -314,7 +378,6 @@ export function ActivationLaunchPanel({
       toast.success('Reward added');
       setRewardName('');
       setRewardHeroFile(null);
-      setRewardHeroPreview(null);
       if (rewardHeroInputRef.current) {
         rewardHeroInputRef.current.value = '';
       }
@@ -505,68 +568,20 @@ export function ActivationLaunchPanel({
                               </span>
                             )}
                           </div>
-                          <div className="mt-2 flex flex-wrap items-center gap-3">
-                            {item.hero_image_url ? (
-                              <Image
-                                src={item.hero_image_url}
-                                alt={`${item.name} hero`}
-                                width={64}
-                                height={80}
-                                className="h-20 w-16 rounded-md border object-cover"
-                                unoptimized
-                              />
-                            ) : (
-                              <div className="flex h-20 w-16 items-center justify-center rounded-md border border-dashed border-neutral-300 text-[10px] text-neutral-500">
-                                No image
-                              </div>
-                            )}
-                            <div className="space-y-1">
-                              <input
-                                ref={(node) => {
-                                  if (node) {
-                                    existingRewardHeroInputRefs.current[
-                                      item.id
-                                    ] = node;
-                                  }
-                                }}
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  e.target.value = '';
-                                  if (!file) return;
-                                  patchRewardHeroMutation.mutate({
-                                    itemId: item.id,
-                                    file,
-                                  });
-                                }}
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                disabled={
-                                  patchRewardHeroMutation.isPending &&
-                                  uploadingRewardHeroItemId === item.id
-                                }
-                                onClick={() =>
-                                  existingRewardHeroInputRefs.current[
-                                    item.id
-                                  ]?.click()
-                                }
-                              >
-                                {patchRewardHeroMutation.isPending &&
-                                uploadingRewardHeroItemId === item.id ? (
-                                  <Loader2 className="size-4 animate-spin" />
-                                ) : item.hero_image_url ? (
-                                  'Replace hero image'
-                                ) : (
-                                  'Upload hero image'
-                                )}
-                              </Button>
-                            </div>
-                          </div>
+                          <RewardItemHeroUpload
+                            item={item}
+                            isRowUploading={
+                              patchRewardHeroMutation.isPending &&
+                              patchRewardHeroMutation.variables?.itemId ===
+                                item.id
+                            }
+                            onFilePicked={(file) =>
+                              patchRewardHeroMutation.mutate({
+                                itemId: item.id,
+                                file,
+                              })
+                            }
+                          />
                         </li>
                       ))}
                     </ul>
@@ -616,16 +631,11 @@ export function ActivationLaunchPanel({
                             const file = e.target.files?.[0];
                             if (!file) return;
                             setRewardHeroFile(file);
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setRewardHeroPreview(reader.result as string);
-                            };
-                            reader.readAsDataURL(file);
                           }}
                         />
-                        {rewardHeroPreview && (
+                        {rewardHeroPreviewUrl && (
                           <Image
-                            src={rewardHeroPreview}
+                            src={rewardHeroPreviewUrl}
                             alt="Hero preview"
                             width={120}
                             height={150}

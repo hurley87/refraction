@@ -33,9 +33,7 @@ export function SponsoredActivationSuccess({
       />
 
       <div className="flex flex-1 flex-col gap-6 px-4 pb-8 pt-6">
-        <div>
-          <h1 className="title2 text-[#171717]">Success</h1>
-        </div>
+        <h1 className="title2 text-[#171717]">Success</h1>
 
         <div>
           <SponsoredActivationDetailRow
