@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const COMPLETE_RATIO = 0.82;
@@ -109,6 +110,8 @@ export function SponsoredActivationSwipeSlider({
     }
   };
 
+  const displayLabel = completed ? 'Redeeming…' : label;
+
   return (
     <div className="w-full">
       <div
@@ -126,13 +129,13 @@ export function SponsoredActivationSwipeSlider({
         tabIndex={disabled || completed ? -1 : 0}
         onKeyDown={onKeyDown}
         className={cn(
-          'relative flex h-14 w-full select-none items-center rounded-full border border-white/15 bg-black/40 px-1',
-          disabled || completed ? 'opacity-50' : 'cursor-pointer'
+          'relative flex h-14 w-full select-none items-center rounded-md border border-[#171717] bg-white px-1',
+          disabled || completed ? 'opacity-60' : 'cursor-pointer'
         )}
       >
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="label-small font-grotesk text-white/50">
-            {completed ? 'Redeemed' : label}
+          <span className="label-small font-grotesk uppercase tracking-wide text-[#171717]">
+            {displayLabel}
           </span>
         </div>
         <div
@@ -143,18 +146,16 @@ export function SponsoredActivationSwipeSlider({
           onPointerCancel={onPointerUp}
           style={{ transform: `translateX(${dragPx}px)` }}
           className={cn(
-            'relative z-10 flex h-12 w-[4.5rem] shrink-0 items-center justify-center rounded-full bg-[#FFF200] text-[#0a0a0a] shadow-md',
+            'relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-[#171717] text-white',
             disabled || completed ? 'pointer-events-none' : 'touch-none'
           )}
         >
-          <span className="text-lg" aria-hidden>
-            →
-          </span>
+          <ArrowRight className="size-5" strokeWidth={2.5} aria-hidden />
         </div>
       </div>
-      <p className="mt-2 body-small font-grotesk text-white/40">
-        Slide the button all the way right. Keyboard: focus the track, then
-        press Enter.
+      <p className="sr-only">
+        Slide the control all the way right to redeem. Keyboard: focus the
+        track, then press Enter.
       </p>
     </div>
   );

@@ -1,7 +1,8 @@
 'use client';
 
-import Image from 'next/image';
-import { SpendPrimaryButton } from '@/components/spend/spend-primary-button';
+import { SponsoredActivationHero } from '@/components/sponsored-activation/sponsored-activation-hero';
+import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
+import { SponsoredActivationCtaButton } from '@/components/sponsored-activation/sponsored-activation-cta-button';
 import type { SponsoredActivationPublicReadResponse } from '@/lib/sponsored-activation/public-read';
 
 type SponsoredActivationConfirmProps = {
@@ -19,76 +20,45 @@ export function SponsoredActivationConfirm({
   pending,
   onConfirm,
 }: SponsoredActivationConfirmProps) {
-  const { rewardItem, activation } = read;
+  const { rewardItem } = read;
+  const pointsCost = rewardItem.points_cost;
 
   return (
-    <div className="flex min-h-[70vh] flex-col">
-      <div className="flex flex-1 flex-col gap-5 p-4 pb-36 md:p-6">
-        <p className="body-small font-grotesk uppercase tracking-wide text-white/50">
-          {activation.sponsor_name}
-        </p>
-        <h1 className="title2 text-white">{activation.title}</h1>
+    <div className="flex min-h-[calc(100vh-5rem)] flex-col bg-white">
+      <SponsoredActivationHero
+        heroImageUrl={rewardItem.hero_image_url}
+        itemName={rewardItem.name}
+      />
 
-        <div className="relative aspect-[4/5] w-full overflow-hidden rounded-md bg-white/5">
-          {rewardItem.hero_image_url ? (
-            <Image
-              src={rewardItem.hero_image_url}
-              alt={rewardItem.name}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 400px"
-              unoptimized
-            />
-          ) : (
-            <div className="flex h-full min-h-[200px] items-center justify-center body-medium font-grotesk text-white/35">
-              {rewardItem.name}
-            </div>
-          )}
-        </div>
+      <div className="flex flex-1 flex-col px-4 pb-28 pt-6">
+        <h1 className="title2 text-[#171717]">Confirm Your Purchase</h1>
 
-        <div className="space-y-3 rounded-md border border-white/10 bg-white/5 p-4">
-          <div className="flex justify-between gap-3">
-            <span className="body-small font-grotesk uppercase tracking-wide text-white/50">
-              You send
-            </span>
-            <span className="body-medium font-grotesk font-semibold text-white">
-              {rewardItem.points_cost.toLocaleString()} PTS
-            </span>
-          </div>
-          <div className="flex justify-between gap-3 border-t border-white/10 pt-3">
-            <span className="body-small font-grotesk uppercase tracking-wide text-white/50">
-              You receive
-            </span>
-            <span className="body-medium font-grotesk font-semibold text-right text-white">
-              {rewardItem.name}
-            </span>
-          </div>
-          {accountEmail ? (
-            <div className="flex justify-between gap-3 border-t border-white/10 pt-3">
-              <span className="body-small font-grotesk text-white/50">
-                Account
-              </span>
-              <span className="body-medium font-grotesk text-right text-white/90">
-                {accountEmail}
-              </span>
-            </div>
-          ) : null}
-          <div className="flex justify-between gap-3 border-t border-white/10 pt-3">
-            <span className="body-small font-grotesk text-white/50">
-              Current points
-            </span>
-            <span className="body-medium font-grotesk text-white">
-              {currentPoints.toLocaleString()}
-            </span>
-          </div>
+        <div className="mt-6">
+          <SponsoredActivationDetailRow
+            label="You send"
+            value={`${pointsCost.toLocaleString()} PTS`}
+          />
+          <SponsoredActivationDetailRow
+            label="Your account"
+            value={accountEmail ?? 'Signed in'}
+          />
+          <SponsoredActivationDetailRow
+            label="Current points"
+            value={`${currentPoints.toLocaleString()} PTS`}
+            subValue={`-${pointsCost.toLocaleString()}`}
+          />
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/10 bg-[#0a0a0a]/95 px-4 py-4 backdrop-blur-md md:px-8">
+      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#171717]/10 bg-white/95 px-4 py-4 backdrop-blur-sm">
         <div className="mx-auto w-full max-w-[420px] md:max-w-lg">
-          <SpendPrimaryButton pending={pending} onClick={onConfirm}>
+          <SponsoredActivationCtaButton
+            variant="confirm"
+            pending={pending}
+            onClick={onConfirm}
+          >
             Confirm Purchase
-          </SpendPrimaryButton>
+          </SponsoredActivationCtaButton>
         </div>
       </div>
     </div>

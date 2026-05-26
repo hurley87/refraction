@@ -14,7 +14,7 @@ function ActivationRouteInner() {
   if (!activationId) {
     return (
       <SponsoredActivationPageShell>
-        <p className="body-medium font-grotesk p-6 text-center text-white/80">
+        <p className="body-medium font-grotesk p-6 text-center text-[#757575]">
           This activation link is not valid.
         </p>
       </SponsoredActivationPageShell>
@@ -34,10 +34,10 @@ export default function ActivationRoutePage() {
   return (
     <Suspense
       fallback={
-        <SponsoredActivationPageShell showCard={false}>
-          <div className="flex min-h-[40vh] items-center justify-center">
+        <SponsoredActivationPageShell>
+          <div className="flex min-h-[40vh] items-center justify-center px-4">
             <Loader2
-              className="size-8 animate-spin text-white/60"
+              className="size-8 animate-spin text-[#757575]"
               aria-hidden
             />
           </div>

@@ -1,69 +1,90 @@
 'use client';
 
-import { SpendPrimaryButton } from '@/components/spend/spend-primary-button';
+import { SponsoredActivationHero } from '@/components/sponsored-activation/sponsored-activation-hero';
+import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
+import { SponsoredActivationSwipeSlider } from '@/components/sponsored-activation/sponsored-activation-swipe-slider';
+import type { Tier } from '@/lib/types';
 
 type SponsoredActivationSuccessProps = {
+  heroImageUrl: string | null;
+  perkName: string;
   pointsSpent: number;
   balanceAfter: number;
-  tierTitle: string | null;
-  perkName: string;
-  onContinueToSwipe: () => void;
+  tier: Tier | null;
+  swipeDisabled: boolean;
+  swipeSliderKey: number;
+  onSwipeGestureStart?: () => void;
+  onSwipeComplete: () => void;
 };
 
+function formatTierBadge(tier: Tier): string {
+  const title = tier.title.trim().toUpperCase();
+  const floor = tier.min_points.toLocaleString();
+  return `${title} • ${floor}+`;
+}
+
 export function SponsoredActivationSuccess({
+  heroImageUrl,
+  perkName,
   pointsSpent,
   balanceAfter,
-  tierTitle,
-  perkName,
-  onContinueToSwipe,
+  tier,
+  swipeDisabled,
+  swipeSliderKey,
+  onSwipeGestureStart,
+  onSwipeComplete,
 }: SponsoredActivationSuccessProps) {
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
-      <div>
-        <p className="body-small font-grotesk uppercase tracking-wide text-emerald-400/90">
-          Success!
-        </p>
-        <h1 className="mt-2 title2 text-white">You&apos;re almost there</h1>
-      </div>
+    <div className="flex min-h-[calc(100vh-5rem)] flex-col bg-white">
+      <SponsoredActivationHero
+        heroImageUrl={heroImageUrl}
+        itemName={perkName}
+      />
 
-      <div className="space-y-3 rounded-md border border-white/10 bg-white/5 p-4">
-        <div className="flex justify-between gap-3">
-          <span className="body-small font-grotesk uppercase tracking-wide text-white/50">
-            You spent
-          </span>
-          <span className="body-medium font-grotesk font-semibold text-white">
-            {pointsSpent.toLocaleString()} PTS
-          </span>
+      <div className="flex flex-1 flex-col gap-6 px-4 pb-8 pt-6">
+        <div>
+          <h1 className="title2 text-[#171717]">Success!</h1>
         </div>
-        <div className="flex justify-between gap-3 border-t border-white/10 pt-3">
-          <span className="body-small font-grotesk text-white/50">Balance</span>
-          <span className="body-medium font-grotesk text-white">
-            {balanceAfter.toLocaleString()} PTS
-          </span>
+
+        <div>
+          <SponsoredActivationDetailRow
+            label="You spent"
+            value={`${pointsSpent.toLocaleString()} PTS`}
+          />
+          <SponsoredActivationDetailRow
+            label="Balance"
+            value={`${balanceAfter.toLocaleString()} PTS`}
+          />
+          {tier ? (
+            <div className="flex items-start justify-between gap-4 border-b border-[#171717]/10 py-3">
+              <span className="label-small shrink-0 font-grotesk uppercase tracking-wide text-[#757575]">
+                Current tier
+              </span>
+              <span className="inline-block border border-[#171717] px-2.5 py-1 label-small font-grotesk font-semibold uppercase tracking-wide text-[#171717]">
+                {formatTierBadge(tier)}
+              </span>
+            </div>
+          ) : null}
         </div>
-        {tierTitle ? (
-          <div className="flex justify-between gap-3 border-t border-white/10 pt-3">
-            <span className="body-small font-grotesk text-white/50">Tier</span>
-            <span className="body-medium font-grotesk text-white">
-              {tierTitle}
-            </span>
-          </div>
-        ) : null}
-      </div>
 
-      <div className="rounded-md border border-emerald-500/25 bg-emerald-500/10 p-4">
-        <h2 className="body-medium font-grotesk font-semibold text-white">
-          How to collect
-        </h2>
-        <p className="mt-2 body-medium font-grotesk text-white/80">
-          Show this screen on your phone at the venue to pick up{' '}
-          <span className="font-semibold text-white">{perkName}</span>.
-        </p>
-      </div>
+        <section>
+          <h2 className="label-small font-grotesk uppercase tracking-wide text-[#757575]">
+            How to collect
+          </h2>
+          <p className="mt-2 body-medium font-grotesk leading-relaxed text-[#171717]">
+            When you&apos;re ready, swipe below to redeem with staff. Show this
+            screen at the venue to pick up{' '}
+            <span className="font-semibold">{perkName}</span>.
+          </p>
+        </section>
 
-      <SpendPrimaryButton type="button" onClick={onContinueToSwipe}>
-        Swipe to redeem at venue
-      </SpendPrimaryButton>
+        <SponsoredActivationSwipeSlider
+          key={swipeSliderKey}
+          disabled={swipeDisabled}
+          onSwipeGestureStart={onSwipeGestureStart}
+          onComplete={onSwipeComplete}
+        />
+      </div>
     </div>
   );
 }

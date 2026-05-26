@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { SponsoredActivationPageShell } from '@/components/sponsored-activation/sponsored-activation-page-shell';
 import { SponsoredActivationConfirm } from '@/components/sponsored-activation/sponsored-activation-confirm';
 import { SponsoredActivationSuccess } from '@/components/sponsored-activation/sponsored-activation-success';
-import { SponsoredActivationSwipeSlider } from '@/components/sponsored-activation/sponsored-activation-swipe-slider';
 import { SponsoredActivationRedeemed } from '@/components/sponsored-activation/sponsored-activation-redeemed';
 import { SponsoredActivationExpired } from '@/components/sponsored-activation/sponsored-activation-expired';
 import { SponsoredActivationCancelled } from '@/components/sponsored-activation/sponsored-activation-cancelled';
@@ -29,7 +28,7 @@ import {
   resolveSponsoredActivationBaseScreen,
 } from '@/lib/sponsored-activation/flow-routing';
 import type { SponsoredActivationPublicReadResponse } from '@/lib/sponsored-activation/public-read';
-import { resolveTierTitleForPoints } from '@/lib/sponsored-activation/tier-label';
+import { resolveTierForPoints } from '@/lib/tier-for-points';
 import {
   isInitialized,
   trackSponsoredActivationViewed,
@@ -83,7 +82,6 @@ export function SponsoredActivationFlow({
   const { data: player, isFetched: playerDetailsFetched } = useCurrentPlayer();
   const { data: tiers } = useTiers();
 
-  const [venueStep, setVenueStep] = useState<'success' | 'swipe'>('success');
   const [redemptionOverride, setRedemptionOverride] =
     useState<ActivationRedemptionRow | null>(null);
   const [swipeSliderKey, setSwipeSliderKey] = useState(0);
@@ -98,7 +96,6 @@ export function SponsoredActivationFlow({
   );
 
   useEffect(() => {
-    setVenueStep('success');
     setRedemptionOverride(null);
     activationViewEmittedRef.current = false;
     confirmScreenEmittedRef.current = false;
@@ -265,7 +262,6 @@ export function SponsoredActivationFlow({
     },
     onSuccess: (data) => {
       setRedemptionOverride(data.redemption);
-      setVenueStep('success');
       void queryClient.invalidateQueries({
         queryKey: ['sponsored-activation-eligibility-get', activationKey],
       });
@@ -339,7 +335,10 @@ export function SponsoredActivationFlow({
     confirmMutation.data?.player.total_points ?? player?.total_points ?? 0;
   const pointsSpent =
     redemption?.points_spent ?? readQuery.data?.rewardItem.points_cost ?? 0;
-  const tierTitle = resolveTierTitleForPoints(tiers, balanceAfterPoints);
+  const currentTier =
+    tiers?.length && balanceAfterPoints >= 0
+      ? resolveTierForPoints(tiers, balanceAfterPoints)
+      : null;
 
   const recordFlowLoading =
     Boolean(deeplink) &&
@@ -356,9 +355,9 @@ export function SponsoredActivationFlow({
 
   if (readQuery.isLoading) {
     return (
-      <SponsoredActivationPageShell showCard={false}>
-        <div className="flex min-h-[40vh] items-center justify-center">
-          <Loader2 className="size-8 animate-spin text-white/60" aria-hidden />
+      <SponsoredActivationPageShell>
+        <div className="flex min-h-[40vh] items-center justify-center px-4">
+          <Loader2 className="size-8 animate-spin text-[#757575]" aria-hidden />
         </div>
       </SponsoredActivationPageShell>
     );
@@ -367,7 +366,7 @@ export function SponsoredActivationFlow({
   if (readQuery.error || !readQuery.data) {
     return (
       <SponsoredActivationPageShell>
-        <p className="body-medium font-grotesk p-6 text-center text-white/80">
+        <p className="body-medium font-grotesk p-6 text-center text-[#757575]">
           This activation link is not available.
         </p>
       </SponsoredActivationPageShell>
@@ -380,8 +379,8 @@ export function SponsoredActivationFlow({
     return (
       <SponsoredActivationPageShell>
         <div className="flex flex-col gap-6 p-6">
-          <h1 className="title2 text-white">{read.activation.title}</h1>
-          <p className="body-medium font-grotesk text-white/70">
+          <h1 className="title2 text-[#171717]">{read.activation.title}</h1>
+          <p className="body-medium font-grotesk text-[#757575]">
             Log in to continue with this activation.
           </p>
           <SpendPrimaryButton onClick={login}>
@@ -395,7 +394,7 @@ export function SponsoredActivationFlow({
   if (!walletAddress) {
     return (
       <SponsoredActivationPageShell>
-        <p className="body-medium font-grotesk p-6 text-center text-white/80">
+        <p className="body-medium font-grotesk p-6 text-center text-[#757575]">
           A wallet is required on your IRL account to use this activation.
         </p>
       </SponsoredActivationPageShell>
@@ -404,10 +403,10 @@ export function SponsoredActivationFlow({
 
   if (eligibilityLoading) {
     return (
-      <SponsoredActivationPageShell showCard={false}>
+      <SponsoredActivationPageShell>
         <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 px-4">
-          <Loader2 className="size-8 animate-spin text-white/60" aria-hidden />
-          <p className="body-small font-grotesk text-white/50">
+          <Loader2 className="size-8 animate-spin text-[#757575]" aria-hidden />
+          <p className="body-small font-grotesk text-[#757575]">
             Checking your activation…
           </p>
         </div>
@@ -422,7 +421,7 @@ export function SponsoredActivationFlow({
         : null;
     return (
       <SponsoredActivationPageShell>
-        <p className="body-medium font-grotesk p-6 text-center text-white/80">
+        <p className="body-medium font-grotesk p-6 text-center text-[#757575]">
           {apiMsg ??
             'We could not verify eligibility from this link. Please scan again or check with staff.'}
         </p>
@@ -433,7 +432,7 @@ export function SponsoredActivationFlow({
   if (resumeEligibility.isError) {
     return (
       <SponsoredActivationPageShell>
-        <p className="body-medium font-grotesk p-6 text-center text-white/80">
+        <p className="body-medium font-grotesk p-6 text-center text-[#757575]">
           We could not load your activation status. Please try again.
         </p>
       </SponsoredActivationPageShell>
@@ -444,8 +443,8 @@ export function SponsoredActivationFlow({
     return (
       <SponsoredActivationPageShell>
         <div className="flex flex-col gap-4 p-6 text-center">
-          <h1 className="title2 text-white">{read.activation.title}</h1>
-          <p className="body-medium font-grotesk text-white/75">
+          <h1 className="title2 text-[#171717]">{read.activation.title}</h1>
+          <p className="body-medium font-grotesk text-[#757575]">
             {deeplink
               ? 'You do not have an available redemption for this perk yet.'
               : 'No redemption is on file for this activation. Open the link from your QR code or checkpoint to continue.'}
@@ -474,7 +473,11 @@ export function SponsoredActivationFlow({
   if (baseScreen === 'redeemed') {
     return (
       <SponsoredActivationPageShell>
-        <SponsoredActivationRedeemed perkName={read.rewardItem.name} />
+        <SponsoredActivationRedeemed
+          heroImageUrl={read.rewardItem.hero_image_url}
+          perkName={read.rewardItem.name}
+          pointsSpent={pointsSpent}
+        />
       </SponsoredActivationPageShell>
     );
   }
@@ -497,7 +500,6 @@ export function SponsoredActivationFlow({
   }
 
   if (baseScreen === 'success_swipe') {
-    const showSwipe = venueStep === 'swipe';
     const swipeDisabled =
       swipeMutation.isPending ||
       isRedeemedLikeStatus(redemption.status) ||
@@ -505,34 +507,17 @@ export function SponsoredActivationFlow({
 
     return (
       <SponsoredActivationPageShell>
-        {!showSwipe ? (
-          <SponsoredActivationSuccess
-            pointsSpent={pointsSpent}
-            balanceAfter={balanceAfterPoints}
-            tierTitle={tierTitle}
-            perkName={read.rewardItem.name}
-            onContinueToSwipe={() => setVenueStep('swipe')}
-          />
-        ) : (
-          <div className="flex flex-col gap-6 p-4 md:p-6">
-            <div>
-              <h1 className="title2 text-white">Swipe to redeem</h1>
-              <p className="mt-2 body-medium font-grotesk text-white/70">
-                Complete the swipe when staff asks you to redeem{' '}
-                <span className="font-semibold text-white">
-                  {read.rewardItem.name}
-                </span>
-                .
-              </p>
-            </div>
-            <SponsoredActivationSwipeSlider
-              key={swipeSliderKey}
-              disabled={swipeDisabled}
-              onSwipeGestureStart={handleSwipeGestureStart}
-              onComplete={handleSwipeComplete}
-            />
-          </div>
-        )}
+        <SponsoredActivationSuccess
+          heroImageUrl={read.rewardItem.hero_image_url}
+          perkName={read.rewardItem.name}
+          pointsSpent={pointsSpent}
+          balanceAfter={balanceAfterPoints}
+          tier={currentTier}
+          swipeDisabled={swipeDisabled}
+          swipeSliderKey={swipeSliderKey}
+          onSwipeGestureStart={handleSwipeGestureStart}
+          onSwipeComplete={handleSwipeComplete}
+        />
       </SponsoredActivationPageShell>
     );
   }
@@ -540,7 +525,7 @@ export function SponsoredActivationFlow({
   return (
     <SponsoredActivationPageShell>
       <div className="p-6 text-center">
-        <p className="body-medium font-grotesk text-white/80">
+        <p className="body-medium font-grotesk text-[#757575]">
           This activation is not available for your account right now.
         </p>
       </div>

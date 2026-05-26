@@ -1,23 +1,49 @@
 'use client';
 
+import { SponsoredActivationHero } from '@/components/sponsored-activation/sponsored-activation-hero';
+import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
+import { SponsoredActivationCtaButton } from '@/components/sponsored-activation/sponsored-activation-cta-button';
+
 type SponsoredActivationRedeemedProps = {
+  heroImageUrl: string | null;
   perkName: string;
+  pointsSpent: number;
 };
 
 export function SponsoredActivationRedeemed({
+  heroImageUrl,
   perkName,
+  pointsSpent,
 }: SponsoredActivationRedeemedProps) {
   return (
-    <div className="flex flex-col gap-4 p-4 md:p-6">
-      <div className="rounded-md border border-emerald-500/40 bg-emerald-500/15 p-6 text-center">
-        <p className="body-small font-grotesk uppercase tracking-wide text-emerald-200/90">
-          Redeemed
-        </p>
-        <h1 className="mt-2 title2 text-white">Enjoy your perk</h1>
-        <p className="mt-3 body-medium font-grotesk text-white/85">
-          {perkName} is redeemed. Show this screen if staff asks for
+    <div className="flex min-h-[calc(100vh-5rem)] flex-col bg-white">
+      <SponsoredActivationHero
+        heroImageUrl={heroImageUrl}
+        itemName={perkName}
+      />
+
+      <div className="flex flex-1 flex-col px-4 pb-28 pt-6">
+        <h1 className="title2 text-[#171717]">All set</h1>
+        <p className="mt-2 body-medium font-grotesk text-[#757575]">
+          Your perk is redeemed. Show this screen if staff asks for
           confirmation.
         </p>
+
+        <div className="mt-6">
+          <SponsoredActivationDetailRow
+            label="You spent"
+            value={`${pointsSpent.toLocaleString()} PTS`}
+          />
+          <SponsoredActivationDetailRow label="Status" value="Redeemed" />
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#171717]/10 bg-white/95 px-4 py-4 backdrop-blur-sm">
+        <div className="mx-auto w-full max-w-[420px] md:max-w-lg">
+          <SponsoredActivationCtaButton variant="redeemed" disabled>
+            Redeemed
+          </SponsoredActivationCtaButton>
+        </div>
       </div>
     </div>
   );
