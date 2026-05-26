@@ -23,6 +23,30 @@ describe('formStateToCreatePayload', () => {
     expect(payload).not.toHaveProperty('usdc_asset_config');
   });
 
+  it('includes trimmed description when set', () => {
+    const form = {
+      ...emptySponsoredActivationForm(),
+      title: 'Drink credit',
+      sponsor_name: 'Public Records',
+      venue_settlement_wallet_address: VENUE_WALLET,
+      description: '  Free drink with check-in  ',
+    };
+    const payload = formStateToCreatePayload(form);
+    expect(payload.description).toBe('Free drink with check-in');
+  });
+
+  it('sends null description when empty', () => {
+    const form = {
+      ...emptySponsoredActivationForm(),
+      title: 'Drink credit',
+      sponsor_name: 'Public Records',
+      venue_settlement_wallet_address: VENUE_WALLET,
+      description: '   ',
+    };
+    const payload = formStateToCreatePayload(form);
+    expect(payload.description).toBeNull();
+  });
+
   it('requires at least one cap', () => {
     const form = {
       ...emptySponsoredActivationForm(),

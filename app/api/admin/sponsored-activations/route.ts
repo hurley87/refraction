@@ -96,10 +96,14 @@ export async function POST(request: NextRequest) {
         ? { contract_address: DEFAULT_SPONSORED_ACTIVATION_BASE_USDC_CONTRACT }
         : (data.usdc_asset_config as Record<string, unknown>);
 
+    const description =
+      data.description == null ? null : String(data.description).trim() || null;
+
     const row = await createSponsoredActivation({
       id: activationId,
       slug: activationId,
       title: data.title,
+      description,
       sponsor_name: data.sponsor_name,
       event_id: data.event_id ?? null,
       status: 'draft',

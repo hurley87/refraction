@@ -4,6 +4,7 @@ import { DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG } from '@/lib/schemas/a
 
 export type SponsoredActivationFormState = {
   title: string;
+  description: string;
   sponsor_name: string;
   event_id: string;
   settlement_rail: SettlementRail;
@@ -31,6 +32,7 @@ export function emptySponsoredActivationForm(): SponsoredActivationFormState {
   const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
   return {
     title: '',
+    description: '',
     sponsor_name: '',
     event_id: '',
     settlement_rail: 'base',
@@ -93,8 +95,13 @@ export function formStateToCreatePayload(
     throw new Error('Set max redemptions and/or max USDC budget');
   }
 
+  const descriptionTrimmed = form.description.trim();
+
   const common = {
     title,
+    ...(descriptionTrimmed
+      ? { description: descriptionTrimmed }
+      : { description: null }),
     sponsor_name,
     event_id: form.event_id.trim() || null,
     max_redemptions: max_redemptions ?? null,
