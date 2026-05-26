@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -45,10 +46,38 @@ type ActivationAdminRow = {
 type RewardItemRow = {
   id: string;
   name: string;
+  hero_image_url: string | null;
   points_cost: number;
   usdc_amount: number;
   is_active: boolean;
 };
+
+async function uploadActivationHeroImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
+  });
+  const json = (await response.json().catch(() => ({}))) as Record<
+    string,
+    unknown
+  >;
+  if (!response.ok) {
+    throw new Error(
+      typeof json.error === 'string' ? json.error : 'Failed to upload image'
+    );
+  }
+  const payload = (json.data ?? json) as {
+    imageUrl?: string;
+    url?: string;
+  };
+  const imageUrl = payload.imageUrl ?? payload.url;
+  if (!imageUrl) {
+    throw new Error('Image upload succeeded but no URL was returned');
+  }
+  return imageUrl;
+}
 
 type ActivationLaunchPanelProps = {
   activationId: string;
@@ -91,6 +120,17 @@ export function ActivationLaunchPanel({
   const [rewardName, setRewardName] = useState('');
   const [rewardPoints, setRewardPoints] = useState('0');
   const [rewardUsdc, setRewardUsdc] = useState('1');
+  const [rewardHeroFile, setRewardHeroFile] = useState<File | null>(null);
+  const [rewardHeroPreview, setRewardHeroPreview] = useState<string | null>(
+    null
+  );
+  const [uploadingRewardHeroItemId, setUploadingRewardHeroItemId] = useState<
+    string | null
+  >(null);
+  const rewardHeroInputRef = useRef<HTMLInputElement>(null);
+  const existingRewardHeroInputRefs = useRef<Record<string, HTMLInputElement>>(
+    {}
+  );
 
   const activationQueryKey = [
     'admin-sponsored-activation-detail',
@@ -200,6 +240,38 @@ export function ActivationLaunchPanel({
     onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
   });
 
+  const patchRewardHeroMutation = useMutation({
+    mutationFn: async (input: { itemId: string; file: File }) => {
+      setUploadingRewardHeroItemId(input.itemId);
+      const heroImageUrl = await uploadActivationHeroImage(input.file);
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch(
+        `/api/admin/sponsored-activations/${encodeURIComponent(activationId)}/reward-items/${encodeURIComponent(input.itemId)}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...auth },
+          body: JSON.stringify({ hero_image_url: heroImageUrl }),
+        }
+      );
+      const body = (await response.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
+      if (!response.ok) {
+        throw new Error(
+          readApiErrorMessage(body, 'Could not update hero image')
+        );
+      }
+      return body;
+    },
+    onSuccess: async () => {
+      toast.success('Hero image updated');
+      await invalidateAll();
+    },
+    onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
+    onSettled: () => setUploadingRewardHeroItemId(null),
+  });
+
   const createRewardMutation = useMutation({
     mutationFn: async () => {
       const points = Number(rewardPoints);
@@ -211,6 +283,9 @@ export function ActivationLaunchPanel({
       if (!Number.isFinite(usdc) || usdc <= 0) {
         throw new Error('USDC amount must be greater than zero');
       }
+      const heroImageUrl = rewardHeroFile
+        ? await uploadActivationHeroImage(rewardHeroFile)
+        : null;
       const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(
         `/api/admin/sponsored-activations/${encodeURIComponent(activationId)}/reward-items`,
@@ -222,6 +297,7 @@ export function ActivationLaunchPanel({
             points_cost: points,
             usdc_amount: usdc,
             is_active: true,
+            hero_image_url: heroImageUrl,
           }),
         }
       );
@@ -237,6 +313,11 @@ export function ActivationLaunchPanel({
     onSuccess: async () => {
       toast.success('Reward added');
       setRewardName('');
+      setRewardHeroFile(null);
+      setRewardHeroPreview(null);
+      if (rewardHeroInputRef.current) {
+        rewardHeroInputRef.current.value = '';
+      }
       await invalidateAll();
     },
     onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
@@ -407,15 +488,85 @@ export function ActivationLaunchPanel({
               {step.id === 'reward' && (
                 <div className="mt-3 space-y-3">
                   {rewardItems.length > 0 && (
-                    <ul className="space-y-1 text-xs text-neutral-700 dark:text-neutral-300">
+                    <ul className="space-y-3 text-xs text-neutral-700 dark:text-neutral-300">
                       {rewardItems.map((item) => (
-                        <li key={item.id}>
-                          <span className="font-medium">{item.name}</span>
-                          {' · '}
-                          {item.points_cost} pts · ${item.usdc_amount} USDC
-                          {!item.is_active && (
-                            <span className="text-amber-700"> (inactive)</span>
-                          )}
+                        <li
+                          key={item.id}
+                          className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-700"
+                        >
+                          <div>
+                            <span className="font-medium">{item.name}</span>
+                            {' · '}
+                            {item.points_cost} pts · ${item.usdc_amount} USDC
+                            {!item.is_active && (
+                              <span className="text-amber-700">
+                                {' '}
+                                (inactive)
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-2 flex flex-wrap items-center gap-3">
+                            {item.hero_image_url ? (
+                              <Image
+                                src={item.hero_image_url}
+                                alt={`${item.name} hero`}
+                                width={64}
+                                height={80}
+                                className="h-20 w-16 rounded-md border object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="flex h-20 w-16 items-center justify-center rounded-md border border-dashed border-neutral-300 text-[10px] text-neutral-500">
+                                No image
+                              </div>
+                            )}
+                            <div className="space-y-1">
+                              <input
+                                ref={(node) => {
+                                  if (node) {
+                                    existingRewardHeroInputRefs.current[
+                                      item.id
+                                    ] = node;
+                                  }
+                                }}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  e.target.value = '';
+                                  if (!file) return;
+                                  patchRewardHeroMutation.mutate({
+                                    itemId: item.id,
+                                    file,
+                                  });
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                disabled={
+                                  patchRewardHeroMutation.isPending &&
+                                  uploadingRewardHeroItemId === item.id
+                                }
+                                onClick={() =>
+                                  existingRewardHeroInputRefs.current[
+                                    item.id
+                                  ]?.click()
+                                }
+                              >
+                                {patchRewardHeroMutation.isPending &&
+                                uploadingRewardHeroItemId === item.id ? (
+                                  <Loader2 className="size-4 animate-spin" />
+                                ) : item.hero_image_url ? (
+                                  'Replace hero image'
+                                ) : (
+                                  'Upload hero image'
+                                )}
+                              </Button>
+                            </div>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -453,6 +604,35 @@ export function ActivationLaunchPanel({
                           value={rewardUsdc}
                           onChange={(e) => setRewardUsdc(e.target.value)}
                         />
+                      </div>
+                      <div className="space-y-1 sm:col-span-3">
+                        <Label htmlFor="launch-reward-hero">Hero image</Label>
+                        <Input
+                          ref={rewardHeroInputRef}
+                          id="launch-reward-hero"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setRewardHeroFile(file);
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setRewardHeroPreview(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                        {rewardHeroPreview && (
+                          <Image
+                            src={rewardHeroPreview}
+                            alt="Hero preview"
+                            width={120}
+                            height={150}
+                            className="mt-2 h-[150px] w-[120px] rounded-md border object-cover"
+                            unoptimized
+                          />
+                        )}
                       </div>
                       <div className="sm:col-span-3">
                         <Button
