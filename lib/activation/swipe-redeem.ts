@@ -4,13 +4,12 @@ import {
   resolvePlayerForWallet,
 } from '@/lib/activation/activation-wallet-gate';
 import { buildActivationRedemptionIdempotencyKey } from '@/lib/activation/eligibility';
-import { getPrivyUserIdFromRequest } from '@/lib/api/privy';
 import {
-  resolveServerIdentity,
   trackSponsoredRedemptionExpired,
   trackSponsoredRedemptionRedeemed,
   trackSponsoredSettlementQueued,
 } from '@/lib/analytics/server';
+import { emitSponsoredAnalyticsForWalletRequest } from '@/lib/analytics/sponsored-wallet-request-tracking';
 import {
   apiError,
   apiValidationError,
@@ -207,25 +206,21 @@ export async function runSwipeActivationRedeem(input: {
   }
 
   if (rpc.outcome === 'expired') {
-    try {
-      const privyUserId = await getPrivyUserIdFromRequest(input.request);
-      const distinctId = resolveServerIdentity({
-        privyUserId: privyUserId ?? undefined,
-        walletAddress: walletKey,
-        playerId,
-      });
-      trackSponsoredRedemptionExpired(distinctId, {
-        activation_id: activation.id,
-        settlement_rail: activation.settlement_rail,
-        user_id: playerId,
-        reward_item_id: freshRedemption.reward_item_id,
-        redemption_id: freshRedemption.id,
-        status: freshRedemption.status,
-        points_spent: freshRedemption.points_spent ?? undefined,
-      });
-    } catch {
-      /* analytics best-effort */
-    }
+    await emitSponsoredAnalyticsForWalletRequest(
+      input.request,
+      walletKey,
+      playerId,
+      (distinctId) =>
+        trackSponsoredRedemptionExpired(distinctId, {
+          activation_id: activation.id,
+          settlement_rail: activation.settlement_rail,
+          user_id: playerId,
+          reward_item_id: freshRedemption.reward_item_id,
+          redemption_id: freshRedemption.id,
+          status: freshRedemption.status,
+          points_spent: freshRedemption.points_spent ?? undefined,
+        })
+    );
     return {
       ok: false,
       response: apiError('This redemption is no longer valid', 400, {
@@ -257,31 +252,28 @@ export async function runSwipeActivationRedeem(input: {
   }
 
   if (rpc.outcome === 'created') {
-    try {
-      const privyUserId = await getPrivyUserIdFromRequest(input.request);
-      const distinctId = resolveServerIdentity({
-        privyUserId: privyUserId ?? undefined,
-        walletAddress: walletKey,
-        playerId,
-      });
-      const redemptionProps = {
-        activation_id: activation.id,
-        settlement_rail: activation.settlement_rail,
-        user_id: playerId,
-        reward_item_id: freshRedemption.reward_item_id,
-        redemption_id: freshRedemption.id,
-        status: freshRedemption.status,
-        points_spent: freshRedemption.points_spent ?? undefined,
-      };
-      trackSponsoredRedemptionRedeemed(distinctId, redemptionProps);
-      trackSponsoredSettlementQueued(distinctId, {
-        ...redemptionProps,
-        settlement_id: settlement.id,
-        usdc_amount: settlement.amount,
-      });
-    } catch {
-      /* analytics best-effort */
-    }
+    await emitSponsoredAnalyticsForWalletRequest(
+      input.request,
+      walletKey,
+      playerId,
+      (distinctId) => {
+        const redemptionProps = {
+          activation_id: activation.id,
+          settlement_rail: activation.settlement_rail,
+          user_id: playerId,
+          reward_item_id: freshRedemption.reward_item_id,
+          redemption_id: freshRedemption.id,
+          status: freshRedemption.status,
+          points_spent: freshRedemption.points_spent ?? undefined,
+        };
+        trackSponsoredRedemptionRedeemed(distinctId, redemptionProps);
+        trackSponsoredSettlementQueued(distinctId, {
+          ...redemptionProps,
+          settlement_id: settlement.id,
+          usdc_amount: settlement.amount,
+        });
+      }
+    );
   }
 
   return {

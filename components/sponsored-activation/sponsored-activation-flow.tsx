@@ -38,6 +38,13 @@ import {
   waitForInitialization,
 } from '@/lib/analytics';
 
+function runWhenMixpanelReady(run: () => void): void {
+  void waitForInitialization().then(() => {
+    if (!isInitialized()) return;
+    run();
+  });
+}
+
 type EligibilityPostResponse = {
   eligibilityEvent: { id: string; activation_id: string };
   redemptions: ActivationRedemptionRow[];
@@ -196,8 +203,7 @@ export function SponsoredActivationFlow({
     if (activationViewEmittedRef.current) return;
     activationViewEmittedRef.current = true;
     const snapshot = readQuery.data;
-    void waitForInitialization().then(() => {
-      if (!isInitialized()) return;
+    runWhenMixpanelReady(() => {
       trackSponsoredActivationViewed({
         activation_id: snapshot.activation.id,
         settlement_rail: snapshot.activation.settlement_rail,
@@ -236,8 +242,7 @@ export function SponsoredActivationFlow({
     if (confirmScreenEmittedRef.current) return;
     confirmScreenEmittedRef.current = true;
     const snapshot = readQuery.data;
-    void waitForInitialization().then(() => {
-      if (!isInitialized()) return;
+    runWhenMixpanelReady(() => {
       trackSponsoredRedemptionConfirmViewed({
         activation_id: snapshot.activation.id,
         settlement_rail: snapshot.activation.settlement_rail,
@@ -319,8 +324,7 @@ export function SponsoredActivationFlow({
     if (!readQuery.data || swipeGestureReportedRef.current) return;
     swipeGestureReportedRef.current = true;
     const read = readQuery.data;
-    void waitForInitialization().then(() => {
-      if (!isInitialized()) return;
+    runWhenMixpanelReady(() => {
       trackSponsoredRedemptionSwipeStarted({
         activation_id: read.activation.id,
         settlement_rail: read.activation.settlement_rail,

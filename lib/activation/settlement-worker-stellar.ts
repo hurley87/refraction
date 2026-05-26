@@ -193,13 +193,8 @@ export async function processStellarActivationSettlement(
     return recordSettlementFailure(settlement.id, validationError);
   }
 
-  const privyCampaignWalletId = activation.privy_campaign_wallet_id?.trim();
-  if (!privyCampaignWalletId) {
-    return recordSettlementFailure(
-      settlement.id,
-      'missing_privy_campaign_wallet_id'
-    );
-  }
+  // `validateSettlementBundle` rejects missing `privy_campaign_wallet_id`.
+  const privyCampaignWalletId = activation.privy_campaign_wallet_id!.trim();
 
   if (settlement.status === 'submitted') {
     const txHash = settlement.tx_hash?.trim();

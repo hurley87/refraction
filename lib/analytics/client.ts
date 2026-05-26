@@ -1,5 +1,6 @@
 'use client';
 
+import { compactAnalyticsEventProps } from './compact-props';
 import { ANALYTICS_EVENTS } from './events';
 import type {
   SponsoredActivationClientEventProps,
@@ -87,16 +88,6 @@ export function trackEvent(
   mixpanel.track(eventName, properties);
 }
 
-function compactMixpanelProps(
-  properties: Record<string, unknown>
-): Record<string, string | number | boolean> {
-  return Object.fromEntries(
-    Object.entries(properties).filter(
-      ([, v]) => v !== undefined && v !== null && v !== ''
-    )
-  ) as Record<string, string | number | boolean>;
-}
-
 /**
  * Mixpanel super properties that persist for the session (updated on each call).
  */
@@ -107,7 +98,7 @@ export function registerSuperProperties(
   if (!_mixpanelInitialized) return;
 
   const mixpanel = getMixpanel();
-  const cleaned = compactMixpanelProps(properties);
+  const cleaned = compactAnalyticsEventProps(properties);
   if (Object.keys(cleaned).length === 0) return;
   mixpanel.register(cleaned);
 }
@@ -122,7 +113,7 @@ export function registerSuperPropertiesOnce(
   if (!_mixpanelInitialized) return;
 
   const mixpanel = getMixpanel();
-  const cleaned = compactMixpanelProps(properties);
+  const cleaned = compactAnalyticsEventProps(properties);
   if (Object.keys(cleaned).length === 0) return;
   mixpanel.register_once(cleaned);
 }
@@ -169,7 +160,7 @@ export function trackSponsoredActivationViewed(
 ): void {
   trackEvent(
     ANALYTICS_EVENTS.SPONSORED_ACTIVATION_VIEWED,
-    compactMixpanelProps(properties as Record<string, unknown>)
+    compactAnalyticsEventProps(properties as Record<string, unknown>)
   );
 }
 
@@ -178,7 +169,7 @@ export function trackSponsoredRedemptionConfirmViewed(
 ): void {
   trackEvent(
     ANALYTICS_EVENTS.SPONSORED_REDEMPTION_CONFIRM_VIEWED,
-    compactMixpanelProps(properties as Record<string, unknown>)
+    compactAnalyticsEventProps(properties as Record<string, unknown>)
   );
 }
 
@@ -187,7 +178,7 @@ export function trackSponsoredRedemptionSwipeStarted(
 ): void {
   trackEvent(
     ANALYTICS_EVENTS.SPONSORED_REDEMPTION_SWIPE_STARTED,
-    compactMixpanelProps(properties as Record<string, unknown>)
+    compactAnalyticsEventProps(properties as Record<string, unknown>)
   );
 }
 
