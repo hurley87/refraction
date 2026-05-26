@@ -3,30 +3,21 @@
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
-/** Hero image height — half of a 640px mobile viewport per Figma. */
-export const SPONSORED_ACTIVATION_HERO_HEIGHT_PX = 320;
 
 type SponsoredActivationHeroProps = {
   heroImageUrl: string | null;
   itemName: string;
-  className?: string;
 };
 
 export function SponsoredActivationHero({
   heroImageUrl,
   itemName,
-  className,
 }: SponsoredActivationHeroProps) {
   const router = useRouter();
 
   return (
-    <div className={cn('relative w-full', className)}>
-      <div
-        className="relative w-full overflow-hidden bg-neutral-100"
-        style={{ height: SPONSORED_ACTIVATION_HERO_HEIGHT_PX }}
-      >
+    <div className="relative w-full">
+      <div className="relative h-[320px] w-full overflow-hidden bg-neutral-100">
         {heroImageUrl ? (
           <Image
             src={heroImageUrl}

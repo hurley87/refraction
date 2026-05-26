@@ -1,23 +1,14 @@
-'use client';
-
 import { cn } from '@/lib/utils';
 
 const COLLECT_INSTRUCTIONS =
-  'Swipe below and show this screen to the event staff. Swipe only when you\u2019re ready to purchase \u2014 once you\u2019ve redeemed you can\u2019t redeem again!';
+  "Swipe below and show this screen to the event staff. Swipe only when you're ready to purchase — once you've redeemed you can't redeem again!";
 
 const collectSectionClass =
   'text-[13px] font-grotesk leading-[1.25rem] text-[#171717]';
 
-type SponsoredActivationCollectInstructionsProps = {
-  className?: string;
-};
-
-/** "How to collect" block — 13px title and body per Figma. */
-export function SponsoredActivationCollectInstructions({
-  className,
-}: SponsoredActivationCollectInstructionsProps) {
+export function SponsoredActivationCollectInstructions() {
   return (
-    <section className={className}>
+    <section>
       <h2
         className={cn(
           collectSectionClass,
