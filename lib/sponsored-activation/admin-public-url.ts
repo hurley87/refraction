@@ -5,13 +5,29 @@ export function sponsoredActivationPublicPath(activationKey: string): string {
   return `/activation/${encodeURIComponent(key)}`;
 }
 
+function joinOriginAndPath(origin: string, path: string): string {
+  const base = origin.replace(/\/$/, '');
+  return `${base}${path}`;
+}
+
 /** Joins normalized `origin` with the public activation path. */
 export function sponsoredActivationPublicUrl(
   activationKey: string,
   origin: string
 ): string {
-  const base = origin.replace(/\/$/, '');
-  return `${base}${sponsoredActivationPublicPath(activationKey)}`;
+  return joinOriginAndPath(
+    origin,
+    sponsoredActivationPublicPath(activationKey)
+  );
+}
+
+/** Value for `source_ref_id` on guest QR share links: title, else trimmed slug, else id. */
+export function sponsoredActivationQrGuestShareSourceRefId(row: {
+  id: string;
+  slug: string;
+  title: string;
+}): string {
+  return row.title.trim() || row.slug.trim() || row.id;
 }
 
 const QR_GUEST_SOURCE = 'qr_scan' as const;
@@ -40,6 +56,8 @@ export function sponsoredActivationQrGuestShareUrl(
   origin: string,
   sourceRefId: string
 ): string {
-  const base = origin.replace(/\/$/, '');
-  return `${base}${sponsoredActivationQrGuestSharePath(activationKey, sourceRefId)}`;
+  return joinOriginAndPath(
+    origin,
+    sponsoredActivationQrGuestSharePath(activationKey, sourceRefId)
+  );
 }

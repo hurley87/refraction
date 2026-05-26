@@ -27,6 +27,7 @@ import type {
 } from '@/lib/db/sponsored-activations';
 import {
   sponsoredActivationQrGuestSharePath,
+  sponsoredActivationQrGuestShareSourceRefId,
   sponsoredActivationQrGuestShareUrl,
 } from '@/lib/sponsored-activation/admin-public-url';
 
@@ -263,20 +264,6 @@ export function ActivationLaunchPanel({
 
   const activeRewardCount = rewardItems.filter((i) => i.is_active).length;
 
-  /** `source_ref_id` for QR deeplinks: activation display name, then slug, then id. */
-  const activationNameForGuestRef = activation
-    ? activation.title.trim() || activation.slug.trim() || activation.id
-    : '';
-
-  const guestShareUrl =
-    typeof window !== 'undefined' && activation && activationNameForGuestRef
-      ? sponsoredActivationQrGuestShareUrl(
-          activation.slug || activation.id,
-          window.location.origin,
-          activationNameForGuestRef
-        )
-      : '';
-
   const invalidateAll = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: activationQueryKey }),
@@ -409,6 +396,18 @@ export function ActivationLaunchPanel({
       </section>
     );
   }
+
+  const activationKey = activation.slug || activation.id;
+  const qrGuestShareSourceRefId =
+    sponsoredActivationQrGuestShareSourceRefId(activation);
+  const guestShareUrl =
+    typeof window !== 'undefined'
+      ? sponsoredActivationQrGuestShareUrl(
+          activationKey,
+          window.location.origin,
+          qrGuestShareSourceRefId
+        )
+      : '';
 
   const hasActiveReward = activeRewardCount > 0;
   const isDraft = activation.status === 'draft';
@@ -756,8 +755,8 @@ export function ActivationLaunchPanel({
                   <Button type="button" size="sm" variant="outline" asChild>
                     <Link
                       href={sponsoredActivationQrGuestSharePath(
-                        activation.slug || activation.id,
-                        activationNameForGuestRef
+                        activationKey,
+                        qrGuestShareSourceRefId
                       )}
                       target="_blank"
                       rel="noopener noreferrer"

@@ -3,6 +3,7 @@ import {
   sponsoredActivationPublicPath,
   sponsoredActivationPublicUrl,
   sponsoredActivationQrGuestSharePath,
+  sponsoredActivationQrGuestShareSourceRefId,
   sponsoredActivationQrGuestShareUrl,
 } from '@/lib/sponsored-activation/admin-public-url';
 
@@ -30,6 +31,35 @@ describe('sponsoredActivationPublicUrl', () => {
     expect(sponsoredActivationPublicUrl('abc', 'https://irl.energy/')).toBe(
       'https://irl.energy/activation/abc'
     );
+  });
+});
+
+describe('sponsoredActivationQrGuestShareSourceRefId', () => {
+  it('prefers trimmed title over slug and id', () => {
+    expect(
+      sponsoredActivationQrGuestShareSourceRefId({
+        id: 'id-1',
+        slug: 'slug-1',
+        title: '  Launch  ',
+      })
+    ).toBe('Launch');
+  });
+
+  it('falls back to trimmed slug then id when title is blank', () => {
+    expect(
+      sponsoredActivationQrGuestShareSourceRefId({
+        id: 'id-1',
+        slug: '  slug-1  ',
+        title: '   ',
+      })
+    ).toBe('slug-1');
+    expect(
+      sponsoredActivationQrGuestShareSourceRefId({
+        id: 'id-1',
+        slug: '   ',
+        title: '   ',
+      })
+    ).toBe('id-1');
   });
 });
 
