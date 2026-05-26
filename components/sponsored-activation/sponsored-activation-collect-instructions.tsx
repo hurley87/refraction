@@ -7,7 +7,7 @@ export function SponsoredActivationCollectInstructions() {
       <h2 className="label-small font-grotesk uppercase tracking-wide text-[#757575]">
         How to Collect
       </h2>
-      <p className="mt-2 text-[13px] font-grotesk leading-5 text-[#171717]">
+      <p className="mt-2 body-small font-grotesk text-[#171717]">
         {COLLECT_INSTRUCTIONS}
       </p>
     </section>
