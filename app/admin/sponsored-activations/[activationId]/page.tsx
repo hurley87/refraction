@@ -22,6 +22,7 @@ import type {
   SettlementRail,
   SponsoredActivationStatus,
 } from '@/lib/db/sponsored-activations';
+import { ActivationLaunchPanel } from './activation-launch-panel';
 
 type ActivationEnvelope = {
   id: string;
@@ -316,8 +317,13 @@ export default function AdminSponsoredActivationDetailPage() {
           )}
         </div>
 
-        {dashboard && (
+        {dashboard && activationId && (
           <>
+            <ActivationLaunchPanel
+              activationId={activationId}
+              getAccessToken={getAccessToken}
+              dashboardQueryKey={dashboardQueryKey}
+            />
             <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Tile
                 label="Check-ins verified"
