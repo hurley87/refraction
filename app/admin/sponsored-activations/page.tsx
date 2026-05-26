@@ -2,11 +2,20 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
-import { Loader2, ArrowLeft, CircleDollarSign } from 'lucide-react';
+import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
+import { Loader2, ArrowLeft, CircleDollarSign, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import {
+  emptySponsoredActivationForm,
+  formStateToCreatePayload,
+  type SponsoredActivationFormState,
+} from './form-state';
+import { SponsoredActivationFormPanel } from './sponsored-activation-form-panel';
 
 /** Mirrors `GET /api/admin/sponsored-activations` rows (avoid `lib/db` in client bundles). */
 type ActivationListRow = {
@@ -18,10 +27,18 @@ type ActivationListRow = {
   settlement_rail: string;
 };
 
+const LIST_QUERY_KEY = ['admin-sponsored-activations-list'] as const;
+
 export default function AdminSponsoredActivationsListPage() {
+  const router = useRouter();
   const { user, login, getAccessToken } = usePrivy();
+  const queryClient = useQueryClient();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [form, setForm] = useState<SponsoredActivationFormState>(
+    emptySponsoredActivationForm()
+  );
 
   const checkAdminStatus = useCallback(async () => {
     if (!user?.email?.address) return false;
@@ -56,7 +73,7 @@ export default function AdminSponsoredActivationsListPage() {
   }, [user, checkAdminStatus]);
 
   const { data: activations = [], isLoading } = useQuery<ActivationListRow[]>({
-    queryKey: ['admin-sponsored-activations-list'],
+    queryKey: LIST_QUERY_KEY,
     queryFn: async () => {
       const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch('/api/admin/sponsored-activations', {
@@ -71,6 +88,66 @@ export default function AdminSponsoredActivationsListPage() {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
+
+  const closePanel = useCallback(() => {
+    setPanelOpen(false);
+  }, []);
+
+  const openCreate = useCallback(() => {
+    setForm(emptySponsoredActivationForm());
+    setPanelOpen(true);
+  }, []);
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const payload = formStateToCreatePayload(form);
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch('/api/admin/sponsored-activations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...auth,
+          'Idempotency-Key': crypto.randomUUID(),
+        },
+        body: JSON.stringify(payload),
+      });
+      const j = (await response.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
+      if (!response.ok) {
+        throw new Error(readApiErrorMessage(j, 'Create failed'));
+      }
+      const dataWrap = j.data as { activation?: { id: string } } | undefined;
+      const activation =
+        dataWrap?.activation ??
+        (j as { activation?: { id: string } }).activation;
+      if (!activation?.id) {
+        throw new Error(readApiErrorMessage(j, 'Create failed'));
+      }
+      return activation;
+    },
+    onSuccess: (activation) => {
+      void queryClient.invalidateQueries({ queryKey: LIST_QUERY_KEY });
+      toast.success('Sponsored activation created (draft)');
+      setPanelOpen(false);
+      setForm(emptySponsoredActivationForm());
+      router.push(
+        `/admin/sponsored-activations/${encodeURIComponent(activation.id)}`
+      );
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const handleCreate = useCallback(() => {
+    try {
+      formStateToCreatePayload(form);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Invalid form');
+      return;
+    }
+    createMutation.mutate();
+  }, [form, createMutation]);
 
   if (adminLoading || (user && isAdmin === null)) {
     return (
@@ -110,18 +187,28 @@ export default function AdminSponsoredActivationsListPage() {
             <ArrowLeft className="size-4" />
             Admin home
           </Link>
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
-              <CircleDollarSign className="size-6" />
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+                <CircleDollarSign className="size-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-neutral-100">
+                  Sponsored activations
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-neutral-400">
+                  Public Records activation health and settlement ops.
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-neutral-100">
-                Sponsored activations
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-neutral-400">
-                Public Records activation health and settlement ops.
-              </p>
-            </div>
+            <Button
+              type="button"
+              onClick={openCreate}
+              className="gap-1 bg-black text-white hover:bg-black/85"
+            >
+              <Plus className="size-4" />
+              New activation
+            </Button>
           </div>
         </div>
 
@@ -130,9 +217,19 @@ export default function AdminSponsoredActivationsListPage() {
             <Loader2 className="size-8 animate-spin text-neutral-400" />
           </div>
         ) : activations.length === 0 ? (
-          <p className="text-neutral-600 dark:text-neutral-400">
-            No sponsored activations yet.
-          </p>
+          <div className="rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center dark:border-neutral-700 dark:bg-neutral-900">
+            <p className="text-neutral-600 dark:text-neutral-400">
+              No sponsored activations yet.
+            </p>
+            <Button
+              type="button"
+              className="mt-4 gap-1 bg-black text-white hover:bg-black/85"
+              onClick={openCreate}
+            >
+              <Plus className="size-4" />
+              Create your first activation
+            </Button>
+          </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
             <table className="w-full text-left text-sm">
@@ -185,6 +282,15 @@ export default function AdminSponsoredActivationsListPage() {
           </div>
         )}
       </div>
+
+      <SponsoredActivationFormPanel
+        open={panelOpen}
+        form={form}
+        setForm={setForm}
+        isSaving={createMutation.isPending}
+        onClose={closePanel}
+        onSubmit={handleCreate}
+      />
     </div>
   );
 }
