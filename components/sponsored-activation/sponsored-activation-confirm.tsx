@@ -24,7 +24,7 @@ export function SponsoredActivationConfirm({
   const { activation, rewardItem } = read;
   const description = rewardItem.description?.trim() || activation.sponsor_name;
 
-  const perkValueLabel = rewardItem.perk_value_label?.trim();
+  const perkValueLabel = rewardItem.perk_value_label.trim();
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -50,18 +50,16 @@ export function SponsoredActivationConfirm({
           ) : null}
         </div>
 
-        <div className="w-full">
-          <SponsoredActivationDetailRow
-            label="You send"
-            value={
-              <SponsoredActivationPointsValue
-                points={rewardItem.points_cost}
-                suffix="PTS"
-              />
-            }
-            bareValue
-          />
-        </div>
+        <SponsoredActivationDetailRow
+          label="You send"
+          value={
+            <SponsoredActivationPointsValue
+              points={rewardItem.points_cost}
+              suffix="PTS"
+            />
+          }
+          bareValue
+        />
 
         <button
           type="button"
