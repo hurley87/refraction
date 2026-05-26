@@ -25,7 +25,7 @@ export function SponsoredActivationDrawerHero({
       ) : (
         <div className="absolute inset-0 bg-neutral-200" aria-hidden />
       )}
-      <SponsoredActivationHeroReceiveBar itemName={itemName} />
+      <SponsoredActivationHeroReceiveBar itemName={itemName} className="px-8" />
     </div>
   );
 }

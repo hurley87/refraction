@@ -1,14 +1,21 @@
+import { cn } from '@/lib/utils';
+
 type SponsoredActivationHeroReceiveBarProps = {
   itemName: string;
+  /** Extra horizontal inset when the hero uses full-bleed negative margins (e.g. drawer). */
+  className?: string;
 };
 
-/** Bottom "You receive" strip shared by page and drawer activation heroes. */
 export function SponsoredActivationHeroReceiveBar({
   itemName,
+  className,
 }: SponsoredActivationHeroReceiveBarProps) {
   return (
     <div
-      className="absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 border-t border-white/40 bg-white/85 px-4 py-4 backdrop-blur-md supports-[backdrop-filter]:bg-white/75"
+      className={cn(
+        'absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-3 border-t border-[#171717]/10 bg-white px-4 py-4',
+        className
+      )}
       role="group"
       aria-label="You receive"
     >
