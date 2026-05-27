@@ -36,6 +36,15 @@ vi.mock('@/lib/api/privy', () => ({
     mockCreatePrivy(...args),
 }));
 
+vi.mock('@/lib/activation/stellar-campaign-wallet-config', () => ({
+  getStellarSponsoredCampaignPublicKey: () =>
+    'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H',
+  getDefaultStellarSponsoredActivationUsdcAssetConfig: () => ({
+    asset_code: 'USDC',
+    issuer: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+  }),
+}));
+
 vi.mock('@/lib/db/activation-reward-items', () => ({
   listActivationRewardItems: (activationId: string) =>
     mockListItems(activationId),
@@ -72,6 +81,8 @@ import {
 } from '../[activationId]/reward-items/[itemId]/route';
 
 const SAMPLE_CONTRACT = '0x2222222222222222222222222222222222222222';
+const STELLAR_VENUE =
+  'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
 const STELLAR = 'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
 const validWindow = {
   starts_at: '2026-06-01T12:00:00.000Z',
@@ -220,6 +231,7 @@ describe('POST /api/admin/sponsored-activations', () => {
       slug: string;
       usdc_asset_config: { contract_address: string };
       eligibility_config: typeof DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG;
+      privy_campaign_wallet_id: string;
     };
     expect(createArg.status).toBe('draft');
     expect(createArg.id).toBe(createArg.slug);
@@ -229,6 +241,74 @@ describe('POST /api/admin/sponsored-activations', () => {
     expect(createArg.eligibility_config).toEqual(
       DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG
     );
+    expect(createArg.privy_campaign_wallet_id).toBe('pw-new');
+  });
+
+  it('uses shared env Stellar campaign wallet without Privy', async () => {
+    mockCreate.mockResolvedValue({
+      ...baseFixture,
+      settlement_rail: 'stellar',
+      campaign_wallet_address:
+        'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H',
+      venue_settlement_wallet_address: STELLAR_VENUE,
+      privy_campaign_wallet_id: null,
+      usdc_asset_config: {
+        asset_code: 'USDC',
+        issuer: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+      },
+    });
+    const res = await listPOST(
+      jsonReq(
+        'POST',
+        'http://localhost/api/admin/sponsored-activations',
+        {
+          settlement_rail: 'stellar',
+          title: 'Stellar activation',
+          sponsor_name: 's',
+          max_redemptions: 1,
+          ...validWindow,
+          venue_settlement_wallet_address: STELLAR_VENUE,
+        },
+        'idem-stellar'
+      )
+    );
+    expect(res.status).toBe(200);
+    expect(mockCreatePrivy).not.toHaveBeenCalled();
+    const createArg = mockCreate.mock.calls[0][0] as {
+      campaign_wallet_address: string;
+      privy_campaign_wallet_id: string | null;
+      usdc_asset_config: { asset_code: string; issuer: string };
+    };
+    expect(createArg.campaign_wallet_address).toBe(
+      'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H'
+    );
+    expect(createArg.privy_campaign_wallet_id).toBeNull();
+    expect(createArg.usdc_asset_config).toEqual({
+      asset_code: 'USDC',
+      issuer: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+    });
+  });
+
+  it('rejects Stellar create when venue equals shared campaign wallet', async () => {
+    const res = await listPOST(
+      jsonReq(
+        'POST',
+        'http://localhost/api/admin/sponsored-activations',
+        {
+          settlement_rail: 'stellar',
+          title: 't',
+          sponsor_name: 's',
+          max_redemptions: 1,
+          ...validWindow,
+          venue_settlement_wallet_address:
+            'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H',
+        },
+        'idem-stellar-dup'
+      )
+    );
+    expect(res.status).toBe(400);
+    expect(mockCreatePrivy).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 });
 

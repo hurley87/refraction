@@ -16,6 +16,10 @@ import { createSponsoredActivationPrivyCampaignWallet } from '@/lib/api/privy';
 import { sameWalletAddress } from '@/lib/utils/wallets';
 import { sponsoredActivationAdminEnvelope } from '@/lib/activation/explorer-url';
 import { adminCreateIdempotencyKey } from '@/lib/api/idempotency';
+import {
+  getDefaultStellarSponsoredActivationUsdcAssetConfig,
+  getStellarSponsoredCampaignPublicKey,
+} from '@/lib/activation/stellar-campaign-wallet-config';
 
 /** GET /api/admin/sponsored-activations */
 export async function GET(request: NextRequest) {
@@ -67,14 +71,31 @@ export async function POST(request: NextRequest) {
     }
     const data = validation.data;
 
-    const wallet = await createSponsoredActivationPrivyCampaignWallet({
-      idempotencyKey,
-      settlementRail: data.settlement_rail,
-    });
+    let campaign_wallet_address: string;
+    let privy_campaign_wallet_id: string | null = null;
+
+    if (data.settlement_rail === 'stellar') {
+      try {
+        campaign_wallet_address = getStellarSponsoredCampaignPublicKey();
+      } catch (e) {
+        const msg =
+          e instanceof Error
+            ? e.message
+            : 'Stellar campaign wallet is not configured';
+        return apiError(msg, 500);
+      }
+    } else {
+      const wallet = await createSponsoredActivationPrivyCampaignWallet({
+        idempotencyKey,
+        settlementRail: data.settlement_rail,
+      });
+      campaign_wallet_address = wallet.campaign_wallet_address;
+      privy_campaign_wallet_id = wallet.privy_campaign_wallet_id;
+    }
 
     if (
       sameWalletAddress(
-        wallet.campaign_wallet_address,
+        campaign_wallet_address,
         data.venue_settlement_wallet_address
       )
     ) {
@@ -83,7 +104,9 @@ export async function POST(request: NextRequest) {
           {
             code: z.ZodIssueCode.custom,
             message:
-              'Provisioned campaign wallet must differ from venue_settlement_wallet_address',
+              data.settlement_rail === 'stellar'
+                ? 'Venue settlement wallet must differ from the shared Stellar campaign wallet'
+                : 'Provisioned campaign wallet must differ from venue_settlement_wallet_address',
             path: ['venue_settlement_wallet_address'],
           },
         ])
@@ -94,7 +117,7 @@ export async function POST(request: NextRequest) {
     const usdc_asset_config =
       data.settlement_rail === 'base'
         ? { contract_address: DEFAULT_SPONSORED_ACTIVATION_BASE_USDC_CONTRACT }
-        : (data.usdc_asset_config as Record<string, unknown>);
+        : getDefaultStellarSponsoredActivationUsdcAssetConfig();
 
     const description =
       data.description == null ? null : data.description.trim() || null;
@@ -108,7 +131,7 @@ export async function POST(request: NextRequest) {
       event_id: data.event_id ?? null,
       status: 'draft',
       settlement_rail: data.settlement_rail,
-      campaign_wallet_address: wallet.campaign_wallet_address,
+      campaign_wallet_address,
       venue_settlement_wallet_address: data.venue_settlement_wallet_address,
       usdc_asset_config,
       max_redemptions: data.max_redemptions ?? null,
@@ -118,7 +141,7 @@ export async function POST(request: NextRequest) {
       eligibility_config: data.eligibility_config as Record<string, unknown>,
       created_by: data.created_by ?? adminCheck.user?.email ?? null,
       activation_create_idempotency_key: idempotencyKey,
-      privy_campaign_wallet_id: wallet.privy_campaign_wallet_id,
+      privy_campaign_wallet_id,
     });
 
     return apiSuccess(

@@ -235,6 +235,19 @@ describe('adminCreateSponsoredActivationRequestSchema', () => {
     }
   });
 
+  it('accepts Stellar create without campaign_wallet_address, slug, or usdc_asset_config', () => {
+    const r = adminCreateSponsoredActivationRequestSchema.safeParse({
+      settlement_rail: 'stellar',
+      title: 'Public Records Stellar',
+      sponsor_name: 'Acme',
+      max_redemptions: 100,
+      ...validTime,
+      venue_settlement_wallet_address:
+        'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H',
+    });
+    expect(r.success).toBe(true);
+  });
+
   it('rejects slug on admin create (strict)', () => {
     const r = adminCreateSponsoredActivationRequestSchema.safeParse({
       settlement_rail: 'base',

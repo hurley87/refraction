@@ -16,6 +16,7 @@ import {
   getSponsoredActivationById,
   type SponsoredActivationRow,
 } from '@/lib/db/sponsored-activations';
+import { tryGetStellarSponsoredCampaignPublicKey } from '@/lib/activation/stellar-campaign-wallet-config';
 import { pollStellarSettlementTxOutcome } from '@/lib/activation/stellar-settlement-horizon';
 import { submitStellarActivationSettlementFromCampaign } from '@/lib/activation/stellar-settlement-submit';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
@@ -53,8 +54,9 @@ function validateSettlementBundle(
   if (settlement.settlement_rail !== 'stellar') {
     return 'wrong_rail';
   }
-  if (!activation.privy_campaign_wallet_id?.trim()) {
-    return 'missing_privy_campaign_wallet_id';
+  const configuredCampaign = tryGetStellarSponsoredCampaignPublicKey();
+  if (!configuredCampaign) {
+    return 'stellar_campaign_wallet_not_configured';
   }
 
   const campaign = normalizeG(activation.campaign_wallet_address);
@@ -67,6 +69,9 @@ function validateSettlementBundle(
   }
   if (campaign !== from) {
     return 'campaign_from_mismatch';
+  }
+  if (campaign !== configuredCampaign) {
+    return 'stellar_campaign_wallet_mismatch';
   }
   if (venue !== to) {
     return 'venue_to_mismatch';
@@ -193,9 +198,6 @@ export async function processStellarActivationSettlement(
     return recordSettlementFailure(settlement.id, validationError);
   }
 
-  // `validateSettlementBundle` rejects missing `privy_campaign_wallet_id`.
-  const privyCampaignWalletId = activation.privy_campaign_wallet_id!.trim();
-
   if (settlement.status === 'submitted') {
     const txHash = settlement.tx_hash?.trim();
     if (!txHash) {
@@ -213,7 +215,6 @@ export async function processStellarActivationSettlement(
 
   const submit = await submitStellarActivationSettlementFromCampaign({
     campaignPublicKey: activation.campaign_wallet_address,
-    privyCampaignWalletId,
     venueSettlementPublicKey: activation.venue_settlement_wallet_address,
     usdcAmount: settlement.amount,
     usdcAssetConfig: activation.usdc_asset_config,

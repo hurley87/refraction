@@ -1,12 +1,10 @@
 import {
   Asset,
   Horizon,
-  Keypair,
   Operation,
   TransactionBuilder,
-  xdr,
 } from '@stellar/stellar-sdk';
-import { privyWalletRawSignTransactionHash } from '@/lib/privy-server-rest';
+import { parseStellarSponsoredCampaignKeypair } from '@/lib/activation/stellar-campaign-wallet-config';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import { stellarUsdcAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
 import {
@@ -18,7 +16,6 @@ import {
 import {
   createStellarSpendHorizonServer,
   getStellarSpendNetworkPassphrase,
-  parseStellarSpendSponsorKeypair,
 } from '@/lib/spend/stellar-wallet-readiness-config';
 
 export type StellarSettlementAssetConfig = {
@@ -41,7 +38,6 @@ export function parseStellarSettlementAssetConfig(
 /** USDC asset comes from activation `usdc_asset_config`, not spend-rail env. */
 export async function submitStellarActivationSettlementFromCampaign(input: {
   campaignPublicKey: string;
-  privyCampaignWalletId: string;
   venueSettlementPublicKey: string;
   usdcAmount: number;
   usdcAssetConfig: Record<string, unknown>;
@@ -64,17 +60,20 @@ export async function submitStellarActivationSettlementFromCampaign(input: {
     return { ok: false, reason: 'stellar_address_invalid' };
   }
 
-  const passphrase = getStellarSpendNetworkPassphrase();
-  const server = createStellarSpendHorizonServer();
-
-  let sponsor: Keypair;
+  let campaignKp;
   try {
-    sponsor = parseStellarSpendSponsorKeypair();
+    campaignKp = parseStellarSponsoredCampaignKeypair();
   } catch {
-    return { ok: false, reason: 'stellar_sponsor_misconfigured' };
+    return { ok: false, reason: 'stellar_campaign_wallet_not_configured' };
   }
 
   const campaignPub = campaignParse.data;
+  if (campaignKp.publicKey() !== campaignPub) {
+    return { ok: false, reason: 'stellar_campaign_wallet_mismatch' };
+  }
+
+  const passphrase = getStellarSpendNetworkPassphrase();
+  const server = createStellarSpendHorizonServer();
   const dest = venueParse.data;
   const { asset_code: usdcCode, issuer: usdcIssuer } = assetParsed.config;
   const usdcAsset = new Asset(usdcCode, usdcIssuer);
@@ -93,57 +92,6 @@ export async function submitStellarActivationSettlementFromCampaign(input: {
     };
   }
 
-  const inner = new TransactionBuilder(campaignAccount, {
-    fee: '0',
-    networkPassphrase: passphrase,
-  })
-    .addOperation(
-      Operation.beginSponsoringFutureReserves({
-        sponsoredId: campaignPub,
-        source: sponsor.publicKey(),
-      })
-    )
-    .addOperation(
-      Operation.payment({
-        destination: dest,
-        asset: usdcAsset,
-        amount: payAmount,
-      })
-    )
-    .addOperation(
-      Operation.endSponsoringFutureReserves({
-        source: campaignPub,
-      })
-    )
-    .setTimeout(180)
-    .build();
-
-  inner.sign(sponsor);
-
-  const hash32 = inner.hash();
-  let campaignSig: Buffer;
-  try {
-    campaignSig = await privyWalletRawSignTransactionHash({
-      walletId: input.privyCampaignWalletId,
-      hash32,
-    });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return {
-      ok: false,
-      reason: classifyStellarHorizonSubmitError(msg),
-      internalMessage: msg.slice(0, 500),
-    };
-  }
-
-  const campaignKp = Keypair.fromPublicKey(campaignPub);
-  inner.addDecoratedSignature(
-    new xdr.DecoratedSignature({
-      hint: campaignKp.signatureHint(),
-      signature: campaignSig,
-    })
-  );
-
   let baseFee: string;
   try {
     baseFee = (await server.fetchBaseFee()).toString();
@@ -156,16 +104,24 @@ export async function submitStellarActivationSettlementFromCampaign(input: {
     };
   }
 
-  const feeBump = TransactionBuilder.buildFeeBumpTransaction(
-    sponsor,
-    (Number(baseFee) * 10).toString(),
-    inner,
-    passphrase
-  );
-  feeBump.sign(sponsor);
+  const tx = new TransactionBuilder(campaignAccount, {
+    fee: baseFee,
+    networkPassphrase: passphrase,
+  })
+    .addOperation(
+      Operation.payment({
+        destination: dest,
+        asset: usdcAsset,
+        amount: payAmount,
+      })
+    )
+    .setTimeout(180)
+    .build();
+
+  tx.sign(campaignKp);
 
   try {
-    const res = await server.submitTransaction(feeBump);
+    const res = await server.submitTransaction(tx);
     return { ok: true, txHash: res.hash };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

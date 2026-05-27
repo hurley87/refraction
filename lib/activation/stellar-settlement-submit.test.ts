@@ -1,12 +1,10 @@
-import { Account } from '@stellar/stellar-sdk';
+import { Account, Keypair } from '@stellar/stellar-sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const CAMPAIGN = 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF';
 const VENUE = 'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H';
-const ISSUER = CAMPAIGN;
 
 const hoisted = vi.hoisted(() => ({
-  mockRawSign: vi.fn(),
+  campaignKp: null as import('@stellar/stellar-sdk').Keypair | null,
   mockServer: {
     loadAccount: vi.fn(),
     fetchBaseFee: vi.fn(),
@@ -14,18 +12,20 @@ const hoisted = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@/lib/privy-server-rest', () => ({
-  privyWalletRawSignTransactionHash: (...args: unknown[]) =>
-    hoisted.mockRawSign(...args),
+vi.mock('@/lib/activation/stellar-campaign-wallet-config', () => ({
+  parseStellarSponsoredCampaignKeypair: () => {
+    if (!hoisted.campaignKp) {
+      throw new Error('missing campaign key');
+    }
+    return hoisted.campaignKp;
+  },
 }));
 
 vi.mock('@/lib/spend/stellar-wallet-readiness-config', async () => {
-  const { Keypair, Networks } = await import('@stellar/stellar-sdk');
-  const sponsor = Keypair.random();
+  const { Networks } = await import('@stellar/stellar-sdk');
   return {
     createStellarSpendHorizonServer: () => hoisted.mockServer,
     getStellarSpendNetworkPassphrase: () => Networks.TESTNET,
-    parseStellarSpendSponsorKeypair: () => sponsor,
   };
 });
 
@@ -38,7 +38,7 @@ describe('parseStellarSettlementAssetConfig', () => {
   it('accepts valid activation usdc_asset_config', () => {
     const r = parseStellarSettlementAssetConfig({
       asset_code: 'USDC',
-      issuer: CAMPAIGN,
+      issuer: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
     });
     expect(r.ok).toBe(true);
   });
@@ -52,43 +52,37 @@ describe('parseStellarSettlementAssetConfig', () => {
 describe('submitStellarActivationSettlementFromCampaign', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    hoisted.mockRawSign.mockResolvedValue(Buffer.alloc(64));
+    hoisted.campaignKp = Keypair.random();
     hoisted.mockServer.loadAccount.mockResolvedValue(
-      new Account(CAMPAIGN, '1')
+      new Account(hoisted.campaignKp.publicKey(), '1')
     );
     hoisted.mockServer.fetchBaseFee.mockResolvedValue(100);
   });
 
-  it('builds campaign-sponsored payment with activation asset config', async () => {
+  it('submits a direct USDC payment signed by the configured campaign wallet', async () => {
     hoisted.mockServer.submitTransaction.mockResolvedValue({ hash: 'abc123' });
+    const campaign = hoisted.campaignKp.publicKey();
 
     const result = await submitStellarActivationSettlementFromCampaign({
-      campaignPublicKey: CAMPAIGN,
-      privyCampaignWalletId: 'campaign-wallet-id',
+      campaignPublicKey: campaign,
       venueSettlementPublicKey: VENUE,
       usdcAmount: 2.5,
-      usdcAssetConfig: { asset_code: 'USDC', issuer: ISSUER },
+      usdcAssetConfig: { asset_code: 'USDC', issuer: campaign },
     });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.txHash).toBe('abc123');
     }
-    expect(hoisted.mockRawSign).toHaveBeenCalledWith(
-      expect.objectContaining({ walletId: 'campaign-wallet-id' })
-    );
-    const feeBump = hoisted.mockServer.submitTransaction.mock.calls[0]?.[0];
-    const operations = feeBump.innerTransaction.operations;
-    expect(operations.map((op: { type: string }) => op.type)).toEqual([
-      'beginSponsoringFutureReserves',
+    const tx = hoisted.mockServer.submitTransaction.mock.calls[0]?.[0];
+    expect(tx.operations.map((op: { type: string }) => op.type)).toEqual([
       'payment',
-      'endSponsoringFutureReserves',
     ]);
-    expect(operations[1].destination).toBe(VENUE);
-    expect(operations[2].source).toBe(CAMPAIGN);
+    expect(tx.operations[0].destination).toBe(VENUE);
   });
 
   it('maps insufficient balance to insufficient_usdc_or_reserve', async () => {
+    const campaign = hoisted.campaignKp.publicKey();
     hoisted.mockServer.submitTransaction.mockRejectedValue(
       Object.assign(new Error('op_underfunded'), {
         response: {
@@ -100,16 +94,33 @@ describe('submitStellarActivationSettlementFromCampaign', () => {
     );
 
     const result = await submitStellarActivationSettlementFromCampaign({
-      campaignPublicKey: CAMPAIGN,
-      privyCampaignWalletId: 'pw',
+      campaignPublicKey: campaign,
       venueSettlementPublicKey: VENUE,
       usdcAmount: 1,
-      usdcAssetConfig: { asset_code: 'USDC', issuer: ISSUER },
+      usdcAssetConfig: { asset_code: 'USDC', issuer: campaign },
     });
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.reason).toBe('insufficient_usdc_or_reserve');
+    }
+  });
+
+  it('rejects when activation campaign address does not match configured wallet', async () => {
+    const result = await submitStellarActivationSettlementFromCampaign({
+      campaignPublicKey:
+        'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+      venueSettlementPublicKey: VENUE,
+      usdcAmount: 1,
+      usdcAssetConfig: {
+        asset_code: 'USDC',
+        issuer: hoisted.campaignKp.publicKey(),
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toBe('stellar_campaign_wallet_mismatch');
     }
   });
 });
