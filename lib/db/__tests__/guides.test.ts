@@ -62,7 +62,7 @@ describe('editorialBlocksSchema', () => {
   it('accepts a valid block stream', () => {
     const raw = [
       { type: 'paragraph', text: 'a' },
-      { type: 'subtitleTitle3', text: 'b' },
+      { type: 'typography', style: 'title3', text: 'b' },
       {
         type: 'image',
         src: '/x.jpg',
@@ -93,10 +93,17 @@ describe('parseEditorialBlocks', () => {
     expect(out).toEqual([{ type: 'paragraph', text: 'hi' }]);
   });
 
-  it('migrates legacy subtitleDisplay to subtitleH1', () => {
+  it('migrates legacy subtitleDisplay to typography h1', () => {
     const out = parseEditorialBlocks([
       { type: 'subtitleDisplay', text: '  Legacy  ' },
     ]);
-    expect(out).toEqual([{ type: 'subtitleH1', text: 'Legacy' }]);
+    expect(out).toEqual([{ type: 'typography', style: 'h1', text: 'Legacy' }]);
+  });
+
+  it('migrates legacy subtitleTitle3 to typography title3', () => {
+    const out = parseEditorialBlocks([
+      { type: 'subtitleTitle3', text: '  Sub  ' },
+    ]);
+    expect(out).toEqual([{ type: 'typography', style: 'title3', text: 'Sub' }]);
   });
 });

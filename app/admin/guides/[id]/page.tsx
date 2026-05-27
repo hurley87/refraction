@@ -29,7 +29,9 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -45,6 +47,12 @@ import {
   parseEditorialBlocks,
   type EditorialContentBlock,
 } from '@/lib/guides/block-schema';
+import {
+  EDITORIAL_TYPOGRAPHY_GROUPS,
+  editorialTypographyAddValue,
+  editorialTypographyStyleLabels,
+  parseEditorialTypographyAddValue,
+} from '@/lib/guides/editorial-typography';
 import { LeadParagraphsMarkdownReference } from '@/components/admin/lead-paragraphs-markdown-reference';
 import { CityGuidesHubCardImage } from '@/components/city-guides/city-guides-hub-card-image';
 import {
@@ -68,21 +76,44 @@ type ContributorForm = {
   location_list_id: string;
 };
 
-function emptyBlock(
-  type: EditorialContentBlock['type']
+function createEditorialBlockFromAddValue(
+  value: string
 ): EditorialContentBlock {
-  switch (type) {
-    case 'paragraph':
-      return { type: 'paragraph', text: '' };
-    case 'subtitleTitle3':
-      return { type: 'subtitleTitle3', text: '' };
-    case 'subtitleH1':
-      return { type: 'subtitleH1', text: '' };
-    case 'image':
-      return { type: 'image', src: '', alt: '', caption: '' };
-    default:
-      return { type: 'paragraph', text: '' };
+  const typographyStyle = parseEditorialTypographyAddValue(value);
+  if (typographyStyle) {
+    return { type: 'typography', style: typographyStyle, text: '' };
   }
+  if (value === 'paragraph') {
+    return { type: 'paragraph', text: '' };
+  }
+  if (value === 'image') {
+    return { type: 'image', src: '', alt: '', caption: '' };
+  }
+  return { type: 'paragraph', text: '' };
+}
+
+function editorialBlockCreatedLabelFromAddValue(value: string): string {
+  const typographyStyle = parseEditorialTypographyAddValue(value);
+  if (typographyStyle) {
+    return editorialTypographyStyleLabels[typographyStyle];
+  }
+  if (value === 'paragraph') {
+    return 'Paragraph';
+  }
+  if (value === 'image') {
+    return 'Image';
+  }
+  return 'Block';
+}
+
+function editorialBlockListLabel(block: EditorialContentBlock): string {
+  if (block.type === 'typography') {
+    return editorialTypographyStyleLabels[block.style];
+  }
+  if (block.type === 'paragraph') {
+    return 'Paragraph';
+  }
+  return 'Image';
 }
 
 /** Same rules as backend `ensureUniqueGuideSlug` (segment before uniqueness suffix). */
@@ -234,6 +265,8 @@ export default function AdminGuideEditPage() {
     number | null
   >(null);
   const [blocks, setBlocks] = useState<EditorialContentBlock[]>([]);
+  /** Remount "Add block" select after each add so the same type can be chosen again. */
+  const [addBlockSelectKey, setAddBlockSelectKey] = useState(0);
   const [previewWarningOpen, setPreviewWarningOpen] = useState(false);
   const [previewOpening, setPreviewOpening] = useState(false);
 
@@ -1304,20 +1337,36 @@ export default function AdminGuideEditPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-semibold">Editorial blocks</h2>
             <Select
-              onValueChange={(t) =>
+              key={addBlockSelectKey}
+              onValueChange={(value) => {
                 setBlocks((prev) => [
                   ...prev,
-                  emptyBlock(t as EditorialContentBlock['type']),
-                ])
-              }
+                  createEditorialBlockFromAddValue(value),
+                ]);
+                setAddBlockSelectKey((k) => k + 1);
+                toast.success(
+                  `${editorialBlockCreatedLabelFromAddValue(value)} Created!`
+                );
+              }}
             >
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-[220px]">
                 <SelectValue placeholder="Add block" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="paragraph">Paragraph</SelectItem>
-                <SelectItem value="subtitleTitle3">Title3</SelectItem>
-                <SelectItem value="subtitleH1">H1</SelectItem>
+                {EDITORIAL_TYPOGRAPHY_GROUPS.map((group) => (
+                  <SelectGroup key={group.label}>
+                    <SelectLabel>{group.label}</SelectLabel>
+                    {group.styles.map((style) => (
+                      <SelectItem
+                        key={style}
+                        value={editorialTypographyAddValue(style)}
+                      >
+                        {editorialTypographyStyleLabels[style]}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
                 <SelectItem value="image">Image</SelectItem>
               </SelectContent>
             </Select>
@@ -1330,7 +1379,7 @@ export default function AdminGuideEditPage() {
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs font-medium uppercase text-neutral-500">
-                  {block.type}
+                  {editorialBlockListLabel(block)}
                 </span>
                 <div className="flex gap-1">
                   <Button
@@ -1365,9 +1414,7 @@ export default function AdminGuideEditPage() {
                   </Button>
                 </div>
               </div>
-              {block.type === 'paragraph' ||
-              block.type === 'subtitleTitle3' ||
-              block.type === 'subtitleH1' ? (
+              {block.type === 'paragraph' || block.type === 'typography' ? (
                 <Textarea
                   value={block.text}
                   onChange={(e) => {

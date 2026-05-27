@@ -47,9 +47,7 @@ export function CityGuideLocationCard({
       </div>
 
       <div className="flex w-full max-w-[361px] flex-col gap-4 pb-2 opacity-100">
-        <h3 className="title2 flex h-8 w-full shrink-0 items-center text-[#171717]">
-          {name}
-        </h3>
+        <h3 className="title2 w-full text-[#171717]">{name}</h3>
         <p className="body-medium min-h-[88px] w-full text-[#757575]">
           {description}
         </p>
