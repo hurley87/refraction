@@ -198,7 +198,11 @@ const adminCreateSponsoredActivationBaseObject =
     });
 const adminCreateSponsoredActivationStellarObject =
   createSponsoredActivationStellarObject
-    .omit({ campaign_wallet_address: true, slug: true })
+    .omit({
+      campaign_wallet_address: true,
+      slug: true,
+      usdc_asset_config: true,
+    })
     .extend({
       eligibility_config: activationEligibilityRulesConfigSchema
         .optional()
@@ -210,7 +214,7 @@ export const DEFAULT_SPONSORED_ACTIVATION_BASE_USDC_CONTRACT =
   POSTER_CHECKOUT_USDC_ADDRESS_BASE;
 
 /**
- * Admin POST body: `campaign_wallet_address` is provisioned server-side (Privy), not supplied by the client.
+ * Admin POST body: campaign wallet is provisioned server-side (Privy on Base; shared env wallet on Stellar).
  */
 export const adminCreateSponsoredActivationRequestSchema = z
   .discriminatedUnion('settlement_rail', [

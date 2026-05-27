@@ -9,8 +9,6 @@ export type SponsoredActivationFormState = {
   event_id: string;
   settlement_rail: SettlementRail;
   venue_settlement_wallet_address: string;
-  stellar_asset_code: string;
-  stellar_usdc_issuer: string;
   max_redemptions: string;
   max_usdc_budget: string;
   starts_at_local: string;
@@ -37,8 +35,6 @@ export function emptySponsoredActivationForm(): SponsoredActivationFormState {
     event_id: '',
     settlement_rail: 'base',
     venue_settlement_wallet_address: '',
-    stellar_asset_code: 'USDC',
-    stellar_usdc_issuer: '',
     max_redemptions: '100',
     max_usdc_budget: '',
     starts_at_local: isoToDatetimeLocalValue(start.toISOString()),
@@ -117,15 +113,9 @@ export function formStateToCreatePayload(
     } as AdminCreateSponsoredActivationRequest;
   }
 
-  const asset_code = form.stellar_asset_code.trim();
-  const issuer = form.stellar_usdc_issuer.trim();
-  if (!asset_code) throw new Error('Stellar asset code is required');
-  if (!issuer) throw new Error('Stellar USDC issuer is required');
-
   return {
     ...common,
     settlement_rail: 'stellar',
     venue_settlement_wallet_address: venue,
-    usdc_asset_config: { asset_code, issuer },
   } as AdminCreateSponsoredActivationRequest;
 }

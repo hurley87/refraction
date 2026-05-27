@@ -229,7 +229,7 @@ export type CreateSponsoredActivationDbInput = {
   eligibility_config: Record<string, unknown>;
   created_by?: string | null;
   activation_create_idempotency_key: string;
-  privy_campaign_wallet_id: string;
+  privy_campaign_wallet_id?: string | null;
 };
 
 export async function createSponsoredActivation(

@@ -118,7 +118,9 @@ export function SponsoredActivationFormPanel({
               </SelectContent>
             </Select>
             <p className="text-xs text-neutral-500">
-              Campaign wallet is provisioned automatically (Privy).
+              {isBase
+                ? 'Campaign wallet is provisioned automatically (Privy).'
+                : 'Settlements pay from the shared Stellar campaign wallet configured on the server. Fund that wallet with USDC before going live.'}
             </p>
           </div>
           <div className="space-y-2">
@@ -132,33 +134,13 @@ export function SponsoredActivationFormPanel({
               placeholder={isBase ? '0x…' : 'G…'}
               className="font-mono text-sm"
             />
+            {!isBase && (
+              <p className="text-xs text-neutral-500">
+                Must differ from the shared campaign wallet. USDC settles here
+                when guests redeem.
+              </p>
+            )}
           </div>
-          {!isBase && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="sa-stellar-code">Stellar asset code</Label>
-                <Input
-                  id="sa-stellar-code"
-                  value={form.stellar_asset_code}
-                  onChange={(ev) =>
-                    setField('stellar_asset_code')(ev.target.value)
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sa-stellar-issuer">Stellar USDC issuer</Label>
-                <Input
-                  id="sa-stellar-issuer"
-                  value={form.stellar_usdc_issuer}
-                  onChange={(ev) =>
-                    setField('stellar_usdc_issuer')(ev.target.value)
-                  }
-                  placeholder="G…"
-                  className="font-mono text-sm"
-                />
-              </div>
-            </>
-          )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="sa-max-redemptions">Max redemptions</Label>

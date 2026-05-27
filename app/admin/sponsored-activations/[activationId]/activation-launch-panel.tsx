@@ -438,7 +438,10 @@ export function ActivationLaunchPanel({
       id: 'fund',
       done: false,
       title: `Fund the campaign wallet (${usdcAssetHint(activation.settlement_rail)})`,
-      body: `Send ${fmtUsdcHint(activation.max_usdc_budget)} or more to the campaign wallet below. Settlements pull from this wallet when guests redeem.`,
+      body:
+        activation.settlement_rail === 'stellar'
+          ? `Fund the shared Stellar campaign wallet below with ${fmtUsdcHint(activation.max_usdc_budget)} or more USDC. All Stellar activations settle from this wallet.`
+          : `Send ${fmtUsdcHint(activation.max_usdc_budget)} or more to the campaign wallet below. Settlements pull from this wallet when guests redeem.`,
     },
     {
       id: 'live',
@@ -710,7 +713,9 @@ export function ActivationLaunchPanel({
                     )}
                   </div>
                   <p className="w-full text-xs text-neutral-500">
-                    Send funds here (campaign wallet, provisioned via Privy).
+                    {activation.settlement_rail === 'stellar'
+                      ? 'Shared Stellar campaign wallet (server-configured). Fund with USDC before redemptions settle.'
+                      : 'Send funds here (campaign wallet, provisioned via Privy).'}{' '}
                     Redemptions settle USDC to the venue wallet{' '}
                     <span className="font-mono text-[11px]">
                       {activation.venue_settlement_wallet_address}

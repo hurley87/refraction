@@ -47,6 +47,10 @@ vi.mock('@/lib/activation/stellar-settlement-submit', () => ({
     mockSubmit(...args),
 }));
 
+vi.mock('@/lib/activation/stellar-campaign-wallet-config', () => ({
+  tryGetStellarSponsoredCampaignPublicKey: () => CAMPAIGN,
+}));
+
 vi.mock('@/lib/activation/stellar-settlement-horizon', () => ({
   pollStellarSettlementTxOutcome: (...args: unknown[]) => mockPoll(...args),
 }));
@@ -76,7 +80,7 @@ const activationFixture: SponsoredActivationRow = {
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
   activation_create_idempotency_key: null,
-  privy_campaign_wallet_id: 'privy-campaign-1',
+  privy_campaign_wallet_id: null,
 };
 
 function settlementRow(
