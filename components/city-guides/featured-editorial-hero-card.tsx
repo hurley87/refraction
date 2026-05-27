@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { CityGuideArticleMetaRow } from '@/components/city-guides/city-guide-article-meta-row';
+import { EDITORIAL_HERO_ASPECT_CLASS } from '@/components/city-guides/city-guide-article-hero-image';
 import { EditorialArticleMetaRow } from '@/components/city-guides/editorial-article-meta-row';
 import { GuideArticleHighlightedTitle } from '@/components/city-guides/guide-article-highlighted-title';
 
@@ -29,8 +30,8 @@ export function defaultReadLabel(kind: GuideKind): string {
 }
 
 /**
- * Featured editorial / city guide — full-bleed square hero on mobile; 393px column on
- * desktop. Summary and list use 16px gutters.
+ * Featured editorial / city guide — editorial hero 1350×1080; city guide square on mobile;
+ * 393px column on desktop. Summary and list use 16px gutters.
  */
 export default function FeaturedEditorialHeroCard({
   guideKind,
@@ -51,7 +52,14 @@ export default function FeaturedEditorialHeroCard({
       className={cn('w-full overflow-hidden bg-white', className)}
       aria-labelledby="featured-guide-title"
     >
-      <div className="relative mx-auto aspect-square w-full max-w-none shrink-0 overflow-hidden md:max-w-[393px]">
+      <div
+        className={cn(
+          'relative mx-auto w-full max-w-none shrink-0 overflow-hidden md:max-w-[393px]',
+          guideKind === 'editorial'
+            ? EDITORIAL_HERO_ASPECT_CLASS
+            : 'aspect-square'
+        )}
+      >
         <Link
           href={readHref}
           className="absolute inset-0 z-[1] block bg-neutral-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-400"

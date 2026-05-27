@@ -151,6 +151,23 @@
     }
   }
 
+  /* Narrow-column / mobile stack — caps below full display1 at md+. */
+  .display1-sm {
+    font-weight: 700;
+    font-family: 'Special Gothic Expanded One', sans-serif;
+    font-size: 1.75rem; /* 28px */
+    line-height: 2.25rem; /* 36px */
+    letter-spacing: 0;
+  }
+
+  @media (min-width: 768px) {
+    .display1-sm {
+      font-size: 2.25rem; /* 36px — matches display1 mobile stack */
+      line-height: 2.8125rem; /* 45px */
+      letter-spacing: 0;
+    }
+  }
+
   .display2 {
     font-size: 3rem; /* 48px */
     line-height: 3rem; /* 48px */
@@ -188,6 +205,23 @@
     .display0 {
       font-size: 75px;
       line-height: 76px;
+      letter-spacing: 0;
+    }
+  }
+
+  /* Narrow-column / mobile stack — caps below full display0 at md+. */
+  .display0-sm {
+    font-weight: 700;
+    font-family: 'Special Gothic Expanded One', sans-serif;
+    font-size: 2rem; /* 32px */
+    line-height: 2.5rem; /* 40px */
+    letter-spacing: 0;
+  }
+
+  @media (min-width: 768px) {
+    .display0-sm {
+      font-size: 2.5rem; /* 40px — matches display0 mobile stack */
+      line-height: 3.125rem; /* 50px */
       letter-spacing: 0;
     }
   }

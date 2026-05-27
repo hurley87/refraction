@@ -1,9 +1,17 @@
 import { z } from 'zod';
+import {
+  editorialTypographyStyleSchemaValues,
+  type EditorialTypographyStyle,
+} from '@/lib/guides/editorial-typography';
 
 /**
  * One block in an editorial body stream (matches `EditorialArticleBlocks` renderer).
- * `paragraph` text is GitHub Flavored Markdown; other text blocks are plain.
+ * `paragraph` text is GitHub Flavored Markdown; typography blocks are plain text.
  */
+export const editorialTypographyStyleSchema = z.enum(
+  editorialTypographyStyleSchemaValues
+);
+
 export const editorialContentBlockSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('paragraph'),
@@ -11,11 +19,8 @@ export const editorialContentBlockSchema = z.discriminatedUnion('type', [
     text: z.string(),
   }),
   z.object({
-    type: z.literal('subtitleTitle3'),
-    text: z.string(),
-  }),
-  z.object({
-    type: z.literal('subtitleH1'),
+    type: z.literal('typography'),
+    style: editorialTypographyStyleSchema,
     text: z.string(),
   }),
   z.object({
@@ -30,17 +35,27 @@ export const editorialBlocksSchema = z.array(editorialContentBlockSchema);
 
 export type EditorialContentBlock = z.infer<typeof editorialContentBlockSchema>;
 
-/** Legacy admin type; normalized to `subtitleH1` before parse. */
+/** Legacy admin types; normalized before parse. */
 function migrateLegacyBlockTypes(raw: unknown): unknown {
   if (!Array.isArray(raw)) return raw;
   return raw.map((item) => {
-    if (
-      item &&
-      typeof item === 'object' &&
-      'type' in item &&
-      (item as { type: string }).type === 'subtitleDisplay'
-    ) {
-      return { ...item, type: 'subtitleH1' };
+    if (!item || typeof item !== 'object' || !('type' in item)) {
+      return item;
+    }
+    const block = item as { type: string; text?: string };
+    if (block.type === 'subtitleTitle3') {
+      return {
+        type: 'typography',
+        style: 'title3' satisfies EditorialTypographyStyle,
+        text: block.text ?? '',
+      };
+    }
+    if (block.type === 'subtitleH1' || block.type === 'subtitleDisplay') {
+      return {
+        type: 'typography',
+        style: 'h1' satisfies EditorialTypographyStyle,
+        text: block.text ?? '',
+      };
     }
     return item;
   });
@@ -56,10 +71,7 @@ export function parseEditorialBlocks(raw: unknown): EditorialContentBlock[] {
     return [];
   }
   return parsed.data.map((block) => {
-    if (block.type === 'paragraph') {
-      return { ...block, text: block.text.trim() };
-    }
-    if (block.type === 'subtitleTitle3' || block.type === 'subtitleH1') {
+    if (block.type === 'paragraph' || block.type === 'typography') {
       return { ...block, text: block.text.trim() };
     }
     return {

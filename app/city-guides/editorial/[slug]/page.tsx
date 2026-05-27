@@ -72,6 +72,7 @@ export default async function EditorialBySlugPage({
           <CityGuideArticleHeroImage
             src={row.hero_image_url}
             alt={row.hero_image_alt}
+            variant="editorial"
             className="mb-[20px]"
           />
 
