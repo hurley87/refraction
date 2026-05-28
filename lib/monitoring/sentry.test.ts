@@ -1,8 +1,37 @@
 import { describe, expect, it } from 'vitest';
 
-import { sentryBeforeSend } from '@/lib/monitoring/sentry';
+import { isAbortError, sentryBeforeSend } from '@/lib/monitoring/sentry';
+
+describe('isAbortError', () => {
+  it('detects DOMException-style AbortError', () => {
+    const error = new DOMException('The operation was aborted.', 'AbortError');
+    expect(isAbortError(error)).toBe(true);
+  });
+
+  it('detects wrapped Error messages from Sentry serialization', () => {
+    const error = new Error('AbortError: The operation was aborted.');
+    expect(isAbortError(error)).toBe(true);
+  });
+});
 
 describe('sentryBeforeSend', () => {
+  it('returns null for fetch AbortError noise', () => {
+    const abortError = new DOMException(
+      'The operation was aborted.',
+      'AbortError'
+    );
+    const event = {
+      request: { url: 'https://example.com/events' },
+      exception: {
+        values: [{ value: 'Error: AbortError: The operation was aborted.' }],
+      },
+    };
+
+    expect(
+      sentryBeforeSend(event, { originalException: abortError })
+    ).toBeNull();
+  });
+
   it('returns null for wallet extension chrome.runtime.sendMessage webpage noise', () => {
     const event = {
       request: { url: 'https://example.com/events' },
