@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  defaultLinkPreviewImageUrl,
   getDefaultMetadataBase,
   getMetadataBaseForRequest,
   isAllowedMetadataHost,
   stripHostPort,
-  toSocialPreviewImageUrl,
 } from '@/lib/metadata/request-base';
 
 describe('stripHostPort', () => {
@@ -69,16 +69,11 @@ describe('getDefaultMetadataBase', () => {
   });
 });
 
-describe('toSocialPreviewImageUrl', () => {
-  it('replaces WebP with the default PNG link preview', () => {
+describe('defaultLinkPreviewImageUrl', () => {
+  it('uses a clean path without spaces or query params', () => {
     const metadataBase = new URL('https://www.irl.energy');
-    expect(
-      toSocialPreviewImageUrl('https://cdn.example.com/hero.webp', metadataBase)
-    ).toEqual({
-      url: 'https://www.irl.energy/link-preview/IRL%20WEB%20PREVIEW_01.png?v=2',
-      width: 1200,
-      height: 630,
-      type: 'image/png',
-    });
+    expect(defaultLinkPreviewImageUrl(metadataBase)).toBe(
+      'https://www.irl.energy/link-preview/og-default.png'
+    );
   });
 });
