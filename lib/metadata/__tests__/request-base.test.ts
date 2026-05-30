@@ -5,6 +5,7 @@ import {
   getMetadataBaseForRequest,
   isAllowedMetadataHost,
   stripHostPort,
+  toSocialPreviewImageUrl,
 } from '@/lib/metadata/request-base';
 
 describe('stripHostPort', () => {
@@ -65,5 +66,19 @@ describe('getMetadataBaseForRequest', () => {
 describe('getDefaultMetadataBase', () => {
   it('defaults to canonical www production origin', () => {
     expect(getDefaultMetadataBase().href).toBe('https://www.irl.energy/');
+  });
+});
+
+describe('toSocialPreviewImageUrl', () => {
+  it('replaces WebP with the default PNG link preview', () => {
+    const metadataBase = new URL('https://www.irl.energy');
+    expect(
+      toSocialPreviewImageUrl('https://cdn.example.com/hero.webp', metadataBase)
+    ).toEqual({
+      url: 'https://www.irl.energy/link-preview/IRL%20WEB%20PREVIEW_01.png?v=1',
+      width: 1200,
+      height: 630,
+      type: 'image/png',
+    });
   });
 });

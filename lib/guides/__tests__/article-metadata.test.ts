@@ -57,6 +57,9 @@ describe('buildGuideArticleMetadata', () => {
     expect(metadata.openGraph?.images).toEqual([
       {
         url: 'https://cdn.example.com/hero.jpg',
+        width: 1200,
+        height: 630,
+        type: 'image/jpeg',
         alt: 'Berlin hero',
       },
     ]);
@@ -83,5 +86,36 @@ describe('buildGuideArticleMetadata', () => {
     );
     expect(metadata.description).toBe('A seasonal roundup');
     expect(metadata.title).toBe('Summer Edit | IRL');
+  });
+
+  it('falls back to the site PNG when the only share image is WebP (Slack-safe)', () => {
+    const metadata = buildGuideArticleMetadata({
+      ...baseRow,
+      hero_image_url:
+        'https://pwuhplqevqeonostnkgj.supabase.co/storage/v1/object/public/images/uploads/hero.webp',
+      card_image_url: '',
+    });
+
+    expect(metadata.openGraph?.images).toEqual([
+      {
+        url: 'https://www.irl.energy/link-preview/IRL%20WEB%20PREVIEW_01.png?v=1',
+        width: 1200,
+        height: 630,
+        type: 'image/png',
+        alt: 'Berlin hero',
+      },
+    ]);
+  });
+
+  it('prefers a JPEG card image over a WebP hero', () => {
+    const metadata = buildGuideArticleMetadata({
+      ...baseRow,
+      hero_image_url: 'https://cdn.example.com/hero.webp',
+      card_image_url: 'https://cdn.example.com/card.jpg',
+    });
+
+    expect(metadata.openGraph?.images?.[0]?.url).toBe(
+      'https://cdn.example.com/card.jpg'
+    );
   });
 });
