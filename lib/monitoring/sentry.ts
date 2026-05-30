@@ -8,6 +8,9 @@ const DEFAULT_IGNORED_ERRORS = [
   'Privy user ID is required',
   'Invalid email format',
   'Email is required',
+  // fetch/AbortController cancellations (navigation, unmount, timeouts).
+  'AbortError',
+  'The operation was aborted',
 ];
 
 const DEFAULT_IGNORED_PATHS = [
@@ -35,10 +38,19 @@ type SentryEventLike = {
   };
   exception?: {
     values?: Array<{
+      type?: string;
       value?: string;
+      stacktrace?: {
+        frames?: Array<{
+          filename?: string;
+          abs_path?: string;
+        }>;
+      };
     }>;
   };
   message?: string;
+  /** Populated for some browser payloads (e.g. serialized promise rejection reason). */
+  extra?: Record<string, unknown>;
 };
 
 function eventPath(event: SentryEventLike): string | null {
@@ -55,6 +67,107 @@ function eventMessage(event: SentryEventLike, hint?: EventHint): string {
       : undefined;
 
   return (exceptionValue ?? event.message ?? hintMessage ?? '').toString();
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/** MetaMask and similar wallets inject `inpage.js`; their teardown can throw into window.onerror. */
+function frameLooksLikeInjectedScript(
+  filename?: string,
+  absPath?: string
+): boolean {
+  const combined = `${filename ?? ''} ${absPath ?? ''}`.toLowerCase();
+  return (
+    combined.includes('inpage.js') ||
+    combined.includes('chrome-extension://') ||
+    combined.includes('moz-extension://')
+  );
+}
+
+function eventFromInjectedScript(event: SentryEventLike): boolean {
+  const values = event.exception?.values;
+  if (!values?.length) return false;
+
+  for (const ex of values) {
+    const frames = ex.stacktrace?.frames;
+    if (!frames?.length) continue;
+
+    for (const frame of frames) {
+      if (frameLooksLikeInjectedScript(frame.filename, frame.abs_path)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * fetch() and streams reject with AbortError when a signal is aborted (component
+ * unmount, route change, debounced reload). These are expected and not bugs.
+ */
+export function isAbortError(reason: unknown): boolean {
+  if (reason instanceof Error) {
+    if (reason.name === 'AbortError') return true;
+    const message = reason.message.toLowerCase();
+    if (message.includes('the operation was aborted')) return true;
+    if (message.includes('aborterror') && message.includes('aborted')) {
+      return true;
+    }
+  }
+
+  if (isPlainRecord(reason) && reason.name === 'AbortError') {
+    return true;
+  }
+
+  return false;
+}
+
+function shouldDropAbortError(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (isAbortError(hint?.originalException)) {
+    return true;
+  }
+
+  const message = eventMessage(event, hint).toLowerCase();
+  return (
+    message.includes('the operation was aborted') ||
+    (message.includes('aborterror') && message.includes('aborted'))
+  );
+}
+
+/**
+ * EIP-1193 providers (MetaMask, embedded wallets, etc.) reject with a plain
+ * `{ code, message }` object. `4001` is "User rejected the request" / non-actionable
+ * user-or-wallet state (including MetaMask edge cases like an empty wallet).
+ * Those surface in Sentry as unhandled rejections with no stack.
+ */
+function isEip1193UserRejectedReason(reason: unknown): boolean {
+  if (!isPlainRecord(reason)) return false;
+  const { code, message } = reason;
+  return code === 4001 && typeof message === 'string' && message.length > 0;
+}
+
+function serializedRejectionFromEvent(
+  event: SentryEventLike
+): Record<string, unknown> | null {
+  const serialized = event.extra?.__serialized__;
+  return isPlainRecord(serialized) ? serialized : null;
+}
+
+function shouldDropEip1193UserRejection(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (isEip1193UserRejectedReason(hint?.originalException)) {
+    return true;
+  }
+  const fromExtra = serializedRejectionFromEvent(event);
+  return isEip1193UserRejectedReason(fromExtra);
 }
 
 function normalizeCsv(rawValue: string): string[] {
@@ -81,6 +194,18 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   event: T,
   hint?: EventHint
 ): T | null {
+  if (shouldDropAbortError(event, hint)) {
+    return null;
+  }
+
+  if (shouldDropEip1193UserRejection(event, hint)) {
+    return null;
+  }
+
+  if (eventFromInjectedScript(event)) {
+    return null;
+  }
+
   const path = eventPath(event);
   if (path && DEFAULT_IGNORED_PATHS.some((segment) => path.includes(segment))) {
     return null;
