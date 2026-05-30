@@ -6,7 +6,11 @@ import './globals.css';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import Providers from '@/components/shared/providers';
 import { Toaster } from '@/components/ui/sonner';
-import { getMetadataBaseForRequest } from '@/lib/metadata/request-base';
+import {
+  getMetadataBaseForRequest,
+  DEFAULT_LINK_PREVIEW_IMAGE_HEIGHT,
+  DEFAULT_LINK_PREVIEW_IMAGE_WIDTH,
+} from '@/lib/metadata/request-base';
 import Script from 'next/script';
 import Image from 'next/image';
 
@@ -32,8 +36,8 @@ export async function generateMetadata(): Promise<Metadata> {
       images: [
         {
           url: imageUrl,
-          width: 1200,
-          height: 630,
+          width: DEFAULT_LINK_PREVIEW_IMAGE_WIDTH,
+          height: DEFAULT_LINK_PREVIEW_IMAGE_HEIGHT,
           alt: '$IRL',
         },
       ],

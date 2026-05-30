@@ -5,7 +5,7 @@ import { hubListTitle, type GuideRow } from '@/lib/db/guides';
 import {
   getMetadataBaseForRequest,
   PRODUCTION_METADATA_ORIGIN,
-  toSocialPreviewImageUrl,
+  toAbsoluteMetadataImageUrl,
 } from '@/lib/metadata/request-base';
 
 function guideArticlePath(row: Pick<GuideRow, 'kind' | 'slug'>): string {
@@ -61,7 +61,7 @@ export function buildGuideArticleMetadata(
   const openGraphImages = imageSrc
     ? [
         {
-          ...toSocialPreviewImageUrl(imageSrc, metadataBase),
+          url: toAbsoluteMetadataImageUrl(imageSrc, metadataBase),
           alt: imageAlt,
         },
       ]
