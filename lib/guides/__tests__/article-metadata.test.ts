@@ -4,7 +4,7 @@ import type { GuideRow } from '@/lib/db/guides';
 vi.mock('next/headers', () => ({
   headers: () =>
     new Headers({
-      host: 'irl.energy',
+      host: 'www.irl.energy',
       'x-forwarded-proto': 'https',
     }),
 }));
@@ -52,7 +52,7 @@ describe('buildGuideArticleMetadata', () => {
     expect(metadata.openGraph?.title).toBe('The IRL Guide to Berlin | IRL');
     expect(metadata.openGraph?.description).toBe('Card preview text');
     expect(metadata.openGraph?.url).toBe(
-      'https://irl.energy/city-guides/berlin'
+      'https://www.irl.energy/city-guides/berlin'
     );
     expect(metadata.openGraph?.images).toEqual([
       {
@@ -79,7 +79,7 @@ describe('buildGuideArticleMetadata', () => {
     });
 
     expect(metadata.openGraph?.url).toBe(
-      'https://irl.energy/city-guides/editorial/summer'
+      'https://www.irl.energy/city-guides/editorial/summer'
     );
     expect(metadata.description).toBe('A seasonal roundup');
     expect(metadata.title).toBe('Summer Edit | IRL');

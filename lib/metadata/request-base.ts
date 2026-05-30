@@ -1,13 +1,44 @@
 const LINK_PREVIEW_FILE = 'IRL WEB PREVIEW_01.png';
 
+/** Production canonical origin (Vercel redirects apex → www). */
+export const PRODUCTION_METADATA_ORIGIN = 'https://www.irl.energy';
+
+/** Strip port from `Host` / `X-Forwarded-Host` (e.g. `www.irl.energy:443`). */
+export function stripHostPort(host: string): string {
+  const trimmed = host.split(',')[0].trim().toLowerCase();
+  if (!trimmed) return '';
+
+  if (trimmed.startsWith('[')) {
+    const end = trimmed.indexOf(']');
+    return end >= 0 ? trimmed.slice(1, end) : trimmed;
+  }
+
+  const colon = trimmed.lastIndexOf(':');
+  if (colon > -1 && /^\d+$/.test(trimmed.slice(colon + 1))) {
+    return trimmed.slice(0, colon);
+  }
+
+  return trimmed;
+}
+
+/** Normalize apex + www to the canonical production metadata origin. */
+export function normalizeProductionMetadataBase(url: URL): URL {
+  if (url.hostname === 'irl.energy' || url.hostname === 'www.irl.energy') {
+    return new URL(PRODUCTION_METADATA_ORIGIN);
+  }
+  return url;
+}
+
 /** Fallback site origin for metadata (build time, or when the request host is unknown). */
 export function getDefaultMetadataBase(): URL {
   const raw =
     process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
-    'https://irl.energy';
+    PRODUCTION_METADATA_ORIGIN;
   const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-  return new URL(withProtocol.replace(/\/$/, ''));
+  return normalizeProductionMetadataBase(
+    new URL(withProtocol.replace(/\/$/, ''))
+  );
 }
 
 /**
@@ -16,9 +47,17 @@ export function getDefaultMetadataBase(): URL {
  * `www.irl.energy`, the card can fail. Only allow our domains + dev hosts.
  */
 export function isAllowedMetadataHost(host: string): boolean {
-  if (host === 'irl.energy' || host === 'www.irl.energy') return true;
-  if (host.startsWith('localhost') || host.startsWith('127.0.0.1')) return true;
-  if (host.endsWith('.vercel.app')) return true;
+  const normalized = stripHostPort(host);
+  if (normalized === 'irl.energy' || normalized === 'www.irl.energy') {
+    return true;
+  }
+  if (
+    normalized.startsWith('localhost') ||
+    normalized.startsWith('127.0.0.1')
+  ) {
+    return true;
+  }
+  if (normalized.endsWith('.vercel.app')) return true;
   return false;
 }
 
@@ -28,15 +67,15 @@ export function defaultLinkPreviewImageUrl(metadataBase: URL): string {
 }
 
 /**
- * `metadataBase` + default OG image for this request (www vs non-www, preview
- * domain, local dev).
+ * `metadataBase` + default OG image for this request (canonical www on production,
+ * preview domain, local dev).
  */
 export function getMetadataBaseForRequest(h: Pick<Headers, 'get'>): {
   metadataBase: URL;
   imageUrl: string;
 } {
   const forwarded = h.get('x-forwarded-host') ?? h.get('host') ?? '';
-  const host = forwarded.split(',')[0].trim();
+  const host = stripHostPort(forwarded);
   if (!host || !isAllowedMetadataHost(host)) {
     const metadataBase = getDefaultMetadataBase();
     return {
@@ -49,7 +88,11 @@ export function getMetadataBaseForRequest(h: Pick<Headers, 'get'>): {
   const protoHeader = h.get('x-forwarded-proto')?.split(',')[0].trim();
   const protocol =
     isLocal && protoHeader === 'https' ? 'https' : isLocal ? 'http' : 'https';
-  const metadataBase = new URL(`${protocol}://${host}`);
+  const metadataBase =
+    host === 'irl.energy' || host === 'www.irl.energy'
+      ? new URL(PRODUCTION_METADATA_ORIGIN)
+      : new URL(`${protocol}://${host}`);
+
   return {
     metadataBase,
     imageUrl: defaultLinkPreviewImageUrl(metadataBase),
