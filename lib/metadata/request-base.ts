@@ -3,6 +3,10 @@ const LINK_PREVIEW_FILE = 'IRL WEB PREVIEW_01.png';
 /** Production canonical origin (Vercel redirects apex → www). */
 export const PRODUCTION_METADATA_ORIGIN = 'https://www.irl.energy';
 
+/** Standard Open Graph / Slack / LinkedIn preview dimensions. */
+export const SOCIAL_PREVIEW_IMAGE_WIDTH = 1200;
+export const SOCIAL_PREVIEW_IMAGE_HEIGHT = 630;
+
 /** Strip port from `Host` / `X-Forwarded-Host` (e.g. `www.irl.energy:443`). */
 export function stripHostPort(host: string): string {
   const trimmed = host.split(',')[0].trim().toLowerCase();
@@ -63,7 +67,7 @@ export function isAllowedMetadataHost(host: string): boolean {
 
 /** Default site-wide link preview image (absolute URL). */
 export function defaultLinkPreviewImageUrl(metadataBase: URL): string {
-  return `${metadataBase.origin}/link-preview/${encodeURIComponent(LINK_PREVIEW_FILE)}?v=1`;
+  return `${metadataBase.origin}/link-preview/${encodeURIComponent(LINK_PREVIEW_FILE)}?v=2`;
 }
 
 /**
@@ -110,4 +114,37 @@ export function toAbsoluteMetadataImageUrl(
     trimmed.startsWith('/') ? trimmed : `/${trimmed}`,
     metadataBase
   ).href;
+}
+
+function socialPreviewImageType(url: string): string | undefined {
+  if (/\.png(?:$|\?)/i.test(url)) return 'image/png';
+  if (/\.jpe?g(?:$|\?)/i.test(url)) return 'image/jpeg';
+  if (/\.gif(?:$|\?)/i.test(url)) return 'image/gif';
+  return undefined;
+}
+
+/**
+ * Slack and some unfurlers reject WebP previews. Fall back to the site PNG when
+ * needed, and always include dimensions for unfurl layout.
+ */
+export function toSocialPreviewImageUrl(
+  image: string,
+  metadataBase: URL
+): { url: string; width: number; height: number; type?: string } {
+  const absolute = toAbsoluteMetadataImageUrl(image, metadataBase);
+  if (/\.webp(?:$|\?)/i.test(absolute)) {
+    return {
+      url: defaultLinkPreviewImageUrl(metadataBase),
+      width: SOCIAL_PREVIEW_IMAGE_WIDTH,
+      height: SOCIAL_PREVIEW_IMAGE_HEIGHT,
+      type: 'image/png',
+    };
+  }
+
+  return {
+    url: absolute,
+    width: SOCIAL_PREVIEW_IMAGE_WIDTH,
+    height: SOCIAL_PREVIEW_IMAGE_HEIGHT,
+    type: socialPreviewImageType(absolute),
+  };
 }

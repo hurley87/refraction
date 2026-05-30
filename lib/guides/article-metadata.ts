@@ -4,7 +4,8 @@ import { headers } from 'next/headers';
 import { hubListTitle, type GuideRow } from '@/lib/db/guides';
 import {
   getMetadataBaseForRequest,
-  toAbsoluteMetadataImageUrl,
+  PRODUCTION_METADATA_ORIGIN,
+  toSocialPreviewImageUrl,
 } from '@/lib/metadata/request-base';
 
 function guideArticlePath(row: Pick<GuideRow, 'kind' | 'slug'>): string {
@@ -14,9 +15,15 @@ function guideArticlePath(row: Pick<GuideRow, 'kind' | 'slug'>): string {
 }
 
 function guideShareImage(row: GuideRow): string | undefined {
-  const hero = row.hero_image_url?.trim();
-  const card = row.card_image_url?.trim();
-  return hero || card || undefined;
+  const candidates = [
+    row.hero_image_url?.trim(),
+    row.card_image_url?.trim(),
+  ].filter((value): value is string => Boolean(value));
+  if (candidates.length === 0) return undefined;
+
+  return (
+    candidates.find((url) => !/\.webp(?:$|\?)/i.test(url)) ?? candidates[0]
+  );
 }
 
 function guideShareDescription(row: GuideRow): string {
@@ -27,13 +34,21 @@ function guideShareDescription(row: GuideRow): string {
   );
 }
 
+function metadataBaseForGuideArticle(noIndex: boolean): URL {
+  if (noIndex) {
+    return getMetadataBaseForRequest(headers()).metadataBase;
+  }
+
+  return new URL(PRODUCTION_METADATA_ORIGIN);
+}
+
 /** Open Graph + Twitter metadata for a published city guide or editorial article. */
 export function buildGuideArticleMetadata(
   row: GuideRow,
   options?: { noIndex?: boolean }
 ): Metadata {
-  const h = headers();
-  const { metadataBase } = getMetadataBaseForRequest(h);
+  const noIndex = Boolean(options?.noIndex);
+  const metadataBase = metadataBaseForGuideArticle(noIndex);
   const title = `${hubListTitle(row)} | IRL`;
   const description = guideShareDescription(row);
   const pageUrl = new URL(guideArticlePath(row), metadataBase).href;
@@ -46,13 +61,14 @@ export function buildGuideArticleMetadata(
   const openGraphImages = imageSrc
     ? [
         {
-          url: toAbsoluteMetadataImageUrl(imageSrc, metadataBase),
+          ...toSocialPreviewImageUrl(imageSrc, metadataBase),
           alt: imageAlt,
         },
       ]
     : undefined;
 
   const metadata: Metadata = {
+    metadataBase,
     title,
     description,
     alternates: { canonical: pageUrl },
@@ -72,7 +88,7 @@ export function buildGuideArticleMetadata(
     },
   };
 
-  if (options?.noIndex) {
+  if (noIndex) {
     metadata.robots = { index: false, follow: false };
   }
 
