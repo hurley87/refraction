@@ -145,7 +145,7 @@ function PerksPageInner() {
 
   const [viewMode, setViewMode] = useState<'rewards' | 'tiers'>('rewards');
   const [sortOption, setSortOption] = useState<'date-desc' | 'date-asc'>(
-    'date-desc'
+    'date-asc'
   );
 
   useEffect(() => {
@@ -378,7 +378,13 @@ function PerksPageInner() {
             <div className="mb-1">
               {/* Edge-to-edge: ignores page px-4 gutter */}
               {latestReward.thumbnail_url && (
-                <div className="relative mb-4 aspect-[86/79] overflow-hidden max-md:left-1/2 max-md:w-screen max-md:max-w-[100vw] max-md:-translate-x-1/2 md:left-auto md:w-full md:translate-x-0">
+                <button
+                  type="button"
+                  onClick={() => handleOpenPerk(latestReward)}
+                  disabled={latestRewardExpired}
+                  aria-label={`View details for ${latestReward.title}`}
+                  className="relative mb-4 block aspect-[86/79] overflow-hidden max-md:left-1/2 max-md:w-screen max-md:max-w-[100vw] max-md:-translate-x-1/2 md:left-auto md:w-full md:translate-x-0 disabled:cursor-not-allowed"
+                >
                   <Image
                     src={latestReward.hero_image || latestReward.thumbnail_url!}
                     alt={latestReward.title}
@@ -386,7 +392,7 @@ function PerksPageInner() {
                     className="object-cover"
                     sizes="(max-width: 767px) 100vw, 448px"
                   />
-                </div>
+                </button>
               )}
               <div
                 style={{
@@ -420,8 +426,8 @@ function PerksPageInner() {
                 )}
 
                 {/* Points, Location, and Date — metadata left, Details right */}
-                <div className="mb-2 flex h-5 min-w-0 items-center justify-between gap-2 self-stretch">
-                  <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-2 self-stretch">
+                <div className="mb-2 flex min-h-5 min-w-0 items-start justify-between gap-2 self-stretch">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-2 self-stretch">
                     {/* Points Pill */}
                     <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
                       {address &&
@@ -702,8 +708,14 @@ function PerksPageInner() {
                         !affordable || isExpired ? 'opacity-60' : ''
                       }`}
                     >
-                      {/* Thumbnail */}
-                      <div className="relative min-h-[107px] w-[107px] shrink-0 self-stretch overflow-hidden rounded-lg bg-[#EDEDED]">
+                      {/* Thumbnail — opens details, same affordance as DETAILS */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenPerk(perk)}
+                        disabled={!perk.id || !affordable || isExpired}
+                        aria-label={`View details for ${perk.title}`}
+                        className="relative block min-h-[107px] w-[107px] shrink-0 self-stretch overflow-hidden rounded-lg bg-[#EDEDED] disabled:cursor-not-allowed"
+                      >
                         {perk.thumbnail_url ? (
                           <Image
                             src={perk.thumbnail_url}
@@ -713,7 +725,7 @@ function PerksPageInner() {
                             sizes="107px"
                           />
                         ) : null}
-                      </div>
+                      </button>
 
                       {/* Content — aligned with featured / latest reward */}
                       <div className="flex min-w-0 flex-1 flex-col items-start gap-2 self-stretch">
@@ -751,8 +763,8 @@ function PerksPageInner() {
                         ) : null}
 
                         {/* Metadata row — same pattern as LATEST REWARD */}
-                        <div className="mb-2 flex h-5 min-w-0 w-full items-center justify-between gap-2 self-stretch">
-                          <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-2 self-stretch">
+                        <div className="mb-2 flex min-h-5 min-w-0 w-full items-start justify-between gap-2 self-stretch">
+                          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-2 self-stretch">
                             <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
                               {address &&
                                 (canAfford(perk) ? (
