@@ -29,6 +29,7 @@ interface PublicEvent {
   title: string;
   description: string | null;
   start: Date | null;
+  end: Date | null;
   poster: string | null;
   location: string;
   ticketsUrl: string;
@@ -40,6 +41,7 @@ interface ManualEvent {
   title: string;
   thumbnailUrl: string;
   date: string;
+  endDate?: string | null;
   city: string;
   mapsLink: string;
   rsvpLink: string;
@@ -136,15 +138,44 @@ const EVENTS_MAP_HREF = '/interactive-map';
 const getTicketsUrl = (eventName: string): string =>
   `https://dice.fm/search?q=${encodeURIComponent(eventName)}`;
 
+const monthAbbr = (date: Date): string =>
+  date.toLocaleString('en-US', { month: 'short' }).slice(0, 3).toUpperCase();
+
+const twoDigitYear = (date: Date): string =>
+  String(date.getFullYear()).slice(-2);
+
 const formatDateChip = (date: Date | null): string => {
   if (!date) return 'DATE TBA';
-  const month = date
-    .toLocaleString('en-US', { month: 'short' })
-    .slice(0, 3)
-    .toUpperCase();
-  const day = date.getDate();
-  const year = String(date.getFullYear()).slice(-2);
-  return `${month} ${day}/${year}`;
+  return `${monthAbbr(date)} ${date.getDate()}/${twoDigitYear(date)}`;
+};
+
+const isSameCalendarDay = (a: Date, b: Date): boolean =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
+/**
+ * Date chip for an event. Single-day events (no end, or end on the same day)
+ * render identically to `formatDateChip`; multi-day events render a range in
+ * the same typography, e.g. "MAY 22–24/26".
+ */
+const formatEventDateChip = (start: Date | null, end: Date | null): string => {
+  if (!start) return 'DATE TBA';
+  if (!end || isSameCalendarDay(start, end)) return formatDateChip(start);
+
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const sameMonth = sameYear && start.getMonth() === end.getMonth();
+
+  if (sameMonth) {
+    // MAY 22–24/26
+    return `${monthAbbr(start)} ${start.getDate()}–${end.getDate()}/${twoDigitYear(end)}`;
+  }
+  if (sameYear) {
+    // MAY 30–JUN 1/26
+    return `${monthAbbr(start)} ${start.getDate()}–${monthAbbr(end)} ${end.getDate()}/${twoDigitYear(end)}`;
+  }
+  // DEC 30/25–JAN 2/26
+  return `${formatDateChip(start)}–${formatDateChip(end)}`;
 };
 
 const isTodayOrFuture = (date: Date | null): boolean => {
@@ -154,6 +185,14 @@ const isTodayOrFuture = (date: Date | null): boolean => {
   return date.getTime() >= today.getTime();
 };
 
+/**
+ * Date used to classify an event as upcoming vs past: the end date for
+ * multi-day events (so an in-progress event stays upcoming), else the start.
+ * Single-day events have no end, so this is identical to the start date.
+ */
+const eventStatusDate = (event: PublicEvent): Date | null =>
+  event.end ?? event.start;
+
 const toPublicEvent = (event: DiceEvent): PublicEvent => {
   const primaryVenue = event.venues?.[0];
   return {
@@ -161,6 +200,7 @@ const toPublicEvent = (event: DiceEvent): PublicEvent => {
     title: event.name,
     description: event.description ?? null,
     start: parseEventDate(event.startDatetime),
+    end: parseEventDate(event.endDatetime),
     poster: getPoster(event.images),
     location: getLocation(primaryVenue),
     ticketsUrl: getTicketsUrl(event.name),
@@ -216,6 +256,7 @@ export default function EventsPage() {
         title: evt.title,
         description: null,
         start: parseEventDate(evt.date),
+        end: parseEventDate(evt.endDate),
         poster: evt.thumbnailUrl || null,
         location: evt.city,
         ticketsUrl: evt.rsvpLink,
@@ -234,7 +275,7 @@ export default function EventsPage() {
 
   const remainingUpcomingEvents = useMemo(() => {
     const upcoming = publicEvents.filter((event) =>
-      isTodayOrFuture(event.start)
+      isTodayOrFuture(eventStatusDate(event))
     );
     const withoutNext = nextEvent
       ? upcoming.filter((event) => event.id !== nextEvent.id)
@@ -251,7 +292,7 @@ export default function EventsPage() {
 
   const pastEvents = useMemo(() => {
     const onlyPast = publicEvents.filter(
-      (event) => event.start && !isTodayOrFuture(event.start)
+      (event) => event.start && !isTodayOrFuture(eventStatusDate(event))
     );
     return [...onlyPast].sort((a, b) => {
       const cmp = a.start!.getTime() - b.start!.getTime();
@@ -333,7 +374,7 @@ export default function EventsPage() {
                       <div className={EVENT_META_PILL_FEATURED_CLASS}>
                         <Calendar className="size-3 shrink-0 text-[#757575]" />
                         <span className="whitespace-nowrap text-[11px] uppercase leading-none tracking-wide text-[#757575]">
-                          {formatDateChip(nextEvent.start)}
+                          {formatEventDateChip(nextEvent.start, nextEvent.end)}
                         </span>
                       </div>
                       <div
@@ -449,7 +490,7 @@ export default function EventsPage() {
                         <div className={EVENT_META_PILL_LIST_CLASS}>
                           <Calendar className="size-3 shrink-0 text-neutral-500" />
                           <span className="whitespace-nowrap text-[11px] uppercase leading-none text-[#565656]">
-                            {formatDateChip(event.start)}
+                            {formatEventDateChip(event.start, event.end)}
                           </span>
                         </div>
                         <div
@@ -539,7 +580,7 @@ export default function EventsPage() {
                         <div className={EVENT_META_PILL_LIST_CLASS}>
                           <Calendar className="size-3 shrink-0 text-neutral-500" />
                           <span className="whitespace-nowrap text-[11px] uppercase leading-none text-[#565656]">
-                            {formatDateChip(event.start)}
+                            {formatEventDateChip(event.start, event.end)}
                           </span>
                         </div>
                         <div

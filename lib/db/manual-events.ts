@@ -5,6 +5,7 @@ export interface ManualEventRow {
   title: string;
   thumbnail_url: string;
   date: string;
+  end_date: string | null;
   city: string;
   maps_link: string;
   rsvp_link: string;
@@ -17,13 +18,15 @@ export interface ManualEventPublic {
   title: string;
   thumbnailUrl: string;
   date: string;
+  /** Optional end date for multi-day events; null for single-day events. */
+  endDate: string | null;
   city: string;
   mapsLink: string;
   rsvpLink: string;
 }
 
 const COLUMNS =
-  'id, title, thumbnail_url, date, city, maps_link, rsvp_link, created_at, updated_at';
+  'id, title, thumbnail_url, date, end_date, city, maps_link, rsvp_link, created_at, updated_at';
 
 function toPublic(row: ManualEventRow): ManualEventPublic {
   return {
@@ -31,6 +34,7 @@ function toPublic(row: ManualEventRow): ManualEventPublic {
     title: row.title,
     thumbnailUrl: row.thumbnail_url,
     date: row.date,
+    endDate: row.end_date,
     city: row.city,
     mapsLink: row.maps_link,
     rsvpLink: row.rsvp_link,
@@ -56,6 +60,7 @@ export async function createManualEvent(
       title: input.title,
       thumbnail_url: input.thumbnailUrl,
       date: input.date,
+      end_date: input.endDate,
       city: input.city,
       maps_link: input.mapsLink,
       rsvp_link: input.rsvpLink,
@@ -77,6 +82,7 @@ export async function updateManualEvent(
       title: input.title,
       thumbnail_url: input.thumbnailUrl,
       date: input.date,
+      end_date: input.endDate,
       city: input.city,
       maps_link: input.mapsLink,
       rsvp_link: input.rsvpLink,
