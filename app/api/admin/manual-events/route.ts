@@ -9,14 +9,36 @@ import {
   deleteManualEvent,
 } from '@/lib/db/manual-events';
 
-const manualEventSchema = z.object({
+const manualEventFields = z.object({
   title: z.string().min(1, 'Title is required'),
   thumbnailUrl: z.string().default(''),
   date: z.string().min(1, 'Date is required'),
+  endDate: z
+    .string()
+    .nullable()
+    .optional()
+    .transform((value) => (value && value.trim() ? value : null)),
   city: z.string().min(1, 'City is required'),
   mapsLink: z.string().default(''),
   rsvpLink: z.string().default(''),
 });
+
+const endOnOrAfterStart = (data: { date: string; endDate: string | null }) =>
+  !data.endDate || new Date(data.endDate) >= new Date(data.date);
+
+const endDateError = {
+  message: 'End date must be on or after the start date',
+  path: ['endDate'],
+};
+
+const manualEventSchema = manualEventFields.refine(
+  endOnOrAfterStart,
+  endDateError
+);
+
+const manualEventUpdateSchema = manualEventFields
+  .extend({ id: z.string().uuid('Invalid event ID') })
+  .refine(endOnOrAfterStart, endDateError);
 
 /** GET /api/admin/manual-events — list all manual events */
 export async function GET(request: NextRequest) {
@@ -68,9 +90,7 @@ export async function PUT(request: NextRequest) {
     return apiError('Invalid JSON', 400);
   }
 
-  const parsed = manualEventSchema
-    .extend({ id: z.string().uuid('Invalid event ID') })
-    .safeParse(body);
+  const parsed = manualEventUpdateSchema.safeParse(body);
   if (!parsed.success) return apiValidationError(parsed.error);
 
   const { id, ...fields } = parsed.data;

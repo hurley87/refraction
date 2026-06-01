@@ -45,6 +45,7 @@ interface ManualEvent {
   title: string;
   thumbnailUrl: string;
   date: string;
+  endDate: string | null;
   city: string;
   mapsLink: string;
   rsvpLink: string;
@@ -73,6 +74,7 @@ const EMPTY_MANUAL_FORM = {
   title: '',
   thumbnailUrl: '',
   date: '',
+  endDate: '',
   city: '',
   mapsLink: '',
   rsvpLink: '',
@@ -103,6 +105,7 @@ function ManualEventDialog({
         title: event.title,
         thumbnailUrl: event.thumbnailUrl,
         date: event.date ? event.date.slice(0, 10) : '',
+        endDate: event.endDate ? event.endDate.slice(0, 10) : '',
         city: event.city,
         mapsLink: event.mapsLink,
         rsvpLink: event.rsvpLink,
@@ -115,18 +118,26 @@ function ManualEventDialog({
   const handleSave = async () => {
     setError(null);
     if (!form.title.trim() || !form.date.trim() || !form.city.trim()) {
-      setError('Title, date, and city are required.');
+      setError('Title, start date, and city are required.');
+      return;
+    }
+    if (form.endDate && new Date(form.endDate) < new Date(form.date)) {
+      setError('End date must be on or after the start date.');
       return;
     }
     setSaving(true);
     try {
       const auth = await adminApiAuthHeaders(getAccessToken);
       const dateIso = new Date(form.date).toISOString();
+      const endDateIso = form.endDate
+        ? new Date(form.endDate).toISOString()
+        : null;
       const body = {
         ...(event?.id ? { id: event.id } : {}),
         title: form.title.trim(),
         thumbnailUrl: form.thumbnailUrl.trim(),
         date: dateIso,
+        endDate: endDateIso,
         city: form.city.trim(),
         mapsLink: form.mapsLink.trim(),
         rsvpLink: form.rsvpLink.trim(),
@@ -215,7 +226,7 @@ function ManualEventDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="me-date">Date *</Label>
+              <Label htmlFor="me-date">Start date *</Label>
               <Input
                 id="me-date"
                 type="date"
@@ -224,14 +235,24 @@ function ManualEventDialog({
               />
             </div>
             <div>
-              <Label htmlFor="me-city">City *</Label>
+              <Label htmlFor="me-end-date">End date</Label>
               <Input
-                id="me-city"
-                value={form.city}
-                onChange={(e) => set('city', e.target.value)}
-                placeholder="e.g. Montreal"
+                id="me-end-date"
+                type="date"
+                value={form.endDate}
+                min={form.date || undefined}
+                onChange={(e) => set('endDate', e.target.value)}
               />
             </div>
+          </div>
+          <div>
+            <Label htmlFor="me-city">City *</Label>
+            <Input
+              id="me-city"
+              value={form.city}
+              onChange={(e) => set('city', e.target.value)}
+              placeholder="e.g. Montreal"
+            />
           </div>
           <div>
             <Label>Thumbnail</Label>
@@ -1042,7 +1063,9 @@ export default function AdminEventsPage() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-900">
-                          {formatDate(evt.date)}
+                          {evt.endDate
+                            ? `${formatDate(evt.date)} – ${formatDate(evt.endDate)}`
+                            : formatDate(evt.date)}
                         </p>
                       </div>
                     </div>
