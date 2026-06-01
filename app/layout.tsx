@@ -27,26 +27,26 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase,
     title: 'IRL',
-    description: "IRL - Culture's rewards program.",
+    description: "Culture's rewards program. Music, Art, Events. Access Worldwide.",
     /** Favicon: `app/icon.svg` (Next injects `<link rel="icon" href="/icon?…">`). */
     openGraph: {
-      title: '$IRL',
-      description: "IRL - Culture's rewards program.",
+      title: 'IRL',
+      description: "Culture's rewards program. Music, Art, Events. Access Worldwide.",
       url: new URL('/', metadataBase).href,
       images: [
         {
           url: imageUrl,
           width: DEFAULT_LINK_PREVIEW_IMAGE_WIDTH,
           height: DEFAULT_LINK_PREVIEW_IMAGE_HEIGHT,
-          alt: '$IRL',
+          alt: 'IRL',
         },
       ],
       type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
-      title: '$IRL',
-      description: "IRL - Culture's rewards program.",
+      title: 'IRL',
+      description: "Culture's rewards program. Music, Art, Events. Access Worldwide.",
       images: [imageUrl],
     },
     appleWebApp: {
