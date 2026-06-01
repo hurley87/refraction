@@ -52,7 +52,7 @@ The most specific current product goal to use for weekly analysis is: **improve 
 ### Earning points and progressing through tiers
 
 1. **User action:** Complete a points-earning action.
-2. **App action:** The current live points-earning actions are location check-ins, checkpoint check-ins, and location creation.
+2. **App action:** The current live points-earning actions are location check-ins, checkpoint check-ins, location creation, and one-time profile-field completion bonuses (via `/api/profile`).
 3. **App action:** Update `players.total_points`.
 4. **App action:** Resolve the current tier from the `tiers` table and fire `tier_progression` only if the tier changed.
 5. **Success means:** The player's balance is updated and tier state is current.
