@@ -5,7 +5,7 @@ import { hubListTitle, type GuideRow } from '@/lib/db/guides';
 import {
   getMetadataBaseForRequest,
   PRODUCTION_METADATA_ORIGIN,
-  toAbsoluteMetadataImageUrl,
+  toSocialPreviewImageUrl,
 } from '@/lib/metadata/request-base';
 
 function guideArticlePath(row: Pick<GuideRow, 'kind' | 'slug'>): string {
@@ -15,15 +15,7 @@ function guideArticlePath(row: Pick<GuideRow, 'kind' | 'slug'>): string {
 }
 
 function guideShareImage(row: GuideRow): string | undefined {
-  const candidates = [
-    row.hero_image_url?.trim(),
-    row.card_image_url?.trim(),
-  ].filter((value): value is string => Boolean(value));
-  if (candidates.length === 0) return undefined;
-
-  return (
-    candidates.find((url) => !/\.webp(?:$|\?)/i.test(url)) ?? candidates[0]
-  );
+  return row.hero_image_url?.trim() || row.card_image_url?.trim() || undefined;
 }
 
 function guideShareDescription(row: GuideRow): string {
@@ -61,7 +53,7 @@ export function buildGuideArticleMetadata(
   const openGraphImages = imageSrc
     ? [
         {
-          url: toAbsoluteMetadataImageUrl(imageSrc, metadataBase),
+          ...toSocialPreviewImageUrl(imageSrc, metadataBase),
           alt: imageAlt,
         },
       ]

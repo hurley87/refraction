@@ -57,6 +57,7 @@ describe('buildGuideArticleMetadata', () => {
     expect(metadata.openGraph?.images).toEqual([
       {
         url: 'https://cdn.example.com/hero.jpg',
+        type: 'image/jpeg',
         alt: 'Berlin hero',
       },
     ]);
@@ -85,7 +86,7 @@ describe('buildGuideArticleMetadata', () => {
     expect(metadata.title).toBe('Summer Edit | IRL');
   });
 
-  it('keeps WebP hero URLs for article previews', () => {
+  it('falls back to the branded PNG for non-Supabase WebP heroes (Slack-safe)', () => {
     const metadata = buildGuideArticleMetadata({
       ...baseRow,
       hero_image_url: 'https://cdn.example.com/hero.webp',
@@ -94,21 +95,28 @@ describe('buildGuideArticleMetadata', () => {
 
     expect(metadata.openGraph?.images).toEqual([
       {
-        url: 'https://cdn.example.com/hero.webp',
+        url: 'https://www.irl.energy/link-preview/og-default.png',
+        type: 'image/png',
+        width: 1200,
+        height: 628,
         alt: 'Berlin hero',
       },
     ]);
   });
 
-  it('prefers a JPEG card image over a WebP hero', () => {
+  it('routes Supabase WebP heroes through the JPEG transform endpoint', () => {
     const metadata = buildGuideArticleMetadata({
       ...baseRow,
-      hero_image_url: 'https://cdn.example.com/hero.webp',
-      card_image_url: 'https://cdn.example.com/card.jpg',
+      hero_image_url:
+        'https://pwuhplqevqeonostnkgj.supabase.co/storage/v1/object/public/images/uploads/hero.webp',
+      card_image_url: '',
     });
 
-    expect(metadata.openGraph?.images?.[0]?.url).toBe(
-      'https://cdn.example.com/card.jpg'
-    );
+    const image = metadata.openGraph?.images?.[0] as
+      | { url: string; type?: string }
+      | undefined;
+    expect(image?.url).toContain('/storage/v1/render/image/public/');
+    expect(image?.url).toContain('width=1200');
+    expect(image?.type).toBe('image/jpeg');
   });
 });
