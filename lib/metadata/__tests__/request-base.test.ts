@@ -6,6 +6,7 @@ import {
   getMetadataBaseForRequest,
   isAllowedMetadataHost,
   stripHostPort,
+  toSocialPreviewImageUrl,
 } from '@/lib/metadata/request-base';
 
 describe('stripHostPort', () => {
@@ -75,5 +76,43 @@ describe('defaultLinkPreviewImageUrl', () => {
     expect(defaultLinkPreviewImageUrl(metadataBase)).toBe(
       'https://www.irl.energy/link-preview/og-default.png'
     );
+  });
+});
+
+describe('toSocialPreviewImageUrl', () => {
+  const metadataBase = new URL('https://www.irl.energy');
+
+  it('routes Supabase storage images through the JPEG transform endpoint', () => {
+    const result = toSocialPreviewImageUrl(
+      'https://pwuhplqevqeonostnkgj.supabase.co/storage/v1/object/public/images/uploads/hero.webp',
+      metadataBase
+    );
+
+    expect(result.type).toBe('image/jpeg');
+    expect(result.url).toContain(
+      'https://pwuhplqevqeonostnkgj.supabase.co/storage/v1/render/image/public/images/uploads/hero.webp'
+    );
+    expect(result.url).toContain('width=1200');
+    expect(result.url).toContain('resize=cover');
+  });
+
+  it('falls back to the branded PNG for non-transformable WebP', () => {
+    expect(
+      toSocialPreviewImageUrl('https://cdn.example.com/hero.webp', metadataBase)
+    ).toEqual({
+      url: 'https://www.irl.energy/link-preview/og-default.png',
+      type: 'image/png',
+      width: 1200,
+      height: 628,
+    });
+  });
+
+  it('passes through non-WebP URLs with a best-effort MIME type', () => {
+    expect(
+      toSocialPreviewImageUrl('https://cdn.example.com/hero.png', metadataBase)
+    ).toEqual({
+      url: 'https://cdn.example.com/hero.png',
+      type: 'image/png',
+    });
   });
 });

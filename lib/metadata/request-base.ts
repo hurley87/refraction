@@ -115,3 +115,64 @@ export function toAbsoluteMetadataImageUrl(
     metadataBase
   ).href;
 }
+
+const SUPABASE_OBJECT_SEGMENT = '/storage/v1/object/public/';
+const SUPABASE_RENDER_SEGMENT = '/storage/v1/render/image/public/';
+
+function socialPreviewImageType(url: string): string | undefined {
+  if (/\.png(?:$|\?)/i.test(url)) return 'image/png';
+  if (/\.jpe?g(?:$|\?)/i.test(url)) return 'image/jpeg';
+  if (/\.gif(?:$|\?)/i.test(url)) return 'image/gif';
+  return undefined;
+}
+
+/**
+ * Supabase storage public object URL → image-transform (`render/image`) URL.
+ * The transform endpoint always re-encodes to JPEG, which fixes Slack /
+ * iMessage / LinkedIn previews (they do not render WebP `og:image`). Returns
+ * `null` for non-Supabase URLs.
+ */
+function supabaseRenderImageUrl(absolute: string): string | null {
+  if (!absolute.includes(SUPABASE_OBJECT_SEGMENT)) return null;
+  const url = new URL(
+    absolute.replace(SUPABASE_OBJECT_SEGMENT, SUPABASE_RENDER_SEGMENT)
+  );
+  url.searchParams.set('width', '1200');
+  url.searchParams.set('height', '630');
+  url.searchParams.set('resize', 'cover');
+  url.searchParams.set('quality', '80');
+  return url.href;
+}
+
+/**
+ * Resolve a share image to a Slack-safe `og:image`. Slack (and several other
+ * unfurlers) cannot render WebP, while X/Twitter can — this is why WebP heroes
+ * preview on Twitter but not Slack.
+ *
+ * - Supabase storage images are routed through the transform endpoint so they
+ *   are served as JPEG (dimensions vary by source, so they are not declared).
+ * - Other WebP URLs we cannot transform fall back to the branded site PNG.
+ * - Everything else passes through with a best-effort MIME type.
+ */
+export function toSocialPreviewImageUrl(
+  image: string,
+  metadataBase: URL
+): { url: string; type?: string; width?: number; height?: number } {
+  const absolute = toAbsoluteMetadataImageUrl(image, metadataBase);
+
+  const rendered = supabaseRenderImageUrl(absolute);
+  if (rendered) {
+    return { url: rendered, type: 'image/jpeg' };
+  }
+
+  if (/\.webp(?:$|\?)/i.test(absolute)) {
+    return {
+      url: defaultLinkPreviewImageUrl(metadataBase),
+      type: 'image/png',
+      width: DEFAULT_LINK_PREVIEW_IMAGE_WIDTH,
+      height: DEFAULT_LINK_PREVIEW_IMAGE_HEIGHT,
+    };
+  }
+
+  return { url: absolute, type: socialPreviewImageType(absolute) };
+}
