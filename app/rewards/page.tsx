@@ -85,7 +85,7 @@ const TimeLeft = ({
 };
 
 function PerksPageInner() {
-  const { user } = usePrivy();
+  const { user, login } = usePrivy();
   const address = user?.wallet?.address;
   const searchParams = useSearchParams();
   const { trackEvent, trackPage } = useAnalytics();
@@ -145,7 +145,7 @@ function PerksPageInner() {
 
   const [viewMode, setViewMode] = useState<'rewards' | 'tiers'>('rewards');
   const [sortOption, setSortOption] = useState<'date-desc' | 'date-asc'>(
-    'date-asc'
+    'date-desc'
   );
 
   useEffect(() => {
@@ -327,21 +327,42 @@ function PerksPageInner() {
     ? formatTierLabel(selectedPerk.points_threshold)
     : 'All Members';
 
-  // Get the latest reward (most recently created or updated)
+  // Featured reward for the LATEST REWARD slot: a manually featured perk wins;
+  // otherwise fall back to the most recently created/updated perk. When multiple
+  // perks are featured, the most recently updated featured perk is used.
   const latestReward =
     perks.length > 0
       ? [...perks].sort((a, b) => {
-          const aDate = a.created_at || a.updated_at || '';
-          const bDate = b.created_at || b.updated_at || '';
+          const aFeatured = a.is_featured ? 1 : 0;
+          const bFeatured = b.is_featured ? 1 : 0;
+          if (aFeatured !== bFeatured) return bFeatured - aFeatured;
+
+          const aDate = a.updated_at || a.created_at || '';
+          const bDate = b.updated_at || b.created_at || '';
           return new Date(bDate).getTime() - new Date(aDate).getTime();
         })[0]
       : null;
 
+  const isPerkExpiringSoon = (perk: Perk) =>
+    Boolean(
+      perk.end_date &&
+      new Date(perk.end_date) >= new Date() &&
+      new Date(perk.end_date) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    );
+
   const sortedRewards = perks
     .filter((perk) => perk.id !== latestReward?.id)
     .sort((a, b) => {
+      // Ending-soon (not yet expired) rewards float to the top, right below the featured reward.
+      const aSoon = isPerkExpiringSoon(a);
+      const bSoon = isPerkExpiringSoon(b);
+      if (aSoon !== bSoon) return aSoon ? -1 : 1;
+
       const aTime = getPerkEndTimestamp(a);
       const bTime = getPerkEndTimestamp(b);
+
+      // Within the ending-soon group, soonest to expire comes first.
+      if (aSoon && bSoon) return aTime - bTime;
 
       return sortOption === 'date-asc' ? aTime - bTime : bTime - aTime;
     });
@@ -378,13 +399,7 @@ function PerksPageInner() {
             <div className="mb-1">
               {/* Edge-to-edge: ignores page px-4 gutter */}
               {latestReward.thumbnail_url && (
-                <button
-                  type="button"
-                  onClick={() => handleOpenPerk(latestReward)}
-                  disabled={latestRewardExpired}
-                  aria-label={`View details for ${latestReward.title}`}
-                  className="relative mb-4 block aspect-[86/79] overflow-hidden max-md:left-1/2 max-md:w-screen max-md:max-w-[100vw] max-md:-translate-x-1/2 md:left-auto md:w-full md:translate-x-0 disabled:cursor-not-allowed"
-                >
+                <div className="relative mb-4 aspect-[86/79] overflow-hidden max-md:left-1/2 max-md:w-screen max-md:max-w-[100vw] max-md:-translate-x-1/2 md:left-auto md:w-full md:translate-x-0">
                   <Image
                     src={latestReward.hero_image || latestReward.thumbnail_url!}
                     alt={latestReward.title}
@@ -392,7 +407,7 @@ function PerksPageInner() {
                     className="object-cover"
                     sizes="(max-width: 767px) 100vw, 448px"
                   />
-                </button>
+                </div>
               )}
               <div
                 style={{
@@ -426,8 +441,8 @@ function PerksPageInner() {
                 )}
 
                 {/* Points, Location, and Date — metadata left, Details right */}
-                <div className="mb-2 flex min-h-5 min-w-0 items-start justify-between gap-2 self-stretch">
-                  <div className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-2 self-stretch">
+                <div className="mb-2 flex h-5 min-w-0 items-center justify-between gap-2 self-stretch">
+                  <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-2 self-stretch">
                     {/* Points Pill */}
                     <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
                       {address &&
@@ -708,14 +723,8 @@ function PerksPageInner() {
                         !affordable || isExpired ? 'opacity-60' : ''
                       }`}
                     >
-                      {/* Thumbnail — opens details, same affordance as DETAILS */}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenPerk(perk)}
-                        disabled={!perk.id || !affordable || isExpired}
-                        aria-label={`View details for ${perk.title}`}
-                        className="relative block min-h-[107px] w-[107px] shrink-0 self-stretch overflow-hidden rounded-lg bg-[#EDEDED] disabled:cursor-not-allowed"
-                      >
+                      {/* Thumbnail — fixed square, top-aligned so right-column height never stretches it */}
+                      <div className="relative h-[107px] w-[107px] shrink-0 self-start overflow-hidden rounded-lg bg-[#EDEDED]">
                         {perk.thumbnail_url ? (
                           <Image
                             src={perk.thumbnail_url}
@@ -725,7 +734,7 @@ function PerksPageInner() {
                             sizes="107px"
                           />
                         ) : null}
-                      </button>
+                      </div>
 
                       {/* Content — aligned with featured / latest reward */}
                       <div className="flex min-w-0 flex-1 flex-col items-start gap-2 self-stretch">
@@ -733,9 +742,9 @@ function PerksPageInner() {
                         isExpired ||
                         userRedeemed ? (
                           <div className="flex w-full flex-wrap gap-2">
-                            {isExpiringSoon && !isExpired && (
-                              <span className="flex h-5 items-center gap-2 rounded-full border border-[#EDEDED] bg-[#EDEDED] px-2 body-small uppercase font-abc-monument-regular text-black">
-                                Ending Soon
+                            {isExpiringSoon && !isExpired && perk.end_date && (
+                              <span className="flex h-5 items-center gap-2 rounded-full border border-[#EDEDED] bg-[#EDEDED] px-2 body-small uppercase font-abc-monument-regular text-red-600">
+                                <TimeLeft endDate={perk.end_date} />
                               </span>
                             )}
                             {isExpired && (
@@ -763,8 +772,8 @@ function PerksPageInner() {
                         ) : null}
 
                         {/* Metadata row — same pattern as LATEST REWARD */}
-                        <div className="mb-2 flex min-h-5 min-w-0 w-full items-start justify-between gap-2 self-stretch">
-                          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-2 self-stretch">
+                        <div className="mb-2 flex h-5 min-w-0 w-full items-center justify-between gap-2 self-stretch">
+                          <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-2 self-stretch">
                             <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
                               {address &&
                                 (canAfford(perk) ? (
@@ -809,30 +818,27 @@ function PerksPageInner() {
                               </span>
                             </div>
 
-                            {perk.end_date && (
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  padding: '0 8px',
-                                  height: '20px',
-                                  alignItems: 'center',
-                                  gap: '8px',
-                                  alignSelf: 'stretch',
-                                }}
-                                className="shrink-0"
-                              >
-                                <TimeLeft
-                                  endDate={perk.end_date}
-                                  className={`text-black body-small uppercase font-abc-monument-regular ${
-                                    isExpired
-                                      ? 'text-red-600'
-                                      : isExpiringSoon
-                                        ? 'text-orange-600'
-                                        : ''
-                                  }`}
-                                />
-                              </div>
-                            )}
+                            {perk.end_date &&
+                              !(isExpiringSoon && !isExpired) && (
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    padding: '0 8px',
+                                    height: '20px',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    alignSelf: 'stretch',
+                                  }}
+                                  className="shrink-0"
+                                >
+                                  <TimeLeft
+                                    endDate={perk.end_date}
+                                    className={`text-black body-small uppercase font-abc-monument-regular ${
+                                      isExpired ? 'text-red-600' : ''
+                                    }`}
+                                  />
+                                </div>
+                              )}
                           </div>
 
                           {perk.id && (
@@ -989,6 +995,16 @@ function PerksPageInner() {
                             return (
                               <div
                                 key={tierPerk.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => handleOpenPerk(tierPerk)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    handleOpenPerk(tierPerk);
+                                  }
+                                }}
+                                className="cursor-pointer transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#313131]"
                                 style={{
                                   display: 'flex',
                                   width: '280px',
@@ -1395,30 +1411,57 @@ function PerksPageInner() {
                     {selectedTierInfo.description}
                   </p>
                 )}
-                <button
-                  type="button"
-                  onClick={handleViewAllTiersClick}
-                  className="flex items-center justify-center title4 gap-4 font-grotesk text-black underline-offset-4 hover:underline"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px',
-                    borderBottom: '1px solid #313131',
-                    marginInline: 'auto',
-                  }}
-                >
-                  View all tiers
-                  <span>
-                    <Image
-                      src="/arrow-right.svg"
-                      alt="Arrow Right"
-                      width={16}
-                      height={16}
-                      className="h-4 w-4 text-black dark:text-white"
-                      aria-hidden="true"
-                    />
-                  </span>
-                </button>
+                {address ? (
+                  <button
+                    type="button"
+                    onClick={handleViewAllTiersClick}
+                    className="flex items-center justify-center title4 gap-4 font-grotesk text-black underline-offset-4 hover:underline"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '16px',
+                      borderBottom: '1px solid #313131',
+                      marginInline: 'auto',
+                    }}
+                  >
+                    View all tiers
+                    <span>
+                      <Image
+                        src="/arrow-right.svg"
+                        alt="Arrow Right"
+                        width={16}
+                        height={16}
+                        className="h-4 w-4 text-black dark:text-white"
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </button>
+                ) : (
+                  <div className="flex flex-col items-center gap-3 text-center">
+                    <div>
+                      <h4 className="title4 font-grotesk text-black">
+                        IRL members only
+                      </h4>
+                      <p className="mt-1 body-small text-[#4F4F4F]">
+                        Create an account to claim this reward.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => login()}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white transition-colors hover:bg-[#313131]"
+                    >
+                      Join IRL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => login()}
+                      className="body-small font-grotesk text-[#313131] underline underline-offset-4 hover:text-black"
+                    >
+                      Already a member? Sign in
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}

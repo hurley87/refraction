@@ -17,6 +17,7 @@ const PERK_COLUMNS = `
   updated_at,
   is_active,
   is_unlisted,
+  is_featured,
   thumbnail_url,
   hero_image
 `;
@@ -40,6 +41,20 @@ const isDuplicateRedemptionError = (error: unknown) =>
   (error as { code?: string }).code === '23505';
 
 /**
+ * Enforce a single featured perk: clear `is_featured` on every other perk.
+ * Called after a perk is saved with `is_featured = true`.
+ */
+const clearFeaturedExcept = async (exceptId: string) => {
+  const { error } = await supabase
+    .from('perks')
+    .update({ is_featured: false })
+    .eq('is_featured', true)
+    .neq('id', exceptId);
+
+  if (error) throw error;
+};
+
+/**
  * Create a new perk
  */
 export const createPerk = async (
@@ -52,6 +67,12 @@ export const createPerk = async (
     .single();
 
   if (error) throw error;
+
+  // Enforce a single featured perk across the table.
+  if (data?.is_featured && data.id) {
+    await clearFeaturedExcept(data.id);
+  }
+
   return data;
 };
 
@@ -70,6 +91,12 @@ export const updatePerk = async (
     .single();
 
   if (error) throw error;
+
+  // Enforce a single featured perk across the table.
+  if (updates.is_featured === true && data?.id) {
+    await clearFeaturedExcept(data.id);
+  }
+
   return data;
 };
 

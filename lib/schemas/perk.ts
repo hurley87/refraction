@@ -1,5 +1,5 @@
-import { z } from "zod";
-import { walletAddressSchema } from "./player";
+import { z } from 'zod';
+import { walletAddressSchema } from './player';
 
 /**
  * Schema for creating a perk
@@ -14,6 +14,7 @@ export const createPerkSchema = z.object({
   end_date: z.string().datetime().nullable().optional(),
   is_active: z.boolean().default(true),
   is_unlisted: z.boolean().default(false),
+  is_featured: z.boolean().default(false),
   thumbnail_url: z.string().url().optional(),
   hero_image: z.string().url().optional(),
 });
@@ -31,6 +32,7 @@ export const updatePerkSchema = z.object({
   end_date: z.string().datetime().nullable().optional(),
   is_active: z.boolean().optional(),
   is_unlisted: z.boolean().optional(),
+  is_featured: z.boolean().optional(),
   thumbnail_url: z.string().url().optional(),
   hero_image: z.string().url().optional(),
 });
@@ -57,9 +59,17 @@ export const createDiscountCodesSchema = z.object({
  */
 export const createLocationListSchema = z.object({
   title: z.string().min(1).max(200),
-  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with hyphens"),
+  slug: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens'),
   description: z.string().max(1000).nullable().optional(),
-  accent_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").nullable().optional(),
+  accent_color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color')
+    .nullable()
+    .optional(),
   is_active: z.boolean().default(true),
 });
 
@@ -68,9 +78,17 @@ export const createLocationListSchema = z.object({
  */
 export const updateLocationListSchema = z.object({
   title: z.string().min(1).max(200).optional(),
-  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with hyphens").optional(),
+  slug: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-z0-9-]+$/, 'Slug must be lowercase alphanumeric with hyphens')
+    .optional(),
   description: z.string().max(1000).nullable().optional(),
-  accent_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color").nullable().optional(),
+  accent_color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color')
+    .nullable()
+    .optional(),
   is_active: z.boolean().optional(),
 });
-
