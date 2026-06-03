@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import {
   getCheckpointById,
   updateCheckpoint,
@@ -134,7 +135,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         rawUpdates.is_active = String(is_active) === 'true';
       }
       if (background_gradient !== null)
-        rawUpdates.background_gradient = String(background_gradient).trim() || null;
+        rawUpdates.background_gradient =
+          String(background_gradient).trim() || null;
       if (font_family !== null)
         rawUpdates.font_family = String(font_family).trim() || null;
       if (font_color !== null)
@@ -142,11 +144,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       if (footer_title !== null)
         rawUpdates.footer_title = String(footer_title).trim() || null;
       if (footer_description !== null)
-        rawUpdates.footer_description = String(footer_description).trim() || null;
+        rawUpdates.footer_description =
+          String(footer_description).trim() || null;
       if (cta_text !== null)
         rawUpdates.cta_text = String(cta_text).trim() || null;
-      if (cta_url !== null)
-        rawUpdates.cta_url = String(cta_url).trim() || null;
+      if (cta_url !== null) rawUpdates.cta_url = String(cta_url).trim() || null;
 
       if (file && file.size > 0) {
         const maxSize = 5 * 1024 * 1024;
@@ -155,7 +157,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         }
 
         const arrayBuffer = await file.arrayBuffer();
-        const detectedMimeType = detectImageMimeType(new Uint8Array(arrayBuffer));
+        const detectedMimeType = detectImageMimeType(
+          new Uint8Array(arrayBuffer)
+        );
         if (!detectedMimeType) {
           return apiError(
             'Invalid file type. Only PNG, JPEG, and WebP images are allowed.',
@@ -180,7 +184,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         const { data: urlData } = supabase.storage
           .from('images')
           .getPublicUrl(filePath);
-        uploadedImageUrl = urlData.publicUrl;
+        // The storage path is reused across edits (upsert), so the public URL
+        // is otherwise identical and browsers/CDN would keep serving the old
+        // image. A version param forces clients to fetch the new bytes.
+        uploadedImageUrl = `${urlData.publicUrl}?v=${Date.now()}`;
       }
     } else {
       rawUpdates = await request.json();
@@ -190,7 +197,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       rawUpdates.partner_image_url = uploadedImageUrl;
     }
 
-    const validationResult = updateCheckpointRequestSchema.safeParse(rawUpdates);
+    const validationResult =
+      updateCheckpointRequestSchema.safeParse(rawUpdates);
 
     if (!validationResult.success) {
       return apiValidationError(validationResult.error);
@@ -200,13 +208,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       validationResult.data.checkpoint_mode ??
       existingCheckpoint.checkpoint_mode ??
       'checkin';
-    const nextChain = validationResult.data.chain_type ?? existingCheckpoint.chain_type;
+    const nextChain =
+      validationResult.data.chain_type ?? existingCheckpoint.chain_type;
     if (nextMode === 'spend' && nextChain !== 'evm') {
       return apiError('Spend checkpoints currently require EVM wallets.', 400);
     }
 
     const checkpoint = await updateCheckpoint(params.id, validationResult.data);
     await syncSpendItemForCheckpoint(checkpoint);
+
+    revalidatePath(`/c/${params.id}`);
 
     return apiSuccess({ checkpoint }, 'Checkpoint updated successfully');
   } catch (error) {
@@ -230,6 +241,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     await deleteCheckpoint(params.id);
+
+    revalidatePath(`/c/${params.id}`);
 
     return apiSuccess({ deleted: true }, 'Checkpoint deleted successfully');
   } catch (error) {

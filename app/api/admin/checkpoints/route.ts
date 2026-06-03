@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { listAllCheckpoints, createCheckpoint } from '@/lib/db/checkpoints';
 import { syncSpendItemForCheckpoint } from '@/lib/db/spend';
 import { createCheckpointRequestSchema } from '@/lib/schemas/api';
@@ -49,11 +50,15 @@ export async function POST(request: NextRequest) {
         (formData.get('checkpoint_mode') as string | null) || 'checkin';
       const points_value = formData.get('points_value');
       const is_active = formData.get('is_active');
-      const background_gradient = formData.get('background_gradient') as string | null;
+      const background_gradient = formData.get('background_gradient') as
+        | string
+        | null;
       const font_family = formData.get('font_family') as string | null;
       const font_color = formData.get('font_color') as string | null;
       const footer_title = formData.get('footer_title') as string | null;
-      const footer_description = formData.get('footer_description') as string | null;
+      const footer_description = formData.get('footer_description') as
+        | string
+        | null;
       const cta_text = formData.get('cta_text') as string | null;
       const cta_url = formData.get('cta_url') as string | null;
 
@@ -86,7 +91,10 @@ export async function POST(request: NextRequest) {
         validationResult.data.checkpoint_mode === 'spend' &&
         validationResult.data.chain_type !== 'evm'
       ) {
-        return apiError('Spend checkpoints currently require EVM wallets.', 400);
+        return apiError(
+          'Spend checkpoints currently require EVM wallets.',
+          400
+        );
       }
 
       // Generate checkpoint ID first (needed for storage path)
@@ -154,6 +162,7 @@ export async function POST(request: NextRequest) {
       await syncSpendItemForCheckpoint(checkpoint);
 
       const checkpointUrl = `/c/${checkpoint.id}`;
+      revalidatePath(checkpointUrl);
 
       return apiSuccess(
         { checkpoint, url: checkpointUrl },
@@ -172,7 +181,10 @@ export async function POST(request: NextRequest) {
         validationResult.data.checkpoint_mode === 'spend' &&
         validationResult.data.chain_type !== 'evm'
       ) {
-        return apiError('Spend checkpoints currently require EVM wallets.', 400);
+        return apiError(
+          'Spend checkpoints currently require EVM wallets.',
+          400
+        );
       }
 
       const checkpoint = await createCheckpoint({
@@ -183,6 +195,7 @@ export async function POST(request: NextRequest) {
       await syncSpendItemForCheckpoint(checkpoint);
 
       const checkpointUrl = `/c/${checkpoint.id}`;
+      revalidatePath(checkpointUrl);
 
       return apiSuccess(
         { checkpoint, url: checkpointUrl },

@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   description: 'IRL is your key to unlocking a new way to experience culture',
 };
 
+/** Read checkpoint branding live so admin edits are reflected immediately. */
+export const dynamic = 'force-dynamic';
+
 interface CheckpointLayoutProps {
   children: React.ReactNode;
   params: Promise<{ id: string }> | { id: string };
@@ -45,7 +48,8 @@ export default async function CheckpointLayout({
             checkpoint
               ? {
                   partnerImageUrl: checkpoint.partner_image_url ?? undefined,
-                  backgroundGradient: checkpoint.background_gradient ?? undefined,
+                  backgroundGradient:
+                    checkpoint.background_gradient ?? undefined,
                   fontFamily: checkpoint.font_family ?? undefined,
                   fontColor: checkpoint.font_color ?? undefined,
                   footerTitle: checkpoint.footer_title ?? undefined,
