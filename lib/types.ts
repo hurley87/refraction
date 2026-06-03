@@ -129,6 +129,8 @@ export type Perk = {
   updated_at?: string;
   is_active?: boolean;
   is_unlisted?: boolean;
+  /** When true, this perk is shown in the LATEST REWARD slot on /rewards. */
+  is_featured?: boolean;
   thumbnail_url?: string;
   hero_image?: string;
 };

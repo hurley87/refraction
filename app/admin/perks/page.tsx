@@ -1,30 +1,30 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import type { Perk, PerkDiscountCode } from "@/lib/types";
-import type { Tier } from "@/lib/types";
-import { usePrivy } from "@privy-io/react-auth";
-import { adminApiAuthHeaders } from "@/lib/admin-api-auth-headers";
+} from '@/components/ui/select';
+import type { Perk, PerkDiscountCode } from '@/lib/types';
+import type { Tier } from '@/lib/types';
+import { usePrivy } from '@privy-io/react-auth';
+import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 
 // Component to display discount code type for a perk
 function PerkCodeTypeInfo({
@@ -37,7 +37,7 @@ function PerkCodeTypeInfo({
   isAdmin: boolean;
 }) {
   const { data: codes = [] } = useQuery<PerkDiscountCode[]>({
-    queryKey: ["perk-codes-preview", perkId],
+    queryKey: ['perk-codes-preview', perkId],
     queryFn: async () => {
       const auth = await adminApiAuthHeaders(getAccessToken);
       const response = await fetch(`/api/admin/perks/${perkId}/codes`, {
@@ -60,19 +60,23 @@ function PerkCodeTypeInfo({
   if (hasUniversal && hasIndividual) {
     return (
       <div className="text-sm text-gray-500">
-        Discount Codes: <span className="font-semibold text-blue-600">Universal</span> & <span className="font-semibold text-purple-600">Individual</span>
+        Discount Codes:{' '}
+        <span className="font-semibold text-blue-600">Universal</span> &{' '}
+        <span className="font-semibold text-purple-600">Individual</span>
       </div>
     );
   } else if (hasUniversal) {
     return (
       <div className="text-sm text-gray-500">
-        Discount Codes: <span className="font-semibold text-blue-600">Universal</span>
+        Discount Codes:{' '}
+        <span className="font-semibold text-blue-600">Universal</span>
       </div>
     );
   } else {
     return (
       <div className="text-sm text-gray-500">
-        Discount Codes: <span className="font-semibold text-purple-600">Individual</span>
+        Discount Codes:{' '}
+        <span className="font-semibold text-purple-600">Individual</span>
       </div>
     );
   }
@@ -81,614 +85,629 @@ function PerkCodeTypeInfo({
 export default function AdminPerksPage() {
   const { user, login, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
-  const [selectedTierId, setSelectedTierId] = useState<string>("");
+  const [selectedTierId, setSelectedTierId] = useState<string>('');
 
-    // Check admin status with simple POST request
-    const checkAdminStatus = useCallback(async () => {
-      if (!user?.email?.address) return false;
+  // Check admin status with simple POST request
+  const checkAdminStatus = useCallback(async () => {
+    if (!user?.email?.address) return false;
 
-      try {
-        const response = await fetch("/api/admin/auth", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(await adminApiAuthHeaders(getAccessToken)),
-          },
-          body: JSON.stringify({}),
-        });
-        const responseData = await response.json();
-        // Unwrap the apiSuccess wrapper
-        const data = responseData.data || responseData;
-        return data.isAdmin;
-      } catch (error) {
-        console.error("Error checking admin status:", error);
-        return false;
+    try {
+      const response = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(await adminApiAuthHeaders(getAccessToken)),
+        },
+        body: JSON.stringify({}),
+      });
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
+      return data.isAdmin;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+  }, [user?.email?.address, getAccessToken]);
+  const [editingPerk, setEditingPerk] = useState<Perk | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [formData, setFormData] = useState<Partial<Perk>>({
+    title: '',
+    description: '',
+    location: '',
+    points_threshold: 0,
+    website_url: '',
+    type: '',
+    end_date: '',
+    is_active: true,
+    is_unlisted: false,
+    is_featured: false,
+    thumbnail_url: '',
+    hero_image: '',
+  });
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+  const [heroFile, setHeroFile] = useState<File | null>(null);
+  const [heroPreview, setHeroPreview] = useState<string | null>(null);
+  const [, setIsUploadingHero] = useState(false);
+  const [selectedPerkForCodes, setSelectedPerkForCodes] = useState<Perk | null>(
+    null
+  );
+  const [isCodesDialogOpen, setIsCodesDialogOpen] = useState(false);
+  const [newCodes, setNewCodes] = useState('');
+  const [perkCodes, setPerkCodes] = useState<PerkDiscountCode[]>([]);
+  const [codeType, setCodeType] = useState<'universal' | 'individual'>(
+    'individual'
+  );
+
+  // Admin check will be done server-side
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [adminLoading, setAdminLoading] = useState(true);
+
+  // Check admin status when user is available
+  useEffect(() => {
+    const verifyAdmin = async () => {
+      if (user?.email?.address) {
+        const adminStatus = await checkAdminStatus();
+        setIsAdmin(adminStatus);
+        setAdminLoading(false);
+      } else if (user === null) {
+        setIsAdmin(false);
+        setAdminLoading(false);
       }
-    }, [user?.email?.address, getAccessToken]);
-    const [editingPerk, setEditingPerk] = useState<Perk | null>(null);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [formData, setFormData] = useState<Partial<Perk>>({
-      title: "",
-      description: "",
-      location: "",
-      points_threshold: 0,
-      website_url: "",
-      type: "",
-      end_date: "",
-      is_active: true,
-      is_unlisted: false,
-      thumbnail_url: "",
-      hero_image: "",
-    });
-    const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-    const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
-    const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
-    const [heroFile, setHeroFile] = useState<File | null>(null);
-    const [heroPreview, setHeroPreview] = useState<string | null>(null);
-    const [, setIsUploadingHero] = useState(false);
-    const [selectedPerkForCodes, setSelectedPerkForCodes] = useState<Perk | null>(
-      null,
-    );
-    const [isCodesDialogOpen, setIsCodesDialogOpen] = useState(false);
-    const [newCodes, setNewCodes] = useState("");
-    const [perkCodes, setPerkCodes] = useState<PerkDiscountCode[]>([]);
-    const [codeType, setCodeType] = useState<"universal" | "individual">("individual");
+    };
 
-    // Admin check will be done server-side
-    const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-    const [adminLoading, setAdminLoading] = useState(true);
+    verifyAdmin();
+  }, [user, checkAdminStatus]);
 
-    // Check admin status when user is available
-    useEffect(() => {
-      const verifyAdmin = async () => {
-        if (user?.email?.address) {
-          const adminStatus = await checkAdminStatus();
-          setIsAdmin(adminStatus);
-          setAdminLoading(false);
-        } else if (user === null) {
-          setIsAdmin(false);
-          setAdminLoading(false);
+  const adminEmail = user?.email?.address || '';
+
+  // Fetch all perks
+  const { data: perks = [], isLoading: perksLoading } = useQuery({
+    queryKey: ['admin-perks', isAdmin],
+    queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch('/api/admin/perks?activeOnly=false', {
+        headers: auth,
+      });
+      if (!response.ok) throw new Error('Failed to fetch perks');
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
+      return data.perks;
+    },
+    enabled: !!isAdmin,
+  });
+
+  const { data: tiers = [], isLoading: tiersLoading } = useQuery<Tier[]>({
+    queryKey: ['tiers'],
+    queryFn: async () => {
+      const response = await fetch('/api/tiers');
+      if (!response.ok) {
+        throw new Error('Failed to fetch tiers');
+      }
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
+      return data.tiers ?? [];
+    },
+    enabled: !adminLoading,
+  });
+
+  // Create perk mutation
+  const createPerkMutation = useMutation({
+    mutationFn: async (
+      perkData: Omit<Perk, 'id' | 'created_at' | 'updated_at'>
+    ) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch('/api/admin/perks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...auth,
+        },
+        body: JSON.stringify(perkData),
+      });
+      if (!response.ok) throw new Error('Failed to create perk');
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
+      return data.perk;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-perks'] });
+      toast.success('Perk created successfully');
+      handleCloseDialog();
+    },
+    onError: (error) => {
+      console.error('Error creating perk:', error);
+      toast.error('Failed to create perk');
+    },
+  });
+
+  // Update perk mutation
+  const updatePerkMutation = useMutation({
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<Perk>;
+    }) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch(`/api/admin/perks/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...auth,
+        },
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) throw new Error('Failed to update perk');
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
+      return data.perk;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-perks'] });
+      toast.success('Perk updated successfully');
+      handleCloseDialog();
+    },
+    onError: (error) => {
+      console.error('Error updating perk:', error);
+      toast.error('Failed to update perk');
+    },
+  });
+
+  // Delete perk mutation
+  const deletePerkMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch(`/api/admin/perks/${id}`, {
+        method: 'DELETE',
+        headers: auth,
+      });
+      if (!response.ok) throw new Error('Failed to delete perk');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-perks'] });
+      toast.success('Perk deleted successfully');
+    },
+    onError: (error) => {
+      console.error('Error deleting perk:', error);
+      toast.error('Failed to delete perk');
+    },
+  });
+
+  // Create discount codes mutation
+  const createCodesMutation = useMutation({
+    mutationFn: async ({
+      perkId,
+      codes,
+      isUniversal,
+    }: {
+      perkId: string;
+      codes: string[];
+      isUniversal: boolean;
+    }) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch(`/api/admin/perks/${perkId}/codes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...auth,
+        },
+        body: JSON.stringify({ codes, is_universal: isUniversal }),
+      });
+      if (!response.ok) throw new Error('Failed to create discount codes');
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
+      return data.codes;
+    },
+    onSuccess: (_, variables) => {
+      toast.success('Discount codes added successfully');
+      setNewCodes('');
+      queryClient.invalidateQueries({
+        queryKey: ['perk-codes-preview', variables.perkId],
+      });
+      if (selectedPerkForCodes?.id) {
+        loadPerkCodes(selectedPerkForCodes.id);
+      }
+    },
+    onError: (error) => {
+      console.error('Error creating codes:', error);
+      toast.error('Failed to add discount codes');
+    },
+  });
+
+  // Delete discount code mutation
+  const deleteCodeMutation = useMutation({
+    mutationFn: async (codeId: string) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch(`/api/admin/perks/codes/${codeId}`, {
+        method: 'DELETE',
+        headers: auth,
+      });
+      if (!response.ok) throw new Error('Failed to delete discount code');
+    },
+    onSuccess: () => {
+      toast.success('Discount code deleted successfully');
+      if (selectedPerkForCodes?.id) {
+        queryClient.invalidateQueries({
+          queryKey: ['perk-codes-preview', selectedPerkForCodes.id],
+        });
+        loadPerkCodes(selectedPerkForCodes.id);
+      }
+    },
+    onError: (error) => {
+      console.error('Error deleting code:', error);
+      toast.error('Failed to delete discount code');
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setIsUploadingThumbnail(true);
+    setIsUploadingHero(true);
+    try {
+      let thumbnailUrl = formData.thumbnail_url;
+      let heroImageUrl = formData.hero_image;
+
+      // Upload thumbnail if a new file was selected
+      if (thumbnailFile) {
+        try {
+          thumbnailUrl = await uploadThumbnail(thumbnailFile);
+          setFormData({ ...formData, thumbnail_url: thumbnailUrl });
+        } catch (error) {
+          console.error('Error uploading thumbnail:', error);
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Failed to upload thumbnail';
+          toast.error(`Failed to upload thumbnail: ${errorMessage}`);
+          setIsUploadingThumbnail(false);
+          setIsUploadingHero(false);
+          return;
         }
+      }
+
+      // Upload hero image if a new file was selected
+      if (heroFile) {
+        try {
+          heroImageUrl = await uploadThumbnail(heroFile);
+          setFormData({ ...formData, hero_image: heroImageUrl });
+        } catch (error) {
+          console.error('Error uploading hero image:', error);
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : 'Failed to upload hero image';
+          toast.error(`Failed to upload hero image: ${errorMessage}`);
+          setIsUploadingThumbnail(false);
+          setIsUploadingHero(false);
+          return;
+        }
+      }
+
+      const submitData = {
+        ...formData,
+        thumbnail_url: thumbnailUrl,
+        hero_image: heroImageUrl,
       };
 
-      verifyAdmin();
-    }, [user, checkAdminStatus]);
-
-    const adminEmail = user?.email?.address || "";
-
-    // Fetch all perks
-    const { data: perks = [], isLoading: perksLoading } = useQuery({
-      queryKey: ["admin-perks", isAdmin],
-      queryFn: async () => {
-        const auth = await adminApiAuthHeaders(getAccessToken);
-        const response = await fetch("/api/admin/perks?activeOnly=false", {
-          headers: auth,
-        });
-        if (!response.ok) throw new Error("Failed to fetch perks");
-        const responseData = await response.json();
-        // Unwrap the apiSuccess wrapper
-        const data = responseData.data || responseData;
-        return data.perks;
-      },
-      enabled: !!isAdmin,
-    });
-
-    const { data: tiers = [], isLoading: tiersLoading } = useQuery<Tier[]>({
-      queryKey: ["tiers"],
-      queryFn: async () => {
-        const response = await fetch("/api/tiers");
-        if (!response.ok) {
-          throw new Error("Failed to fetch tiers");
-        }
-        const responseData = await response.json();
-        // Unwrap the apiSuccess wrapper
-        const data = responseData.data || responseData;
-        return data.tiers ?? [];
-      },
-      enabled: !adminLoading,
-    });
-
-    // Create perk mutation
-    const createPerkMutation = useMutation({
-      mutationFn: async (
-        perkData: Omit<Perk, "id" | "created_at" | "updated_at">,
-      ) => {
-        const auth = await adminApiAuthHeaders(getAccessToken);
-        const response = await fetch("/api/admin/perks", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...auth,
-          },
-          body: JSON.stringify(perkData),
-        });
-        if (!response.ok) throw new Error("Failed to create perk");
-        const responseData = await response.json();
-        // Unwrap the apiSuccess wrapper
-        const data = responseData.data || responseData;
-        return data.perk;
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["admin-perks"] });
-        toast.success("Perk created successfully");
-        handleCloseDialog();
-      },
-      onError: (error) => {
-        console.error("Error creating perk:", error);
-        toast.error("Failed to create perk");
-      },
-    });
-
-    // Update perk mutation
-    const updatePerkMutation = useMutation({
-      mutationFn: async ({
-        id,
-        updates,
-      }: {
-        id: string;
-        updates: Partial<Perk>;
-      }) => {
-        const auth = await adminApiAuthHeaders(getAccessToken);
-        const response = await fetch(`/api/admin/perks/${id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            ...auth,
-          },
-          body: JSON.stringify(updates),
-        });
-        if (!response.ok) throw new Error("Failed to update perk");
-        const responseData = await response.json();
-        // Unwrap the apiSuccess wrapper
-        const data = responseData.data || responseData;
-        return data.perk;
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["admin-perks"] });
-        toast.success("Perk updated successfully");
-        handleCloseDialog();
-      },
-      onError: (error) => {
-        console.error("Error updating perk:", error);
-        toast.error("Failed to update perk");
-      },
-    });
-
-    // Delete perk mutation
-    const deletePerkMutation = useMutation({
-      mutationFn: async (id: string) => {
-        const auth = await adminApiAuthHeaders(getAccessToken);
-        const response = await fetch(`/api/admin/perks/${id}`, {
-          method: "DELETE",
-          headers: auth,
-        });
-        if (!response.ok) throw new Error("Failed to delete perk");
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["admin-perks"] });
-        toast.success("Perk deleted successfully");
-      },
-      onError: (error) => {
-        console.error("Error deleting perk:", error);
-        toast.error("Failed to delete perk");
-      },
-    });
-
-    // Create discount codes mutation
-    const createCodesMutation = useMutation({
-      mutationFn: async ({
-        perkId,
-        codes,
-        isUniversal,
-      }: {
-        perkId: string;
-        codes: string[];
-        isUniversal: boolean;
-      }) => {
-        const auth = await adminApiAuthHeaders(getAccessToken);
-        const response = await fetch(`/api/admin/perks/${perkId}/codes`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...auth,
-          },
-          body: JSON.stringify({ codes, is_universal: isUniversal }),
-        });
-        if (!response.ok) throw new Error("Failed to create discount codes");
-        const responseData = await response.json();
-        // Unwrap the apiSuccess wrapper
-        const data = responseData.data || responseData;
-        return data.codes;
-      },
-      onSuccess: (_, variables) => {
-        toast.success("Discount codes added successfully");
-        setNewCodes("");
-        queryClient.invalidateQueries({ queryKey: ["perk-codes-preview", variables.perkId] });
-        if (selectedPerkForCodes?.id) {
-          loadPerkCodes(selectedPerkForCodes.id);
-        }
-      },
-      onError: (error) => {
-        console.error("Error creating codes:", error);
-        toast.error("Failed to add discount codes");
-      },
-    });
-
-    // Delete discount code mutation
-    const deleteCodeMutation = useMutation({
-      mutationFn: async (codeId: string) => {
-        const auth = await adminApiAuthHeaders(getAccessToken);
-        const response = await fetch(`/api/admin/perks/codes/${codeId}`, {
-          method: "DELETE",
-          headers: auth,
-        });
-        if (!response.ok) throw new Error("Failed to delete discount code");
-      },
-      onSuccess: () => {
-        toast.success("Discount code deleted successfully");
-        if (selectedPerkForCodes?.id) {
-          queryClient.invalidateQueries({ queryKey: ["perk-codes-preview", selectedPerkForCodes.id] });
-          loadPerkCodes(selectedPerkForCodes.id);
-        }
-      },
-      onError: (error) => {
-        console.error("Error deleting code:", error);
-        toast.error("Failed to delete discount code");
-      },
-    });
-
-    const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-
-      setIsUploadingThumbnail(true);
-      setIsUploadingHero(true);
-      try {
-        let thumbnailUrl = formData.thumbnail_url;
-        let heroImageUrl = formData.hero_image;
-
-        // Upload thumbnail if a new file was selected
-        if (thumbnailFile) {
-          try {
-            thumbnailUrl = await uploadThumbnail(thumbnailFile);
-            setFormData({ ...formData, thumbnail_url: thumbnailUrl });
-          } catch (error) {
-            console.error("Error uploading thumbnail:", error);
-            const errorMessage = error instanceof Error ? error.message : "Failed to upload thumbnail";
-            toast.error(`Failed to upload thumbnail: ${errorMessage}`);
-            setIsUploadingThumbnail(false);
-            setIsUploadingHero(false);
-            return;
-          }
-        }
-
-        // Upload hero image if a new file was selected
-        if (heroFile) {
-          try {
-            heroImageUrl = await uploadThumbnail(heroFile);
-            setFormData({ ...formData, hero_image: heroImageUrl });
-          } catch (error) {
-            console.error("Error uploading hero image:", error);
-            const errorMessage = error instanceof Error ? error.message : "Failed to upload hero image";
-            toast.error(`Failed to upload hero image: ${errorMessage}`);
-            setIsUploadingThumbnail(false);
-            setIsUploadingHero(false);
-            return;
-          }
-        }
-
-        const submitData = {
-          ...formData,
-          thumbnail_url: thumbnailUrl,
-          hero_image: heroImageUrl,
-        };
-
-        if (editingPerk) {
-          updatePerkMutation.mutate({
-            id: editingPerk.id!,
-            updates: submitData,
-          });
-        } else {
-          createPerkMutation.mutate(
-            submitData as Omit<Perk, "id" | "created_at" | "updated_at">,
-          );
-        }
-      } finally {
-        setIsUploadingThumbnail(false);
-        setIsUploadingHero(false);
-      }
-    };
-
-    const handleEdit = (perk: Perk) => {
-      setEditingPerk(perk);
-      setFormData({
-        ...perk,
-        // Normalize null to empty string for form consistency
-        end_date: perk.end_date ?? "",
-        thumbnail_url: perk.thumbnail_url ?? "",
-        hero_image: perk.hero_image ?? "",
-        is_unlisted: perk.is_unlisted ?? false,
-      });
-      setThumbnailPreview(perk.thumbnail_url || null);
-      setThumbnailFile(null);
-      setHeroPreview(perk.hero_image || null);
-      setHeroFile(null);
-      setIsDialogOpen(true);
-      setSelectedTierId("");
-    };
-
-    const handleDelete = async (id: string) => {
-      if (!confirm("Are you sure you want to delete this perk?")) return;
-      deletePerkMutation.mutate(id);
-    };
-
-    const resetForm = () => {
-      setFormData({
-        title: "",
-        description: "",
-        location: "",
-        points_threshold: 0,
-        website_url: "",
-        type: "",
-        end_date: "",
-        is_active: true,
-        is_unlisted: false,
-        thumbnail_url: "",
-        hero_image: "",
-      });
-      setThumbnailFile(null);
-      setThumbnailPreview(null);
-      setHeroFile(null);
-      setHeroPreview(null);
-    };
-
-    const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        setThumbnailFile(file);
-        // Create preview
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setThumbnailPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-
-    const handleHeroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        setHeroFile(file);
-        // Create preview
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setHeroPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-
-    const uploadThumbnail = async (file: File): Promise<string> => {
-      try {
-        const uploadFormData = new FormData();
-        uploadFormData.append("file", file);
-        
-        const uploadResponse = await fetch("/api/upload", {
-          method: "POST",
-          body: uploadFormData,
-        });
-
-        if (!uploadResponse.ok) {
-          const errorResult = await uploadResponse.json().catch(() => ({}));
-          throw new Error(
-            errorResult.error ||
-              "Failed to upload thumbnail. Please try again.",
-          );
-        }
-
-        const uploadResponseData = await uploadResponse.json();
-        // Unwrap the apiSuccess wrapper
-        const uploadResult = uploadResponseData.data || uploadResponseData;
-        
-        if (!uploadResult.url) {
-          throw new Error("Image upload succeeded but no URL was returned");
-        }
-
-        return uploadResult.url;
-      } catch (error) {
-        console.error("Thumbnail upload error:", error);
-        throw error;
-      }
-    };
-
-    const loadPerkCodes = async (perkId: string) => {
-      try {
-        const auth = await adminApiAuthHeaders(getAccessToken);
-        const response = await fetch(`/api/admin/perks/${perkId}/codes`, {
-          headers: auth,
-        });
-        if (!response.ok) throw new Error("Failed to fetch discount codes");
-        const responseData = await response.json();
-        // Unwrap the apiSuccess wrapper
-        const data = responseData.data || responseData;
-        setPerkCodes(data.codes);
-      } catch (error) {
-        console.error("Error loading codes:", error);
-      }
-    };
-
-    const handleManageCodes = async (perk: Perk) => {
-      setSelectedPerkForCodes(perk);
-      setIsCodesDialogOpen(true);
-      setCodeType("individual"); // Reset to default
-      setNewCodes(""); // Clear codes
-      if (perk.id) {
-        await loadPerkCodes(perk.id);
-      }
-    };
-
-    const handleAddCodes = () => {
-      if (!selectedPerkForCodes?.id) return;
-
-      if (codeType === "universal") {
-        // Universal codes: single code shared by all
-        if (!newCodes.trim()) {
-          toast.error("Please enter a universal discount code");
-          return;
-        }
-        const code = newCodes.trim();
-        createCodesMutation.mutate({
-          perkId: selectedPerkForCodes.id,
-          codes: [code],
-          isUniversal: true,
+      if (editingPerk) {
+        updatePerkMutation.mutate({
+          id: editingPerk.id!,
+          updates: submitData,
         });
       } else {
-        // Individual codes: one per line
-        if (!newCodes.trim()) {
-          toast.error("Please enter at least one discount code");
-          return;
-        }
-        const codes = newCodes
-          .split("\n")
-          .map((code) => code.trim())
-          .filter((code) => code.length > 0);
-
-        if (codes.length === 0) {
-          toast.error("Please enter at least one discount code");
-          return;
-        }
-
-        createCodesMutation.mutate({
-          perkId: selectedPerkForCodes.id,
-          codes,
-          isUniversal: false,
-        });
+        createPerkMutation.mutate(
+          submitData as Omit<Perk, 'id' | 'created_at' | 'updated_at'>
+        );
       }
-    };
+    } finally {
+      setIsUploadingThumbnail(false);
+      setIsUploadingHero(false);
+    }
+  };
 
-    const handleDeleteCode = (codeId: string) => {
-      if (confirm("Are you sure you want to delete this discount code?")) {
-        deleteCodeMutation.mutate(codeId);
+  const handleEdit = (perk: Perk) => {
+    setEditingPerk(perk);
+    setFormData({
+      ...perk,
+      // Normalize null to empty string for form consistency
+      end_date: perk.end_date ?? '',
+      thumbnail_url: perk.thumbnail_url ?? '',
+      hero_image: perk.hero_image ?? '',
+      is_unlisted: perk.is_unlisted ?? false,
+      is_featured: perk.is_featured ?? false,
+    });
+    setThumbnailPreview(perk.thumbnail_url || null);
+    setThumbnailFile(null);
+    setHeroPreview(perk.hero_image || null);
+    setHeroFile(null);
+    setIsDialogOpen(true);
+    setSelectedTierId('');
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this perk?')) return;
+    deletePerkMutation.mutate(id);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      location: '',
+      points_threshold: 0,
+      website_url: '',
+      type: '',
+      end_date: '',
+      is_active: true,
+      is_unlisted: false,
+      is_featured: false,
+      thumbnail_url: '',
+      hero_image: '',
+    });
+    setThumbnailFile(null);
+    setThumbnailPreview(null);
+    setHeroFile(null);
+    setHeroPreview(null);
+  };
+
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setThumbnailFile(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setThumbnailPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleHeroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setHeroFile(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setHeroPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadThumbnail = async (file: File): Promise<string> => {
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+
+      const uploadResponse = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadFormData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorResult = await uploadResponse.json().catch(() => ({}));
+        throw new Error(
+          errorResult.error || 'Failed to upload thumbnail. Please try again.'
+        );
       }
-    };
 
-    const handleNewPerk = () => {
-      setEditingPerk(null);
-      resetForm();
-      setIsDialogOpen(true);
-      setSelectedTierId("");
-    };
+      const uploadResponseData = await uploadResponse.json();
+      // Unwrap the apiSuccess wrapper
+      const uploadResult = uploadResponseData.data || uploadResponseData;
 
-    const handleCloseDialog = () => {
-      setIsDialogOpen(false);
-      setEditingPerk(null);
-      resetForm();
-      setThumbnailFile(null);
-      setThumbnailPreview(null);
-      setSelectedTierId("");
-    };
+      if (!uploadResult.url) {
+        throw new Error('Image upload succeeded but no URL was returned');
+      }
 
-    useEffect(() => {
-      if (!tiers.length) return;
+      return uploadResult.url;
+    } catch (error) {
+      console.error('Thumbnail upload error:', error);
+      throw error;
+    }
+  };
 
-      const currentThreshold = formData.points_threshold ?? 0;
-      const matchingTier = tiers.find(
-        (tier) =>
-          currentThreshold >= tier.min_points &&
-          (tier.max_points === null || currentThreshold <= tier.max_points),
+  const loadPerkCodes = async (perkId: string) => {
+    try {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch(`/api/admin/perks/${perkId}/codes`, {
+        headers: auth,
+      });
+      if (!response.ok) throw new Error('Failed to fetch discount codes');
+      const responseData = await response.json();
+      // Unwrap the apiSuccess wrapper
+      const data = responseData.data || responseData;
+      setPerkCodes(data.codes);
+    } catch (error) {
+      console.error('Error loading codes:', error);
+    }
+  };
+
+  const handleManageCodes = async (perk: Perk) => {
+    setSelectedPerkForCodes(perk);
+    setIsCodesDialogOpen(true);
+    setCodeType('individual'); // Reset to default
+    setNewCodes(''); // Clear codes
+    if (perk.id) {
+      await loadPerkCodes(perk.id);
+    }
+  };
+
+  const handleAddCodes = () => {
+    if (!selectedPerkForCodes?.id) return;
+
+    if (codeType === 'universal') {
+      // Universal codes: single code shared by all
+      if (!newCodes.trim()) {
+        toast.error('Please enter a universal discount code');
+        return;
+      }
+      const code = newCodes.trim();
+      createCodesMutation.mutate({
+        perkId: selectedPerkForCodes.id,
+        codes: [code],
+        isUniversal: true,
+      });
+    } else {
+      // Individual codes: one per line
+      if (!newCodes.trim()) {
+        toast.error('Please enter at least one discount code');
+        return;
+      }
+      const codes = newCodes
+        .split('\n')
+        .map((code) => code.trim())
+        .filter((code) => code.length > 0);
+
+      if (codes.length === 0) {
+        toast.error('Please enter at least one discount code');
+        return;
+      }
+
+      createCodesMutation.mutate({
+        perkId: selectedPerkForCodes.id,
+        codes,
+        isUniversal: false,
+      });
+    }
+  };
+
+  const handleDeleteCode = (codeId: string) => {
+    if (confirm('Are you sure you want to delete this discount code?')) {
+      deleteCodeMutation.mutate(codeId);
+    }
+  };
+
+  const handleNewPerk = () => {
+    setEditingPerk(null);
+    resetForm();
+    setIsDialogOpen(true);
+    setSelectedTierId('');
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingPerk(null);
+    resetForm();
+    setThumbnailFile(null);
+    setThumbnailPreview(null);
+    setSelectedTierId('');
+  };
+
+  useEffect(() => {
+    if (!tiers.length) return;
+
+    const currentThreshold = formData.points_threshold ?? 0;
+    const matchingTier = tiers.find(
+      (tier) =>
+        currentThreshold >= tier.min_points &&
+        (tier.max_points === null || currentThreshold <= tier.max_points)
+    );
+
+    if (matchingTier) {
+      setSelectedTierId((prev) => {
+        if (!prev || prev === matchingTier.id) {
+          return matchingTier.id;
+        }
+        return prev;
+      });
+    }
+  }, [tiers, formData.points_threshold]);
+
+  const selectedTier = useMemo(() => {
+    return tiers.find((tier) => tier.id === selectedTierId) ?? null;
+  }, [tiers, selectedTierId]);
+
+  const formatTierRange = (tier: Tier) => {
+    if (tier.max_points === null) {
+      return `${tier.min_points.toLocaleString()}+ points`;
+    }
+    return `${tier.min_points.toLocaleString()} – ${tier.max_points.toLocaleString()} points`;
+  };
+
+  const resolveTierTitle = useCallback(
+    (points: number) => {
+      if (!tiers || tiers.length === 0) {
+        return `${points.toLocaleString()} pts`;
+      }
+
+      const tier = tiers.find(
+        (t) =>
+          points >= t.min_points &&
+          (t.max_points === null || points < t.max_points)
       );
 
-      if (matchingTier) {
-        setSelectedTierId((prev) => {
-          if (!prev || prev === matchingTier.id) {
-            return matchingTier.id;
-          }
-          return prev;
-        });
+      if (!tier) {
+        return `${points.toLocaleString()} pts`;
       }
-    }, [tiers, formData.points_threshold]);
 
-    const selectedTier = useMemo(() => {
-      return tiers.find((tier) => tier.id === selectedTierId) ?? null;
-    }, [tiers, selectedTierId]);
-
-    const formatTierRange = (tier: Tier) => {
-      if (tier.max_points === null) {
-        return `${tier.min_points.toLocaleString()}+ points`;
-      }
-      return `${tier.min_points.toLocaleString()} – ${tier.max_points.toLocaleString()} points`;
-    };
-
-    const resolveTierTitle = useCallback(
-      (points: number) => {
-        if (!tiers || tiers.length === 0) {
-          return `${points.toLocaleString()} pts`;
-        }
-
-        const tier = tiers.find(
-          (t) =>
-            points >= t.min_points &&
-            (t.max_points === null || points < t.max_points),
-        );
-
-        if (!tier) {
-          return `${points.toLocaleString()} pts`;
-        }
-
-        const rangeLabel = tier.max_points === null
+      const rangeLabel =
+        tier.max_points === null
           ? `${tier.min_points.toLocaleString()}+ pts`
           : `${tier.min_points.toLocaleString()} – ${tier.max_points.toLocaleString()} pts`;
 
-        return `${tier.title} (${rangeLabel})`;
-      },
-      [tiers],
-    );
+      return `${tier.title} (${rangeLabel})`;
+    },
+    [tiers]
+  );
 
-    if (adminLoading) {
-      return (
-        <div className="flex justify-center items-center min-h-screen">
-          Loading...
-        </div>
-      );
-    }
-
-    if (!user) {
-      return (
-        <div className="flex flex-col justify-center items-center min-h-screen space-y-4">
-          <p>Please login to access admin features</p>
-          <Button onClick={login}>Login</Button>
-        </div>
-      );
-    }
-
-    if (!isAdmin) {
-      return (
-        <div className="flex justify-center items-center min-h-screen">
-          <p>Access denied. Admin permissions required.</p>
-        </div>
-      );
-    }
-
-    const isLoading =
-      createPerkMutation.isPending ||
-      updatePerkMutation.isPending ||
-      deletePerkMutation.isPending;
-
+  if (adminLoading) {
     return (
-      <div className="container mx-auto p-6 bg-white relative min-h-screen z-40">
-        <div className="flex justify-between items-center mb-6 bg-white">
-          <h1 className="text-3xl font-bold">Perks Management</h1>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleNewPerk}>Add New Perk</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] bg-white border shadow-lg flex flex-col overflow-hidden">
-              <DialogHeader className="flex-shrink-0">
-                <DialogTitle>
-                  {editingPerk ? "Edit Perk" : "Create New Perk"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="overflow-y-auto flex-1 pr-2 -mr-2">
-                <form onSubmit={handleSubmit} className="space-y-4 pb-4">
+      <div className="flex justify-center items-center min-h-screen">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col justify-center items-center min-h-screen space-y-4">
+        <p>Please login to access admin features</p>
+        <Button onClick={login}>Login</Button>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <p>Access denied. Admin permissions required.</p>
+      </div>
+    );
+  }
+
+  const isLoading =
+    createPerkMutation.isPending ||
+    updatePerkMutation.isPending ||
+    deletePerkMutation.isPending;
+
+  return (
+    <div className="container mx-auto p-6 bg-white relative min-h-screen z-40">
+      <div className="flex justify-between items-center mb-6 bg-white">
+        <h1 className="text-3xl font-bold">Perks Management</h1>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={handleNewPerk}>Add New Perk</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] bg-white border shadow-lg flex flex-col overflow-hidden">
+            <DialogHeader className="flex-shrink-0">
+              <DialogTitle>
+                {editingPerk ? 'Edit Perk' : 'Create New Perk'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="overflow-y-auto flex-1 pr-2 -mr-2">
+              <form onSubmit={handleSubmit} className="space-y-4 pb-4">
                 <div>
                   <Label htmlFor="title">Title</Label>
                   <Input
@@ -737,7 +756,9 @@ export default function AdminPerksPage() {
                   )}
                   {formData.thumbnail_url && !thumbnailFile && (
                     <div className="mt-2">
-                      <p className="text-sm text-gray-600 mb-1">Current thumbnail:</p>
+                      <p className="text-sm text-gray-600 mb-1">
+                        Current thumbnail:
+                      </p>
                       <Image
                         src={formData.thumbnail_url}
                         alt="Current thumbnail"
@@ -772,7 +793,9 @@ export default function AdminPerksPage() {
                   )}
                   {formData.hero_image && !heroFile && (
                     <div className="mt-2">
-                      <p className="text-sm text-gray-600 mb-1">Current hero image:</p>
+                      <p className="text-sm text-gray-600 mb-1">
+                        Current hero image:
+                      </p>
                       <Image
                         src={formData.hero_image}
                         alt="Current hero image"
@@ -788,7 +811,7 @@ export default function AdminPerksPage() {
                   <Label htmlFor="location">Location</Label>
                   <Input
                     id="location"
-                    value={formData.location || ""}
+                    value={formData.location || ''}
                     onChange={(e) =>
                       setFormData({ ...formData, location: e.target.value })
                     }
@@ -803,7 +826,10 @@ export default function AdminPerksPage() {
                     min={0}
                     value={formData.points_threshold ?? 0}
                     onChange={(e) =>
-                      setFormData({ ...formData, points_threshold: parseInt(e.target.value) || 0 })
+                      setFormData({
+                        ...formData,
+                        points_threshold: parseInt(e.target.value) || 0,
+                      })
                     }
                     required
                   />
@@ -830,10 +856,10 @@ export default function AdminPerksPage() {
                       <SelectValue
                         placeholder={
                           tiersLoading
-                            ? "Loading tiers..."
+                            ? 'Loading tiers...'
                             : tiers.length === 0
-                              ? "No tiers available"
-                              : "Select tier to auto-fill points"
+                              ? 'No tiers available'
+                              : 'Select tier to auto-fill points'
                         }
                       />
                     </SelectTrigger>
@@ -857,7 +883,7 @@ export default function AdminPerksPage() {
                   <Input
                     id="website_url"
                     type="url"
-                    value={formData.website_url || ""}
+                    value={formData.website_url || ''}
                     onChange={(e) =>
                       setFormData({ ...formData, website_url: e.target.value })
                     }
@@ -878,9 +904,13 @@ export default function AdminPerksPage() {
                     <SelectContent>
                       <SelectItem value="food">Food & Drink</SelectItem>
                       <SelectItem value="retail">Retail</SelectItem>
-                      <SelectItem value="entertainment">Entertainment</SelectItem>
+                      <SelectItem value="entertainment">
+                        Entertainment
+                      </SelectItem>
                       <SelectItem value="services">Services</SelectItem>
-                      <SelectItem value="points program">Points Program</SelectItem>
+                      <SelectItem value="points program">
+                        Points Program
+                      </SelectItem>
                       <SelectItem value="license">Software License</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
@@ -895,14 +925,14 @@ export default function AdminPerksPage() {
                     value={
                       formData.end_date
                         ? new Date(formData.end_date).toISOString().slice(0, 16)
-                        : ""
+                        : ''
                     }
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         end_date: e.target.value
                           ? new Date(e.target.value).toISOString()
-                          : "",
+                          : '',
                       })
                     }
                   />
@@ -915,7 +945,10 @@ export default function AdminPerksPage() {
                       id="is_active"
                       checked={formData.is_active}
                       onChange={(e) =>
-                        setFormData({ ...formData, is_active: e.target.checked })
+                        setFormData({
+                          ...formData,
+                          is_active: e.target.checked,
+                        })
                       }
                     />
                     <Label htmlFor="is_active">Active</Label>
@@ -926,384 +959,422 @@ export default function AdminPerksPage() {
                       id="is_unlisted"
                       checked={formData.is_unlisted ?? false}
                       onChange={(e) =>
-                        setFormData({ ...formData, is_unlisted: e.target.checked })
+                        setFormData({
+                          ...formData,
+                          is_unlisted: e.target.checked,
+                        })
                       }
                     />
                     <Label htmlFor="is_unlisted">Unlisted</Label>
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="is_featured"
+                      checked={formData.is_featured ?? false}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          is_featured: e.target.checked,
+                        })
+                      }
+                    />
+                    <Label htmlFor="is_featured">Feature this perk</Label>
+                  </div>
                 </div>
                 {formData.is_unlisted && (
                   <p className="text-xs text-amber-600">
-                    This perk will not appear on the rewards page but will be accessible via direct link.
+                    This perk will not appear on the rewards page but will be
+                    accessible via direct link.
                   </p>
                 )}
-
-                </form>
-              </div>
-              <div className="flex justify-end space-x-2 pt-4 border-t bg-white flex-shrink-0">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCloseDialog}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="button" 
-                  disabled={isLoading || isUploadingThumbnail}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const form = document.querySelector('form');
-                    if (form) {
-                      form.requestSubmit();
-                    }
-                  }}
-                >
-                  {isLoading || isUploadingThumbnail
-                    ? "Saving..."
-                    : editingPerk
-                      ? "Update Perk"
-                      : "Create Perk"}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {perksLoading ? (
-          <div className="flex justify-center py-8">Loading perks...</div>
-        ) : (
-          <div className="grid gap-4 bg-white">
-            {perks.map((perk) => (
-              <div
-                key={perk.id}
-                className="border rounded-lg p-4 bg-white shadow-sm"
-              >
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="title3 text-[#020303]">{perk.title}</div>
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          perk.is_active
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {perk.is_active ? "Active" : "Inactive"}
-                      </span>
-                      {perk.is_unlisted && (
-                        <span className="px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded-full">
-                          Unlisted
-                        </span>
-                      )}
-                      <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                        {perk.type.replace("-", " ")}
-                      </span>
-                    </div>
-                    <div className="flex gap-4 mb-2">
-                      {perk.thumbnail_url && (
-                        <div className="flex-shrink-0">
-                          <Image
-                            src={perk.thumbnail_url}
-                            alt={perk.title}
-                            width={120}
-                            height={120}
-                            className="rounded-lg object-cover border"
-                            style={{ width: "120px", height: "120px" }}
-                          />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-gray-600 mb-2 break-words">{perk.title}</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
-                      <div>
-                        Tier: {resolveTierTitle(perk.points_threshold)}
-                      </div>
-                      {perk.location && <div>Location: {perk.location}</div>}
-                      {perk.end_date && (
-                        <div
-                          className={`${new Date(perk.end_date) < new Date() ? "text-red-600" : ""}`}
-                        >
-                          Ends: {new Date(perk.end_date).toLocaleDateString()}
-                        </div>
-                      )}
-                      {perk.website_url && (
-                        <div>
-                          Website:{" "}
-                          <a
-                            href={perk.website_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline"
-                          >
-                            {perk.website_url}
-                          </a>
-                        </div>
-                      )}
-                      {perk.id && adminEmail && (
-                        <PerkCodeTypeInfo perkId={perk.id} getAccessToken={getAccessToken} isAdmin={!!isAdmin} />
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex flex-col space-y-2">
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(perk)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(perk.id!)}
-                        disabled={deletePerkMutation.isPending}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleManageCodes(perk)}
-                    >
-                      Manage Codes
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const url = `${window.location.origin}/perks/${perk.id}`;
-                        navigator.clipboard.writeText(url).then(() => {
-                          toast.success("Link copied to clipboard");
-                        });
-                      }}
-                    >
-                      Copy Link
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {perks.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No perks found. Click &quot;Add New Perk&quot; to create your
-                first perk.
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Discount Codes Management Dialog */}
-        <Dialog open={isCodesDialogOpen} onOpenChange={setIsCodesDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-white border shadow-lg">
-            <DialogHeader>
-              <DialogTitle>
-                Manage Discount Codes - {selectedPerkForCodes?.title}
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-6">
-              {/* Add new codes section */}
-              <div>
-                <div className="mb-4">
-                  <Label htmlFor="codeType">Code Type</Label>
-                  <Select
-                    value={codeType}
-                    onValueChange={(value: "universal" | "individual") => {
-                      setCodeType(value);
-                      setNewCodes(""); // Clear codes when switching type
-                    }}
-                  >
-                    <SelectTrigger id="codeType">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="universal">Universal Code (Shared by all eligible users)</SelectItem>
-                      <SelectItem value="individual">Individual Codes (One per user, redeemed/burned)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="mt-2 text-xs text-gray-600">
-                    {codeType === "universal"
-                      ? "Universal codes are shared by all users eligible for this perk based on their tier. These codes are not redeemed/burned."
-                      : "Individual codes are unique per user. Each code can only be redeemed once and is then burned."}
+                {formData.is_featured && (
+                  <p className="text-xs text-blue-600">
+                    This perk will be shown in the LATEST REWARD slot on the
+                    rewards page. If multiple perks are featured, the most
+                    recently updated one is used.
                   </p>
-                </div>
-                <Label htmlFor="newCodes">
-                  {codeType === "universal"
-                    ? "Universal Discount Code"
-                    : "Add New Discount Codes (one per line)"}
-                </Label>
-                <textarea
-                  id="newCodes"
-                  className="w-full min-h-[120px] p-3 border rounded-md mt-2"
-                  placeholder={
-                    codeType === "universal"
-                      ? "Enter a single universal code (e.g., SAVE20)"
-                      : `Enter discount codes, one per line:\nCODE001\nCODE002\nCODE003`
-                  }
-                  value={newCodes}
-                  onChange={(e) => setNewCodes(e.target.value)}
-                />
-                <Button
-                  onClick={handleAddCodes}
-                  className="mt-2"
-                  disabled={createCodesMutation.isPending || !newCodes.trim()}
-                >
-                  {createCodesMutation.isPending
-                    ? "Adding..."
-                    : codeType === "universal"
-                      ? "Add Universal Code"
-                      : "Add Codes"}
-                </Button>
-              </div>
-
-              {/* Existing codes section */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">
-                  Existing Codes ({perkCodes.length} total)
-                </h3>
-
-                {perkCodes.length === 0 ? (
-                  <p className="text-gray-500">No discount codes created yet.</p>
-                ) : (
-                  <div className="grid gap-2 max-h-[300px] overflow-y-auto">
-                    <div className="grid grid-cols-5 gap-2 p-2 bg-gray-100 rounded font-semibold text-sm">
-                      <div>Code</div>
-                      <div>Type</div>
-                      <div>Status</div>
-                      <div>Claimed By</div>
-                      <div>Actions</div>
-                    </div>
-
-                    {perkCodes.map((code) => {
-                      const isUniversal = code.is_universal ?? false;
-                      return (
-                        <div
-                          key={code.id}
-                          className="grid grid-cols-5 gap-2 p-2 border rounded"
-                        >
-                          <div className="font-mono text-sm">{code.code}</div>
-                          <div>
-                            <span
-                              className={`px-2 py-1 text-xs rounded-full ${
-                                isUniversal
-                                  ? "bg-blue-100 text-blue-800"
-                                  : "bg-purple-100 text-purple-800"
-                              }`}
-                            >
-                              {isUniversal ? "Universal" : "Individual"}
-                            </span>
-                          </div>
-                          <div>
-                            {isUniversal ? (
-                              <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
-                                Shared
-                              </span>
-                            ) : (
-                              <span
-                                className={`px-2 py-1 text-xs rounded-full ${
-                                  code.is_claimed
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-green-100 text-green-800"
-                                }`}
-                              >
-                                {code.is_claimed ? "Claimed" : "Available"}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {isUniversal ? (
-                              <span className="text-gray-400">N/A</span>
-                            ) : code.claimed_by_wallet_address ? (
-                              <span title={code.claimed_by_wallet_address}>
-                                {code.claimed_by_wallet_address.slice(0, 6)}...
-                                {code.claimed_by_wallet_address.slice(-4)}
-                              </span>
-                            ) : (
-                              <span>-</span>
-                            )}
-                          </div>
-                          <div>
-                            {!isUniversal && !code.is_claimed && (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeleteCode(code.id!)}
-                                disabled={deleteCodeMutation.isPending}
-                              >
-                                Delete
-                              </Button>
-                            )}
-                            {isUniversal && (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeleteCode(code.id!)}
-                                disabled={deleteCodeMutation.isPending}
-                              >
-                                Delete
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
                 )}
-              </div>
-
-              {/* Summary stats */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-2">Summary</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Total Codes:</span>{" "}
-                    <span className="font-semibold">{perkCodes.length}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Universal Codes:</span>{" "}
-                    <span className="font-semibold text-blue-600">
-                      {perkCodes.filter((c) => c.is_universal).length}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Individual Codes:</span>{" "}
-                    <span className="font-semibold text-purple-600">
-                      {perkCodes.filter((c) => !c.is_universal).length}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Available (Individual):</span>{" "}
-                    <span className="font-semibold text-green-600">
-                      {perkCodes.filter((c) => !c.is_universal && !c.is_claimed).length}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Claimed (Individual):</span>{" "}
-                    <span className="font-semibold text-red-600">
-                      {perkCodes.filter((c) => !c.is_universal && c.is_claimed).length}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              </form>
             </div>
-
-            <div className="flex justify-end">
+            <div className="flex justify-end space-x-2 pt-4 border-t bg-white flex-shrink-0">
               <Button
+                type="button"
                 variant="outline"
-                onClick={() => setIsCodesDialogOpen(false)}
+                onClick={handleCloseDialog}
               >
-                Close
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={isLoading || isUploadingThumbnail}
+                onClick={(e) => {
+                  e.preventDefault();
+                  const form = document.querySelector('form');
+                  if (form) {
+                    form.requestSubmit();
+                  }
+                }}
+              >
+                {isLoading || isUploadingThumbnail
+                  ? 'Saving...'
+                  : editingPerk
+                    ? 'Update Perk'
+                    : 'Create Perk'}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
-    );
-  }
+
+      {perksLoading ? (
+        <div className="flex justify-center py-8">Loading perks...</div>
+      ) : (
+        <div className="grid gap-4 bg-white">
+          {perks.map((perk) => (
+            <div
+              key={perk.id}
+              className="border rounded-lg p-4 bg-white shadow-sm"
+            >
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="title3 text-[#020303]">{perk.title}</div>
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full ${
+                        perk.is_active
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {perk.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                    {perk.is_unlisted && (
+                      <span className="px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded-full">
+                        Unlisted
+                      </span>
+                    )}
+                    <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                      {perk.type.replace('-', ' ')}
+                    </span>
+                  </div>
+                  <div className="flex gap-4 mb-2">
+                    {perk.thumbnail_url && (
+                      <div className="flex-shrink-0">
+                        <Image
+                          src={perk.thumbnail_url}
+                          alt={perk.title}
+                          width={120}
+                          height={120}
+                          className="rounded-lg object-cover border"
+                          style={{ width: '120px', height: '120px' }}
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-gray-600 mb-2 break-words">
+                        {perk.title}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
+                    <div>Tier: {resolveTierTitle(perk.points_threshold)}</div>
+                    {perk.location && <div>Location: {perk.location}</div>}
+                    {perk.end_date && (
+                      <div
+                        className={`${new Date(perk.end_date) < new Date() ? 'text-red-600' : ''}`}
+                      >
+                        Ends: {new Date(perk.end_date).toLocaleDateString()}
+                      </div>
+                    )}
+                    {perk.website_url && (
+                      <div>
+                        Website:{' '}
+                        <a
+                          href={perk.website_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline"
+                        >
+                          {perk.website_url}
+                        </a>
+                      </div>
+                    )}
+                    {perk.id && adminEmail && (
+                      <PerkCodeTypeInfo
+                        perkId={perk.id}
+                        getAccessToken={getAccessToken}
+                        isAdmin={!!isAdmin}
+                      />
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col space-y-2">
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(perk)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(perk.id!)}
+                      disabled={deletePerkMutation.isPending}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleManageCodes(perk)}
+                  >
+                    Manage Codes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const url = `${window.location.origin}/perks/${perk.id}`;
+                      navigator.clipboard.writeText(url).then(() => {
+                        toast.success('Link copied to clipboard');
+                      });
+                    }}
+                  >
+                    Copy Link
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {perks.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No perks found. Click &quot;Add New Perk&quot; to create your
+              first perk.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Discount Codes Management Dialog */}
+      <Dialog open={isCodesDialogOpen} onOpenChange={setIsCodesDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-white border shadow-lg">
+          <DialogHeader>
+            <DialogTitle>
+              Manage Discount Codes - {selectedPerkForCodes?.title}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Add new codes section */}
+            <div>
+              <div className="mb-4">
+                <Label htmlFor="codeType">Code Type</Label>
+                <Select
+                  value={codeType}
+                  onValueChange={(value: 'universal' | 'individual') => {
+                    setCodeType(value);
+                    setNewCodes(''); // Clear codes when switching type
+                  }}
+                >
+                  <SelectTrigger id="codeType">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="universal">
+                      Universal Code (Shared by all eligible users)
+                    </SelectItem>
+                    <SelectItem value="individual">
+                      Individual Codes (One per user, redeemed/burned)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="mt-2 text-xs text-gray-600">
+                  {codeType === 'universal'
+                    ? 'Universal codes are shared by all users eligible for this perk based on their tier. These codes are not redeemed/burned.'
+                    : 'Individual codes are unique per user. Each code can only be redeemed once and is then burned.'}
+                </p>
+              </div>
+              <Label htmlFor="newCodes">
+                {codeType === 'universal'
+                  ? 'Universal Discount Code'
+                  : 'Add New Discount Codes (one per line)'}
+              </Label>
+              <textarea
+                id="newCodes"
+                className="w-full min-h-[120px] p-3 border rounded-md mt-2"
+                placeholder={
+                  codeType === 'universal'
+                    ? 'Enter a single universal code (e.g., SAVE20)'
+                    : `Enter discount codes, one per line:\nCODE001\nCODE002\nCODE003`
+                }
+                value={newCodes}
+                onChange={(e) => setNewCodes(e.target.value)}
+              />
+              <Button
+                onClick={handleAddCodes}
+                className="mt-2"
+                disabled={createCodesMutation.isPending || !newCodes.trim()}
+              >
+                {createCodesMutation.isPending
+                  ? 'Adding...'
+                  : codeType === 'universal'
+                    ? 'Add Universal Code'
+                    : 'Add Codes'}
+              </Button>
+            </div>
+
+            {/* Existing codes section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-3">
+                Existing Codes ({perkCodes.length} total)
+              </h3>
+
+              {perkCodes.length === 0 ? (
+                <p className="text-gray-500">No discount codes created yet.</p>
+              ) : (
+                <div className="grid gap-2 max-h-[300px] overflow-y-auto">
+                  <div className="grid grid-cols-5 gap-2 p-2 bg-gray-100 rounded font-semibold text-sm">
+                    <div>Code</div>
+                    <div>Type</div>
+                    <div>Status</div>
+                    <div>Claimed By</div>
+                    <div>Actions</div>
+                  </div>
+
+                  {perkCodes.map((code) => {
+                    const isUniversal = code.is_universal ?? false;
+                    return (
+                      <div
+                        key={code.id}
+                        className="grid grid-cols-5 gap-2 p-2 border rounded"
+                      >
+                        <div className="font-mono text-sm">{code.code}</div>
+                        <div>
+                          <span
+                            className={`px-2 py-1 text-xs rounded-full ${
+                              isUniversal
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-purple-100 text-purple-800'
+                            }`}
+                          >
+                            {isUniversal ? 'Universal' : 'Individual'}
+                          </span>
+                        </div>
+                        <div>
+                          {isUniversal ? (
+                            <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
+                              Shared
+                            </span>
+                          ) : (
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                code.is_claimed
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-green-100 text-green-800'
+                              }`}
+                            >
+                              {code.is_claimed ? 'Claimed' : 'Available'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {isUniversal ? (
+                            <span className="text-gray-400">N/A</span>
+                          ) : code.claimed_by_wallet_address ? (
+                            <span title={code.claimed_by_wallet_address}>
+                              {code.claimed_by_wallet_address.slice(0, 6)}...
+                              {code.claimed_by_wallet_address.slice(-4)}
+                            </span>
+                          ) : (
+                            <span>-</span>
+                          )}
+                        </div>
+                        <div>
+                          {!isUniversal && !code.is_claimed && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteCode(code.id!)}
+                              disabled={deleteCodeMutation.isPending}
+                            >
+                              Delete
+                            </Button>
+                          )}
+                          {isUniversal && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteCode(code.id!)}
+                              disabled={deleteCodeMutation.isPending}
+                            >
+                              Delete
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Summary stats */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2">Summary</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Total Codes:</span>{' '}
+                  <span className="font-semibold">{perkCodes.length}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Universal Codes:</span>{' '}
+                  <span className="font-semibold text-blue-600">
+                    {perkCodes.filter((c) => c.is_universal).length}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Individual Codes:</span>{' '}
+                  <span className="font-semibold text-purple-600">
+                    {perkCodes.filter((c) => !c.is_universal).length}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Available (Individual):</span>{' '}
+                  <span className="font-semibold text-green-600">
+                    {
+                      perkCodes.filter((c) => !c.is_universal && !c.is_claimed)
+                        .length
+                    }
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Claimed (Individual):</span>{' '}
+                  <span className="font-semibold text-red-600">
+                    {
+                      perkCodes.filter((c) => !c.is_universal && c.is_claimed)
+                        .length
+                    }
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setIsCodesDialogOpen(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
