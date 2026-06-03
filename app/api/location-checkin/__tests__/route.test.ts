@@ -29,6 +29,10 @@ vi.mock('@/lib/db/checkins', () => ({
   createLocationCheckin: vi.fn(),
 }));
 
+vi.mock('@/lib/campaign-monitor/sync-on-first-checkin', () => ({
+  syncCampaignMonitorOnFirstCheckin: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { POST, GET } from '../route';
 import {
   createOrUpdatePlayer,

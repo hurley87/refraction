@@ -17,7 +17,7 @@ import {
   signupAttributionPayloadHasData,
 } from '@/lib/analytics/attribution-core';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
-import { addCampaignMonitorSubscriber } from '@/lib/campaign-monitor/subscribe';
+import { syncCampaignMonitorOnboarding } from '@/lib/campaign-monitor/sync-onboarding';
 import { captureHandledException } from '@/lib/monitoring/capture-handled-exception';
 
 export async function POST(request: NextRequest) {
@@ -119,32 +119,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (isNewPlayer && email) {
-      try {
-        await addCampaignMonitorSubscriber({
-          email,
-          username: normalizedUsername,
-        });
-      } catch (campaignMonitorError) {
-        console.error(
-          JSON.stringify({
-            source: 'api_player_post',
-            message: 'campaign_monitor_sync_exception',
-            walletAddressSuffix: walletAddress.slice(-8),
-            error:
-              campaignMonitorError instanceof Error
-                ? campaignMonitorError.message
-                : String(campaignMonitorError),
-          })
-        );
-        captureHandledException(campaignMonitorError, {
-          route: '/api/player',
-          operation: 'campaign_monitor_subscribe',
-          statusCode: 500,
-          extra: {
-            hasEmail: Boolean(email),
-          },
-        });
-      }
+      await syncCampaignMonitorOnboarding({
+        email,
+        username: normalizedUsername,
+        source: '/api/player',
+        walletAddressSuffix: walletAddress.slice(-8),
+      });
     }
 
     return apiSuccess(

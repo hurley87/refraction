@@ -39,6 +39,10 @@ vi.mock('@/lib/tier-progression', () => ({
   checkAndTrackTierProgression: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/lib/campaign-monitor/sync-on-first-checkin', () => ({
+  syncCampaignMonitorOnFirstCheckin: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   createOrUpdatePlayer,
   createOrUpdatePlayerForSolana,

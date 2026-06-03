@@ -20,6 +20,7 @@ import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import { sanitizeString } from '@/lib/utils/validation';
 import { sameWalletAddress } from '@/lib/utils/wallets';
 import { apiSuccess, apiError } from '@/lib/api/response';
+import { syncCampaignMonitorOnFirstCheckin } from '@/lib/campaign-monitor/sync-on-first-checkin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -135,6 +136,17 @@ export async function POST(request: NextRequest) {
     if (existingCheckin) {
       return apiError('You have already checked in at this location', 409);
     }
+
+    await syncCampaignMonitorOnFirstCheckin({
+      playerId: player.id,
+      email: email || player.email,
+      username:
+        typeof username === 'string' && username.trim()
+          ? username.trim()
+          : player.username,
+      evmWalletAddress: walletAddress,
+      source: '/api/location-checkin',
+    });
 
     // Create new checkin
     const checkin = await createLocationCheckin({

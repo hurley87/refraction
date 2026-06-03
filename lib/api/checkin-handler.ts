@@ -1,11 +1,16 @@
 import { supabase } from '@/lib/db/client';
 import { updatePlayerPoints } from '@/lib/db/players';
 import { getUserProfile } from '@/lib/db/profiles';
-import { trackCheckinCompleted, trackPointsEarned, resolveServerIdentity } from '@/lib/analytics';
+import {
+  trackCheckinCompleted,
+  trackPointsEarned,
+  resolveServerIdentity,
+} from '@/lib/analytics';
 import { checkAndTrackTierProgression } from '@/lib/tier-progression';
 import { DAILY_CHECKIN_POINTS, DAILY_CHECKPOINT_LIMIT } from '@/lib/constants';
 import { getUtcDayBounds } from '@/lib/utils/date';
 import type { Player } from '@/lib/types';
+import { syncCampaignMonitorOnFirstCheckin } from '@/lib/campaign-monitor/sync-on-first-checkin';
 
 /**
  * Chain type for checkin operations
@@ -179,6 +184,17 @@ export async function processCheckin(
     activityData.user_wallet_address = player.wallet_address;
   }
 
+  if (player.id) {
+    await syncCampaignMonitorOnFirstCheckin({
+      playerId: player.id,
+      email: input.email || player.email,
+      username: player.username,
+      evmWalletAddress:
+        chain === 'evm' ? chainWalletAddress : player.wallet_address,
+      source: 'processCheckin',
+    });
+  }
+
   // Insert points activity
   const { data: checkpointActivity, error: checkpointActivityError } =
     await supabase
@@ -214,7 +230,8 @@ export async function processCheckin(
   });
 
   // Track tier progression after points change
-  const newPoints = latestPlayer?.total_points ?? previousPoints + pointsAwarded;
+  const newPoints =
+    latestPlayer?.total_points ?? previousPoints + pointsAwarded;
   await checkAndTrackTierProgression(distinctId, previousPoints, newPoints);
 
   // Calculate today's total points
