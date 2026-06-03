@@ -17,6 +17,17 @@ describe('syncCampaignMonitorOnFirstCheckin', () => {
     vi.clearAllMocks();
   });
 
+  it('skips history lookup when email is missing', async () => {
+    await syncCampaignMonitorOnFirstCheckin({
+      playerId: 1,
+      email: null,
+      source: 'test',
+    });
+
+    expect(playerHasPriorCheckins).not.toHaveBeenCalled();
+    expect(syncCampaignMonitorOnboarding).not.toHaveBeenCalled();
+  });
+
   it('skips sync when player already has check-ins', async () => {
     vi.mocked(playerHasPriorCheckins).mockResolvedValue(true);
 
