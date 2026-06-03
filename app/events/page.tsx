@@ -120,6 +120,23 @@ const parseEventDate = (value: string | null | undefined): Date | null => {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
+/**
+ * Manual events are stored as date-only values at UTC midnight (e.g.
+ * "2026-06-03T00:00:00+00:00"). Parsing them as instants shifts them to the
+ * previous day for viewers in negative UTC offsets, so an event happening today
+ * gets mis-classified as past. Parse the calendar day in local time instead.
+ */
+const parseManualEventDate = (
+  value: string | null | undefined
+): Date | null => {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (!match) return parseEventDate(value);
+  const [, year, month, day] = match;
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const getPoster = (images: DiceImage[] | null | undefined): string | null => {
   if (!images || images.length === 0) return null;
   const preferred =
@@ -236,14 +253,16 @@ export default function EventsPage() {
   } = useQuery<ManualEvent[]>({
     queryKey: ['manual-events'],
     queryFn: async () => {
-      const response = await fetch('/api/manual-events');
-      if (!response.ok) return [];
+      const response = await fetch('/api/manual-events', { cache: 'no-store' });
       const body = await response.json().catch(() => ({}));
-      const events = body?.data ?? body;
+      if (!response.ok || !body?.success) {
+        throw new Error(body?.error ?? 'Failed to fetch manual events');
+      }
+      const events = body.data;
       if (!Array.isArray(events)) return [];
       return events as ManualEvent[];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
   });
 
   const publicEvents = useMemo(() => {
@@ -255,8 +274,8 @@ export default function EventsPage() {
         id: evt.id ?? `manual-${index}-${evt.title}`,
         title: evt.title,
         description: null,
-        start: parseEventDate(evt.date),
-        end: parseEventDate(evt.endDate),
+        start: parseManualEventDate(evt.date),
+        end: parseManualEventDate(evt.endDate),
         poster: evt.thumbnailUrl || null,
         location: evt.city,
         ticketsUrl: evt.rsvpLink,

@@ -155,6 +155,7 @@ function ManualEventDialog({
       await queryClient.invalidateQueries({
         queryKey: ['admin-manual-events'],
       });
+      await queryClient.invalidateQueries({ queryKey: ['manual-events'] });
       onOpenChange(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');
@@ -691,6 +692,7 @@ export default function AdminEventsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-manual-events'] });
+      queryClient.invalidateQueries({ queryKey: ['manual-events'] });
     },
   });
 
