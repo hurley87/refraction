@@ -8,6 +8,9 @@ const DEFAULT_IGNORED_ERRORS = [
   'Privy user ID is required',
   'Invalid email format',
   'Email is required',
+  // fetch/AbortController cancellations (navigation, unmount, timeouts).
+  'AbortError',
+  'The operation was aborted',
 ];
 
 const DEFAULT_IGNORED_PATHS = [
@@ -57,6 +60,46 @@ function eventMessage(event: SentryEventLike, hint?: EventHint): string {
   return (exceptionValue ?? event.message ?? hintMessage ?? '').toString();
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * fetch() and streams reject with AbortError when a signal is aborted (component
+ * unmount, route change, debounced reload). These are expected and not bugs.
+ */
+export function isAbortError(reason: unknown): boolean {
+  if (reason instanceof Error) {
+    if (reason.name === 'AbortError') return true;
+    const message = reason.message.toLowerCase();
+    if (message.includes('the operation was aborted')) return true;
+    if (message.includes('aborterror') && message.includes('aborted')) {
+      return true;
+    }
+  }
+
+  if (isPlainRecord(reason) && reason.name === 'AbortError') {
+    return true;
+  }
+
+  return false;
+}
+
+function shouldDropAbortError(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (isAbortError(hint?.originalException)) {
+    return true;
+  }
+
+  const message = eventMessage(event, hint).toLowerCase();
+  return (
+    message.includes('the operation was aborted') ||
+    (message.includes('aborterror') && message.includes('aborted'))
+  );
+}
+
 function normalizeCsv(rawValue: string): string[] {
   return rawValue
     .split(',')
@@ -81,6 +124,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   event: T,
   hint?: EventHint
 ): T | null {
+  if (shouldDropAbortError(event, hint)) {
+    return null;
+  }
+
   const path = eventPath(event);
   if (path && DEFAULT_IGNORED_PATHS.some((segment) => path.includes(segment))) {
     return null;
