@@ -83,6 +83,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create or update player
+    const existingPlayer = await getPlayerByWallet(walletAddress);
+    const hadStoredEmailBeforeCheckin = Boolean(existingPlayer?.email?.trim());
+
     const playerData: Omit<Player, 'id' | 'created_at' | 'updated_at'> = {
       wallet_address: walletAddress,
       email: email || undefined,
@@ -143,6 +146,7 @@ export async function POST(request: NextRequest) {
       username: sanitizeOptionalVarchar(username) ?? player.username,
       evmWalletAddress: walletAddress,
       source: '/api/location-checkin',
+      hadStoredEmailBeforeCheckin,
     });
 
     // Create new checkin

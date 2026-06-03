@@ -31,6 +31,8 @@ export type CheckinInput = {
   chain: CheckinChain;
   /** Chain-specific wallet address for querying activities */
   chainWalletAddress: string;
+  /** True when the player row already had an email before this check-in. */
+  hadStoredEmailBeforeCheckin?: boolean;
 };
 
 /**
@@ -192,6 +194,7 @@ export async function processCheckin(
       evmWalletAddress:
         chain === 'evm' ? chainWalletAddress : player.wallet_address,
       source: 'processCheckin',
+      hadStoredEmailBeforeCheckin: input.hadStoredEmailBeforeCheckin,
     });
   }
 

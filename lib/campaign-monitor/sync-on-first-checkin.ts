@@ -7,6 +7,8 @@ export type SyncCampaignMonitorOnFirstCheckinInput = {
   username?: string | null;
   evmWalletAddress?: string | null;
   source: string;
+  /** True when the player row already had an email before this check-in. */
+  hadStoredEmailBeforeCheckin?: boolean;
 };
 
 export async function syncCampaignMonitorOnFirstCheckin(
@@ -20,7 +22,7 @@ export async function syncCampaignMonitorOnFirstCheckin(
     input.playerId,
     input.evmWalletAddress
   );
-  if (hadPriorCheckins) {
+  if (hadPriorCheckins && input.hadStoredEmailBeforeCheckin) {
     return;
   }
 

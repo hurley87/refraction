@@ -28,16 +28,35 @@ describe('syncCampaignMonitorOnFirstCheckin', () => {
     expect(syncCampaignMonitorOnboarding).not.toHaveBeenCalled();
   });
 
-  it('skips sync when player already has check-ins', async () => {
+  it('skips sync when player already has check-ins and had email on file', async () => {
     vi.mocked(playerHasPriorCheckins).mockResolvedValue(true);
 
     await syncCampaignMonitorOnFirstCheckin({
       playerId: 1,
       email: 'user@example.com',
       source: 'test',
+      hadStoredEmailBeforeCheckin: true,
     });
 
     expect(syncCampaignMonitorOnboarding).not.toHaveBeenCalled();
+  });
+
+  it('syncs when player has prior check-ins but email was not stored before', async () => {
+    vi.mocked(playerHasPriorCheckins).mockResolvedValue(true);
+
+    await syncCampaignMonitorOnFirstCheckin({
+      playerId: 1,
+      email: 'user@example.com',
+      source: 'test',
+      hadStoredEmailBeforeCheckin: false,
+    });
+
+    expect(syncCampaignMonitorOnboarding).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      username: undefined,
+      source: 'test',
+      walletAddressSuffix: undefined,
+    });
   });
 
   it('syncs when this is the first check-in and email is present', async () => {
