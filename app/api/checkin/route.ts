@@ -4,6 +4,10 @@ import {
   createOrUpdatePlayerForSolana,
   createOrUpdatePlayerForStellar,
   createOrUpdatePlayerForAptos,
+  getPlayerByWallet,
+  getPlayerBySolanaWallet,
+  getPlayerByStellarWallet,
+  getPlayerByAptosWallet,
 } from '@/lib/db/players';
 import type { Player } from '@/lib/types';
 import {
@@ -51,6 +55,27 @@ export async function POST(req: NextRequest) {
       return apiError('Wallet address is required', 400);
     }
 
+    const hadStoredEmailBeforeCheckin = await (async () => {
+      switch (chain) {
+        case 'evm': {
+          const existing = await getPlayerByWallet(walletAddress);
+          return Boolean(existing?.email?.trim());
+        }
+        case 'solana': {
+          const existing = await getPlayerBySolanaWallet(walletAddress);
+          return Boolean(existing?.email?.trim());
+        }
+        case 'stellar': {
+          const existing = await getPlayerByStellarWallet(walletAddress);
+          return Boolean(existing?.email?.trim());
+        }
+        case 'aptos': {
+          const existing = await getPlayerByAptosWallet(walletAddress);
+          return Boolean(existing?.email?.trim());
+        }
+      }
+    })();
+
     // Create or update player based on chain type
     let player: Player;
     switch (chain) {
@@ -83,6 +108,7 @@ export async function POST(req: NextRequest) {
       email,
       chain,
       chainWalletAddress: walletAddress,
+      hadStoredEmailBeforeCheckin,
     });
 
     if (!result.success) {
