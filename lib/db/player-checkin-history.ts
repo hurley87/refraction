@@ -16,31 +16,41 @@ export async function playerHasPriorCheckins(
   if (locationError) {
     throw locationError;
   }
-  if (locationCount && locationCount > 0) {
+  if ((locationCount ?? 0) > 0) {
     return true;
   }
 
   const wallet = evmWalletAddress?.trim();
+  const checkpointByPlayerIdQuery = supabase
+    .from('points_activities')
+    .select('id', { count: 'exact', head: true })
+    .eq('activity_type', 'checkpoint_checkin')
+    .eq('metadata->>player_id', String(playerId));
+
   if (wallet) {
-    const { count: checkpointByWallet, error: walletError } = await supabase
+    const checkpointByWalletQuery = supabase
       .from('points_activities')
       .select('id', { count: 'exact', head: true })
       .eq('user_wallet_address', wallet)
       .eq('activity_type', 'checkpoint_checkin');
 
+    const [
+      { count: checkpointByWallet, error: walletError },
+      { count: checkpointByPlayerId, error: metaError },
+    ] = await Promise.all([checkpointByWalletQuery, checkpointByPlayerIdQuery]);
+
     if (walletError) {
       throw walletError;
     }
-    if (checkpointByWallet && checkpointByWallet > 0) {
-      return true;
+    if (metaError) {
+      throw metaError;
     }
+
+    return (checkpointByWallet ?? 0) > 0 || (checkpointByPlayerId ?? 0) > 0;
   }
 
-  const { count: checkpointByPlayerId, error: metaError } = await supabase
-    .from('points_activities')
-    .select('id', { count: 'exact', head: true })
-    .eq('activity_type', 'checkpoint_checkin')
-    .eq('metadata->>player_id', String(playerId));
+  const { count: checkpointByPlayerId, error: metaError } =
+    await checkpointByPlayerIdQuery;
 
   if (metaError) {
     throw metaError;

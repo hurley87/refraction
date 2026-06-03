@@ -45,9 +45,11 @@ describe('playerHasPriorCheckins', () => {
   it('returns true when player has a checkpoint check-in by wallet', async () => {
     mockFrom
       .mockReturnValueOnce(chainWithCount(0))
-      .mockReturnValueOnce(chainWithCount(2));
+      .mockReturnValueOnce(chainWithCount(2))
+      .mockReturnValueOnce(chainWithCount(0));
 
     await expect(playerHasPriorCheckins(42, '0xwallet')).resolves.toBe(true);
+    expect(mockFrom).toHaveBeenCalledTimes(3);
   });
 
   it('returns true when player has a checkpoint check-in by metadata player_id', async () => {

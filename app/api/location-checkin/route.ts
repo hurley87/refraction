@@ -17,7 +17,10 @@ import {
 } from '@/lib/analytics';
 import { setUserProperties as setUserPropertiesServer } from '@/lib/analytics/server';
 import { checkAndTrackTierProgression } from '@/lib/tier-progression';
-import { sanitizeString } from '@/lib/utils/validation';
+import {
+  sanitizeOptionalVarchar,
+  sanitizeString,
+} from '@/lib/utils/validation';
 import { sameWalletAddress } from '@/lib/utils/wallets';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { syncCampaignMonitorOnFirstCheckin } from '@/lib/campaign-monitor/sync-on-first-checkin';
@@ -101,10 +104,7 @@ export async function POST(request: NextRequest) {
       context: sanitizedContext,
       is_visible: true,
       creator_wallet_address: walletAddress.trim(),
-      creator_username:
-        typeof username === 'string' && username.trim()
-          ? username.trim()
-          : undefined,
+      creator_username: sanitizeOptionalVarchar(username) ?? undefined,
     };
 
     const location = await createOrGetLocation(locationInfo);
@@ -140,10 +140,7 @@ export async function POST(request: NextRequest) {
     await syncCampaignMonitorOnFirstCheckin({
       playerId: player.id,
       email: email || player.email,
-      username:
-        typeof username === 'string' && username.trim()
-          ? username.trim()
-          : player.username,
+      username: sanitizeOptionalVarchar(username) ?? player.username,
       evmWalletAddress: walletAddress,
       source: '/api/location-checkin',
     });

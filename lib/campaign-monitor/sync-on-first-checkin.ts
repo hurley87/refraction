@@ -9,12 +9,13 @@ export type SyncCampaignMonitorOnFirstCheckinInput = {
   source: string;
 };
 
-/**
- * Adds the user to Campaign Monitor Onboarding on their first check-in when email is known.
- */
 export async function syncCampaignMonitorOnFirstCheckin(
   input: SyncCampaignMonitorOnFirstCheckinInput
 ): Promise<void> {
+  if (!input.email?.trim()) {
+    return;
+  }
+
   const hadPriorCheckins = await playerHasPriorCheckins(
     input.playerId,
     input.evmWalletAddress
@@ -23,12 +24,10 @@ export async function syncCampaignMonitorOnFirstCheckin(
     return;
   }
 
-  const walletSuffix = input.evmWalletAddress?.trim().slice(-8);
-
   await syncCampaignMonitorOnboarding({
     email: input.email,
     username: input.username,
     source: input.source,
-    walletAddressSuffix: walletSuffix,
+    walletAddressSuffix: input.evmWalletAddress?.trim().slice(-8),
   });
 }

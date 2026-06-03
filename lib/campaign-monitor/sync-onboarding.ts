@@ -21,10 +21,11 @@ export async function syncCampaignMonitorOnboarding(
     return;
   }
 
-  const username = input.username?.trim() || undefined;
-
   try {
-    await addCampaignMonitorSubscriber({ email, username });
+    await addCampaignMonitorSubscriber({
+      email,
+      username: input.username ?? undefined,
+    });
   } catch (campaignMonitorError) {
     console.error(
       JSON.stringify({
