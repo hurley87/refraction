@@ -5,7 +5,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Download, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import type { Location } from '@/lib/types';
@@ -19,6 +19,7 @@ export default function AdminLocationsPage() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
   const [showApproved, setShowApproved] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [page, setPage] = useState(1);
   const LIMIT = 50;
 
@@ -160,6 +161,30 @@ export default function AdminLocationsPage() {
     },
   });
 
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const res = await fetch('/api/admin/locations/export', { headers: auth });
+      if (!res.ok) throw new Error('Failed to export locations');
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `locations-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting locations', error);
+      toast.error('Failed to export locations');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Loading state
   if (adminLoading) {
     return (
@@ -193,9 +218,24 @@ export default function AdminLocationsPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-6xl">
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">
-          Location Approval
-        </h1>
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Location Approval
+          </h1>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            Export CSV
+          </Button>
+        </div>
 
         <div className="mb-6 flex items-center justify-between">
           <label className="flex items-center gap-2 text-sm text-gray-700">
