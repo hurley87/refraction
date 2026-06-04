@@ -2,10 +2,7 @@ import dynamic from 'next/dynamic';
 import Header from '@/components/layout/header';
 import Hero from '@/components/home/hero';
 
-// Lazy load below-the-fold components for better initial load performance
-const MapSection = dynamic(() => import('@/components/map/map-section'), {
-  ssr: true,
-});
+
 // Temporarily hidden — re-enable import and JSX block below to restore
 // const WhatYouGetSection = dynamic(
 //   () => import('@/components/home/what-you-get-section'),
@@ -58,12 +55,8 @@ export default function Home() {
 
       <div className="overflow-x-hidden overflow-y-visible rounded-t-3xl">
         {/* Hero Section with WebGL Background - Full viewport */}
-        <div className="relative h-screen w-screen">
+        <div className="relative w-screen">
           <Hero />
-        </div>
-        {/* Map Section with GSAP Scroll Transitions */}
-        <div className="pt-0 pb-16 md:py-24" data-section="map">
-          <MapSection />
         </div>
 
         {/* City Guides Cover Section */}

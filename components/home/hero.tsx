@@ -1,87 +1,175 @@
 'use client';
 
-import Link from 'next/link';
+
 import Image from 'next/image';
+import { useCallback, useEffect, useState } from 'react';
 
 import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
+import { cn } from '@/lib/utils';
+
+/** Hero background slides, cycled by the carousel. Order is the display order. */
+const HERO_CAROUSEL_SLIDES = [
+  { src: '/homepage/hero/carousel/denver.svg', alt: 'Denver' },
+  { src: '/homepage/hero/carousel/detroit.svg', alt: 'Detroit' },
+  { src: '/homepage/hero/carousel/singapore.svg', alt: 'Singapore' },
+] as const;
+
+const HERO_CAROUSEL_INTERVAL_MS = 5000;
 
 /**
- * Hero component with background image above the fold
+ * Hero component with a background image carousel above the fold.
  */
 export default function Hero() {
+  const slideCount = HERO_CAROUSEL_SLIDES.length;
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const goNext = useCallback(
+    () => setActiveIndex((prev) => (prev + 1) % slideCount),
+    [slideCount]
+  );
+  const goPrev = useCallback(
+    () => setActiveIndex((prev) => (prev - 1 + slideCount) % slideCount),
+    [slideCount]
+  );
+  const togglePause = useCallback(() => setIsPaused((prev) => !prev), []);
+
+  // Auto-advance unless paused.
+  useEffect(() => {
+    if (isPaused) return;
+    const id = setInterval(goNext, HERO_CAROUSEL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [isPaused, goNext]);
+
   return (
-    <section className="relative w-full h-screen overflow-hidden">
-      {/* Hero background image */}
-      <div className="absolute inset-0 p-0 md:p-4">
-        <div className="relative w-full h-full rounded-[48px] overflow-hidden">
-          <Image
-            src="/homepage/hero-image.jpg"
-            alt=""
-            fill
-            className="object-cover"
-            priority
-            sizes="100vw"
-          />
+    <>
+      <section className="relative w-full h-screen overflow-hidden">
+        {/* Hero background carousel */}
+        <div className="absolute inset-0 p-0 md:p-4">
+          <div className="relative w-full h-full rounded-[48px] overflow-hidden">
+            {HERO_CAROUSEL_SLIDES.map((slide, index) => (
+              <Image
+                key={slide.src}
+                src={slide.src}
+                alt=""
+                fill
+                priority={index === 0}
+                sizes="100vw"
+                className={cn(
+                  'object-contain object-top transition-opacity duration-700 ease-in-out',
+                  index === activeIndex ? 'opacity-100' : 'opacity-0'
+                )}
+              />
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Content overlay - same layout on mobile and desktop */}
-      <div className="relative z-10 flex flex-col items-center md:items-start justify-center h-full px-4 pt-20 pb-24 md:pt-0 md:pb-0 md:pl-[171px]">
-        {/* Single column: ellipse + Welcome to IRL, headline, Join For Free (mobile: full width, desktop: 574px) */}
-        <div className="flex flex-col w-full max-w-[574px] md:w-[574px] items-start gap-12">
-          {/* Row 1: ellipse + Welcome to IRL (title5) */}
-          <div className="flex items-center gap-2">
-            <WelcomeEllipse />
-            <span className="title5 text-white font-grotesk">
-              Welcome to IRL
-            </span>
+        {/* Content overlay - same layout on mobile and desktop */}
+        <div className="relative z-10 flex flex-col items-center md:items-start justify-center h-full px-4 pt-20 pb-24 md:pt-0 md:pb-0 md:pl-[171px]">
+          {/* Single column: ellipse + Welcome to IRL, headline, Join For Free (mobile: full width, desktop: 574px) */}
+          <div className="flex flex-col w-full max-w-[574px] md:w-[574px] items-start">
+            {/* Row 1: ellipse + Welcome to IRL (title5) */}
+            <div className="flex items-center gap-2">
+              <WelcomeEllipse />
+              <span className="title4 text-white">Where to?</span>
+            </div>
+
+            {/* Headline block */}
+            <h1 className="mt-[23px] flex flex-col justify-center self-stretch text-white">
+              Your Global Guide To What&apos;s Good
+            </h1>
           </div>
 
-          {/* Headline block */}
-          <div className="flex hero-text flex-col justify-center self-stretch text-white">
-            Your Local Guide To What&apos;s Good Around The World
+          {/* Divider accent anchored to bottom (mobile + desktop) */}
+          <div className="absolute bottom-8 left-0 right-0 z-10 px-4 md:px-0 md:pl-[171px]">
+            <div
+              className="h-px w-full max-w-[574px] md:w-[574px] bg-white/50"
+              aria-hidden
+            />
           </div>
 
-          {/* CTA button */}
-          <Link
-            href="/interactive-map"
-            className="inline-flex w-[361px] max-w-full shrink-0"
-          >
+          {/* Carousel controller — TEMPORARY placeholder; final design + SVGs pending */}
+          <div className="absolute bottom-8 left-0 right-0 z-20 flex items-center justify-between self-stretch px-4">
             <button
               type="button"
-              className="label-large flex h-[44px] w-full cursor-pointer uppercase items-center justify-between bg-[#ffffff] py-2 pr-2 pl-4 text-[#171717]"
+              onClick={goPrev}
+              aria-label="Previous slide"
+              className="flex items-center justify-center gap-[10.4px] p-[var(--sds-size-space-200)] transition-opacity hover:opacity-80"
             >
-              <span className="whitespace-nowrap">Find Spots Nearby</span>
               <svg
-                width={24}
-                height={24}
-                viewBox="0 0 24 24"
-                fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className="shrink-0"
+                width="31.2"
+                height="31.2"
+                viewBox="0 0 32 32"
+                fill="none"
                 aria-hidden
+                className="aspect-square shrink-0"
               >
                 <path
-                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
-                  fill="#171717"
+                  d="M14.95 15.6L26 23.4V7.79999M14.3 23.4V7.79999L3.25 15.6L14.3 23.4Z"
+                  fill="white"
                 />
               </svg>
             </button>
-          </Link>
-        </div>
-
-        {/* Subcopy anchored to bottom (mobile + desktop) */}
-        <div className="flex flex-col gap-3.5 absolute bottom-8 left-0 right-0 z-10 px-4 md:px-0 md:pl-[171px]">
-          <div
-            className="h-px w-full max-w-[574px] md:w-[574px] bg-white/50"
-            aria-hidden
-          />
-          <div className="flex min-h-[74px] w-full max-w-[574px] md:w-[574px] flex-col justify-center self-stretch text-white title3 font-grotesk">
-            From listening bars to late-night art shows, the people shaping the
-            scene show you where to go.
+            <button
+              type="button"
+              onClick={togglePause}
+              aria-label={isPaused ? 'Play carousel' : 'Pause carousel'}
+              className="flex items-center justify-center gap-[10.4px] p-[var(--sds-size-space-200)] text-white transition-opacity hover:opacity-80"
+            >
+              {isPaused ? (
+                <span aria-hidden className="text-[31.2px] leading-none">
+                  ▶
+                </span>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="31.2"
+                  height="31.2"
+                  viewBox="0 0 32 32"
+                  fill="none"
+                  aria-hidden
+                  className="aspect-square shrink-0"
+                >
+                  <path
+                    d="M18.1998 24.7V6.5H23.3998V24.7H18.1998ZM7.7998 24.7V6.5H12.9998V24.7H7.7998Z"
+                    fill="white"
+                  />
+                </svg>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={goNext}
+              aria-label="Next slide"
+              className="flex items-center justify-center gap-[10.4px] p-[var(--sds-size-space-200)] transition-opacity hover:opacity-80"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="31.2"
+                height="31.2"
+                viewBox="0 0 32 32"
+                fill="none"
+                aria-hidden
+                className="aspect-square shrink-0"
+              >
+                <path
+                  d="M3.25 23.4V7.79999L14.95 15.6L3.25 23.4ZM16.25 23.4V7.79999L27.95 15.6L16.25 23.4Z"
+                  fill="white"
+                />
+              </svg>
+            </button>
           </div>
         </div>
+      </section>
+
+      {/* Boat quote — below the hero image, 144px from the image bottom */}
+      <div className="px-4 pt-[144px] md:pl-[171px]">
+        <p className="boat-quote min-h-[74px] w-full max-w-[574px] md:w-[574px] text-white">
+          From listening bars to late-night art shows, the people shaping the
+          scene show you where to go.
+        </p>
       </div>
-    </section>
+    </>
   );
 }
