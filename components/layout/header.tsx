@@ -3,59 +3,77 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
 import NavigationMenu from '@/components/layout/navigation-menu';
-import { IrlLogoDashboard } from '@/components/shared/irl-logo-dashboard';
 
 /**
- * Header component for the IRL website
- * Features a logo on the left and hamburger menu button on the right
+ * Site header / nav bar.
+ *
+ * Fixed 393px-wide bar (same dimensions on desktop for now) with two states:
+ *  1. Logged out — logo + SIGN UP button.
+ *  2. Logged in — logo + hamburger (opens dropdown menu) + MAP link.
  */
 export default function Header() {
+  const { authenticated, login } = usePrivy();
   const [isNavigationMenuOpen, setIsNavigationMenuOpen] = useState(false);
 
   return (
     <>
-      <div
-        className="fixed md:top-[16px] top-[8px] left-[max(8px,env(safe-area-inset-left))] right-[max(8px,env(safe-area-inset-right))] md:left-[171px] md:right-[217px] max-w-7xl mx-auto z-50 rounded-[26px] backdrop-blur-[32px] bg-gradient-to-b from-white/[0.157] to-white/[0.45] border border-white/25 overflow-visible"
-        data-name="Hero"
-      >
-        <nav
-          className="flex min-w-0 h-12 items-center justify-between gap-2 overflow-visible px-4 py-0 rounded-[inherit]"
-          data-name="Nav"
-        >
-          {/* Inner shadow overlay */}
-          <div className="absolute inset-0 pointer-events-none shadow-[0px_4px_8px_0px_inset_rgba(255,255,255,0.15)] rounded-[inherit]" />
-
-          {/* Logo — same mark + glow as dashboard `MapNav` (`irlLogoVariant="dashboard"`) */}
+      <div className="fixed left-1/2 top-2 z-50 w-[393px] max-w-full -translate-x-1/2">
+        <nav className="flex h-[56px] w-full items-center justify-between px-4">
+          {/* Logo */}
           <Link
             href="/"
-            className="relative z-10 flex shrink-0 items-center justify-center overflow-visible pt-1 pb-1"
             aria-label="IRL"
-          >
-            <div className="flex items-center justify-center overflow-visible transition-opacity hover:opacity-90">
-              <IrlLogoDashboard />
-            </div>
-          </Link>
-
-          {/* Hamburger Menu Button */}
-          <button
-            type="button"
-            onClick={() => setIsNavigationMenuOpen(true)}
-            className="relative z-10 flex size-[40px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-[#ffffff] transition-colors hover:bg-[#5a5a5a]"
-            aria-label="Open navigation menu"
+            className="flex h-[70px] w-[70px] shrink-0 items-center justify-center transition-opacity hover:opacity-90"
           >
             <Image
-              src="/menu/HAMBURGER-MENU.svg"
-              alt="Hamburger Menu"
-              width={24}
-              height={24}
-              className="block shrink-0"
+              src="/irl-svg/irl-logo-new-white.svg"
+              alt="IRL"
+              width={70}
+              height={56}
+              priority
             />
-          </button>
+          </Link>
+
+          {authenticated ? (
+            <>
+              {/* Column 2: hamburger icon — opens the dropdown menu */}
+              <button
+                type="button"
+                onClick={() => setIsNavigationMenuOpen(true)}
+                className="flex shrink-0 cursor-pointer items-center justify-center transition-opacity hover:opacity-80"
+                aria-label="Open navigation menu"
+              >
+                <Image
+                  src="/irl-svg/hamburger.svg"
+                  alt=""
+                  width={34}
+                  height={18}
+                  className="block shrink-0"
+                />
+              </button>
+
+              {/* Column 3: MAP link */}
+              <Link
+                href="/interactive-map"
+                className="shrink-0 label-large uppercase text-white transition-opacity hover:opacity-80"
+              >
+                MAP
+              </Link>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={login}
+              className="flex h-11 min-h-[44px] w-[107px] shrink-0 items-center justify-center gap-[var(--sds-size-space-400)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] label-large uppercase text-white [backdrop-filter:blur(calc(var(--sds-size-blur-100)/2))]"
+            >
+              SIGN UP
+            </button>
+          )}
         </nav>
       </div>
 
-      {/* Navigation Menu */}
       <NavigationMenu
         isOpen={isNavigationMenuOpen}
         onClose={() => setIsNavigationMenuOpen(false)}

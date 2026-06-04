@@ -43,11 +43,9 @@ export default function NavigationMenu({
     { label: 'Map', path: '/interactive-map' },
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'City Guides', path: '/city-guides' },
-    { label: 'Leaderboard', path: '/leaderboard', hidden: true },
     { label: 'Events', path: '/events' },
     { label: 'Rewards', path: '/rewards' },
     { label: 'Stellar', path: '/stellar' },
-    { label: 'FAQ', path: '/faq', hidden: true },
     { label: 'Livepaper', path: '/livepaper' },
     {
       label: 'Become a Partner',
@@ -150,8 +148,8 @@ export default function NavigationMenu({
         }
       }}
     >
-      {/* Menu panel: header in flow so links never sit under logo/close */}
-      <div className="absolute top-[53px] left-1/2 flex h-[476px] w-[393px] max-w-[min(393px,calc(100%-32px))] -translate-x-1/2 flex-col overflow-hidden">
+      {/* Menu panel: full-height, flush to the top; header in flow so links never sit under logo/close */}
+      <div className="absolute top-0 left-0 flex w-full flex-col overflow-hidden">
         <div className="flex h-[70px] w-full shrink-0 items-center justify-between bg-[var(--Dark-Tint-White,#FFF)] px-4">
           {/* Native img + cache-bust: avoids Next/Image + stale 301 cache from old /IRL-SVG redirects on some dev setups */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -179,7 +177,7 @@ export default function NavigationMenu({
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-[var(--Dark-Tint-White,#FFF)]">
           {menuItems.map((item) => {
             const isActive = activePath === item.path;
             const isPending = pendingPath === item.path;
@@ -190,7 +188,7 @@ export default function NavigationMenu({
                 onClick={() => handleNavigate(item)}
                 aria-busy={isPending || undefined}
                 aria-current={isActive ? 'page' : undefined}
-                className={`box-border flex w-[393px] max-w-full shrink-0 items-center justify-between px-6 py-[19px] transition-opacity ${
+                className={`box-border flex w-full shrink-0 items-center justify-between px-6 py-[19px] transition-opacity ${
                   isActive
                     ? 'bg-[var(--IRL-Yellow,#FFF200)]'
                     : 'bg-[var(--Dark-Tint-White,#FFF)] hover:opacity-90'
@@ -222,7 +220,7 @@ export default function NavigationMenu({
           <button
             type="button"
             onClick={handleLogout}
-            className="box-border flex w-[393px] max-w-full shrink-0 items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-6 py-[19px] transition-opacity hover:opacity-90"
+            className="box-border flex w-full shrink-0 items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-6 py-[19px] transition-opacity hover:opacity-90"
           >
             <span className={menuTextOnInkClassName}>Log Out</span>
             <div className="relative flex size-[24px] shrink-0 items-center justify-center overflow-clip"></div>
@@ -231,7 +229,7 @@ export default function NavigationMenu({
           <button
             type="button"
             onClick={handleLogin}
-            className="box-border flex w-[393px] max-w-full shrink-0 items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-6 py-[19px] transition-opacity hover:opacity-90"
+            className="box-border flex w-full shrink-0 items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-6 py-[19px] transition-opacity hover:opacity-90"
           >
             <span className={menuTextOnInkClassName}>Log In</span>
             <div className="relative flex size-[24px] shrink-0 items-center justify-center overflow-clip"></div>

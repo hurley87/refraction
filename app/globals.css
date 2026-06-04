@@ -16,6 +16,7 @@
   --sds-size-space-200: 8px;
   --sds-size-space-300: 12px;
   --sds-size-space-400: 16px;
+  --sds-size-blur-100: 4px;
   --Backgrounds-Secondary-CTA-BG: #dbdbdb;
 }
 
@@ -289,6 +290,16 @@
     font-weight: 700;
     line-height: 16px; /* 16px, 100% */
     letter-spacing: 0;
+  }
+
+  /* Boat Quote heading */
+  .boat-quote {
+    font-family: 'Gal Gothic Variable', sans-serif;
+    font-size: 40px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: 39px; /* 97.5% */
+    letter-spacing: var(--Kerning-Titles, 0);
   }
 }
 

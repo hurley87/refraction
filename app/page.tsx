@@ -58,12 +58,8 @@ export default function Home() {
 
       <div className="overflow-x-hidden overflow-y-visible rounded-t-3xl">
         {/* Hero Section with WebGL Background - Full viewport */}
-        <div className="relative h-screen w-screen">
+        <div className="relative w-screen">
           <Hero />
-        </div>
-        {/* Map Section with GSAP Scroll Transitions */}
-        <div className="pt-0 pb-16 md:py-24" data-section="map">
-          <MapSection />
         </div>
 
         {/* City Guides Cover Section */}
