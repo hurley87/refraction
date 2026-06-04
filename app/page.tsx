@@ -2,10 +2,7 @@ import dynamic from 'next/dynamic';
 import Header from '@/components/layout/header';
 import Hero from '@/components/home/hero';
 
-// Lazy load below-the-fold components for better initial load performance
-const MapSection = dynamic(() => import('@/components/map/map-section'), {
-  ssr: true,
-});
+
 // Temporarily hidden — re-enable import and JSX block below to restore
 // const WhatYouGetSection = dynamic(
 //   () => import('@/components/home/what-you-get-section'),
