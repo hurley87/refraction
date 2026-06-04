@@ -52,7 +52,7 @@ export default async function CityGuidesHomePage() {
       {hasPublishedGuides ? (
         featured ? (
           <div className="w-full bg-white">
-            <div className="mx-auto w-full max-w-[393px]  pb-16">
+            <div className="mx-auto w-full max-w-[393px] px-4 pb-16">
               <CityGuidesHubSection entries={listRows} />
             </div>
           </div>
