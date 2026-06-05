@@ -33,9 +33,7 @@ const GetInvolvedSection = dynamic(
   { ssr: true }
 );
 
-const Partners = dynamic(() => import('@/components/partners/partners'), {
-  ssr: true,
-});
+
 const ArtistCTA = dynamic(() => import('@/components/home/artist-cta'), {
   ssr: true,
 });
@@ -75,36 +73,20 @@ export default function Home() {
           <IRLTourSection />
         </div>
 
-        {/* What You Get Section — temporarily hidden, re-enable when needed */}
-        {/* <div className="py-0">
-          <WhatYouGetSection />
-        </div> */}
 
-        {/* Check-Ins Fund Culture Section — temporarily hidden, re-enable when needed */}
-        {/* <div className="py-0">
-          <CheckInsFundCultureSection />
-        </div> */}
+      
 
         {/* City Guides Carousel Section */}
         <div className="py-0">
           <CityGuidesCarouselSection />
         </div>
 
-        {/* Partners Section */}
-        <div className="py-0">
-          <Partners />
-        </div>
-
+     
         {/* Get Involved Section */}
         <div className="py-0">
           <GetInvolvedSection />
         </div>
 
-        
-        {/* Footer Hero Section with WebGL Background — temporarily hidden, re-enable when needed */}
-        {/* <div className="py-16 md:py-24">
-          <FooterHero />
-        </div> */}
 
         {/* Footer */}
         <Footer />
