@@ -57,6 +57,29 @@ const CARD_WIDTH = 252;
 const GAP = 16;
 const SCROLL_STEP = CARD_WIDTH + GAP;
 
+/** Mobile "Read More" affordance: underlined label + arrow on dark backgrounds. */
+function ReadMore() {
+  return (
+    <span className="inline-flex h-6 items-center gap-2 border-b border-white">
+      <span className="label-medium uppercase text-white">Read More</span>
+      <svg
+        width={16}
+        height={16}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-4 w-4 shrink-0"
+        aria-hidden
+      >
+        <path
+          d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+          fill="#FFFFFF"
+        />
+      </svg>
+    </span>
+  );
+}
+
 /**
  * City Guides Cover Carousel - Featured city guide cover images
  */
@@ -88,9 +111,109 @@ export default function CityGuidesCoverSection() {
     return () => ro.disconnect();
   }, [updateArrows]);
 
+  const heroGuide = COVER_GUIDES[0];
+  const carouselGuides = COVER_GUIDES.slice(1);
+
   return (
-    <section className="flex flex-col items-center w-full max-w-[393px] md:max-w-none min-h-[974px] md:min-h-0 bg-[#131313] pt-[128px] px-2 pb-0 md:py-24 md:px-4 overflow-hidden md:overflow-x-visible mx-auto md:mx-0">
-      <div className="flex flex-col md:flex-row md:items-center gap-10 md:gap-12 w-full max-w-[393px] md:max-w-[1177px] mx-auto md:overflow-x-visible">
+    <section className="mx-auto flex w-full flex-col items-center overflow-hidden bg-[#131313] md:mx-0 md:max-w-none md:overflow-x-visible md:px-4 md:py-24">
+      {/* Mobile layout */}
+      <div className="flex w-full max-w-[393px] flex-col items-center gap-8 px-4 pt-16 pb-12 md:hidden">
+        {/* Subtitle block */}
+        <div className="flex w-full max-w-[361px] flex-col items-start">
+          <div className="flex w-full items-center gap-2">
+            <WelcomeEllipse />
+            <h2 className="title4 text-left text-white">City Guides</h2>
+          </div>
+          <div className="flex items-center gap-2 self-stretch py-4">
+            <div className="title1 text-left font-normal text-white">
+              Local knowledge, everywhere
+            </div>
+          </div>
+        </div>
+
+        {/* Featured hero — first guide */}
+        {heroGuide && (
+          <Link
+            href={guideReadHref(heroGuide.slug, heroGuide.kind)}
+            className="w-full"
+          >
+            <div className="relative aspect-square w-full overflow-hidden bg-[#1a1a1a]">
+              <Image
+                src={heroGuide.src}
+                alt={heroGuide.alt}
+                fill
+                priority
+                className="object-cover"
+                sizes="393px"
+              />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-3 p-4">
+                <span className="title2 text-left text-white">
+                  {heroGuide.name}
+                </span>
+                <ReadMore />
+              </div>
+            </div>
+          </Link>
+        )}
+
+        {/* Remaining guides — horizontal carousel */}
+        <div className="flex w-full snap-x snap-mandatory items-stretch gap-[21px] overflow-x-auto pb-6 scrollbar-hide">
+          {carouselGuides.map((guide) => {
+            const href = guideReadHref(guide.slug, guide.kind);
+            return (
+              <Link
+                key={guide.slug}
+                href={href}
+                className="flex w-[214px] shrink-0 snap-start flex-col gap-4"
+              >
+                <div className="relative aspect-square w-[214px] overflow-hidden bg-[#1a1a1a]">
+                  <Image
+                    src={guide.src}
+                    alt={guide.alt}
+                    fill
+                    className="object-cover"
+                    sizes="214px"
+                  />
+                </div>
+                <span className="title4 text-left text-white">
+                  {guide.name}
+                </span>
+                <div className="mt-auto">
+                  <ReadMore />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Read all guides */}
+        <Link href="/city-guides" className="inline-flex w-full max-w-[361px]">
+          <button
+            type="button"
+            className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[#454545] text-white py-2 pr-2 pl-4 uppercase text-[#171717]"
+          >
+            <span className="whitespace-nowrap">VIEW ALL GUIDES</span>
+            <svg
+              width={24}
+              height={24}
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="shrink-0 invert"
+              aria-hidden
+            >
+              <path
+                d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                fill="#171717"
+              />
+            </svg>
+          </button>
+        </Link>
+      </div>
+
+      {/* Desktop layout */}
+      <div className="hidden w-full max-w-[1177px] md:mx-auto md:flex md:flex-row md:items-center md:gap-12 md:overflow-x-visible">
         {/* Left column: section content */}
         <div className="flex flex-col items-center gap-4 md:gap-[35px] md:items-start md:w-[574px] md:flex-none">
           <div className="flex items-center justify-start gap-2 mb-0 w-full">

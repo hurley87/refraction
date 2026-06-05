@@ -2,8 +2,6 @@
 
 import Link from 'next/link';
 
-import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
-
 const CONTACT_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/contact-us`;
 const MOBILE_BG_IMAGE = '/homepage/get-involved.png';
 const DESKTOP_BG_IMAGE = '/homepage/get-involved.png';
@@ -35,42 +33,9 @@ export default function GetInvolvedSection() {
 
       <div className="relative z-10 max-w-[1177px] mx-auto flex flex-col items-center text-center justify-center flex-1 min-h-0 md:flex-1 md:justify-center">
         <div className="flex flex-col items-center w-full md:w-[574px] md:gap-[35px]">
-          <div className="flex items-center justify-center gap-2 mb-4 md:mb-0 mt-[210px] md:mt-0">
-            <WelcomeEllipse />
-            <h2
-              className="title5 text-white text-center"
-              style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
-            >
-              Get Involved
-            </h2>
-          </div>
-          <h3
-            className="text-center mb-6 md:mb-0 text-[64px] leading-[64px] tracking-[-1.92px] md:text-[64px] md:leading-[64px] md:tracking-[-1.92px] md:font-pleasure md:font-medium"
-            style={{
-              color: 'var(--UI-White, #FFF)',
-              textShadow: '0 0 26.7px #FFF',
-              fontFamily:
-                '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 400,
-            }}
-          >
-            Bring IRL to your city
-          </h3>
-          <p
-            className="text-center max-w-[700px] mb-10 md:mb-0 text-[20px] leading-[24px] tracking-[-0.4px] md:text-[15px] md:leading-[24px] md:tracking-[-0.26px] body-medium font-grotesk"
-            style={{
-              color: 'var(--UI-White, #FFF)',
-              textShadow: '0 0 26.7px #FFF',
-              fontFamily:
-                '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 400,
-            }}
-          >
-            Run a venue or promote events? IRL fills your night with the right
-            people and rewards them for showing up.
-          </p>
+          <h1 className="text-center mb-6 md:mb-0  text-white leading-[64px] md:text-[64px] md:leading-[64px] md:tracking-[-1.92px] md:font-pleasure md:font-medium">
+            Bring IRL To Your City
+          </h1>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 w-full">
@@ -78,11 +43,11 @@ export default function GetInvolvedSection() {
               href={CONTACT_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex w-[361px] max-w-full shrink-0"
+              className="inline-flex shrink-0 self-center"
             >
               <button
                 type="button"
-                className="label-large flex h-[44px] w-full cursor-pointer uppercase items-center justify-between bg-[#ffffff] py-2 pr-2 pl-4 text-[#171717]"
+                className="label-large flex h-[52px] min-h-[44px] w-[193px] cursor-pointer items-center gap-4 bg-[#ffffff] px-4 py-2 uppercase text-[#171717]"
               >
                 <span className="whitespace-nowrap">Contact Us</span>
                 <svg
@@ -91,7 +56,7 @@ export default function GetInvolvedSection() {
                   viewBox="0 0 24 24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
-                className="shrink-0"
+                  className="shrink-0"
                   aria-hidden
                 >
                   <path

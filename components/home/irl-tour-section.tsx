@@ -22,7 +22,7 @@ export default function IRLTourSection() {
         aria-hidden
       />
 
-      <div className="flex items-center gap-2 mb-12 md:mb-0">
+      <div className="flex items-center gap-2 mb-4">
         <WelcomeEllipse />
         <span className="title4 text-white">IRL Picks</span>
       </div>
