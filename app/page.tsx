@@ -90,11 +90,7 @@ export default function Home() {
           <CityGuidesCarouselSection />
         </div>
 
-        {/* Partners Section */}
-        <div className="py-0">
-          <Partners />
-        </div>
-
+     
         {/* Get Involved Section */}
         <div className="py-0">
           <GetInvolvedSection />

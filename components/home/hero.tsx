@@ -63,7 +63,7 @@ export default function Hero() {
     <>
       <section className="relative w-full h-screen overflow-hidden">
         {/* Hero background carousel */}
-        <div className="absolute inset-0 p-0 pb-6 md:p-4">
+        <div className="absolute inset-0 p-0 pb-6">
           <div className="relative w-full h-full rounded-[48px] overflow-hidden">
             {HERO_CAROUSEL_SLIDES.map((slide, index) => (
               <Image
@@ -83,9 +83,9 @@ export default function Hero() {
         </div>
 
         {/* Content overlay - same layout on mobile and desktop */}
-        <div className="relative z-10 flex flex-col items-center md:items-start justify-center h-full px-4 pt-20 pb-24 md:pt-0 md:pb-0 md:pl-[171px]">
-          {/* Single column: ellipse + Welcome to IRL, headline, Join For Free (mobile: full width, desktop: 574px) */}
-          <div className="flex flex-col w-full max-w-[574px] md:w-[574px] items-start">
+        <div className="relative z-10 flex flex-col items-center justify-center h-full px-4 pt-20 pb-24">
+          {/* Single column: ellipse + Welcome to IRL, headline */}
+          <div className="flex flex-col w-full max-w-[574px] items-start">
             {/* Row 1: ellipse + Welcome to IRL (title5) */}
             <div className="flex items-center gap-2">
               <WelcomeEllipse />
@@ -99,15 +99,15 @@ export default function Hero() {
           </div>
 
           {/* Divider accent anchored to bottom (mobile + desktop) */}
-          <div className="absolute bottom-8 left-0 right-0 z-10 px-4 md:px-0 md:pl-[171px]">
+          <div className="absolute bottom-8 left-0 right-0 z-10 px-4">
             <div
-              className="h-px w-full max-w-[574px] md:w-[574px] bg-white/50"
+              className="h-px w-full max-w-[574px] bg-white/50"
               aria-hidden
             />
           </div>
 
           {/* Carousel controller — TEMPORARY placeholder; final design + SVGs pending */}
-          <div className="absolute bottom-8 left-0 right-0 z-20 flex items-center justify-between self-stretch px-4">
+          <div className="absolute bottom-8 left-1/2 z-20 flex w-[393px] max-w-full -translate-x-1/2 items-center justify-between px-4">
             <button
               type="button"
               onClick={goPrev}
@@ -193,15 +193,15 @@ export default function Hero() {
       </section>
 
       {/* Boat quote — below the hero image, 144px from the image bottom */}
-      <div className="px-4 pt-[144px] md:pl-[171px]">
-        <p className="boat-quote min-h-[74px] w-full max-w-[574px] md:w-[574px] text-white">
+      <div className="mx-auto w-[393px] max-w-full px-4 pt-[144px]">
+        <p className="boat-quote min-h-[74px] w-full max-w-[574px] text-white">
           From listening bars to late-night art shows, the people shaping the
           scene show you where to go.
         </p>
       </div>
 
       {/* How It Works card — follows the carousel's active step */}
-      <div className="px-4 pt-24 md:pl-[171px]">
+      <div className="mx-auto w-[393px] max-w-full px-4 pt-24">
         <div className="flex h-[638px] w-[393px] max-w-full flex-col gap-6 text-white">
           {/* Row 1: label */}
           <div className="flex items-center gap-2">
