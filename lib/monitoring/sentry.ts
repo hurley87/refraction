@@ -85,6 +85,16 @@ export function isAbortError(reason: unknown): boolean {
   return false;
 }
 
+/**
+ * HOT Wallet (@hot-wallet/sdk via @creit.tech/stellar-wallets-kit) relays wallet
+ * requests through https://h4n.app. Network/CORS/outage failures surface as
+ * `TypeError: Failed to fetch (h4n.app)` — external infra, not an app defect.
+ */
+function isHotWalletProxyFetchFailure(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('failed to fetch') && lower.includes('h4n.app');
+}
+
 function shouldDropAbortError(
   event: SentryEventLike,
   hint?: EventHint
@@ -144,7 +154,8 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||
     // Extension messaging when the target tab is gone (e.g. fast navigation).
-    message.includes('invalid call to runtime.sendmessage');
+    message.includes('invalid call to runtime.sendmessage') ||
+    isHotWalletProxyFetchFailure(message);
 
   if (isKnownNoise) {
     return null;

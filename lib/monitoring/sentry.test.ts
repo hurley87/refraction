@@ -48,6 +48,17 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for HOT Wallet h4n.app proxy fetch failures', () => {
+    const event = {
+      request: { url: 'https://irl.energy/stellar' },
+      exception: {
+        values: [{ value: 'TypeError: Failed to fetch (h4n.app)' }],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('returns null for extension runtime.sendMessage tab-not-found noise', () => {
     const event = {
       request: { url: 'https://example.com/dashboard' },
