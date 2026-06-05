@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import NavigationMenu from '@/components/layout/navigation-menu';
+import { cn } from '@/lib/utils';
 
 /**
  * Site header / nav bar.
@@ -16,9 +17,27 @@ import NavigationMenu from '@/components/layout/navigation-menu';
 export default function Header() {
   const { authenticated, login } = usePrivy();
   const [isNavigationMenuOpen, setIsNavigationMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Add a blurred backdrop once the page scrolls so the bar stays legible
+  // over the content moving beneath it.
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 8);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <>
+      {/* Blurred backdrop on scroll — full-width, anchored to the top of the page */}
+      <div
+        aria-hidden
+        className={cn(
+          'pointer-events-none fixed inset-x-0 top-0 z-40 h-[72px] transition-colors duration-300',
+          isScrolled && 'bg-black/20 backdrop-blur-md'
+        )}
+      />
       <div className="fixed left-1/2 top-2 z-50 w-[393px] max-w-full -translate-x-1/2">
         <nav className="flex h-[56px] w-full items-center justify-between px-4">
           {/* Logo */}

@@ -1,17 +1,35 @@
 'use client';
 
-
 import Image from 'next/image';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 import { cn } from '@/lib/utils';
 
-/** Hero background slides, cycled by the carousel. Order is the display order. */
+/**
+ * Hero background slides, cycled by the carousel. Order is the display order.
+ * Each slide also carries the matching "How It Works" step content.
+ */
 const HERO_CAROUSEL_SLIDES = [
-  { src: '/homepage/hero/carousel/denver.svg', alt: 'Denver' },
-  { src: '/homepage/hero/carousel/detroit.svg', alt: 'Detroit' },
-  { src: '/homepage/hero/carousel/singapore.svg', alt: 'Singapore' },
+  {
+    src: '/homepage/hero/carousel/denver.svg',
+    alt: 'Denver',
+    stepTitle: 'Explore Local Guides',
+    stepBody: 'The best spots, hand-picked by people shaping the local scene.',
+  },
+  {
+    src: '/homepage/hero/carousel/detroit.svg',
+    alt: 'Detroit',
+    stepTitle: 'Check in at a spot',
+    stepBody: 'Explore the map and check in at spots across your city.',
+  },
+  {
+    src: '/homepage/hero/carousel/singapore.svg',
+    alt: 'Singapore',
+    stepTitle: 'Earn and spend rewards',
+    stepBody: 'Earn points for future rewards at clubs, bars, and galleries',
+  },
 ] as const;
 
 const HERO_CAROUSEL_INTERVAL_MS = 5000;
@@ -45,7 +63,7 @@ export default function Hero() {
     <>
       <section className="relative w-full h-screen overflow-hidden">
         {/* Hero background carousel */}
-        <div className="absolute inset-0 p-0 md:p-4">
+        <div className="absolute inset-0 p-0 pb-6 md:p-4">
           <div className="relative w-full h-full rounded-[48px] overflow-hidden">
             {HERO_CAROUSEL_SLIDES.map((slide, index) => (
               <Image
@@ -118,8 +136,19 @@ export default function Hero() {
               className="flex items-center justify-center gap-[10.4px] p-[var(--sds-size-space-200)] text-white transition-opacity hover:opacity-80"
             >
               {isPaused ? (
-                <span aria-hidden className="text-[31.2px] leading-none">
-                  ▶
+                <span aria-hidden className="text-[21px] leading-none">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="11"
+                    height="13"
+                    viewBox="0 0 11 13"
+                    fill="none"
+                  >
+                    <path
+                      d="M1.02101e-07 7.41488L12.843 -1.03373e-05L12.843 14.8298L1.02101e-07 7.41488Z"
+                      fill="white"
+                    />
+                  </svg>
                 </span>
               ) : (
                 <svg
@@ -169,6 +198,59 @@ export default function Hero() {
           From listening bars to late-night art shows, the people shaping the
           scene show you where to go.
         </p>
+      </div>
+
+      {/* How It Works card — follows the carousel's active step */}
+      <div className="px-4 pt-24 md:pl-[171px]">
+        <div className="flex h-[638px] w-[393px] max-w-full flex-col gap-6 text-white">
+          {/* Row 1: label */}
+          <div className="flex items-center gap-2">
+            <WelcomeEllipse />
+            <span className="title4 text-white pb-24">How It Works</span>
+          </div>
+
+          {/* Row 2: step number */}
+          <span className="title2 text-center text-white">
+            {activeIndex + 1}
+          </span>
+
+          {/* Row 3: step title */}
+          <p className="boat-quote self-stretch w-[300px] mx-auto text-center text-white">
+            {HERO_CAROUSEL_SLIDES[activeIndex].stepTitle}
+          </p>
+
+          {/* Row 4: step description */}
+          <p className="body-largish text-center text-normal text-white">
+            {HERO_CAROUSEL_SLIDES[activeIndex].stepBody}
+          </p>
+
+          {/* CTA */}
+          <Link
+            href="/interactive-map"
+            className="block w-full pt-24 pb-[50px]"
+          >
+            <button
+              type="button"
+              className="label-large flex h-[52px] min-h-[44px] w-full cursor-pointer items-center gap-[var(--sds-size-space-400)] bg-[var(--Backgrounds-Primary-CTA-BG,#FFF)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] uppercase text-[#171717]"
+            >
+              <span className="whitespace-nowrap">Start Exploring</span>
+              <svg
+                width={24}
+                height={24}
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="ml-auto shrink-0"
+                aria-hidden
+              >
+                <path
+                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                  fill="#171717"
+                />
+              </svg>
+            </button>
+          </Link>
+        </div>
       </div>
     </>
   );
