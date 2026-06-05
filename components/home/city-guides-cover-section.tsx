@@ -17,38 +17,38 @@ const COVER_GUIDES: {
   kind: GuideKindDb;
 }[] = [
   {
-    src: '/homepage/city-guides-covers/jiminal.png',
-    alt: 'City guide cover',
-    name: "Jiminal's Hangover Guide to Amsterdam",
-    slug: 'fermi-guide-to-amsterdam-with-jiminal',
+    src: '/homepage/city-guides-covers/miami.png',
+    alt: 'The IRL Guide to Miami with Nicholas G. Padilla, INVT & Bitter Babe',
+    name: 'The IRL Guide to Miami with Nicholas G. Padilla, INVT & Bitter Babe',
+    slug: 'irl-guide-to-miami',
+    kind: 'city_guide',
+  },
+  {
+    src: '/homepage/city-guides-covers/montreal.jpg',
+    alt: '5 Montréal Corners That Feel Like Home with Ekitwanda',
+    name: '5 Montréal Corners That Feel Like Home with Ekitwanda',
+    slug: '5-montreal-corners-that-feel-like-home-ekitwanda',
+    kind: 'city_guide',
+  },
+  {
+    src: '/homepage/city-guides-covers/berlin.jpg',
+    alt: 'The IRL Guide to Berlin with Michail Stangl',
+    name: 'The IRL Guide to Berlin with Michail Stangl',
+    slug: 'berlin-michail-stangl',
     kind: 'city_guide',
   },
   {
     src: '/homepage/city-guides-covers/danielle-guide.jpg',
-    alt: 'Danielle Paterson’s Guide to Lower Manhattan',
-    name: 'Danielle Paterson’s Guide to Lower Manhattan',
+    alt: 'A Freelancer’s Lower Manhattan Day Circuit with Danielle Paterson',
+    name: 'A Freelancer’s Lower Manhattan Day Circuit with Danielle Paterson',
     slug: 'a-freelancers-lower-manhattan-day-circuit-with-danielle-paterson',
     kind: 'city_guide',
   },
   {
-    src: '/homepage/city-guides-covers/sunshine-cdmx.png',
-    alt: 'Sunshine Vendetta’s Phone-Free Music Spots in CDMX',
-    name: 'Sunshine Vendetta’s Phone-Free Music Spots in CDMX',
-    slug: '6-phone-free-music-spots-in-mexico-city-with-sunshine-vendetta',
-    kind: 'city_guide',
-  },
-  {
-    src: '/homepage/city-guides-covers/jordan-denver.jpg',
-    alt: 'Jordan Hubner’s Cultural Guide to Denver',
-    name: 'Jordan Hubner’s Cultural Guide to Denver',
-    slug: 'jordan-hubner-guide-to-culture-community-in-denver',
-    kind: 'city_guide',
-  },
-  {
-    src: '/homepage/city-guides-covers/meniac.png',
-    alt: 'Meniac’s Disco Map to Amsterdam',
-    name: "Meniac's Disco Map to Amsterdam",
-    slug: 'digging-for-disco-and-asian-soul-meniac-fermi-map-to-amsterdam',
+    src: '/homepage/city-guides-covers/tokyo.jpg',
+    alt: 'A Tokyo Daily Loop with Benoît',
+    name: 'A Tokyo Daily Loop with Benoît',
+    slug: 'a-tokyo-daily-loop-with-benoit',
     kind: 'city_guide',
   },
 ];
@@ -95,18 +95,12 @@ export default function CityGuidesCoverSection() {
         <div className="flex flex-col items-center gap-4 md:gap-[35px] md:items-start md:w-[574px] md:flex-none">
           <div className="flex items-center justify-start gap-2 mb-0 w-full">
             <WelcomeEllipse />
-            <h2
-              className="title4 text-white text-left">
-              City Guides
-            </h2>
+            <h2 className="title4 text-white text-left">City Guides</h2>
           </div>
-          <div
-            className="title1 mb-0 text-white text-left font-normal"
-            
-          >
+          <div className="title1 mb-0 text-white text-left font-normal">
             Local knowledge, everywhere
           </div>
-          
+
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 w-full -mx-2 md:mx-0 md:justify-start">
             <Link
               href="/city-guides"

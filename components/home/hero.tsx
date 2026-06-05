@@ -98,13 +98,6 @@ export default function Hero() {
             </h1>
           </div>
 
-          {/* Divider accent anchored to bottom (mobile + desktop) */}
-          <div className="absolute bottom-8 left-0 right-0 z-10 px-4">
-            <div
-              className="h-px w-full max-w-[574px] bg-white/50"
-              aria-hidden
-            />
-          </div>
 
           {/* Carousel controller — TEMPORARY placeholder; final design + SVGs pending */}
           <div className="absolute bottom-8 left-1/2 z-20 flex w-[393px] max-w-full -translate-x-1/2 items-center justify-between px-4">
