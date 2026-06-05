@@ -96,40 +96,17 @@ export default function CityGuidesCoverSection() {
           <div className="flex items-center justify-start gap-2 mb-0 w-full">
             <WelcomeEllipse />
             <h2
-              className="title5 text-white text-left"
-              style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
-            >
+              className="title4 text-white text-left">
               City Guides
             </h2>
           </div>
-          <h3
-            className="mb-0 text-left text-[31px] leading-[32px] tracking-[-0.93px] font-normal md:text-[39px] md:leading-[40px] md:tracking-[-0.39px] md:font-medium"
-            style={{
-              color: 'var(--UI-White, #FFF)',
-              fontFamily:
-                '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-              fontStyle: 'normal',
-            }}
+          <div
+            className="title1 mb-0 text-white text-left font-normal"
+            
           >
             Local knowledge, everywhere
-          </h3>
-          <p
-            className="mb-0 text-left max-w-[700px] mx-auto md:mx-0 md:max-w-none md:text-[20px] md:leading-[24px] md:tracking-[-0.4px]"
-            style={{
-              color: 'var(--UI-White, #FFF)',
-              fontFamily:
-                '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-              fontSize: '16px',
-              fontStyle: 'normal',
-              fontWeight: 400,
-              lineHeight: '20px',
-              letterSpacing: '-0.48px',
-            }}
-          >
-            Curated guides from the people who know. Venue operators, DJs,
-            artists share their cities. Not listicles. Not algorithms. Just
-            locals who know.
-          </p>
+          </div>
+          
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 w-full -mx-2 md:mx-0 md:justify-start">
             <Link
               href="/city-guides"

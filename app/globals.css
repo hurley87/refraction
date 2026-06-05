@@ -227,6 +227,15 @@
     }
   }
 
+
+  .body-largish {
+    font-size: 24px; /* 16px */
+    line-height: 27px; /* 24px */
+    letter-spacing: 0;
+    font-weight: 400;
+    font-family: 'Gal Gothic Variable', sans-serif;
+  }
+
   .body-large {
     font-size: 25px; /* 16px */
     line-height: 32px; /* 24px */

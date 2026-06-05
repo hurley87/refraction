@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 
 const POSTER_SRC = '/homepage/irl-tour-june.png';
-const MOBILE_BG_IMAGE = '/homepage/irl-tour-june.png';
+
 const DESKTOP_BG_IMAGE = '/homepage/irl-tour-june.png';
 
 /**
@@ -18,13 +18,18 @@ export default function IRLTourSection() {
     <section className="relative w-full bg-[#131313] px-4 pt-[128px] pb-16 md:py-24 overflow-hidden">
       {/* Mobile-only: blurred background between section gutters (px-4) */}
       <div
-        className="absolute inset-x-4 top-0 bottom-0 md:hidden opacity-70 pointer-events-none"
-        style={{
-          background: `url(${MOBILE_BG_IMAGE}) lightgray 50% / cover no-repeat`,
-          filter: 'blur(59.4px)',
-        }}
+        className="absolute inset-x-4 top-0 bottom-0 md:hidden bg-[#171717] bg-opacity-10  pointer-events-none"
         aria-hidden
       />
+
+      <div className="flex items-center gap-2 mb-12 md:mb-0">
+        <WelcomeEllipse />
+        <span className="title4 text-white">IRL Picks</span>
+      </div>
+
+      <h2 className="title1 relative z-10 flex items-left justify-left gap-2 self-stretch pb-12 text-white">
+        Upcoming Events
+      </h2>
 
       {/* Desktop-only: blurred background layer */}
       <div
@@ -42,49 +47,6 @@ export default function IRLTourSection() {
       <div className="relative z-10 max-w-[1177px] mx-auto flex flex-col md:flex-row md:items-center md:gap-[200px] w-full">
         {/* Left column: text content (on desktop); second on mobile */}
         <div className="order-2 md:order-1 flex flex-col flex-1 min-w-0 md:w-[574px] md:flex-none md:items-start md:gap-[35px]">
-          <div className="flex items-center justify-left gap-2 mb-4 md:mb-0">
-            <WelcomeEllipse />
-            <h2
-              className="title5 text-left md:text-[13px] md:leading-[16px] md:font-medium md:tracking-[-0.39px]"
-              style={{
-                color: 'var(--UI-White, #FFF)',
-                textShadow: '0 0 26.7px #FFF',
-                fontFamily:
-                  '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-                fontStyle: 'normal',
-              }}
-            >
-              IRL Tour
-            </h2>
-          </div>
-          <h3
-            className="text-left mb-6 md:mb-0 text-[31px] leading-[32px] tracking-[-0.93px] md:text-[64px] md:leading-[64px] md:tracking-[-1.92px]"
-            style={{
-              color: 'var(--UI-White, #FFF)',
-              textShadow: '0 0 26.7px #FFF',
-              fontFamily:
-                '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 400,
-            }}
-          >
-            Join Us Worldwide
-          </h3>
-          <p
-            className="text-left max-w-[700px] mb-10 md:mb-0 md:max-w-none text-[16px] leading-[20px] tracking-[-0.48px] md:text-[20px] md:leading-[24px] md:tracking-[-0.4px]"
-            style={{
-              color: 'var(--UI-White, #FFF)',
-              textShadow: '0 0 26.7px #FFF',
-              fontFamily:
-                '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 400,
-            }}
-          >
-            The IRL Tour brings the community together in cities around the
-            world.
-          </p>
-
           {/* CTAs */}
           <div className="flex items-center justify-center mb-6 md:mb-0 w-full">
             <Link

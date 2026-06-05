@@ -59,6 +59,12 @@ export default function Home() {
           <Hero />
         </div>
 
+        {/* Artist CTA Section */}
+        <div className="py-0">
+          <ArtistCTA />
+        </div>
+
+
         {/* City Guides Cover Section */}
         <div className="py-0">
           <CityGuidesCoverSection />
@@ -94,11 +100,7 @@ export default function Home() {
           <GetInvolvedSection />
         </div>
 
-        {/* Artist CTA Section */}
-        <div className="py-0">
-          <ArtistCTA />
-        </div>
-
+        
         {/* Footer Hero Section with WebGL Background — temporarily hidden, re-enable when needed */}
         {/* <div className="py-16 md:py-24">
           <FooterHero />
