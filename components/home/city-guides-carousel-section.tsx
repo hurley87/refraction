@@ -113,7 +113,7 @@ export default function CityGuidesCarouselSection() {
   const selectedVenue = VENUES[selectedTabIndex];
 
   return (
-    <section className="city-guides-section-desktop-bg w-full max-w-[393px] mx-auto bg-[#131313] overflow-hidden md:max-w-[1728px] md:w-[1728px] md:h-[1117px] md:aspect-[181/117] relative">
+    <section className="city-guides-section-desktop-bg relative mx-auto h-[852px] w-full max-w-[393px] overflow-hidden bg-[#131313] md:h-[1117px] md:aspect-[181/117] md:w-[1728px] md:max-w-[1728px]">
       {/* Background images — cross-fade between venues */}
       {VENUES.map((venue, index) => (
         <div
@@ -127,45 +127,94 @@ export default function CityGuidesCarouselSection() {
         />
       ))}
 
+      {/* Mobile layout */}
+      <div className="relative z-10 flex h-full w-full flex-col px-4 pt-[129px] pb-12 md:hidden">
+        {/* Subtitle block */}
+        <div className="flex w-full max-w-[361px] flex-col items-start">
+          <div className="mb-4 flex items-center gap-2">
+            <WelcomeEllipse />
+            <h2
+              className="title4 text-left text-white"
+              style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 26.7px' }}
+            >
+              Featured Cities
+            </h2>
+          </div>
+          <div
+            className="title1 text-left font-normal text-white"
+            style={{ textShadow: '0 0 26.7px #FFF' }}
+          >
+            30 Cities, One Network
+          </div>
+        </div>
+
+        {/* Support section — pinned to the bottom */}
+        <div className="mt-auto flex w-full max-w-[361px] flex-col items-start gap-4">
+          {/* City name */}
+          <span className="title2 self-stretch text-left text-white">
+            {selectedVenue.name}
+          </span>
+
+          {/* Location */}
+          <div className="flex items-left justify-left gap-2 self-stretch">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center">
+              <LocationPinIcon />
+            </span>
+            <span className="body-small text-white">
+              {selectedVenue.neighborhood}, {selectedVenue.city}
+            </span>
+          </div>
+
+          {/* Explore [city] CTA */}
+          <Link
+            href={`/interactive-map?city=${encodeURIComponent(selectedVenue.city)}`}
+            className="inline-flex shrink-0"
+          >
+            <button
+              type="button"
+              className="flex h-8 cursor-pointer items-center gap-2 bg-[#454545] px-2 py-2"
+            >
+              <span className="label-medium uppercase text-white">
+                Explore {selectedVenue.city}
+              </span>
+              <svg
+                width={24}
+                height={24}
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="shrink-0"
+                aria-hidden
+              >
+                <path
+                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                  fill="#FFFFFF"
+                />
+              </svg>
+            </button>
+          </Link>
+
+          {/* Tab indicators — one per venue */}
+          <div className="flex w-full items-center gap-0">
+            {VENUES.map((venue, index) => (
+              <TabLine key={venue.name} active={selectedTabIndex === index} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop layout */}
       <div
-        className="relative z-10 w-full h-full px-2 pt-[129px] pb-6 flex flex-col overflow-hidden md:pt-[201px] md:pb-16 md:pl-[171px] md:pr-[217px] md:max-w-[1177px] md:mr-auto"
+        className="relative z-10 hidden h-full w-full flex-col overflow-hidden px-2 pt-[129px] pb-6 md:flex md:max-w-[1177px] md:mr-auto md:pt-[201px] md:pb-16 md:pl-[171px] md:pr-[217px]"
         style={{ aspectRatio: '125/271' }}
       >
         <div className="flex items-left justify-left gap-2 mb-4">
           <WelcomeEllipse />
-          <h2
-            className="title5 text-white text-left"
-            style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 26.7px' }}
-          >
-            Featured Cities
-          </h2>
+          <h2 className="title4 text-white text-left">Featured Cities</h2>
         </div>
-        <h3
-          className="text-white font-normal text-left mb-4 text-[48px] leading-[1] tracking-[-1.44px] md:text-[48px]"
-          style={{
-            fontFamily:
-              '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-            textShadow: '0 0 26.7px #FFF',
-          }}
-        >
+        <div className="text-white font-normal text-left mb-4  leading-[1] title1 md:text-[48px]">
           30 Cities, One Network
-        </h3>
-        <p
-          className="text-left mb-[200px] md:mb-0"
-          style={{
-            color: 'var(--UI-White, #FFF)',
-            textShadow: '0 0 26.7px #FFF',
-            fontFamily:
-              '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-            fontSize: '20px',
-            fontStyle: 'normal',
-            fontWeight: 400,
-            lineHeight: '24px',
-            letterSpacing: '-0.4px',
-          }}
-        >
-          Ever-expanding local guides in every city showing you where they go.
-        </p>
+        </div>
 
         {/* Tabbed venue content */}
         <div
