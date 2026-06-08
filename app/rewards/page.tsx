@@ -258,6 +258,15 @@ function PerksPageInner() {
     }
   };
 
+  // A modal Radix dialog locks pointer events on the rest of the page, which makes
+  // Privy's login modal (rendered in its own portal) appear behind an invisible
+  // interaction lock and unclickable. Close the perk dialog first, then open Privy.
+  const handleLoginClick = () => {
+    setIsModalOpen(false);
+    setSelectedPerk(null);
+    setTimeout(() => login(), 0);
+  };
+
   const handleViewAllTiersClick = () => {
     handleModalOpenChange(false);
     setViewMode('tiers');
@@ -1448,14 +1457,14 @@ function PerksPageInner() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => login()}
+                      onClick={handleLoginClick}
                       className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white transition-colors hover:bg-[#313131]"
                     >
                       Join IRL
                     </button>
                     <button
                       type="button"
-                      onClick={() => login()}
+                      onClick={handleLoginClick}
                       className="body-small font-grotesk text-[#313131] underline underline-offset-4 hover:text-black"
                     >
                       Already a member? Sign in
