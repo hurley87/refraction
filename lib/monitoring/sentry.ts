@@ -39,6 +39,11 @@ type SentryEventLike = {
   exception?: {
     values?: Array<{
       value?: string;
+      stacktrace?: {
+        frames?: Array<{
+          filename?: string;
+        }>;
+      };
     }>;
   };
   message?: string;
@@ -58,6 +63,27 @@ function eventMessage(event: SentryEventLike, hint?: EventHint): string {
       : undefined;
 
   return (exceptionValue ?? event.message ?? hintMessage ?? '').toString();
+}
+
+/**
+ * Facebook/Instagram Android in-app WebView injects navigation_performance_logger_android.
+ * When the Java bridge object is GC'd, calls like enableButtonsClickedMetaDataLogging throw
+ * "Java object is gone" — host-browser noise, not app bugs.
+ */
+function isInAppWebViewJavaBridgeNoise(event: SentryEventLike): boolean {
+  const message = eventMessage(event).toLowerCase();
+  if (message.includes('java object is gone')) {
+    return true;
+  }
+
+  const frames =
+    event.exception?.values?.flatMap(
+      (value) => value.stacktrace?.frames ?? []
+    ) ?? [];
+
+  return frames.some((frame) =>
+    frame.filename?.includes('navigation_performance_logger_android')
+  );
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -144,7 +170,8 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||
     // Extension messaging when the target tab is gone (e.g. fast navigation).
-    message.includes('invalid call to runtime.sendmessage');
+    message.includes('invalid call to runtime.sendmessage') ||
+    isInAppWebViewJavaBridgeNoise(event);
 
   if (isKnownNoise) {
     return null;

@@ -64,6 +64,29 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for Facebook/Instagram WebView Java bridge noise', () => {
+    const event = {
+      request: { url: 'https://example.com/events' },
+      exception: {
+        values: [
+          {
+            value:
+              'Error: Error invoking enableButtonsClickedMetaDataLogging: Java object is gone',
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'navigation_performance_logger_android',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('still forwards unrelated errors', () => {
     const event = {
       request: { url: 'https://example.com/events' },
