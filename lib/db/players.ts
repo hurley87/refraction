@@ -58,9 +58,7 @@ export const createOrUpdatePlayer = async (
     tryNormalizeEvmAddress(player.wallet_address) ??
     player.wallet_address.trim();
   const existingPlayer =
-    existingPlayerHint !== undefined
-      ? existingPlayerHint
-      : await getPlayerByWallet(normalizedWallet);
+    existingPlayerHint ?? (await getPlayerByWallet(normalizedWallet));
 
   if (existingPlayer) {
     const { data, error } = await supabase
