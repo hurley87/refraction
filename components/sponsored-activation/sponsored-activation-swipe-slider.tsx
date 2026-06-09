@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { ArrowRight } from 'lucide-react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 const COMPLETE_RATIO = 0.82;
@@ -160,7 +160,7 @@ export function SponsoredActivationSwipeSlider({
         )}
       >
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="label-large font-grotesk uppercase tracking-[0.0625em] text-[#a9a9a9]">
+          <span className="label-large font-grotesk uppercase tracking-[0.0625em] text-[#171717]">
             {displayLabel}
           </span>
         </div>
@@ -178,7 +178,14 @@ export function SponsoredActivationSwipeSlider({
           )}
         >
           {!swipeCommitted && (
-            <ArrowRight className="size-5" strokeWidth={2.5} aria-hidden />
+            <Image
+              src="/arrow-right.svg"
+              alt=""
+              width={24}
+              height={24}
+              aria-hidden
+              className="brightness-0 invert"
+            />
           )}
         </div>
       </div>

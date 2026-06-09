@@ -1,15 +1,24 @@
 const COLLECT_INSTRUCTIONS =
   "Swipe below and show this screen to the event staff. Swipe only when you're ready to purchase — once you've redeemed you can't redeem again!";
 
-export function SponsoredActivationCollectInstructions() {
+const REDEEMED_INSTRUCTIONS = 'Show this screen to the event staff.';
+
+type SponsoredActivationCollectInstructionsProps = {
+  /** After redemption the swipe copy is replaced with simple staff instructions. */
+  redeemed?: boolean;
+};
+
+export function SponsoredActivationCollectInstructions({
+  redeemed = false,
+}: SponsoredActivationCollectInstructionsProps) {
   return (
     <section>
-      <h2 className="label-small font-grotesk uppercase tracking-wide text-[#757575]">
+      <div className="label-medium  uppercase tracking-wide text-[#757575]">
         How to Collect
-      </h2>
-      <p className="mt-2 body-small font-grotesk text-[#171717]">
-        {COLLECT_INSTRUCTIONS}
-      </p>
+      </div>
+      <div className="mt-2 body-small  text-[#171717]">
+        {redeemed ? REDEEMED_INSTRUCTIONS : COLLECT_INSTRUCTIONS}
+      </div>
     </section>
   );
 }

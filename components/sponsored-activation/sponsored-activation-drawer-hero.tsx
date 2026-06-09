@@ -1,17 +1,21 @@
 import Image from 'next/image';
-import { SponsoredActivationHeroReceiveBar } from '@/components/sponsored-activation/sponsored-activation-hero-receive-bar';
+import { SponsoredActivationHeroDetailsCard } from '@/components/sponsored-activation/sponsored-activation-hero-details-card';
 
 type SponsoredActivationDrawerHeroProps = {
   heroImageUrl: string | null;
   itemName: string;
+  pointsCost: number;
+  perkValueLabel: string;
 };
 
 export function SponsoredActivationDrawerHero({
   heroImageUrl,
   itemName,
+  pointsCost,
+  perkValueLabel,
 }: SponsoredActivationDrawerHeroProps) {
   return (
-    <div className="relative -mx-4 h-[320px] w-[calc(100%+2rem)] overflow-hidden bg-neutral-100">
+    <div className="relative left-1/2 min-h-[470px] w-screen -translate-x-1/2 overflow-hidden bg-neutral-200 md:left-auto md:w-full md:translate-x-0">
       {heroImageUrl ? (
         <Image
           src={heroImageUrl}
@@ -23,9 +27,13 @@ export function SponsoredActivationDrawerHero({
           unoptimized
         />
       ) : (
-        <div className="absolute inset-0 bg-neutral-200" aria-hidden />
+        <div className="absolute inset-0 bg-neutral-300" aria-hidden />
       )}
-      <SponsoredActivationHeroReceiveBar itemName={itemName} className="px-8" />
+      <SponsoredActivationHeroDetailsCard
+        itemName={itemName}
+        pointsCost={pointsCost}
+        perkValueLabel={perkValueLabel}
+      />
     </div>
   );
 }

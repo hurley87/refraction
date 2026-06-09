@@ -24,6 +24,7 @@ export function SponsoredActivationRedeemed({
       <SponsoredActivationHero
         heroImageUrl={heroImageUrl}
         itemName={perkName}
+        redeemed
       />
 
       <div className="flex flex-1 flex-col gap-4 px-4 pb-28 pt-4">
@@ -53,7 +54,7 @@ export function SponsoredActivationRedeemed({
           />
         </div>
 
-        <SponsoredActivationCollectInstructions />
+        <SponsoredActivationCollectInstructions redeemed />
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#171717]/10 bg-white/95 px-4 py-4 backdrop-blur-sm">

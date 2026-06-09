@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { Loader2, Trophy } from 'lucide-react';
 import { SponsoredActivationLandingHero } from '@/components/sponsored-activation/sponsored-activation-landing-hero';
 import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
 import { SponsoredActivationPointsValue } from '@/components/sponsored-activation/sponsored-activation-points-value';
@@ -14,6 +14,10 @@ type SponsoredActivationConfirmProps = {
   onConfirm: () => void;
   /** Replaces the idle primary action label (default: "Pay With Points"). */
   primaryActionLabel?: string;
+  /** Player's current points balance, shown in the breakdown. */
+  currentPoints: number;
+  /** Account identifier (email) shown in the breakdown. */
+  accountEmail?: string;
 };
 
 export function SponsoredActivationConfirm({
@@ -21,46 +25,62 @@ export function SponsoredActivationConfirm({
   pending,
   onConfirm,
   primaryActionLabel,
+  currentPoints,
+  accountEmail,
 }: SponsoredActivationConfirmProps) {
-  const { activation, rewardItem } = read;
+  const { rewardItem } = read;
   const description = resolveSponsoredActivationDescription(read);
-
-  const perkValueLabel = rewardItem.perk_value_label.trim();
+  const pointsCost = rewardItem.points_cost;
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
       <SponsoredActivationLandingHero
         heroImageUrl={rewardItem.hero_image_url}
         itemName={rewardItem.name}
+        pointsCost={rewardItem.points_cost}
+        perkValueLabel={rewardItem.perk_value_label}
+        detailsVariant="receive"
       />
 
       <div className="flex flex-1 flex-col gap-6 px-4 pb-10 pt-4">
         <div className="flex flex-col gap-2">
-          <h1 className="title3 font-medium text-[#171717]">
-            {activation.title}
-          </h1>
+          <h1 className="title2 text-[#171717]">CONFIRM YOUR PURCHASE</h1>
           {description ? (
-            <p className="body-small font-grotesk text-[#757575]">
-              {description}
-            </p>
-          ) : null}
-          {perkValueLabel ? (
-            <p className="label-small font-grotesk font-semibold uppercase tracking-wide text-[#a9a9a9]">
-              {perkValueLabel}
-            </p>
+            <div className="body-small text-[#757575]">{description}</div>
           ) : null}
         </div>
 
-        <SponsoredActivationDetailRow
-          label="You send"
-          value={
-            <SponsoredActivationPointsValue
-              points={rewardItem.points_cost}
-              suffix="PTS"
-            />
-          }
-          bareValue
-        />
+        <div className="w-full">
+          <SponsoredActivationDetailRow
+            label="You Send"
+            value={
+              <SponsoredActivationPointsValue
+                points={pointsCost}
+                suffix="PTS"
+              />
+            }
+            bareValue
+          />
+          <SponsoredActivationDetailRow
+            label="You Receive"
+            value={rewardItem.name}
+          />
+          <SponsoredActivationDetailRow
+            label="Your Account"
+            value={accountEmail ?? '—'}
+          />
+          <SponsoredActivationDetailRow
+            label="Current Points"
+            value={
+              <SponsoredActivationPointsValue
+                points={currentPoints}
+                suffix="PTS"
+              />
+            }
+            subValue={`-${pointsCost.toLocaleString()} PTS`}
+            bareValue
+          />
+        </div>
 
         <button
           type="button"
@@ -78,10 +98,10 @@ export function SponsoredActivationConfirm({
             <span className="truncate text-left">
               {pending
                 ? 'Processing…'
-                : (primaryActionLabel ?? 'Pay With Points')}
+                : (primaryActionLabel ?? 'CONFIRM YOUR PURCHASE')}
             </span>
           </span>
-          <ArrowRight className="size-6 shrink-0" strokeWidth={2} aria-hidden />
+          <Trophy className="size-6 shrink-0" strokeWidth={2} aria-hidden />
         </button>
       </div>
     </div>
