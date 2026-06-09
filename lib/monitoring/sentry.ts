@@ -144,7 +144,9 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||
     // Extension messaging when the target tab is gone (e.g. fast navigation).
-    message.includes('invalid call to runtime.sendmessage');
+    message.includes('invalid call to runtime.sendmessage') ||
+    // Facebook/Instagram Android in-app browser injected interfaces (not app code).
+    message.includes('java object is gone');
 
   if (isKnownNoise) {
     return null;

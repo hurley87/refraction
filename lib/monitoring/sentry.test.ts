@@ -48,6 +48,22 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for Facebook/Instagram in-app browser Java object is gone noise', () => {
+    const event = {
+      request: { url: 'https://example.com/events' },
+      exception: {
+        values: [
+          {
+            value:
+              'Error: Error invoking enableDidUserTypeOnKeyboardLogging: Java object is gone',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('returns null for extension runtime.sendMessage tab-not-found noise', () => {
     const event = {
       request: { url: 'https://example.com/dashboard' },
