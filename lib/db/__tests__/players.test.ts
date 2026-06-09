@@ -289,9 +289,10 @@ describe('Players Database Module', () => {
         email: 'new@example.com',
       };
 
-      // First call finds existing player
-      mockSingle.mockResolvedValueOnce({ data: existingPlayer, error: null });
-      // Second call updates player
+      mockMaybeSingle.mockResolvedValueOnce({
+        data: existingPlayer,
+        error: null,
+      });
       mockSingle.mockResolvedValueOnce({ data: updatedPlayer, error: null });
 
       const result = await createOrUpdatePlayer({
@@ -304,6 +305,36 @@ describe('Players Database Module', () => {
       expect(result).toEqual(updatedPlayer);
     });
 
+    it('should skip wallet lookup when existing player hint is provided', async () => {
+      const existingPlayer: Player = {
+        id: 1,
+        wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+        username: 'olduser',
+        email: 'old@example.com',
+        total_points: 100,
+      };
+
+      const updatedPlayer: Player = {
+        ...existingPlayer,
+        username: 'newuser',
+      };
+
+      mockSingle.mockResolvedValueOnce({ data: updatedPlayer, error: null });
+
+      const result = await createOrUpdatePlayer(
+        {
+          wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+          username: 'newuser',
+          email: 'new@example.com',
+          total_points: 100,
+        },
+        existingPlayer
+      );
+
+      expect(result).toEqual(updatedPlayer);
+      expect(mockMaybeSingle).not.toHaveBeenCalled();
+    });
+
     it('should create new player when not exists', async () => {
       const newPlayer: Player = {
         id: 1,
@@ -313,9 +344,7 @@ describe('Players Database Module', () => {
         total_points: 0,
       };
 
-      // First call returns no existing player
-      mockSingle.mockResolvedValueOnce({ data: null, error: null });
-      // Second call creates new player
+      mockMaybeSingle.mockResolvedValue({ data: null, error: null });
       mockSingle.mockResolvedValueOnce({ data: newPlayer, error: null });
 
       const result = await createOrUpdatePlayer({
@@ -335,9 +364,10 @@ describe('Players Database Module', () => {
         total_points: 100,
       };
 
-      // First call finds existing player
-      mockSingle.mockResolvedValueOnce({ data: existingPlayer, error: null });
-      // Second call fails
+      mockMaybeSingle.mockResolvedValueOnce({
+        data: existingPlayer,
+        error: null,
+      });
       mockSingle.mockResolvedValueOnce({
         data: null,
         error: { code: 'PGRST500', message: 'Update failed' },
@@ -353,9 +383,7 @@ describe('Players Database Module', () => {
     });
 
     it('should throw error on insert failure', async () => {
-      // First call returns no existing player
-      mockSingle.mockResolvedValueOnce({ data: null, error: null });
-      // Second call fails
+      mockMaybeSingle.mockResolvedValue({ data: null, error: null });
       mockSingle.mockResolvedValueOnce({
         data: null,
         error: { code: 'PGRST500', message: 'Insert failed' },

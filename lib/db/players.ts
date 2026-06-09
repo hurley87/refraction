@@ -51,13 +51,14 @@ async function getPlayerByField(
  * If player exists, updates email and username if provided.
  */
 export const createOrUpdatePlayer = async (
-  player: Omit<Player, 'id' | 'created_at' | 'updated_at'>
+  player: Omit<Player, 'id' | 'created_at' | 'updated_at'>,
+  existingPlayerHint?: Player | null
 ) => {
-  const { data: existingPlayer } = await supabase
-    .from('players')
-    .select(PLAYER_COLUMNS)
-    .eq('wallet_address', player.wallet_address)
-    .single();
+  const normalizedWallet =
+    tryNormalizeEvmAddress(player.wallet_address) ??
+    player.wallet_address.trim();
+  const existingPlayer =
+    existingPlayerHint ?? (await getPlayerByWallet(normalizedWallet));
 
   if (existingPlayer) {
     const { data, error } = await supabase
@@ -67,22 +68,25 @@ export const createOrUpdatePlayer = async (
         username: player.username || existingPlayer.username,
         updated_at: new Date().toISOString(),
       })
-      .eq('wallet_address', player.wallet_address)
-      .select(PLAYER_COLUMNS)
-      .single();
-
-    if (error) throw error;
-    return data;
-  } else {
-    const { data, error } = await supabase
-      .from('players')
-      .insert(player)
+      .eq('id', existingPlayer.id)
       .select(PLAYER_COLUMNS)
       .single();
 
     if (error) throw error;
     return data;
   }
+
+  const { data, error } = await supabase
+    .from('players')
+    .insert({
+      ...player,
+      wallet_address: normalizedWallet,
+    })
+    .select(PLAYER_COLUMNS)
+    .single();
+
+  if (error) throw error;
+  return data;
 };
 
 /**

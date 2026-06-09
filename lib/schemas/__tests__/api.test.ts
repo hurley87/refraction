@@ -322,6 +322,18 @@ describe('API Schemas', () => {
       expect(result.success).toBe(true);
     });
 
+    it('should treat empty email string as omitted', () => {
+      const result = createPlayerRequestSchema.safeParse({
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        username: 'testuser',
+        email: '',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.email).toBeUndefined();
+      }
+    });
+
     it('should reject empty username', () => {
       const result = createPlayerRequestSchema.safeParse({
         walletAddress: '0x1234567890abcdef1234567890abcdef12345678',

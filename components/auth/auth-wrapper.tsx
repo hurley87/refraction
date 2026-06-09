@@ -2,10 +2,10 @@
 
 import { usePrivy } from '@privy-io/react-auth';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { getSignupAttributionBodyFields } from '@/lib/analytics/attribution';
+import { useUsernameSignup } from '@/hooks/use-username-signup';
+import { UsernameSignupForm } from '@/components/auth/username-signup-form';
 
 export interface CheckpointCustomization {
   partnerImageUrl?: string;
@@ -70,72 +70,19 @@ export default function AuthWrapper({
     ? `Choose your username to check in at ${authContextName.trim()}`
     : DEFAULT_USERNAME_HEADING;
   const { user, ready, linkEmail, login } = usePrivy();
-  const [username, setUsername] = useState('');
-  const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
-  const [needsUsername, setNeedsUsername] = useState(false);
-
-  useEffect(() => {
-    if (!requireUsername || !ready || !user?.wallet?.address) return;
-
-    const walletAddress = user.wallet.address;
-    const checkPlayerData = async () => {
-      try {
-        const response = await fetch(
-          `/api/player?walletAddress=${encodeURIComponent(walletAddress)}`
-        );
-
-        if (response.ok) {
-          const responseData = await response.json();
-          const result = responseData.data || responseData;
-          const existingPlayer = result.player;
-
-          if (existingPlayer && !existingPlayer.username) {
-            setNeedsUsername(true);
-          }
-        } else if (response.status === 404) {
-          setNeedsUsername(true);
-        }
-      } catch (error) {
-        console.error('Error checking player data:', error);
-        setNeedsUsername(true);
-      }
-    };
-
-    checkPlayerData();
-  }, [ready, user?.wallet?.address, requireUsername]);
-
-  const handleCreatePlayer = async () => {
-    if (!username.trim() || !user?.wallet?.address) return;
-
-    const walletAddress = user.wallet.address;
-    setIsCreatingPlayer(true);
-    try {
-      const response = await fetch('/api/player', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          walletAddress,
-          email: user.email?.address || '',
-          username: username.trim(),
-          ...getSignupAttributionBodyFields(),
-        }),
-      });
-
-      const responseData = await response.json();
-
-      if (responseData.success) {
-        setNeedsUsername(false);
-      } else {
-        console.error('Failed to create player:', responseData.error);
-      }
-    } catch (error) {
-      console.error('Error creating player:', error);
-    } finally {
-      setIsCreatingPlayer(false);
-    }
-  };
+  const walletAddress = user?.wallet?.address;
+  const {
+    username,
+    setUsername,
+    isCreatingPlayer,
+    needsUsername,
+    createPlayerError,
+    handleCreatePlayer,
+  } = useUsernameSignup({
+    checkEnabled: !!(requireUsername && ready && walletAddress),
+    walletAddress,
+    emailAddress: user?.email?.address,
+  });
 
   // Loading state
   if (!ready) {
@@ -196,58 +143,19 @@ export default function AuthWrapper({
                 }
         }
       >
-        <div className="flex w-full max-w-md flex-col gap-6">
-          <p
-            className={cn(
-              'text-center text-lg font-semibold tracking-tight font-inktrap md:text-xl',
-              !cp && unauthenticatedUI === 'map-onboarding' && 'text-[#171717]',
-              !cp && unauthenticatedUI !== 'map-onboarding' && 'text-foreground'
-            )}
-            style={cp ? { color: checkpointText } : undefined}
-          >
-            {usernameHeading}
-          </p>
-
-          <div className="rounded-2xl border border-white/30 bg-white/20 p-4 backdrop-blur-sm">
-            <p className="mb-3 text-sm font-inktrap uppercase text-foreground">
-              ENTER YOUR USERNAME
-            </p>
-            <input
-              type="text"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-full border border-border/60 bg-white py-3 pl-4 pr-4 font-inktrap text-foreground placeholder:text-muted-foreground shadow-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
-              maxLength={20}
-              disabled={isCreatingPlayer}
-              autoComplete="username"
-            />
-          </div>
-
-          <Button
-            className="flex w-full items-center justify-center rounded-full bg-white px-6 py-6 text-base font-inktrap uppercase text-black hover:bg-white/90 disabled:opacity-50"
-            onClick={handleCreatePlayer}
-            disabled={!username.trim() || isCreatingPlayer}
-          >
-            {isCreatingPlayer ? 'CREATING PLAYER...' : 'START EARNING'}
-            {!isCreatingPlayer && (
-              <svg
-                className="ml-2 h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            )}
-          </Button>
-        </div>
+        <UsernameSignupForm
+          heading={usernameHeading}
+          headingClassName={cn(
+            !cp && unauthenticatedUI === 'map-onboarding' && 'text-[#171717]',
+            !cp && unauthenticatedUI !== 'map-onboarding' && 'text-foreground'
+          )}
+          headingStyle={cp ? { color: checkpointText } : undefined}
+          username={username}
+          onUsernameChange={setUsername}
+          createPlayerError={createPlayerError}
+          isCreatingPlayer={isCreatingPlayer}
+          onSubmit={handleCreatePlayer}
+        />
       </div>
     );
   }

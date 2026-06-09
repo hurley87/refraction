@@ -1,5 +1,6 @@
 import { supabase } from './client';
 import type { UserProfile } from '../types';
+import { sameWalletAddress } from '../utils/wallets';
 
 // Select specific columns for profile queries (from players table)
 const PROFILE_COLUMNS = `
@@ -110,11 +111,12 @@ export const isUsernameTakenByOther = async (
     .from('players')
     .select('wallet_address')
     .eq('username', key)
-    .neq('wallet_address', excludeWalletAddress)
     .maybeSingle();
 
   if (error && error.code !== 'PGRST116') throw error;
-  return data != null;
+  if (!data?.wallet_address) return false;
+
+  return !sameWalletAddress(data.wallet_address, excludeWalletAddress);
 };
 
 /**

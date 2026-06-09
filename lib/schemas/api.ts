@@ -7,6 +7,12 @@ import {
 } from './player';
 import { signupAttributionSchema } from './signup-attribution';
 
+/** Treat blank client email strings as omitted (Privy often sends `''`). */
+export const optionalEmailSchema = z.preprocess(
+  (val) => (typeof val === 'string' && val.trim() === '' ? undefined : val),
+  z.string().email().optional()
+);
+
 /**
  * Common query parameter schemas for pagination and filtering
  */
@@ -21,7 +27,7 @@ export const paginationSchema = z.object({
  */
 export const checkinRequestSchema = z.object({
   walletAddress: walletAddressSchema,
-  email: z.string().email().optional(),
+  email: optionalEmailSchema,
   checkpoint: z.string().min(1),
 });
 
@@ -30,7 +36,7 @@ export const checkinRequestSchema = z.object({
  */
 export const createPlayerRequestSchema = z.object({
   walletAddress: walletAddressSchema,
-  email: z.string().email().optional(),
+  email: optionalEmailSchema,
   username: z.string().min(1).max(30),
   signup_attribution: signupAttributionSchema.optional(),
 });
@@ -128,7 +134,7 @@ export const unifiedCheckinRequestSchema = z
   .object({
     chain: chainTypeSchema,
     walletAddress: z.string().min(1),
-    email: z.string().email().optional(),
+    email: optionalEmailSchema,
     checkpoint: z.string().min(1),
   })
   .superRefine((data, ctx) => {
