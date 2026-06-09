@@ -1,5 +1,45 @@
-import { describe, it, expect } from 'vitest';
-import { normalizeError } from '../capture-handled-exception';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const { captureException } = vi.hoisted(() => ({
+  captureException: vi.fn(),
+}));
+
+vi.mock('@sentry/nextjs', () => ({
+  withScope: (
+    callback: (scope: {
+      setTag: ReturnType<typeof vi.fn>;
+      setContext: ReturnType<typeof vi.fn>;
+    }) => void
+  ) =>
+    callback({
+      setTag: vi.fn(),
+      setContext: vi.fn(),
+    }),
+  captureException,
+}));
+
+import {
+  captureHandledException,
+  normalizeError,
+} from '../capture-handled-exception';
+
+describe('captureHandledException', () => {
+  afterEach(() => {
+    captureException.mockClear();
+    vi.unstubAllEnvs();
+  });
+
+  it('skips fetch transport failures', () => {
+    vi.stubEnv('SENTRY_DSN', 'https://example@o0.ingest.sentry.io/0');
+
+    captureHandledException(new TypeError('fetch failed'), {
+      route: '/api/stellar-wallet',
+      operation: 'GET',
+    });
+
+    expect(captureException).not.toHaveBeenCalled();
+  });
+});
 
 describe('normalizeError', () => {
   it('returns standard Error instances unchanged', () => {
