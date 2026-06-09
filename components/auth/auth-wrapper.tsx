@@ -73,6 +73,9 @@ export default function AuthWrapper({
   const [username, setUsername] = useState('');
   const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
   const [needsUsername, setNeedsUsername] = useState(false);
+  const [createPlayerError, setCreatePlayerError] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     if (!requireUsername || !ready || !user?.wallet?.address) return;
@@ -109,7 +112,9 @@ export default function AuthWrapper({
 
     const walletAddress = user.wallet.address;
     setIsCreatingPlayer(true);
+    setCreatePlayerError(null);
     try {
+      const email = user.email?.address?.trim();
       const response = await fetch('/api/player', {
         method: 'POST',
         headers: {
@@ -117,7 +122,7 @@ export default function AuthWrapper({
         },
         body: JSON.stringify({
           walletAddress,
-          email: user.email?.address || '',
+          ...(email ? { email } : {}),
           username: username.trim(),
           ...getSignupAttributionBodyFields(),
         }),
@@ -128,9 +133,15 @@ export default function AuthWrapper({
       if (responseData.success) {
         setNeedsUsername(false);
       } else {
-        console.error('Failed to create player:', responseData.error);
+        const message =
+          responseData.error ||
+          'Unable to create your profile. Please try again.';
+        setCreatePlayerError(message);
+        console.error('Failed to create player:', message);
       }
     } catch (error) {
+      const message = 'Something went wrong. Please try again.';
+      setCreatePlayerError(message);
       console.error('Error creating player:', error);
     } finally {
       setIsCreatingPlayer(false);
@@ -216,13 +227,25 @@ export default function AuthWrapper({
               type="text"
               placeholder="Enter your username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                if (createPlayerError) setCreatePlayerError(null);
+              }}
               className="w-full rounded-full border border-border/60 bg-white py-3 pl-4 pr-4 font-inktrap text-foreground placeholder:text-muted-foreground shadow-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
               maxLength={20}
               disabled={isCreatingPlayer}
               autoComplete="username"
             />
           </div>
+
+          {createPlayerError ? (
+            <p
+              className="text-center text-sm font-medium text-red-700"
+              role="alert"
+            >
+              {createPlayerError}
+            </p>
+          ) : null}
 
           <Button
             className="flex w-full items-center justify-center rounded-full bg-white px-6 py-6 text-base font-inktrap uppercase text-black hover:bg-white/90 disabled:opacity-50"

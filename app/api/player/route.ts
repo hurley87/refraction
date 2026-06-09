@@ -93,33 +93,31 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // === Sync the player data to Airtable via internal API ===
-    try {
-      // Derive the base URL (e.g., https://example.com) from the incoming request
+    // Fire-and-forget downstream syncs so signup UI is not blocked on third parties.
+    if (player.email) {
       const baseUrl = new URL(request.url).origin;
-      await fetch(`${baseUrl}/api/add-user`, {
+      void fetch(`${baseUrl}/api/add-user`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           createdAt: player.created_at,
-          email: player.email ?? '',
+          email: player.email,
         }),
+      }).catch((airtableSyncError) => {
+        console.error('Failed to sync user to Airtable:', airtableSyncError);
+        captureHandledException(airtableSyncError, {
+          route: '/api/player',
+          operation: 'sync_user_to_airtable',
+          statusCode: 500,
+          extra: {
+            hasEmail: true,
+          },
+        });
       });
-    } catch (airtableSyncError) {
-      console.error('Failed to sync user to Airtable:', airtableSyncError);
-      captureHandledException(airtableSyncError, {
-        route: '/api/player',
-        operation: 'sync_user_to_airtable',
-        statusCode: 500,
-        extra: {
-          hasEmail: Boolean(player.email),
-        },
-      });
-      // We log the error but do NOT block the main response
     }
 
     if (isNewPlayer && email) {
-      await syncCampaignMonitorOnboarding({
+      void syncCampaignMonitorOnboarding({
         email,
         username: normalizedUsername,
         source: '/api/player',

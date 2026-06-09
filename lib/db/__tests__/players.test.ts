@@ -289,9 +289,10 @@ describe('Players Database Module', () => {
         email: 'new@example.com',
       };
 
-      // First call finds existing player
-      mockSingle.mockResolvedValueOnce({ data: existingPlayer, error: null });
-      // Second call updates player
+      mockMaybeSingle.mockResolvedValueOnce({
+        data: existingPlayer,
+        error: null,
+      });
       mockSingle.mockResolvedValueOnce({ data: updatedPlayer, error: null });
 
       const result = await createOrUpdatePlayer({
@@ -313,9 +314,7 @@ describe('Players Database Module', () => {
         total_points: 0,
       };
 
-      // First call returns no existing player
-      mockSingle.mockResolvedValueOnce({ data: null, error: null });
-      // Second call creates new player
+      mockMaybeSingle.mockResolvedValue({ data: null, error: null });
       mockSingle.mockResolvedValueOnce({ data: newPlayer, error: null });
 
       const result = await createOrUpdatePlayer({
@@ -335,9 +334,10 @@ describe('Players Database Module', () => {
         total_points: 100,
       };
 
-      // First call finds existing player
-      mockSingle.mockResolvedValueOnce({ data: existingPlayer, error: null });
-      // Second call fails
+      mockMaybeSingle.mockResolvedValueOnce({
+        data: existingPlayer,
+        error: null,
+      });
       mockSingle.mockResolvedValueOnce({
         data: null,
         error: { code: 'PGRST500', message: 'Update failed' },
@@ -353,9 +353,7 @@ describe('Players Database Module', () => {
     });
 
     it('should throw error on insert failure', async () => {
-      // First call returns no existing player
-      mockSingle.mockResolvedValueOnce({ data: null, error: null });
-      // Second call fails
+      mockMaybeSingle.mockResolvedValue({ data: null, error: null });
       mockSingle.mockResolvedValueOnce({
         data: null,
         error: { code: 'PGRST500', message: 'Insert failed' },
