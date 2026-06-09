@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy } from '@privy-io/react-auth';
@@ -7,9 +8,7 @@ import { ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SponsoredActivationPageShell } from '@/components/sponsored-activation/sponsored-activation-page-shell';
 import { SponsoredActivationConfirm } from '@/components/sponsored-activation/sponsored-activation-confirm';
-import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
 import { SponsoredActivationLandingHero } from '@/components/sponsored-activation/sponsored-activation-landing-hero';
-import { SponsoredActivationPointsValue } from '@/components/sponsored-activation/sponsored-activation-points-value';
 import { SponsoredActivationSuccess } from '@/components/sponsored-activation/sponsored-activation-success';
 import { SponsoredActivationRedeemed } from '@/components/sponsored-activation/sponsored-activation-redeemed';
 import { SponsoredActivationExpired } from '@/components/sponsored-activation/sponsored-activation-expired';
@@ -345,6 +344,8 @@ export function SponsoredActivationFlow({
     confirmMutation.data?.player.total_points ?? player?.total_points ?? 0;
   const pointsSpent =
     redemption?.points_spent ?? readQuery.data?.rewardItem.points_cost ?? 0;
+  const currentPoints = player?.total_points ?? 0;
+  const accountEmail = player?.email ?? user?.email?.address ?? undefined;
 
   const recordFlowLoading =
     Boolean(deeplink) &&
@@ -383,7 +384,6 @@ export function SponsoredActivationFlow({
 
   if (!user) {
     const description = resolveSponsoredActivationDescription(read);
-    const perkValueLabel = read.rewardItem.perk_value_label.trim();
 
     return (
       <SponsoredActivationPageShell flush>
@@ -391,48 +391,44 @@ export function SponsoredActivationFlow({
           <SponsoredActivationLandingHero
             heroImageUrl={read.rewardItem.hero_image_url}
             itemName={read.rewardItem.name}
+            pointsCost={read.rewardItem.points_cost}
+            perkValueLabel={read.rewardItem.perk_value_label}
           />
 
           <div className="flex flex-1 flex-col gap-6 px-4 pb-10 pt-4">
             <div className="flex flex-col gap-2">
-              <h1 className="title3 font-medium text-[#171717]">
+              <div className="title3 font-medium text-[#171717]">
                 {read.activation.title}
-              </h1>
+              </div>
               {description ? (
-                <p className="body-small font-grotesk text-[#757575]">
-                  {description}
-                </p>
-              ) : null}
-              {perkValueLabel ? (
-                <p className="label-small font-grotesk font-semibold uppercase tracking-wide text-[#a9a9a9]">
-                  {perkValueLabel}
-                </p>
+                <div className="body-small text-[#757575]">{description}</div>
               ) : null}
             </div>
-
-            <SponsoredActivationDetailRow
-              label="You send"
-              value={
-                <SponsoredActivationPointsValue
-                  points={read.rewardItem.points_cost}
-                  suffix="PTS"
-                />
-              }
-              bareValue
-            />
 
             <button
               type="button"
               onClick={login}
-              className="label-large flex h-11 w-full items-center justify-between gap-2 rounded-md bg-[#171717] px-4 font-grotesk uppercase tracking-[0.0625em] text-white transition-opacity hover:opacity-95"
+              className="label-large flex min-h-[44px] w-full items-center justify-between gap-2 rounded-md bg-[#171717] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] font-grotesk uppercase tracking-[0.0625em] text-white transition-opacity hover:opacity-95"
             >
-              <span className="truncate text-left">Sign Up</span>
+              <div className="truncate text-left label-large">
+                PAY WITH POINTS
+              </div>
               <ArrowRight
                 className="size-6 shrink-0"
                 strokeWidth={2}
                 aria-hidden
               />
             </button>
+
+            <div className="mt-auto flex justify-center pt-6">
+              <Image
+                src="/protected.png"
+                alt="Protected"
+                width={157}
+                height={18}
+                className="h-[18px] w-auto invert"
+              />
+            </div>
           </div>
         </div>
       </SponsoredActivationPageShell>
@@ -537,6 +533,8 @@ export function SponsoredActivationFlow({
         <SponsoredActivationConfirm
           read={read}
           pending={confirmMutation.isPending}
+          currentPoints={currentPoints}
+          accountEmail={accountEmail}
           onConfirm={() => {
             if (!redemption.id) return;
             confirmMutation.mutate(redemption.id);
@@ -558,6 +556,8 @@ export function SponsoredActivationFlow({
           <SponsoredActivationConfirm
             read={read}
             pending={false}
+            currentPoints={currentPoints}
+            accountEmail={accountEmail}
             onConfirm={() => setSuccessOverlayDismissed(false)}
             primaryActionLabel="Swipe to redeem"
           />
@@ -570,6 +570,8 @@ export function SponsoredActivationFlow({
         <SponsoredActivationSuccess
           heroImageUrl={read.rewardItem.hero_image_url}
           perkName={read.rewardItem.name}
+          pointsCost={read.rewardItem.points_cost}
+          perkValueLabel={read.rewardItem.perk_value_label}
           pointsSpent={pointsSpent}
           balanceAfter={balanceAfterPoints}
           swipeDisabled={swipeDisabled}

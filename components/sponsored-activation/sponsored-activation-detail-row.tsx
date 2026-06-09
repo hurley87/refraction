@@ -26,19 +26,19 @@ export function SponsoredActivationDetailRow({
         className
       )}
     >
-      <span className="label-small shrink-0 font-grotesk uppercase tracking-wide text-[#757575]">
+      <span className="label-medium shrink-0 font-grotesk uppercase tracking-wide text-[#757575]">
         {label}
       </span>
       <div className="min-w-0 text-right">
         {bareValue ? (
           <div className="flex justify-end">{value}</div>
         ) : (
-          <div className="body-medium font-grotesk font-semibold text-[#171717]">
+          <div className="title5  font-semibold text-[#171717]">
             {value}
           </div>
         )}
         {subValue ? (
-          <div className="mt-0.5 body-small font-grotesk font-semibold text-[#e53935]">
+          <div className="mt-0.5 title5 font-semibold text-[#e53935]">
             {subValue}
           </div>
         ) : null}

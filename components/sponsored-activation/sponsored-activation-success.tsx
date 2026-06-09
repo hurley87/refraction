@@ -6,10 +6,23 @@ import { SponsoredActivationCollectInstructions } from '@/components/sponsored-a
 import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
 import { SponsoredActivationPointsValue } from '@/components/sponsored-activation/sponsored-activation-points-value';
 import { SponsoredActivationSwipeSlider } from '@/components/sponsored-activation/sponsored-activation-swipe-slider';
+import { useTiers } from '@/hooks/useTiers';
+import { resolveTierForPoints } from '@/lib/tier-for-points';
+import type { Tier } from '@/lib/types';
+
+/** "5,000-15,000" for a bounded tier, "15,000+" for the open-ended top tier. */
+function formatTierRange(tier: Tier): string {
+  const min = tier.min_points.toLocaleString();
+  return tier.max_points === null
+    ? `${min}+`
+    : `${min}-${tier.max_points.toLocaleString()}`;
+}
 
 type SponsoredActivationSuccessProps = {
   heroImageUrl: string | null;
   perkName: string;
+  pointsCost: number;
+  perkValueLabel: string;
   pointsSpent: number;
   balanceAfter: number;
   swipeDisabled: boolean;
@@ -23,6 +36,8 @@ type SponsoredActivationSuccessProps = {
 export function SponsoredActivationSuccess({
   heroImageUrl,
   perkName,
+  pointsCost,
+  perkValueLabel,
   pointsSpent,
   balanceAfter,
   swipeDisabled,
@@ -32,6 +47,9 @@ export function SponsoredActivationSuccess({
   onSwipeComplete,
   onBack,
 }: SponsoredActivationSuccessProps) {
+  const { data: tiers = [] } = useTiers();
+  const currentTier = resolveTierForPoints(tiers, balanceAfter);
+
   return (
     <div className="fixed inset-0 z-30 flex justify-center">
       <div
@@ -45,7 +63,7 @@ export function SponsoredActivationSuccess({
         aria-labelledby="sponsored-activation-success-title"
       >
         <div
-          className="mx-auto mt-2 h-[3px] w-8 shrink-0 rounded-full bg-[#a9a9a9]"
+          className="absolute left-1/2 top-2 z-20 h-[3px] w-8 -translate-x-1/2 rounded-full bg-white/70"
           aria-hidden
         />
 
@@ -61,6 +79,8 @@ export function SponsoredActivationSuccess({
         <SponsoredActivationDrawerHero
           heroImageUrl={heroImageUrl}
           itemName={perkName}
+          pointsCost={pointsCost}
+          perkValueLabel={perkValueLabel}
         />
 
         <div className="flex flex-col gap-4 px-4 pb-8 pt-6">
@@ -93,6 +113,17 @@ export function SponsoredActivationSuccess({
               }
               bareValue
             />
+            {currentTier ? (
+              <SponsoredActivationDetailRow
+                label="Current Tier"
+                value={
+                  <span className="inline-flex border border-[var(--Borders-Heavy-Border,#454545)] px-2 py-1 label-small font-semibold text-[#171717]">
+                    {`${currentTier.title.toUpperCase()} ${formatTierRange(currentTier)}`}
+                  </span>
+                }
+                bareValue
+              />
+            ) : null}
           </div>
 
           <SponsoredActivationCollectInstructions />
