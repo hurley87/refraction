@@ -305,6 +305,36 @@ describe('Players Database Module', () => {
       expect(result).toEqual(updatedPlayer);
     });
 
+    it('should skip wallet lookup when existing player hint is provided', async () => {
+      const existingPlayer: Player = {
+        id: 1,
+        wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+        username: 'olduser',
+        email: 'old@example.com',
+        total_points: 100,
+      };
+
+      const updatedPlayer: Player = {
+        ...existingPlayer,
+        username: 'newuser',
+      };
+
+      mockSingle.mockResolvedValueOnce({ data: updatedPlayer, error: null });
+
+      const result = await createOrUpdatePlayer(
+        {
+          wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+          username: 'newuser',
+          email: 'new@example.com',
+          total_points: 100,
+        },
+        existingPlayer
+      );
+
+      expect(result).toEqual(updatedPlayer);
+      expect(mockMaybeSingle).not.toHaveBeenCalled();
+    });
+
     it('should create new player when not exists', async () => {
       const newPlayer: Player = {
         id: 1,

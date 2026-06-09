@@ -2,9 +2,9 @@
 
 import { usePrivy } from '@privy-io/react-auth';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getSignupAttributionBodyFields } from '@/lib/analytics/attribution';
+import { useUsernameSignup } from '@/hooks/use-username-signup';
+import { UsernameSignupForm } from '@/components/auth/username-signup-form';
 
 interface AuthProps {
   children: React.ReactNode;
@@ -12,89 +12,19 @@ interface AuthProps {
 
 export default function Auth({ children }: AuthProps) {
   const { user, ready, linkEmail, login } = usePrivy();
-  const [username, setUsername] = useState('');
-  const [isCreatingPlayer, setIsCreatingPlayer] = useState(false);
-  const [needsUsername, setNeedsUsername] = useState(false);
-  const [createPlayerError, setCreatePlayerError] = useState<string | null>(
-    null
-  );
-
-  useEffect(() => {
-    const checkPlayerData = async () => {
-      if (user?.wallet?.address) {
-        try {
-          const response = await fetch(
-            `/api/player?walletAddress=${encodeURIComponent(
-              user.wallet.address
-            )}`
-          );
-
-          if (response.ok) {
-            const responseData = await response.json();
-            // Unwrap the apiSuccess wrapper
-            const result = responseData.data || responseData;
-            const existingPlayer = result.player;
-
-            // If player exists but has no username, prompt for username
-            if (existingPlayer && !existingPlayer.username) {
-              setNeedsUsername(true);
-            }
-          } else if (response.status === 404) {
-            // New player, needs username
-            setNeedsUsername(true);
-          }
-        } catch (error) {
-          console.error('Error checking player data:', error);
-          // Assume new player if error occurs
-          setNeedsUsername(true);
-        }
-      }
-    };
-
-    if (ready && user?.wallet?.address) {
-      checkPlayerData();
-    }
-  }, [ready, user?.wallet?.address]);
-
-  const handleCreatePlayer = async () => {
-    if (!username.trim() || !user?.wallet?.address) return;
-
-    setIsCreatingPlayer(true);
-    setCreatePlayerError(null);
-    try {
-      const email = user.email?.address?.trim();
-      const response = await fetch('/api/player', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          walletAddress: user.wallet.address,
-          ...(email ? { email } : {}),
-          username: username.trim(),
-          ...getSignupAttributionBodyFields(),
-        }),
-      });
-
-      const responseData = await response.json();
-
-      if (responseData.success) {
-        setNeedsUsername(false);
-      } else {
-        const message =
-          responseData.error ||
-          'Unable to create your profile. Please try again.';
-        setCreatePlayerError(message);
-        console.error('Failed to create player:', message);
-      }
-    } catch (error) {
-      const message = 'Something went wrong. Please try again.';
-      setCreatePlayerError(message);
-      console.error('Error creating player:', error);
-    } finally {
-      setIsCreatingPlayer(false);
-    }
-  };
+  const walletAddress = user?.wallet?.address;
+  const {
+    username,
+    setUsername,
+    isCreatingPlayer,
+    needsUsername,
+    createPlayerError,
+    handleCreatePlayer,
+  } = useUsernameSignup({
+    checkEnabled: !!(ready && walletAddress),
+    walletAddress,
+    emailAddress: user?.email?.address,
+  });
 
   if (!ready) {
     return (
@@ -133,63 +63,15 @@ export default function Auth({ children }: AuthProps) {
           backgroundSize: 'cover',
         }}
       >
-        <div className="flex w-full max-w-md flex-col gap-6">
-          <p className="text-center text-lg font-semibold tracking-tight text-foreground font-inktrap md:text-xl">
-            Choose your username to start earning points
-          </p>
-
-          <div className="rounded-2xl border border-white/30 bg-white/20 p-4 backdrop-blur-sm">
-            <p className="mb-3 text-sm font-inktrap uppercase text-foreground">
-              ENTER YOUR USERNAME
-            </p>
-            <input
-              type="text"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => {
-                setUsername(e.target.value);
-                if (createPlayerError) setCreatePlayerError(null);
-              }}
-              className="w-full rounded-full border border-border/60 bg-white py-3 pl-4 pr-4 font-inktrap text-foreground placeholder:text-muted-foreground shadow-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
-              maxLength={20}
-              disabled={isCreatingPlayer}
-              autoComplete="username"
-            />
-          </div>
-
-          {createPlayerError ? (
-            <p
-              className="text-center text-sm font-medium text-red-700"
-              role="alert"
-            >
-              {createPlayerError}
-            </p>
-          ) : null}
-
-          <Button
-            className="flex w-full items-center justify-center rounded-full bg-white px-6 py-6 text-base font-inktrap uppercase text-black hover:bg-white/90 disabled:opacity-50"
-            onClick={handleCreatePlayer}
-            disabled={!username.trim() || isCreatingPlayer}
-          >
-            {isCreatingPlayer ? 'CREATING PLAYER...' : 'START EARNING'}
-            {!isCreatingPlayer && (
-              <svg
-                className="ml-2 h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            )}
-          </Button>
-        </div>
+        <UsernameSignupForm
+          heading="Choose your username to start earning points"
+          headingClassName="text-foreground"
+          username={username}
+          onUsernameChange={setUsername}
+          createPlayerError={createPlayerError}
+          isCreatingPlayer={isCreatingPlayer}
+          onSubmit={handleCreatePlayer}
+        />
       </div>
     );
   }

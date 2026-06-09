@@ -48,14 +48,14 @@ export async function POST(request: NextRequest) {
     // Create or update player
     const playerData: Omit<Player, 'id' | 'created_at' | 'updated_at'> = {
       wallet_address: walletAddress,
-      email: email || undefined,
+      email,
       username: normalizedUsername,
       total_points: 0,
     };
 
     let player;
     try {
-      player = await createOrUpdatePlayer(playerData);
+      player = await createOrUpdatePlayer(playerData, existingPlayer);
     } catch (err: unknown) {
       if (isPostgresUniqueUsernameViolation(err)) {
         return apiError('Username is already taken', 409);
@@ -203,7 +203,7 @@ export async function PATCH(request: NextRequest) {
 
     let updatedPlayer;
     try {
-      updatedPlayer = await createOrUpdatePlayer(playerData);
+      updatedPlayer = await createOrUpdatePlayer(playerData, existingPlayer);
     } catch (err: unknown) {
       if (isPostgresUniqueUsernameViolation(err)) {
         return apiError('Username is already taken', 409);

@@ -134,7 +134,7 @@ export const unifiedCheckinRequestSchema = z
   .object({
     chain: chainTypeSchema,
     walletAddress: z.string().min(1),
-    email: z.string().email().optional(),
+    email: optionalEmailSchema,
     checkpoint: z.string().min(1),
   })
   .superRefine((data, ctx) => {

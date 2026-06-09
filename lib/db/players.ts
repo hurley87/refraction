@@ -51,12 +51,16 @@ async function getPlayerByField(
  * If player exists, updates email and username if provided.
  */
 export const createOrUpdatePlayer = async (
-  player: Omit<Player, 'id' | 'created_at' | 'updated_at'>
+  player: Omit<Player, 'id' | 'created_at' | 'updated_at'>,
+  existingPlayerHint?: Player | null
 ) => {
   const normalizedWallet =
     tryNormalizeEvmAddress(player.wallet_address) ??
     player.wallet_address.trim();
-  const existingPlayer = await getPlayerByWallet(normalizedWallet);
+  const existingPlayer =
+    existingPlayerHint !== undefined
+      ? existingPlayerHint
+      : await getPlayerByWallet(normalizedWallet);
 
   if (existingPlayer) {
     const { data, error } = await supabase
