@@ -48,6 +48,22 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for TronLink proxy injection noise', () => {
+    const event = {
+      request: { url: 'https://example.com/dashboard' },
+      exception: {
+        values: [
+          {
+            value:
+              "TypeError: 'set' on proxy: trap returned falsish for property 'tronlinkParams'",
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('returns null for extension runtime.sendMessage tab-not-found noise', () => {
     const event = {
       request: { url: 'https://example.com/dashboard' },

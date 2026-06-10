@@ -85,6 +85,20 @@ export function isAbortError(reason: unknown): boolean {
   return false;
 }
 
+/**
+ * TronLink's inpage script tries to assign `tronlinkParams` onto objects that
+ * Privy/wallet SDKs expose as read-only proxies, surfacing as
+ * `'set' on proxy: trap returned falsish for property 'tronlinkParams'`.
+ */
+function isTronLinkProxyInjectionFailure(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("'set' on proxy") &&
+    lower.includes('trap returned falsish') &&
+    lower.includes('tronlinkparams')
+  );
+}
+
 function shouldDropAbortError(
   event: SentryEventLike,
   hint?: EventHint
@@ -144,7 +158,8 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||
     // Extension messaging when the target tab is gone (e.g. fast navigation).
-    message.includes('invalid call to runtime.sendmessage');
+    message.includes('invalid call to runtime.sendmessage') ||
+    isTronLinkProxyInjectionFailure(message);
 
   if (isKnownNoise) {
     return null;

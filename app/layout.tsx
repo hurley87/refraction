@@ -27,11 +27,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase,
     title: 'IRL',
-    description: "Culture's rewards program. Music, Art, Events. Access Worldwide.",
+    description:
+      "Culture's rewards program. Music, Art, Events. Access Worldwide.",
     /** Favicon: `app/icon.svg` (Next injects `<link rel="icon" href="/icon?…">`). */
     openGraph: {
       title: 'IRL',
-      description: "Culture's rewards program. Music, Art, Events. Access Worldwide.",
+      description:
+        "Culture's rewards program. Music, Art, Events. Access Worldwide.",
       url: new URL('/', metadataBase).href,
       images: [
         {
@@ -46,7 +48,8 @@ export async function generateMetadata(): Promise<Metadata> {
     twitter: {
       card: 'summary_large_image',
       title: 'IRL',
-      description: "Culture's rewards program. Music, Art, Events. Access Worldwide.",
+      description:
+        "Culture's rewards program. Music, Art, Events. Access Worldwide.",
       images: [imageUrl],
     },
     appleWebApp: {
@@ -90,6 +93,7 @@ export default function RootLayout({
       message.includes('Extension context invalidated') ||
       message.includes('Cannot redefine property: ethereum') ||
       message.includes('Cannot redefine property') ||
+      (message.includes("'set' on proxy") && message.includes('tronlinkParams')) ||
       message.includes('ERR_NAME_NOT_RESOLVED') ||
       message.includes('googletagmanager.com') ||
       message.includes('net::ERR_NAME_NOT_RESOLVED')
@@ -115,6 +119,7 @@ export default function RootLayout({
       message.includes('Extension context invalidated') ||
       message.includes('Cannot redefine property: ethereum') ||
       message.includes('Cannot redefine property') ||
+      (message.includes("'set' on proxy") && message.includes('tronlinkParams')) ||
       message.includes('ERR_NAME_NOT_RESOLVED') ||
       source.includes('googletagmanager.com') ||
       message.includes('net::ERR_NAME_NOT_RESOLVED')
@@ -137,7 +142,8 @@ export default function RootLayout({
       message.includes('Could not establish connection') ||
       message.includes('Extension context invalidated') ||
       message.includes('Cannot redefine property: ethereum') ||
-      message.includes('Cannot redefine property')
+      message.includes('Cannot redefine property') ||
+      (message.includes("'set' on proxy") && message.includes('tronlinkParams'))
     ) {
       event.preventDefault();
       return false;
