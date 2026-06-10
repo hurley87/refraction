@@ -249,6 +249,19 @@ function PerksPageInner() {
     });
   };
 
+  // Fires when the user clicks a "Claim Reward" CTA that leaves to a partner
+  // claim URL (these never hit /api/perks/redeem, so `reward_claimed` is not
+  // emitted for them). Captures claim intent for external/code-based perks.
+  const handleClaimClick = () => {
+    if (!selectedPerk) return;
+    trackEvent(ANALYTICS_EVENTS.REWARD_CLAIM_CLICKED, {
+      reward_id: selectedPerk.id,
+      reward_type: selectedPerk.type,
+      partner: selectedPerk.location || undefined,
+      points_required: selectedPerk.points_threshold,
+    });
+  };
+
   const handleModalOpenChange = (open: boolean) => {
     if (!open) {
       setIsModalOpen(false);
@@ -1310,6 +1323,7 @@ function PerksPageInner() {
                               href={claimUrl}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={handleClaimClick}
                               className="inline-flex w-full items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white hover:bg-[#313131] transition-colors"
                             >
                               <h4 className="text-left">Claim Reward</h4>
@@ -1352,6 +1366,7 @@ function PerksPageInner() {
                               href={claimUrl}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={handleClaimClick}
                               className="inline-flex items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white hover:bg-[#313131] transition-colors flex-1"
                             >
                               <span className="text-left">Claim Reward</span>

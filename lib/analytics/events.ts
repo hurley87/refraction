@@ -19,6 +19,8 @@ export const ANALYTICS_EVENTS = {
 
   // Loyalty & Value
   REWARD_PAGE_VIEWED: 'reward_page_viewed',
+  /** User clicked a "Claim Reward" CTA (intent). Distinct from `reward_claimed` (successful redemption). */
+  REWARD_CLAIM_CLICKED: 'reward_claim_clicked',
   REWARD_CLAIMED: 'reward_claimed',
 
   // Token / Points
