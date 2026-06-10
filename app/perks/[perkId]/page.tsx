@@ -313,6 +313,15 @@ export default function PerkDetailPage() {
       return;
     }
 
+    if (perk) {
+      trackEvent(ANALYTICS_EVENTS.REWARD_CLAIM_CLICKED, {
+        reward_id: perk.id,
+        reward_type: perk.type,
+        partner: perk.location || undefined,
+        points_required: perk.points_threshold,
+      });
+    }
+
     redeemPerkMutation.mutate();
   };
 
