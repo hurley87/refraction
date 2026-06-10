@@ -144,7 +144,11 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||
     // Extension messaging when the target tab is gone (e.g. fast navigation).
-    message.includes('invalid call to runtime.sendmessage');
+    message.includes('invalid call to runtime.sendmessage') ||
+    // Wallet extensions (e.g. SubWallet) inject page scripts that reject the
+    // current origin before the user authorizes the extension on that site.
+    (message.includes('the source') &&
+      message.includes('has not been authorized yet'));
 
   if (isKnownNoise) {
     return null;

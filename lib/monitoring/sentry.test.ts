@@ -64,6 +64,22 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for wallet extension source-not-authorized noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/c/7428103c65' },
+      exception: {
+        values: [
+          {
+            value:
+              'Error: The source https://www.irl.energy/c/7428103c65 has not been authorized yet',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('still forwards unrelated errors', () => {
     const event = {
       request: { url: 'https://example.com/events' },
