@@ -48,6 +48,21 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for MetaMask extension connection noise', () => {
+    const event = {
+      request: { url: 'https://example.com/dashboard' },
+      exception: {
+        values: [
+          {
+            value: 'i: Failed to connect to MetaMask',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('returns null for extension runtime.sendMessage tab-not-found noise', () => {
     const event = {
       request: { url: 'https://example.com/dashboard' },
