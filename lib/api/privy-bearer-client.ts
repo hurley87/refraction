@@ -24,5 +24,6 @@ export async function apiClientBearerGet<T>(
   return apiClient<T>(path, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
   });
 }
