@@ -11,6 +11,9 @@ const DEFAULT_IGNORED_ERRORS = [
   // fetch/AbortController cancellations (navigation, unmount, timeouts).
   'AbortError',
   'The operation was aborted',
+  // Competing wallet extensions injecting window.ethereum.
+  'Cannot set property ethereum',
+  'Cannot redefine property: ethereum',
 ];
 
 const DEFAULT_IGNORED_PATHS = [
@@ -85,6 +88,20 @@ export function isAbortError(reason: unknown): boolean {
   return false;
 }
 
+/**
+ * Competing wallet extensions (MetaMask, Rabby, Coinbase, etc.) inject
+ * `window.ethereum`. When one defines a getter-only property, another's
+ * injection throws — this is extension noise, not app code.
+ */
+function isWalletExtensionEthereumConflict(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('cannot redefine property: ethereum') ||
+    lower.includes('cannot set property ethereum') ||
+    (lower.includes('ethereum') && lower.includes('only a getter'))
+  );
+}
+
 function shouldDropAbortError(
   event: SentryEventLike,
   hint?: EventHint
@@ -141,6 +158,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     message.includes('could not establish connection') ||
     message.includes('receiving end does not exist') ||
     message.includes('runtime.lasterror') ||
+    isWalletExtensionEthereumConflict(message) ||
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||
     // Extension messaging when the target tab is gone (e.g. fast navigation).

@@ -48,6 +48,37 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for wallet extension ethereum getter conflict noise', () => {
+    const event = {
+      request: { url: 'https://example.com/dashboard' },
+      exception: {
+        values: [
+          {
+            value:
+              'TypeError: Cannot set property ethereum of #<Window> which has only a getter',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for wallet extension ethereum redefine conflict noise', () => {
+    const event = {
+      request: { url: 'https://example.com/dashboard' },
+      exception: {
+        values: [
+          {
+            value: 'TypeError: Cannot redefine property: ethereum',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('returns null for extension runtime.sendMessage tab-not-found noise', () => {
     const event = {
       request: { url: 'https://example.com/dashboard' },
