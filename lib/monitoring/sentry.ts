@@ -65,6 +65,29 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * Wallet SDKs (Privy, WalletConnect) persist session state via idb-keyval.
+ * Browsers can close the IndexedDB connection during navigation, tab discard,
+ * or iOS Safari lifecycle events while those libraries still have in-flight
+ * transactions — a known browser/SDK race, not an app bug.
+ */
+export function isIndexedDbClosingError(reason: unknown): boolean {
+  const message =
+    reason instanceof Error
+      ? reason.message
+      : typeof reason === 'string'
+        ? reason
+        : isPlainRecord(reason) && typeof reason.message === 'string'
+          ? reason.message
+          : '';
+
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('database connection is closing') ||
+    normalized.includes('connection to indexed database server lost')
+  );
+}
+
+/**
  * fetch() and streams reject with AbortError when a signal is aborted (component
  * unmount, route change, debounced reload). These are expected and not bugs.
  */
@@ -100,6 +123,17 @@ function shouldDropAbortError(
   );
 }
 
+function shouldDropIndexedDbClosingError(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (isIndexedDbClosingError(hint?.originalException)) {
+    return true;
+  }
+
+  return isIndexedDbClosingError(eventMessage(event, hint));
+}
+
 function normalizeCsv(rawValue: string): string[] {
   return rawValue
     .split(',')
@@ -125,6 +159,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   hint?: EventHint
 ): T | null {
   if (shouldDropAbortError(event, hint)) {
+    return null;
+  }
+
+  if (shouldDropIndexedDbClosingError(event, hint)) {
     return null;
   }
 
