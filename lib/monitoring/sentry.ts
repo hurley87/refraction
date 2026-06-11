@@ -1,5 +1,7 @@
 import type { EventHint } from '@sentry/nextjs';
 
+import { isFetchNetworkError } from '@/lib/api/network-error';
+
 const DEFAULT_IGNORED_ERRORS = [
   'NEXT_REDIRECT',
   'NEXT_NOT_FOUND',
@@ -100,6 +102,23 @@ function shouldDropAbortError(
   );
 }
 
+function shouldDropFetchNetworkError(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (isFetchNetworkError(hint?.originalException)) {
+    return true;
+  }
+
+  const message = eventMessage(event, hint).toLowerCase();
+  return (
+    message.includes('typeerror: failed to fetch') ||
+    message.includes('typeerror: fetch failed') ||
+    message.includes('typeerror: load failed') ||
+    message.includes('networkerror when attempting to fetch resource')
+  );
+}
+
 function normalizeCsv(rawValue: string): string[] {
   return rawValue
     .split(',')
@@ -125,6 +144,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   hint?: EventHint
 ): T | null {
   if (shouldDropAbortError(event, hint)) {
+    return null;
+  }
+
+  if (shouldDropFetchNetworkError(event, hint)) {
     return null;
   }
 
