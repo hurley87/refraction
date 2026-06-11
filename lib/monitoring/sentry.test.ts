@@ -48,6 +48,22 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for iOS in-app browser webkit.messageHandlers noise', () => {
+    const event = {
+      request: { url: 'https://example.com/events' },
+      exception: {
+        values: [
+          {
+            value:
+              "TypeError: undefined is not an object (evaluating 'window.webkit.messageHandlers')",
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('returns null for extension runtime.sendMessage tab-not-found noise', () => {
     const event = {
       request: { url: 'https://example.com/dashboard' },
