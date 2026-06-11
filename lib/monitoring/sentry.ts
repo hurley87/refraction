@@ -64,6 +64,34 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function indexedDbErrorMessage(reason: unknown): string {
+  if (reason instanceof Error) {
+    return reason.message;
+  }
+  if (typeof reason === 'string') {
+    return reason;
+  }
+  if (isPlainRecord(reason) && typeof reason.message === 'string') {
+    return reason.message;
+  }
+  return '';
+}
+
+/**
+ * Wallet SDKs (Privy, WalletConnect) persist session state via idb-keyval.
+ * Browsers — especially iOS Safari and in-app webviews — can close or delete
+ * the IndexedDB database during navigation, tab discard, backgrounding, or when
+ * the user clears site data while those libraries still have in-flight work.
+ */
+export function isIndexedDbNoiseError(reason: unknown): boolean {
+  const normalized = indexedDbErrorMessage(reason).toLowerCase();
+  return (
+    normalized.includes('database connection is closing') ||
+    normalized.includes('connection to indexed database server lost') ||
+    normalized.includes('database deleted by request of the user')
+  );
+}
+
 /**
  * fetch() and streams reject with AbortError when a signal is aborted (component
  * unmount, route change, debounced reload). These are expected and not bugs.
@@ -83,6 +111,17 @@ export function isAbortError(reason: unknown): boolean {
   }
 
   return false;
+}
+
+function shouldDropIndexedDbNoiseError(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (isIndexedDbNoiseError(hint?.originalException)) {
+    return true;
+  }
+
+  return isIndexedDbNoiseError(eventMessage(event, hint));
 }
 
 function shouldDropAbortError(
@@ -125,6 +164,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   hint?: EventHint
 ): T | null {
   if (shouldDropAbortError(event, hint)) {
+    return null;
+  }
+
+  if (shouldDropIndexedDbNoiseError(event, hint)) {
     return null;
   }
 
