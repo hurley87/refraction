@@ -130,6 +130,17 @@ export default function RootLayout({
   }, true);
   window.addEventListener('unhandledrejection', function(event) {
     const reason = event.reason;
+    if (
+      reason &&
+      typeof reason === 'object' &&
+      reason != null &&
+      'code' in reason &&
+      reason.code === 4001 &&
+      'message' in reason
+    ) {
+      event.preventDefault();
+      return false;
+    }
     const message =
       reason && typeof reason === 'object' && reason != null && 'message' in reason
         ? String(reason.message)
