@@ -1,3 +1,5 @@
+import { isFetchNetworkError } from '@/lib/api/network-error';
+
 import type { ApiResponse } from './response';
 
 /**
@@ -25,7 +27,16 @@ export async function apiClient<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
-  const response = await fetch(endpoint, options);
+  let response: Response;
+  try {
+    response = await fetch(endpoint, options);
+  } catch (error) {
+    if (isFetchNetworkError(error)) {
+      throw new ApiError(0, 'Network request failed', error);
+    }
+    throw error;
+  }
+
   const json: ApiResponse<T> = await response.json();
 
   if (!response.ok || !json.success) {

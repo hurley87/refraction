@@ -48,6 +48,37 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for wallet extension ethereum getter conflict noise', () => {
+    const event = {
+      request: { url: 'https://example.com/dashboard' },
+      exception: {
+        values: [
+          {
+            value:
+              'TypeError: Cannot set property ethereum of #<Window> which has only a getter',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for wallet extension ethereum redefine conflict noise', () => {
+    const event = {
+      request: { url: 'https://example.com/dashboard' },
+      exception: {
+        values: [
+          {
+            value: 'TypeError: Cannot redefine property: ethereum',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('returns null for extension runtime.sendMessage tab-not-found noise', () => {
     const event = {
       request: { url: 'https://example.com/dashboard' },
@@ -58,6 +89,45 @@ describe('sentryBeforeSend', () => {
               'Error: Invalid call to runtime.sendMessage(). Tab not found.',
           },
         ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for client fetch network failures (e.g. offline at venues)', () => {
+    const networkError = new TypeError('Failed to fetch (h4n.app)');
+    const event = {
+      request: { url: 'https://h4n.app/c/summer-party' },
+      exception: {
+        values: [{ value: 'TypeError: Failed to fetch (h4n.app)' }],
+      },
+    };
+
+    expect(
+      sentryBeforeSend(event, { originalException: networkError })
+    ).toBeNull();
+  });
+
+  it('returns null for Node.js undici fetch failed transport errors', () => {
+    const networkError = new TypeError('fetch failed');
+    const event = {
+      request: { url: 'https://www.irl.energy/c/abc123' },
+      exception: {
+        values: [{ value: 'TypeError: fetch failed' }],
+      },
+    };
+
+    expect(
+      sentryBeforeSend(event, { originalException: networkError })
+    ).toBeNull();
+  });
+
+  it('returns null for Safari-style load failed network errors', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/events' },
+      exception: {
+        values: [{ value: 'TypeError: Load failed' }],
       },
     };
 

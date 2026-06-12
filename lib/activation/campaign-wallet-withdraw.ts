@@ -1,25 +1,19 @@
 import {
-  Asset,
-  Horizon,
-  Operation,
-  TransactionBuilder,
-} from '@stellar/stellar-sdk';
-import { parseStellarSponsoredCampaignKeypair } from '@/lib/activation/stellar-campaign-wallet-config';
-import { parseStellarSettlementAssetConfig } from '@/lib/activation/stellar-settlement-submit';
-import { loadActivationReservedUsdc } from '@/lib/db/sponsored-activation-admin';
-import type { SponsoredActivationRow } from '@/lib/db/sponsored-activations';
+  parseStellarSettlementAssetConfig,
+  submitStellarCampaignUsdcPayment,
+} from '@/lib/activation/stellar-settlement-submit';
+import {
+  computeBudgetRemainingUsdc,
+  loadActivationReservedUsdc,
+} from '@/lib/db/sponsored-activation-admin';
+import {
+  listStellarActivationsSharingCampaignWallet,
+  type SponsoredActivationRow,
+} from '@/lib/db/sponsored-activations';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import { baseUsdcAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
-import {
-  classifyStellarHorizonSubmitError,
-  formatUsdcAmountForStellar,
-  loadAccountOrThrow,
-  readHorizonHttpErrorData,
-} from '@/lib/stellar/horizon-submit-helpers';
-import {
-  createStellarSpendHorizonServer,
-  getStellarSpendNetworkPassphrase,
-} from '@/lib/spend/stellar-wallet-readiness-config';
+import { parseUsdcBalanceLine } from '@/lib/spend/stellar-treasury-funding';
+import { createStellarSpendHorizonServer } from '@/lib/spend/stellar-wallet-readiness-config';
 import { getSpendRailBaseRpcUrl } from '@/lib/spend-rail-config';
 import {
   submitTreasuryUsdcTransfer,
@@ -61,6 +55,9 @@ export type SponsoredActivationCampaignWithdrawResult =
     }
   | { ok: false; error: string; statusCode?: 400 | 500 };
 
+const DESTINATION_WALLET_CONFLICT_ERROR =
+  'Destination must differ from the campaign and venue settlement wallets.';
+
 function computeWithdrawableMicro(balanceUsdc: number): number {
   return Math.max(0, Math.floor(balanceUsdc * 1e6));
 }
@@ -68,6 +65,81 @@ function computeWithdrawableMicro(balanceUsdc: number): number {
 /** Full on-chain balance available for admin refund (reserved USDC is not withheld). */
 export function computeWithdrawableUsdc(balanceUsdc: number): number {
   return computeWithdrawableMicro(balanceUsdc) / 1e6;
+}
+
+/**
+ * Withdrawable USDC for one Stellar activation on the shared campaign wallet.
+ * Uses the full on-chain pool (reserved is not withheld) but caps by this
+ * activation's budget remaining and peer activations' outstanding budget claims.
+ */
+export function computeStellarSharedWalletActivationWithdrawableUsdc(input: {
+  walletBalanceUsdc: number;
+  activationBudgetRemainingUsdc: number | null;
+  otherActivationsBudgetRemainingUsdc: number;
+}): number {
+  const poolWithdrawable = computeWithdrawableUsdc(input.walletBalanceUsdc);
+  const afterOtherClaims = Math.max(
+    0,
+    poolWithdrawable - input.otherActivationsBudgetRemainingUsdc
+  );
+  if (input.activationBudgetRemainingUsdc == null) {
+    return afterOtherClaims;
+  }
+  return Math.min(
+    Math.max(0, input.activationBudgetRemainingUsdc),
+    afterOtherClaims
+  );
+}
+
+function sumOtherStellarActivationsBudgetRemainingUsdc(
+  peers: Array<{ activation: SponsoredActivationRow; reservedUsdc: number }>,
+  currentActivationId: string
+): number {
+  let total = 0;
+  for (const peer of peers) {
+    if (peer.activation.id === currentActivationId) continue;
+    const remaining = computeBudgetRemainingUsdc({
+      maxUsdcBudget: peer.activation.max_usdc_budget,
+      usdcSettledTotal: peer.activation.usdc_settled_total,
+      reservedUsdc: peer.reservedUsdc,
+    });
+    if (remaining != null && remaining > 0) {
+      total += remaining;
+    }
+  }
+  return total;
+}
+
+async function loadStellarSharedWalletWithdrawContext(
+  activation: SponsoredActivationRow
+): Promise<{
+  activationReservedUsdc: number;
+  activationBudgetRemainingUsdc: number | null;
+  otherActivationsBudgetRemainingUsdc: number;
+}> {
+  const peerActivations = await listStellarActivationsSharingCampaignWallet(
+    activation.campaign_wallet_address
+  );
+  const peers = await Promise.all(
+    peerActivations.map(async (peer) => ({
+      activation: peer,
+      reservedUsdc: await loadActivationReservedUsdc(peer.id),
+    }))
+  );
+  const activationPeer = peers.find(
+    (peer) => peer.activation.id === activation.id
+  );
+  const activationReservedUsdc = activationPeer?.reservedUsdc ?? 0;
+  return {
+    activationReservedUsdc,
+    activationBudgetRemainingUsdc: computeBudgetRemainingUsdc({
+      maxUsdcBudget: activation.max_usdc_budget,
+      usdcSettledTotal: activation.usdc_settled_total,
+      reservedUsdc: activationReservedUsdc,
+    }),
+    otherActivationsBudgetRemainingUsdc:
+      sumOtherStellarActivationsBudgetRemainingUsdc(peers, activation.id),
+  };
 }
 
 async function readBaseCampaignWalletBalance(
@@ -104,22 +176,13 @@ async function readStellarCampaignWalletBalance(
   const server = createStellarSpendHorizonServer();
   try {
     const account = await server.loadAccount(campaignParse.data);
-    for (const b of account.balances) {
-      if (
-        b.asset_type !== 'credit_alphanum4' &&
-        b.asset_type !== 'credit_alphanum12'
-      ) {
-        continue;
-      }
-      if (
-        b.asset_code === assetParsed.config.asset_code &&
-        b.asset_issuer === assetParsed.config.issuer
-      ) {
-        const n = Number(b.balance);
-        return Number.isFinite(n) ? n : null;
-      }
-    }
-    return 0;
+    return (
+      parseUsdcBalanceLine(
+        account,
+        assetParsed.config.asset_code,
+        assetParsed.config.issuer
+      ) ?? 0
+    );
   } catch (e) {
     console.error('readStellarCampaignWalletBalance:', e);
     return null;
@@ -129,18 +192,51 @@ async function readStellarCampaignWalletBalance(
 export async function loadSponsoredActivationCampaignWalletBalancePack(
   activation: SponsoredActivationRow
 ): Promise<SponsoredActivationCampaignWalletBalancePack> {
-  const reservedUsdc = await loadActivationReservedUsdc(activation.id);
-  const balance =
-    activation.settlement_rail === 'base'
-      ? await readBaseCampaignWalletBalance(activation)
-      : await readStellarCampaignWalletBalance(activation);
+  if (activation.settlement_rail === 'base') {
+    const [reservedUsdc, balance] = await Promise.all([
+      loadActivationReservedUsdc(activation.id),
+      readBaseCampaignWalletBalance(activation),
+    ]);
+    return {
+      campaign_wallet_usdc_balance: balance,
+      campaign_wallet_withdrawable_usdc:
+        balance == null ? null : computeWithdrawableUsdc(balance),
+      campaign_wallet_reserved_usdc: reservedUsdc,
+    };
+  }
+
+  const [balance, stellarContext] = await Promise.all([
+    readStellarCampaignWalletBalance(activation),
+    loadStellarSharedWalletWithdrawContext(activation),
+  ]);
 
   return {
     campaign_wallet_usdc_balance: balance,
     campaign_wallet_withdrawable_usdc:
-      balance == null ? null : computeWithdrawableUsdc(balance),
-    campaign_wallet_reserved_usdc: reservedUsdc,
+      balance == null
+        ? null
+        : computeStellarSharedWalletActivationWithdrawableUsdc({
+            walletBalanceUsdc: balance,
+            activationBudgetRemainingUsdc:
+              stellarContext.activationBudgetRemainingUsdc,
+            otherActivationsBudgetRemainingUsdc:
+              stellarContext.otherActivationsBudgetRemainingUsdc,
+          }),
+    campaign_wallet_reserved_usdc: stellarContext.activationReservedUsdc,
   };
+}
+
+function assertDestinationNotCampaignOrVenue(
+  normalized: string,
+  activation: SponsoredActivationRow
+): { ok: true } | { ok: false; error: string } {
+  if (
+    sameWalletAddress(normalized, activation.campaign_wallet_address) ||
+    sameWalletAddress(normalized, activation.venue_settlement_wallet_address)
+  ) {
+    return { ok: false, error: DESTINATION_WALLET_CONFLICT_ERROR };
+  }
+  return { ok: true };
 }
 
 function validateDestinationForRail(
@@ -152,16 +248,11 @@ function validateDestinationForRail(
     if (!normalized || !isEvmAddress(normalized)) {
       return { ok: false, error: 'Invalid Ethereum address' };
     }
-    if (
-      sameWalletAddress(normalized, activation.campaign_wallet_address) ||
-      sameWalletAddress(normalized, activation.venue_settlement_wallet_address)
-    ) {
-      return {
-        ok: false,
-        error:
-          'Destination must differ from the campaign and venue settlement wallets.',
-      };
-    }
+    const walletCheck = assertDestinationNotCampaignOrVenue(
+      normalized,
+      activation
+    );
+    if (!walletCheck.ok) return walletCheck;
     return { ok: true, normalized };
   }
 
@@ -171,18 +262,21 @@ function validateDestinationForRail(
   if (!parsed.success) {
     return { ok: false, error: 'Invalid Stellar address' };
   }
-  if (
-    sameWalletAddress(parsed.data, activation.campaign_wallet_address) ||
-    sameWalletAddress(parsed.data, activation.venue_settlement_wallet_address)
-  ) {
-    return {
-      ok: false,
-      error:
-        'Destination must differ from the campaign and venue settlement wallets.',
-    };
-  }
+  const walletCheck = assertDestinationNotCampaignOrVenue(
+    parsed.data,
+    activation
+  );
+  if (!walletCheck.ok) return walletCheck;
   return { ok: true, normalized: parsed.data };
 }
+
+const STELLAR_WITHDRAW_REASON_MESSAGES: Record<string, string> = {
+  stellar_usdc_asset_misconfigured: 'Stellar USDC asset is misconfigured.',
+  stellar_campaign_wallet_not_configured:
+    'Stellar campaign wallet is not configured on the server.',
+  stellar_campaign_wallet_mismatch:
+    'Stellar campaign wallet key does not match this activation.',
+};
 
 async function submitStellarCampaignWalletWithdraw(input: {
   activation: SponsoredActivationRow;
@@ -192,94 +286,23 @@ async function submitStellarCampaignWalletWithdraw(input: {
   | { ok: true; txHash: string }
   | { ok: false; error: string; statusCode?: 400 | 500 }
 > {
-  const assetParsed = parseStellarSettlementAssetConfig(
-    input.activation.usdc_asset_config
-  );
-  if (!assetParsed.ok) {
-    return { ok: false, error: 'Stellar USDC asset is misconfigured.' };
-  }
+  const submitted = await submitStellarCampaignUsdcPayment({
+    campaignPublicKey: input.activation.campaign_wallet_address,
+    destinationPublicKey: input.destinationAddress,
+    usdcAmount: input.usdcAmount,
+    usdcAssetConfig: input.activation.usdc_asset_config,
+  });
 
-  let campaignKp;
-  try {
-    campaignKp = parseStellarSponsoredCampaignKeypair();
-  } catch {
+  if (!submitted.ok) {
     return {
       ok: false,
-      error: 'Stellar campaign wallet is not configured on the server.',
+      error:
+        STELLAR_WITHDRAW_REASON_MESSAGES[submitted.reason] ?? submitted.reason,
       statusCode: 500,
     };
   }
 
-  const campaignPub = input.activation.campaign_wallet_address
-    .trim()
-    .toUpperCase();
-  if (campaignKp.publicKey() !== campaignPub) {
-    return {
-      ok: false,
-      error: 'Stellar campaign wallet key does not match this activation.',
-      statusCode: 500,
-    };
-  }
-
-  const passphrase = getStellarSpendNetworkPassphrase();
-  const server = createStellarSpendHorizonServer();
-  const { asset_code: usdcCode, issuer: usdcIssuer } = assetParsed.config;
-  const usdcAsset = new Asset(usdcCode, usdcIssuer);
-  const payAmount = formatUsdcAmountForStellar(input.usdcAmount);
-
-  let campaignAccount: Horizon.AccountResponse;
-  try {
-    campaignAccount = await loadAccountOrThrow(server, campaignPub);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    const { resultCodes } = readHorizonHttpErrorData(e);
-    return {
-      ok: false,
-      error: classifyStellarHorizonSubmitError(msg, resultCodes),
-      statusCode: 500,
-    };
-  }
-
-  let baseFee: string;
-  try {
-    baseFee = (await server.fetchBaseFee()).toString();
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return {
-      ok: false,
-      error: classifyStellarHorizonSubmitError(msg),
-      statusCode: 500,
-    };
-  }
-
-  const tx = new TransactionBuilder(campaignAccount, {
-    fee: baseFee,
-    networkPassphrase: passphrase,
-  })
-    .addOperation(
-      Operation.payment({
-        destination: input.destinationAddress,
-        asset: usdcAsset,
-        amount: payAmount,
-      })
-    )
-    .setTimeout(180)
-    .build();
-
-  tx.sign(campaignKp);
-
-  try {
-    const res = await server.submitTransaction(tx);
-    return { ok: true, txHash: res.hash };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    const { resultCodes } = readHorizonHttpErrorData(e);
-    return {
-      ok: false,
-      error: classifyStellarHorizonSubmitError(msg, resultCodes),
-      statusCode: 500,
-    };
-  }
+  return { ok: true, txHash: submitted.txHash };
 }
 
 export async function withdrawSponsoredActivationCampaignWallet(input: {
@@ -298,7 +321,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
   const balancePack = await loadSponsoredActivationCampaignWalletBalancePack(
     input.activation
   );
-  if (balancePack.campaign_wallet_usdc_balance == null) {
+  if (balancePack.campaign_wallet_withdrawable_usdc == null) {
     return {
       ok: false,
       error: 'Could not read campaign wallet USDC balance.',
@@ -307,7 +330,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
   }
 
   const maxWithdrawableMicro = computeWithdrawableMicro(
-    balancePack.campaign_wallet_usdc_balance
+    balancePack.campaign_wallet_withdrawable_usdc
   );
   if (maxWithdrawableMicro <= 0) {
     return {
@@ -351,7 +374,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
       return {
         ok: false,
         error: submitted.error,
-        statusCode: submitted.statusCode === 400 ? 400 : 500,
+        statusCode: submitted.statusCode ?? 500,
       };
     }
     return {

@@ -1,5 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 
+import { isFetchNetworkError } from '@/lib/api/network-error';
+
 type CaptureHandledExceptionOptions = {
   route: string;
   operation: string;
@@ -70,6 +72,10 @@ export function captureHandledException(
   options: CaptureHandledExceptionOptions
 ) {
   if (!hasSentryDsn()) {
+    return;
+  }
+
+  if (isFetchNetworkError(error)) {
     return;
   }
 

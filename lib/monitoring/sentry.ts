@@ -1,5 +1,7 @@
 import type { EventHint } from '@sentry/nextjs';
 
+import { isFetchNetworkError } from '@/lib/api/network-error';
+
 const DEFAULT_IGNORED_ERRORS = [
   'NEXT_REDIRECT',
   'NEXT_NOT_FOUND',
@@ -11,6 +13,9 @@ const DEFAULT_IGNORED_ERRORS = [
   // fetch/AbortController cancellations (navigation, unmount, timeouts).
   'AbortError',
   'The operation was aborted',
+  // Competing wallet extensions injecting window.ethereum.
+  'Cannot set property ethereum',
+  'Cannot redefine property: ethereum',
 ];
 
 const DEFAULT_IGNORED_PATHS = [
@@ -85,6 +90,20 @@ export function isAbortError(reason: unknown): boolean {
   return false;
 }
 
+/**
+ * Competing wallet extensions (MetaMask, Rabby, Coinbase, etc.) inject
+ * `window.ethereum`. When one defines a getter-only property, another's
+ * injection throws — this is extension noise, not app code.
+ */
+function isWalletExtensionEthereumConflict(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('cannot redefine property: ethereum') ||
+    lower.includes('cannot set property ethereum') ||
+    (lower.includes('ethereum') && lower.includes('only a getter'))
+  );
+}
+
 function shouldDropAbortError(
   event: SentryEventLike,
   hint?: EventHint
@@ -97,6 +116,23 @@ function shouldDropAbortError(
   return (
     message.includes('the operation was aborted') ||
     (message.includes('aborterror') && message.includes('aborted'))
+  );
+}
+
+function shouldDropFetchNetworkError(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (isFetchNetworkError(hint?.originalException)) {
+    return true;
+  }
+
+  const message = eventMessage(event, hint).toLowerCase();
+  return (
+    message.includes('typeerror: failed to fetch') ||
+    message.includes('typeerror: fetch failed') ||
+    message.includes('typeerror: load failed') ||
+    message.includes('networkerror when attempting to fetch resource')
   );
 }
 
@@ -128,6 +164,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     return null;
   }
 
+  if (shouldDropFetchNetworkError(event, hint)) {
+    return null;
+  }
+
   const path = eventPath(event);
   if (path && DEFAULT_IGNORED_PATHS.some((segment) => path.includes(segment))) {
     return null;
@@ -141,6 +181,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     message.includes('could not establish connection') ||
     message.includes('receiving end does not exist') ||
     message.includes('runtime.lasterror') ||
+    isWalletExtensionEthereumConflict(message) ||
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||
     // Extension messaging when the target tab is gone (e.g. fast navigation).

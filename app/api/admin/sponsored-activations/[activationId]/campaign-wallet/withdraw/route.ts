@@ -45,37 +45,24 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!result.ok) {
-      return apiError(result.error, result.statusCode === 400 ? 400 : 500);
+      return apiError(result.error, result.statusCode ?? 500);
     }
 
-    if (result.status === 'submitted') {
-      return apiSuccess(
-        {
-          status: result.status,
-          amountUsdc: result.amountUsdc,
-          destinationAddress: result.destinationAddress,
-          txHash: result.txHash,
-          privyTransactionId: result.privyTransactionId,
-          userOperationHash: result.userOperationHash,
-          referenceId: result.referenceId,
-          message: result.message,
-        },
-        result.message,
-        202
-      );
-    }
+    const payload = {
+      status: result.status,
+      amountUsdc: result.amountUsdc,
+      destinationAddress: result.destinationAddress,
+      txHash: result.txHash,
+      privyTransactionId: result.privyTransactionId,
+      userOperationHash: result.userOperationHash,
+      referenceId: result.referenceId,
+      ...(result.status === 'submitted' ? { message: result.message } : {}),
+    };
 
     return apiSuccess(
-      {
-        status: result.status,
-        txHash: result.txHash,
-        amountUsdc: result.amountUsdc,
-        destinationAddress: result.destinationAddress,
-        privyTransactionId: result.privyTransactionId,
-        userOperationHash: result.userOperationHash,
-        referenceId: result.referenceId,
-      },
-      'Withdrawal confirmed.'
+      payload,
+      result.status === 'submitted' ? result.message : 'Withdrawal confirmed.',
+      result.status === 'submitted' ? 202 : 200
     );
   } catch (error) {
     console.error(
