@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
@@ -227,6 +227,10 @@ const isTodayOrFuture = (date: Date | null): boolean => {
   return date.getTime() >= today.getTime();
 };
 
+/** Midnight (local) timestamp for a date, for calendar-day comparisons. */
+const startOfDayMs = (date: Date): number =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+
 /**
  * Date used to classify an event as upcoming vs past: the end date for
  * multi-day events (so an in-progress event stays upcoming), else the start.
@@ -257,9 +261,60 @@ const toPublicEvent = (
 };
 
 export default function EventsPage() {
-  const [dateSortOrder, setDateSortOrder] = useState<DateSortOrder>('asc');
+  const dateSortOrder: DateSortOrder = 'asc';
   const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+  const [dateOpen, setDateOpen] = useState(false);
+  const [filtersHydrated, setFiltersHydrated] = useState(false);
+  const dateMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Hydrate filter state from the URL once on mount (shareable links).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setSelectedCity(params.get('city') ?? 'all');
+    setDateFrom(params.get('from') ?? '');
+    setDateTo(params.get('to') ?? '');
+    setFiltersHydrated(true);
+  }, []);
+
+  // Keep the URL in sync with active filters (without adding history entries).
+  useEffect(() => {
+    if (!filtersHydrated) return;
+    const params = new URLSearchParams();
+    if (selectedCity !== 'all') params.set('city', selectedCity);
+    if (dateFrom) params.set('from', dateFrom);
+    if (dateTo) params.set('to', dateTo);
+    const qs = params.toString();
+    window.history.replaceState(
+      null,
+      '',
+      qs ? `${window.location.pathname}?${qs}` : window.location.pathname
+    );
+  }, [selectedCity, dateFrom, dateTo, filtersHydrated]);
+
+  // Close the date popover when clicking outside of it.
+  useEffect(() => {
+    if (!dateOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        dateMenuRef.current &&
+        !dateMenuRef.current.contains(event.target as Node)
+      ) {
+        setDateOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [dateOpen]);
+
+  const clearFilters = () => {
+    setSelectedCity('all');
+    setDateFrom('');
+    setDateTo('');
+    setDateOpen(false);
+  };
 
   const {
     data: eventsData,
@@ -346,9 +401,26 @@ export default function EventsPage() {
   }, [eventsData?.events, manualEvents, matchCity]);
 
   const visibleEvents = useMemo(() => {
-    if (selectedCity === 'all') return publicEvents;
-    return publicEvents.filter((event) => event.citySlug === selectedCity);
-  }, [publicEvents, selectedCity]);
+    const from = dateFrom ? parseManualEventDate(dateFrom) : null;
+    const to = dateTo ? parseManualEventDate(dateTo) : null;
+    const fromMs = from ? startOfDayMs(from) : null;
+    const toMs = to ? startOfDayMs(to) : null;
+
+    return publicEvents.filter((event) => {
+      if (selectedCity !== 'all' && event.citySlug !== selectedCity) {
+        return false;
+      }
+      // Date range overlap (inclusive). A single bound acts as open-ended.
+      if (fromMs !== null || toMs !== null) {
+        if (!event.start) return false;
+        const startMs = startOfDayMs(event.start);
+        const endMs = event.end ? startOfDayMs(event.end) : startMs;
+        if (fromMs !== null && endMs < fromMs) return false;
+        if (toMs !== null && startMs > toMs) return false;
+      }
+      return true;
+    });
+  }, [publicEvents, selectedCity, dateFrom, dateTo]);
 
   const nextEvent = useMemo(() => {
     const upcomingWithDate = visibleEvents
@@ -379,8 +451,8 @@ export default function EventsPage() {
       (event) =>
         event.start &&
         !isTodayOrFuture(eventStatusDate(event)) &&
-        // Past manual events are only shown when hosted by IRL.
-        (!event.isManual || event.hostedByIrl)
+        // IRL allowlist: past events only render when hosted by IRL.
+        event.hostedByIrl
     );
     return [...onlyPast].sort((a, b) => {
       const cmp = a.start!.getTime() - b.start!.getTime();
@@ -388,10 +460,23 @@ export default function EventsPage() {
     });
   }, [visibleEvents, dateSortOrder]);
 
+  const hasActiveFilters =
+    selectedCity !== 'all' || Boolean(dateFrom) || Boolean(dateTo);
+
+  const dateRangeLabel = (() => {
+    const from = dateFrom ? parseManualEventDate(dateFrom) : null;
+    const to = dateTo ? parseManualEventDate(dateTo) : null;
+    if (from && to) return formatEventDateChip(from, to);
+    if (from) return `From ${formatDateChip(from)}`;
+    if (to) return `Until ${formatDateChip(to)}`;
+    return 'All dates';
+  })();
+
   const hasNoEvents =
     !isLoading &&
     !manualLoading &&
     !error &&
+    !manualError &&
     !nextEvent &&
     remainingUpcomingEvents.length === 0 &&
     pastEvents.length === 0;
@@ -402,30 +487,6 @@ export default function EventsPage() {
         <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
 
         <div className="space-y-3 pt-3">
-          {cities && cities.length > 0 && (
-            <div className="flex items-center gap-2 pt-1">
-              <span className="shrink-0 label-small uppercase tracking-wide text-[#757575]">
-                City
-              </span>
-              <Select value={selectedCity} onValueChange={setSelectedCity}>
-                <SelectTrigger
-                  className="h-9 flex-1 rounded-none border-[#757575] font-grotesk uppercase"
-                  aria-label="Filter events by city"
-                >
-                  <SelectValue placeholder="All cities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All cities</SelectItem>
-                  {cities.map((city) => (
-                    <SelectItem key={city.id} value={city.slug}>
-                      {city.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           {(isLoading || manualLoading) && (
             <div className="flex min-h-48 flex-col items-center justify-center rounded-[26px] border border-white/30 bg-white/45 px-6 py-8 backdrop-blur-sm">
               <Loader2 className="h-8 w-8 animate-spin text-neutral-700" />
@@ -533,34 +594,108 @@ export default function EventsPage() {
             </section>
           )}
 
-          {remainingUpcomingEvents.length > 0 && (
-            <section className="space-y-2">
+          <div className="flex items-stretch gap-2">
+            {cities && cities.length > 0 && (
+              <Select value={selectedCity} onValueChange={setSelectedCity}>
+                <SelectTrigger
+                  aria-label="Filter events by city"
+                  className="flex h-10 flex-1 items-center justify-between rounded-none border-0 bg-[#a9a9a9] px-4 shadow-none transition-colors hover:bg-[#3a3a3a] focus:ring-0 focus:ring-offset-0 [&>svg:last-child]:hidden"
+                >
+                  <span className="truncate label-small uppercase tracking-wide text-black">
+                    <SelectValue placeholder="All cities" />
+                  </span>
+                  <MapPin className="size-6 shrink-0 text-black" aria-hidden />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All cities</SelectItem>
+                  {cities.map((city) => (
+                    <SelectItem key={city.id} value={city.slug}>
+                      {city.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            <div
+              className="relative flex flex-1 items-stretch"
+              ref={dateMenuRef}
+            >
               <button
                 type="button"
-                onClick={() =>
-                  setDateSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'))
-                }
-                className="flex h-10 w-full items-center justify-between border-t border-solid bg-[var(--Text-Primary-CTA,#FFF)] px-4 [border-top-color:var(--Text-Secondary-Text,#757575)] transition-colors hover:bg-neutral-50"
+                aria-label="Filter events by date range"
+                aria-expanded={dateOpen}
+                onClick={() => setDateOpen((open) => !open)}
+                className="flex h-10 w-full items-center justify-between rounded-none border-0 bg-[#a9a9a9] px-4 transition-colors hover:bg-[#3a3a3a]"
               >
-                <span className="label-small uppercase tracking-wide text-[#757575]">
-                  FILTER
+                <span className="truncate label-small uppercase tracking-wide text-black">
+                  {dateRangeLabel}
                 </span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width={24}
-                  height={24}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="aspect-square h-6 w-6 shrink-0"
-                  aria-hidden
-                >
-                  <path
-                    d="M21 8.15419H3V5.51102H21V8.15419ZM18.0463 10.6784H5.95374V13.3216H18.0463V10.6784ZM14.8711 15.8458H9.13216V18.489H14.8711V15.8458Z"
-                    fill="#757575"
-                  />
-                </svg>
+                <Calendar className="size-6 shrink-0 text-black" aria-hidden />
               </button>
 
+              {dateOpen && (
+                <div className="absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] space-y-3 border border-[#454545] bg-white p-3 shadow-lg">
+                  <label className="block">
+                    <span className="label-small uppercase tracking-wide text-[#757575]">
+                      From
+                    </span>
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      max={dateTo || undefined}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="mt-1 w-full rounded-none border border-neutral-300 px-2 py-1.5 text-sm text-[#171717]"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="label-small uppercase tracking-wide text-[#757575]">
+                      To
+                    </span>
+                    <input
+                      type="date"
+                      value={dateTo}
+                      min={dateFrom || undefined}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="mt-1 w-full rounded-none border border-neutral-300 px-2 py-1.5 text-sm text-[#171717]"
+                    />
+                  </label>
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDateFrom('');
+                        setDateTo('');
+                      }}
+                      className="label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
+                    >
+                      Clear dates
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDateOpen(false)}
+                      className="label-small uppercase tracking-wide text-black underline"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
+            >
+              Clear filters
+            </button>
+          )}
+
+          {remainingUpcomingEvents.length > 0 && (
+            <section className="space-y-2">
               <div className="space-y-2">
                 {remainingUpcomingEvents.map((event) => (
                   <article
@@ -720,10 +855,29 @@ export default function EventsPage() {
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100">
                 <CalendarX2 className="h-6 w-6 text-neutral-500" />
               </div>
-              <h3 className="title2 text-[#313131]">No Events Available</h3>
-              <p className="mt-2 body-small text-[#6B6B6B]">
-                Check back soon for upcoming events.
-              </p>
+              {hasActiveFilters ? (
+                <>
+                  <h3 className="title2 text-[#313131]">No matching events</h3>
+                  <p className="mt-2 body-small text-[#6B6B6B]">
+                    No events match your current filters. Try a different city
+                    or date range.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="mt-4 label-small uppercase tracking-wide text-[#171717] underline hover:opacity-70"
+                  >
+                    Clear filters
+                  </button>
+                </>
+              ) : (
+                <>
+                  <h3 className="title2 text-[#313131]">No Events Available</h3>
+                  <p className="mt-2 body-small text-[#6B6B6B]">
+                    Check back soon for upcoming events.
+                  </p>
+                </>
+              )}
             </div>
           )}
 

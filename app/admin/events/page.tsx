@@ -98,6 +98,24 @@ const EMPTY_MANUAL_FORM = {
   cityId: '',
 };
 
+/**
+ * Resolve a manual event's map link: prefer an explicit Maps Link, otherwise
+ * fall back to a Google Maps search for the event's city so every event with a
+ * city always has a "View on map" link.
+ */
+function manualEventMapHref(event: {
+  mapsLink?: string | null;
+  city?: string | null;
+}): string | null {
+  if (event.mapsLink && event.mapsLink.trim()) return event.mapsLink.trim();
+  if (event.city && event.city.trim()) {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      event.city.trim()
+    )}`;
+  }
+  return null;
+}
+
 function ManualEventDialog({
   event,
   open,
@@ -1156,9 +1174,9 @@ export default function AdminEventsPage() {
                         <p className="text-sm font-medium text-gray-900 truncate">
                           {evt.city}
                         </p>
-                        {evt.mapsLink && (
+                        {manualEventMapHref(evt) && (
                           <a
-                            href={evt.mapsLink}
+                            href={manualEventMapHref(evt) as string}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-blue-600 hover:underline flex items-center gap-0.5"
