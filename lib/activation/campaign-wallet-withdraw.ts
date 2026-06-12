@@ -390,7 +390,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     recipientAddress: destinationAddress as `0x${string}`,
     usdcAmount: withdrawAmount,
     usdcContractAddress: cfg.data.contract_address,
-    referenceId: `sponsored-activation-withdraw:${input.activation.id}:${Date.now()}`,
+    referenceId: `sa-wd:${input.activation.id}:${Date.now().toString(36)}`,
     withdrawTelemetry: true,
   });
 

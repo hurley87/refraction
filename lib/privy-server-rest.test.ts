@@ -1,9 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  normalizePrivyReferenceId,
   PrivyRestApiError,
   signAndSendTransaction,
   waitForTransaction,
 } from './privy-server-rest';
+
+const PRIVY_REFERENCE_ID_MAX_LENGTH = 64;
+
+/** Legacy withdraw prefix; still over Privy's 64-char limit with a UUID + timestamp. */
+const LONG_REFERENCE_ID = `sponsored-activation-withdraw:66701108-f3d1-4b3a-bc23-84681e8472f4:${Date.now()}`;
 
 const fetchMock = vi.fn();
 
@@ -16,6 +22,24 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe('normalizePrivyReferenceId', () => {
+  it('returns short ids unchanged', () => {
+    expect(normalizePrivyReferenceId('activation-settlement:abc')).toBe(
+      'activation-settlement:abc'
+    );
+  });
+
+  it('maps ids longer than 64 chars to a 64-char digest', () => {
+    expect(LONG_REFERENCE_ID.length).toBeGreaterThan(
+      PRIVY_REFERENCE_ID_MAX_LENGTH
+    );
+
+    const normalized = normalizePrivyReferenceId(LONG_REFERENCE_ID);
+    expect(normalized).toHaveLength(PRIVY_REFERENCE_ID_MAX_LENGTH);
+    expect(normalized).toBe(normalizePrivyReferenceId(LONG_REFERENCE_ID));
+  });
 });
 
 describe('signAndSendTransaction', () => {
@@ -62,6 +86,32 @@ describe('signAndSendTransaction', () => {
         data: '0x',
       })
     ).rejects.toBeInstanceOf(PrivyRestApiError);
+  });
+
+  it('normalizes reference_id longer than 64 characters before send', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          transaction_id: 'tx-abc',
+          user_operation_hash: null,
+          hash: '',
+        },
+      }),
+    });
+
+    await signAndSendTransaction({
+      walletId: 'w1',
+      to: '0x1',
+      data: '0x',
+      referenceId: LONG_REFERENCE_ID,
+    });
+
+    const body = JSON.parse(
+      (fetchMock.mock.calls[0][1] as { body: string }).body
+    );
+    expect(body.reference_id).toHaveLength(PRIVY_REFERENCE_ID_MAX_LENGTH);
+    expect(body.reference_id).not.toBe(LONG_REFERENCE_ID);
   });
 });
 

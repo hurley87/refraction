@@ -4,7 +4,22 @@
  * @see https://docs.privy.io/api-reference/wallets/ethereum/eth-send-transaction
  * @see https://docs.privy.io/api-reference/transactions/get
  */
+import { createHash } from 'crypto';
 import { SPEND_SERVER_WALLET_CAIP2 } from '@/lib/spend-server-wallet';
+
+/** Privy REST rejects `reference_id` longer than this. */
+const PRIVY_REFERENCE_ID_MAX_LENGTH = 64;
+
+export function normalizePrivyReferenceId(referenceId: string): string {
+  const trimmed = referenceId.trim();
+  if (!trimmed) {
+    throw new Error('normalizePrivyReferenceId: referenceId must be non-empty');
+  }
+  if (trimmed.length <= PRIVY_REFERENCE_ID_MAX_LENGTH) {
+    return trimmed;
+  }
+  return createHash('sha256').update(trimmed, 'utf8').digest('hex');
+}
 
 const PRIVY_API_BASE = 'https://api.privy.io/v1';
 
@@ -180,7 +195,10 @@ export async function signAndSendTransaction(
     },
   };
   if (sponsor) body.sponsor = true;
-  if (referenceId) body.reference_id = referenceId;
+  const normalizedReferenceId = referenceId?.trim();
+  if (normalizedReferenceId) {
+    body.reference_id = normalizePrivyReferenceId(normalizedReferenceId);
+  }
 
   const res = await privyRestFetch(
     `/wallets/${encodeURIComponent(walletId)}/rpc`,
