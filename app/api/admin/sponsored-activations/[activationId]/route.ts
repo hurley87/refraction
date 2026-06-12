@@ -12,6 +12,7 @@ import {
 } from '@/lib/schemas/sponsored-activation';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
+import { loadSponsoredActivationCampaignWalletBalancePack } from '@/lib/activation/campaign-wallet-withdraw';
 import { sponsoredActivationAdminEnvelope } from '@/lib/activation/explorer-url';
 
 interface RouteParams {
@@ -57,8 +58,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return apiError('Sponsored activation not found', 404);
     }
 
+    const walletBalance =
+      await loadSponsoredActivationCampaignWalletBalancePack(row);
+
     return apiSuccess({
-      activation: sponsoredActivationAdminEnvelope(row),
+      activation: {
+        ...sponsoredActivationAdminEnvelope(row),
+        ...walletBalance,
+      },
     });
   } catch (error) {
     console.error(

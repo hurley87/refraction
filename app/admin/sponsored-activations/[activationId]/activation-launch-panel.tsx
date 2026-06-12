@@ -43,6 +43,9 @@ type ActivationAdminRow = {
   venue_settlement_wallet_explorer_url: string | null;
   max_usdc_budget: number | null;
   max_redemptions: number | null;
+  campaign_wallet_usdc_balance?: number | null;
+  campaign_wallet_withdrawable_usdc?: number | null;
+  campaign_wallet_reserved_usdc?: number;
 };
 
 type RewardItemRow = {
@@ -188,6 +191,7 @@ export function ActivationLaunchPanel({
   const [rewardPoints, setRewardPoints] = useState('0');
   const [rewardUsdc, setRewardUsdc] = useState('1');
   const [rewardHeroFile, setRewardHeroFile] = useState<File | null>(null);
+  const [withdrawDestination, setWithdrawDestination] = useState('');
   const rewardHeroPreviewUrl = useMemo(
     () => (rewardHeroFile ? URL.createObjectURL(rewardHeroFile) : null),
     [rewardHeroFile]
@@ -324,6 +328,38 @@ export function ActivationLaunchPanel({
     },
     onSuccess: async () => {
       toast.success('Hero image updated');
+      await invalidateAll();
+    },
+    onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
+  });
+
+  const withdrawMutation = useMutation({
+    mutationFn: async () => {
+      const trimmed = withdrawDestination.trim();
+      if (!trimmed) throw new Error('Refund address is required');
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const response = await fetch(
+        `/api/admin/sponsored-activations/${encodeURIComponent(activationId)}/campaign-wallet/withdraw`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...auth },
+          body: JSON.stringify({ destinationAddress: trimmed }),
+        }
+      );
+      const body = (await response.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
+      if (!response.ok) {
+        throw new Error(readApiErrorMessage(body, 'Withdrawal failed'));
+      }
+      return body;
+    },
+    onSuccess: async (body) => {
+      const message =
+        (body as { message?: string }).message ?? 'Withdrawal confirmed.';
+      toast.success(message);
+      setWithdrawDestination('');
       await invalidateAll();
     },
     onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
@@ -673,70 +709,167 @@ export function ActivationLaunchPanel({
               )}
 
               {step.id === 'fund' && (
-                <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
-                  <code className="block max-w-full break-all rounded-lg bg-neutral-50 p-2 font-mono text-xs text-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
-                    {activation.campaign_wallet_address}
-                  </code>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="gap-1"
-                      onClick={() =>
-                        void copyText(
-                          activation.campaign_wallet_address,
-                          'Campaign wallet copied'
-                        )
-                      }
-                    >
-                      <Copy className="size-3.5" />
-                      Copy wallet
-                    </Button>
-                    {activation.campaign_wallet_explorer_url && (
+                <div className="mt-3 space-y-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <code className="block max-w-full break-all rounded-lg bg-neutral-50 p-2 font-mono text-xs text-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
+                      {activation.campaign_wallet_address}
+                    </code>
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
                         className="gap-1"
-                        asChild
+                        onClick={() =>
+                          void copyText(
+                            activation.campaign_wallet_address,
+                            'Campaign wallet copied'
+                          )
+                        }
                       >
-                        <a
-                          href={activation.campaign_wallet_explorer_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View on {railLabel(activation.settlement_rail)}
-                          <ExternalLink className="size-3.5" />
-                        </a>
+                        <Copy className="size-3.5" />
+                        Copy wallet
                       </Button>
-                    )}
-                  </div>
-                  <p className="w-full text-xs text-neutral-500">
-                    {activation.settlement_rail === 'stellar'
-                      ? 'Shared Stellar campaign wallet (server-configured). Fund with USDC before redemptions settle.'
-                      : 'Send funds here (campaign wallet, provisioned via Privy).'}{' '}
-                    Redemptions settle USDC to the venue wallet{' '}
-                    <span className="font-mono text-[11px]">
-                      {activation.venue_settlement_wallet_address}
-                    </span>
-                    {activation.venue_settlement_wallet_explorer_url ? (
-                      <>
-                        {' '}
-                        (
-                        <a
-                          href={activation.venue_settlement_wallet_explorer_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-700 hover:underline dark:text-blue-400"
+                      {activation.campaign_wallet_explorer_url && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          asChild
                         >
-                          venue explorer
-                        </a>
-                        )
-                      </>
-                    ) : null}
-                    .
-                  </p>
+                          <a
+                            href={activation.campaign_wallet_explorer_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            View on {railLabel(activation.settlement_rail)}
+                            <ExternalLink className="size-3.5" />
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                    <p className="w-full text-xs text-neutral-500">
+                      {activation.settlement_rail === 'stellar'
+                        ? 'Shared Stellar campaign wallet (server-configured). Fund with USDC before redemptions settle.'
+                        : 'Send funds here (campaign wallet, provisioned via Privy).'}{' '}
+                      Redemptions settle USDC to the venue wallet{' '}
+                      <span className="font-mono text-[11px]">
+                        {activation.venue_settlement_wallet_address}
+                      </span>
+                      {activation.venue_settlement_wallet_explorer_url ? (
+                        <>
+                          {' '}
+                          (
+                          <a
+                            href={
+                              activation.venue_settlement_wallet_explorer_url
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-700 hover:underline dark:text-blue-400"
+                          >
+                            venue explorer
+                          </a>
+                          )
+                        </>
+                      ) : null}
+                      .
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
+                    <div className="grid gap-3 text-sm sm:grid-cols-2">
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                          USDC balance
+                        </div>
+                        <div className="mt-1 font-medium text-neutral-900 dark:text-neutral-100">
+                          {activation.campaign_wallet_usdc_balance == null
+                            ? '—'
+                            : fmtUsdcHint(
+                                activation.campaign_wallet_usdc_balance
+                              )}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                          Withdrawable
+                        </div>
+                        <div className="mt-1 font-medium text-neutral-900 dark:text-neutral-100">
+                          {activation.campaign_wallet_withdrawable_usdc == null
+                            ? '—'
+                            : fmtUsdcHint(
+                                activation.campaign_wallet_withdrawable_usdc
+                              )}
+                        </div>
+                        {(activation.campaign_wallet_reserved_usdc ?? 0) >
+                          0 && (
+                          <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                            {fmtUsdcHint(
+                              activation.campaign_wallet_reserved_usdc ?? 0
+                            )}{' '}
+                            reserved for pending redemptions or settlements.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 border-t border-neutral-100 pt-4 dark:border-neutral-800">
+                      <div className="flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-3 sm:gap-y-1.5">
+                        <Label
+                          htmlFor="campaign-withdraw-destination"
+                          className="order-1 text-neutral-500 sm:col-start-1 sm:row-start-1"
+                        >
+                          Refund to address
+                        </Label>
+                        <Input
+                          id="campaign-withdraw-destination"
+                          type="text"
+                          placeholder={
+                            activation.settlement_rail === 'base' ? '0x…' : 'G…'
+                          }
+                          autoComplete="off"
+                          spellCheck={false}
+                          value={withdrawDestination}
+                          onChange={(e) =>
+                            setWithdrawDestination(e.target.value)
+                          }
+                          disabled={withdrawMutation.isPending}
+                          className="order-2 w-full font-mono text-xs sm:col-start-1 sm:row-start-2"
+                        />
+                        <p className="order-3 text-xs text-neutral-500 sm:col-start-1 sm:row-start-3">
+                          Withdraws the full withdrawable USDC balance to the
+                          address above.
+                          {activation.settlement_rail === 'base'
+                            ? ' Gas is sponsored on Base.'
+                            : ' Stellar uses the shared campaign wallet; confirm the destination before sending.'}
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="order-4 w-full shrink-0 whitespace-nowrap sm:order-none sm:col-start-2 sm:row-start-2 sm:w-auto sm:self-end"
+                          disabled={
+                            withdrawMutation.isPending ||
+                            !withdrawDestination.trim() ||
+                            activation.campaign_wallet_withdrawable_usdc ==
+                              null ||
+                            activation.campaign_wallet_withdrawable_usdc <= 0
+                          }
+                          onClick={() => withdrawMutation.mutate()}
+                        >
+                          {withdrawMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 size-4 animate-spin" />
+                              Withdrawing…
+                            </>
+                          ) : (
+                            'Withdraw USDC'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 

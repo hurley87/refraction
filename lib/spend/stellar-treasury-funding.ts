@@ -110,7 +110,7 @@ async function loadAccountOrThrow(
   }
 }
 
-function parseUsdcBalanceLine(
+export function parseUsdcBalanceLine(
   account: Horizon.AccountResponse,
   code: string,
   issuer: string

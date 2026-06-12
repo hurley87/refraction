@@ -36,9 +36,9 @@ export function parseStellarSettlementAssetConfig(
 }
 
 /** USDC asset comes from activation `usdc_asset_config`, not spend-rail env. */
-export async function submitStellarActivationSettlementFromCampaign(input: {
+export async function submitStellarCampaignUsdcPayment(input: {
   campaignPublicKey: string;
-  venueSettlementPublicKey: string;
+  destinationPublicKey: string;
   usdcAmount: number;
   usdcAssetConfig: Record<string, unknown>;
 }): Promise<
@@ -53,10 +53,10 @@ export async function submitStellarActivationSettlementFromCampaign(input: {
   const campaignParse = stellarWalletAddressSchema.safeParse(
     input.campaignPublicKey.trim().toUpperCase()
   );
-  const venueParse = stellarWalletAddressSchema.safeParse(
-    input.venueSettlementPublicKey.trim().toUpperCase()
+  const destinationParse = stellarWalletAddressSchema.safeParse(
+    input.destinationPublicKey.trim().toUpperCase()
   );
-  if (!campaignParse.success || !venueParse.success) {
+  if (!campaignParse.success || !destinationParse.success) {
     return { ok: false, reason: 'stellar_address_invalid' };
   }
 
@@ -74,7 +74,7 @@ export async function submitStellarActivationSettlementFromCampaign(input: {
 
   const passphrase = getStellarSpendNetworkPassphrase();
   const server = createStellarSpendHorizonServer();
-  const dest = venueParse.data;
+  const dest = destinationParse.data;
   const { asset_code: usdcCode, issuer: usdcIssuer } = assetParsed.config;
   const usdcAsset = new Asset(usdcCode, usdcIssuer);
   const payAmount = formatUsdcAmountForStellar(input.usdcAmount);
@@ -136,4 +136,21 @@ export async function submitStellarActivationSettlementFromCampaign(input: {
       }).slice(0, 1200),
     };
   }
+}
+
+export async function submitStellarActivationSettlementFromCampaign(input: {
+  campaignPublicKey: string;
+  venueSettlementPublicKey: string;
+  usdcAmount: number;
+  usdcAssetConfig: Record<string, unknown>;
+}): Promise<
+  | { ok: true; txHash: string }
+  | { ok: false; reason: string; internalMessage?: string }
+> {
+  return submitStellarCampaignUsdcPayment({
+    campaignPublicKey: input.campaignPublicKey,
+    destinationPublicKey: input.venueSettlementPublicKey,
+    usdcAmount: input.usdcAmount,
+    usdcAssetConfig: input.usdcAssetConfig,
+  });
 }
