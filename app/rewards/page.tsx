@@ -689,30 +689,29 @@ function PerksPageInner() {
               className="mb-6 flex h-[52px] w-full shrink-0 items-center gap-2 self-stretch border-t border-[var(--Borders-Heavy-Border,#454545)]"
             >
               <div className="flex h-[52px] min-w-0 flex-1 items-center gap-1 border-b border-t border-[var(--Borders-Light-Border,#DBDBDB)]">
-                {[
-                  { label: 'Rewards', value: 'rewards' as const },
-                  { label: 'Tiers', value: 'tiers' as const },
-                ].map((option) => {
-                  const selected = viewMode === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setViewMode(option.value)}
-                      className={`flex flex-1 basis-0 items-center justify-center gap-2 self-stretch py-1 transition-colors duration-200 ${
-                        selected
-                          ? 'bg-[var(--Borders-Light-Border,#DBDBDB)]'
-                          : 'bg-transparent'
-                      }`}
-                    >
-                      <h4
-                        className={selected ? 'text-black' : 'text-[#757575]'}
+                {[{ label: 'Rewards', value: 'rewards' as const }].map(
+                  (option) => {
+                    const selected = viewMode === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setViewMode(option.value)}
+                        className={`flex flex-1 basis-0 items-center justify-center gap-2 self-stretch py-1 transition-colors duration-200 ${
+                          selected
+                            ? 'bg-[var(--Borders-Light-Border,#DBDBDB)]'
+                            : 'bg-transparent'
+                        }`}
                       >
-                        {option.label}
-                      </h4>
-                    </button>
-                  );
-                })}
+                        <h4
+                          className={selected ? 'text-black' : 'text-[#757575]'}
+                        >
+                          {option.label}
+                        </h4>
+                      </button>
+                    );
+                  }
+                )}
               </div>
 
               <button
