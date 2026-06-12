@@ -355,8 +355,10 @@ export function ActivationLaunchPanel({
       }
       return body;
     },
-    onSuccess: async () => {
-      toast.success('Campaign wallet withdrawal submitted');
+    onSuccess: async (body) => {
+      const message =
+        (body as { message?: string }).message ?? 'Withdrawal confirmed.';
+      toast.success(message);
       setWithdrawDestination('');
       await invalidateAll();
     },

@@ -411,10 +411,6 @@ async function fetchSettlementsByRedemptionIds(
   return map;
 }
 
-/**
- * Aggregated read model for the admin sponsored activation ops dashboard (IRL-62).
- * Returns `null` when the activation id/slug does not exist.
- */
 /** Reserved USDC for inflight settlements and committed redemptions on one activation. */
 export async function loadActivationReservedUsdc(
   activationId: string
@@ -429,6 +425,10 @@ export async function loadActivationReservedUsdc(
   });
 }
 
+/**
+ * Aggregated read model for the admin sponsored activation ops dashboard (IRL-62).
+ * Returns `null` when the activation id/slug does not exist.
+ */
 export async function loadSponsoredActivationAdminDashboard(
   activationIdOrSlug: string
 ): Promise<
