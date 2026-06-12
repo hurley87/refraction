@@ -260,6 +260,21 @@ export async function getPrivyUserIdFromRequest(
   }
 }
 
+/** Full Privy user for the Bearer token, or null when missing/invalid. */
+export async function getPrivyUserFromRequest(req: NextRequest) {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7).trim();
+  if (!token) return null;
+  try {
+    const privy = getPrivyClient();
+    const verifiedClaims = await privy.verifyAuthToken(token);
+    return await privy.getUser(verifiedClaims.userId);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Verified login email from a Privy access token (`Authorization: Bearer`).
  * Never trust client-supplied email headers for authorization.

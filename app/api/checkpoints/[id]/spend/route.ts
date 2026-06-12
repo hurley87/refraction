@@ -1,7 +1,12 @@
 import { NextRequest } from 'next/server';
 import { apiError, apiSuccess, apiValidationError } from '@/lib/api/response';
 import { walletAddressSchema } from '@/lib/schemas/player';
-import { verifyWalletOwnership } from '@/lib/api/privy';
+import {
+  getPrivyUserFromRequest,
+  verifyWalletOwnership,
+} from '@/lib/api/privy';
+import { resolvePlayerForPrivyUser } from '@/lib/privy/resolve-player-for-privy-user';
+import { tryNormalizeEvmAddress } from '@/lib/utils/wallets';
 import { getActiveCheckpointById } from '@/lib/db/checkpoints';
 import {
   getSpendItemByCheckpointId,
@@ -29,7 +34,9 @@ export async function GET(
       return apiError('Spend item unavailable', 404);
     }
 
-    const walletAddress = new URL(request.url).searchParams.get('walletAddress');
+    const walletAddress = new URL(request.url).searchParams.get(
+      'walletAddress'
+    );
     if (!walletAddress) {
       return apiSuccess({ checkpoint, spendItem, redemption: null });
     }
@@ -44,9 +51,18 @@ export async function GET(
       return apiError(auth.error ?? 'Unauthorized', 401);
     }
 
+    const normalizedWallet =
+      tryNormalizeEvmAddress(walletResult.data.trim()) ??
+      walletResult.data.trim();
+    const privyUser = await getPrivyUserFromRequest(request);
+    const player = privyUser
+      ? await resolvePlayerForPrivyUser(normalizedWallet, privyUser)
+      : null;
+    const lookupWallet = player?.wallet_address ?? normalizedWallet;
+
     const redemption = await getUserRedemptionForSpendItem(
       spendItem.id!,
-      walletResult.data
+      lookupWallet
     );
 
     return apiSuccess({ checkpoint, spendItem, redemption });
@@ -85,10 +101,16 @@ export async function POST(
       return apiError(auth.error ?? 'Unauthorized', 401);
     }
 
-    const result = await redeemSpendItemOnce(
-      spendItem.id!,
-      validationResult.data.walletAddress
-    );
+    const normalizedWallet =
+      tryNormalizeEvmAddress(validationResult.data.walletAddress.trim()) ??
+      validationResult.data.walletAddress.trim();
+    const privyUser = await getPrivyUserFromRequest(request);
+    const player = privyUser
+      ? await resolvePlayerForPrivyUser(normalizedWallet, privyUser)
+      : null;
+    const spendWallet = player?.wallet_address ?? normalizedWallet;
+
+    const result = await redeemSpendItemOnce(spendItem.id!, spendWallet);
 
     return apiSuccess(
       {

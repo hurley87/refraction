@@ -3,6 +3,7 @@ import {
   assertPrivyWalletAuth,
   resolvePlayerForWallet,
 } from '@/lib/activation/activation-wallet-gate';
+import { getPrivyUserFromRequest } from '@/lib/api/privy';
 import { buildActivationRedemptionIdempotencyKey } from '@/lib/activation/eligibility';
 import { trackSponsoredRedemptionCancelled } from '@/lib/analytics/server';
 import { emitSponsoredAnalyticsForWalletRequest } from '@/lib/analytics/sponsored-wallet-request-tracking';
@@ -80,9 +81,11 @@ export async function runCancelActivationRedemption(input: {
     };
   }
 
+  const privyUser = await getPrivyUserFromRequest(input.request);
+
   let playerId: number;
   try {
-    const resolved = await resolvePlayerForWallet(walletKey);
+    const resolved = await resolvePlayerForWallet(walletKey, privyUser);
     playerId = resolved.playerId;
   } catch (e) {
     console.error('cancel redemption (resolve player):', e);

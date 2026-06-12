@@ -5,6 +5,8 @@ import {
 } from '@/lib/api/privy';
 import { apiError, type ApiResponse } from '@/lib/api/response';
 import { createOrUpdatePlayer, getPlayerByWallet } from '@/lib/db/players';
+import { resolvePlayerForPrivyUser } from '@/lib/privy/resolve-player-for-privy-user';
+import type { User } from '@privy-io/server-auth';
 
 /**
  * Ensures the request has a valid Privy Bearer token and the token user matches
@@ -28,15 +30,21 @@ export async function assertPrivyWalletAuth(
 }
 
 export async function resolvePlayerForWallet(
-  normalizedWalletAddress: string
+  normalizedWalletAddress: string,
+  privyUser?: User | null
 ): Promise<{ playerId: number }> {
-  let player = await getPlayerByWallet(normalizedWalletAddress);
-  if (!player?.id) {
-    player = await createOrUpdatePlayer({
-      wallet_address: normalizedWalletAddress,
-      total_points: 0,
-    });
-  }
+  const player = privyUser
+    ? await resolvePlayerForPrivyUser(normalizedWalletAddress, privyUser)
+    : await (async () => {
+        let row = await getPlayerByWallet(normalizedWalletAddress);
+        if (!row?.id) {
+          row = await createOrUpdatePlayer({
+            wallet_address: normalizedWalletAddress,
+            total_points: 0,
+          });
+        }
+        return row;
+      })();
   if (!player?.id) {
     throw new Error('Failed to resolve player for wallet');
   }

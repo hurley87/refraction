@@ -13,6 +13,7 @@ import { SponsoredActivationSuccess } from '@/components/sponsored-activation/sp
 import { SponsoredActivationRedeemed } from '@/components/sponsored-activation/sponsored-activation-redeemed';
 import { SponsoredActivationExpired } from '@/components/sponsored-activation/sponsored-activation-expired';
 import { SponsoredActivationCancelled } from '@/components/sponsored-activation/sponsored-activation-cancelled';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import type { ActivationRedemptionRow } from '@/lib/db/activation-redemptions';
 import { apiClient, ApiError } from '@/lib/api/client';
@@ -75,7 +76,7 @@ export function SponsoredActivationFlow({
   sourceRefId,
 }: SponsoredActivationFlowProps) {
   const { user, login, getAccessToken } = usePrivy();
-  const walletAddress = user?.wallet?.address ?? null;
+  const walletAddress = useEvmWalletAddress() ?? null;
   const queryClient = useQueryClient();
 
   const { data: player, isFetched: playerDetailsFetched } = useCurrentPlayer();

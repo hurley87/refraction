@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { usePrivy } from '@privy-io/react-auth';
 import { apiClient } from '@/lib/api/client';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import type { Player } from '@/lib/types';
 
 interface PlayerRankResponse {
@@ -22,8 +22,7 @@ interface Activity {
  * Hook to fetch current authenticated player's data
  */
 export function useCurrentPlayer() {
-  const { user } = usePrivy();
-  const address = user?.wallet?.address;
+  const address = useEvmWalletAddress();
 
   return useQuery({
     queryKey: ['player', address],
@@ -88,13 +87,13 @@ export interface UserStats {
 /**
  * Hook to fetch combined user stats (rank and points)
  * Returns a unified interface with loading state and default values for new users
- * 
+ *
  * @param address - Optional wallet address. If not provided, uses current authenticated user's address
  */
 export function useUserStats(address?: string) {
-  const { user } = usePrivy();
-  const walletAddress = address || user?.wallet?.address;
-  
+  const evmWalletAddress = useEvmWalletAddress();
+  const walletAddress = address || evmWalletAddress;
+
   // Fetch player data - use address if provided, otherwise use current player hook
   const playerQuery = useQuery({
     queryKey: ['player', walletAddress],
@@ -133,4 +132,3 @@ export function useUserStats(address?: string) {
     isLoading,
   };
 }
-

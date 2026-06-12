@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import type {
   Checkpoint,
@@ -65,7 +66,7 @@ function extractBaseColor(gradient?: string | null): string {
 export default function SpendCheckpoint({ checkpoint }: SpendCheckpointProps) {
   const { user, login, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
-  const walletAddress = user?.wallet?.address;
+  const walletAddress = useEvmWalletAddress();
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const { data: player } = useCurrentPlayer();
