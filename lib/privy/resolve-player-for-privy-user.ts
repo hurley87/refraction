@@ -33,7 +33,21 @@ async function backfillEvmWalletOnPlayer(
   evmWalletAddress: string
 ): Promise<Player> {
   if (player.wallet_address?.trim()) return player;
-  return createOrUpdatePlayer({ wallet_address: evmWalletAddress }, player);
+  const wallet =
+    tryNormalizeEvmAddress(evmWalletAddress.trim()) ?? evmWalletAddress.trim();
+  const { data, error } = await supabase
+    .from('players')
+    .update({
+      wallet_address: wallet,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', player.id)
+    .select(
+      'id, wallet_address, solana_wallet_address, stellar_wallet_address, stellar_wallet_id, aptos_wallet_address, aptos_wallet_id, email, username, total_points, created_at, updated_at'
+    )
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 /**
