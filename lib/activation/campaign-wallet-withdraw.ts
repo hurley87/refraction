@@ -4,6 +4,7 @@ import {
 } from '@/lib/activation/stellar-settlement-submit';
 import { balanceUsdcToMicro } from '@/lib/activation/usdc-micro';
 import { loadActivationReservedUsdc } from '@/lib/db/sponsored-activation-admin';
+import { supabase } from '@/lib/db/client';
 import type { SponsoredActivationRow } from '@/lib/db/sponsored-activations';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import { baseUsdcAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
@@ -59,6 +60,75 @@ const STELLAR_WITHDRAW_REASON_MESSAGES: Record<string, string> = {
   stellar_campaign_wallet_mismatch:
     'Stellar campaign wallet key does not match this activation.',
 };
+
+function computeActivationUnallocatedBudgetUsdc(
+  activation: Pick<
+    SponsoredActivationRow,
+    'max_usdc_budget' | 'usdc_settled_total'
+  >
+): number | null {
+  if (activation.max_usdc_budget == null) return null;
+  return Math.max(
+    0,
+    activation.max_usdc_budget - activation.usdc_settled_total
+  );
+}
+
+async function sumOtherStellarSharedWalletClaimsUsdc(
+  activation: SponsoredActivationRow
+): Promise<number> {
+  const campaignWallet = activation.campaign_wallet_address
+    .trim()
+    .toUpperCase();
+  const { data, error } = await supabase
+    .from('sponsored_activation')
+    .select('id, max_usdc_budget, usdc_settled_total')
+    .eq('settlement_rail', 'stellar')
+    .eq('campaign_wallet_address', campaignWallet)
+    .neq('id', activation.id);
+  if (error) {
+    console.error('sumOtherStellarSharedWalletClaimsUsdc:', error);
+    throw new Error(error.message || 'Failed to load peer activations');
+  }
+
+  const claims = await Promise.all(
+    (data ?? []).map(async (row) => {
+      const maxBudget =
+        row.max_usdc_budget === null || row.max_usdc_budget === undefined
+          ? null
+          : Number(row.max_usdc_budget);
+      const settled = Number(row.usdc_settled_total);
+      if (maxBudget != null && Number.isFinite(maxBudget)) {
+        return Math.max(
+          0,
+          maxBudget - (Number.isFinite(settled) ? settled : 0)
+        );
+      }
+      return loadActivationReservedUsdc(String(row.id));
+    })
+  );
+  return claims.reduce((sum, claimUsdc) => sum + claimUsdc, 0);
+}
+
+/** Caps Stellar shared-wallet refunds to this activation's unspent budget and peer claims. */
+async function computeStellarSharedWalletMaxWithdrawMicro(
+  activation: SponsoredActivationRow,
+  balanceMicro: number
+): Promise<number> {
+  const otherClaimsUsdc =
+    await sumOtherStellarSharedWalletClaimsUsdc(activation);
+  let maxMicro = Math.max(
+    0,
+    balanceMicro - balanceUsdcToMicro(otherClaimsUsdc)
+  );
+
+  const thisClaimUsdc = computeActivationUnallocatedBudgetUsdc(activation);
+  if (thisClaimUsdc != null) {
+    maxMicro = Math.min(maxMicro, balanceUsdcToMicro(thisClaimUsdc));
+  }
+
+  return maxMicro;
+}
 
 async function readCampaignWalletOnChainBalance(
   activation: SponsoredActivationRow
@@ -222,7 +292,13 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     };
   }
 
-  const maxBalanceMicro = balanceUsdcToMicro(balance);
+  let maxBalanceMicro = balanceUsdcToMicro(balance);
+  if (input.activation.settlement_rail === 'stellar') {
+    maxBalanceMicro = await computeStellarSharedWalletMaxWithdrawMicro(
+      input.activation,
+      maxBalanceMicro
+    );
+  }
   if (maxBalanceMicro <= 0) {
     return {
       ok: false,
