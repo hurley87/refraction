@@ -415,6 +415,20 @@ async function fetchSettlementsByRedemptionIds(
  * Aggregated read model for the admin sponsored activation ops dashboard (IRL-62).
  * Returns `null` when the activation id/slug does not exist.
  */
+/** Reserved USDC for inflight settlements and committed redemptions on one activation. */
+export async function loadActivationReservedUsdc(
+  activationId: string
+): Promise<number> {
+  const [inflightRows, committedRows] = await Promise.all([
+    fetchInflightSettlementAmountRows(activationId),
+    fetchCommittedRedemptionSnapshotRows(activationId),
+  ]);
+  return computeReservedUsdcFromRaw({
+    inflightSettlementRows: inflightRows,
+    committedRedemptionRows: committedRows,
+  });
+}
+
 export async function loadSponsoredActivationAdminDashboard(
   activationIdOrSlug: string
 ): Promise<
