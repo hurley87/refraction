@@ -26,6 +26,7 @@ import {
   waitForTreasuryTxReceipt,
 } from '@/lib/spend-treasury-usdc-transfer';
 import { sameWalletAddress, tryNormalizeEvmAddress } from '@/lib/utils/wallets';
+import { balanceUsdcToMicro } from '@/lib/activation/usdc-micro';
 import {
   fetchUsdcBalanceOnBase,
   isEvmAddress,
@@ -33,7 +34,6 @@ import {
 
 export type SponsoredActivationCampaignWalletBalancePack = {
   campaign_wallet_usdc_balance: number | null;
-  campaign_wallet_withdrawable_usdc: number | null;
   campaign_wallet_reserved_usdc: number;
 };
 
@@ -61,13 +61,12 @@ export type SponsoredActivationCampaignWithdrawResult =
     }
   | { ok: false; error: string; statusCode?: 400 | 500 };
 
-function computeWithdrawableMicro(balanceUsdc: number): number {
-  return Math.max(0, Math.floor(balanceUsdc * 1e6));
-}
-
-/** Full on-chain balance available for admin refund (reserved USDC is not withheld). */
-export function computeWithdrawableUsdc(balanceUsdc: number): number {
-  return computeWithdrawableMicro(balanceUsdc) / 1e6;
+async function readCampaignWalletOnChainBalance(
+  activation: SponsoredActivationRow
+): Promise<number | null> {
+  return activation.settlement_rail === 'base'
+    ? readBaseCampaignWalletBalance(activation)
+    : readStellarCampaignWalletBalance(activation);
 }
 
 async function readBaseCampaignWalletBalance(
@@ -129,16 +128,13 @@ async function readStellarCampaignWalletBalance(
 export async function loadSponsoredActivationCampaignWalletBalancePack(
   activation: SponsoredActivationRow
 ): Promise<SponsoredActivationCampaignWalletBalancePack> {
-  const reservedUsdc = await loadActivationReservedUsdc(activation.id);
-  const balance =
-    activation.settlement_rail === 'base'
-      ? await readBaseCampaignWalletBalance(activation)
-      : await readStellarCampaignWalletBalance(activation);
+  const [reservedUsdc, balance] = await Promise.all([
+    loadActivationReservedUsdc(activation.id),
+    readCampaignWalletOnChainBalance(activation),
+  ]);
 
   return {
     campaign_wallet_usdc_balance: balance,
-    campaign_wallet_withdrawable_usdc:
-      balance == null ? null : computeWithdrawableUsdc(balance),
     campaign_wallet_reserved_usdc: reservedUsdc,
   };
 }
@@ -295,10 +291,8 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     return { ok: false, error: destCheck.error, statusCode: 400 };
   }
 
-  const balancePack = await loadSponsoredActivationCampaignWalletBalancePack(
-    input.activation
-  );
-  if (balancePack.campaign_wallet_usdc_balance == null) {
+  const balance = await readCampaignWalletOnChainBalance(input.activation);
+  if (balance == null) {
     return {
       ok: false,
       error: 'Could not read campaign wallet USDC balance.',
@@ -306,10 +300,8 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     };
   }
 
-  const maxWithdrawableMicro = computeWithdrawableMicro(
-    balancePack.campaign_wallet_usdc_balance
-  );
-  if (maxWithdrawableMicro <= 0) {
+  const maxBalanceMicro = balanceUsdcToMicro(balance);
+  if (maxBalanceMicro <= 0) {
     return {
       ok: false,
       error: 'No USDC available to withdraw.',
@@ -327,15 +319,15 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
         statusCode: 400,
       };
     }
-    if (withdrawMicro > maxWithdrawableMicro) {
+    if (withdrawMicro > maxBalanceMicro) {
       return {
         ok: false,
-        error: `Amount exceeds withdrawable balance (${(maxWithdrawableMicro / 1e6).toFixed(6)} USDC).`,
+        error: `Amount exceeds on-chain balance (${(maxBalanceMicro / 1e6).toFixed(6)} USDC).`,
         statusCode: 400,
       };
     }
   } else {
-    withdrawMicro = maxWithdrawableMicro;
+    withdrawMicro = maxBalanceMicro;
   }
 
   const withdrawAmount = withdrawMicro / 1e6;

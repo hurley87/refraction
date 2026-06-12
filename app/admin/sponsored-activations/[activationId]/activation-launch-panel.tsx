@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { balanceUsdcToMicro } from '@/lib/activation/usdc-micro';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import { unwrapAdminJson } from '@/lib/admin/unwrap-admin-json';
@@ -44,7 +45,6 @@ type ActivationAdminRow = {
   max_usdc_budget: number | null;
   max_redemptions: number | null;
   campaign_wallet_usdc_balance?: number | null;
-  campaign_wallet_withdrawable_usdc?: number | null;
   campaign_wallet_reserved_usdc?: number;
 };
 
@@ -95,6 +95,15 @@ function fmtUsdcHint(n: number | null): string {
   return `$${n.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+  })}`;
+}
+
+function fmtUsdc(n: number | null | undefined): string {
+  if (n == null || Number.isNaN(n)) return '—';
+  const rounded = Math.round(n * 1e6) / 1e6;
+  return `$${rounded.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
   })}`;
 }
 
@@ -358,7 +367,7 @@ export function ActivationLaunchPanel({
     onSuccess: async () => {
       toast.success('Campaign wallet withdrawal submitted');
       setWithdrawDestination('');
-      await invalidateAll();
+      await queryClient.invalidateQueries({ queryKey: activationQueryKey });
     },
     onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
   });
@@ -782,18 +791,12 @@ export function ActivationLaunchPanel({
                         USDC balance
                       </div>
                       <div className="mt-1 font-medium text-neutral-900 dark:text-neutral-100">
-                        {activation.campaign_wallet_usdc_balance == null
-                          ? '—'
-                          : fmtUsdcHint(
-                              activation.campaign_wallet_usdc_balance
-                            )}
+                        {fmtUsdc(activation.campaign_wallet_usdc_balance)}
                       </div>
                       {(activation.campaign_wallet_reserved_usdc ?? 0) > 0 && (
                         <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
-                          {fmtUsdcHint(
-                            activation.campaign_wallet_reserved_usdc ?? 0
-                          )}{' '}
-                          is earmarked for pending redemptions or settlements.
+                          {fmtUsdc(activation.campaign_wallet_reserved_usdc)} is
+                          earmarked for pending redemptions or settlements.
                           Withdrawal includes this balance; in-flight
                           settlements may fail afterward.
                         </p>
@@ -839,7 +842,9 @@ export function ActivationLaunchPanel({
                             withdrawMutation.isPending ||
                             !withdrawDestination.trim() ||
                             activation.campaign_wallet_usdc_balance == null ||
-                            activation.campaign_wallet_usdc_balance <= 0
+                            balanceUsdcToMicro(
+                              activation.campaign_wallet_usdc_balance
+                            ) <= 0
                           }
                           onClick={() => withdrawMutation.mutate()}
                         >
