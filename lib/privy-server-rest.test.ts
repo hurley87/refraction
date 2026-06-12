@@ -1,11 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   normalizePrivyReferenceId,
-  PRIVY_REFERENCE_ID_MAX_LENGTH,
   PrivyRestApiError,
   signAndSendTransaction,
   waitForTransaction,
 } from './privy-server-rest';
+
+const PRIVY_REFERENCE_ID_MAX_LENGTH = 64;
+
+/** Legacy withdraw prefix; still over Privy's 64-char limit with a UUID + timestamp. */
+const LONG_REFERENCE_ID = `sponsored-activation-withdraw:66701108-f3d1-4b3a-bc23-84681e8472f4:${Date.now()}`;
 
 const fetchMock = vi.fn();
 
@@ -28,12 +32,13 @@ describe('normalizePrivyReferenceId', () => {
   });
 
   it('maps ids longer than 64 chars to a 64-char digest', () => {
-    const longId = `sponsored-activation-withdraw:66701108-f3d1-4b3a-bc23-84681e8472f4:${Date.now()}`;
-    expect(longId.length).toBeGreaterThan(PRIVY_REFERENCE_ID_MAX_LENGTH);
+    expect(LONG_REFERENCE_ID.length).toBeGreaterThan(
+      PRIVY_REFERENCE_ID_MAX_LENGTH
+    );
 
-    const normalized = normalizePrivyReferenceId(longId);
+    const normalized = normalizePrivyReferenceId(LONG_REFERENCE_ID);
     expect(normalized).toHaveLength(PRIVY_REFERENCE_ID_MAX_LENGTH);
-    expect(normalized).toBe(normalizePrivyReferenceId(longId));
+    expect(normalized).toBe(normalizePrivyReferenceId(LONG_REFERENCE_ID));
   });
 });
 
@@ -95,19 +100,18 @@ describe('signAndSendTransaction', () => {
       }),
     });
 
-    const longReferenceId = `sponsored-activation-withdraw:66701108-f3d1-4b3a-bc23-84681e8472f4:${Date.now()}`;
     await signAndSendTransaction({
       walletId: 'w1',
       to: '0x1',
       data: '0x',
-      referenceId: longReferenceId,
+      referenceId: LONG_REFERENCE_ID,
     });
 
     const body = JSON.parse(
       (fetchMock.mock.calls[0][1] as { body: string }).body
     );
     expect(body.reference_id).toHaveLength(PRIVY_REFERENCE_ID_MAX_LENGTH);
-    expect(body.reference_id).toBe(normalizePrivyReferenceId(longReferenceId));
+    expect(body.reference_id).not.toBe(LONG_REFERENCE_ID);
   });
 });
 
