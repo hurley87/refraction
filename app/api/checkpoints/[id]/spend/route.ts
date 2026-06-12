@@ -55,10 +55,10 @@ export async function GET(
       tryNormalizeEvmAddress(walletResult.data.trim()) ??
       walletResult.data.trim();
     const privyUser = await getPrivyUserFromRequest(request);
-    const player = privyUser
-      ? await resolvePlayerForPrivyUser(normalizedWallet, privyUser)
-      : null;
-    const lookupWallet = player?.wallet_address ?? normalizedWallet;
+    if (privyUser) {
+      await resolvePlayerForPrivyUser(normalizedWallet, privyUser);
+    }
+    const lookupWallet = normalizedWallet;
 
     const redemption = await getUserRedemptionForSpendItem(
       spendItem.id!,
@@ -105,10 +105,10 @@ export async function POST(
       tryNormalizeEvmAddress(validationResult.data.walletAddress.trim()) ??
       validationResult.data.walletAddress.trim();
     const privyUser = await getPrivyUserFromRequest(request);
-    const player = privyUser
-      ? await resolvePlayerForPrivyUser(normalizedWallet, privyUser)
-      : null;
-    const spendWallet = player?.wallet_address ?? normalizedWallet;
+    if (privyUser) {
+      await resolvePlayerForPrivyUser(normalizedWallet, privyUser);
+    }
+    const spendWallet = normalizedWallet;
 
     const result = await redeemSpendItemOnce(spendItem.id!, spendWallet);
 

@@ -32,9 +32,14 @@ async function backfillEvmWalletOnPlayer(
   player: Player,
   evmWalletAddress: string
 ): Promise<Player> {
-  if (player.wallet_address?.trim()) return player;
   const wallet =
     tryNormalizeEvmAddress(evmWalletAddress.trim()) ?? evmWalletAddress.trim();
+  const storedWallet = player.wallet_address?.trim();
+  if (storedWallet) {
+    const normalizedStored =
+      tryNormalizeEvmAddress(storedWallet) ?? storedWallet;
+    if (normalizedStored === wallet) return player;
+  }
   const { data, error } = await supabase
     .from('players')
     .update({
@@ -65,12 +70,6 @@ export async function resolvePlayerForPrivyUser(
   if (byEvm?.id) return byEvm;
 
   const email = privyUser.email?.address?.trim().toLowerCase();
-  if (email) {
-    const byEmail = await getPlayerByEmail(email);
-    if (byEmail?.id) {
-      return backfillEvmWalletOnPlayer(byEmail, normalized);
-    }
-  }
 
   const stellarAddress = linkedWalletAddress(privyUser, 'stellar');
   if (stellarAddress) {
@@ -93,6 +92,13 @@ export async function resolvePlayerForPrivyUser(
     const byAptos = await getPlayerByAptosWallet(aptosAddress);
     if (byAptos?.id) {
       return backfillEvmWalletOnPlayer(byAptos, normalized);
+    }
+  }
+
+  if (email) {
+    const byEmail = await getPlayerByEmail(email);
+    if (byEmail?.id) {
+      return backfillEvmWalletOnPlayer(byEmail, normalized);
     }
   }
 
