@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/db/client';
+import { sameWalletAddress } from '@/lib/utils/wallets';
 
 export type SponsoredActivationStatus = 'draft' | 'active' | 'paused' | 'ended';
 
@@ -107,6 +108,27 @@ export async function listSponsoredActivations(): Promise<
     throw new Error(error.message || 'Failed to list sponsored activations');
   }
   return (data ?? []).map((r) => normalizeRow(r as Record<string, unknown>));
+}
+
+/** Stellar sponsored activations that share the same on-chain campaign wallet. */
+export async function listStellarActivationsSharingCampaignWallet(
+  campaignWalletAddress: string
+): Promise<SponsoredActivationRow[]> {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('*')
+    .eq('settlement_rail', 'stellar');
+  if (error) {
+    console.error('listStellarActivationsSharingCampaignWallet:', error);
+    throw new Error(
+      error.message || 'Failed to list Stellar sponsored activations'
+    );
+  }
+  return (data ?? [])
+    .map((r) => normalizeRow(r as Record<string, unknown>))
+    .filter((row) =>
+      sameWalletAddress(row.campaign_wallet_address, campaignWalletAddress)
+    );
 }
 
 export async function getSponsoredActivationById(

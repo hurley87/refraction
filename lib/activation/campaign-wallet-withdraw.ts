@@ -2,8 +2,14 @@ import {
   parseStellarSettlementAssetConfig,
   submitStellarCampaignUsdcPayment,
 } from '@/lib/activation/stellar-settlement-submit';
-import { loadActivationReservedUsdc } from '@/lib/db/sponsored-activation-admin';
-import type { SponsoredActivationRow } from '@/lib/db/sponsored-activations';
+import {
+  computeBudgetRemainingUsdc,
+  loadActivationReservedUsdc,
+} from '@/lib/db/sponsored-activation-admin';
+import {
+  listStellarActivationsSharingCampaignWallet,
+  type SponsoredActivationRow,
+} from '@/lib/db/sponsored-activations';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import { baseUsdcAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
 import { parseUsdcBalanceLine } from '@/lib/spend/stellar-treasury-funding';
@@ -68,6 +74,87 @@ export function computeWithdrawableUsdc(
   return computeWithdrawableMicro(balanceUsdc, reservedUsdc) / 1e6;
 }
 
+/** Withdrawable USDC for one Stellar activation on the shared campaign wallet. */
+export function computeStellarSharedWalletActivationWithdrawableUsdc(input: {
+  walletBalanceUsdc: number;
+  sharedWalletReservedUsdc: number;
+  activationBudgetRemainingUsdc: number | null;
+  otherActivationsBudgetRemainingUsdc: number;
+}): number {
+  const poolWithdrawable = computeWithdrawableUsdc(
+    input.walletBalanceUsdc,
+    input.sharedWalletReservedUsdc
+  );
+  const afterOtherClaims = Math.max(
+    0,
+    poolWithdrawable - input.otherActivationsBudgetRemainingUsdc
+  );
+  if (input.activationBudgetRemainingUsdc == null) {
+    return afterOtherClaims;
+  }
+  return Math.min(
+    Math.max(0, input.activationBudgetRemainingUsdc),
+    afterOtherClaims
+  );
+}
+
+function sumOtherStellarActivationsBudgetRemainingUsdc(
+  peers: Array<{ activation: SponsoredActivationRow; reservedUsdc: number }>,
+  currentActivationId: string
+): number {
+  let total = 0;
+  for (const peer of peers) {
+    if (peer.activation.id === currentActivationId) continue;
+    const remaining = computeBudgetRemainingUsdc({
+      maxUsdcBudget: peer.activation.max_usdc_budget,
+      usdcSettledTotal: peer.activation.usdc_settled_total,
+      reservedUsdc: peer.reservedUsdc,
+    });
+    if (remaining != null && remaining > 0) {
+      total += remaining;
+    }
+  }
+  return total;
+}
+
+async function loadStellarSharedWalletWithdrawContext(
+  activation: SponsoredActivationRow
+): Promise<{
+  activationReservedUsdc: number;
+  sharedWalletReservedUsdc: number;
+  activationBudgetRemainingUsdc: number | null;
+  otherActivationsBudgetRemainingUsdc: number;
+}> {
+  const peerActivations = await listStellarActivationsSharingCampaignWallet(
+    activation.campaign_wallet_address
+  );
+  const peers = await Promise.all(
+    peerActivations.map(async (peer) => ({
+      activation: peer,
+      reservedUsdc: await loadActivationReservedUsdc(peer.id),
+    }))
+  );
+  const activationPeer = peers.find(
+    (peer) => peer.activation.id === activation.id
+  );
+  const activationReservedUsdc = activationPeer?.reservedUsdc ?? 0;
+  const sharedWalletReservedUsdc = peers.reduce(
+    (sum, peer) => sum + peer.reservedUsdc,
+    0
+  );
+  return {
+    activationReservedUsdc,
+    sharedWalletReservedUsdc,
+    activationBudgetRemainingUsdc: computeBudgetRemainingUsdc({
+      maxUsdcBudget: activation.max_usdc_budget,
+      usdcSettledTotal: activation.usdc_settled_total,
+      reservedUsdc: activationReservedUsdc,
+    }),
+    otherActivationsBudgetRemainingUsdc:
+      sumOtherStellarActivationsBudgetRemainingUsdc(peers, activation.id),
+  };
+}
+
 async function readBaseCampaignWalletBalance(
   activation: SponsoredActivationRow
 ): Promise<number | null> {
@@ -118,18 +205,38 @@ async function readStellarCampaignWalletBalance(
 export async function loadSponsoredActivationCampaignWalletBalancePack(
   activation: SponsoredActivationRow
 ): Promise<SponsoredActivationCampaignWalletBalancePack> {
-  const [reservedUsdc, balance] = await Promise.all([
-    loadActivationReservedUsdc(activation.id),
-    activation.settlement_rail === 'base'
-      ? readBaseCampaignWalletBalance(activation)
-      : readStellarCampaignWalletBalance(activation),
+  if (activation.settlement_rail === 'base') {
+    const [reservedUsdc, balance] = await Promise.all([
+      loadActivationReservedUsdc(activation.id),
+      readBaseCampaignWalletBalance(activation),
+    ]);
+    return {
+      campaign_wallet_usdc_balance: balance,
+      campaign_wallet_withdrawable_usdc:
+        balance == null ? null : computeWithdrawableUsdc(balance, reservedUsdc),
+      campaign_wallet_reserved_usdc: reservedUsdc,
+    };
+  }
+
+  const [balance, stellarContext] = await Promise.all([
+    readStellarCampaignWalletBalance(activation),
+    loadStellarSharedWalletWithdrawContext(activation),
   ]);
 
   return {
     campaign_wallet_usdc_balance: balance,
     campaign_wallet_withdrawable_usdc:
-      balance == null ? null : computeWithdrawableUsdc(balance, reservedUsdc),
-    campaign_wallet_reserved_usdc: reservedUsdc,
+      balance == null
+        ? null
+        : computeStellarSharedWalletActivationWithdrawableUsdc({
+            walletBalanceUsdc: balance,
+            sharedWalletReservedUsdc: stellarContext.sharedWalletReservedUsdc,
+            activationBudgetRemainingUsdc:
+              stellarContext.activationBudgetRemainingUsdc,
+            otherActivationsBudgetRemainingUsdc:
+              stellarContext.otherActivationsBudgetRemainingUsdc,
+          }),
+    campaign_wallet_reserved_usdc: stellarContext.activationReservedUsdc,
   };
 }
 

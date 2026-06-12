@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { computeWithdrawableUsdc } from '@/lib/activation/campaign-wallet-withdraw';
+import {
+  computeStellarSharedWalletActivationWithdrawableUsdc,
+  computeWithdrawableUsdc,
+} from '@/lib/activation/campaign-wallet-withdraw';
 
 describe('computeWithdrawableUsdc', () => {
   it('subtracts reserved USDC from balance', () => {
@@ -12,5 +15,40 @@ describe('computeWithdrawableUsdc', () => {
 
   it('returns full balance when nothing is reserved', () => {
     expect(computeWithdrawableUsdc(4.5, 0)).toBe(4.5);
+  });
+});
+
+describe('computeStellarSharedWalletActivationWithdrawableUsdc', () => {
+  it('subtracts reservations from all activations on the shared wallet', () => {
+    expect(
+      computeStellarSharedWalletActivationWithdrawableUsdc({
+        walletBalanceUsdc: 100,
+        sharedWalletReservedUsdc: 25,
+        activationBudgetRemainingUsdc: 80,
+        otherActivationsBudgetRemainingUsdc: 0,
+      })
+    ).toBe(75);
+  });
+
+  it('caps withdrawable by this activation budget remaining and peer allocations', () => {
+    expect(
+      computeStellarSharedWalletActivationWithdrawableUsdc({
+        walletBalanceUsdc: 100,
+        sharedWalletReservedUsdc: 0,
+        activationBudgetRemainingUsdc: 60,
+        otherActivationsBudgetRemainingUsdc: 60,
+      })
+    ).toBe(40);
+  });
+
+  it('never returns negative withdrawable amounts', () => {
+    expect(
+      computeStellarSharedWalletActivationWithdrawableUsdc({
+        walletBalanceUsdc: 50,
+        sharedWalletReservedUsdc: 60,
+        activationBudgetRemainingUsdc: 10,
+        otherActivationsBudgetRemainingUsdc: 0,
+      })
+    ).toBe(0);
   });
 });
