@@ -32,6 +32,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 interface EventsResponse {
   events: DiceEvent[];
   pageInfo: {
@@ -49,6 +57,14 @@ interface ManualEvent {
   city: string;
   mapsLink: string;
   rsvpLink: string;
+  hosted: boolean;
+  cityId: string | null;
+  citySlug: string | null;
+}
+
+interface CityOption {
+  id: string;
+  name: string;
 }
 
 interface TicketHoldersPreview {
@@ -78,6 +94,8 @@ const EMPTY_MANUAL_FORM = {
   city: '',
   mapsLink: '',
   rsvpLink: '',
+  hosted: false,
+  cityId: '',
 };
 
 function ManualEventDialog({
@@ -97,6 +115,16 @@ function ManualEventDialog({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  const { data: cityOptions } = useQuery<CityOption[]>({
+    queryKey: ['cities'],
+    queryFn: async () => {
+      const res = await fetch('/api/cities', { cache: 'no-store' });
+      const body = await res.json().catch(() => ({}));
+      return (body.data ?? []) as CityOption[];
+    },
+    enabled: open,
+  });
+
   const isEdit = Boolean(event);
 
   useEffect(() => {
@@ -109,6 +137,8 @@ function ManualEventDialog({
         city: event.city,
         mapsLink: event.mapsLink,
         rsvpLink: event.rsvpLink,
+        hosted: event.hosted ?? false,
+        cityId: event.cityId ?? '',
       });
     } else if (open) {
       setForm(EMPTY_MANUAL_FORM);
@@ -117,7 +147,7 @@ function ManualEventDialog({
 
   const handleSave = async () => {
     setError(null);
-    if (!form.title.trim() || !form.date.trim() || !form.city.trim()) {
+    if (!form.title.trim() || !form.date.trim() || !form.cityId) {
       setError('Title, start date, and city are required.');
       return;
     }
@@ -138,9 +168,13 @@ function ManualEventDialog({
         thumbnailUrl: form.thumbnailUrl.trim(),
         date: dateIso,
         endDate: endDateIso,
-        city: form.city.trim(),
+        city:
+          cityOptions?.find((c) => c.id === form.cityId)?.name ??
+          form.city.trim(),
+        cityId: form.cityId || null,
         mapsLink: form.mapsLink.trim(),
         rsvpLink: form.rsvpLink.trim(),
+        hosted: form.hosted,
       };
       const res = await fetch('/api/admin/manual-events', {
         method: isEdit ? 'PUT' : 'POST',
@@ -248,12 +282,32 @@ function ManualEventDialog({
           </div>
           <div>
             <Label htmlFor="me-city">City *</Label>
-            <Input
-              id="me-city"
-              value={form.city}
-              onChange={(e) => set('city', e.target.value)}
-              placeholder="e.g. Montreal"
-            />
+            <Select
+              value={form.cityId || undefined}
+              onValueChange={(value) =>
+                setForm((prev) => ({
+                  ...prev,
+                  cityId: value,
+                  city: cityOptions?.find((c) => c.id === value)?.name ?? '',
+                }))
+              }
+            >
+              <SelectTrigger id="me-city">
+                <SelectValue placeholder="Select a city" />
+              </SelectTrigger>
+              <SelectContent>
+                {(cityOptions ?? []).map((city) => (
+                  <SelectItem key={city.id} value={city.id}>
+                    {city.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {cityOptions && cityOptions.length === 0 && (
+              <p className="mt-1 text-xs text-amber-600">
+                No cities yet. Add cities under Admin → Cities first.
+              </p>
+            )}
           </div>
           <div>
             <Label>Thumbnail</Label>
@@ -328,6 +382,23 @@ function ManualEventDialog({
               value={form.mapsLink}
               onChange={(e) => set('mapsLink', e.target.value)}
               placeholder="https://maps.app.goo.gl/..."
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2.5">
+            <div className="pr-3">
+              <Label htmlFor="me-hosted" className="cursor-pointer">
+                Hosted by IRL
+              </Label>
+              <p className="text-xs text-gray-500">
+                Turn on if IRL is hosting this event.
+              </p>
+            </div>
+            <Switch
+              id="me-hosted"
+              checked={form.hosted}
+              onCheckedChange={(checked) =>
+                setForm((prev) => ({ ...prev, hosted: checked }))
+              }
             />
           </div>
         </div>
@@ -1043,7 +1114,12 @@ export default function AdminEventsPage() {
                       <Calendar className="h-12 w-12 text-gray-300" />
                     </div>
                   )}
-                  <div className="absolute top-3 right-3">
+                  <div className="absolute top-3 right-3 flex flex-wrap justify-end gap-2">
+                    {evt.hosted && (
+                      <span className="px-3 py-1.5 text-xs font-semibold rounded-full backdrop-blur-sm bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Hosted by IRL
+                      </span>
+                    )}
                     <span className="px-3 py-1.5 text-xs font-semibold rounded-full backdrop-blur-sm bg-blue-50 text-blue-700 border border-blue-200">
                       Manual
                     </span>
