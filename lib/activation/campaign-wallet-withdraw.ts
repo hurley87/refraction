@@ -61,20 +61,13 @@ export type SponsoredActivationCampaignWithdrawResult =
     }
   | { ok: false; error: string; statusCode?: 400 | 500 };
 
-function computeWithdrawableMicro(
-  balanceUsdc: number,
-  reservedUsdc: number
-): number {
-  const balanceMicro = Math.floor(balanceUsdc * 1e6);
-  const reservedMicro = Math.ceil(Math.max(0, reservedUsdc) * 1e6);
-  return Math.max(0, balanceMicro - reservedMicro);
+function computeWithdrawableMicro(balanceUsdc: number): number {
+  return Math.max(0, Math.floor(balanceUsdc * 1e6));
 }
 
-export function computeWithdrawableUsdc(
-  balanceUsdc: number,
-  reservedUsdc: number
-): number {
-  return computeWithdrawableMicro(balanceUsdc, reservedUsdc) / 1e6;
+/** Full on-chain balance available for admin refund (reserved USDC is not withheld). */
+export function computeWithdrawableUsdc(balanceUsdc: number): number {
+  return computeWithdrawableMicro(balanceUsdc) / 1e6;
 }
 
 async function readBaseCampaignWalletBalance(
@@ -145,7 +138,7 @@ export async function loadSponsoredActivationCampaignWalletBalancePack(
   return {
     campaign_wallet_usdc_balance: balance,
     campaign_wallet_withdrawable_usdc:
-      balance == null ? null : computeWithdrawableUsdc(balance, reservedUsdc),
+      balance == null ? null : computeWithdrawableUsdc(balance),
     campaign_wallet_reserved_usdc: reservedUsdc,
   };
 }
@@ -314,16 +307,12 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
   }
 
   const maxWithdrawableMicro = computeWithdrawableMicro(
-    balancePack.campaign_wallet_usdc_balance,
-    balancePack.campaign_wallet_reserved_usdc
+    balancePack.campaign_wallet_usdc_balance
   );
   if (maxWithdrawableMicro <= 0) {
     return {
       ok: false,
-      error:
-        balancePack.campaign_wallet_reserved_usdc > 0
-          ? 'No withdrawable USDC while funds are reserved for pending redemptions or settlements.'
-          : 'No USDC available to withdraw.',
+      error: 'No USDC available to withdraw.',
       statusCode: 400,
     };
   }

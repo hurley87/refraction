@@ -5,7 +5,7 @@ export const sponsoredActivationCampaignWithdrawRequestSchema = z.object({
     .string()
     .trim()
     .min(1, 'Destination address is required'),
-  /** Omit or null to withdraw the full withdrawable USDC balance (6 decimals on Base). */
+  /** Omit or null to withdraw the full on-chain USDC balance (6 decimals on Base). */
   amountUsdc: z.number().positive().finite().optional().nullable(),
 });
 
