@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  normalizePrivyReferenceId,
+  PRIVY_REFERENCE_ID_MAX_LENGTH,
   PrivyRestApiError,
   signAndSendTransaction,
   waitForTransaction,
@@ -16,6 +18,23 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe('normalizePrivyReferenceId', () => {
+  it('returns short ids unchanged', () => {
+    expect(normalizePrivyReferenceId('activation-settlement:abc')).toBe(
+      'activation-settlement:abc'
+    );
+  });
+
+  it('maps ids longer than 64 chars to a 64-char digest', () => {
+    const longId = `sponsored-activation-withdraw:66701108-f3d1-4b3a-bc23-84681e8472f4:${Date.now()}`;
+    expect(longId.length).toBeGreaterThan(PRIVY_REFERENCE_ID_MAX_LENGTH);
+
+    const normalized = normalizePrivyReferenceId(longId);
+    expect(normalized).toHaveLength(PRIVY_REFERENCE_ID_MAX_LENGTH);
+    expect(normalized).toBe(normalizePrivyReferenceId(longId));
+  });
 });
 
 describe('signAndSendTransaction', () => {
@@ -62,6 +81,33 @@ describe('signAndSendTransaction', () => {
         data: '0x',
       })
     ).rejects.toBeInstanceOf(PrivyRestApiError);
+  });
+
+  it('normalizes reference_id longer than 64 characters before send', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          transaction_id: 'tx-abc',
+          user_operation_hash: null,
+          hash: '',
+        },
+      }),
+    });
+
+    const longReferenceId = `sponsored-activation-withdraw:66701108-f3d1-4b3a-bc23-84681e8472f4:${Date.now()}`;
+    await signAndSendTransaction({
+      walletId: 'w1',
+      to: '0x1',
+      data: '0x',
+      referenceId: longReferenceId,
+    });
+
+    const body = JSON.parse(
+      (fetchMock.mock.calls[0][1] as { body: string }).body
+    );
+    expect(body.reference_id).toHaveLength(PRIVY_REFERENCE_ID_MAX_LENGTH);
+    expect(body.reference_id).toBe(normalizePrivyReferenceId(longReferenceId));
   });
 });
 
