@@ -303,11 +303,24 @@ function PerksPageInner() {
     }).format(date);
   };
 
+  // Compact dd/mm/yyyy for the metadata pills; the long "Mon D, YYYY" format
+  // overlaps adjacent pills on narrow viewports.
+  const formatDateNumeric = (dateString?: string) => {
+    if (!dateString) return undefined;
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return undefined;
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+    }).format(date);
+  };
+
   const getPerkDateRange = (perk: Perk) => {
-    const startDate = formatDate(
+    const startDate = formatDateNumeric(
       (perk as unknown as { start_date?: string })?.start_date
     );
-    const endDate = formatDate(perk.end_date);
+    const endDate = formatDateNumeric(perk.end_date);
 
     if (startDate && endDate) {
       return `${startDate} – ${endDate}`;
@@ -492,21 +505,23 @@ function PerksPageInner() {
                       }
                     </div>
 
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        padding: '0 8px',
-                        height: '20px',
-                        alignItems: 'center',
-                        gap: '8px',
-                        alignSelf: 'stretch',
-                        flexWrap: 'nowrap',
-                      }}
-                      className="shrink-0 text-[#171717] label-small uppercase"
-                    >
-                      <span className="whitespace-nowrap">{dateLabel}</span>
-                    </div>
+                    {!latestReward.end_date && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'row',
+                          padding: '0 8px',
+                          height: '20px',
+                          alignItems: 'center',
+                          gap: '8px',
+                          alignSelf: 'stretch',
+                          flexWrap: 'nowrap',
+                        }}
+                        className="shrink-0 text-[#171717] label-small uppercase"
+                      >
+                        <span className="whitespace-nowrap">Ongoing</span>
+                      </div>
+                    )}
 
                     {latestReward.end_date && (
                       <div
@@ -674,30 +689,29 @@ function PerksPageInner() {
               className="mb-6 flex h-[52px] w-full shrink-0 items-center gap-2 self-stretch border-t border-[var(--Borders-Heavy-Border,#454545)]"
             >
               <div className="flex h-[52px] min-w-0 flex-1 items-center gap-1 border-b border-t border-[var(--Borders-Light-Border,#DBDBDB)]">
-                {[
-                  { label: 'Rewards', value: 'rewards' as const },
-                  { label: 'Tiers', value: 'tiers' as const },
-                ].map((option) => {
-                  const selected = viewMode === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setViewMode(option.value)}
-                      className={`flex flex-1 basis-0 items-center justify-center gap-2 self-stretch py-1 transition-colors duration-200 ${
-                        selected
-                          ? 'bg-[var(--Borders-Light-Border,#DBDBDB)]'
-                          : 'bg-transparent'
-                      }`}
-                    >
-                      <h4
-                        className={selected ? 'text-black' : 'text-[#757575]'}
+                {[{ label: 'Rewards', value: 'rewards' as const }].map(
+                  (option) => {
+                    const selected = viewMode === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setViewMode(option.value)}
+                        className={`flex flex-1 basis-0 items-center justify-center gap-2 self-stretch py-1 transition-colors duration-200 ${
+                          selected
+                            ? 'bg-[var(--Borders-Light-Border,#DBDBDB)]'
+                            : 'bg-transparent'
+                        }`}
                       >
-                        {option.label}
-                      </h4>
-                    </button>
-                  );
-                })}
+                        <h4
+                          className={selected ? 'text-black' : 'text-[#757575]'}
+                        >
+                          {option.label}
+                        </h4>
+                      </button>
+                    );
+                  }
+                )}
               </div>
 
               <button
@@ -795,7 +809,7 @@ function PerksPageInner() {
 
                         {/* Metadata row — same pattern as LATEST REWARD */}
                         <div className="mb-2 flex h-5 min-w-0 w-full items-center justify-between gap-2 self-stretch">
-                          <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-2 self-stretch">
+                          <div className="flex min-w-0 flex-nowrap items-center justify-start gap-2 self-stretch">
                             <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
                               {address &&
                                 (canAfford(perk) ? (
@@ -826,7 +840,7 @@ function PerksPageInner() {
                               style={{
                                 display: 'flex',
                                 flexDirection: 'row',
-                                padding: '0 8px',
+                                padding: '0 8px 0 0',
                                 height: '20px',
                                 alignItems: 'center',
                                 gap: '8px',
