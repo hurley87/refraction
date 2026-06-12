@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { balanceUsdcToMicro } from '@/lib/activation/usdc-micro';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import { unwrapAdminJson } from '@/lib/admin/unwrap-admin-json';
@@ -44,7 +45,6 @@ type ActivationAdminRow = {
   max_usdc_budget: number | null;
   max_redemptions: number | null;
   campaign_wallet_usdc_balance?: number | null;
-  campaign_wallet_withdrawable_usdc?: number | null;
   campaign_wallet_reserved_usdc?: number;
 };
 
@@ -95,6 +95,15 @@ function fmtUsdcHint(n: number | null): string {
   return `$${n.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+  })}`;
+}
+
+function fmtUsdc(n: number | null | undefined): string {
+  if (n == null || Number.isNaN(n)) return '—';
+  const rounded = Math.round(n * 1e6) / 1e6;
+  return `$${rounded.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
   })}`;
 }
 
@@ -360,7 +369,7 @@ export function ActivationLaunchPanel({
         (body as { message?: string }).message ?? 'Withdrawal confirmed.';
       toast.success(message);
       setWithdrawDestination('');
-      await invalidateAll();
+      await queryClient.invalidateQueries({ queryKey: activationQueryKey });
     },
     onError: (e: unknown) => toast.error(mutationErrorMessage(e)),
   });
@@ -779,40 +788,21 @@ export function ActivationLaunchPanel({
                   </div>
 
                   <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
-                    <div className="grid gap-3 text-sm sm:grid-cols-2">
-                      <div>
-                        <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-                          USDC balance
-                        </div>
-                        <div className="mt-1 font-medium text-neutral-900 dark:text-neutral-100">
-                          {activation.campaign_wallet_usdc_balance == null
-                            ? '—'
-                            : fmtUsdcHint(
-                                activation.campaign_wallet_usdc_balance
-                              )}
-                        </div>
+                    <div className="text-sm">
+                      <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                        USDC balance
                       </div>
-                      <div>
-                        <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-                          Withdrawable
-                        </div>
-                        <div className="mt-1 font-medium text-neutral-900 dark:text-neutral-100">
-                          {activation.campaign_wallet_withdrawable_usdc == null
-                            ? '—'
-                            : fmtUsdcHint(
-                                activation.campaign_wallet_withdrawable_usdc
-                              )}
-                        </div>
-                        {(activation.campaign_wallet_reserved_usdc ?? 0) >
-                          0 && (
-                          <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-                            {fmtUsdcHint(
-                              activation.campaign_wallet_reserved_usdc ?? 0
-                            )}{' '}
-                            reserved for pending redemptions or settlements.
-                          </p>
-                        )}
+                      <div className="mt-1 font-medium text-neutral-900 dark:text-neutral-100">
+                        {fmtUsdc(activation.campaign_wallet_usdc_balance)}
                       </div>
+                      {(activation.campaign_wallet_reserved_usdc ?? 0) > 0 && (
+                        <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                          {fmtUsdc(activation.campaign_wallet_reserved_usdc)} is
+                          earmarked for pending redemptions or settlements.
+                          Withdrawal includes this balance; in-flight
+                          settlements may fail afterward.
+                        </p>
+                      )}
                     </div>
 
                     <div className="mt-4 border-t border-neutral-100 pt-4 dark:border-neutral-800">
@@ -839,8 +829,9 @@ export function ActivationLaunchPanel({
                           className="order-2 w-full font-mono text-xs sm:col-start-1 sm:row-start-2"
                         />
                         <p className="order-3 text-xs text-neutral-500 sm:col-start-1 sm:row-start-3">
-                          Withdraws the full withdrawable USDC balance to the
-                          address above.
+                          Withdraws the full on-chain USDC balance to the
+                          address above, including funds earmarked for pending
+                          activity.
                           {activation.settlement_rail === 'base'
                             ? ' Gas is sponsored on Base.'
                             : ' Stellar uses the shared campaign wallet; confirm the destination before sending.'}
@@ -852,9 +843,10 @@ export function ActivationLaunchPanel({
                           disabled={
                             withdrawMutation.isPending ||
                             !withdrawDestination.trim() ||
-                            activation.campaign_wallet_withdrawable_usdc ==
-                              null ||
-                            activation.campaign_wallet_withdrawable_usdc <= 0
+                            activation.campaign_wallet_usdc_balance == null ||
+                            balanceUsdcToMicro(
+                              activation.campaign_wallet_usdc_balance
+                            ) <= 0
                           }
                           onClick={() => withdrawMutation.mutate()}
                         >

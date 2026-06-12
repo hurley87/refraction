@@ -11,7 +11,7 @@ interface RouteParams {
 
 /**
  * POST /api/admin/sponsored-activations/{activationId}/campaign-wallet/withdraw
- * Sends withdrawable USDC from the activation campaign wallet to an admin-provided address.
+ * Sends the campaign wallet's on-chain USDC balance (including reserved funds) to an admin-provided address.
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
