@@ -13,7 +13,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { buildCityMatcher } from '@/lib/utils/normalize-city';
 import type { DiceEvent, DiceImage, DiceVenue } from '@/lib/dice';
 
 interface EventsResponse {
@@ -34,6 +42,12 @@ interface PublicEvent {
   location: string;
   ticketsUrl: string;
   mapsUrl?: string | null;
+  /** True for manually-added (non-DICE) events. */
+  isManual: boolean;
+  /** True when the event is hosted by IRL (manual events only). */
+  hostedByIrl: boolean;
+  /** Canonical city slug used for filtering; null when unmatched. */
+  citySlug: string | null;
 }
 
 interface ManualEvent {
@@ -45,7 +59,18 @@ interface ManualEvent {
   city: string;
   mapsLink: string;
   rsvpLink: string;
+  hosted?: boolean;
+  citySlug?: string | null;
 }
+
+interface CityOption {
+  id: string;
+  name: string;
+  slug: string;
+  aliases: string[];
+}
+
+type CityMatcher = (cityText: string | null | undefined) => string | null;
 
 type DateSortOrder = 'asc' | 'desc';
 
@@ -210,7 +235,10 @@ const isTodayOrFuture = (date: Date | null): boolean => {
 const eventStatusDate = (event: PublicEvent): Date | null =>
   event.end ?? event.start;
 
-const toPublicEvent = (event: DiceEvent): PublicEvent => {
+const toPublicEvent = (
+  event: DiceEvent,
+  matchCity: CityMatcher
+): PublicEvent => {
   const primaryVenue = event.venues?.[0];
   return {
     id: event.id,
@@ -222,12 +250,16 @@ const toPublicEvent = (event: DiceEvent): PublicEvent => {
     location: getLocation(primaryVenue),
     ticketsUrl: getTicketsUrl(event.name),
     mapsUrl: EVENTS_MAP_HREF,
+    isManual: false,
+    hostedByIrl: false,
+    citySlug: matchCity(primaryVenue?.city),
   };
 };
 
 export default function EventsPage() {
   const [dateSortOrder, setDateSortOrder] = useState<DateSortOrder>('asc');
   const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<string>('all');
 
   const {
     data: eventsData,
@@ -265,9 +297,34 @@ export default function EventsPage() {
     staleTime: 60 * 1000,
   });
 
+  const { data: cities } = useQuery<CityOption[]>({
+    queryKey: ['cities'],
+    queryFn: async () => {
+      const response = await fetch('/api/cities', { cache: 'no-store' });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body?.success) return [];
+      return Array.isArray(body.data) ? (body.data as CityOption[]) : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const matchCity = useMemo<CityMatcher>(
+    () =>
+      buildCityMatcher(
+        (cities ?? []).map((city) => ({
+          slug: city.slug,
+          name: city.name,
+          aliases: city.aliases ?? [],
+        }))
+      ),
+    [cities]
+  );
+
   const publicEvents = useMemo(() => {
     const diceEvents = eventsData?.events ?? [];
-    const dicePublic = diceEvents.map(toPublicEvent);
+    const dicePublic = diceEvents.map((event) =>
+      toPublicEvent(event, matchCity)
+    );
 
     const manualPublic: PublicEvent[] =
       manualEvents?.map((evt, index) => ({
@@ -280,20 +337,28 @@ export default function EventsPage() {
         location: evt.city,
         ticketsUrl: evt.rsvpLink,
         mapsUrl: evt.mapsLink || EVENTS_MAP_HREF,
+        isManual: true,
+        hostedByIrl: evt.hosted ?? false,
+        citySlug: evt.citySlug ?? matchCity(evt.city),
       })) ?? [];
 
     return [...dicePublic, ...manualPublic];
-  }, [eventsData?.events, manualEvents]);
+  }, [eventsData?.events, manualEvents, matchCity]);
+
+  const visibleEvents = useMemo(() => {
+    if (selectedCity === 'all') return publicEvents;
+    return publicEvents.filter((event) => event.citySlug === selectedCity);
+  }, [publicEvents, selectedCity]);
 
   const nextEvent = useMemo(() => {
-    const upcomingWithDate = publicEvents
+    const upcomingWithDate = visibleEvents
       .filter((event) => event.start && isTodayOrFuture(event.start))
       .sort((a, b) => a.start!.getTime() - b.start!.getTime());
     return upcomingWithDate[0] ?? null;
-  }, [publicEvents]);
+  }, [visibleEvents]);
 
   const remainingUpcomingEvents = useMemo(() => {
-    const upcoming = publicEvents.filter((event) =>
+    const upcoming = visibleEvents.filter((event) =>
       isTodayOrFuture(eventStatusDate(event))
     );
     const withoutNext = nextEvent
@@ -307,17 +372,21 @@ export default function EventsPage() {
       const cmp = a.start.getTime() - b.start.getTime();
       return dateSortOrder === 'asc' ? cmp : -cmp;
     });
-  }, [nextEvent, publicEvents, dateSortOrder]);
+  }, [nextEvent, visibleEvents, dateSortOrder]);
 
   const pastEvents = useMemo(() => {
-    const onlyPast = publicEvents.filter(
-      (event) => event.start && !isTodayOrFuture(eventStatusDate(event))
+    const onlyPast = visibleEvents.filter(
+      (event) =>
+        event.start &&
+        !isTodayOrFuture(eventStatusDate(event)) &&
+        // Past manual events are only shown when hosted by IRL.
+        (!event.isManual || event.hostedByIrl)
     );
     return [...onlyPast].sort((a, b) => {
       const cmp = a.start!.getTime() - b.start!.getTime();
       return dateSortOrder === 'asc' ? cmp : -cmp;
     });
-  }, [publicEvents, dateSortOrder]);
+  }, [visibleEvents, dateSortOrder]);
 
   const hasNoEvents =
     !isLoading &&
@@ -333,6 +402,30 @@ export default function EventsPage() {
         <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
 
         <div className="space-y-3 pt-3">
+          {cities && cities.length > 0 && (
+            <div className="flex items-center gap-2 pt-1">
+              <span className="shrink-0 label-small uppercase tracking-wide text-[#757575]">
+                City
+              </span>
+              <Select value={selectedCity} onValueChange={setSelectedCity}>
+                <SelectTrigger
+                  className="h-9 flex-1 rounded-none border-[#757575] font-grotesk uppercase"
+                  aria-label="Filter events by city"
+                >
+                  <SelectValue placeholder="All cities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All cities</SelectItem>
+                  {cities.map((city) => (
+                    <SelectItem key={city.id} value={city.slug}>
+                      {city.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {(isLoading || manualLoading) && (
             <div className="flex min-h-48 flex-col items-center justify-center rounded-[26px] border border-white/30 bg-white/45 px-6 py-8 backdrop-blur-sm">
               <Loader2 className="h-8 w-8 animate-spin text-neutral-700" />

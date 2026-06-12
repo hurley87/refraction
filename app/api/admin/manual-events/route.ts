@@ -21,6 +21,8 @@ const manualEventFields = z.object({
   city: z.string().min(1, 'City is required'),
   mapsLink: z.string().default(''),
   rsvpLink: z.string().default(''),
+  hosted: z.boolean().default(false),
+  cityId: z.string().uuid('Invalid city').nullable().default(null),
 });
 
 const endOnOrAfterStart = (data: { date: string; endDate: string | null }) =>

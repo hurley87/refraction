@@ -7,6 +7,7 @@ import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { Button } from '@/components/ui/button';
 import {
   BarChart3,
+  Building2,
   Calendar,
   Flag,
   Gift,
@@ -91,6 +92,13 @@ const SECTIONS: AdminSection[] = [
     href: '/admin/sponsored-activations',
     icon: <CircleDollarSign className="h-6 w-6" />,
     color: 'bg-lime-50 text-lime-700 border-lime-200',
+  },
+  {
+    title: 'Cities',
+    description: 'Canonical cities for event and guide filters',
+    href: '/admin/cities',
+    icon: <Building2 className="h-6 w-6" />,
+    color: 'bg-sky-50 text-sky-600 border-sky-200',
   },
   {
     title: 'City Guides',
