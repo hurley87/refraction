@@ -3,6 +3,7 @@ import {
   assertPrivyWalletAuth,
   resolvePlayerForWallet,
 } from '@/lib/activation/activation-wallet-gate';
+import { getPrivyUserFromRequest } from '@/lib/api/privy';
 import { buildActivationRedemptionIdempotencyKey } from '@/lib/activation/eligibility';
 import {
   trackSponsoredRedemptionExpired,
@@ -132,9 +133,11 @@ export async function runSwipeActivationRedeem(input: {
   }
   const rulesConfig = configParse.data;
 
+  const privyUser = await getPrivyUserFromRequest(input.request);
+
   let playerId: number;
   try {
-    const resolved = await resolvePlayerForWallet(walletKey);
+    const resolved = await resolvePlayerForWallet(walletKey, privyUser);
     playerId = resolved.playerId;
   } catch (e) {
     console.error('swipe redeem (resolve player):', e);

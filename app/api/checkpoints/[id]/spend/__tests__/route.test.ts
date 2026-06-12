@@ -13,6 +13,11 @@ vi.mock('@/lib/db/spend', () => ({
 
 vi.mock('@/lib/api/privy', () => ({
   verifyWalletOwnership: vi.fn(),
+  getPrivyUserFromRequest: vi.fn(),
+}));
+
+vi.mock('@/lib/privy/resolve-player-for-privy-user', () => ({
+  resolvePlayerForPrivyUser: vi.fn(),
 }));
 
 import { GET, POST } from '../route';
@@ -22,7 +27,11 @@ import {
   getUserRedemptionForSpendItem,
   redeemSpendItemOnce,
 } from '@/lib/db/spend';
-import { verifyWalletOwnership } from '@/lib/api/privy';
+import {
+  getPrivyUserFromRequest,
+  verifyWalletOwnership,
+} from '@/lib/api/privy';
+import { resolvePlayerForPrivyUser } from '@/lib/privy/resolve-player-for-privy-user';
 
 const checkpointId = 'abc123def4';
 const walletAddress = '0x1234567890abcdef1234567890abcdef12345678';
@@ -34,6 +43,15 @@ describe('checkpoint spend route', () => {
       authorized: true,
       userId: 'did:privy:123',
     });
+    vi.mocked(getPrivyUserFromRequest).mockResolvedValue({
+      id: 'did:privy:123',
+      linkedAccounts: [],
+    } as never);
+    vi.mocked(resolvePlayerForPrivyUser).mockResolvedValue({
+      id: 1,
+      wallet_address: walletAddress,
+      total_points: 200,
+    } as never);
   });
 
   it('GET returns checkpoint spend data', async () => {

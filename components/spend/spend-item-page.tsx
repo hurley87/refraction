@@ -14,6 +14,7 @@ import {
 } from '@/hooks/useSpend';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { usePrivy } from '@privy-io/react-auth';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import type { SpendRedemption } from '@/lib/types';
 
 type SpendItemPageProps = {
@@ -25,7 +26,7 @@ type SpendItemPageProps = {
  */
 export function SpendItemPage({ itemId }: SpendItemPageProps) {
   const { user, login, getAccessToken } = usePrivy();
-  const walletAddress = user?.wallet?.address;
+  const walletAddress = useEvmWalletAddress();
 
   const { data: item, isLoading: itemLoading } = useSpendItem(itemId);
   const { data: player } = useCurrentPlayer();

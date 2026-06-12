@@ -3,6 +3,7 @@ import {
   assertPrivyWalletAuth,
   resolvePlayerForWallet,
 } from '@/lib/activation/activation-wallet-gate';
+import { getPrivyUserFromRequest } from '@/lib/api/privy';
 import {
   trackSponsoredActivationCapReached,
   trackSponsoredRedemptionPurchaseConfirmed,
@@ -156,9 +157,11 @@ export async function runConfirmActivationPurchase(input: {
   }
   const rulesConfig = configParse.data;
 
+  const privyUser = await getPrivyUserFromRequest(input.request);
+
   let playerId: number;
   try {
-    const resolved = await resolvePlayerForWallet(walletKey);
+    const resolved = await resolvePlayerForWallet(walletKey, privyUser);
     playerId = resolved.playerId;
   } catch (e) {
     console.error('confirm purchase (resolve player):', e);

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePrivy, useSendTransaction, useWallets } from '@privy-io/react-auth';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SpendPageShell } from '@/components/spend/spend-page-shell';
@@ -187,7 +188,7 @@ export function SpendExperiencePage({
   const { sendTransaction } = useSendTransaction();
   const { wallets } = useWallets();
   const queryClient = useQueryClient();
-  const walletAddress = user?.wallet?.address;
+  const walletAddress = useEvmWalletAddress();
   const [trackedScan, setTrackedScan] = useState(false);
 
   const evmWallet = useMemo(() => {

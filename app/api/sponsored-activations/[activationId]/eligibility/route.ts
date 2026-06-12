@@ -24,7 +24,9 @@ import {
   type ActivationRedemptionRow,
 } from '@/lib/db/activation-redemptions';
 import { listActivationRewardItems } from '@/lib/db/activation-reward-items';
+import { getPrivyUserFromRequest } from '@/lib/api/privy';
 import { createOrUpdatePlayer, getPlayerByWallet } from '@/lib/db/players';
+import { resolvePlayerForPrivyUser } from '@/lib/privy/resolve-player-for-privy-user';
 import { getSponsoredActivationByIdOrSlug } from '@/lib/db/sponsored-activations';
 import { getTiers } from '@/lib/db/tiers';
 import { safeParseActivationEligibilityRulesConfig } from '@/lib/schemas/activation-eligibility-config';
@@ -49,19 +51,28 @@ const eligibilityWalletQuerySchema = z
 
 const ELIGIBILITY_RULES_NOT_MET = 'Eligibility requirements were not met';
 
-async function resolvePlayerForEligibility(walletAddress: string): Promise<{
+async function resolvePlayerForEligibility(
+  request: NextRequest,
+  walletAddress: string
+): Promise<{
   playerId: number;
   totalPoints: number;
 }> {
   const trimmed = walletAddress.trim();
   const normalized = tryNormalizeEvmAddress(trimmed) ?? trimmed;
-  let player = await getPlayerByWallet(normalized);
-  if (!player?.id) {
-    player = await createOrUpdatePlayer({
-      wallet_address: normalized,
-      total_points: 0,
-    });
-  }
+  const privyUser = await getPrivyUserFromRequest(request);
+  const player = privyUser
+    ? await resolvePlayerForPrivyUser(normalized, privyUser)
+    : await (async () => {
+        let row = await getPlayerByWallet(normalized);
+        if (!row?.id) {
+          row = await createOrUpdatePlayer({
+            wallet_address: normalized,
+            total_points: 0,
+          });
+        }
+        return row;
+      })();
   if (!player?.id) {
     throw new Error('Failed to resolve player for wallet');
   }
@@ -124,7 +135,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   let playerId: number;
   let totalPoints: number;
   try {
-    const resolved = await resolvePlayerForEligibility(walletAddress);
+    const resolved = await resolvePlayerForEligibility(request, walletAddress);
     playerId = resolved.playerId;
     totalPoints = resolved.totalPoints;
   } catch (e) {
@@ -295,7 +306,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   let playerId: number;
   try {
-    const resolved = await resolvePlayerForEligibility(walletAddress);
+    const resolved = await resolvePlayerForEligibility(request, walletAddress);
     playerId = resolved.playerId;
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Failed to resolve player';
