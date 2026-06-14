@@ -104,6 +104,20 @@ function isWalletExtensionEthereumConflict(message: string): boolean {
   );
 }
 
+/**
+ * WalletConnect / Reown SDK relay batch-subscribe can call `topics.map(t => t.topic)`
+ * when the array contains holes or stale entries during session lifecycle races.
+ * Privy and /walletconnect (WalletKit) pull this in transitively — not IRL app code.
+ */
+export function isWalletConnectTopicAccessError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("reading 'topic'") ||
+    lower.includes('reading "topic"') ||
+    (lower.includes('evaluating') && lower.includes('.topic'))
+  );
+}
+
 function shouldDropAbortError(
   event: SentryEventLike,
   hint?: EventHint
@@ -182,6 +196,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     message.includes('receiving end does not exist') ||
     message.includes('runtime.lasterror') ||
     isWalletExtensionEthereumConflict(message) ||
+    isWalletConnectTopicAccessError(message) ||
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||
     // Extension messaging when the target tab is gone (e.g. fast navigation).

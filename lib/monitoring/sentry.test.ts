@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { isAbortError, sentryBeforeSend } from '@/lib/monitoring/sentry';
+import {
+  isAbortError,
+  isWalletConnectTopicAccessError,
+  sentryBeforeSend,
+} from '@/lib/monitoring/sentry';
 
 describe('isAbortError', () => {
   it('detects DOMException-style AbortError', () => {
@@ -123,6 +127,38 @@ describe('sentryBeforeSend', () => {
     ).toBeNull();
   });
 
+  it('returns null for WalletConnect relay topic access noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            value:
+              "TypeError: Cannot read properties of undefined (reading 'topic')",
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for Safari-style WalletConnect topic access noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/walletconnect' },
+      exception: {
+        values: [
+          {
+            value:
+              "TypeError: undefined is not an object (evaluating 't.topic')",
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('returns null for Safari-style load failed network errors', () => {
     const event = {
       request: { url: 'https://www.irl.energy/events' },
@@ -132,6 +168,29 @@ describe('sentryBeforeSend', () => {
     };
 
     expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('detects WalletConnect topic access error messages', () => {
+    expect(
+      isWalletConnectTopicAccessError(
+        "TypeError: Cannot read properties of undefined (reading 'topic')"
+      )
+    ).toBe(true);
+    expect(
+      isWalletConnectTopicAccessError(
+        'TypeError: Cannot read properties of undefined (reading "topic")'
+      )
+    ).toBe(true);
+    expect(
+      isWalletConnectTopicAccessError(
+        "TypeError: undefined is not an object (evaluating 'e.topic')"
+      )
+    ).toBe(true);
+    expect(
+      isWalletConnectTopicAccessError(
+        'TypeError: Cannot read properties of undefined (reading "length")'
+      )
+    ).toBe(false);
   });
 
   it('still forwards unrelated errors', () => {
