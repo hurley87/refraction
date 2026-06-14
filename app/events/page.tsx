@@ -164,8 +164,12 @@ const parseManualEventDate = (
 
 const getPoster = (images: DiceImage[] | null | undefined): string | null => {
   if (!images || images.length === 0) return null;
+  const usableImages = images.filter(
+    (image): image is DiceImage => image != null
+  );
+  if (usableImages.length === 0) return null;
   const preferred =
-    images.find((image) => image.type === 'SQUARE') ?? images[0];
+    usableImages.find((image) => image.type === 'SQUARE') ?? usableImages[0];
   return preferred?.url ?? null;
 };
 

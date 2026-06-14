@@ -134,6 +134,72 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for wallet inpage.js removeListener noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [
+          {
+            value:
+              "TypeError: Cannot read properties of undefined (reading 'removeListener')",
+            stacktrace: {
+              frames: [
+                { filename: 'app:///inpage.js', abs_path: 'app:///inpage.js' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for wallet inpage.js type access noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/events' },
+      exception: {
+        values: [
+          {
+            value:
+              "TypeError: Cannot read properties of undefined (reading 'type')",
+            stacktrace: {
+              frames: [
+                { filename: 'app:///inpage.js', abs_path: 'app:///inpage.js' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('keeps app errors when the stack has no inpage.js frames', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/events' },
+      exception: {
+        values: [
+          {
+            value:
+              "TypeError: Cannot read properties of undefined (reading 'type')",
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'app:///chunks/app-events-page.js',
+                  abs_path: 'app:///chunks/app-events-page.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toEqual(event);
+  });
+
   it('still forwards unrelated errors', () => {
     const event = {
       request: { url: 'https://example.com/events' },

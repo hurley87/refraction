@@ -844,7 +844,9 @@ export default function AdminEventsPage() {
   }, [eventsData?.events]);
 
   const getSquareImage = (event: DiceEvent) => {
-    return event.images?.find((img) => img.type === 'SQUARE')?.url;
+    return event.images
+      ?.filter((img): img is NonNullable<typeof img> => img != null)
+      .find((img) => img.type === 'SQUARE')?.url;
   };
 
   if (adminLoading) {
