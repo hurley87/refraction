@@ -104,6 +104,20 @@ function isWalletExtensionEthereumConflict(message: string): boolean {
   );
 }
 
+/**
+ * WalletConnect/Reown SDKs identify sessions by `topic`. Relay messages for a
+ * session that was already deleted (disconnect, navigation, background tab) can
+ * throw while reading `.topic` on undefined — environmental noise, not app code.
+ */
+export function isWalletConnectSessionNoise(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("reading 'topic'") ||
+    lower.includes('reading "topic"') ||
+    lower.includes('no matching key')
+  );
+}
+
 function shouldDropAbortError(
   event: SentryEventLike,
   hint?: EventHint
@@ -182,6 +196,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     message.includes('receiving end does not exist') ||
     message.includes('runtime.lasterror') ||
     isWalletExtensionEthereumConflict(message) ||
+    isWalletConnectSessionNoise(message) ||
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||
     // Extension messaging when the target tab is gone (e.g. fast navigation).
