@@ -123,6 +123,100 @@ describe('sentryBeforeSend', () => {
     ).toBeNull();
   });
 
+  it('returns null for wallet inpage.js TypeError reading type', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value: "Cannot read properties of undefined (reading 'type')",
+            stacktrace: {
+              frames: [
+                { filename: 'app:///inpage.js', abs_path: 'app:///inpage.js' },
+                { filename: 'app:///inpage.js' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for wallet inpage.js TypeError reading removeListener', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value:
+              "Cannot read properties of undefined (reading 'removeListener')",
+            stacktrace: {
+              frames: [
+                { filename: 'app:///inpage.js', abs_path: 'app:///inpage.js' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for extension RangeError stack overflows', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/' },
+      exception: {
+        values: [
+          {
+            type: 'RangeError',
+            value: 'Maximum call stack size exceeded.',
+            stacktrace: {
+              frames: [
+                {
+                  filename:
+                    'chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/inpage.js',
+                  abs_path:
+                    'chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/inpage.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('keeps app errors without extension stack frames', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value: "Cannot read properties of undefined (reading 'type')",
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'app:///chunks/app-page.js',
+                  abs_path: 'app:///chunks/app-page.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toEqual(event);
+  });
+
   it('returns null for Safari-style load failed network errors', () => {
     const event = {
       request: { url: 'https://www.irl.energy/events' },
