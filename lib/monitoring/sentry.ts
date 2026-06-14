@@ -44,10 +44,47 @@ type SentryEventLike = {
   exception?: {
     values?: Array<{
       value?: string;
+      stacktrace?: {
+        frames?: Array<{
+          filename?: string;
+          abs_path?: string;
+        }>;
+      };
     }>;
   };
   message?: string;
 };
+
+/** MetaMask and similar wallets inject `inpage.js`; their teardown can throw into window.onerror. */
+function frameLooksLikeInjectedScript(
+  filename?: string,
+  absPath?: string
+): boolean {
+  const combined = `${filename ?? ''} ${absPath ?? ''}`.toLowerCase();
+  return (
+    combined.includes('inpage.js') ||
+    combined.includes('chrome-extension://') ||
+    combined.includes('moz-extension://')
+  );
+}
+
+function eventFromInjectedScript(event: SentryEventLike): boolean {
+  const values = event.exception?.values;
+  if (!values?.length) return false;
+
+  for (const ex of values) {
+    const frames = ex.stacktrace?.frames;
+    if (!frames?.length) continue;
+
+    for (const frame of frames) {
+      if (frameLooksLikeInjectedScript(frame.filename, frame.abs_path)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
 
 function eventPath(event: SentryEventLike): string | null {
   const requestUrl = safeParseUrl(event.request?.url);
@@ -165,6 +202,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   }
 
   if (shouldDropFetchNetworkError(event, hint)) {
+    return null;
+  }
+
+  if (eventFromInjectedScript(event)) {
     return null;
   }
 

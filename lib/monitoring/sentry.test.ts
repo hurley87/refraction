@@ -134,6 +134,54 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for wallet extension inpage.js property access noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            value:
+              "TypeError: Cannot read properties of undefined (reading 'origin')",
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'app:///inpage.js',
+                  abs_path: 'app:///inpage.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for chrome-extension inpage.js property access noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/events' },
+      exception: {
+        values: [
+          {
+            value:
+              "TypeError: Cannot read properties of undefined (reading 'type')",
+            stacktrace: {
+              frames: [
+                {
+                  filename:
+                    'chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/inpage.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('still forwards unrelated errors', () => {
     const event = {
       request: { url: 'https://example.com/events' },
