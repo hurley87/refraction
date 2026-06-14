@@ -134,6 +134,80 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('drops wallet inpage.js TypeError reading type (JAVASCRIPT-NEXTJS-13)', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/events' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value:
+              "TypeError: Cannot read properties of undefined (reading 'type')",
+            stacktrace: {
+              frames: [
+                {
+                  filename:
+                    'chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/inpage.js',
+                  abs_path:
+                    'chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/inpage.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('drops errors whose stack traces originate from wallet inpage.js injection', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value:
+              "Cannot read properties of undefined (reading 'removeListener')",
+            stacktrace: {
+              frames: [
+                { filename: 'app:///inpage.js', abs_path: 'app:///inpage.js' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('keeps app TypeError reading type without extension frames', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/events' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value:
+              "TypeError: Cannot read properties of undefined (reading 'type')",
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'app:///chunks/app-events-page.js',
+                  abs_path: 'app:///chunks/app-events-page.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toEqual(event);
+  });
+
   it('still forwards unrelated errors', () => {
     const event = {
       request: { url: 'https://example.com/events' },
