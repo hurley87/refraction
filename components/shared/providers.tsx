@@ -11,16 +11,18 @@ const baseRpcUrl =
 
 const queryClient = new QueryClient();
 
+/** Stable across renders — recreating this inside Providers can recurse in wagmi/Privy. */
+const wagmiConfig = createConfig({
+  chains: [base],
+  transports: {
+    [base.id]: http(baseRpcUrl),
+  },
+  ssr: true,
+});
+
 export default function Providers({ children }: { children: React.ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID!;
 
-  const wagmiConfig = createConfig({
-    chains: [base],
-    transports: {
-      [base.id]: http(baseRpcUrl),
-    },
-    ssr: true,
-  });
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>

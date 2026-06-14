@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SIGNUP_ATTRIBUTION_STORAGE_KEY } from '@/lib/analytics/attribution-core';
+import { DEFAULT_CLIENT_ORIGIN } from '@/lib/utils/client-origin';
 import {
   captureSignupAttributionFromNavigation,
   getSignupAttributionBodyFields,
@@ -64,5 +65,22 @@ describe('signup attribution client persistence', () => {
     const parsed = JSON.parse(raw!);
     expect(parsed.firstTouch.utm_source).toBe('direct');
     expect(parsed.lastTouch.utm_source).toBe('direct');
+  });
+
+  it('uses a production fallback origin when window.location is unavailable', () => {
+    const location = window.location;
+    vi.stubGlobal('window', {});
+
+    captureSignupAttributionFromNavigation({
+      pathname: '/events',
+      search: 'utm_source=newsletter',
+    });
+
+    const body = getSignupAttributionBodyFields();
+    expect(body.signup_attribution?.landing_page).toBe(
+      `${DEFAULT_CLIENT_ORIGIN}/events?utm_source=newsletter`
+    );
+
+    vi.stubGlobal('window', { location });
   });
 });
