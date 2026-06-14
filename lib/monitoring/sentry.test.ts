@@ -134,11 +134,93 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
-  it('still forwards unrelated errors', () => {
+  it('returns null for wallet inpage.js reading type injection noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value:
+              "Cannot read properties of undefined (reading 'type')",
+            stacktrace: {
+              frames: [
+                { filename: 'app:///inpage.js', abs_path: 'app:///inpage.js' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for wallet inpage.js removeListener injection noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value:
+              "Cannot read properties of undefined (reading 'removeListener')",
+            stacktrace: {
+              frames: [
+                { filename: 'app:///inpage.js', abs_path: 'app:///inpage.js' },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for chrome-extension stack overflows', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/' },
+      exception: {
+        values: [
+          {
+            type: 'RangeError',
+            value: 'Maximum call stack size exceeded.',
+            stacktrace: {
+              frames: [
+                {
+                  filename:
+                    'chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/inpage.js',
+                  abs_path:
+                    'chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/inpage.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('still forwards unrelated errors without injected-script stack frames', () => {
     const event = {
       request: { url: 'https://example.com/events' },
       exception: {
-        values: [{ value: 'TypeError: Cannot read properties of undefined' }],
+        values: [
+          {
+            value: 'TypeError: Cannot read properties of undefined',
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'app:///chunks/app-page.js',
+                  abs_path: 'app:///chunks/app-page.js',
+                },
+              ],
+            },
+          },
+        ],
       },
     };
 
