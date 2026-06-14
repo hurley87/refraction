@@ -176,6 +176,30 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for chrome-extension inpage.js frames', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/' },
+      exception: {
+        values: [
+          {
+            value:
+              "TypeError: Cannot read properties of undefined (reading 'type')",
+            stacktrace: {
+              frames: [
+                {
+                  filename:
+                    'chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/inpage.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('keeps app errors when the stack has no inpage.js frames', () => {
     const event = {
       request: { url: 'https://www.irl.energy/events' },

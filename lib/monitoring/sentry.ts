@@ -60,8 +60,10 @@ function frameLooksLikeWalletInjection(
   filename?: string,
   absPath?: string
 ): boolean {
-  const combined = `${filename ?? ''} ${absPath ?? ''}`;
-  return combined.includes('inpage.js');
+  const combined = `${filename ?? ''} ${absPath ?? ''}`.toLowerCase();
+  return (
+    combined.includes('inpage.js') || combined.includes('chrome-extension://')
+  );
 }
 
 function eventFromWalletInjectedScript(event: SentryEventLike): boolean {
