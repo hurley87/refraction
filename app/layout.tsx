@@ -154,7 +154,9 @@ export default function RootLayout({
       message.includes('Extension context invalidated') ||
       message.includes('Cannot redefine property: ethereum') ||
       message.includes('Cannot set property ethereum') ||
-      message.includes('Cannot redefine property')
+      message.includes('Cannot redefine property') ||
+      message.includes("reading 'topic'") ||
+      message.includes('No matching key')
     ) {
       event.preventDefault();
       return false;

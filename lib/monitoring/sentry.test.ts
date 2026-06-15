@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { isAbortError, sentryBeforeSend } from '@/lib/monitoring/sentry';
+import {
+  isAbortError,
+  isWalletConnectSessionNoise,
+  sentryBeforeSend,
+} from '@/lib/monitoring/sentry';
 
 describe('isAbortError', () => {
   it('detects DOMException-style AbortError', () => {
@@ -11,6 +15,20 @@ describe('isAbortError', () => {
   it('detects wrapped Error messages from Sentry serialization', () => {
     const error = new Error('AbortError: The operation was aborted.');
     expect(isAbortError(error)).toBe(true);
+  });
+});
+
+describe('isWalletConnectSessionNoise', () => {
+  it('detects undefined topic reads and no matching key errors', () => {
+    expect(
+      isWalletConnectSessionNoise(
+        "TypeError: Cannot read properties of undefined (reading 'topic')"
+      )
+    ).toBe(true);
+    expect(
+      isWalletConnectSessionNoise('Error: No matching key. pairing: undefined')
+    ).toBe(true);
+    expect(isWalletConnectSessionNoise('TypeError: fetch failed')).toBe(false);
   });
 });
 
@@ -185,6 +203,38 @@ describe('sentryBeforeSend', () => {
     expect(
       sentryBeforeSend(event, { originalException: networkError })
     ).toBeNull();
+  });
+
+  it('returns null for WalletConnect stale session topic noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/stellar' },
+      exception: {
+        values: [
+          {
+            value:
+              "TypeError: Cannot read properties of undefined (reading 'topic')",
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for WalletConnect no matching key session noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/walletconnect' },
+      exception: {
+        values: [
+          {
+            value:
+              "Error: No matching key. session topic doesn't exist: abc123",
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
   });
 
   it('returns null for Safari-style load failed network errors', () => {
