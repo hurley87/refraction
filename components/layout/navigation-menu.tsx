@@ -149,7 +149,7 @@ export default function NavigationMenu({
       }}
     >
       {/* Menu panel: full-height, flush to the top; header in flow so links never sit under logo/close */}
-      <div className="absolute top-0 left-0 flex w-full flex-col overflow-hidden">
+      <div className="absolute top-0 left-1/2 flex w-full max-w-[393px] -translate-x-1/2 flex-col overflow-hidden">
         <div className="flex h-[70px] w-full shrink-0 items-center justify-between bg-[var(--Dark-Tint-White,#FFF)] px-4">
           {/* Native img + cache-bust: avoids Next/Image + stale 301 cache from old /IRL-SVG redirects on some dev setups */}
           {/* eslint-disable-next-line @next/next/no-img-element */}

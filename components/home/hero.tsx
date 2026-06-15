@@ -13,19 +13,19 @@ import { cn } from '@/lib/utils';
  */
 const HERO_CAROUSEL_SLIDES = [
   {
-    src: '/homepage/hero/carousel/denver.svg',
+    src: '/homepage/hero/carousel/denver.png',
     alt: 'Denver',
     stepTitle: 'Explore Local Guides',
     stepBody: 'The best spots, hand-picked by people shaping the local scene.',
   },
   {
-    src: '/homepage/hero/carousel/detroit.svg',
+    src: '/homepage/hero/carousel/detroit.png',
     alt: 'Detroit',
     stepTitle: 'Check in at a spot',
     stepBody: 'Explore the map and check in at spots across your city.',
   },
   {
-    src: '/homepage/hero/carousel/singapore.svg',
+    src: '/homepage/hero/carousel/singapore.png',
     alt: 'Singapore',
     stepTitle: 'Earn and spend rewards',
     stepBody: 'Earn points for future rewards at clubs, bars, and galleries',
