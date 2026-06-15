@@ -54,6 +54,8 @@ type SentryEventLike = {
     }>;
   };
   message?: string;
+  /** Populated for some browser payloads (e.g. serialized promise rejection reason). */
+  extra?: Record<string, unknown>;
 };
 
 /** MetaMask and similar wallets inject `inpage.js`; their scripts can throw into window.onerror. */
@@ -105,6 +107,36 @@ function eventMessage(event: SentryEventLike, hint?: EventHint): string {
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * EIP-1193 providers (MetaMask, embedded wallets, etc.) reject with a plain
+ * `{ code, message }` object. `4001` is "User rejected the request" / non-actionable
+ * user-or-wallet state (including MetaMask edge cases like an empty wallet).
+ * Those surface in Sentry as unhandled rejections titled `<unknown>`.
+ */
+function isEip1193UserRejectedReason(reason: unknown): boolean {
+  if (!isPlainRecord(reason)) return false;
+  const { code, message } = reason;
+  return code === 4001 && typeof message === 'string' && message.length > 0;
+}
+
+function serializedRejectionFromEvent(
+  event: SentryEventLike
+): Record<string, unknown> | null {
+  const serialized = event.extra?.__serialized__;
+  return isPlainRecord(serialized) ? serialized : null;
+}
+
+function shouldDropEip1193UserRejection(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (isEip1193UserRejectedReason(hint?.originalException)) {
+    return true;
+  }
+  const fromExtra = serializedRejectionFromEvent(event);
+  return isEip1193UserRejectedReason(fromExtra);
 }
 
 /**
@@ -198,6 +230,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   event: T,
   hint?: EventHint
 ): T | null {
+  if (shouldDropEip1193UserRejection(event, hint)) {
+    return null;
+  }
+
   if (shouldDropAbortError(event, hint)) {
     return null;
   }
