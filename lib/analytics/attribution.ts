@@ -16,6 +16,7 @@ import {
   registerSuperProperties,
   registerSuperPropertiesOnce,
 } from '@/lib/analytics/client';
+import { getBrowserOrigin } from '@/lib/utils/client-origin';
 
 function readSession(): SignupAttributionSession | null {
   if (typeof window === 'undefined') return null;
@@ -91,7 +92,7 @@ export function captureSignupAttributionFromNavigation(opts: {
       ? `?${opts.search}`
       : opts.search || '';
 
-  const href = `${window.location.origin}${opts.pathname}${search}`;
+  const href = `${getBrowserOrigin()}${opts.pathname}${search}`;
   const referrer = document.referrer || '';
 
   const touch = touchFromNavigation({
