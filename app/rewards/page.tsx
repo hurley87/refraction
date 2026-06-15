@@ -5,24 +5,14 @@ import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 
 import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
-import {
-  ExternalLink,
-  Gift,
-  Info,
-  MapPin,
-  Trophy,
-  Clock,
-  Copy,
-} from 'lucide-react';
+import { ExternalLink, Gift, Info, MapPin, Clock, Copy } from 'lucide-react';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
 import { usePerks, useUserRedemptions } from '@/hooks/usePerks';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
-import { useTiers } from '@/hooks/useTiers';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
 
@@ -87,7 +77,6 @@ const TimeLeft = ({
 function PerksPageInner() {
   const { user, login } = usePrivy();
   const address = user?.wallet?.address;
-  const searchParams = useSearchParams();
   const { trackEvent, trackPage } = useAnalytics();
 
   // Track page view on mount
@@ -117,50 +106,14 @@ function PerksPageInner() {
   const [selectedPerk, setSelectedPerk] = useState<Perk | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: tiers = [] } = useTiers();
-
-  const findTierForPoints = (points: number) => {
-    if (!tiers.length) return null;
-    return (
-      tiers.find(
-        (tier) =>
-          points >= tier.min_points &&
-          (tier.max_points === null || points < tier.max_points)
-      ) ?? null
-    );
-  };
-
-  const formatTierLabel = (points: number) => {
-    const tier = findTierForPoints(points);
-    if (!tier) {
-      return 'All Members';
-    }
-
-    return tier.title;
-  };
-
-  const selectedTierInfo = selectedPerk
-    ? findTierForPoints(selectedPerk.points_threshold)
-    : null;
-
   const [viewMode, setViewMode] = useState<'rewards' | 'tiers'>('rewards');
   const [sortOption, setSortOption] = useState<'date-desc' | 'date-asc'>(
     'date-desc'
   );
 
-  useEffect(() => {
-    if (searchParams.get('tab') === 'tiers') {
-      setViewMode('tiers');
-    }
-  }, [searchParams]);
-
   const toggleSort = () => {
     setSortOption((prev) => (prev === 'date-desc' ? 'date-asc' : 'date-desc'));
   };
-
-  const selectedPerkAffordable = selectedPerk
-    ? !address || canAfford(selectedPerk)
-    : false;
 
   // Universal codes only; individual codes come from redemption after /api/perks/redeem
   const { data: universalCodes = [] } = useQuery({
@@ -280,18 +233,6 @@ function PerksPageInner() {
     setTimeout(() => login(), 0);
   };
 
-  const handleViewAllTiersClick = () => {
-    handleModalOpenChange(false);
-    setViewMode('tiers');
-
-    setTimeout(() => {
-      const toggleElement = document.getElementById('tiers-toggle');
-      if (toggleElement) {
-        toggleElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 150);
-  };
-
   const formatDate = (dateString?: string) => {
     if (!dateString) return undefined;
     const date = new Date(dateString);
@@ -357,10 +298,6 @@ function PerksPageInner() {
   const selectedPerkIsOnline = selectedPerk?.location
     ? selectedPerk.location.toLowerCase().includes('online')
     : true;
-
-  const tierLabel = selectedPerk
-    ? formatTierLabel(selectedPerk.points_threshold)
-    : 'All Members';
 
   // Featured reward for the LATEST REWARD slot: a manually featured perk wins;
   // otherwise fall back to the most recently created/updated perk. When multiple
@@ -498,11 +435,7 @@ function PerksPageInner() {
                             className="inline-block shrink-0"
                           />
                         ))}
-                      {
-                        formatTierLabel(latestReward.points_threshold).split(
-                          ' '
-                        )[0]
-                      }
+                      {latestReward.points_threshold.toLocaleString()} PTS
                     </div>
 
                     {!latestReward.end_date && (
@@ -613,11 +546,12 @@ function PerksPageInner() {
                     <div className="w-full rounded-full bg-white/80 py-3 px-4 text-center">
                       <p className="text-black body-small font-abc-monument-regular">
                         You don&apos;t have the required points to claim this.
-                        Come back when you reach the{' '}
+                        Come back when you reach{' '}
                         <span className="font-bold">
-                          {formatTierLabel(latestReward.points_threshold)}
-                        </span>{' '}
-                        level.
+                          {latestReward.points_threshold.toLocaleString()}{' '}
+                          points
+                        </span>
+                        .
                       </p>
                     </div>
                   )
@@ -829,11 +763,7 @@ function PerksPageInner() {
                                     className="inline-block shrink-0"
                                   />
                                 ))}
-                              {
-                                formatTierLabel(perk.points_threshold).split(
-                                  ' '
-                                )[0]
-                              }
+                              {perk.points_threshold.toLocaleString()} PTS
                             </div>
 
                             <div
@@ -939,193 +869,6 @@ function PerksPageInner() {
                   </p>
                 </div>
               )}
-            </div>
-          )}
-
-          {!perksLoading && viewMode === 'tiers' && (
-            <div className="space-y-1">
-              {tiers.map((tier) => {
-                const tierRange = tier.max_points
-                  ? `${tier.min_points.toLocaleString()} - ${tier.max_points.toLocaleString()}`
-                  : `${tier.min_points.toLocaleString()}+`;
-
-                const tierPerks = [...perks]
-                  .filter(
-                    (perk) =>
-                      formatTierLabel(perk.points_threshold) === tier.title
-                  )
-                  .sort((a, b) => {
-                    const aDate = getPerkEndTimestamp(a);
-                    const bDate = getPerkEndTimestamp(b);
-                    return sortOption === 'date-asc'
-                      ? aDate - bDate
-                      : bDate - aDate;
-                  });
-
-                return (
-                  <div
-                    key={tier.id}
-                    className="shadow-sm relative"
-                    style={{
-                      display: 'flex',
-                      width: '100%',
-                      padding: '16px',
-                      flexDirection: 'column',
-                      alignItems: 'flex-start',
-                      gap: '16px',
-                      borderRadius: '20px',
-                      background: '#FFF',
-                    }}
-                  >
-                    <div className="flex w-full items-center justify-between">
-                      <h3 className="text-[#313131] font-grotesk text-left">
-                        {tier.title}
-                      </h3>
-                      <div className="flex items-center gap-2 rounded-full border border-[#EDEDED] bg-[#ffffff] px-3 py-1">
-                        <Image
-                          src="/ep_coin.svg"
-                          alt="coin"
-                          width={16}
-                          height={16}
-                          className="h-4 w-4"
-                        />
-                        <span className="body-small text-[#313131]">
-                          {tierRange}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="body-medium text-[#7D7D7D] body-medium text-left">
-                      {tier.description}
-                    </div>
-                    <div
-                      className="w-full border-t border-solid border-[#E2E2E2]"
-                      style={{ marginLeft: '-16px', marginRight: '-16px' }}
-                    />
-                    <div
-                      className="flex items-center gap-2"
-                      style={{ marginTop: '1px' }}
-                    >
-                      <Image
-                        src="/guidance_reward.svg"
-                        alt="Guidance Reward"
-                        width={16}
-                        height={16}
-                        style={{ width: '16', height: '16' }}
-                      />
-                      <div className="body-small font-grotesk text-[#7D7D7D] uppercase tracking-wide">
-                        TIER REWARDS
-                      </div>
-                    </div>
-                    {tierPerks.length > 0 ? (
-                      <div
-                        className="w-full overflow-x-auto"
-                        style={{ marginTop: '-8px' }}
-                      >
-                        <div className="flex gap-2 py-2 pr-4">
-                          {tierPerks.map((tierPerk) => {
-                            const tierPerkAffordable = canAfford(tierPerk);
-                            /* const tierPerkExpired =
-                              tierPerk.end_date &&
-                              new Date(tierPerk.end_date) < new Date(); */
-
-                            return (
-                              <div
-                                key={tierPerk.id}
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => handleOpenPerk(tierPerk)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    handleOpenPerk(tierPerk);
-                                  }
-                                }}
-                                className="cursor-pointer transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#313131]"
-                                style={{
-                                  display: 'flex',
-                                  width: '280px',
-                                  padding: '16px',
-                                  flexDirection: 'column',
-                                  alignItems: 'flex-start',
-                                  gap: '12px',
-                                  borderRadius: '16px',
-                                  border: '1px solid #EDEDED',
-                                  background: '#FFF',
-                                  flexShrink: 0,
-                                  boxShadow:
-                                    '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-                                }}
-                              >
-                                <div className="flex w-full items-center gap-3">
-                                  {tierPerk.thumbnail_url ? (
-                                    <Image
-                                      src={tierPerk.thumbnail_url}
-                                      alt={tierPerk.title}
-                                      width={45}
-                                      height={46}
-                                      style={{
-                                        width: '45px',
-                                        height: '46px',
-                                        borderRadius: '12px',
-                                        objectFit: 'cover',
-                                      }}
-                                    />
-                                  ) : (
-                                    <div className="flex h-[46px] w-[45px] items-center justify-center rounded-[12px] bg-[#F4F4F4] text-[10px] uppercase tracking-wide text-[#7D7D7D]">
-                                      No image
-                                    </div>
-                                  )}
-                                  <h4 className="text-[#020303] font-grotesk line-clamp-2">
-                                    {tierPerk.title}
-                                  </h4>
-                                </div>
-                                <div
-                                  className="flex w-full items-center gap-2"
-                                  style={{ flexWrap: 'nowrap' }}
-                                >
-                                  <span className="flex-1 inline-flex items-center justify-center gap-2 rounded-full border border-[#EDEDED] bg-[#ffffff] px-3 py-1 uppercase tracking-wide text-[#313131] body-small">
-                                    {address &&
-                                      (tierPerkAffordable ? (
-                                        <Image
-                                          src="/tier-eligible.svg"
-                                          alt="Eligible"
-                                          width={12}
-                                          height={12}
-                                          className="h-3 w-3"
-                                        />
-                                      ) : (
-                                        <Image
-                                          src="/tier-ineligible.svg"
-                                          alt="Not Eligible"
-                                          width={12}
-                                          height={12}
-                                          className="h-3 w-3"
-                                        />
-                                      ))}
-                                    <div className="body-small">
-                                      {formatTierLabel(
-                                        tierPerk.points_threshold
-                                      )}
-                                    </div>
-                                  </span>
-                                  <span className="flex-1 inline-flex items-center justify-center gap-2 body-small rounded-full border border-[#EDEDED] bg-[#ffffff] px-3 py-1 uppercase tracking-wide text-[#313131]">
-                                    <Clock className="h-3 w-3" />
-                                    {getPerkDateRange(tierPerk)}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="w-full py-4 text-center text-xs font-abc-monument-regular uppercase tracking-wide text-[#7D7D7D]">
-                        No rewards yet for this tier. Check back soon.
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
             </div>
           )}
         </div>
@@ -1404,101 +1147,37 @@ function PerksPageInner() {
                         </div>
                       )}
                     </div>
-
-                    <div
-                      className="absolute border-t border-solid border-[#131313]/20"
-                      style={{
-                        left: '-24px',
-                        right: '-24px',
-                      }}
-                    />
-                    <div style={{ height: '1px' }} />
                   </>
                 )}
 
-                <div style={{ height: '1px' }} />
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 body-small font-grotesk uppercase tracking-wide text-[#7D7D7D]">
-                    <Trophy className="h-4 w-4" />
-                    <span>Tier Required</span>
-                  </div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313]/5 px-4 py-2 body-small font-grotesk uppercase tracking-wide">
-                    {address &&
-                      (selectedPerkAffordable ? (
-                        <Image
-                          src="/tier-eligible.svg"
-                          alt="Eligible"
-                          width={12}
-                          height={12}
-                          className="h-3 w-3"
-                        />
-                      ) : (
-                        <Image
-                          src="/tier-ineligible.svg"
-                          alt="Not Eligible"
-                          width={12}
-                          height={12}
-                          className="h-3 w-3"
-                        />
-                      ))}
-                    {tierLabel}
-                  </div>
-                </div>
-                {selectedTierInfo && (
-                  <p className="text-xs text-gray-500">
-                    {selectedTierInfo.description}
-                  </p>
-                )}
-                {address ? (
-                  <button
-                    type="button"
-                    onClick={handleViewAllTiersClick}
-                    className="flex items-center justify-center title4 gap-4 font-grotesk text-black underline-offset-4 hover:underline"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '16px',
-                      borderBottom: '1px solid #313131',
-                      marginInline: 'auto',
-                    }}
-                  >
-                    View all tiers
-                    <span>
-                      <Image
-                        src="/arrow-right.svg"
-                        alt="Arrow Right"
-                        width={16}
-                        height={16}
-                        className="h-4 w-4 text-black dark:text-white"
-                        aria-hidden="true"
-                      />
-                    </span>
-                  </button>
-                ) : (
-                  <div className="flex flex-col items-center gap-3 text-center">
-                    <div>
-                      <h4 className="title4 font-grotesk text-black">
-                        IRL members only
-                      </h4>
-                      <p className="mt-1 body-small text-[#4F4F4F]">
-                        Create an account to claim this reward.
-                      </p>
+                {!address && (
+                  <>
+                    <div style={{ height: '1px' }} />
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <div>
+                        <h4 className="title4 font-grotesk text-black">
+                          IRL members only
+                        </h4>
+                        <p className="mt-1 body-small text-[#4F4F4F]">
+                          Create an account to claim this reward.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleLoginClick}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white transition-colors hover:bg-[#313131]"
+                      >
+                        Join IRL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleLoginClick}
+                        className="body-small font-grotesk text-[#313131] underline underline-offset-4 hover:text-black"
+                      >
+                        Already a member? Sign in
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleLoginClick}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white transition-colors hover:bg-[#313131]"
-                    >
-                      Join IRL
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleLoginClick}
-                      className="body-small font-grotesk text-[#313131] underline underline-offset-4 hover:text-black"
-                    >
-                      Already a member? Sign in
-                    </button>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
