@@ -7,6 +7,7 @@ export {
   type FetchEventsResult,
   type FetchEventTicketHoldersResult,
 } from './client';
+export { getDiceEventPosterUrl } from './get-poster';
 export {
   diceEventSchema,
   diceVenueSchema,

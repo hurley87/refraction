@@ -22,7 +22,11 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { buildCityMatcher } from '@/lib/utils/normalize-city';
-import type { DiceEvent, DiceImage, DiceVenue } from '@/lib/dice';
+import {
+  getDiceEventPosterUrl,
+  type DiceEvent,
+  type DiceVenue,
+} from '@/lib/dice';
 
 interface EventsResponse {
   events: DiceEvent[];
@@ -162,13 +166,6 @@ const parseManualEventDate = (
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
-const getPoster = (images: DiceImage[] | null | undefined): string | null => {
-  if (!images || images.length === 0) return null;
-  const preferred =
-    images.find((image) => image.type === 'SQUARE') ?? images[0];
-  return preferred?.url ?? null;
-};
-
 const getLocation = (venue: DiceVenue | undefined): string => {
   if (!venue) return 'Location TBA';
   const cityCountry = [venue.city, venue.country].filter(Boolean).join(', ');
@@ -250,7 +247,7 @@ const toPublicEvent = (
     description: event.description ?? null,
     start: parseEventDate(event.startDatetime),
     end: parseEventDate(event.endDatetime),
-    poster: getPoster(event.images),
+    poster: getDiceEventPosterUrl(event.images),
     location: getLocation(primaryVenue),
     ticketsUrl: getTicketsUrl(event.name),
     mapsUrl: EVENTS_MAP_HREF,

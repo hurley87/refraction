@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
-import type { DiceEvent } from '@/lib/dice';
+import { getDiceEventPosterUrl, type DiceEvent } from '@/lib/dice';
 import Image from 'next/image';
 import {
   Calendar,
@@ -843,9 +843,8 @@ export default function AdminEventsPage() {
     );
   }, [eventsData?.events]);
 
-  const getSquareImage = (event: DiceEvent) => {
-    return event.images?.find((img) => img.type === 'SQUARE')?.url;
-  };
+  const getSquareImage = (event: DiceEvent) =>
+    getDiceEventPosterUrl(event.images);
 
   if (adminLoading) {
     return (
