@@ -188,6 +188,16 @@ export function isWalletConnectSessionNoise(message: string): boolean {
   );
 }
 
+/**
+ * Talisman (and similar wallets) throw when the extension is installed but the
+ * user has not finished onboarding. Privy/wagmi probing injected providers can
+ * surface these as unhandled rejections — not actionable app bugs.
+ */
+export function isWalletExtensionOnboardingNoise(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('talisman extension has not been configured');
+}
+
 function shouldDropAbortError(
   event: SentryEventLike,
   hint?: EventHint
@@ -274,6 +284,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     message.includes('receiving end does not exist') ||
     message.includes('runtime.lasterror') ||
     isWalletExtensionEthereumConflict(message) ||
+    isWalletExtensionOnboardingNoise(message) ||
     isWalletConnectSessionNoise(message) ||
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||

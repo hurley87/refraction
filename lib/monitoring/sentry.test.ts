@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isAbortError,
   isWalletConnectSessionNoise,
+  isWalletExtensionOnboardingNoise,
   sentryBeforeSend,
 } from '@/lib/monitoring/sentry';
 
@@ -29,6 +30,19 @@ describe('isWalletConnectSessionNoise', () => {
       isWalletConnectSessionNoise('Error: No matching key. pairing: undefined')
     ).toBe(true);
     expect(isWalletConnectSessionNoise('TypeError: fetch failed')).toBe(false);
+  });
+});
+
+describe('isWalletExtensionOnboardingNoise', () => {
+  it('detects Talisman extension not configured errors', () => {
+    expect(
+      isWalletExtensionOnboardingNoise(
+        'Error: Talisman extension has not been configured yet. Please continue with onboarding.'
+      )
+    ).toBe(true);
+    expect(isWalletExtensionOnboardingNoise('User rejected the request')).toBe(
+      false
+    );
   });
 });
 
@@ -237,6 +251,22 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for Talisman extension onboarding noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [
+          {
+            value:
+              'Error: Talisman extension has not been configured yet. Please continue with onboarding.',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('returns null for Safari-style load failed network errors', () => {
     const event = {
       request: { url: 'https://www.irl.energy/events' },
@@ -255,8 +285,7 @@ describe('sentryBeforeSend', () => {
         values: [
           {
             type: 'TypeError',
-            value:
-              "Cannot read properties of undefined (reading 'type')",
+            value: "Cannot read properties of undefined (reading 'type')",
             stacktrace: {
               frames: [
                 { filename: 'app:///inpage.js', abs_path: 'app:///inpage.js' },
