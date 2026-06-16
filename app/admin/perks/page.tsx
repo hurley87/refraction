@@ -842,11 +842,17 @@ export default function AdminPerksPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={GLOBAL_CITY}>Global</SelectItem>
-                      {cityOptions.map((city) => (
-                        <SelectItem key={city.id} value={city.name}>
-                          {city.name}
-                        </SelectItem>
-                      ))}
+                      {cityOptions
+                        .filter(
+                          (city) =>
+                            city.name.trim().toLowerCase() !==
+                            GLOBAL_CITY.toLowerCase()
+                        )
+                        .map((city) => (
+                          <SelectItem key={city.id} value={city.name}>
+                            {city.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>

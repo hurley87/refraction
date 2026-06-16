@@ -76,6 +76,15 @@ type ContributorForm = {
   location_list_id: string;
 };
 
+type CityOption = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+/** Default city tag for guides/editorials that apply everywhere. */
+const GLOBAL_CITY = 'Global';
+
 function createEditorialBlockFromAddValue(
   value: string
 ): EditorialContentBlock {
@@ -217,6 +226,18 @@ export default function AdminGuideEditPage() {
     enabled: !!isAdmin && !!user?.email?.address,
   });
 
+  const { data: cityOptions = [] } = useQuery<CityOption[]>({
+    queryKey: ['cities'],
+    queryFn: async () => {
+      const response = await fetch('/api/cities');
+      if (!response.ok) throw new Error('Failed to load cities');
+      const responseData = await response.json();
+      const data = responseData.data ?? responseData;
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: !!isAdmin && !!user?.email?.address,
+  });
+
   const { data: detail, isLoading } = useQuery<AdminGuideDetail | null>({
     queryKey: ['admin-guide', id],
     queryFn: async () => {
@@ -257,6 +278,7 @@ export default function AdminGuideEditPage() {
   const [featuredPeopleText, setFeaturedPeopleText] = useState('');
   const [isPublished, setIsPublished] = useState(false);
   const [isFeatured, setIsFeatured] = useState(false);
+  const [city, setCity] = useState(GLOBAL_CITY);
   const [publishedAt, setPublishedAt] = useState('');
   const [contributors, setContributors] = useState<ContributorForm[]>([]);
   const [contributorPhotoUploadingIndex, setContributorPhotoUploadingIndex] =
@@ -323,6 +345,7 @@ export default function AdminGuideEditPage() {
     setFeaturedPeopleText((guide.featured_people ?? []).join('\n'));
     setIsPublished(guide.is_published);
     setIsFeatured(guide.is_featured);
+    setCity(guide.city?.trim() || GLOBAL_CITY);
     setPublishedAt(guide.published_at ? guide.published_at.slice(0, 16) : '');
 
     const c =
@@ -402,6 +425,7 @@ export default function AdminGuideEditPage() {
         featured_people,
         is_published: isPublished,
         is_featured: isFeatured,
+        city: city.trim() || GLOBAL_CITY,
         contributors: contributorPayload,
       };
 
@@ -818,6 +842,31 @@ export default function AdminGuideEditPage() {
               value={publishedAt}
               onChange={(e) => setPublishedAt(e.target.value)}
             />
+          </div>
+          <div>
+            <Label htmlFor="guide-city">City</Label>
+            <Select value={city} onValueChange={setCity}>
+              <SelectTrigger id="guide-city">
+                <SelectValue placeholder="Select city" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={GLOBAL_CITY}>Global</SelectItem>
+                {cityOptions
+                  .filter(
+                    (option) =>
+                      option.name.trim().toLowerCase() !==
+                      GLOBAL_CITY.toLowerCase()
+                  )
+                  .map((option) => (
+                    <SelectItem key={option.id} value={option.name}>
+                      {option.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-xs text-neutral-500">
+              Used to filter the guides hub. Defaults to Global.
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-6">

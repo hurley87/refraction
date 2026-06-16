@@ -58,6 +58,8 @@ export type GuideRow = {
   kind: GuideKindDb;
   title_prefix: string | null;
   city_name: string | null;
+  /** Canonical city tag for hub filtering (city name or 'Global'). */
+  city: string;
   title_primary: string | null;
   title_secondary: string | null;
   title_highlight_words: string[] | null;
@@ -126,6 +128,8 @@ export type GuideHubListItem = {
   imageAlt: string;
   readHref: string;
   authors: string[];
+  /** Canonical city tag (city name or 'Global') used for hub filtering. */
+  city: string;
 };
 
 export type GuideFeaturedPayload = {
@@ -139,6 +143,8 @@ export type GuideFeaturedPayload = {
   heroImageSrc: string;
   heroImageAlt: string;
   readHref: string;
+  /** Canonical city tag (city name or 'Global'). */
+  city: string;
 };
 
 function readHrefFor(row: GuideRow): string {
@@ -237,6 +243,7 @@ function toHubListItem(
     imageAlt: row.card_image_alt?.trim() || row.hero_image_alt || '',
     readHref: readHrefFor(row),
     authors: resolveHubAuthors(row, contributorNamesByGuideId),
+    city: row.city?.trim() || 'Global',
   };
 }
 
@@ -258,6 +265,7 @@ function toFeaturedPayload(
     heroImageSrc: row.hero_image_url || '',
     heroImageAlt: row.hero_image_alt || '',
     readHref: readHrefFor(row),
+    city: row.city?.trim() || 'Global',
   };
 }
 
@@ -267,6 +275,7 @@ const GUIDE_LIST_COLUMNS = `
   kind,
   title_prefix,
   city_name,
+  city,
   title_primary,
   title_secondary,
   title_highlight_words,
@@ -683,13 +692,14 @@ export type AdminGuideSummary = {
   is_featured: boolean;
   updated_at: string;
   label: string;
+  city: string;
 };
 
 export async function adminListGuides(): Promise<AdminGuideSummary[]> {
   const { data, error } = await supabase
     .from('guides')
     .select(
-      'id, slug, kind, is_published, published_at, is_featured, updated_at, title_prefix, city_name, title_primary, title_secondary'
+      'id, slug, kind, is_published, published_at, is_featured, updated_at, title_prefix, city_name, city, title_primary, title_secondary'
     )
     .order('updated_at', { ascending: false });
 
@@ -704,6 +714,7 @@ export async function adminListGuides(): Promise<AdminGuideSummary[]> {
     is_featured: r.is_featured,
     updated_at: r.updated_at,
     label: hubListTitle(r),
+    city: r.city ?? 'Global',
   }));
 }
 
@@ -794,6 +805,7 @@ export type UpdateGuidePayload = Partial<{
   kind: GuideKindDb;
   title_prefix: string | null;
   city_name: string | null;
+  city: string;
   title_primary: string | null;
   title_secondary: string | null;
   title_highlight_words: string[];

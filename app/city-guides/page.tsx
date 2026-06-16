@@ -40,6 +40,7 @@ export default async function CityGuidesHomePage() {
           heroImageSrc={featured.heroImageSrc}
           heroImageAlt={featured.heroImageAlt}
           readHref={featured.readHref}
+          city={featured.city}
         />
       ) : !hasPublishedGuides ? (
         <section className="mx-auto flex min-h-[200px] w-full max-w-[393px] items-center justify-center bg-neutral-900 px-4 py-12 text-center">

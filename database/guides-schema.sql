@@ -11,6 +11,10 @@ CREATE TABLE IF NOT EXISTS guides (
   -- City guide title (CityGuideArticleTitle)
   title_prefix TEXT,
   city_name TEXT,
+
+  -- Canonical city tag for hub filtering (city name or 'Global'); chosen from
+  -- the `cities` table. Distinct from `city_name` (the city guide title subject).
+  city TEXT NOT NULL DEFAULT 'Global',
   -- Editorial title (EditorialArticleTitle)
   title_primary TEXT,
   title_secondary TEXT,

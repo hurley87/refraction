@@ -17,6 +17,7 @@ const baseRow = {
   kind: 'city_guide',
   title_prefix: 'The IRL Guide to',
   city_name: 'Berlin',
+  city: 'Global',
   title_primary: null,
   title_secondary: null,
   title_highlight_words: [],

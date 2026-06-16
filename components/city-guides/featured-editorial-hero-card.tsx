@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CityGuideArticleMetaRow } from '@/components/city-guides/city-guide-article-meta-row';
 import { EDITORIAL_HERO_ASPECT_CLASS } from '@/components/city-guides/city-guide-article-hero-image';
@@ -18,6 +19,8 @@ export interface FeaturedEditorialHeroCardProps {
   heroImageAlt: string;
   readHref: string;
   readLabel?: string;
+  /** Canonical city tag (city name or 'Global'). */
+  city?: string;
   className?: string;
 }
 
@@ -41,11 +44,13 @@ export default function FeaturedEditorialHeroCard({
   heroImageSrc,
   readHref,
   readLabel,
+  city,
   className,
 }: FeaturedEditorialHeroCardProps) {
   const resolvedReadLabel = readLabel ?? defaultReadLabel(guideKind);
 
   const ariaFeaturedTitle = titleLine1.trim() || resolvedReadLabel;
+  const cityTag = city?.trim() ?? '';
 
   return (
     <section
@@ -76,18 +81,38 @@ export default function FeaturedEditorialHeroCard({
         </Link>
       </div>
 
-      <div className="mx-auto w-full max-w-[393px] bg-white  pt-4 pb-10">
+      <div className="mx-auto w-full max-w-[393px] bg-white px-4 pt-4 pb-10">
         <div
           className="flex w-full flex-col gap-2 bg-white"
           aria-label="Featured guide summary"
         >
+          {cityTag ? (
+            <div
+              className="flex h-5 w-fit min-w-0 items-center gap-1 py-0.5 pl-1 pr-2.5"
+              style={{
+                border: '1px solid var(--Borders-Heavy-Border, #454545)',
+              }}
+            >
+              <MapPin className="size-3 shrink-0 text-[#171717]" aria-hidden />
+              <span className="min-w-0 truncate label-small uppercase leading-none tracking-wide text-[#171717]">
+                {cityTag}
+              </span>
+            </div>
+          ) : null}
+
           <div id="featured-guide-title">
-            <GuideArticleHighlightedTitle
-              title={titleLine1}
-              highlightWords={titleHighlightWords}
-              className="w-full"
-              titleClassName="title1 font-bold uppercase tracking-tight text-[#171717] md:leading-none"
-            />
+            <Link
+              href={readHref}
+              aria-label={`${resolvedReadLabel}: ${ariaFeaturedTitle}`}
+              className="block transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400"
+            >
+              <GuideArticleHighlightedTitle
+                title={titleLine1}
+                highlightWords={titleHighlightWords}
+                className="w-full"
+                titleClassName="title1 font-bold uppercase tracking-tight text-[#171717] md:leading-none"
+              />
+            </Link>
           </div>
 
           {guideKind === 'editorial' ? (
