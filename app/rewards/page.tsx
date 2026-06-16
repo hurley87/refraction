@@ -5,9 +5,24 @@ import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 
 import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
-import { ExternalLink, Gift, Info, MapPin, Clock, Copy } from 'lucide-react';
+import {
+  ExternalLink,
+  Gift,
+  Info,
+  MapPin,
+  Clock,
+  Copy,
+  Tag,
+} from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
@@ -15,6 +30,19 @@ import { usePerks, useUserRedemptions } from '@/hooks/usePerks';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
+
+// Perks tagged with this city value apply everywhere; they yield to more
+// specific local picks when a city filter is active.
+const GLOBAL_CITY = 'Global';
+
+// Turn a stored perk type slug (e.g. "performance-venue") into a readable
+// chip label (e.g. "Performance Venue").
+const formatTypeLabel = (type: string) =>
+  type
+    .split(/[-\s]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {
@@ -106,13 +134,13 @@ function PerksPageInner() {
   const [selectedPerk, setSelectedPerk] = useState<Perk | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [viewMode, setViewMode] = useState<'rewards' | 'tiers'>('rewards');
-  const [sortOption, setSortOption] = useState<'date-desc' | 'date-asc'>(
-    'date-desc'
-  );
+  // Filter chips: city + type, both AND-combined. "all" means no filter.
+  const [selectedCity, setSelectedCity] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
 
-  const toggleSort = () => {
-    setSortOption((prev) => (prev === 'date-desc' ? 'date-asc' : 'date-desc'));
+  const clearFilters = () => {
+    setSelectedCity('all');
+    setSelectedType('all');
   };
 
   // Universal codes only; individual codes come from redemption after /api/perks/redeem
@@ -293,12 +321,6 @@ function PerksPageInner() {
         ? `Ends ${formattedEndDate}`
         : 'Ongoing';
 
-  //const perkType = selectedPerk?.type?.toLowerCase() ?? "";
-  //const isDiscountReward = perkType === "discount";
-  const selectedPerkIsOnline = selectedPerk?.location
-    ? selectedPerk.location.toLowerCase().includes('online')
-    : true;
-
   // Featured reward for the LATEST REWARD slot: a manually featured perk wins;
   // otherwise fall back to the most recently created/updated perk. When multiple
   // perks are featured, the most recently updated featured perk is used.
@@ -322,22 +344,83 @@ function PerksPageInner() {
       new Date(perk.end_date) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     );
 
+  // Shared ordering: ending-soon (not yet expired) rewards float to the top,
+  // then by end date according to the active sort direction.
+  const compareRewards = (a: Perk, b: Perk) => {
+    const aSoon = isPerkExpiringSoon(a);
+    const bSoon = isPerkExpiringSoon(b);
+    if (aSoon !== bSoon) return aSoon ? -1 : 1;
+
+    const aTime = getPerkEndTimestamp(a);
+    const bTime = getPerkEndTimestamp(b);
+
+    // Within the ending-soon group, soonest to expire comes first.
+    if (aSoon && bSoon) return aTime - bTime;
+
+    // Default ordering: latest end date first (further-out perks on top).
+    return bTime - aTime;
+  };
+
   const sortedRewards = perks
     .filter((perk) => perk.id !== latestReward?.id)
-    .sort((a, b) => {
-      // Ending-soon (not yet expired) rewards float to the top, right below the featured reward.
-      const aSoon = isPerkExpiringSoon(a);
-      const bSoon = isPerkExpiringSoon(b);
-      if (aSoon !== bSoon) return aSoon ? -1 : 1;
+    .sort(compareRewards);
 
-      const aTime = getPerkEndTimestamp(a);
-      const bTime = getPerkEndTimestamp(b);
+  const perkCity = (perk: Perk) => perk.location?.trim() ?? '';
 
-      // Within the ending-soon group, soonest to expire comes first.
-      if (aSoon && bSoon) return aTime - bTime;
-
-      return sortOption === 'date-asc' ? aTime - bTime : bTime - aTime;
+  // City/type values present in the feed power the chip dropdowns (no empties).
+  const cityOptions = useMemo(() => {
+    const values = new Set<string>();
+    perks.forEach((perk) => {
+      const city = perk.location?.trim();
+      if (city) values.add(city);
     });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [perks]);
+
+  const typeOptions = useMemo(() => {
+    const values = new Set<string>();
+    perks.forEach((perk) => {
+      const type = perk.type?.trim();
+      if (type) values.add(type);
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [perks]);
+
+  const hasActiveFilters = selectedCity !== 'all' || selectedType !== 'all';
+
+  // Filtered + ordered list shown when any chip is active. City rule:
+  // a specific city surfaces local perks first, then Global perks; "Global"
+  // shows only Global perks; "all" applies no city restriction. Type ANDs in.
+  const filteredRewards = useMemo(() => {
+    const matchesType = (perk: Perk) =>
+      selectedType === 'all' || perk.type === selectedType;
+
+    const matchesCity = (perk: Perk) => {
+      if (selectedCity === 'all') return true;
+      const city = perkCity(perk);
+      if (selectedCity === GLOBAL_CITY) return city === GLOBAL_CITY;
+      return city === selectedCity || city === GLOBAL_CITY;
+    };
+
+    const result = perks.filter(
+      (perk) => matchesType(perk) && matchesCity(perk)
+    );
+
+    if (selectedCity !== 'all' && selectedCity !== GLOBAL_CITY) {
+      // Local picks before Global fallbacks; each group keeps the date ordering.
+      return result.sort((a, b) => {
+        const aGlobal = perkCity(a) === GLOBAL_CITY ? 1 : 0;
+        const bGlobal = perkCity(b) === GLOBAL_CITY ? 1 : 0;
+        if (aGlobal !== bGlobal) return aGlobal - bGlobal;
+        return compareRewards(a, b);
+      });
+    }
+
+    return result.sort(compareRewards);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [perks, selectedCity, selectedType]);
+
+  const displayedRewards = hasActiveFilters ? filteredRewards : sortedRewards;
 
   const latestRewardAffordable = latestReward
     ? !address || canAfford(latestReward)
@@ -367,7 +450,7 @@ function PerksPageInner() {
         {/* Main Content */}
         <div className="px-0 pt-2 space-y-1">
           {/* LATEST REWARD Section */}
-          {latestReward && !perksLoading && (
+          {latestReward && !perksLoading && !hasActiveFilters && (
             <div className="mb-1">
               {/* Edge-to-edge: ignores page px-4 gutter */}
               {latestReward.thumbnail_url && (
@@ -415,27 +498,11 @@ function PerksPageInner() {
                 {/* Points, Location, and Date — metadata left, Details right */}
                 <div className="mb-2 flex h-5 min-w-0 items-center justify-between gap-2 self-stretch">
                   <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-2 self-stretch">
-                    {/* Points Pill */}
+                    {/* Category Pill */}
                     <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
-                      {address &&
-                        (latestRewardAffordable ? (
-                          <Image
-                            src="/tier-eligible.svg"
-                            alt="Eligible for Tier"
-                            width={8}
-                            height={8}
-                            className="inline-block shrink-0"
-                          />
-                        ) : (
-                          <Image
-                            src="/tier-ineligible.svg"
-                            alt="Not Eligible for Tier"
-                            width={8}
-                            height={8}
-                            className="inline-block shrink-0"
-                          />
-                        ))}
-                      {latestReward.points_threshold.toLocaleString()} PTS
+                      {latestReward.type
+                        ? formatTypeLabel(latestReward.type)
+                        : 'Reward'}
                     </div>
 
                     {!latestReward.end_date && (
@@ -616,65 +683,85 @@ function PerksPageInner() {
             </div>
           )}
 
-          {/* View toggle & sort */}
-          {!perksLoading && (
-            <div
-              id="tiers-toggle"
-              className="mb-6 flex h-[52px] w-full shrink-0 items-center gap-2 self-stretch border-t border-[var(--Borders-Heavy-Border,#454545)]"
-            >
-              <div className="flex h-[52px] min-w-0 flex-1 items-center gap-1 border-b border-t border-[var(--Borders-Light-Border,#DBDBDB)]">
-                {[{ label: 'Rewards', value: 'rewards' as const }].map(
-                  (option) => {
-                    const selected = viewMode === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setViewMode(option.value)}
-                        className={`flex flex-1 basis-0 items-center justify-center gap-2 self-stretch py-1 transition-colors duration-200 ${
-                          selected
-                            ? 'bg-[var(--Borders-Light-Border,#DBDBDB)]'
-                            : 'bg-transparent'
-                        }`}
+          {/* Filter chips — city + type, derived from the perk feed */}
+          {!perksLoading &&
+            (cityOptions.length > 0 || typeOptions.length > 0) && (
+              <div className="mb-4 flex flex-col gap-2">
+                <div className="flex items-stretch gap-2">
+                  {cityOptions.length > 0 && (
+                    <Select
+                      value={selectedCity}
+                      onValueChange={setSelectedCity}
+                    >
+                      <SelectTrigger
+                        aria-label="Filter rewards by city"
+                        className="flex h-10 flex-1 items-center justify-between rounded-none border-0 bg-[#a9a9a9] px-4 shadow-none transition-colors hover:bg-[#9a9a9a] focus:ring-0 focus:ring-offset-0 [&>svg:last-child]:hidden"
                       >
-                        <h4
-                          className={selected ? 'text-black' : 'text-[#757575]'}
-                        >
-                          {option.label}
-                        </h4>
-                      </button>
-                    );
-                  }
+                        <span className="truncate label-small uppercase tracking-wide text-black">
+                          <SelectValue placeholder="All cities" />
+                        </span>
+                        <MapPin
+                          className="size-5 shrink-0 text-black"
+                          aria-hidden
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All cities</SelectItem>
+                        {cityOptions.map((city) => (
+                          <SelectItem key={city} value={city}>
+                            {city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  {typeOptions.length > 0 && (
+                    <Select
+                      value={selectedType}
+                      onValueChange={setSelectedType}
+                    >
+                      <SelectTrigger
+                        aria-label="Filter rewards by type"
+                        className="flex h-10 flex-1 items-center justify-between rounded-none border-0 bg-[#a9a9a9] px-4 shadow-none transition-colors hover:bg-[#9a9a9a] focus:ring-0 focus:ring-offset-0 [&>svg:last-child]:hidden"
+                      >
+                        <span className="truncate label-small uppercase tracking-wide text-black">
+                          <SelectValue placeholder="All types" />
+                        </span>
+                        <Tag
+                          className="size-5 shrink-0 text-black"
+                          aria-hidden
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All types</SelectItem>
+                        {typeOptions.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {formatTypeLabel(type)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="self-start label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
+                  >
+                    Clear filters
+                  </button>
                 )}
               </div>
-
-              <button
-                type="button"
-                onClick={() => toggleSort()}
-                className="box-border flex h-[52px] w-[55px] shrink-0 cursor-pointer flex-col items-start justify-center gap-4 p-4 text-[#171717] transition-colors duration-200 hover:bg-black/5"
-                aria-label="Filter rewards"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 23 24"
-                  fill="none"
-                  className="h-5 w-[19px] shrink-0"
-                  aria-hidden
-                >
-                  <path
-                    d="M20 8.15416H2V5.51099H20V8.15416ZM17.0463 10.6784H4.95374V13.3216H17.0463V10.6784ZM13.8711 15.8458H8.13216V18.489H13.8711V15.8458Z"
-                    fill="currentColor"
-                  />
-                </svg>
-              </button>
-            </div>
-          )}
+            )}
 
           {/* Perks List */}
-          {!perksLoading && viewMode === 'rewards' && (
+          {!perksLoading && (
             <div className="flex flex-col">
-              {perks.length > 0 ? (
-                sortedRewards.map((perk) => {
+              {displayedRewards.length > 0 ? (
+                displayedRewards.map((perk) => {
                   const affordable = !address || canAfford(perk);
                   const isExpired = Boolean(
                     perk.end_date && new Date(perk.end_date) < new Date()
@@ -745,25 +832,9 @@ function PerksPageInner() {
                         <div className="mb-2 flex h-5 min-w-0 w-full items-center justify-between gap-2 self-stretch">
                           <div className="flex min-w-0 flex-nowrap items-center justify-start gap-2 self-stretch">
                             <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
-                              {address &&
-                                (canAfford(perk) ? (
-                                  <Image
-                                    src="/tier-eligible.svg"
-                                    alt="Eligible for Tier"
-                                    width={8}
-                                    height={8}
-                                    className="inline-block shrink-0"
-                                  />
-                                ) : (
-                                  <Image
-                                    src="/tier-ineligible.svg"
-                                    alt="Not Eligible for Tier"
-                                    width={8}
-                                    height={8}
-                                    className="inline-block shrink-0"
-                                  />
-                                ))}
-                              {perk.points_threshold.toLocaleString()} PTS
+                              {perk.type
+                                ? formatTypeLabel(perk.type)
+                                : 'Reward'}
                             </div>
 
                             <div
@@ -858,6 +929,20 @@ function PerksPageInner() {
                     </div>
                   );
                 })
+              ) : hasActiveFilters ? (
+                <div className="flex flex-col items-center gap-2 self-stretch border-t border-[var(--Text-Secondary-Text,#757575)] bg-[var(--Backgrounds-Background,#FFF)] py-8 text-center">
+                  <Gift className="mx-auto mb-3 h-12 w-12 text-gray-300" />
+                  <p className="body-small mb-2 font-abc-monument-regular text-black">
+                    No perks match your filters
+                  </p>
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
+                  >
+                    Clear filters
+                  </button>
+                </div>
               ) : (
                 <div className="flex flex-col items-center gap-2 self-stretch border-t border-[var(--Text-Secondary-Text,#757575)] bg-[var(--Backgrounds-Background,#FFF)] py-8 text-center">
                   <Gift className="mx-auto mb-3 h-12 w-12 text-gray-300" />
@@ -956,12 +1041,7 @@ function PerksPageInner() {
                   <div className="body-medium leading-relaxed text-[#4F4F4F]">
                     {selectedPerk.description?.trim() || 'Details coming soon.'}
                   </div>
-                  {selectedPerk.location && !selectedPerkIsOnline && (
-                    <p className="flex items-center gap-2 text-xs font-inktrap uppercase tracking-wide text-gray-500">
-                      <MapPin className="h-3 w-3" />
-                      <span>Location: {selectedPerk.location}</span>
-                    </p>
-                  )}
+
                   <div className="grid grid-cols-2 gap-2">
                     <span
                       className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 body-small font-grotesk uppercase tracking-wide"
