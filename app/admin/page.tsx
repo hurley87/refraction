@@ -19,6 +19,7 @@ import {
   CreditCard,
   CircleDollarSign,
   Globe,
+  Tag,
 } from 'lucide-react';
 
 interface AdminSection {
@@ -99,6 +100,13 @@ const SECTIONS: AdminSection[] = [
     href: '/admin/cities',
     icon: <Building2 className="h-6 w-6" />,
     color: 'bg-sky-50 text-sky-600 border-sky-200',
+  },
+  {
+    title: 'Categories',
+    description: 'Venue/perk categories reused across perks and the map',
+    href: '/admin/categories',
+    icon: <Tag className="h-6 w-6" />,
+    color: 'bg-fuchsia-50 text-fuchsia-600 border-fuchsia-200',
   },
   {
     title: 'City Guides',

@@ -26,6 +26,16 @@ import type { Tier } from '@/lib/types';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 
+/** Default City value for perks that apply everywhere (software, online, etc.). */
+const GLOBAL_CITY = 'Global';
+
+/** Shape returned by /api/cities and /api/categories (slug-keyed lookups). */
+type CitiesAndCategoriesOption = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
 // Component to display discount code type for a perk
 function PerkCodeTypeInfo({
   perkId,
@@ -114,7 +124,7 @@ export default function AdminPerksPage() {
   const [formData, setFormData] = useState<Partial<Perk>>({
     title: '',
     description: '',
-    location: '',
+    location: GLOBAL_CITY,
     points_threshold: 0,
     website_url: '',
     type: '',
@@ -194,6 +204,44 @@ export default function AdminPerksPage() {
     },
     enabled: !adminLoading,
   });
+
+  // Canonical cities power the City dropdown (plus a "Global" default).
+  const { data: cityOptions = [] } = useQuery<CitiesAndCategoriesOption[]>({
+    queryKey: ['cities'],
+    queryFn: async () => {
+      const response = await fetch('/api/cities');
+      if (!response.ok) throw new Error('Failed to fetch cities');
+      const responseData = await response.json();
+      const data = responseData.data ?? responseData;
+      return Array.isArray(data) ? data : [];
+    },
+  });
+
+  // Canonical categories power the Type dropdown (reused by the map later).
+  const { data: categoryOptions = [] } = useQuery<CitiesAndCategoriesOption[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const response = await fetch('/api/categories');
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      const responseData = await response.json();
+      const data = responseData.data ?? responseData;
+      return Array.isArray(data) ? data : [];
+    },
+  });
+
+  // Map a perk's stored type slug back to its readable category name.
+  const categoryNameBySlug = useMemo(() => {
+    const map = new Map<string, string>();
+    categoryOptions.forEach((category) =>
+      map.set(category.slug, category.name)
+    );
+    return map;
+  }, [categoryOptions]);
+
+  const formatPerkType = useCallback(
+    (type: string) => categoryNameBySlug.get(type) ?? type.replace(/-/g, ' '),
+    [categoryNameBySlug]
+  );
 
   // Create perk mutation
   const createPerkMutation = useMutation({
@@ -443,7 +491,7 @@ export default function AdminPerksPage() {
     setFormData({
       title: '',
       description: '',
-      location: '',
+      location: GLOBAL_CITY,
       points_threshold: 0,
       website_url: '',
       type: '',
@@ -636,32 +684,6 @@ export default function AdminPerksPage() {
     return `${tier.min_points.toLocaleString()} – ${tier.max_points.toLocaleString()} points`;
   };
 
-  const resolveTierTitle = useCallback(
-    (points: number) => {
-      if (!tiers || tiers.length === 0) {
-        return `${points.toLocaleString()} pts`;
-      }
-
-      const tier = tiers.find(
-        (t) =>
-          points >= t.min_points &&
-          (t.max_points === null || points < t.max_points)
-      );
-
-      if (!tier) {
-        return `${points.toLocaleString()} pts`;
-      }
-
-      const rangeLabel =
-        tier.max_points === null
-          ? `${tier.min_points.toLocaleString()}+ pts`
-          : `${tier.min_points.toLocaleString()} – ${tier.max_points.toLocaleString()} pts`;
-
-      return `${tier.title} (${rangeLabel})`;
-    },
-    [tiers]
-  );
-
   if (adminLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -808,14 +830,25 @@ export default function AdminPerksPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={formData.location || ''}
-                    onChange={(e) =>
-                      setFormData({ ...formData, location: e.target.value })
+                  <Label htmlFor="location">City</Label>
+                  <Select
+                    value={formData.location || GLOBAL_CITY}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, location: value })
                     }
-                  />
+                  >
+                    <SelectTrigger id="location">
+                      <SelectValue placeholder="Select city" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={GLOBAL_CITY}>Global</SelectItem>
+                      {cityOptions.map((city) => (
+                        <SelectItem key={city.id} value={city.name}>
+                          {city.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
@@ -902,17 +935,11 @@ export default function AdminPerksPage() {
                       <SelectValue placeholder="Select perk type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="food">Food & Drink</SelectItem>
-                      <SelectItem value="retail">Retail</SelectItem>
-                      <SelectItem value="entertainment">
-                        Entertainment
-                      </SelectItem>
-                      <SelectItem value="services">Services</SelectItem>
-                      <SelectItem value="points program">
-                        Points Program
-                      </SelectItem>
-                      <SelectItem value="license">Software License</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      {categoryOptions.map((category) => (
+                        <SelectItem key={category.id} value={category.slug}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1054,9 +1081,11 @@ export default function AdminPerksPage() {
                         Unlisted
                       </span>
                     )}
-                    <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                      {perk.type.replace('-', ' ')}
-                    </span>
+                    {perk.type && (
+                      <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full capitalize">
+                        {formatPerkType(perk.type)}
+                      </span>
+                    )}
                   </div>
                   <div className="flex gap-4 mb-2">
                     {perk.thumbnail_url && (
@@ -1078,8 +1107,7 @@ export default function AdminPerksPage() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
-                    <div>Tier: {resolveTierTitle(perk.points_threshold)}</div>
-                    {perk.location && <div>Location: {perk.location}</div>}
+                    {perk.location && <div>City: {perk.location}</div>}
                     {perk.end_date && (
                       <div
                         className={`${new Date(perk.end_date) < new Date() ? 'text-red-600' : ''}`}
