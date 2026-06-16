@@ -204,7 +204,8 @@ export default function AdminGuidesListPage() {
                 <div className="font-medium text-[#171717]">{g.label}</div>
                 <div className="text-sm text-neutral-500">
                   <span className="uppercase">{g.kind.replace('_', ' ')}</span>{' '}
-                  · / {g.slug} · {g.is_published ? 'Published' : 'Draft'}
+                  · / {g.slug} · {g.city} ·{' '}
+                  {g.is_published ? 'Published' : 'Draft'}
                   {g.is_featured ? ' · Featured' : ''}
                 </div>
               </div>

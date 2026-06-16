@@ -30,6 +30,7 @@ const patchSchema = z.object({
   kind: z.enum(['city_guide', 'editorial']).optional(),
   title_prefix: z.string().nullable().optional(),
   city_name: z.string().nullable().optional(),
+  city: z.string().min(1).optional(),
   title_primary: z.string().nullable().optional(),
   title_secondary: z.string().nullable().optional(),
   title_highlight_words: z.array(z.string()).optional(),

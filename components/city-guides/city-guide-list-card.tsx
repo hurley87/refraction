@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Calendar } from 'lucide-react';
+import { Calendar, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GuideArticleHighlightedTitle } from '@/components/city-guides/guide-article-highlighted-title';
 import { CityGuidesHubCardImage } from '@/components/city-guides/city-guides-hub-card-image';
@@ -19,6 +19,10 @@ export interface CityGuideListCardProps {
   readHref: string;
   authors?: string[];
   titleHighlightWords?: string[] | null;
+  /** Canonical city tag (city name or 'Global'). */
+  city?: string;
+  /** When provided, the city pill becomes a button that filters by this city. */
+  onCityClick?: (city: string) => void;
   className?: string;
 }
 
@@ -55,8 +59,11 @@ export default function CityGuideListCard({
   readHref,
   authors = [],
   titleHighlightWords,
+  city,
+  onCityClick,
   className,
 }: CityGuideListCardProps) {
+  const cityTag = city?.trim() ?? '';
   const contributorNames = authors.filter((name) => name.trim());
 
   return (
@@ -74,26 +81,45 @@ export default function CityGuideListCard({
       />
 
       <div className="flex w-full items-center justify-between gap-2">
-        <div
-          className="flex h-5 w-fit min-w-0 shrink items-center gap-1 py-0.5 pl-1 pr-2.5"
-          style={{
-            border: '1px solid var(--Borders-Heavy-Border, #454545)',
-          }}
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="size-3 shrink-0 text-[#171717]"
-            aria-hidden
+        <div className="flex min-w-0 shrink items-center gap-2">
+          <div
+            className="flex h-5 w-fit min-w-0 shrink-0 items-center gap-1 py-0.5 pl-1 pr-2.5"
+            style={{
+              border: '1px solid var(--Borders-Heavy-Border, #454545)',
+            }}
           >
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-            <circle cx="12" cy="9" r="2.25" fill="white" />
-          </svg>
-          <span className="min-w-0 whitespace-nowrap label-small uppercase leading-none tracking-wide text-[#171717]">
-            {guideKindLabel(guideKind)}
-          </span>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="size-3 shrink-0 text-[#171717]"
+              aria-hidden
+            >
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
+              <circle cx="12" cy="9" r="2.25" fill="white" />
+            </svg>
+            <span className="min-w-0 whitespace-nowrap label-small uppercase leading-none tracking-wide text-[#171717]">
+              {guideKindLabel(guideKind)}
+            </span>
+          </div>
+
+          {cityTag ? (
+            <button
+              type="button"
+              onClick={() => onCityClick?.(cityTag)}
+              aria-label={`Filter by ${cityTag}`}
+              className="flex h-5 w-fit min-w-0 items-center gap-1 py-0.5 pl-1 pr-2.5 transition-colors hover:bg-[#EDEDED] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#171717]"
+              style={{
+                border: '1px solid var(--Borders-Heavy-Border, #454545)',
+              }}
+            >
+              <MapPin className="size-3 shrink-0 text-[#171717]" aria-hidden />
+              <span className="min-w-0 truncate label-small uppercase leading-none tracking-wide text-[#171717]">
+                {cityTag}
+              </span>
+            </button>
+          ) : null}
         </div>
         <div className="flex min-w-0 shrink-0 items-center gap-1.5 text-[#757575]">
           <Calendar className="size-4 shrink-0" strokeWidth={1.5} aria-hidden />
@@ -110,14 +136,20 @@ export default function CityGuideListCard({
         </div>
       </div>
 
-      <GuideArticleHighlightedTitle
-        title={title}
-        highlightWords={titleHighlightWords}
-        as="h2"
-        className="min-h-8"
-        titleClassName="title2 min-h-8 text-[#171717]"
-        highlightClassName="box-decoration-clone bg-[#FFE600] px-1 py-0"
-      />
+      <Link
+        href={readHref}
+        aria-label={title}
+        className="block transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400"
+      >
+        <GuideArticleHighlightedTitle
+          title={title}
+          highlightWords={titleHighlightWords}
+          as="h2"
+          className="min-h-8"
+          titleClassName="title2 min-h-8 text-[#171717]"
+          highlightClassName="box-decoration-clone bg-[#FFE600] px-1 py-0"
+        />
+      </Link>
 
       <p className="body-small line-clamp-2 min-h-10 text-[#757575]">
         {preview}
