@@ -134,8 +134,6 @@ function PerksPageInner() {
   const [selectedPerk, setSelectedPerk] = useState<Perk | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [viewMode, setViewMode] = useState<'rewards' | 'tiers'>('rewards');
-
   // Filter chips: city + type, both AND-combined. "all" means no filter.
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -322,12 +320,6 @@ function PerksPageInner() {
       : formattedEndDate
         ? `Ends ${formattedEndDate}`
         : 'Ongoing';
-
-  //const perkType = selectedPerk?.type?.toLowerCase() ?? "";
-  //const isDiscountReward = perkType === "discount";
-  const selectedPerkIsOnline = selectedPerk?.location
-    ? selectedPerk.location.toLowerCase().includes('online')
-    : true;
 
   // Featured reward for the LATEST REWARD slot: a manually featured perk wins;
   // otherwise fall back to the most recently created/updated perk. When multiple
@@ -693,7 +685,6 @@ function PerksPageInner() {
 
           {/* Filter chips — city + type, derived from the perk feed */}
           {!perksLoading &&
-            viewMode === 'rewards' &&
             (cityOptions.length > 0 || typeOptions.length > 0) && (
               <div className="mb-4 flex flex-col gap-2">
                 <div className="flex items-stretch gap-2">
@@ -767,7 +758,7 @@ function PerksPageInner() {
             )}
 
           {/* Perks List */}
-          {!perksLoading && viewMode === 'rewards' && (
+          {!perksLoading && (
             <div className="flex flex-col">
               {displayedRewards.length > 0 ? (
                 displayedRewards.map((perk) => {
@@ -1050,7 +1041,7 @@ function PerksPageInner() {
                   <div className="body-medium leading-relaxed text-[#4F4F4F]">
                     {selectedPerk.description?.trim() || 'Details coming soon.'}
                   </div>
-                
+
                   <div className="grid grid-cols-2 gap-2">
                     <span
                       className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 body-small font-grotesk uppercase tracking-wide"
