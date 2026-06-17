@@ -18,6 +18,7 @@
   --sds-size-space-400: 16px;
   --sds-size-blur-100: 4px;
   --Backgrounds-Secondary-CTA-BG: #dbdbdb;
+  --Backgrounds-Light-Screen: #ffffffa6;
 }
 
 .mapboxgl-popup-content {
@@ -226,7 +227,6 @@
       letter-spacing: 0;
     }
   }
-
 
   .body-largish {
     font-size: 24px; /* 16px */

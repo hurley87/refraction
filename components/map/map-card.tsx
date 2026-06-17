@@ -8,6 +8,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { formatLocationCategory } from '@/lib/utils/format-location-category';
+import { MapCheckinAvatarStack } from '@/components/map/map-checkin-avatar-stack';
+import type { MapCheckinAvatarEntry } from '@/lib/map/checkin-avatar-utils';
 
 interface MapCardProps {
   name: string;
@@ -24,11 +26,13 @@ interface MapCardProps {
    * Compact card for map-click “new spot” flow: POI name, address, one primary CTA
    * styled like the check-in dialog footer button.
    */
-  variant?: 'default' | 'createPreview';
+  variant?: 'default' | 'createPreview' | 'drawerTile';
   /** Label for the primary button when `variant` is `createPreview`. */
   createPreviewActionLabel?: string;
   /** Location category (e.g. from marker `type`); shown on default variant only. */
   type?: string | null;
+  /** Recent check-ins for `drawerTile` avatar stack. */
+  recentCheckins?: MapCheckinAvatarEntry[];
 }
 
 /**
@@ -48,6 +52,7 @@ export default function MapCard({
   variant = 'default',
   createPreviewActionLabel = 'Create and check in',
   type,
+  recentCheckins = [],
 }: MapCardProps) {
   if (variant === 'createPreview') {
     return (
@@ -134,6 +139,43 @@ export default function MapCard({
           </button>
         </div>
       </div>
+    );
+  }
+
+  if (variant === 'drawerTile') {
+    return (
+      <button
+        type="button"
+        onClick={onAction}
+        disabled={isLoading}
+        className="relative size-[206px] shrink-0 overflow-hidden border border-[rgba(255,255,255,0.15)] bg-lightgray text-left shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt=""
+            fill
+            sizes="206px"
+            loading="lazy"
+            className="object-cover object-top"
+          />
+        ) : null}
+
+        <div className="absolute bottom-[var(--sds-size-space-200)] left-[var(--sds-size-space-200)] right-[var(--sds-size-space-200)] z-10 flex h-[58px] flex-col justify-center gap-0.5 bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)]">
+          <span className="title5 block min-h-4 shrink-0 truncate text-[#171717] font-bold">
+            {name}
+          </span>
+          <div className="flex min-h-0 items-center justify-between gap-1">
+            <span className="flex shrink-0 label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5 uppercase  text-[#171717]">
+              {formatLocationCategory(type)}
+            </span>
+            <MapCheckinAvatarStack
+              checkins={recentCheckins}
+              className="ml-auto flex h-7 shrink-0 items-center gap-2 py-0 pl-1 pr-0"
+            />
+          </div>
+        </div>
+      </button>
     );
   }
 
