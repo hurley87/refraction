@@ -16,6 +16,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
 import MapNav from '@/components/map/mapnav';
+import { MapDesktopNav } from '@/components/map/map-desktop-nav';
 import MapCard from '@/components/map/map-card';
 import { CheckInSuccessScreen } from '@/components/map/check-in-success-screen';
 import { MapPinImage } from '@/components/map/map-pin-image';
@@ -1531,44 +1532,46 @@ export default function InteractiveMap({
   };
 
   const mapCardBottomOverlayClassName = cn(
-    'pointer-events-none fixed inset-x-0 z-[75] flex justify-center px-4',
+    'pointer-events-none fixed inset-x-0 z-[75] flex justify-center px-4 xl:pl-[809px]',
     showLocationForm
       ? 'bottom-[calc(min(88vh,640px)+0.5rem)]'
       : 'bottom-[max(0.75rem,env(safe-area-inset-bottom))]'
   );
 
+  const guideBackLink = effectiveGuideReturnHref ? (
+    <Link
+      href={effectiveGuideReturnHref}
+      className="flex h-12 w-12 shrink-0 items-center justify-center gap-4 rounded-[179px] border border-[var(--Dark-Tint-20---Light-Steel,#DBDBDB)] bg-[var(--Dark-Tint-White,#FFF)] p-2 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px] transition-opacity hover:opacity-90"
+      aria-label="Back to guide"
+    >
+      <Image
+        src="/arrow-left.svg"
+        alt=""
+        width={24}
+        height={24}
+        className="block shrink-0"
+        unoptimized
+      />
+    </Link>
+  ) : undefined;
+
+  const searchProximity = {
+    longitude: viewState.longitude,
+    latitude: viewState.latitude,
+  };
+
   return (
-    <div className="fixed inset-0 w-full h-full">
-      {/* MapNav Header (mobile: search sits between logo and menu) */}
-      <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/20 to-transparent">
+    <div className="fixed inset-0 h-full w-full xl:rounded-none">
+      {/* Mobile / tablet nav */}
+      <div className="absolute left-0 right-0 top-0 z-20 bg-gradient-to-b from-black/20 to-transparent xl:hidden">
         <div className="mx-auto flex min-w-0 w-full justify-center py-4">
           <MapNav
-            leftSlot={
-              effectiveGuideReturnHref ? (
-                <Link
-                  href={effectiveGuideReturnHref}
-                  className="flex h-12 w-12 shrink-0 items-center justify-center gap-4 rounded-[179px] border border-[var(--Dark-Tint-20---Light-Steel,#DBDBDB)] bg-[var(--Dark-Tint-White,#FFF)] p-2 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px] transition-opacity hover:opacity-90"
-                  aria-label="Back to guide"
-                >
-                  <Image
-                    src="/arrow-left.svg"
-                    alt=""
-                    width={24}
-                    height={24}
-                    className="block shrink-0"
-                    unoptimized
-                  />
-                </Link>
-              ) : undefined
-            }
+            leftSlot={guideBackLink}
             center={
               <div className="flex w-full min-w-0 max-w-[163px] items-center md:hidden">
                 <LocationSearch
                   placeholder="Search"
-                  proximity={{
-                    longitude: viewState.longitude,
-                    latitude: viewState.latitude,
-                  }}
+                  proximity={searchProximity}
                   onSelect={handleSearchSelect}
                   className="w-full min-w-0"
                   inputClassName={MAP_SEARCH_INPUT_CLASS}
@@ -1578,6 +1581,37 @@ export default function InteractiveMap({
           />
         </div>
       </div>
+
+      {/* Desktop nav (4K / xl+) */}
+      <div className="pointer-events-none absolute left-0 right-0 top-0 z-30 hidden xl:block">
+        <MapDesktopNav
+          leftSlot={guideBackLink}
+          searchSlot={
+            <div className="pointer-events-auto flex h-16 w-[255px] items-center gap-4 px-2 py-[var(--sds-size-space-300)]">
+              <LocationSearch
+                placeholder="Search"
+                proximity={searchProximity}
+                onSelect={handleSearchSelect}
+                className="h-full min-w-0 flex-1"
+                inputClassName={MAP_SEARCH_INPUT_CLASS}
+              />
+            </div>
+          }
+        />
+      </div>
+
+      {/* Desktop left drawer: location lists */}
+      <aside className="pointer-events-none absolute left-0 top-0 z-20 hidden h-[1971px] max-h-[100dvh] w-[809px] flex-col gap-8 rounded-none border-t-2 border-[#DBDBDB] bg-[var(--Backgrounds-Light-Screen,#FFFFFFA6)] pt-[90px] pr-4 pb-[95px] pl-4 backdrop-blur-md xl:flex">
+        <LocationListsDrawer
+          walletAddress={walletAddress}
+          onLocationFocus={handleFocusLocationFromList}
+          mapBounds={mapBounds}
+          userLocation={userLocation}
+          fetchEnabled={discoverListsEnabled}
+          collapseForMapCard={Boolean(popupInfo || pendingMapCreateMarker)}
+          layout="sidebar"
+        />
+      </aside>
 
       {showLocationForm && (
         <button
@@ -1677,17 +1711,14 @@ export default function InteractiveMap({
         </button>
       </div>
 
-      {/* Search row (desktop/tablet) + welcome banner (all breakpoints) */}
-      <div className="absolute left-1/2 top-20 z-10 w-full max-w-md -translate-x-1/2 transform px-4">
+      {/* Search row (tablet only) + welcome banner */}
+      <div className="absolute left-1/2 top-20 z-10 w-full max-w-md -translate-x-1/2 transform px-4 xl:hidden">
         <div className="space-y-3">
           <div className="hidden items-center gap-2 md:flex">
             <div className="flex-1">
               <LocationSearch
                 placeholder="Search"
-                proximity={{
-                  longitude: viewState.longitude,
-                  latitude: viewState.latitude,
-                }}
+                proximity={searchProximity}
                 onSelect={handleSearchSelect}
                 inputClassName={MAP_SEARCH_INPUT_CLASS}
               />
@@ -1799,16 +1830,84 @@ export default function InteractiveMap({
         </div>
       </div>
 
-      <LocationListsDrawer
-        walletAddress={walletAddress}
-        onLocationFocus={handleFocusLocationFromList}
-        mapBounds={mapBounds}
-        userLocation={userLocation}
-        fetchEnabled={discoverListsEnabled}
-        collapseForMapCard={Boolean(popupInfo || pendingMapCreateMarker)}
-      />
+      <div className="xl:hidden">
+        <LocationListsDrawer
+          walletAddress={walletAddress}
+          onLocationFocus={handleFocusLocationFromList}
+          mapBounds={mapBounds}
+          userLocation={userLocation}
+          fetchEnabled={discoverListsEnabled}
+          collapseForMapCard={Boolean(popupInfo || pendingMapCreateMarker)}
+        />
+      </div>
 
-      {/* Map */}
+      {/* Desktop: locate control (lower right) */}
+      <div className="pointer-events-none absolute bottom-4 right-4 z-10 hidden xl:block">
+        <button
+          type="button"
+          onClick={handleLocateUser}
+          disabled={isLocating}
+          className="pointer-events-auto flex h-[55px] w-[55px] shrink-0 items-center justify-center gap-4 rounded-[1000px] border border-[var(--IRL-Yellow,#FFF200)] bg-[var(--IRL-Yellow,#FFF200)] px-3 py-2 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label={isLocating ? 'Locating...' : 'My Location'}
+        >
+          {isLocating ? (
+            <svg
+              className="size-6 shrink-0 animate-spin text-[#171717]"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width={24}
+              height={24}
+              viewBox="0 0 24 24"
+              fill="none"
+              className="aspect-square size-6 shrink-0"
+              aria-hidden="true"
+            >
+              <path
+                d="M5.82333 16.099L3 18.9316L5.06064 21L7.87035 18.1797L9.87107 20.1196V14.1031H3.8771L5.82333 16.099Z"
+                fill="#171717"
+              />
+              <path
+                d="M11.9999 10.2014C11.0288 10.2014 10.2402 10.9916 10.2402 11.9677C10.2402 12.9438 11.0275 13.734 11.9999 13.734C12.9723 13.734 13.7595 12.9438 13.7595 11.9677C13.7595 10.9916 12.9723 10.2014 11.9999 10.2014Z"
+                fill="#171717"
+              />
+              <path
+                d="M16.1177 18.1661L18.9397 21L21.0004 18.9316L18.1906 16.1113L20.1233 14.1031H14.1279V20.1196L16.1177 18.1661Z"
+                fill="#171717"
+              />
+              <path
+                d="M18.1766 7.83501L21 5.00242L18.9393 2.93402L16.1296 5.75431L14.1289 3.81442V9.83095H20.1229L18.1766 7.83501Z"
+                fill="#171717"
+              />
+              <path
+                d="M7.88261 5.76798L5.06064 2.93402L3 5.00242L5.80971 7.82271L3.8771 9.83095H9.87107V3.81442L7.88261 5.76798Z"
+                fill="#171717"
+              />
+            </svg>
+          )}
+        </button>
+      </div>
+
+      {/* Map — inset on desktop so drawer does not cover controls */}
       <Map
         ref={mapRef}
         {...viewState}
@@ -2958,7 +3057,7 @@ export default function InteractiveMap({
           aria-modal="true"
           aria-labelledby="new-location-drawer-title"
         >
-          <div className="pointer-events-auto flex w-full max-w-[393px] max-h-[min(88vh,640px)] flex-col overflow-hidden rounded-t-2xl border border-b-0 border-[#ebebeb] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.12)] sm:rounded-2xl sm:border-b sm:mb-[max(0.5rem,env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)]">
+          <div className="pointer-events-auto flex w-full max-w-[393px] max-h-[min(88vh,640px)] flex-col overflow-hidden rounded-t-2xl border border-b-0 border-[#ebebeb] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.12)] sm:rounded-2xl sm:border-b sm:mb-[max(0.5rem,env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] xl:mb-0 xl:max-h-none xl:max-w-none xl:rounded-none xl:border xl:shadow-none">
             {/* Header */}
             {formStep !== 'success' && (
               <div className="flex shrink-0 items-center justify-between bg-white px-3 pt-2.5 pb-2">

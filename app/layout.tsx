@@ -185,8 +185,8 @@ export default function RootLayout({
         )}
       </head>
       <body className="min-h-screen min-w-screen">
-        {/* Top Corner Decorations */}
-        <div className="fixed top-0 left-0 z-[100] pointer-events-none">
+        {/* Top corner decorations (mobile / tablet frame; square edges on desktop) */}
+        <div className="pointer-events-none fixed left-0 top-0 z-[100] xl:hidden">
           <Image
             src="/app-corner-left.svg"
             alt=""
@@ -196,7 +196,7 @@ export default function RootLayout({
             unoptimized
           />
         </div>
-        <div className="fixed top-0 right-0 z-[100] pointer-events-none">
+        <div className="pointer-events-none fixed right-0 top-0 z-[100] xl:hidden">
           <Image
             src="/app-corner-right.svg"
             alt=""

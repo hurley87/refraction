@@ -2,8 +2,10 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react';
 import Image from 'next/image';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronUp } from 'lucide-react';
 import type { LocationListWithCount, Location } from '@/lib/types';
+import MapCard from '@/components/map/map-card';
+import type { MapCheckinAvatarEntry } from '@/lib/map/checkin-avatar-utils';
 import {
   filterByMapBounds,
   getEffectiveMapBounds,
@@ -14,6 +16,7 @@ export type DrawerLocationSummary = Pick<
   Location,
   | 'id'
   | 'name'
+  | 'address'
   | 'description'
   | 'place_id'
   | 'latitude'
@@ -49,20 +52,27 @@ interface LocationListsDrawerProps {
   /** When false, defer loading list data until enabled (after map idle). */
   fetchEnabled?: boolean;
   collapseForMapCard?: boolean;
+  /** Mobile bottom sheet (default) or desktop left sidebar body. */
+  layout?: 'sheet' | 'sidebar';
 }
 
 export default function LocationListsDrawer({
-  walletAddress: _walletAddress, // eslint-disable-line @typescript-eslint/no-unused-vars
+  walletAddress,
   onLocationFocus,
   mapBounds,
   userLocation: _userLocation, // eslint-disable-line @typescript-eslint/no-unused-vars
   fetchEnabled = false,
   collapseForMapCard = false,
+  layout = 'sheet',
 }: LocationListsDrawerProps) {
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(false);
   const [hasFetchedLists, setHasFetchedLists] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const [checkinsByPlaceId, setCheckinsByPlaceId] = useState<
+    Record<string, MapCheckinAvatarEntry[]>
+  >({});
   const prevHasVisibleLocationsRef = useRef(false);
   const prevCollapseForMapCardRef = useRef(collapseForMapCard);
 
@@ -172,6 +182,83 @@ export default function LocationListsDrawer({
     [filteredLists]
   );
 
+  const selectedList = useMemo(
+    () =>
+      selectedListId
+        ? (lists.find((list) => list.id === selectedListId) ?? null)
+        : null,
+    [lists, selectedListId]
+  );
+
+  const visiblePlaceIds = useMemo(() => {
+    const ids = new Set<string>();
+
+    if (layout === 'sidebar' && selectedList) {
+      for (const location of selectedList.locations ?? []) {
+        if (location.place_id) {
+          ids.add(location.place_id);
+        }
+      }
+      return [...ids];
+    }
+
+    for (const list of listsWithSpotsInView) {
+      for (const location of list.locations ?? []) {
+        if (location.place_id) {
+          ids.add(location.place_id);
+        }
+      }
+    }
+    return [...ids];
+  }, [layout, selectedList, listsWithSpotsInView]);
+
+  useEffect(() => {
+    if (
+      layout !== 'sidebar' ||
+      !hasFetchedLists ||
+      visiblePlaceIds.length === 0
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadCheckins = async () => {
+      const entries = await Promise.all(
+        visiblePlaceIds.map(async (placeId) => {
+          try {
+            const params = new URLSearchParams({ placeId, limit: '3' });
+            if (walletAddress) {
+              params.set('walletAddress', walletAddress);
+            }
+            const response = await fetch(
+              `/api/location-comments?${params.toString()}`,
+              { signal: controller.signal }
+            );
+            if (!response.ok) {
+              return [placeId, []] as const;
+            }
+            const responseData = await response.json();
+            const data = responseData.data || responseData;
+            const checkins = (data.checkins || []) as MapCheckinAvatarEntry[];
+            return [placeId, checkins] as const;
+          } catch (error) {
+            if ((error as Error).name === 'AbortError') {
+              throw error;
+            }
+            return [placeId, []] as const;
+          }
+        })
+      );
+
+      setCheckinsByPlaceId(Object.fromEntries(entries));
+    };
+
+    void loadCheckins().catch(() => undefined);
+
+    return () => controller.abort();
+  }, [layout, hasFetchedLists, visiblePlaceIds, walletAddress]);
+
   const hasAnyListLocations = useMemo(() => {
     if (isLoadingLists || !hasFetchedLists) return false;
     return lists.some((list) => (list.locations?.length ?? 0) > 0);
@@ -180,6 +267,7 @@ export default function LocationListsDrawer({
   useEffect(() => {
     if (collapseForMapCard) {
       setIsExpanded(false);
+      setSelectedListId(null);
     }
   }, [collapseForMapCard]);
 
@@ -202,12 +290,204 @@ export default function LocationListsDrawer({
     prevHasVisibleLocationsRef.current = hasVisibleLocations;
   }, [hasVisibleLocations, collapseForMapCard]);
 
-  if (isLoadingLists || !hasAnyListLocations || !hasVisibleLocations) {
+  if (isLoadingLists || !hasAnyListLocations) {
+    return null;
+  }
+
+  const showSidebarDetail =
+    layout === 'sidebar' &&
+    selectedListId !== null &&
+    selectedList !== null &&
+    (selectedList.locations?.length ?? 0) > 0;
+
+  if (!hasVisibleLocations && !showSidebarDetail) {
     return null;
   }
 
   const showDiscoverBody = !collapseForMapCard;
   const listGridOpen = showDiscoverBody && isExpanded;
+  const isSidebar = layout === 'sidebar';
+  const isListDetailView = isSidebar && selectedList !== null;
+
+  const renderDrawerTile = (
+    location: NonNullable<DrawerList['locations']>[number]
+  ) => (
+    <MapCard
+      key={location.membershipId}
+      variant="drawerTile"
+      name={location.name}
+      address={
+        location.address?.trim() || location.context?.trim() || location.name
+      }
+      description={location.description}
+      type={location.type}
+      imageUrl={location.coin_image_thumb_url || location.coin_image_url}
+      eventUrl={location.event_url}
+      isExisting
+      recentCheckins={checkinsByPlaceId[location.place_id] ?? []}
+      onAction={() => onLocationFocus?.(location)}
+    />
+  );
+
+  const listBody = (
+    <div
+      className={
+        isSidebar
+          ? 'flex min-h-0 flex-1 flex-col gap-8 overflow-hidden'
+          : 'px-4 pb-3'
+      }
+    >
+      {!isSidebar ? (
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setIsExpanded((prev) => !prev)}
+            className="flex items-center gap-1.5 rounded-full bg-black/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[1px] text-[#1a1a1a] transition-all hover:bg-black/[0.08] active:scale-95"
+            aria-label={isExpanded ? 'Collapse lists' : 'Expand lists'}
+          >
+            {isExpanded ? 'Hide' : 'View'}
+            {isExpanded ? (
+              <ChevronDown className="h-2.5 w-2.5" />
+            ) : (
+              <ChevronUp className="h-2.5 w-2.5" />
+            )}
+          </button>
+        </div>
+      ) : null}
+
+      {isListDetailView ? (
+        <button
+          type="button"
+          onClick={() => setSelectedListId(null)}
+          className="flex w-fit items-center gap-1 label-medium uppercase tracking-wide text-[#171717] transition-opacity hover:opacity-80"
+          aria-label="Back to all lists"
+        >
+          <ChevronLeft className="size-4 shrink-0" aria-hidden />
+          Back
+        </button>
+      ) : null}
+
+      <div
+        className={
+          isSidebar
+            ? 'flex min-h-0 flex-1 flex-col gap-8 overflow-hidden'
+            : `grid transition-all duration-300 ease-out ${
+                listGridOpen
+                  ? 'mt-3 grid-rows-[1fr] opacity-100'
+                  : 'grid-rows-[0fr] opacity-0'
+              }`
+        }
+      >
+        <div
+          className={
+            isSidebar ? 'min-h-0 flex-1 overflow-hidden' : 'overflow-hidden'
+          }
+        >
+          <div
+            className={
+              isSidebar
+                ? 'flex h-full flex-col gap-8 overflow-y-auto pr-1'
+                : 'max-h-64 space-y-4 overflow-y-auto'
+            }
+          >
+            {isListDetailView && selectedList ? (
+              <div className="space-y-2">
+                <h3 className="title3 text-[#1a1a1a]">{selectedList.title}</h3>
+                <div className="flex flex-wrap gap-2">
+                  {(selectedList.locations ?? []).map((location) =>
+                    renderDrawerTile(location)
+                  )}
+                </div>
+              </div>
+            ) : (
+              listsWithSpotsInView.map((list) => (
+                <div key={list.id} className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="title3 min-w-0 text-[#1a1a1a]">
+                      {list.title}
+                    </h3>
+                    {isSidebar ? (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedListId(list.id)}
+                        className="label-medium shrink-0 border-b border-[var(--Borders-Light-Border,#DBDBDB)] pb-px uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
+                      >
+                        View all
+                      </button>
+                    ) : (
+                      <span className="font-anonymous shrink-0 text-[10px] text-[#999]">
+                        {`${list.locations?.length ?? 0} spots`}
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className={
+                      isSidebar
+                        ? 'flex gap-2 overflow-x-auto pb-1'
+                        : 'flex gap-2 overflow-x-auto pb-1 -mx-1 px-1'
+                    }
+                  >
+                    {(list.locations ?? []).map((location) =>
+                      isSidebar ? (
+                        renderDrawerTile(location)
+                      ) : (
+                        <article
+                          key={location.membershipId}
+                          onClick={() => onLocationFocus?.(location)}
+                          className="group relative flex w-36 flex-shrink-0 cursor-pointer flex-col rounded-xl bg-black/[0.02] p-1.5 transition-all hover:bg-black/[0.04] active:scale-[0.98]"
+                        >
+                          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
+                            {location.coin_image_url ? (
+                              <Image
+                                src={location.coin_image_url}
+                                alt={location.name}
+                                fill
+                                sizes="144px"
+                                loading="lazy"
+                                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-black/[0.04] font-anonymous text-[10px] text-[#999]">
+                                No image
+                              </div>
+                            )}
+                          </div>
+                          <div className="mt-1.5 px-0.5">
+                            <p className="title3 truncate leading-tight text-[#1a1a1a]">
+                              {location.name}
+                            </p>
+                            <p className="mt-0.5 truncate font-anonymous text-[9px] text-[#888]">
+                              {location.description || location.name}
+                            </p>
+                          </div>
+                        </article>
+                      )
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isSidebar) {
+    if (
+      collapseForMapCard ||
+      isLoadingLists ||
+      !hasAnyListLocations ||
+      (!hasVisibleLocations && !showSidebarDetail)
+    ) {
+      return null;
+    }
+    return (
+      <div className="pointer-events-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+        {listBody}
+      </div>
+    );
+  }
 
   return (
     <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex justify-center px-3 pb-3">
@@ -227,95 +507,7 @@ export default function LocationListsDrawer({
           <span className="h-[3px] w-8 rounded-full bg-black/10 transition-colors group-hover:bg-black/20" />
         </button>
 
-        {showDiscoverBody && (
-          <div className="px-4 pb-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <p className="text-[15px]  font-medium tracking-[-0.3px] text-[#1a1a1a] title3">
-                  Explore
-                </p>
-                <p className="text-xs font-anonymous text-[#888]">
-                  Discover spots nearby
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsExpanded((prev) => !prev)}
-                className="flex items-center gap-1.5 rounded-full bg-black/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[1px] text-[#1a1a1a] transition-all hover:bg-black/[0.08] active:scale-95"
-                aria-label={isExpanded ? 'Collapse lists' : 'Expand lists'}
-              >
-                {isExpanded ? 'Hide' : 'View'}
-                {isExpanded ? (
-                  <ChevronDown className="h-2.5 w-2.5" />
-                ) : (
-                  <ChevronUp className="h-2.5 w-2.5" />
-                )}
-              </button>
-            </div>
-
-            <div
-              className={`grid transition-all duration-300 ease-out ${
-                listGridOpen
-                  ? 'mt-3 grid-rows-[1fr] opacity-100'
-                  : 'grid-rows-[0fr] opacity-0'
-              }`}
-            >
-              <div className="overflow-hidden">
-                <div className="max-h-64 overflow-y-auto space-y-4">
-                  {listsWithSpotsInView.map((list) => {
-                    const visibleCount = list.locations?.length ?? 0;
-                    return (
-                      <div key={list.id} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <h3 className=" text-[#1a1a1a] title3">
-                            {list.title}
-                          </h3>
-                          <span className="text-[10px] font-anonymous text-[#999]">
-                            {`${visibleCount} spots`}
-                          </span>
-                        </div>
-                        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-                          {(list.locations ?? []).map((location) => (
-                            <article
-                              key={location.membershipId}
-                              onClick={() => onLocationFocus?.(location)}
-                              className="group relative flex w-36 flex-shrink-0 flex-col rounded-xl bg-black/[0.02] p-1.5 transition-all hover:bg-black/[0.04] active:scale-[0.98] cursor-pointer"
-                            >
-                              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
-                                {location.coin_image_url ? (
-                                  <Image
-                                    src={location.coin_image_url}
-                                    alt={location.name}
-                                    fill
-                                    sizes="144px"
-                                    loading="lazy"
-                                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center bg-black/[0.04] text-[10px] font-anonymous text-[#999]">
-                                    No image
-                                  </div>
-                                )}
-                              </div>
-                              <div className="mt-1.5 px-0.5">
-                                <p className=" text-[#1a1a1a] truncate leading-tight title3">
-                                  {location.name}
-                                </p>
-                                <p className="text-[9px] font-anonymous text-[#888] truncate mt-0.5">
-                                  {location.description || location.name}
-                                </p>
-                              </div>
-                            </article>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {showDiscoverBody ? listBody : null}
       </div>
     </div>
   );
