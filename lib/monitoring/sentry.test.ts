@@ -111,6 +111,22 @@ describe('sentryBeforeSend', () => {
     expect(sentryBeforeSend(event)).toBeNull();
   });
 
+  it('returns null for extension async onMessage channel-closed noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [
+          {
+            value:
+              'Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
   it('returns null for extension runtime.sendMessage tab-not-found noise', () => {
     const event = {
       request: { url: 'https://example.com/dashboard' },

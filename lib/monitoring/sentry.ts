@@ -283,6 +283,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     message.includes('could not establish connection') ||
     message.includes('receiving end does not exist') ||
     message.includes('runtime.lasterror') ||
+    // Extension onMessage listeners that return true but never call sendResponse.
+    message.includes('asynchronous response by returning true') ||
+    message.includes('message channel closed before a response was received') ||
+    message.includes('message port closed before a response was received') ||
     isWalletExtensionEthereumConflict(message) ||
     isWalletExtensionOnboardingNoise(message) ||
     isWalletConnectSessionNoise(message) ||
