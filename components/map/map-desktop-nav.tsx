@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { type ReactNode } from 'react';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
@@ -26,21 +25,21 @@ interface MapDesktopNavProps {
 }
 
 /**
- * Full-width desktop map top bar (4K / xl+): logo + search left, nav + avatar right.
+ * Desktop map top bar (xl+): logo + search left, nav + avatar right.
+ * ≤1366×768: max 1366px; 1920×1080: max 1920px; above 1920: full width.
  */
 export function MapDesktopNav({
   leftSlot,
   searchSlot,
   className,
 }: MapDesktopNavProps) {
-  const pathname = usePathname();
   const { user, login } = usePrivy();
   const walletAddress = user?.wallet?.address;
 
   return (
     <header
       className={cn(
-        'pointer-events-auto flex h-16 w-full items-center justify-between gap-4 px-4',
+        'pointer-events-auto mx-auto box-border flex h-16 w-full max-w-[1366px] items-center justify-between gap-4 px-4 mapWide:max-w-[1920px] mapHd:max-w-none',
         className
       )}
     >
@@ -70,15 +69,13 @@ export function MapDesktopNav({
 
       <nav className="flex shrink-0 items-center gap-6" aria-label="Primary">
         {DESKTOP_NAV_LINKS.map((item) => {
-          const isActive =
-            pathname === item.path || pathname.startsWith(`${item.path}/`);
           return (
             <Link
               key={item.path}
               href={item.path}
               className={cn(
                 'label-large uppercase text-[#171717] transition-opacity hover:opacity-70',
-                isActive && 'underline decoration-2 underline-offset-4'
+              
               )}
             >
               {item.label}
