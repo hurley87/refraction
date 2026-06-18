@@ -1531,8 +1531,10 @@ export default function InteractiveMap({
     }
   };
 
+  const isDrawerMinimized = Boolean(popupInfo || pendingMapCreateMarker);
+
   const mapCardBottomOverlayClassName = cn(
-    'pointer-events-none fixed inset-x-0 z-[75] flex justify-center px-4 xl:pl-[809px]',
+    'pointer-events-none fixed inset-x-0 z-[75] flex justify-center px-4 xl:pl-[394px] mapWide:pl-[559px]',
     showLocationForm
       ? 'bottom-[calc(min(88vh,640px)+0.5rem)]'
       : 'bottom-[max(0.75rem,env(safe-area-inset-bottom))]'
@@ -1582,7 +1584,7 @@ export default function InteractiveMap({
         </div>
       </div>
 
-      {/* Desktop nav (4K / xl+) */}
+      {/* Desktop nav (xl+) */}
       <div className="pointer-events-none absolute left-0 right-0 top-0 z-30 hidden xl:block">
         <MapDesktopNav
           leftSlot={guideBackLink}
@@ -1600,15 +1602,22 @@ export default function InteractiveMap({
         />
       </div>
 
-      {/* Desktop left drawer: location lists */}
-      <aside className="pointer-events-none absolute left-0 top-0 z-20 hidden h-[1971px] max-h-[100dvh] w-[809px] flex-col gap-8 rounded-none border-t-2 border-[#DBDBDB] bg-[var(--Backgrounds-Light-Screen,#FFFFFFA6)] pt-[90px] pr-4 pb-[95px] pl-4 backdrop-blur-md xl:flex">
+      {/* Desktop left drawer: 394×766 (≤1366) · 559×1081 (1367+) */}
+      <aside
+        className={cn(
+          'pointer-events-none absolute left-0 top-0 z-20 hidden flex-col items-center gap-[var(--sds-size-space-800)] bg-[var(--Backgrounds-Light-Screen,rgba(255,255,255,0.65))] px-4 shadow-[0_-4px_16px_0_rgba(0,0,0,0.12)] backdrop-blur-[32px] transition-[height,padding] duration-300 xl:flex',
+          isDrawerMinimized
+            ? 'h-auto w-[394px] pb-4 pt-[90px] mapWide:w-[559px]'
+            : 'h-[766px] max-h-[100dvh] w-[394px] pb-[95px] pt-[90px] mapWide:h-[1081px] mapWide:w-[559px]'
+        )}
+      >
         <LocationListsDrawer
           walletAddress={walletAddress}
           onLocationFocus={handleFocusLocationFromList}
           mapBounds={mapBounds}
           userLocation={userLocation}
           fetchEnabled={discoverListsEnabled}
-          collapseForMapCard={Boolean(popupInfo || pendingMapCreateMarker)}
+          collapseForMapCard={isDrawerMinimized}
           layout="sidebar"
         />
       </aside>
@@ -1837,7 +1846,7 @@ export default function InteractiveMap({
           mapBounds={mapBounds}
           userLocation={userLocation}
           fetchEnabled={discoverListsEnabled}
-          collapseForMapCard={Boolean(popupInfo || pendingMapCreateMarker)}
+          collapseForMapCard={isDrawerMinimized}
         />
       </div>
 

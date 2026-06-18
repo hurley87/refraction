@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useRef } from 'react';
 import Image from 'next/image';
-import { ChevronDown, ChevronLeft, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { LocationListWithCount, Location } from '@/lib/types';
 import MapCard from '@/components/map/map-card';
 import type { MapCheckinAvatarEntry } from '@/lib/map/checkin-avatar-utils';
@@ -355,16 +355,38 @@ export default function LocationListsDrawer({
         </div>
       ) : null}
 
-      {isListDetailView ? (
-        <button
-          type="button"
-          onClick={() => setSelectedListId(null)}
-          className="flex w-fit items-center gap-1 label-medium uppercase tracking-wide text-[#171717] transition-opacity hover:opacity-80"
-          aria-label="Back to all lists"
-        >
-          <ChevronLeft className="size-4 shrink-0" aria-hidden />
-          Back
-        </button>
+      {isListDetailView && selectedList ? (
+        <div className="flex min-w-0 items-center gap-4">
+          <button
+            type="button"
+            onClick={() => setSelectedListId(null)}
+            className="flex size-10 shrink-0 items-center justify-center gap-4 rounded-[179px] border border-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] transition-opacity hover:opacity-80"
+            aria-label="Back to all lists"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width={24}
+              height={24}
+              viewBox="0 0 24 24"
+              fill="none"
+              className="aspect-square size-6 shrink-0"
+              aria-hidden
+            >
+              <path
+                d="M21.9995 10.1429H8.0183L12.1756 6.28368L9.88918 4L1.99951 11.9846L9.88918 20L12.1756 17.7139L8.00185 13.8547H21.9995V10.1429Z"
+                fill="#757575"
+              />
+            </svg>
+          </button>
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="label-medium flex items-center gap-[var(--sds-size-space-200)] rounded uppercase text-[#757575]">
+              MAP LIST
+            </span>
+            <h2 className="title3 min-w-0  text-[#171717] mapHd:text-[42px] mapHd:font-medium mapHd:leading-[40px]">
+              {selectedList.title}
+            </h2>
+          </div>
+        </div>
       ) : null}
 
       <div
@@ -391,13 +413,10 @@ export default function LocationListsDrawer({
             }
           >
             {isListDetailView && selectedList ? (
-              <div className="space-y-2">
-                <h3 className="title3 text-[#1a1a1a]">{selectedList.title}</h3>
-                <div className="flex flex-wrap gap-2">
-                  {(selectedList.locations ?? []).map((location) =>
-                    renderDrawerTile(location)
-                  )}
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {(selectedList.locations ?? []).map((location) =>
+                  renderDrawerTile(location)
+                )}
               </div>
             ) : (
               listsWithSpotsInView.map((list) => (
@@ -410,7 +429,7 @@ export default function LocationListsDrawer({
                       <button
                         type="button"
                         onClick={() => setSelectedListId(list.id)}
-                        className="label-medium shrink-0 border-b border-[var(--Borders-Light-Border,#DBDBDB)] pb-px uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
+                        className="label-medium flex h-7 w-[72px] shrink-0 items-center justify-center gap-[var(--sds-size-space-200)] bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
                       >
                         View all
                       </button>
@@ -475,13 +494,27 @@ export default function LocationListsDrawer({
 
   if (isSidebar) {
     if (
-      collapseForMapCard ||
       isLoadingLists ||
       !hasAnyListLocations ||
-      (!hasVisibleLocations && !showSidebarDetail)
+      (!hasVisibleLocations && !showSidebarDetail && !collapseForMapCard)
     ) {
       return null;
     }
+
+    if (collapseForMapCard) {
+      return (
+        <div className="pointer-events-auto flex w-full flex-col items-center">
+          <button
+            type="button"
+            className="group flex w-full items-center justify-center py-2"
+            aria-label="Discover minimized while a location is open"
+          >
+            <span className="h-[3px] w-8 rounded-full bg-black/10 transition-colors group-hover:bg-black/20" />
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="pointer-events-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden">
         {listBody}

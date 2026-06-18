@@ -9,6 +9,12 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      screens: {
+        /** Interactive map: 559×1081 drawer / 1920 nav (1367px–1920px artboard). */
+        mapWide: '1367px',
+        /** Full-width nav above 1920×1080 artboard. */
+        mapHd: '1921px',
+      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
