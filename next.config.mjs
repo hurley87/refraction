@@ -63,6 +63,14 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "imgproxy.ra.co",
+      },
+      {
+        protocol: "https",
+        hostname: "images.ra.co",
+      },
+      {
+        protocol: "https",
         hostname: "drive.google.com",
         pathname: "/uc**",
       },

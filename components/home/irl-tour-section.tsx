@@ -5,18 +5,33 @@ import Image from 'next/image';
 
 import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 
-const POSTER_SRC = '/homepage/irl-tour-june.png';
+const FALLBACK_POSTER_SRC = '/homepage/irl-tour-june.png';
 
-const DESKTOP_BG_IMAGE = '/homepage/irl-tour-june.png';
+export type HomepageFeaturedEvent = {
+  title: string;
+  thumbnailUrl: string;
+  rsvpLink: string;
+};
+
+interface IRLTourSectionProps {
+  featuredEvent?: HomepageFeaturedEvent | null;
+}
 
 /**
- * IRL Tour section - Latest tour poster, Join Us Worldwide
- * DEV NOTE: Pull upcoming events dynamically from Dice integration or posters for now.
+ * IRL Tour section — homepage Upcoming Events poster.
+ * Uses the admin-featured manual event when set; otherwise falls back to static art.
  */
-export default function IRLTourSection() {
+export default function IRLTourSection({
+  featuredEvent = null,
+}: IRLTourSectionProps) {
+  const posterSrc = featuredEvent?.thumbnailUrl?.trim() || FALLBACK_POSTER_SRC;
+  const posterAlt = featuredEvent?.title?.trim() || 'IRL Tour poster';
+  const rsvpHref = featuredEvent?.rsvpLink?.trim() || '';
+  const posterHref = rsvpHref || '/events';
+  const desktopBgImage = posterSrc;
+
   return (
     <section className="relative w-full bg-[#131313] px-4 pt-[128px] pb-16 md:py-24 overflow-hidden">
-      {/* Mobile-only: blurred background between section gutters (px-4) */}
       <div
         className="absolute inset-x-4 top-0 bottom-0 md:hidden bg-[#171717] bg-opacity-10  pointer-events-none"
         aria-hidden
@@ -31,23 +46,20 @@ export default function IRLTourSection() {
         Upcoming Events
       </h2>
 
-      {/* Desktop-only: blurred background layer */}
       <div
         className="absolute hidden md:block w-[2626px] h-[3499px] opacity-70 pointer-events-none"
         style={{
           left: '-580px',
           bottom: '-1465px',
           aspectRatio: '373/497',
-          background: `url(${DESKTOP_BG_IMAGE}) lightgray 50% / cover no-repeat`,
+          background: `url(${desktopBgImage}) lightgray 50% / cover no-repeat`,
           filter: 'blur(59.4px)',
         }}
         aria-hidden
       />
 
       <div className="relative z-10 max-w-[1177px] mx-auto flex flex-col md:flex-row md:items-center md:gap-[200px] w-full">
-        {/* Left column: text content (on desktop); second on mobile */}
         <div className="order-2 md:order-1 flex flex-col flex-1 min-w-0 md:w-[574px] md:flex-none md:items-start md:gap-[35px]">
-          {/* CTAs */}
           <div className="flex items-center justify-center mb-6 md:mb-0 w-full">
             <Link
               href="/events"
@@ -77,17 +89,22 @@ export default function IRLTourSection() {
           </div>
         </div>
 
-        {/* Right column: poster (on desktop); first on mobile — full content width */}
-        <div className="order-1 md:order-2 relative w-full md:w-[500px] md:flex-shrink-0 aspect-[3/4] rounded-none mb-12 md:mb-0">
+        <Link
+          href={posterHref}
+          className="order-1 md:order-2 relative block w-full md:w-[500px] md:flex-shrink-0 aspect-[3/4] rounded-none mb-12 md:mb-0"
+          {...(rsvpHref.startsWith('http')
+            ? { target: '_blank', rel: 'noopener noreferrer' }
+            : {})}
+        >
           <Image
-            src={POSTER_SRC}
-            alt="IRL Tour poster"
+            src={posterSrc}
+            alt={posterAlt}
             fill
             className="object-contain"
             sizes="(max-width: 768px) 100vw, 500px"
             priority={false}
           />
-        </div>
+        </Link>
       </div>
     </section>
   );

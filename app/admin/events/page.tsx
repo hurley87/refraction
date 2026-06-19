@@ -58,6 +58,7 @@ interface ManualEvent {
   mapsLink: string;
   rsvpLink: string;
   hosted: boolean;
+  isFeatured: boolean;
   cityId: string | null;
   citySlug: string | null;
 }
@@ -95,6 +96,7 @@ const EMPTY_MANUAL_FORM = {
   mapsLink: '',
   rsvpLink: '',
   hosted: false,
+  isFeatured: false,
   cityId: '',
 };
 
@@ -114,6 +116,32 @@ function manualEventMapHref(event: {
     )}`;
   }
   return null;
+}
+
+/** Upcoming first (soonest date at top), then past events most-recent first. */
+function sortManualEventsForAdmin(events: ManualEvent[]): ManualEvent[] {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const todayMs = startOfToday.getTime();
+
+  const upcoming: ManualEvent[] = [];
+  const past: ManualEvent[] = [];
+
+  for (const event of events) {
+    const eventMs = new Date(event.date).getTime();
+    if (eventMs >= todayMs) {
+      upcoming.push(event);
+    } else {
+      past.push(event);
+    }
+  }
+
+  upcoming.sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  past.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  return [...upcoming, ...past];
 }
 
 function ManualEventDialog({
@@ -156,6 +184,7 @@ function ManualEventDialog({
         mapsLink: event.mapsLink,
         rsvpLink: event.rsvpLink,
         hosted: event.hosted ?? false,
+        isFeatured: event.isFeatured ?? false,
         cityId: event.cityId ?? '',
       });
     } else if (open) {
@@ -193,6 +222,7 @@ function ManualEventDialog({
         mapsLink: form.mapsLink.trim(),
         rsvpLink: form.rsvpLink.trim(),
         hosted: form.hosted,
+        isFeatured: form.isFeatured,
       };
       const res = await fetch('/api/admin/manual-events', {
         method: isEdit ? 'PUT' : 'POST',
@@ -263,7 +293,7 @@ function ManualEventDialog({
           </DialogTitle>
           <DialogDescription>
             {isEdit
-              ? 'Update this event. Changes appear immediately on the public events page.'
+              ? 'Update this event. Changes appear immediately on the public events page and homepage when featured.'
               : 'Add a non-DICE event. It will appear on the public events page.'}
           </DialogDescription>
         </DialogHeader>
@@ -400,6 +430,24 @@ function ManualEventDialog({
               value={form.mapsLink}
               onChange={(e) => set('mapsLink', e.target.value)}
               placeholder="https://maps.app.goo.gl/..."
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2.5">
+            <div className="pr-3">
+              <Label htmlFor="me-featured" className="cursor-pointer">
+                Feature on homepage
+              </Label>
+              <p className="text-xs text-gray-500">
+                Show this event in the Upcoming Events section. Only one event
+                can be featured at a time.
+              </p>
+            </div>
+            <Switch
+              id="me-featured"
+              checked={form.isFeatured}
+              onCheckedChange={(checked) =>
+                setForm((prev) => ({ ...prev, isFeatured: checked }))
+              }
             />
           </div>
           <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2.5">
@@ -766,6 +814,11 @@ export default function AdminEventsPage() {
     enabled: !!isAdmin,
   });
 
+  const sortedManualEvents = useMemo(
+    () => (manualEvents ? sortManualEventsForAdmin(manualEvents) : []),
+    [manualEvents]
+  );
+
   const deleteManualEvent = useMutation({
     mutationFn: async (id: string) => {
       const auth = await adminApiAuthHeaders(getAccessToken);
@@ -1111,9 +1164,9 @@ export default function AdminEventsPage() {
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
             <p className="text-gray-500">Loading manual events...</p>
           </div>
-        ) : manualEvents && manualEvents.length > 0 ? (
+        ) : sortedManualEvents.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {manualEvents.map((evt) => (
+            {sortedManualEvents.map((evt) => (
               <div
                 key={evt.id}
                 className="group bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-300"
@@ -1132,6 +1185,11 @@ export default function AdminEventsPage() {
                     </div>
                   )}
                   <div className="absolute top-3 right-3 flex flex-wrap justify-end gap-2">
+                    {evt.isFeatured && (
+                      <span className="px-3 py-1.5 text-xs font-semibold rounded-full backdrop-blur-sm bg-amber-50 text-amber-800 border border-amber-200">
+                        Homepage featured
+                      </span>
+                    )}
                     {evt.hosted && (
                       <span className="px-3 py-1.5 text-xs font-semibold rounded-full backdrop-blur-sm bg-emerald-50 text-emerald-700 border border-emerald-200">
                         Hosted by IRL

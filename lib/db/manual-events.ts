@@ -10,6 +10,7 @@ export interface ManualEventRow {
   maps_link: string;
   rsvp_link: string;
   hosted: boolean;
+  is_featured: boolean;
   city_id: string | null;
   /**
    * Embedded canonical city (joined via city_id). Supabase types to-one
@@ -38,6 +39,8 @@ export interface ManualEventPublic {
   rsvpLink: string;
   /** True when the event is hosted by IRL; false for events we only list/promote. */
   hosted: boolean;
+  /** When true, shown on the homepage Upcoming Events section. */
+  isFeatured: boolean;
   /** Canonical city reference (cities.id); null when unset/legacy. */
   cityId: string | null;
   /** Canonical city slug (stable filter key); null when unset/legacy. */
@@ -45,7 +48,7 @@ export interface ManualEventPublic {
 }
 
 const COLUMNS =
-  'id, title, thumbnail_url, date, end_date, city, maps_link, rsvp_link, hosted, city_id, cities(slug), created_at, updated_at';
+  'id, title, thumbnail_url, date, end_date, city, maps_link, rsvp_link, hosted, is_featured, city_id, cities(slug), created_at, updated_at';
 
 function toPublic(row: ManualEventRow): ManualEventPublic {
   return {
@@ -58,9 +61,20 @@ function toPublic(row: ManualEventRow): ManualEventPublic {
     mapsLink: row.maps_link,
     rsvpLink: row.rsvp_link,
     hosted: row.hosted ?? false,
+    isFeatured: row.is_featured ?? false,
     cityId: row.city_id ?? null,
     citySlug: embeddedCitySlug(row.cities),
   };
+}
+
+async function clearFeaturedExcept(exceptId: string): Promise<void> {
+  const { error } = await supabase
+    .from('manual_events')
+    .update({ is_featured: false })
+    .eq('is_featured', true)
+    .neq('id', exceptId);
+
+  if (error) throw error;
 }
 
 export async function listManualEvents(): Promise<ManualEventPublic[]> {
@@ -71,6 +85,20 @@ export async function listManualEvents(): Promise<ManualEventPublic[]> {
 
   if (error) throw error;
   return (data as unknown as ManualEventRow[]).map(toPublic);
+}
+
+export async function getFeaturedManualEvent(): Promise<ManualEventPublic | null> {
+  const { data, error } = await supabase
+    .from('manual_events')
+    .select(COLUMNS)
+    .eq('is_featured', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+  return toPublic(data as unknown as ManualEventRow);
 }
 
 /** Writable fields for create/update; `citySlug` is derived from `cityId`. */
@@ -90,13 +118,18 @@ export async function createManualEvent(
       maps_link: input.mapsLink,
       rsvp_link: input.rsvpLink,
       hosted: input.hosted,
+      is_featured: input.isFeatured,
       city_id: input.cityId,
     })
     .select(COLUMNS)
     .single();
 
   if (error) throw error;
-  return toPublic(data as unknown as ManualEventRow);
+  const created = toPublic(data as unknown as ManualEventRow);
+  if (created.isFeatured) {
+    await clearFeaturedExcept(created.id);
+  }
+  return created;
 }
 
 export async function updateManualEvent(
@@ -114,6 +147,7 @@ export async function updateManualEvent(
       maps_link: input.mapsLink,
       rsvp_link: input.rsvpLink,
       hosted: input.hosted,
+      is_featured: input.isFeatured,
       city_id: input.cityId,
       updated_at: new Date().toISOString(),
     })
@@ -122,7 +156,11 @@ export async function updateManualEvent(
     .single();
 
   if (error) throw error;
-  return toPublic(data as unknown as ManualEventRow);
+  const updated = toPublic(data as unknown as ManualEventRow);
+  if (updated.isFeatured) {
+    await clearFeaturedExcept(updated.id);
+  }
+  return updated;
 }
 
 export async function deleteManualEvent(id: string): Promise<void> {

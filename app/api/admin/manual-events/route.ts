@@ -22,6 +22,7 @@ const manualEventFields = z.object({
   mapsLink: z.string().default(''),
   rsvpLink: z.string().default(''),
   hosted: z.boolean().default(false),
+  isFeatured: z.boolean().default(false),
   cityId: z.string().uuid('Invalid city').nullable().default(null),
 });
 
