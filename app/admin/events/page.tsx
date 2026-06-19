@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Upload,
   X,
+  Star,
 } from 'lucide-react';
 import {
   Dialog,
@@ -238,6 +239,9 @@ function ManualEventDialog({
         queryKey: ['admin-manual-events'],
       });
       await queryClient.invalidateQueries({ queryKey: ['manual-events'] });
+      await queryClient.invalidateQueries({
+        queryKey: ['featured-dice-event'],
+      });
       onOpenChange(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');
@@ -814,6 +818,47 @@ export default function AdminEventsPage() {
     enabled: !!isAdmin,
   });
 
+  const { data: featuredDiceData } = useQuery<{ diceEventId: string | null }>({
+    queryKey: ['featured-dice-event'],
+    queryFn: async () => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const res = await fetch('/api/admin/dice/featured', { headers: auth });
+      if (!res.ok) throw new Error('Failed to fetch featured DICE event');
+      const body = await res.json();
+      return body.data ?? { diceEventId: null };
+    },
+    enabled: !!isAdmin,
+  });
+
+  const featuredDiceEventId = featuredDiceData?.diceEventId ?? null;
+
+  const featureDiceEvent = useMutation({
+    mutationFn: async ({
+      diceEventId,
+      featured,
+    }: {
+      diceEventId: string;
+      featured: boolean;
+    }) => {
+      const auth = await adminApiAuthHeaders(getAccessToken);
+      const res = await fetch('/api/admin/dice/featured', {
+        method: featured ? 'POST' : 'DELETE',
+        headers: featured
+          ? { 'Content-Type': 'application/json', ...auth }
+          : auth,
+        body: featured ? JSON.stringify({ diceEventId }) : undefined,
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? 'Failed to update featured event');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['featured-dice-event'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-manual-events'] });
+    },
+  });
+
   const sortedManualEvents = useMemo(
     () => (manualEvents ? sortManualEventsForAdmin(manualEvents) : []),
     [manualEvents]
@@ -976,139 +1021,175 @@ export default function AdminEventsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {eventsData?.events.map((event) => (
-              <div
-                key={event.id}
-                className="group bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-300"
-              >
-                {/* Image Header */}
-                <div className="relative aspect-[16/9] bg-gradient-to-br from-gray-100 to-gray-50">
-                  {getSquareImage(event) ? (
-                    <Image
-                      src={getSquareImage(event)!}
-                      alt={event.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Calendar className="h-12 w-12 text-gray-300" />
-                    </div>
-                  )}
-                  {/* Status Badge Overlay */}
-                  <div className="absolute top-3 right-3">
-                    <span
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-full backdrop-blur-sm ${getStateColor(event.state)}`}
-                      role="status"
-                      aria-label={`Event status: ${event.state || 'Unknown'}`}
-                    >
-                      {event.state || 'Unknown'}
-                    </span>
-                  </div>
-                </div>
+            {eventsData?.events.map((event) => {
+              const isHomepageFeatured = featuredDiceEventId === event.id;
 
-                {/* Card Body */}
-                <div className="p-5">
-                  {/* Title */}
-                  <h3
-                    className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-gray-700 transition-colors"
-                    title={event.name}
-                  >
-                    {event.name}
-                  </h3>
-
-                  {/* Description */}
-                  {event.description && (
-                    <p className="text-gray-500 text-sm mb-4 line-clamp-2">
-                      {event.description}
-                    </p>
-                  )}
-
-                  {/* Meta Info */}
-                  <div className="space-y-3">
-                    {/* Date & Time */}
-                    <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
-                        <Calendar className="h-5 w-5 text-indigo-500" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          {formatDate(event.startDatetime)}
-                        </p>
-                        <p className="text-xs text-gray-500 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatTime(event.startDatetime)}
-                          {event.endDatetime && (
-                            <span> - {formatTime(event.endDatetime)}</span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Venue */}
-                    {event.venues && event.venues.length > 0 && (
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center">
-                          <MapPin className="h-5 w-5 text-rose-500" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {event.venues[0].name}
-                          </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {[event.venues[0].city, event.venues[0].country]
-                              .filter(Boolean)
-                              .join(', ')}
-                          </p>
-                        </div>
+              return (
+                <div
+                  key={event.id}
+                  className="group bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-300"
+                >
+                  {/* Image Header */}
+                  <div className="relative aspect-[16/9] bg-gradient-to-br from-gray-100 to-gray-50">
+                    {getSquareImage(event) ? (
+                      <Image
+                        src={getSquareImage(event)!}
+                        alt={event.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Calendar className="h-12 w-12 text-gray-300" />
                       </div>
                     )}
+                    {/* Status Badge Overlay */}
+                    <div className="absolute top-3 right-3 flex flex-wrap justify-end gap-2">
+                      {isHomepageFeatured && (
+                        <span className="px-3 py-1.5 text-xs font-semibold rounded-full backdrop-blur-sm bg-amber-50 text-amber-800 border border-amber-200">
+                          Homepage featured
+                        </span>
+                      )}
+                      <span
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-full backdrop-blur-sm ${getStateColor(event.state)}`}
+                        role="status"
+                        aria-label={`Event status: ${event.state || 'Unknown'}`}
+                      >
+                        {event.state || 'Unknown'}
+                      </span>
+                    </div>
+                  </div>
 
-                    {/* Tickets */}
-                    {event.ticketTypes && event.ticketTypes.length > 0 && (
+                  {/* Card Body */}
+                  <div className="p-5">
+                    {/* Title */}
+                    <h3
+                      className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-gray-700 transition-colors"
+                      title={event.name}
+                    >
+                      {event.name}
+                    </h3>
+
+                    {/* Description */}
+                    {event.description && (
+                      <p className="text-gray-500 text-sm mb-4 line-clamp-2">
+                        {event.description}
+                      </p>
+                    )}
+
+                    {/* Meta Info */}
+                    <div className="space-y-3">
+                      {/* Date & Time */}
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
-                          <Ticket className="h-5 w-5 text-emerald-500" />
+                        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
+                          <Calendar className="h-5 w-5 text-indigo-500" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-gray-900">
-                            {event.ticketTypes.length} ticket type
-                            {event.ticketTypes.length !== 1 && 's'}
+                            {formatDate(event.startDatetime)}
                           </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {event.ticketTypes
-                              .slice(0, 2)
-                              .map((t) => t.name)
-                              .join(', ')}
-                            {event.ticketTypes.length > 2 &&
-                              ` +${event.ticketTypes.length - 2} more`}
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatTime(event.startDatetime)}
+                            {event.endDatetime && (
+                              <span> - {formatTime(event.endDatetime)}</span>
+                            )}
                           </p>
                         </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Card Footer */}
-                  <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-xs text-gray-400 font-mono">
-                      ID: {event.id.slice(0, 8)}...
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => {
-                        setRewardDialogEvent(event);
-                        setRewardDialogOpen(true);
-                      }}
-                      className="gap-1.5"
-                    >
-                      <Gift className="h-3.5 w-3.5" />
-                      Reward holders
-                    </Button>
+                      {/* Venue */}
+                      {event.venues && event.venues.length > 0 && (
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-rose-50 flex items-center justify-center">
+                            <MapPin className="h-5 w-5 text-rose-500" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {event.venues[0].name}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {[event.venues[0].city, event.venues[0].country]
+                                .filter(Boolean)
+                                .join(', ')}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tickets */}
+                      {event.ticketTypes && event.ticketTypes.length > 0 && (
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                            <Ticket className="h-5 w-5 text-emerald-500" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              {event.ticketTypes.length} ticket type
+                              {event.ticketTypes.length !== 1 && 's'}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {event.ticketTypes
+                                .slice(0, 2)
+                                .map((t) => t.name)
+                                .join(', ')}
+                              {event.ticketTypes.length > 2 &&
+                                ` +${event.ticketTypes.length - 2} more`}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Footer */}
+                    <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs text-gray-400 font-mono">
+                        ID: {event.id.slice(0, 8)}...
+                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant={isHomepageFeatured ? 'default' : 'outline'}
+                          disabled={featureDiceEvent.isPending}
+                          onClick={() =>
+                            featureDiceEvent.mutate({
+                              diceEventId: event.id,
+                              featured: !isHomepageFeatured,
+                            })
+                          }
+                          className={
+                            isHomepageFeatured
+                              ? 'gap-1.5 border-amber-500 bg-amber-500 text-white hover:bg-amber-600 hover:border-amber-600'
+                              : 'gap-1.5'
+                          }
+                        >
+                          {featureDiceEvent.isPending ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Star className="h-3.5 w-3.5" />
+                          )}
+                          {isHomepageFeatured
+                            ? 'Featured on homepage'
+                            : 'Feature on homepage'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            setRewardDialogEvent(event);
+                            setRewardDialogOpen(true);
+                          }}
+                          className="gap-1.5"
+                        >
+                          <Gift className="h-3.5 w-3.5" />
+                          Reward holders
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {eventsData?.events.length === 0 && (
               <div className="col-span-full flex flex-col items-center justify-center py-20 text-gray-500">
