@@ -1,7 +1,10 @@
 import dynamic from 'next/dynamic';
 import Header from '@/components/layout/header';
 import Hero from '@/components/home/hero';
-
+import {
+  getFeaturedManualEvent,
+  type ManualEventPublic,
+} from '@/lib/db/manual-events';
 
 // Temporarily hidden — re-enable import and JSX block below to restore
 // const WhatYouGetSection = dynamic(
@@ -33,7 +36,6 @@ const GetInvolvedSection = dynamic(
   { ssr: true }
 );
 
-
 const ArtistCTA = dynamic(() => import('@/components/home/artist-cta'), {
   ssr: true,
 });
@@ -45,7 +47,14 @@ const Footer = dynamic(() => import('@/components/layout/footer'), {
   ssr: true,
 });
 
-export default function Home() {
+export default async function Home() {
+  let featuredEvent: ManualEventPublic | null = null;
+  try {
+    featuredEvent = await getFeaturedManualEvent();
+  } catch (error) {
+    console.error('Failed to load featured manual event for homepage:', error);
+  }
+
   return (
     <div className="relative min-h-screen w-screen overflow-x-hidden bg-[#131313]  rounded-t-3xl">
       {/* Header - Fixed at top (outside overflow-hidden for Firefox compatibility) */}
@@ -62,7 +71,6 @@ export default function Home() {
           <ArtistCTA />
         </div>
 
-
         {/* City Guides Cover Section */}
         <div className="py-0">
           <CityGuidesCoverSection />
@@ -70,23 +78,18 @@ export default function Home() {
 
         {/* IRL Tour Section */}
         <div className="py-0">
-          <IRLTourSection />
+          <IRLTourSection featuredEvent={featuredEvent} />
         </div>
-
-
-      
 
         {/* City Guides Carousel Section */}
         <div className="py-0">
           <CityGuidesCarouselSection />
         </div>
 
-     
         {/* Get Involved Section */}
         <div className="py-0">
           <GetInvolvedSection />
         </div>
-
 
         {/* Footer */}
         <Footer />
