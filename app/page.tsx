@@ -2,9 +2,9 @@ import dynamic from 'next/dynamic';
 import Header from '@/components/layout/header';
 import Hero from '@/components/home/hero';
 import {
-  getFeaturedManualEvent,
-  type ManualEventPublic,
-} from '@/lib/db/manual-events';
+  getHomepageFeaturedEvent,
+  type HomepageFeaturedEvent,
+} from '@/lib/home/featured-event';
 
 // Temporarily hidden — re-enable import and JSX block below to restore
 // const WhatYouGetSection = dynamic(
@@ -47,12 +47,14 @@ const Footer = dynamic(() => import('@/components/layout/footer'), {
   ssr: true,
 });
 
+export const revalidate = 0;
+
 export default async function Home() {
-  let featuredEvent: ManualEventPublic | null = null;
+  let featuredEvent: HomepageFeaturedEvent | null = null;
   try {
-    featuredEvent = await getFeaturedManualEvent();
+    featuredEvent = await getHomepageFeaturedEvent();
   } catch (error) {
-    console.error('Failed to load featured manual event for homepage:', error);
+    console.error('Failed to load featured event for homepage:', error);
   }
 
   return (

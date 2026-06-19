@@ -8,6 +8,7 @@ export {
   type FetchEventTicketHoldersResult,
 } from './client';
 export { getDiceEventPosterUrl } from './get-poster';
+export { getDiceEventTicketsUrl } from './links';
 export {
   diceEventSchema,
   diceVenueSchema,

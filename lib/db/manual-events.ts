@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { clearFeaturedDiceEvent } from './featured-dice-event';
 
 export interface ManualEventRow {
   id: string;
@@ -128,6 +129,7 @@ export async function createManualEvent(
   const created = toPublic(data as unknown as ManualEventRow);
   if (created.isFeatured) {
     await clearFeaturedExcept(created.id);
+    await clearFeaturedDiceEvent();
   }
   return created;
 }
@@ -159,6 +161,7 @@ export async function updateManualEvent(
   const updated = toPublic(data as unknown as ManualEventRow);
   if (updated.isFeatured) {
     await clearFeaturedExcept(updated.id);
+    await clearFeaturedDiceEvent();
   }
   return updated;
 }

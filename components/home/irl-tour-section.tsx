@@ -19,7 +19,7 @@ interface IRLTourSectionProps {
 
 /**
  * IRL Tour section — homepage Upcoming Events poster.
- * Uses the admin-featured manual event when set; otherwise falls back to static art.
+ * Uses the admin-featured event (DICE or manual) when set; otherwise falls back to static art.
  */
 export default function IRLTourSection({
   featuredEvent = null,
