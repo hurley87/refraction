@@ -49,6 +49,15 @@ ON player_location_checkins(checkin_at DESC);
 CREATE INDEX IF NOT EXISTS idx_checkins_player_id 
 ON player_location_checkins(player_id);
 
+-- List check-ins for a location (location-comments API)
+CREATE INDEX IF NOT EXISTS idx_checkins_location_created_at
+ON player_location_checkins(location_id, created_at DESC);
+
+-- Partial index for comment-only feeds (check-in modal)
+CREATE INDEX IF NOT EXISTS idx_checkins_location_created_at_with_comment
+ON player_location_checkins(location_id, created_at DESC)
+WHERE comment IS NOT NULL;
+
 -- =============================================================================
 -- Locations table
 -- =============================================================================

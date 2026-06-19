@@ -1612,7 +1612,6 @@ export default function InteractiveMap({
         )}
       >
         <LocationListsDrawer
-          walletAddress={walletAddress}
           onLocationFocus={handleFocusLocationFromList}
           mapBounds={mapBounds}
           userLocation={userLocation}
@@ -1841,7 +1840,6 @@ export default function InteractiveMap({
 
       <div className="xl:hidden">
         <LocationListsDrawer
-          walletAddress={walletAddress}
           onLocationFocus={handleFocusLocationFromList}
           mapBounds={mapBounds}
           userLocation={userLocation}

@@ -45,7 +45,6 @@ interface UserLocation {
 const isDev = process.env.NODE_ENV === 'development';
 
 interface LocationListsDrawerProps {
-  walletAddress?: string | null;
   onLocationFocus?: (location: DrawerLocationSummary) => void;
   mapBounds?: MapBounds | null;
   userLocation?: UserLocation | null;
@@ -57,7 +56,6 @@ interface LocationListsDrawerProps {
 }
 
 export default function LocationListsDrawer({
-  walletAddress,
   onLocationFocus,
   mapBounds,
   userLocation: _userLocation, // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -224,40 +222,45 @@ export default function LocationListsDrawer({
     const controller = new AbortController();
 
     const loadCheckins = async () => {
-      const entries = await Promise.all(
-        visiblePlaceIds.map(async (placeId) => {
-          try {
-            const params = new URLSearchParams({ placeId, limit: '3' });
-            if (walletAddress) {
-              params.set('walletAddress', walletAddress);
-            }
-            const response = await fetch(
-              `/api/location-comments?${params.toString()}`,
-              { signal: controller.signal }
-            );
-            if (!response.ok) {
-              return [placeId, []] as const;
-            }
-            const responseData = await response.json();
-            const data = responseData.data || responseData;
-            const checkins = (data.checkins || []) as MapCheckinAvatarEntry[];
-            return [placeId, checkins] as const;
-          } catch (error) {
-            if ((error as Error).name === 'AbortError') {
-              throw error;
-            }
-            return [placeId, []] as const;
-          }
-        })
-      );
-
-      setCheckinsByPlaceId(Object.fromEntries(entries));
+      try {
+        const params = new URLSearchParams({
+          placeIds: visiblePlaceIds.join(','),
+          limit: '3',
+          purpose: 'avatars',
+        });
+        const response = await fetch(
+          `/api/location-comments?${params.toString()}`,
+          { signal: controller.signal }
+        );
+        if (!response.ok) {
+          setCheckinsByPlaceId({});
+          return;
+        }
+        const responseData = await response.json();
+        const data = responseData.data || responseData;
+        setCheckinsByPlaceId(
+          (data.checkinsByPlaceId ?? {}) as Record<
+            string,
+            MapCheckinAvatarEntry[]
+          >
+        );
+      } catch (error) {
+        if ((error as Error).name === 'AbortError') {
+          return;
+        }
+        setCheckinsByPlaceId({});
+      }
     };
 
-    void loadCheckins().catch(() => undefined);
+    const timeoutId = window.setTimeout(() => {
+      void loadCheckins();
+    }, 300);
 
-    return () => controller.abort();
-  }, [layout, hasFetchedLists, visiblePlaceIds, walletAddress]);
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [layout, hasFetchedLists, visiblePlaceIds]);
 
   const hasAnyListLocations = useMemo(() => {
     if (isLoadingLists || !hasFetchedLists) return false;
