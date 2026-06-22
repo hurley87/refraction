@@ -11,6 +11,7 @@ import {
   getEffectiveMapBounds,
   type MapBounds,
 } from '@/lib/utils/map-bounds';
+import { cn } from '@/lib/utils';
 
 export type DrawerLocationSummary = Pick<
   Location,
@@ -53,6 +54,8 @@ interface LocationListsDrawerProps {
   collapseForMapCard?: boolean;
   /** Mobile bottom sheet (default) or desktop left sidebar body. */
   layout?: 'sheet' | 'sidebar';
+  /** Sidebar only: fired when "View all" list detail opens or closes. */
+  onListDetailChange?: (isOpen: boolean) => void;
 }
 
 export default function LocationListsDrawer({
@@ -62,6 +65,7 @@ export default function LocationListsDrawer({
   fetchEnabled = false,
   collapseForMapCard = false,
   layout = 'sheet',
+  onListDetailChange,
 }: LocationListsDrawerProps) {
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(false);
@@ -275,6 +279,11 @@ export default function LocationListsDrawer({
   }, [collapseForMapCard]);
 
   useEffect(() => {
+    if (layout !== 'sidebar') return;
+    onListDetailChange?.(selectedListId !== null);
+  }, [layout, selectedListId, onListDetailChange]);
+
+  useEffect(() => {
     const wasCollapsedForMap = prevCollapseForMapCardRef.current;
     if (wasCollapsedForMap && !collapseForMapCard && hasVisibleLocations) {
       setIsExpanded(true);
@@ -411,12 +420,15 @@ export default function LocationListsDrawer({
           <div
             className={
               isSidebar
-                ? 'flex h-full flex-col gap-8 overflow-y-auto pr-1'
+                ? cn(
+                    'flex h-full w-full flex-col gap-8 overflow-y-auto',
+                    !isListDetailView && 'pr-1'
+                  )
                 : 'max-h-64 space-y-4 overflow-y-auto'
             }
           >
             {isListDetailView && selectedList ? (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex w-full flex-wrap gap-2">
                 {(selectedList.locations ?? []).map((location) =>
                   renderDrawerTile(location)
                 )}

@@ -1532,9 +1532,13 @@ export default function InteractiveMap({
   };
 
   const isDrawerMinimized = Boolean(popupInfo || pendingMapCreateMarker);
+  const [isListDetailOpen, setIsListDetailOpen] = useState(false);
 
   const mapCardBottomOverlayClassName = cn(
-    'pointer-events-none fixed inset-x-0 z-[75] flex justify-center px-4 xl:pl-[394px] mapWide:pl-[559px]',
+    'pointer-events-none fixed inset-x-0 z-[75] flex justify-center px-4 xl:pl-[394px]',
+    isListDetailOpen
+      ? 'mapWide:pl-[452px]'
+      : 'mapWide:pl-[559px] mapHd:pl-[809px]',
     showLocationForm
       ? 'bottom-[calc(min(88vh,640px)+0.5rem)]'
       : 'bottom-[max(0.75rem,env(safe-area-inset-bottom))]'
@@ -1602,13 +1606,23 @@ export default function InteractiveMap({
         />
       </div>
 
-      {/* Desktop left drawer: 394×766 (≤1366) · 559×1081 (1367+) */}
+      {/* Desktop left drawer: 394×766 (≤1366) · 559×1081 lists / 452 detail (1367–2559) · 809 lists (2560×1440+) */}
       <aside
         className={cn(
-          'pointer-events-none absolute left-0 top-0 z-20 hidden flex-col items-center gap-[var(--sds-size-space-800)] bg-[var(--Backgrounds-Light-Screen,rgba(255,255,255,0.65))] px-4 shadow-[0_-4px_16px_0_rgba(0,0,0,0.12)] backdrop-blur-[32px] transition-[height,padding] duration-300 xl:flex',
+          'pointer-events-none absolute left-0 top-0 z-20 hidden w-[394px] flex-col items-stretch gap-[var(--sds-size-space-800)] bg-[var(--Backgrounds-Light-Screen,rgba(255,255,255,0.65))] px-4 shadow-[0_-4px_16px_0_rgba(0,0,0,0.12)] backdrop-blur-[32px] transition-[height,padding,width] duration-300 xl:flex',
           isDrawerMinimized
-            ? 'h-auto w-[394px] pb-4 pt-[90px] mapWide:w-[559px]'
-            : 'h-[766px] max-h-[100dvh] w-[394px] pb-[95px] pt-[90px] mapWide:h-[1081px] mapWide:w-[559px]'
+            ? cn(
+                'h-auto pb-4 pt-[90px]',
+                isListDetailOpen
+                  ? 'mapWide:w-[452px]'
+                  : 'mapWide:w-[559px] mapHd:w-[809px]'
+              )
+            : cn(
+                'h-[766px] max-h-[100dvh] pb-[95px] pt-[90px] mapWide:h-[1081px]',
+                isListDetailOpen
+                  ? 'mapWide:w-[452px]'
+                  : 'mapWide:w-[559px] mapHd:w-[809px]'
+              )
         )}
       >
         <LocationListsDrawer
@@ -1618,6 +1632,7 @@ export default function InteractiveMap({
           fetchEnabled={discoverListsEnabled}
           collapseForMapCard={isDrawerMinimized}
           layout="sidebar"
+          onListDetailChange={setIsListDetailOpen}
         />
       </aside>
 

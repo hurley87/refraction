@@ -10,10 +10,10 @@ const config: Config = {
   theme: {
     extend: {
       screens: {
-        /** Interactive map: 559×1081 drawer / 1920 nav (1367px–1920px artboard). */
+        /** Interactive map: 559×1081 drawer / 1920 nav (1367px–2559px artboard). */
         mapWide: '1367px',
-        /** Full-width nav above 1920×1080 artboard. */
-        mapHd: '1921px',
+        /** 809px drawer / full-width nav (2560×1440 and larger artboards). */
+        mapHd: { raw: '(min-width: 2560px) and (min-height: 1440px)' },
       },
       colors: {
         background: 'hsl(var(--background))',
