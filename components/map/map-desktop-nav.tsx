@@ -26,7 +26,7 @@ interface MapDesktopNavProps {
 
 /**
  * Desktop map top bar (xl+): logo + search left, nav + avatar right.
- * ≤1366×768: max 1366px; 1920×1080: max 1920px; above 1920: full width.
+ * ≤1366×768: max 1366px; 1920×1080: max 1920px; 2560×1440+: full width.
  */
 export function MapDesktopNav({
   leftSlot,
@@ -74,8 +74,7 @@ export function MapDesktopNav({
               key={item.path}
               href={item.path}
               className={cn(
-                'label-large uppercase text-[#171717] transition-opacity hover:opacity-70',
-              
+                'label-large uppercase text-[#171717] transition-opacity hover:opacity-70'
               )}
             >
               {item.label}
