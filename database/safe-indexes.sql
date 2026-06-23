@@ -59,6 +59,16 @@ ON player_location_checkins(location_id, created_at DESC)
 WHERE comment IS NOT NULL;
 
 -- =============================================================================
+-- Player location favorites
+-- =============================================================================
+
+CREATE INDEX IF NOT EXISTS idx_favorites_player_id
+ON player_location_favorites(player_id);
+
+CREATE INDEX IF NOT EXISTS idx_favorites_location_id
+ON player_location_favorites(location_id);
+
+-- =============================================================================
 -- Locations table
 -- =============================================================================
 

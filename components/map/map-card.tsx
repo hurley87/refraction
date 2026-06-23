@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { Heart } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -33,6 +34,44 @@ interface MapCardProps {
   type?: string | null;
   /** Recent check-ins for `drawerTile` avatar stack. */
   recentCheckins?: MapCheckinAvatarEntry[];
+  isFavorited?: boolean;
+  onToggleFavorite?: () => void;
+  isFavoriteLoading?: boolean;
+}
+
+function FavoriteToggleButton({
+  isFavorited = false,
+  onToggleFavorite,
+  isFavoriteLoading = false,
+  className,
+  iconClassName,
+}: {
+  isFavorited?: boolean;
+  onToggleFavorite?: () => void;
+  isFavoriteLoading?: boolean;
+  className?: string;
+  iconClassName?: string;
+}) {
+  if (!onToggleFavorite) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation();
+        onToggleFavorite();
+      }}
+      disabled={isFavoriteLoading}
+      className={className}
+      aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+    >
+      <Heart
+        className={iconClassName}
+        fill={isFavorited ? 'currentColor' : 'none'}
+        aria-hidden
+      />
+    </button>
+  );
 }
 
 /**
@@ -53,6 +92,9 @@ export default function MapCard({
   createPreviewActionLabel = 'Create and check in',
   type,
   recentCheckins = [],
+  isFavorited,
+  onToggleFavorite,
+  isFavoriteLoading = false,
 }: MapCardProps) {
   if (variant === 'createPreview') {
     return (
@@ -144,38 +186,47 @@ export default function MapCard({
 
   if (variant === 'drawerTile') {
     return (
-      <button
-        type="button"
-        onClick={onAction}
-        disabled={isLoading}
-        className="relative size-[206px] shrink-0 overflow-hidden border border-[rgba(255,255,255,0.15)] bg-lightgray text-left shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt=""
-            fill
-            sizes="206px"
-            loading="lazy"
-            className="object-cover object-top"
-          />
-        ) : null}
-
-        <div className="absolute bottom-[var(--sds-size-space-200)] left-[var(--sds-size-space-200)] right-[var(--sds-size-space-200)] z-10 flex h-[58px] flex-col justify-center gap-0.5 bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)]">
-          <span className="title5 block min-h-4 shrink-0 truncate text-[#171717] font-bold">
-            {name}
-          </span>
-          <div className="flex min-h-0 items-center justify-between gap-1">
-            <span className="flex shrink-0 label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5 uppercase  text-[#171717]">
-              {formatLocationCategory(type)}
-            </span>
-            <MapCheckinAvatarStack
-              checkins={recentCheckins}
-              className="ml-auto flex h-7 shrink-0 items-center gap-2 py-0 pl-1 pr-0"
+      <div className="relative size-[206px] shrink-0">
+        <button
+          type="button"
+          onClick={onAction}
+          disabled={isLoading}
+          className="relative size-full overflow-hidden border border-[rgba(255,255,255,0.15)] bg-lightgray text-left shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px] transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt=""
+              fill
+              sizes="206px"
+              loading="lazy"
+              className="object-cover object-top"
             />
+          ) : null}
+
+          <div className="absolute bottom-[var(--sds-size-space-200)] left-[var(--sds-size-space-200)] right-[var(--sds-size-space-200)] z-10 flex h-[58px] flex-col justify-center gap-0.5 bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)]">
+            <span className="title5 block min-h-4 shrink-0 truncate text-[#171717] font-bold">
+              {name}
+            </span>
+            <div className="flex min-h-0 items-center justify-between gap-1">
+              <span className="flex shrink-0 label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5 uppercase  text-[#171717]">
+                {formatLocationCategory(type)}
+              </span>
+              <MapCheckinAvatarStack
+                checkins={recentCheckins}
+                className="ml-auto flex h-7 shrink-0 items-center gap-2 py-0 pl-1 pr-0"
+              />
+            </div>
           </div>
-        </div>
-      </button>
+        </button>
+        <FavoriteToggleButton
+          isFavorited={isFavorited}
+          onToggleFavorite={onToggleFavorite}
+          isFavoriteLoading={isFavoriteLoading}
+          className="absolute right-2 top-2 z-20 flex size-8 items-center justify-center rounded-full border border-[#DBDBDB] bg-white/95 text-[#171717] transition-opacity hover:opacity-90 disabled:opacity-50"
+          iconClassName="size-4"
+        />
+      </div>
     );
   }
 
@@ -193,28 +244,40 @@ export default function MapCard({
         />
       ) : null}
 
-      {/* Close Button Overlay */}
-      {onClose && (
-        <button
-          onClick={onClose}
-          className="relative z-10 cursor-pointer self-start flex h-7 w-7 items-center justify-center gap-4 border border-[#DBDBDB] bg-white p-1 transition-colors hover:bg-white"
-          aria-label="Close"
-        >
-          <svg
-            className="h-6 w-6 shrink-0 aspect-square"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+      {/* Top actions */}
+      <div className="relative z-10 flex w-full items-start justify-between gap-2">
+        {onClose ? (
+          <button
+            onClick={onClose}
+            className="cursor-pointer flex h-7 w-7 shrink-0 items-center justify-center gap-4 border border-[#DBDBDB] bg-white p-1 transition-colors hover:bg-white"
+            aria-label="Close"
+            type="button"
           >
-            <path
-              d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
-              fill="#757575"
-            />
-          </svg>
-        </button>
-      )}
+            <svg
+              className="h-6 w-6 shrink-0 aspect-square"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
+                fill="#757575"
+              />
+            </svg>
+          </button>
+        ) : (
+          <span aria-hidden className="size-7 shrink-0" />
+        )}
+        <FavoriteToggleButton
+          isFavorited={isFavorited}
+          onToggleFavorite={onToggleFavorite}
+          isFavoriteLoading={isFavoriteLoading}
+          className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#DBDBDB] bg-white p-1 text-[#171717] transition-colors hover:bg-white disabled:opacity-50"
+          iconClassName="size-4"
+        />
+      </div>
 
       {/* Card Content */}
       <div className="relative z-10 mt-auto flex self-stretch flex-col items-start gap-2 bg-white p-2">

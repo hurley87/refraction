@@ -61,6 +61,16 @@ export type PlayerLocationCheckin = {
 };
 
 /**
+ * Record of a user favoriting a location
+ */
+export type PlayerLocationFavorite = {
+  id?: number;
+  player_id: number;
+  location_id: number;
+  created_at?: string;
+};
+
+/**
  * Aggregated player stats for ranking
  */
 export type LeaderboardEntry = {

@@ -13,8 +13,10 @@ import {
   mergeSearchBoxReverseFeatures,
 } from '@/lib/utils/location-autofill';
 import { usePrivy } from '@privy-io/react-auth';
+import { Heart } from 'lucide-react';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
+import { useFavoritePlaceIds, useToggleFavorite } from '@/hooks/useFavorites';
 import MapNav from '@/components/map/mapnav';
 import { MapDesktopNav } from '@/components/map/map-desktop-nav';
 import MapCard from '@/components/map/map-card';
@@ -178,6 +180,9 @@ export default function InteractiveMap({
 
   const { user, getAccessToken } = usePrivy();
   const walletAddress = user?.wallet?.address;
+  const { data: favoritePlaceIds } = useFavoritePlaceIds(walletAddress);
+  const { mutate: toggleFavorite, isPending: isFavoritePending } =
+    useToggleFavorite(walletAddress);
   const [userUsername, setUserUsername] = useState<string | null>(null);
 
   const [viewState, setViewState] = useState({
@@ -1052,6 +1057,23 @@ export default function InteractiveMap({
     void loadLocationCheckins(marker.place_id);
   };
 
+  const handleToggleFavorite = useCallback(
+    (placeId: string) => {
+      if (!walletAddress) {
+        toast.error('Please connect your wallet to save favorites');
+        return;
+      }
+
+      const isFavorited = favoritePlaceIds?.has(placeId) ?? false;
+      toggleFavorite({
+        walletAddress,
+        placeId,
+        favorited: !isFavorited,
+      });
+    },
+    [walletAddress, favoritePlaceIds, toggleFavorite]
+  );
+
   const handleCloseCheckInModal = () => {
     setShowCheckInModal(false);
     setShowCheckInCommentModal(false);
@@ -1532,6 +1554,7 @@ export default function InteractiveMap({
   };
 
   const isDrawerMinimized = Boolean(pendingMapCreateMarker);
+  const isMobileDrawerCollapsed = Boolean(pendingMapCreateMarker || popupInfo);
   const [isListDetailOpen, setIsListDetailOpen] = useState(false);
 
   const mapCardBottomOverlayClassName = cn(
@@ -1660,6 +1683,10 @@ export default function InteractiveMap({
           collapseForMapCard={isDrawerMinimized}
           layout="sidebar"
           onListDetailChange={setIsListDetailOpen}
+          walletAddress={walletAddress}
+          favoritePlaceIds={favoritePlaceIds}
+          onToggleFavorite={handleToggleFavorite}
+          isFavoritePending={isFavoritePending}
         />
       </aside>
 
@@ -1886,7 +1913,11 @@ export default function InteractiveMap({
           mapBounds={mapBounds}
           userLocation={userLocation}
           fetchEnabled={discoverListsEnabled}
-          collapseForMapCard={isDrawerMinimized}
+          collapseForMapCard={isMobileDrawerCollapsed}
+          walletAddress={walletAddress}
+          favoritePlaceIds={favoritePlaceIds}
+          onToggleFavorite={handleToggleFavorite}
+          isFavoritePending={isFavoritePending}
         />
       </div>
 
@@ -2173,6 +2204,9 @@ export default function InteractiveMap({
               imageUrl={popupInfo.imageUrl}
               placeId={popupInfo.place_id}
               eventUrl={popupInfo.event_url}
+              isFavorited={favoritePlaceIds?.has(popupInfo.place_id) ?? false}
+              onToggleFavorite={() => handleToggleFavorite(popupInfo.place_id)}
+              isFavoriteLoading={isFavoritePending}
             />
           </div>
         </div>
@@ -2253,6 +2287,35 @@ export default function InteractiveMap({
                 </div>
                 <div className="relative z-10 min-w-2 flex-1" aria-hidden />
                 <div className="relative z-10 flex shrink-0 items-center gap-1">
+                  {checkInTarget?.place_id ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleToggleFavorite(checkInTarget.place_id)
+                      }
+                      disabled={isFavoritePending}
+                      className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
+                        checkInTarget?.imageUrl
+                          ? 'text-white drop-shadow hover:bg-white/15'
+                          : 'text-[#666] hover:bg-black/5'
+                      }`}
+                      aria-label={
+                        favoritePlaceIds?.has(checkInTarget.place_id)
+                          ? 'Remove from favorites'
+                          : 'Add to favorites'
+                      }
+                    >
+                      <Heart
+                        className="h-4 w-4"
+                        fill={
+                          favoritePlaceIds?.has(checkInTarget.place_id)
+                            ? 'currentColor'
+                            : 'none'
+                        }
+                        aria-hidden
+                      />
+                    </button>
+                  ) : null}
                   <button
                     onClick={() => {
                       if (!checkInTarget) return;

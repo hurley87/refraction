@@ -12,6 +12,7 @@ import {
   useUserStats,
   usePlayerActivities,
 } from '@/hooks/usePlayer';
+import { useFavoriteLocations } from '@/hooks/useFavorites';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useTiers } from '@/hooks/useTiers';
 import type { Tier } from '@/lib/types';
@@ -53,6 +54,9 @@ export default function DashboardPage() {
     isLoading: isLoadingActivities,
     error: activitiesError,
   } = usePlayerActivities(currentUserAddress);
+
+  const { data: favoriteLocations = [], isLoading: isLoadingFavorites } =
+    useFavoriteLocations(currentUserAddress);
 
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -285,6 +289,57 @@ export default function DashboardPage() {
         <div className="relative -mx-4 mt-6 w-[calc(100%+2rem)] max-w-none rounded-b-[26px] bg-[var(--Backgrounds-Background,#FFF)] md:-mx-2 md:w-[calc(100%+1rem)]">
           <div className="flex flex-col gap-6 px-4 pt-2 pb-4 md:px-2">
             <DashboardSocialLinks profile={userProfile} />
+            <section className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="title3 text-[#171717]">Favorites</h2>
+                {favoriteLocations.length > 0 ? (
+                  <span className="label-small text-[#757575]">
+                    {favoriteLocations.length} saved
+                  </span>
+                ) : null}
+              </div>
+              {isLoadingFavorites ? (
+                <div className="h-20 w-full animate-pulse rounded bg-gray-100" />
+              ) : favoriteLocations.length === 0 ? (
+                <p className="body-small text-[#757575]">
+                  Save locations from the map to see them here.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {favoriteLocations.map((location) => (
+                    <li key={location.place_id}>
+                      <Link
+                        href={`/interactive-map?placeId=${encodeURIComponent(location.place_id)}`}
+                        className="flex items-center justify-between gap-3 border border-[#DBDBDB] px-3 py-3 transition-colors hover:bg-[#fafafa]"
+                      >
+                        <div className="min-w-0">
+                          <p className="title5 truncate text-[#171717]">
+                            {location.name}
+                          </p>
+                          <p className="body-small truncate text-[#757575]">
+                            {location.address || location.name}
+                          </p>
+                        </div>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          className="shrink-0"
+                          aria-hidden
+                        >
+                          <path
+                            d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                            fill="#757575"
+                          />
+                        </svg>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
             <Transactions
               activities={activities}
               isLoading={isLoadingActivities}
