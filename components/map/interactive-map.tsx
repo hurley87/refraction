@@ -1531,17 +1531,44 @@ export default function InteractiveMap({
     }
   };
 
-  const isDrawerMinimized = Boolean(popupInfo || pendingMapCreateMarker);
+  const isDrawerMinimized = Boolean(pendingMapCreateMarker);
   const [isListDetailOpen, setIsListDetailOpen] = useState(false);
 
   const mapCardBottomOverlayClassName = cn(
     'pointer-events-none fixed inset-x-0 z-[75] flex justify-center px-4 xl:pl-[394px]',
     isListDetailOpen
-      ? 'mapWide:pl-[452px]'
+      ? 'mapWide:pl-[452px] mapHd:pl-[880px]'
       : 'mapWide:pl-[559px] mapHd:pl-[809px]',
     showLocationForm
       ? 'bottom-[calc(min(88vh,640px)+0.5rem)]'
       : 'bottom-[max(0.75rem,env(safe-area-inset-bottom))]'
+  );
+
+  /** Map panel inset for desktop overlays (drawer width + 23px gap). */
+  const desktopMapPanelInsetClassName = cn(
+    'xl:right-0 xl:left-[417px]',
+    isListDetailOpen
+      ? 'mapWide:left-[475px] mapHd:left-[903px]'
+      : 'mapWide:left-[582px] mapHd:left-[832px]'
+  );
+
+  const checkInModalShellClassName = cn(
+    'fixed left-0 top-0 z-[80] flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center gap-0 border-none bg-transparent p-0 shadow-none data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-none',
+    'xl:bottom-0 xl:top-0 xl:flex xl:h-auto xl:w-auto xl:translate-x-0 xl:translate-y-0 xl:items-center xl:justify-center xl:p-0 xl:data-[state=closed]:zoom-out-100 xl:data-[state=open]:zoom-in-100',
+    desktopMapPanelInsetClassName
+  );
+
+  const checkInModalOverlayClassName = cn(
+    'xl:z-[80] xl:bg-black/25 xl:backdrop-blur-[2px]',
+    desktopMapPanelInsetClassName
+  );
+
+  const checkInModalPanelClassName = cn(
+    'flex min-h-0 w-full flex-col overflow-hidden bg-white pt-0',
+    checkInSuccess
+      ? 'h-full max-w-none pb-0 md:max-w-[393px] md:mx-auto'
+      : 'h-full max-w-[393px] pb-2 mx-auto',
+    'xl:mx-0 xl:flex xl:h-[954px] xl:max-h-[calc(100dvh-90px)] xl:w-[505px] xl:max-w-[505px] xl:shrink-0 xl:flex-col xl:items-center xl:justify-center'
   );
 
   const guideBackLink = effectiveGuideReturnHref ? (
@@ -1606,7 +1633,7 @@ export default function InteractiveMap({
         />
       </div>
 
-      {/* Desktop left drawer: 394×766 (≤1366) · 559×1081 lists / 452 detail (1367–2559) · 809 lists (2560×1440+) */}
+      {/* Desktop left drawer: 394 (≤1366) · 559 lists / 452 detail (1367–2559) · 809 lists / 880 detail (2560×1440+, 4 cards) */}
       <aside
         className={cn(
           'pointer-events-none absolute left-0 top-0 z-20 hidden w-[394px] flex-col items-stretch gap-[var(--sds-size-space-800)] bg-[var(--Backgrounds-Light-Screen,rgba(255,255,255,0.65))] px-4 shadow-[0_-4px_16px_0_rgba(0,0,0,0.12)] backdrop-blur-[32px] transition-[height,padding,width] duration-300 xl:flex',
@@ -1614,13 +1641,13 @@ export default function InteractiveMap({
             ? cn(
                 'h-auto pb-4 pt-[90px]',
                 isListDetailOpen
-                  ? 'mapWide:w-[452px]'
+                  ? 'mapWide:w-[452px] mapHd:w-[880px]'
                   : 'mapWide:w-[559px] mapHd:w-[809px]'
               )
             : cn(
                 'h-[766px] max-h-[100dvh] pb-[95px] pt-[90px] mapWide:h-[1081px]',
                 isListDetailOpen
-                  ? 'mapWide:w-[452px]'
+                  ? 'mapWide:w-[452px] mapHd:w-[880px]'
                   : 'mapWide:w-[559px] mapHd:w-[809px]'
               )
         )}
@@ -2178,15 +2205,12 @@ export default function InteractiveMap({
           if (!open) handleCloseCheckInModal();
         }}
       >
-        <DialogContent className="fixed left-0 top-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center gap-0 bg-transparent p-0 shadow-none [&>button]:hidden">
-          <div
-            className={cn(
-              'flex h-full w-full min-h-0 flex-col items-stretch overflow-hidden bg-white pt-0',
-              checkInSuccess
-                ? 'max-w-none pb-0 md:max-w-[393px] md:mx-auto'
-                : 'max-w-[393px] pb-2 mx-auto'
-            )}
-          >
+        <DialogContent
+          hideCloseButton
+          overlayClassName={checkInModalOverlayClassName}
+          className={checkInModalShellClassName}
+        >
+          <div className={checkInModalPanelClassName}>
             {/* Hero: location image — first row */}
             {!checkInSuccess && (
               <div className="relative flex h-[258px] w-full shrink-0 items-start gap-2 overflow-hidden border border-white/15 bg-lightgray p-2">
@@ -2334,7 +2358,7 @@ export default function InteractiveMap({
                           href={`https://www.google.com/maps/search/?api=1&query=${checkInTarget.latitude},${checkInTarget.longitude}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="title5 flex items-center gap-1 text-[#171717]"
+                          className="title5 flex items-center gap-1 uppercase text-[#171717] underline"
                         >
                           Maps Link
                           <Image
@@ -2416,7 +2440,7 @@ export default function InteractiveMap({
                                     href={`https://www.google.com/maps/search/?api=1&query=${checkInTarget.latitude},${checkInTarget.longitude}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="title5 flex items-center gap-1 text-[#171717]"
+                                    className="title5 flex items-center uppercase font-bold gap-1 text-[#171717] underline"
                                   >
                                     Maps Link
                                     <Image
@@ -2981,9 +3005,18 @@ export default function InteractiveMap({
           if (!open) setShowCheckInCommentModal(false);
         }}
       >
-        <DialogContent className="fixed left-0 top-0 flex h-dvh w-screen max-w-none translate-x-0 translate-y-0 items-center justify-center gap-0 border-none bg-transparent p-0 shadow-none [&>button]:hidden">
-          <div className="flex h-full w-full min-h-0 max-w-[393px] flex-col overflow-hidden bg-white mx-auto">
-            <div className="flex items-center justify-between border-b border-[#f0f0f0] bg-white px-4 py-3">
+        <DialogContent
+          hideCloseButton
+          overlayClassName={checkInModalOverlayClassName}
+          className={checkInModalShellClassName}
+        >
+          <div
+            className={cn(
+              checkInModalPanelClassName,
+              'xl:items-stretch xl:justify-start'
+            )}
+          >
+            <div className="flex w-full items-center justify-between border-b border-[#f0f0f0] bg-white px-4 py-3">
               <h3 className="label-large tracking-[-0.5px] text-[#1a1a1a]">
                 Check-In
               </h3>
@@ -3009,8 +3042,8 @@ export default function InteractiveMap({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="flex flex-col gap-1.5">
+            <div className="flex w-full flex-1 flex-col self-stretch overflow-y-auto p-4">
+              <div className="flex w-full flex-col gap-1.5">
                 <label
                   htmlFor="checkInComment"
                   className="text-[10px] font-medium uppercase tracking-[0.3px] text-[#999]"
