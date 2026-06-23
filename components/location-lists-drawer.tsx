@@ -12,6 +12,7 @@ import {
   type MapBounds,
 } from '@/lib/utils/map-bounds';
 import { cn } from '@/lib/utils';
+import { useFavoriteLocations } from '@/hooks/useFavorites';
 
 export type DrawerLocationSummary = Pick<
   Location,
@@ -45,6 +46,8 @@ interface UserLocation {
 
 const isDev = process.env.NODE_ENV === 'development';
 
+const FAVORITES_LIST_ID = '__favorites__';
+
 interface LocationListsDrawerProps {
   onLocationFocus?: (location: DrawerLocationSummary) => void;
   mapBounds?: MapBounds | null;
@@ -56,6 +59,10 @@ interface LocationListsDrawerProps {
   layout?: 'sheet' | 'sidebar';
   /** Sidebar only: fired when "View all" list detail opens or closes. */
   onListDetailChange?: (isOpen: boolean) => void;
+  walletAddress?: string;
+  favoritePlaceIds?: Set<string>;
+  onToggleFavorite?: (placeId: string) => void;
+  isFavoritePending?: boolean;
 }
 
 export default function LocationListsDrawer({
@@ -66,6 +73,10 @@ export default function LocationListsDrawer({
   collapseForMapCard = false,
   layout = 'sheet',
   onListDetailChange,
+  walletAddress,
+  favoritePlaceIds,
+  onToggleFavorite,
+  isFavoritePending = false,
 }: LocationListsDrawerProps) {
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(false);
@@ -77,6 +88,37 @@ export default function LocationListsDrawer({
   >({});
   const prevHasVisibleLocationsRef = useRef(false);
   const prevCollapseForMapCardRef = useRef(collapseForMapCard);
+
+  const { data: favoriteLocations = [], isLoading: isLoadingFavorites } =
+    useFavoriteLocations(fetchEnabled ? walletAddress : undefined);
+
+  const favoriteDrawerLocations = useMemo(
+    () =>
+      favoriteLocations
+        .filter((location) => location.id != null)
+        .map((location) => ({
+          membershipId: location.id as number,
+          id: location.id,
+          name: location.name,
+          address: location.address,
+          description: location.description,
+          place_id: location.place_id,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          context: location.context,
+          type: location.type,
+          points_value: location.points_value,
+          coin_image_url: location.coin_image_url,
+          coin_image_thumb_url: location.coin_image_thumb_url,
+          event_url: location.event_url,
+        })),
+    [favoriteLocations]
+  );
+
+  const filteredFavoriteLocations = useMemo(
+    () => filterByMapBounds(favoriteDrawerLocations, mapBounds),
+    [favoriteDrawerLocations, mapBounds]
+  );
 
   useEffect(() => {
     if (!fetchEnabled || hasFetchedLists) return;
@@ -192,8 +234,19 @@ export default function LocationListsDrawer({
     [lists, selectedListId]
   );
 
+  const hasVisibleFavorites = filteredFavoriteLocations.length > 0;
+
   const visiblePlaceIds = useMemo(() => {
     const ids = new Set<string>();
+
+    if (layout === 'sidebar' && selectedListId === FAVORITES_LIST_ID) {
+      for (const location of filteredFavoriteLocations) {
+        if (location.place_id) {
+          ids.add(location.place_id);
+        }
+      }
+      return [...ids];
+    }
 
     if (layout === 'sidebar' && selectedList) {
       for (const location of selectedList.locations ?? []) {
@@ -204,6 +257,12 @@ export default function LocationListsDrawer({
       return [...ids];
     }
 
+    for (const location of filteredFavoriteLocations) {
+      if (location.place_id) {
+        ids.add(location.place_id);
+      }
+    }
+
     for (const list of listsWithSpotsInView) {
       for (const location of list.locations ?? []) {
         if (location.place_id) {
@@ -212,7 +271,13 @@ export default function LocationListsDrawer({
       }
     }
     return [...ids];
-  }, [layout, selectedList, listsWithSpotsInView]);
+  }, [
+    layout,
+    selectedList,
+    selectedListId,
+    listsWithSpotsInView,
+    filteredFavoriteLocations,
+  ]);
 
   useEffect(() => {
     if (
@@ -302,24 +367,72 @@ export default function LocationListsDrawer({
     prevHasVisibleLocationsRef.current = hasVisibleLocations;
   }, [hasVisibleLocations, collapseForMapCard]);
 
-  if (isLoadingLists || !hasAnyListLocations) {
+  if (isLoadingLists || !hasFetchedLists) {
+    return null;
+  }
+
+  const hasFavorites = favoriteDrawerLocations.length > 0;
+  const favoritesReady = !walletAddress || !isLoadingFavorites;
+
+  if (!hasAnyListLocations && (!hasFavorites || !favoritesReady)) {
     return null;
   }
 
   const showSidebarDetail =
     layout === 'sidebar' &&
     selectedListId !== null &&
-    selectedList !== null &&
-    (selectedList.locations?.length ?? 0) > 0;
+    (selectedListId === FAVORITES_LIST_ID
+      ? hasVisibleFavorites
+      : selectedList !== null && (selectedList.locations?.length ?? 0) > 0);
 
-  if (!hasVisibleLocations && !showSidebarDetail) {
+  if (!hasVisibleLocations && !showSidebarDetail && !hasVisibleFavorites) {
     return null;
   }
 
   const showDiscoverBody = !collapseForMapCard;
   const listGridOpen = showDiscoverBody && isExpanded;
   const isSidebar = layout === 'sidebar';
-  const isListDetailView = isSidebar && selectedList !== null;
+  const isFavoritesDetailView =
+    isSidebar && selectedListId === FAVORITES_LIST_ID && hasVisibleFavorites;
+  const isListDetailView =
+    isSidebar &&
+    (isFavoritesDetailView ||
+      (selectedList !== null && (selectedList.locations?.length ?? 0) > 0));
+
+  const renderMobileCarouselCard = (
+    location: NonNullable<DrawerList['locations']>[number]
+  ) => (
+    <article
+      key={location.membershipId}
+      onClick={() => onLocationFocus?.(location)}
+      className="group relative flex w-36 flex-shrink-0 cursor-pointer flex-col rounded-xl bg-black/[0.02] p-1.5 transition-all hover:bg-black/[0.04] active:scale-[0.98]"
+    >
+      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
+        {location.coin_image_url ? (
+          <Image
+            src={location.coin_image_url}
+            alt={location.name}
+            fill
+            sizes="144px"
+            loading="lazy"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-black/[0.04] font-anonymous text-[10px] text-[#999]">
+            No image
+          </div>
+        )}
+      </div>
+      <div className="mt-1.5 px-0.5">
+        <p className="title3 truncate leading-tight text-[#1a1a1a]">
+          {location.name}
+        </p>
+        <p className="mt-0.5 truncate font-anonymous text-[9px] text-[#888]">
+          {location.description || location.name}
+        </p>
+      </div>
+    </article>
+  );
 
   const renderDrawerTile = (
     location: NonNullable<DrawerList['locations']>[number]
@@ -338,6 +451,11 @@ export default function LocationListsDrawer({
       isExisting
       recentCheckins={checkinsByPlaceId[location.place_id] ?? []}
       onAction={() => onLocationFocus?.(location)}
+      isFavorited={favoritePlaceIds?.has(location.place_id) ?? false}
+      onToggleFavorite={
+        onToggleFavorite ? () => onToggleFavorite(location.place_id) : undefined
+      }
+      isFavoriteLoading={isFavoritePending}
     />
   );
 
@@ -367,7 +485,7 @@ export default function LocationListsDrawer({
         </div>
       ) : null}
 
-      {isListDetailView && selectedList ? (
+      {isListDetailView ? (
         <div className="flex min-w-0 items-center gap-4">
           <button
             type="button"
@@ -395,7 +513,7 @@ export default function LocationListsDrawer({
               MAP LIST
             </span>
             <h2 className="title3 min-w-0  text-[#171717] mapHd:text-[42px] mapHd:font-medium mapHd:leading-[40px]">
-              {selectedList.title}
+              {isFavoritesDetailView ? 'Your Favorites' : selectedList?.title}
             </h2>
           </div>
         </div>
@@ -427,79 +545,86 @@ export default function LocationListsDrawer({
                 : 'max-h-64 space-y-4 overflow-y-auto'
             }
           >
-            {isListDetailView && selectedList ? (
+            {isListDetailView ? (
               <div className="flex w-full flex-wrap gap-2">
-                {(selectedList.locations ?? []).map((location) =>
-                  renderDrawerTile(location)
-                )}
+                {(isFavoritesDetailView
+                  ? filteredFavoriteLocations
+                  : (selectedList?.locations ?? [])
+                ).map((location) => renderDrawerTile(location))}
               </div>
             ) : (
-              listsWithSpotsInView.map((list) => (
-                <div key={list.id} className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="title3 min-w-0 text-[#1a1a1a]">
-                      {list.title}
-                    </h3>
-                    {isSidebar ? (
-                      <button
-                        type="button"
-                        onClick={() => setSelectedListId(list.id)}
-                        className="label-medium flex h-7 w-[72px] shrink-0 items-center justify-center gap-[var(--sds-size-space-200)] bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
-                      >
-                        View all
-                      </button>
-                    ) : (
-                      <span className="font-anonymous shrink-0 text-[10px] text-[#999]">
-                        {`${list.locations?.length ?? 0} spots`}
-                      </span>
-                    )}
-                  </div>
-                  <div
-                    className={
-                      isSidebar
-                        ? 'flex gap-2 overflow-x-auto pb-1'
-                        : 'flex gap-2 overflow-x-auto pb-1 -mx-1 px-1'
-                    }
-                  >
-                    {(list.locations ?? []).map((location) =>
-                      isSidebar ? (
-                        renderDrawerTile(location)
-                      ) : (
-                        <article
-                          key={location.membershipId}
-                          onClick={() => onLocationFocus?.(location)}
-                          className="group relative flex w-36 flex-shrink-0 cursor-pointer flex-col rounded-xl bg-black/[0.02] p-1.5 transition-all hover:bg-black/[0.04] active:scale-[0.98]"
+              <>
+                {listsWithSpotsInView.map((list) => (
+                  <div key={list.id} className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="title3 min-w-0 text-[#1a1a1a]">
+                        {list.title}
+                      </h3>
+                      {isSidebar ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedListId(list.id)}
+                          className="label-medium flex h-7 w-[72px] shrink-0 items-center justify-center gap-[var(--sds-size-space-200)] bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
                         >
-                          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
-                            {location.coin_image_url ? (
-                              <Image
-                                src={location.coin_image_url}
-                                alt={location.name}
-                                fill
-                                sizes="144px"
-                                loading="lazy"
-                                className="object-cover transition-transform duration-300 group-hover:scale-105"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-black/[0.04] font-anonymous text-[10px] text-[#999]">
-                                No image
-                              </div>
-                            )}
-                          </div>
-                          <div className="mt-1.5 px-0.5">
-                            <p className="title3 truncate leading-tight text-[#1a1a1a]">
-                              {location.name}
-                            </p>
-                            <p className="mt-0.5 truncate font-anonymous text-[9px] text-[#888]">
-                              {location.description || location.name}
-                            </p>
-                          </div>
-                        </article>
-                      )
-                    )}
+                          View all
+                        </button>
+                      ) : (
+                        <span className="font-anonymous shrink-0 text-[10px] text-[#999]">
+                          {`${list.locations?.length ?? 0} spots`}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className={
+                        isSidebar
+                          ? 'flex gap-2 overflow-x-auto pb-1'
+                          : 'flex gap-2 overflow-x-auto pb-1 -mx-1 px-1'
+                      }
+                    >
+                      {(list.locations ?? []).map((location) =>
+                        isSidebar
+                          ? renderDrawerTile(location)
+                          : renderMobileCarouselCard(location)
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+                {hasVisibleFavorites ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="title3 min-w-0 text-[#1a1a1a]">
+                        Your Favorites
+                      </h3>
+                      {isSidebar ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedListId(FAVORITES_LIST_ID)}
+                          className="label-medium flex h-7 w-[72px] shrink-0 items-center justify-center gap-[var(--sds-size-space-200)] bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
+                        >
+                          View all
+                        </button>
+                      ) : (
+                        <span className="font-anonymous shrink-0 text-[10px] text-[#999]">
+                          {`${filteredFavoriteLocations.length} spots`}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className={
+                        isSidebar
+                          ? 'flex gap-2 overflow-x-auto pb-1'
+                          : 'flex gap-2 overflow-x-auto pb-1 -mx-1 px-1'
+                      }
+                    >
+                      {filteredFavoriteLocations.map((location) =>
+                        isSidebar
+                          ? renderDrawerTile(location)
+                          : renderMobileCarouselCard(location)
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
         </div>
@@ -510,8 +635,11 @@ export default function LocationListsDrawer({
   if (isSidebar) {
     if (
       isLoadingLists ||
-      !hasAnyListLocations ||
-      (!hasVisibleLocations && !showSidebarDetail && !collapseForMapCard)
+      !hasFetchedLists ||
+      (!hasAnyListLocations &&
+        (!hasFavorites || !favoritesReady) &&
+        !collapseForMapCard) ||
+      (!hasVisibleLocations && !showSidebarDetail && !hasVisibleFavorites)
     ) {
       return null;
     }

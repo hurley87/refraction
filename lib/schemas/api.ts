@@ -121,6 +121,26 @@ export const locationCommentsQuerySchema = z.object({
 });
 
 /**
+ * Schema for location favorite API POST request (toggle)
+ */
+export const locationFavoriteRequestSchema = z.object({
+  walletAddress: walletAddressSchema,
+  placeId: z.string().min(1),
+  favorited: z.boolean(),
+});
+
+/**
+ * Schema for location favorites API GET request (query params)
+ */
+export const locationFavoritesQuerySchema = z.object({
+  walletAddress: walletAddressSchema,
+  includeLocations: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true'),
+});
+
+/**
  * Schema for checkpoint chain types
  */
 export const chainTypeSchema = z.enum(['evm', 'solana', 'stellar', 'aptos']);

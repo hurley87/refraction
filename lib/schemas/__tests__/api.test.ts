@@ -12,6 +12,8 @@ import {
   newsletterRequestSchema,
   locationCommentRequestSchema,
   locationCommentsQuerySchema,
+  locationFavoriteRequestSchema,
+  locationFavoritesQuerySchema,
   chainTypeSchema,
   createCheckpointRequestSchema,
   updateCheckpointRequestSchema,
@@ -708,6 +710,38 @@ describe('API Schemas', () => {
         description: null,
       });
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('locationFavoriteRequestSchema', () => {
+    it('accepts a valid toggle payload', () => {
+      const result = locationFavoriteRequestSchema.safeParse({
+        walletAddress: '0x1234567890123456789012345678901234567890',
+        placeId: 'ChIJ_test',
+        favorited: true,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects missing placeId', () => {
+      const result = locationFavoriteRequestSchema.safeParse({
+        walletAddress: '0x1234567890123456789012345678901234567890',
+        favorited: false,
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('locationFavoritesQuerySchema', () => {
+    it('parses includeLocations=true', () => {
+      const result = locationFavoritesQuerySchema.safeParse({
+        walletAddress: '0x1234567890123456789012345678901234567890',
+        includeLocations: 'true',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.includeLocations).toBe(true);
+      }
     });
   });
 });
