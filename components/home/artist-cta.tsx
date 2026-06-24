@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * Artist CTA card: gradient panel listing the IRL artist network in three columns.
+ * Artist CTA card: gradient panel listing the IRL artist network.
+ * Mobile: 3 columns · Desktop (xl+): 6 columns, divided equally.
  */
 const ARTIST_COLUMNS: string[][] = [
   [
@@ -110,6 +111,42 @@ const ARTIST_COLUMNS: string[][] = [
   ],
 ];
 
+const ARTISTS = ARTIST_COLUMNS.flat();
+
+/** Split items into `count` columns with sizes differing by at most one. */
+function splitIntoColumns<T>(items: readonly T[], count: number): T[][] {
+  const columnSize = Math.ceil(items.length / count);
+  return Array.from({ length: count }, (_, index) =>
+    items.slice(index * columnSize, (index + 1) * columnSize)
+  ).filter((column) => column.length > 0);
+}
+
+const MOBILE_ARTIST_COLUMNS = splitIntoColumns(ARTISTS, 3);
+const DESKTOP_ARTIST_COLUMNS = splitIntoColumns(ARTISTS, 6);
+
+function ArtistNameColumns({
+  columns,
+  className,
+}: {
+  columns: string[][];
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      {columns.map((column) => (
+        <div
+          key={column[0]}
+          className="label-small flex w-[109px] flex-col gap-0 xl:min-w-0 xl:flex-1 xl:w-auto"
+        >
+          {column.map((name) => (
+            <span key={name}>{name}</span>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ArtistCTA() {
   return (
     <section className="relative flex w-full justify-center bg-[#131313]">
@@ -120,26 +157,22 @@ export default function ArtistCTA() {
             'linear-gradient(90deg, #D7D7D7 0.48%, #B3B3B3 37.02%, #919191 79.81%)',
         }}
       >
-        <div className="flex w-[361px] max-w-full flex-col items-start gap-[14px] text-[#171717]">
+        <div className="flex w-[361px] max-w-full flex-col items-start gap-[14px] text-[#171717] xl:w-full xl:max-w-[1100px] xl:items-center xl:px-8">
           {/* Row 1: heading */}
-          <h3 className="self-stretch">
+          <h3 className="self-stretch xl:mx-auto xl:w-[952px] xl:max-w-full xl:font-['Special_Gothic_SemiExpanded',sans-serif] xl:text-[42px] xl:font-medium xl:leading-[40px] xl:pb-[48px]">
             The IRL is an ever-expanding network of 2000+ DJs, musicians, and
             visual artists.
           </h3>
 
-          {/* Row 2: artist names in three columns */}
-          <div className="flex w-full justify-between">
-            {ARTIST_COLUMNS.map((column) => (
-              <div
-                key={column[0]}
-                className="label-small flex h-[619px] w-[109px] flex-col justify-between"
-              >
-                {column.map((name) => (
-                  <span key={name}>{name}</span>
-                ))}
-              </div>
-            ))}
-          </div>
+          {/* Artist names — 3 columns mobile, 6 columns desktop */}
+          <ArtistNameColumns
+            columns={MOBILE_ARTIST_COLUMNS}
+            className="flex w-full justify-between xl:hidden"
+          />
+          <ArtistNameColumns
+            columns={DESKTOP_ARTIST_COLUMNS}
+            className="hidden w-full justify-between gap-4 xl:flex label-large"
+          />
         </div>
       </div>
     </section>

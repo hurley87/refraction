@@ -122,50 +122,14 @@ export default function Hero() {
           </div>
 
           {/* Carousel controller — TEMPORARY placeholder; final design + SVGs pending */}
-          <div className="absolute bottom-8 left-1/2 z-20 flex w-[393px] max-w-full -translate-x-1/2 items-center justify-between px-4">
-            <button
-              type="button"
-              onClick={goPrev}
-              aria-label="Previous slide"
-              className="flex items-center justify-center gap-[10.4px] p-[var(--sds-size-space-200)] transition-opacity hover:opacity-80"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="31.2"
-                height="31.2"
-                viewBox="0 0 32 32"
-                fill="none"
-                aria-hidden
-                className="aspect-square shrink-0"
+          <div className="absolute bottom-8 left-1/2 z-20 w-[393px] max-w-full -translate-x-1/2 px-4 xl:flex xl:w-[1444px] xl:flex-col xl:items-start xl:gap-[9px] xl:px-0">
+            <div className="flex w-full items-center justify-between self-stretch">
+              <button
+                type="button"
+                onClick={goPrev}
+                aria-label="Previous slide"
+                className="flex items-center justify-center gap-[10.4px] p-[var(--sds-size-space-200)] transition-opacity hover:opacity-80"
               >
-                <path
-                  d="M14.95 15.6L26 23.4V7.79999M14.3 23.4V7.79999L3.25 15.6L14.3 23.4Z"
-                  fill="white"
-                />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={togglePause}
-              aria-label={isPaused ? 'Play carousel' : 'Pause carousel'}
-              className="flex items-center justify-center gap-[10.4px] p-[var(--sds-size-space-200)] text-white transition-opacity hover:opacity-80"
-            >
-              {isPaused ? (
-                <span aria-hidden className="text-[21px] leading-none">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="11"
-                    height="13"
-                    viewBox="0 0 11 13"
-                    fill="none"
-                  >
-                    <path
-                      d="M1.02101e-07 7.41488L12.843 -1.03373e-05L12.843 14.8298L1.02101e-07 7.41488Z"
-                      fill="white"
-                    />
-                  </svg>
-                </span>
-              ) : (
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="31.2"
@@ -176,73 +140,118 @@ export default function Hero() {
                   className="aspect-square shrink-0"
                 >
                   <path
-                    d="M18.1998 24.7V6.5H23.3998V24.7H18.1998ZM7.7998 24.7V6.5H12.9998V24.7H7.7998Z"
+                    d="M14.95 15.6L26 23.4V7.79999M14.3 23.4V7.79999L3.25 15.6L14.3 23.4Z"
                     fill="white"
                   />
                 </svg>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={goNext}
-              aria-label="Next slide"
-              className="flex items-center justify-center gap-[10.4px] p-[var(--sds-size-space-200)] transition-opacity hover:opacity-80"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="31.2"
-                height="31.2"
-                viewBox="0 0 32 32"
-                fill="none"
-                aria-hidden
-                className="aspect-square shrink-0"
+              </button>
+              <button
+                type="button"
+                onClick={togglePause}
+                aria-label={isPaused ? 'Play carousel' : 'Pause carousel'}
+                className="flex items-center justify-center gap-[10.4px] p-[var(--sds-size-space-200)] text-white transition-opacity hover:opacity-80"
               >
-                <path
-                  d="M3.25 23.4V7.79999L14.95 15.6L3.25 23.4ZM16.25 23.4V7.79999L27.95 15.6L16.25 23.4Z"
-                  fill="white"
-                />
-              </svg>
-            </button>
+                {isPaused ? (
+                  <span aria-hidden className="text-[21px] leading-none">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="11"
+                      height="13"
+                      viewBox="0 0 11 13"
+                      fill="none"
+                    >
+                      <path d="M0 0 L11 6.5 L0 13 Z" fill="white" />
+                    </svg>
+                  </span>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="31.2"
+                    height="31.2"
+                    viewBox="0 0 32 32"
+                    fill="none"
+                    aria-hidden
+                    className="aspect-square shrink-0"
+                  >
+                    <path
+                      d="M18.1998 24.7V6.5H23.3998V24.7H18.1998ZM7.7998 24.7V6.5H12.9998V24.7H7.7998Z"
+                      fill="white"
+                    />
+                  </svg>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                aria-label="Next slide"
+                className="flex items-center justify-center gap-[10.4px] p-[var(--sds-size-space-200)] transition-opacity hover:opacity-80"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="31.2"
+                  height="31.2"
+                  viewBox="0 0 32 32"
+                  fill="none"
+                  aria-hidden
+                  className="aspect-square shrink-0"
+                >
+                  <path
+                    d="M3.25 23.4V7.79999L14.95 15.6L3.25 23.4ZM16.25 23.4V7.79999L27.95 15.6L16.25 23.4Z"
+                    fill="white"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Boat quote — below the hero image, 144px from the image bottom */}
-      <div className="mx-auto w-[393px] max-w-full px-4 pt-[144px]">
-        <p className="boat-quote min-h-[74px] w-full max-w-[574px] text-white">
+      <div className="mx-auto w-[393px] max-w-full px-4 pt-[144px] xl:w-[952px] xl:pt-[192px]">
+        <p className="boat-quote xl:title0 xl:text-center min-h-[74px] w-full max-w-[574px] text-white xl:max-w-[952px]">
           From listening bars to late-night art shows, the people shaping the
           scene show you where to go.
         </p>
       </div>
 
       {/* How It Works card — follows the carousel's active step */}
-      <div className="mx-auto w-[393px] max-w-full px-4 pt-24">
-        <div className="flex h-[638px] w-[393px] max-w-full flex-col gap-6 text-white">
+      <div className="mx-auto w-[393px] max-w-full px-4 pt-24 xl:w-[553px] xl:px-0">
+        <div className="flex h-[638px] w-[393px] max-w-full flex-col gap-6 text-white xl:h-auto xl:w-[553px] xl:items-center xl:pb-[174px] xl:text-center">
           {/* Row 1: label */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 xl:mx-auto xl:w-[460px] xl:justify-center xl:gap-[var(--sds-size-space-200)] xl:text-center xl:items-center">
             <WelcomeEllipse />
-            <span className="title4 text-white pb-24">How It Works</span>
+            <span className="title4 pb-24 text-white xl:pb-0">
+              How It Works
+            </span>
           </div>
 
-          {/* Row 2: step number */}
-          <span className="title2 text-center text-white">
-            {activeIndex + 1}
-          </span>
-
-          {/* Row 3: step title */}
-          <p className="boat-quote self-stretch w-[300px] mx-auto text-center text-white">
-            {HERO_CAROUSEL_SLIDES[activeIndex].stepTitle}
-          </p>
-
-          {/* Row 4: step description */}
-          <p className="body-largish text-center text-normal text-white">
-            {HERO_CAROUSEL_SLIDES[activeIndex].stepBody}
-          </p>
+          {/* Benefit card — step number, title, body */}
+          <div className="flex w-full flex-col items-center xl:h-[214px] xl:w-[553px] xl:items-center xl:gap-[var(--sds-size-space-200)] xl:p-[var(--sds-size-space-600)]">
+            <span className="title2 text-center text-white xl:text-center">
+              {activeIndex + 1}
+            </span>
+            <p
+              className={cn(
+                'mx-auto w-full self-stretch text-center text-white max-xl:boat-quote',
+                'xl:title1 xl:mx-0 xl:w-full xl:text-center'
+              )}
+            >
+              {HERO_CAROUSEL_SLIDES[activeIndex].stepTitle}
+            </p>
+            <p
+              className={cn(
+                'text-center text-white max-xl:body-largish',
+                'xl:title3 xl:text-center'
+              )}
+            >
+              {HERO_CAROUSEL_SLIDES[activeIndex].stepBody}
+            </p>
+          </div>
 
           {/* CTA */}
           <Link
             href="/interactive-map"
-            className="block w-full pt-24 pb-[50px]"
+            className="block w-full pt-24 pb-[50px] xl:pt-0 xl:pb-0"
           >
             <button
               type="button"
