@@ -9,28 +9,39 @@ import { cn } from '@/lib/utils';
 
 /**
  * Hero background slides, cycled by the carousel. Order is the display order.
- * Each slide also carries the matching "How It Works" step content.
+ * Mobile uses tall portrait assets; desktop (xl+) uses `-full` widescreen assets.
  */
-const HERO_CAROUSEL_SLIDES = [
+type HeroCarouselSlide = {
+  mobileSrc: string;
+  desktopSrc?: string;
+  alt: string;
+  stepTitle: string;
+  stepBody: string;
+};
+
+const HERO_CAROUSEL_SLIDES: HeroCarouselSlide[] = [
   {
-    src: '/homepage/hero/carousel/denver.png',
+    mobileSrc: '/homepage/hero/carousel/denver.png',
+    desktopSrc: '/homepage/hero/carousel/denver-full.jpg',
     alt: 'Denver',
     stepTitle: 'Explore Local Guides',
     stepBody: 'The best spots, hand-picked by people shaping the local scene.',
   },
   {
-    src: '/homepage/hero/carousel/detroit.png',
+    mobileSrc: '/homepage/hero/carousel/detroit.png',
+    desktopSrc: '/homepage/hero/carousel/detroit-full.jpg',
     alt: 'Detroit',
     stepTitle: 'Check in at a spot',
     stepBody: 'Explore the map and check in at spots across your city.',
   },
   {
-    src: '/homepage/hero/carousel/singapore.png',
+    mobileSrc: '/homepage/hero/carousel/singapore.png',
+    desktopSrc: '/homepage/hero/carousel/singapore-full.jpg',
     alt: 'Singapore',
     stepTitle: 'Earn and spend rewards',
     stepBody: 'Earn points for future rewards at clubs, bars, and galleries',
   },
-] as const;
+];
 
 const HERO_CAROUSEL_INTERVAL_MS = 5000;
 
@@ -61,23 +72,35 @@ export default function Hero() {
 
   return (
     <>
-      <section className="relative w-full h-screen overflow-hidden">
+      <section className="relative h-screen w-full overflow-hidden xl:aspect-video xl:h-auto xl:max-h-[100dvh]">
         {/* Hero background carousel */}
-        <div className="absolute inset-0 p-0 pb-6">
-          <div className="relative w-full h-full rounded-[48px] overflow-hidden">
+        <div className="absolute inset-0 p-0 pb-6 xl:pb-0">
+          <div className="relative h-full w-full overflow-hidden rounded-[48px] xl:rounded-none">
             {HERO_CAROUSEL_SLIDES.map((slide, index) => (
-              <Image
-                key={slide.src}
-                src={slide.src}
-                alt=""
-                fill
-                priority={index === 0}
-                sizes="100vw"
+              <div
+                key={slide.mobileSrc}
                 className={cn(
-                  'object-contain object-top transition-opacity duration-700 ease-in-out',
+                  'absolute inset-0 transition-opacity duration-700 ease-in-out',
                   index === activeIndex ? 'opacity-100' : 'opacity-0'
                 )}
-              />
+              >
+                <Image
+                  src={slide.mobileSrc}
+                  alt=""
+                  fill
+                  priority={index === 0}
+                  sizes="100vw"
+                  className="object-contain object-top xl:hidden"
+                />
+                <Image
+                  src={slide.desktopSrc ?? slide.mobileSrc}
+                  alt=""
+                  fill
+                  priority={index === 0}
+                  sizes="100vw"
+                  className="hidden object-cover object-center xl:block"
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -97,7 +120,6 @@ export default function Hero() {
               Your Global Guide To What&apos;s Good
             </h1>
           </div>
-
 
           {/* Carousel controller — TEMPORARY placeholder; final design + SVGs pending */}
           <div className="absolute bottom-8 left-1/2 z-20 flex w-[393px] max-w-full -translate-x-1/2 items-center justify-between px-4">

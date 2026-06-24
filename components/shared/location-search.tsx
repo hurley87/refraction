@@ -91,19 +91,57 @@ export interface LocationSearchProps {
     featureType?: string;
   }) => void;
   className?: string;
+  /** Styles for the collapsed button / expanded input shell (pill container). */
+  shellClassName?: string;
+  /** Hide the default magnifying glass (e.g. when a custom icon sits in the parent). */
+  hideSearchIcon?: boolean;
   /** Typography for collapsed placeholder + expanded input (e.g. map-specific body styles). */
   inputClassName?: string;
+  /** Dropdown panel colors — `dark` inverts for dark landing chrome. */
+  dropdownTheme?: 'light' | 'dark';
+}
+
+type DropdownTheme = NonNullable<LocationSearchProps['dropdownTheme']>;
+
+function getDropdownStyles(theme: DropdownTheme) {
+  if (theme === 'dark') {
+    return {
+      panel:
+        'bg-[#171717] border-[var(--Text-Support-Text,#757575)] shadow-lg shadow-black/40',
+      sectionLabel: 'text-[#A9A9A9]',
+      itemHover: 'hover:bg-white/10',
+      itemActive: 'bg-white/10',
+      titleNonMatch: 'text-white',
+      match: 'text-white',
+      addressNonMatch: 'text-[#A9A9A9]',
+      addressMuted: 'text-[#A9A9A9]',
+      icon: 'text-[#A9A9A9]',
+    };
+  }
+
+  return {
+    panel: 'bg-white border-[#ededed] shadow-lg',
+    sectionLabel: 'text-[color:var(--Text-Secondary-Text,#757575)]',
+    itemHover: 'hover:bg-[#f5f5f5]',
+    itemActive: 'bg-[#f5f5f5]',
+    titleNonMatch: 'text-[#757575]',
+    match: 'text-black',
+    addressNonMatch: 'text-[color:var(--Text-Secondary-Text,#757575)]',
+    addressMuted: 'text-[color:var(--Text-Secondary-Text,#757575)]',
+    icon: 'text-[color:var(--Text-Secondary-Text,#757575)]',
+  };
 }
 
 /** Secondary line under suggestion title — address / place_formatted. */
 const SUGGESTION_ADDRESS_CLASS =
   "m-0 truncate text-[11px] font-medium not-italic leading-[16px] tracking-[0.44px] uppercase text-[color:var(--Text-Secondary-Text,#757575)] font-['ABC_Monument_Grotesk_Semi-Mono_Unlicensed_Trial',sans-serif]";
 
-/** Wraps segments of `text` that match `query` (case-insensitive) in black; rest uses `nonMatchClassName`. */
+/** Wraps segments of `text` that match `query` (case-insensitive); rest uses `nonMatchClassName`. */
 function highlightQueryInText(
   text: string,
   query: string,
-  nonMatchClassName: string
+  nonMatchClassName: string,
+  matchClassName = 'text-black'
 ): ReactNode {
   const q = query.trim();
   if (!text) return null;
@@ -119,7 +157,10 @@ function highlightQueryInText(
         if (part === '') return null;
         const isMatch = part.toLowerCase() === q.toLowerCase();
         return (
-          <span key={i} className={isMatch ? 'text-black' : nonMatchClassName}>
+          <span
+            key={i}
+            className={isMatch ? matchClassName : nonMatchClassName}
+          >
             {part}
           </span>
         );
@@ -145,8 +186,12 @@ export default function LocationSearch({
   proximity,
   onSelect,
   className,
+  shellClassName,
+  hideSearchIcon = false,
   inputClassName,
+  dropdownTheme = 'light',
 }: LocationSearchProps) {
+  const dropdownStyles = getDropdownStyles(dropdownTheme);
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -378,23 +423,26 @@ export default function LocationSearch({
           inputClassName
             ? 'text-inherit'
             : 'text-[#7d7d7d] hover:text-[#313131]',
+          shellClassName,
           className
         )}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-4 w-4 shrink-0"
-          aria-hidden="true"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
+        {!hideSearchIcon ? (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4 shrink-0"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+        ) : null}
         <span className={cn('min-w-0 flex-1 truncate text-sm', inputClassName)}>
           {placeholder}
         </span>
@@ -409,23 +457,26 @@ export default function LocationSearch({
         <div
           className={cn(
             'box-border flex h-10 max-h-10 min-h-10 items-center gap-2 rounded-full border border-transparent bg-white/80 px-4 py-0 shadow-sm transition-[border-radius,background-color,border-color,box-shadow]',
-            'focus-within:rounded-[24px] focus-within:border-[color:var(--Dark-Tint-40---Neutral,#A9A9A9)] focus-within:bg-[color:var(--Backgrounds-Background,#FFF)] focus-within:shadow-[0_0_0_2px_#FFE600]'
+            'focus-within:rounded-[24px] focus-within:border-[color:var(--Dark-Tint-40---Neutral,#A9A9A9)] focus-within:bg-[color:var(--Backgrounds-Background,#FFF)] focus-within:shadow-[0_0_0_2px_#FFE600]',
+            shellClassName
           )}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4 text-[#7d7d7d] shrink-0"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
+          {!hideSearchIcon ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4 text-[#7d7d7d] shrink-0"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+          ) : null}
           <Input
             ref={inputRef}
             placeholder={placeholder}
@@ -480,11 +531,19 @@ export default function LocationSearch({
         {dropdownOpen && (
           <div
             ref={listRef}
-            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-lg border border-[#ededed] overflow-hidden z-50"
+            className={cn(
+              'absolute top-full left-0 right-0 z-50 mt-2 overflow-hidden rounded-2xl border',
+              dropdownStyles.panel
+            )}
           >
             {showRecentPanel && (
               <>
-                <div className="px-4 pt-3 pb-1 text-[10px] font-medium uppercase tracking-[0.44px] text-[color:var(--Text-Secondary-Text,#757575)]">
+                <div
+                  className={cn(
+                    'px-4 pb-1 pt-3 text-[10px] font-medium uppercase tracking-[0.44px]',
+                    dropdownStyles.sectionLabel
+                  )}
+                >
                   Recent searches
                 </div>
                 <div
@@ -499,9 +558,12 @@ export default function LocationSearch({
                         key={entry.id}
                         role="option"
                         aria-selected={isActive}
-                        className={`flex flex-col gap-1 px-4 py-3 cursor-pointer ${
-                          isActive ? 'bg-[#f5f5f5]' : 'hover:bg-[#f5f5f5]'
-                        }`}
+                        className={cn(
+                          'flex cursor-pointer flex-col gap-1 px-4 py-3',
+                          isActive
+                            ? dropdownStyles.itemActive
+                            : dropdownStyles.itemHover
+                        )}
                         onMouseEnter={() => setActiveIndex(idx)}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => handleSelectRecent(entry)}
@@ -510,14 +572,18 @@ export default function LocationSearch({
                           {highlightQueryInText(
                             entry.name || entry.placeFormatted || 'Unnamed',
                             query,
-                            'text-[#757575]'
+                            dropdownStyles.titleNonMatch,
+                            dropdownStyles.match
                           )}
                         </h4>
                         {entry.placeFormatted && (
                           <div className="flex min-w-0 items-start gap-2">
                             <svg
                               aria-hidden
-                              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color:var(--Text-Secondary-Text,#757575)]"
+                              className={cn(
+                                'mt-0.5 h-3.5 w-3.5 shrink-0',
+                                dropdownStyles.icon
+                              )}
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -538,13 +604,15 @@ export default function LocationSearch({
                             <p
                               className={cn(
                                 SUGGESTION_ADDRESS_CLASS,
+                                dropdownStyles.addressMuted,
                                 'min-w-0 flex-1'
                               )}
                             >
                               {highlightQueryInText(
                                 entry.placeFormatted,
                                 query,
-                                'text-[color:var(--Text-Secondary-Text,#757575)]'
+                                dropdownStyles.addressNonMatch,
+                                dropdownStyles.match
                               )}
                             </p>
                           </div>
@@ -565,9 +633,12 @@ export default function LocationSearch({
                       key={id}
                       role="option"
                       aria-selected={isActive}
-                      className={`flex flex-col gap-1 px-4 py-3 cursor-pointer ${
-                        isActive ? 'bg-[#f5f5f5]' : 'hover:bg-[#f5f5f5]'
-                      }`}
+                      className={cn(
+                        'flex cursor-pointer flex-col gap-1 px-4 py-3',
+                        isActive
+                          ? dropdownStyles.itemActive
+                          : dropdownStyles.itemHover
+                      )}
                       onMouseEnter={() => setActiveIndex(idx)}
                       onMouseDown={(e) => {
                         // Prevent input blur before click
@@ -579,14 +650,18 @@ export default function LocationSearch({
                         {highlightQueryInText(
                           s.name || s.place_formatted || 'Unnamed',
                           query,
-                          'text-[#757575]'
+                          dropdownStyles.titleNonMatch,
+                          dropdownStyles.match
                         )}
                       </h4>
                       {s.place_formatted && (
                         <div className="flex min-w-0 items-start gap-2">
                           <svg
                             aria-hidden
-                            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[color:var(--Text-Secondary-Text,#757575)]"
+                            className={cn(
+                              'mt-0.5 h-3.5 w-3.5 shrink-0',
+                              dropdownStyles.icon
+                            )}
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -607,13 +682,15 @@ export default function LocationSearch({
                           <p
                             className={cn(
                               SUGGESTION_ADDRESS_CLASS,
+                              dropdownStyles.addressMuted,
                               'min-w-0 flex-1'
                             )}
                           >
                             {highlightQueryInText(
                               s.place_formatted,
                               query,
-                              'text-[color:var(--Text-Secondary-Text,#757575)]'
+                              dropdownStyles.addressNonMatch,
+                              dropdownStyles.match
                             )}
                           </p>
                         </div>
