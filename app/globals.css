@@ -9,6 +9,10 @@
 /* Figma / SDS-aligned tokens (e.g. events page meta pills) */
 :root {
   --Text-Secondary-Text: #757575;
+  --Text-Support-Text: #757575;
+  --sds-typography-body-size-medium: 16px;
+  --Line-Height-3: 24px;
+  --Kerning-Body: 0;
   --Text-Primary-Text: #171717;
   --Text-Primary-CTA: #fff;
   --sds-size-space-050: 4px;
@@ -19,6 +23,7 @@
   --sds-size-space-800: 32px;
   --sds-size-blur-100: 4px;
   --Backgrounds-Secondary-CTA-BG: #dbdbdb;
+  --Backgrounds-Primary-CTA-BG: #fff;
   --Backgrounds-Light-Screen: #ffffffa6;
 }
 

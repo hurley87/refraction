@@ -58,11 +58,11 @@ export default async function Home() {
   }
 
   return (
-    <div className="relative min-h-screen w-screen overflow-x-hidden bg-[#131313]  rounded-t-3xl">
+    <div className="relative min-h-screen w-screen overflow-x-hidden bg-[#131313] rounded-t-3xl xl:rounded-none">
       {/* Header - Fixed at top (outside overflow-hidden for Firefox compatibility) */}
-      <Header />
+      <Header variant="home" />
 
-      <div className="overflow-x-hidden overflow-y-visible rounded-t-3xl">
+      <div className="overflow-x-hidden overflow-y-visible rounded-t-3xl xl:rounded-none">
         {/* Hero Section with WebGL Background - Full viewport */}
         <div className="relative w-screen">
           <Hero />

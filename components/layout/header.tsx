@@ -5,22 +5,26 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import NavigationMenu from '@/components/layout/navigation-menu';
+import { HomeDesktopNav } from '@/components/home/home-desktop-nav';
 import { cn } from '@/lib/utils';
+
+interface HeaderProps {
+  /** Homepage desktop layout uses the full-width nav redesign. */
+  variant?: 'default' | 'home';
+}
 
 /**
  * Site header / nav bar.
  *
- * Fixed 393px-wide bar (same dimensions on desktop for now) with two states:
- *  1. Logged out — logo + SIGN UP button.
- *  2. Logged in — logo + hamburger (opens dropdown menu) + MAP link.
+ * Mobile: 393px-wide bar with logo + sign up (logged out) or hamburger + map (logged in).
+ * Desktop home (`variant="home"`): full-width nav with search and primary links.
  */
-export default function Header() {
+export default function Header({ variant = 'default' }: HeaderProps) {
   const { authenticated, login } = usePrivy();
   const [isNavigationMenuOpen, setIsNavigationMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const isHomeDesktop = variant === 'home';
 
-  // Add a blurred backdrop once the page scrolls so the bar stays legible
-  // over the content moving beneath it.
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 8);
     handleScroll();
@@ -30,17 +34,28 @@ export default function Header() {
 
   return (
     <>
-      {/* Blurred backdrop on scroll — full-width, anchored to the top of the page */}
       <div
         aria-hidden
         className={cn(
-          'pointer-events-none fixed inset-x-0 top-0 z-40 h-[72px] transition-colors duration-300',
+          'pointer-events-none fixed inset-x-0 top-0 z-40 transition-colors duration-300',
+          isHomeDesktop ? 'h-16' : 'h-[72px]',
           isScrolled && 'bg-black/20 backdrop-blur-md'
         )}
       />
-      <div className="fixed left-1/2 top-2 z-50 w-[393px] max-w-full -translate-x-1/2">
+
+      {isHomeDesktop ? (
+        <div className="fixed inset-x-0 top-0 z-50 hidden xl:block">
+          <HomeDesktopNav />
+        </div>
+      ) : null}
+
+      <div
+        className={cn(
+          'fixed left-1/2 top-2 z-50 w-[393px] max-w-full -translate-x-1/2',
+          isHomeDesktop && 'xl:hidden'
+        )}
+      >
         <nav className="flex h-[56px] w-full items-center justify-between px-4">
-          {/* Logo */}
           <Link
             href="/"
             aria-label="IRL"
@@ -57,7 +72,6 @@ export default function Header() {
 
           {authenticated ? (
             <>
-              {/* Column 2: hamburger icon — opens the dropdown menu */}
               <button
                 type="button"
                 onClick={() => setIsNavigationMenuOpen(true)}
@@ -73,7 +87,6 @@ export default function Header() {
                 />
               </button>
 
-              {/* Column 3: MAP link */}
               <Link
                 href="/interactive-map"
                 className="shrink-0 label-large uppercase text-white transition-opacity hover:opacity-80"
