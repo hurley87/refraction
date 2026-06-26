@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isAbortError,
+  isPrivyWalletProviderOnNoise,
   isWalletConnectSessionNoise,
   isWalletExtensionOnboardingNoise,
   sentryBeforeSend,
@@ -43,6 +44,22 @@ describe('isWalletExtensionOnboardingNoise', () => {
     expect(isWalletExtensionOnboardingNoise('User rejected the request')).toBe(
       false
     );
+  });
+});
+
+describe('isPrivyWalletProviderOnNoise', () => {
+  it('detects Privy proxy provider .on failures on partial EIP-1193 providers', () => {
+    expect(
+      isPrivyWalletProviderOnNoise(
+        'TypeError: this.walletProvider?.on is not a function'
+      )
+    ).toBe(true);
+    expect(
+      isPrivyWalletProviderOnNoise(
+        'TypeError: walletProvider.on is not a function'
+      )
+    ).toBe(true);
+    expect(isPrivyWalletProviderOnNoise('TypeError: fetch failed')).toBe(false);
   });
 });
 
@@ -275,6 +292,30 @@ describe('sentryBeforeSend', () => {
           {
             value:
               'Error: Talisman extension has not been configured yet. Please continue with onboarding.',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for Privy walletProvider.on partial-provider noise', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value: 'TypeError: this.walletProvider?.on is not a function',
+            stacktrace: {
+              frames: [
+                {
+                  filename:
+                    'app:///chunks/node_modules_@privy-io_react-auth_dist_esm_privy-provider-BG8GtKO6_mjs.js',
+                },
+              ],
+            },
           },
         ],
       },

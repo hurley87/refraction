@@ -198,6 +198,19 @@ export function isWalletExtensionOnboardingNoise(message: string): boolean {
   return lower.includes('talisman extension has not been configured');
 }
 
+/**
+ * Privy's PrivyProxyProvider subscribes to EIP-1193 events via `walletProvider.on`.
+ * Some browser extensions inject partial providers (request-only, no event API),
+ * which surfaces as `this.walletProvider?.on is not a function` inside
+ * `@privy-io/react-auth` — environmental noise, not app code.
+ */
+export function isPrivyWalletProviderOnNoise(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('walletprovider') && lower.includes('.on is not a function')
+  );
+}
+
 function shouldDropAbortError(
   event: SentryEventLike,
   hint?: EventHint
@@ -289,6 +302,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     message.includes('message port closed before a response was received') ||
     isWalletExtensionEthereumConflict(message) ||
     isWalletExtensionOnboardingNoise(message) ||
+    isPrivyWalletProviderOnNoise(message) ||
     isWalletConnectSessionNoise(message) ||
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||
