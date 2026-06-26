@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isAbortError,
+  isExtensionStackOverflowNoise,
   isPrivyWalletProviderOnNoise,
   isWalletConnectSessionNoise,
   isWalletExtensionOnboardingNoise,
@@ -452,6 +453,48 @@ describe('sentryBeforeSend', () => {
     };
 
     expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for frameless extension stack overflows', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [
+          {
+            type: 'RangeError',
+            value: 'Maximum call stack size exceeded.',
+          },
+        ],
+      },
+    };
+
+    expect(isExtensionStackOverflowNoise(event)).toBe(true);
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('still forwards app-bundle RangeError stack overflows', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/' },
+      exception: {
+        values: [
+          {
+            type: 'RangeError',
+            value: 'Maximum call stack size exceeded.',
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'app:///chunks/app-page.js',
+                  abs_path: 'app:///chunks/app-page.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(isExtensionStackOverflowNoise(event)).toBe(false);
+    expect(sentryBeforeSend(event)).toEqual(event);
   });
 
   it('still forwards unrelated errors without injected-script stack frames', () => {
