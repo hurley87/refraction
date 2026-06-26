@@ -32,8 +32,14 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+const deploymentId =
+  process.env.NEXT_DEPLOYMENT_ID ??
+  process.env.VERCEL_DEPLOYMENT_ID ??
+  process.env.VERCEL_GIT_COMMIT_SHA;
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  ...(deploymentId ? { deploymentId } : {}),
   experimental: {
     serverComponentsExternalPackages: [
       "@stellar/js-xdr",
