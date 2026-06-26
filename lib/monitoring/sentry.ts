@@ -67,8 +67,60 @@ function frameLooksLikeInjectedScript(
   return (
     combined.includes('inpage.js') ||
     combined.includes('chrome-extension://') ||
-    combined.includes('moz-extension://')
+    combined.includes('moz-extension://') ||
+    combined.includes('safari-extension://') ||
+    combined.includes('safari-web-extension://') ||
+    combined.includes('ms-browser-extension://')
   );
+}
+
+/** App bundle frames — used to avoid dropping real in-app recursion bugs. */
+function frameLooksLikeAppBundle(filename?: string, absPath?: string): boolean {
+  const combined = `${filename ?? ''} ${absPath ?? ''}`.toLowerCase();
+  return (
+    combined.includes('/_next/static/chunks/') ||
+    combined.includes('webpack://') ||
+    (combined.includes('app:///chunks/') && !combined.includes('inpage.js'))
+  );
+}
+
+/**
+ * Wallet extensions can recurse until the stack is exhausted. Browsers often
+ * ship these as frameless RangeErrors (stack capture fails once full), so
+ * `eventFromInjectedScript` alone misses them — same cluster as NEXTJS-B.
+ */
+export function isExtensionStackOverflowNoise(event: SentryEventLike): boolean {
+  const values = event.exception?.values;
+  if (!values?.length) return false;
+
+  for (const ex of values) {
+    const type = (ex.type ?? '').toLowerCase();
+    const value = (ex.value ?? '').toLowerCase();
+    if (
+      type !== 'rangeerror' ||
+      !value.includes('maximum call stack size exceeded')
+    ) {
+      continue;
+    }
+
+    if (eventFromInjectedScript(event)) {
+      return true;
+    }
+
+    const frames = ex.stacktrace?.frames;
+    if (!frames?.length) {
+      return true;
+    }
+
+    const hasAppFrame = frames.some((frame) =>
+      frameLooksLikeAppBundle(frame.filename, frame.abs_path)
+    );
+    if (!hasAppFrame) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function eventFromInjectedScript(event: SentryEventLike): boolean {
@@ -285,6 +337,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   }
 
   if (eventFromInjectedScript(event)) {
+    return null;
+  }
+
+  if (isExtensionStackOverflowNoise(event)) {
     return null;
   }
 
