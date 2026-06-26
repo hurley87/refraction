@@ -133,6 +133,41 @@ function eventFromWalletSdkStackOverflow(event: SentryEventLike): boolean {
   return false;
 }
 
+function frameLooksLikeAppBundle(filename?: string, absPath?: string): boolean {
+  const combined = `${filename ?? ''} ${absPath ?? ''}`.toLowerCase();
+  return (
+    combined.includes('/chunks/') ||
+    combined.includes('/app/') ||
+    combined.includes('app:///chunks') ||
+    combined.includes('_next/static')
+  );
+}
+
+/**
+ * Stack overflows from wallet extensions often ship without frames once the stack
+ * is exhausted. Drop when no app-bundle frames are present.
+ */
+export function isExtensionStackOverflowNoise(event: SentryEventLike): boolean {
+  const values = event.exception?.values;
+  if (!values?.length) return false;
+
+  for (const ex of values) {
+    const isStackOverflow =
+      ex.type === 'RangeError' || isMaximumCallStackExceeded(ex.value ?? '');
+    if (!isStackOverflow) continue;
+
+    const frames = ex.stacktrace?.frames;
+    if (!frames?.length) return true;
+
+    const hasAppFrame = frames.some((frame) =>
+      frameLooksLikeAppBundle(frame.filename, frame.abs_path)
+    );
+    if (!hasAppFrame) return true;
+  }
+
+  return false;
+}
+
 function eventPath(event: SentryEventLike): string | null {
   const requestUrl = safeParseUrl(event.request?.url);
   if (!requestUrl) return null;
@@ -333,6 +368,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   }
 
   if (eventFromWalletSdkStackOverflow(event)) {
+    return null;
+  }
+
+  if (isExtensionStackOverflowNoise(event)) {
     return null;
   }
 

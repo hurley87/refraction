@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isAbortError,
+  isExtensionStackOverflowNoise,
   isMaximumCallStackExceeded,
   isPrivyWalletProviderOnNoise,
   isWalletConnectSessionNoise,
@@ -70,6 +71,46 @@ describe('isMaximumCallStackExceeded', () => {
       isMaximumCallStackExceeded('Maximum call stack size exceeded.')
     ).toBe(true);
     expect(isMaximumCallStackExceeded('TypeError: fetch failed')).toBe(false);
+  });
+});
+
+describe('isExtensionStackOverflowNoise', () => {
+  it('detects frameless RangeError stack overflows', () => {
+    expect(
+      isExtensionStackOverflowNoise({
+        exception: {
+          values: [
+            {
+              type: 'RangeError',
+              value: 'Maximum call stack size exceeded.',
+            },
+          ],
+        },
+      })
+    ).toBe(true);
+  });
+
+  it('preserves app-bundle stack overflows', () => {
+    expect(
+      isExtensionStackOverflowNoise({
+        exception: {
+          values: [
+            {
+              type: 'RangeError',
+              value: 'Maximum call stack size exceeded.',
+              stacktrace: {
+                frames: [
+                  {
+                    filename: 'app:///chunks/app-page.js',
+                    abs_path: 'app:///chunks/app-page.js',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      })
+    ).toBe(false);
   });
 });
 
