@@ -67,7 +67,12 @@ function frameLooksLikeInjectedScript(
   return (
     combined.includes('inpage.js') ||
     combined.includes('chrome-extension://') ||
-    combined.includes('moz-extension://')
+    combined.includes('moz-extension://') ||
+    combined.includes('safari-extension://') ||
+    combined.includes('safari-web-extension://') ||
+    combined.includes('brave-extension://') ||
+    // Firefox generic extension scheme (not moz-extension://).
+    combined.includes('extension://')
   );
 }
 

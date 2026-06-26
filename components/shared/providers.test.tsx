@@ -1,11 +1,14 @@
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { createConfigMock } = vi.hoisted(() => ({
+const { createConfigMock, privyProviderMock } = vi.hoisted(() => ({
   createConfigMock: vi.fn(() => ({
     chains: [],
     transports: {},
   })),
+  privyProviderMock: vi.fn(
+    ({ children }: { children: React.ReactNode }) => children
+  ),
 }));
 
 vi.mock('wagmi', () => ({
@@ -15,7 +18,7 @@ vi.mock('wagmi', () => ({
 }));
 
 vi.mock('@privy-io/react-auth', () => ({
-  PrivyProvider: ({ children }: { children: React.ReactNode }) => children,
+  PrivyProvider: privyProviderMock,
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -34,6 +37,7 @@ describe('Providers', () => {
   beforeEach(() => {
     vi.resetModules();
     createConfigMock.mockClear();
+    privyProviderMock.mockClear();
     vi.stubEnv('NEXT_PUBLIC_PRIVY_APP_ID', 'clxxxxxxxxxxxxxxxxxxxxxxx');
   });
 
@@ -44,5 +48,17 @@ describe('Providers', () => {
     render(<Providers>child</Providers>);
 
     expect(createConfigMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes a stable Privy config across re-renders', async () => {
+    const { default: Providers } = await import('./providers');
+
+    render(<Providers>child</Providers>);
+    render(<Providers>child</Providers>);
+
+    expect(privyProviderMock).toHaveBeenCalledTimes(2);
+    const firstConfig = privyProviderMock.mock.calls[0][0].config;
+    const secondConfig = privyProviderMock.mock.calls[1][0].config;
+    expect(firstConfig).toBe(secondConfig);
   });
 });
