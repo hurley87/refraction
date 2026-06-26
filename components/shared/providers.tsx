@@ -1,7 +1,7 @@
 'use client';
 
 import { base } from 'viem/chains';
-import { PrivyProvider } from '@privy-io/react-auth';
+import { PrivyProvider, type PrivyClientConfig } from '@privy-io/react-auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { AnalyticsProvider } from '@/components/shared/analytics-provider';
@@ -20,29 +20,29 @@ const wagmiConfig = createConfig({
   ssr: true,
 });
 
+/** Stable across renders — a new object each render can recurse inside Privy/wagmi. */
+const privyConfig: PrivyClientConfig = {
+  loginMethods: ['email'],
+  supportedChains: [base],
+  defaultChain: base,
+  embeddedWallets: {
+    createOnLogin: 'all-users',
+    ethereum: {
+      createOnLogin: 'all-users',
+    },
+    solana: {
+      createOnLogin: 'all-users',
+    },
+  },
+};
+
 export default function Providers({ children }: { children: React.ReactNode }) {
   const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID!;
 
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <PrivyProvider
-          appId={appId}
-          config={{
-            loginMethods: ['email'],
-            supportedChains: [base],
-            defaultChain: base,
-            embeddedWallets: {
-              createOnLogin: 'all-users',
-              ethereum: {
-                createOnLogin: 'all-users',
-              },
-              solana: {
-                createOnLogin: 'all-users',
-              },
-            },
-          }}
-        >
+        <PrivyProvider appId={appId} config={privyConfig}>
           <AnalyticsProvider>{children}</AnalyticsProvider>
         </PrivyProvider>
       </QueryClientProvider>

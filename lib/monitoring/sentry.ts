@@ -89,6 +89,50 @@ function eventFromInjectedScript(event: SentryEventLike): boolean {
   return false;
 }
 
+/** Bundled wallet SDKs (Privy, wagmi, WalletConnect) can overflow when probing providers. */
+function frameLooksLikeWalletSdk(filename?: string, absPath?: string): boolean {
+  const combined = `${filename ?? ''} ${absPath ?? ''}`.toLowerCase();
+  return (
+    combined.includes('@privy-io') ||
+    combined.includes('privy-io') ||
+    combined.includes('/wagmi') ||
+    combined.includes('walletconnect') ||
+    combined.includes('@walletconnect') ||
+    combined.includes('/reown/')
+  );
+}
+
+/**
+ * RangeError stack overflows inside wallet SDK bundles (often after extension
+ * probing) are environmental noise — distinct from app-originating recursion.
+ */
+export function isMaximumCallStackExceeded(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('maximum call stack size exceeded');
+}
+
+function eventFromWalletSdkStackOverflow(event: SentryEventLike): boolean {
+  const values = event.exception?.values;
+  if (!values?.length) return false;
+
+  for (const ex of values) {
+    const isStackOverflow =
+      ex.type === 'RangeError' || isMaximumCallStackExceeded(ex.value ?? '');
+    if (!isStackOverflow) continue;
+
+    const frames = ex.stacktrace?.frames;
+    if (!frames?.length) continue;
+
+    for (const frame of frames) {
+      if (frameLooksLikeWalletSdk(frame.filename, frame.abs_path)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 function eventPath(event: SentryEventLike): string | null {
   const requestUrl = safeParseUrl(event.request?.url);
   if (!requestUrl) return null;
@@ -285,6 +329,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   }
 
   if (eventFromInjectedScript(event)) {
+    return null;
+  }
+
+  if (eventFromWalletSdkStackOverflow(event)) {
     return null;
   }
 

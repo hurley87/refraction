@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isAbortError,
+  isMaximumCallStackExceeded,
   isPrivyWalletProviderOnNoise,
   isWalletConnectSessionNoise,
   isWalletExtensionOnboardingNoise,
@@ -60,6 +61,15 @@ describe('isPrivyWalletProviderOnNoise', () => {
       )
     ).toBe(true);
     expect(isPrivyWalletProviderOnNoise('TypeError: fetch failed')).toBe(false);
+  });
+});
+
+describe('isMaximumCallStackExceeded', () => {
+  it('detects RangeError stack overflow messages', () => {
+    expect(
+      isMaximumCallStackExceeded('Maximum call stack size exceeded.')
+    ).toBe(true);
+    expect(isMaximumCallStackExceeded('TypeError: fetch failed')).toBe(false);
   });
 });
 
@@ -393,6 +403,32 @@ describe('sentryBeforeSend', () => {
                     'chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/inpage.js',
                   abs_path:
                     'chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/scripts/inpage.js',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for wallet SDK bundle stack overflows', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            type: 'RangeError',
+            value: 'Maximum call stack size exceeded.',
+            stacktrace: {
+              frames: [
+                {
+                  filename:
+                    'app:///node_modules/@privy-io/react-auth/dist/esm/index.mjs',
+                  abs_path:
+                    'app:///node_modules/@privy-io/react-auth/dist/esm/index.mjs',
                 },
               ],
             },

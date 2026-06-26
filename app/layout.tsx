@@ -120,6 +120,10 @@ export default function RootLayout({
       message.includes('Cannot redefine property: ethereum') ||
       message.includes('Cannot set property ethereum') ||
       message.includes('Cannot redefine property') ||
+      (message.includes('Maximum call stack size exceeded') &&
+        (source.includes('inpage.js') ||
+          source.includes('chrome-extension://') ||
+          source.includes('moz-extension://'))) ||
       message.includes('ERR_NAME_NOT_RESOLVED') ||
       source.includes('googletagmanager.com') ||
       message.includes('net::ERR_NAME_NOT_RESOLVED')
