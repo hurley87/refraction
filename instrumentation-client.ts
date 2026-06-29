@@ -1,9 +1,12 @@
 import * as Sentry from '@sentry/nextjs';
+import { registerChunkLoadRecovery } from '@/lib/monitoring/chunk-load-recovery';
 import {
   sentryBeforeSend,
   sentryIgnoreErrors,
   sentryTracingOptions,
 } from '@/lib/monitoring/sentry';
+
+registerChunkLoadRecovery();
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
 
