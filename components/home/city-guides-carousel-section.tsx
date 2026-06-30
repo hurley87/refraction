@@ -96,6 +96,75 @@ function LocationPinIcon({ className }: { className?: string }) {
   );
 }
 
+function ExploreCityButton({ city }: { city: string }) {
+  return (
+    <Link
+      href={`/interactive-map?city=${encodeURIComponent(city)}`}
+      className="inline-flex shrink-0"
+    >
+      <button
+        type="button"
+        className="flex h-8 cursor-pointer items-center gap-2 bg-[#454545] px-2 py-2"
+      >
+        <span className="label-medium uppercase text-white">
+          Explore {city}
+        </span>
+        <svg
+          width={24}
+          height={24}
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="shrink-0"
+          aria-hidden
+        >
+          <path
+            d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+            fill="#FFFFFF"
+          />
+        </svg>
+      </button>
+    </Link>
+  );
+}
+
+function VenueSupportCard({
+  venue,
+  selectedTabIndex,
+  className,
+}: {
+  venue: (typeof VENUES)[number];
+  selectedTabIndex: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex w-full max-w-[361px] flex-col items-start gap-4 md:w-[337px] md:max-w-[337px] ${className ?? ''}`}
+    >
+      <span className="title2 self-stretch text-left text-white">
+        {venue.name}
+      </span>
+
+      <div className="flex items-start gap-2 self-stretch">
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center">
+          <LocationPinIcon />
+        </span>
+        <span className="body-small text-white">
+          {venue.neighborhood}, {venue.city}
+        </span>
+      </div>
+
+      <ExploreCityButton city={venue.city} />
+
+      <div className="flex w-full items-center gap-0">
+        {VENUES.map((item, index) => (
+          <TabLine key={item.name} active={selectedTabIndex === index} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * City Guides - Tabbed featured venues from local City Guides
  */
@@ -148,142 +217,32 @@ export default function CityGuidesCarouselSection() {
           </div>
         </div>
 
-        {/* Support section — pinned to the bottom */}
-        <div className="mt-auto flex w-full max-w-[361px] flex-col items-start gap-4">
-          {/* City name */}
-          <span className="title2 self-stretch text-left text-white">
-            {selectedVenue.name}
-          </span>
-
-          {/* Location */}
-          <div className="flex items-left justify-left gap-2 self-stretch">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center">
-              <LocationPinIcon />
-            </span>
-            <span className="body-small text-white">
-              {selectedVenue.neighborhood}, {selectedVenue.city}
-            </span>
-          </div>
-
-          {/* Explore [city] CTA */}
-          <Link
-            href={`/interactive-map?city=${encodeURIComponent(selectedVenue.city)}`}
-            className="inline-flex shrink-0"
-          >
-            <button
-              type="button"
-              className="flex h-8 cursor-pointer items-center gap-2 bg-[#454545] px-2 py-2"
-            >
-              <span className="label-medium uppercase text-white">
-                Explore {selectedVenue.city}
-              </span>
-              <svg
-                width={24}
-                height={24}
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="shrink-0"
-                aria-hidden
-              >
-                <path
-                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
-                  fill="#FFFFFF"
-                />
-              </svg>
-            </button>
-          </Link>
-
-          {/* Tab indicators — one per venue */}
-          <div className="flex w-full items-center gap-0">
-            {VENUES.map((venue, index) => (
-              <TabLine key={venue.name} active={selectedTabIndex === index} />
-            ))}
-          </div>
-        </div>
+        <VenueSupportCard
+          venue={selectedVenue}
+          selectedTabIndex={selectedTabIndex}
+          className="mt-auto"
+        />
       </div>
 
       {/* Desktop layout */}
-      <div
-        className="relative z-10 hidden h-full w-full flex-col overflow-hidden px-2 pt-[129px] pb-6 md:flex md:max-w-[1177px] md:mr-auto md:pt-[201px] md:pb-16 md:pl-[171px] md:pr-[217px]"
-        style={{ aspectRatio: '125/271' }}
-      >
-        <div className="flex items-left justify-left gap-2 mb-4">
-          <WelcomeEllipse />
-          <h2 className="title4 text-white text-left">Featured Cities</h2>
-        </div>
-        <div className="text-white font-normal text-left mb-4  leading-[1] title1 md:text-[48px]">
-          30 Cities, One Network
-        </div>
-
-        {/* Tabbed venue content */}
-        <div
-          className="flex w-[377px] max-w-full flex-col items-stretch gap-4 pt-0 pb-4 px-6 rounded-none overflow-hidden md:mt-[400px]"
-          style={{
-            background: 'var(--UI-White-25, rgba(255, 255, 255, 0.25))',
-            backdropFilter: 'blur(28px)',
-          }}
-        >
-          {/* Tab indicators: one per venue */}
-          <div className="flex justify-stretch items-center flex-shrink-0 w-[calc(100%+48px)] min-w-0 gap-0 -mx-6">
-            {VENUES.map((venue, index) => (
-              <TabLine key={venue.name} active={selectedTabIndex === index} />
-            ))}
-          </div>
-
-          {/* Selected venue content */}
-          <div className="flex flex-col items-start flex-1 min-w-0">
-            {/* Row 1: venue name */}
-            <span
-              className="text-[#FFF] text-[25px] font-medium leading-8 tracking-[-0.25px]"
-              style={{
-                fontFamily:
-                  '"ABC Monument Grotesk Unlicensed Trial", "ABC-Monument-Grotesk", sans-serif',
-              }}
-            >
-              {selectedVenue.name}
-            </span>
-            {/* 16px spacing */}
-            <div className="h-4" aria-hidden />
-            {/* Row 2: location icon + neighborhood, city */}
-            <div className="flex items-start gap-2">
-              <span className="w-6 h-6 shrink-0 aspect-square flex items-center justify-center">
-                <LocationPinIcon />
-              </span>
-              <span className="title4 text-[#FFF] font-grotesk">
-                {selectedVenue.neighborhood}, {selectedVenue.city}
-              </span>
+      <div className="relative z-10 hidden h-full w-full flex-col overflow-hidden pb-6 md:flex md:pt-[915px] md:pb-[159px] md:pl-[171px] md:pr-[217px]">
+        <div className="flex w-full items-end justify-between gap-8">
+          {/* Subtitle block — lower left */}
+          <div className="flex shrink-0 flex-col items-start">
+            <div className="mb-4 flex items-center gap-2">
+              <WelcomeEllipse />
+              <h2 className="title4 text-left text-white">Featured Cities</h2>
             </div>
+            <p className="title1 text-left leading-none text-white md:text-[48px]">
+              30 Cities, One Network
+            </p>
           </div>
 
-          {/* Explore [city] CTA – links to interactive map by city name */}
-          <Link
-            href={`/interactive-map?city=${encodeURIComponent(selectedVenue.city)}`}
-            className="inline-flex w-full max-w-full shrink-0"
-          >
-            <button
-              type="button"
-              className="label-large flex h-[44px] w-full cursor-pointer uppercase items-center justify-between bg-[#ffffff] py-2 pr-2 pl-4 text-[#171717]"
-            >
-              <span className="min-w-0 truncate">
-                Explore {selectedVenue.city}
-              </span>
-              <svg
-                width={24}
-                height={24}
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="shrink-0"
-                aria-hidden
-              >
-                <path
-                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
-                  fill="#171717"
-                />
-              </svg>
-            </button>
-          </Link>
+          <VenueSupportCard
+            venue={selectedVenue}
+            selectedTabIndex={selectedTabIndex}
+            className="ml-auto shrink-0"
+          />
         </div>
       </div>
     </section>
