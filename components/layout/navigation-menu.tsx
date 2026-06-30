@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import Image from 'next/image';
@@ -151,16 +152,23 @@ export default function NavigationMenu({
       {/* Menu panel: full-height, flush to the top; header in flow so links never sit under logo/close */}
       <div className="absolute top-0 left-1/2 flex w-full max-w-[393px] -translate-x-1/2 flex-col overflow-hidden">
         <div className="flex h-[70px] w-full shrink-0 items-center justify-between bg-[var(--Dark-Tint-White,#FFF)] px-4">
-          {/* Native img + cache-bust: avoids Next/Image + stale 301 cache from old /IRL-SVG redirects on some dev setups */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/irl-svg/irl-logo-new.svg?v=4"
-            alt="IRL"
-            width={70}
-            height={63}
-            className="size-[70px] shrink-0 object-contain"
-            decoding="async"
-          />
+          <Link
+            href="/"
+            onClick={onClose}
+            className="flex shrink-0 items-center justify-center transition-opacity hover:opacity-80"
+            aria-label="IRL home"
+          >
+            {/* Native img + cache-bust: avoids Next/Image + stale 301 cache from old /IRL-SVG redirects on some dev setups */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/irl-svg/irl-logo-new.svg?v=4"
+              alt="IRL"
+              width={70}
+              height={63}
+              className="size-[70px] shrink-0 object-contain"
+              decoding="async"
+            />
+          </Link>
           <button
             type="button"
             onClick={onClose}
