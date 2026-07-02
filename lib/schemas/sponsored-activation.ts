@@ -4,7 +4,6 @@ import {
   activationEligibilityRulesConfigSchema,
   DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG,
 } from '@/lib/schemas/activation-eligibility-config';
-import { POSTER_CHECKOUT_USDC_ADDRESS_BASE } from '@/lib/walletconnect-poster-direct-usdc';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import { sameWalletAddress, tryNormalizeEvmAddress } from '@/lib/utils/wallets';
 import {
