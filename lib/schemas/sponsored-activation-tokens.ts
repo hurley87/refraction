@@ -44,7 +44,7 @@ export const SPONSORED_ACTIVATION_BASE_TOKEN_SYMBOLS = Object.keys(
 export function isSponsoredActivationBaseTokenSymbol(
   value: string
 ): value is SponsoredActivationBaseTokenSymbol {
-  return (SPONSORED_ACTIVATION_BASE_TOKEN_SYMBOLS as string[]).includes(value);
+  return value in SPONSORED_ACTIVATION_BASE_TOKENS;
 }
 
 export function getSponsoredActivationBaseTokenBySymbol(
@@ -90,6 +90,13 @@ export function describeSponsoredActivationPaymentTokenSymbol(row: {
   if (row.settlement_rail === 'stellar') {
     const code = row.usdc_asset_config?.asset_code;
     return typeof code === 'string' && code.trim() ? code.trim() : 'USDC';
+  }
+  const persistedSymbol = row.usdc_asset_config?.symbol;
+  if (typeof persistedSymbol === 'string') {
+    const trimmed = persistedSymbol.trim();
+    if (trimmed && isSponsoredActivationBaseTokenSymbol(trimmed)) {
+      return trimmed;
+    }
   }
   const contract = row.usdc_asset_config?.contract_address;
   if (typeof contract === 'string') {

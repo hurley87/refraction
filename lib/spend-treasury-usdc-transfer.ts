@@ -210,7 +210,7 @@ export async function submitTreasuryUsdcTransfer(params: {
   serverWalletId: string;
   serverWalletAddress: `0x${string}`;
   recipientAddress: `0x${string}`;
-  /** Human-readable USDC amount (6 decimals). */
+  /** Human-readable token amount (default 6 decimals, i.e. USDC). */
   usdcAmount: number;
   /**
    * ERC-20 contract for the transfer `to` field (USDC on Base).

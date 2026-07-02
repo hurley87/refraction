@@ -18,7 +18,14 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { balanceUsdcToMicro } from '@/lib/activation/usdc-micro';
+import {
+  balanceToTokenMicro,
+  balanceUsdcToMicro,
+} from '@/lib/activation/usdc-micro';
+import {
+  describeSponsoredActivationPaymentTokenSymbol,
+  resolveBaseTokenDecimals,
+} from '@/lib/schemas/sponsored-activation-tokens';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import { unwrapAdminJson } from '@/lib/admin/unwrap-admin-json';
@@ -26,7 +33,6 @@ import type {
   SettlementRail,
   SponsoredActivationStatus,
 } from '@/lib/db/sponsored-activations';
-import { describeSponsoredActivationPaymentTokenSymbol } from '@/lib/schemas/sponsored-activation-tokens';
 import {
   sponsoredActivationQrGuestSharePath,
   sponsoredActivationQrGuestShareSourceRefId,
@@ -111,12 +117,6 @@ function fmtUsdc(n: number | null | undefined, tokenSymbol: string): string {
 
 function railLabel(rail: SettlementRail): string {
   return rail === 'base' ? 'Base' : 'Stellar';
-}
-
-function usdcAssetHint(rail: SettlementRail, tokenSymbol: string): string {
-  return rail === 'base'
-    ? `${tokenSymbol} on Base`
-    : `${tokenSymbol} on Stellar`;
 }
 
 function statusUpdateToastLabel(status: SponsoredActivationStatus): string {
@@ -464,6 +464,14 @@ export function ActivationLaunchPanel({
   const isPaused = activation.status === 'paused';
   const canGoLive = isDraft && hasActiveReward;
   const tokenSymbol = describeSponsoredActivationPaymentTokenSymbol(activation);
+  const tokenDecimals =
+    activation.settlement_rail === 'base'
+      ? resolveBaseTokenDecimals(
+          typeof activation.usdc_asset_config?.contract_address === 'string'
+            ? activation.usdc_asset_config.contract_address
+            : ''
+        )
+      : 6;
 
   let liveStepBody: string;
   if (isDraft) {
@@ -487,7 +495,7 @@ export function ActivationLaunchPanel({
     {
       id: 'fund',
       done: false,
-      title: `Fund the campaign wallet (${usdcAssetHint(activation.settlement_rail, tokenSymbol)})`,
+      title: `Fund the campaign wallet (${activation.settlement_rail === 'base' ? `${tokenSymbol} on Base` : `${tokenSymbol} on Stellar`})`,
       body:
         activation.settlement_rail === 'stellar'
           ? `Fund the shared Stellar campaign wallet below with ${fmtUsdcHint(activation.max_usdc_budget, tokenSymbol)} or more ${tokenSymbol}. All Stellar activations settle from this wallet.`
@@ -859,9 +867,14 @@ export function ActivationLaunchPanel({
                             withdrawMutation.isPending ||
                             !withdrawDestination.trim() ||
                             activation.campaign_wallet_usdc_balance == null ||
-                            balanceUsdcToMicro(
-                              activation.campaign_wallet_usdc_balance
-                            ) <= 0
+                            (activation.settlement_rail === 'base'
+                              ? balanceToTokenMicro(
+                                  activation.campaign_wallet_usdc_balance,
+                                  tokenDecimals
+                                )
+                              : balanceUsdcToMicro(
+                                  activation.campaign_wallet_usdc_balance
+                                )) <= 0
                           }
                           onClick={() => withdrawMutation.mutate()}
                         >

@@ -34,8 +34,9 @@ import {
   withdrawSponsoredActivationCampaignWallet,
 } from '@/lib/activation/campaign-wallet-withdraw';
 import type { SponsoredActivationRow } from '@/lib/db/sponsored-activations';
+import { CADD_ADDRESS_BASE } from '@/lib/schemas/sponsored-activation-tokens';
 
-const CADD = '0x16F93eBC5320C89EfC8701577efe49d14A276a06';
+const CADD = CADD_ADDRESS_BASE;
 
 function baseActivation(
   overrides: Partial<SponsoredActivationRow> = {}
@@ -104,9 +105,33 @@ describe('campaign-wallet-withdraw (CADD / 18-decimal Base tokens)', () => {
       expect.objectContaining({
         usdcContractAddress: CADD,
         decimals: 18,
+        usdcAmount: 10,
       })
     );
     expect(result.ok).toBe(true);
+  });
+
+  it('withdraws full CADD balance using 18-decimal micro precision', async () => {
+    const preciseBalance = 10.123456789012345678;
+    mockFetchUsdcBalanceOnBase.mockResolvedValue(preciseBalance);
+    mockSubmitTreasuryUsdcTransfer.mockResolvedValue({
+      ok: true,
+      txHash: '0xabc',
+      privyTransactionId: 'ptx-1',
+    });
+    mockWaitForTreasuryTxReceipt.mockResolvedValue(undefined);
+
+    await withdrawSponsoredActivationCampaignWallet({
+      activation: baseActivation(),
+      destinationAddress: '0x3333333333333333333333333333333333333333',
+    });
+
+    expect(mockSubmitTreasuryUsdcTransfer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        usdcAmount: 10.123456789012345678,
+        decimals: 18,
+      })
+    );
   });
 
   it('falls back to 6 decimals for legacy/unrecognized contracts', async () => {

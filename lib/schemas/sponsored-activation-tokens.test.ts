@@ -66,6 +66,18 @@ describe('sponsored-activation-tokens', () => {
       ).toBe('CADD');
     });
 
+    it('reads persisted symbol before contract lookup', () => {
+      expect(
+        describeSponsoredActivationPaymentTokenSymbol({
+          settlement_rail: 'base',
+          usdc_asset_config: {
+            contract_address: CADD_ADDRESS_BASE,
+            symbol: 'CADD',
+          },
+        })
+      ).toBe('CADD');
+    });
+
     it('defaults to USDC for legacy Base rows without a recognized contract', () => {
       expect(
         describeSponsoredActivationPaymentTokenSymbol({

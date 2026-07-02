@@ -2,7 +2,11 @@ import {
   parseStellarSettlementAssetConfig,
   submitStellarCampaignUsdcPayment,
 } from '@/lib/activation/stellar-settlement-submit';
-import { balanceUsdcToMicro } from '@/lib/activation/usdc-micro';
+import {
+  balanceToTokenMicro,
+  balanceUsdcToMicro,
+  tokenMicroToAmount,
+} from '@/lib/activation/usdc-micro';
 import { loadActivationReservedUsdc } from '@/lib/db/sponsored-activation-admin';
 import { supabase } from '@/lib/db/client';
 import type { SponsoredActivationRow } from '@/lib/db/sponsored-activations';
@@ -301,7 +305,19 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     };
   }
 
-  let maxBalanceMicro = balanceUsdcToMicro(balance);
+  const baseAssetConfig =
+    input.activation.settlement_rail === 'base'
+      ? baseUsdcAssetConfigSchema.safeParse(input.activation.usdc_asset_config)
+      : null;
+  const tokenDecimals =
+    baseAssetConfig?.success === true
+      ? resolveBaseTokenDecimals(baseAssetConfig.data.contract_address)
+      : 6;
+
+  let maxBalanceMicro =
+    input.activation.settlement_rail === 'base'
+      ? balanceToTokenMicro(balance, tokenDecimals)
+      : balanceUsdcToMicro(balance);
   if (input.activation.settlement_rail === 'stellar') {
     maxBalanceMicro = await computeStellarSharedWalletMaxWithdrawMicro(
       input.activation,
@@ -318,7 +334,10 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
 
   let withdrawMicro: number;
   if (input.amountUsdc != null && input.amountUsdc > 0) {
-    withdrawMicro = Math.floor(input.amountUsdc * 1e6);
+    withdrawMicro =
+      input.activation.settlement_rail === 'base'
+        ? balanceToTokenMicro(input.amountUsdc, tokenDecimals)
+        : Math.floor(input.amountUsdc * 1e6);
     if (withdrawMicro <= 0) {
       return {
         ok: false,
@@ -329,7 +348,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     if (withdrawMicro > maxBalanceMicro) {
       return {
         ok: false,
-        error: `Amount exceeds on-chain balance (${(maxBalanceMicro / 1e6).toFixed(6)} ${tokenSymbol}).`,
+        error: `Amount exceeds on-chain balance (${tokenMicroToAmount(maxBalanceMicro, tokenDecimals).toFixed(tokenDecimals)} ${tokenSymbol}).`,
         statusCode: 400,
       };
     }
@@ -337,7 +356,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     withdrawMicro = maxBalanceMicro;
   }
 
-  const withdrawAmount = withdrawMicro / 1e6;
+  const withdrawAmount = tokenMicroToAmount(withdrawMicro, tokenDecimals);
   const destinationAddress = destCheck.normalized;
 
   if (input.activation.settlement_rail === 'stellar') {
@@ -382,9 +401,9 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     };
   }
 
-  const cfg = baseUsdcAssetConfigSchema.safeParse(
-    input.activation.usdc_asset_config
-  );
+  const cfg =
+    baseAssetConfig ??
+    baseUsdcAssetConfigSchema.safeParse(input.activation.usdc_asset_config);
   if (!cfg.success) {
     return {
       ok: false,
@@ -399,7 +418,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     recipientAddress: destinationAddress as `0x${string}`,
     usdcAmount: withdrawAmount,
     usdcContractAddress: cfg.data.contract_address,
-    decimals: resolveBaseTokenDecimals(cfg.data.contract_address),
+    decimals: tokenDecimals,
     referenceId: `sa-wd:${input.activation.id}:${Date.now().toString(36)}`,
     withdrawTelemetry: true,
   });

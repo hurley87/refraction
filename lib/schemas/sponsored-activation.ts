@@ -9,7 +9,9 @@ import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import { sameWalletAddress, tryNormalizeEvmAddress } from '@/lib/utils/wallets';
 import {
   getSponsoredActivationBaseTokenBySymbol,
+  SPONSORED_ACTIVATION_BASE_TOKENS,
   SPONSORED_ACTIVATION_BASE_TOKEN_SYMBOLS,
+  type SponsoredActivationBaseTokenSymbol,
 } from '@/lib/schemas/sponsored-activation-tokens';
 
 /**
@@ -226,10 +228,6 @@ const adminCreateSponsoredActivationStellarObject =
         .default(DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG),
     });
 
-/** Canonical Base USDC contract for sponsored activations (admin create default). */
-export const DEFAULT_SPONSORED_ACTIVATION_BASE_USDC_CONTRACT =
-  POSTER_CHECKOUT_USDC_ADDRESS_BASE;
-
 /**
  * Resolves the admin's `payment_token` choice (default `USDC`) to the
  * `usdc_asset_config` persisted for a Base-rail activation.
@@ -237,10 +235,13 @@ export const DEFAULT_SPONSORED_ACTIVATION_BASE_USDC_CONTRACT =
 export function resolveAdminBaseSponsoredActivationAssetConfig(
   paymentToken: string | undefined
 ): { contract_address: `0x${string}`; symbol: string } {
-  const token =
-    getSponsoredActivationBaseTokenBySymbol(paymentToken ?? 'USDC') ??
-    getSponsoredActivationBaseTokenBySymbol('USDC')!;
-  return { contract_address: token.contract_address, symbol: token.symbol };
+  const symbol: SponsoredActivationBaseTokenSymbol =
+    getSponsoredActivationBaseTokenBySymbol(paymentToken ?? 'USDC')?.symbol ??
+    'USDC';
+  return {
+    contract_address: SPONSORED_ACTIVATION_BASE_TOKENS[symbol].contract_address,
+    symbol,
+  };
 }
 
 /**
