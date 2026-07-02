@@ -25,6 +25,7 @@ import {
   waitForTransaction,
 } from '@/lib/privy-server-rest';
 import { baseUsdcAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
+import { resolveBaseTokenDecimals } from '@/lib/schemas/sponsored-activation-tokens';
 import {
   findRecentTreasuryUsdcTransfer,
   getTreasuryTxReceiptStatus,
@@ -306,6 +307,7 @@ export async function processBaseActivationSettlement(input: {
     );
   }
   const usdcContract = cfgParse.data.contract_address;
+  const tokenDecimals = resolveBaseTokenDecimals(usdcContract);
 
   const privyWalletId = activation.privy_campaign_wallet_id?.trim();
   if (!privyWalletId) {
@@ -394,6 +396,7 @@ export async function processBaseActivationSettlement(input: {
       recipientAddress: venueExpected as `0x${string}`,
       usdcAmount: settlementAmount,
       erc20ContractAddress: usdcContract,
+      decimals: tokenDecimals,
     });
   }
 
@@ -485,6 +488,7 @@ export async function processBaseActivationSettlement(input: {
       recipientAddress: venueExpected,
       usdcAmount: row.amount,
       usdcContractAddress: usdcContract,
+      decimals: tokenDecimals,
       referenceId,
     });
   } catch (e) {

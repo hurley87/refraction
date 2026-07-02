@@ -136,6 +136,33 @@ describe('submitTreasuryUsdcTransfer', () => {
     );
   });
 
+  it('encodes transfer calldata using custom decimals (e.g. 18 for CADD)', async () => {
+    mockSignAndSend.mockResolvedValue({
+      transactionId: 'privy-tx-2',
+      userOperationHash: null,
+      hash: '',
+    });
+    mockWaitForTransaction.mockResolvedValue({
+      transactionHash: txHash as `0x${string}`,
+      status: 'finalized',
+      userOperationHash: null,
+    });
+
+    await submitTreasuryUsdcTransfer({
+      serverWalletId: 'wallet-1',
+      serverWalletAddress: '0x1111111111111111111111111111111111111111',
+      recipientAddress: '0x2222222222222222222222222222222222222222',
+      usdcAmount: 2,
+      decimals: 18,
+    });
+
+    const data = (mockSignAndSend.mock.calls[0][0] as { data: `0x${string}` })
+      .data;
+    // transfer(address,uint256) selector + 32-byte recipient + 32-byte amount
+    const amountHex = data.slice(2 + 8 + 64);
+    expect(BigInt('0x' + amountHex)).toBe(2n * 10n ** 18n);
+  });
+
   it('rejects when Privy wallet address does not match server_wallet_address', async () => {
     mockGetWallet.mockResolvedValue({
       id: 'wallet-1',

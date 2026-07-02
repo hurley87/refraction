@@ -8,6 +8,10 @@ import { supabase } from '@/lib/db/client';
 import type { SponsoredActivationRow } from '@/lib/db/sponsored-activations';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import { baseUsdcAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
+import {
+  describeSponsoredActivationPaymentTokenSymbol,
+  resolveBaseTokenDecimals,
+} from '@/lib/schemas/sponsored-activation-tokens';
 import { parseUsdcBalanceLine } from '@/lib/spend/stellar-treasury-funding';
 import { createStellarSpendHorizonServer } from '@/lib/spend/stellar-wallet-readiness-config';
 import { getSpendRailBaseRpcUrl } from '@/lib/spend-rail-config';
@@ -149,6 +153,7 @@ async function readBaseCampaignWalletBalance(
     return await fetchUsdcBalanceOnBase(normalized as `0x${string}`, {
       rpcUrl: getSpendRailBaseRpcUrl() || undefined,
       usdcContract: cfg.data.contract_address as `0x${string}`,
+      decimals: resolveBaseTokenDecimals(cfg.data.contract_address),
     });
   } catch (e) {
     console.error('readBaseCampaignWalletBalance:', e);
@@ -283,11 +288,15 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     return { ok: false, error: destCheck.error, statusCode: 400 };
   }
 
+  const tokenSymbol = describeSponsoredActivationPaymentTokenSymbol(
+    input.activation
+  );
+
   const balance = await readCampaignWalletOnChainBalance(input.activation);
   if (balance == null) {
     return {
       ok: false,
-      error: 'Could not read campaign wallet USDC balance.',
+      error: `Could not read campaign wallet ${tokenSymbol} balance.`,
       statusCode: 500,
     };
   }
@@ -302,7 +311,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
   if (maxBalanceMicro <= 0) {
     return {
       ok: false,
-      error: 'No USDC available to withdraw.',
+      error: `No ${tokenSymbol} available to withdraw.`,
       statusCode: 400,
     };
   }
@@ -320,7 +329,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     if (withdrawMicro > maxBalanceMicro) {
       return {
         ok: false,
-        error: `Amount exceeds on-chain balance (${(maxBalanceMicro / 1e6).toFixed(6)} USDC).`,
+        error: `Amount exceeds on-chain balance (${(maxBalanceMicro / 1e6).toFixed(6)} ${tokenSymbol}).`,
         statusCode: 400,
       };
     }
@@ -379,7 +388,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
   if (!cfg.success) {
     return {
       ok: false,
-      error: 'USDC contract is misconfigured.',
+      error: `${tokenSymbol} contract is misconfigured.`,
       statusCode: 500,
     };
   }
@@ -390,6 +399,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     recipientAddress: destinationAddress as `0x${string}`,
     usdcAmount: withdrawAmount,
     usdcContractAddress: cfg.data.contract_address,
+    decimals: resolveBaseTokenDecimals(cfg.data.contract_address),
     referenceId: `sa-wd:${input.activation.id}:${Date.now().toString(36)}`,
     withdrawTelemetry: true,
   });
