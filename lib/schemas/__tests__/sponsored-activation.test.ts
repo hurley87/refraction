@@ -3,8 +3,13 @@ import { getAddress } from 'viem';
 import {
   adminCreateSponsoredActivationRequestSchema,
   createSponsoredActivationSchema,
+  resolveAdminBaseSponsoredActivationAssetConfig,
   updateSponsoredActivationSchema,
 } from '../sponsored-activation';
+import {
+  CADD_ADDRESS_BASE,
+  SPONSORED_ACTIVATION_BASE_TOKENS,
+} from '../sponsored-activation-tokens';
 
 /** Valid EVM-format address for schema tests (avoids repo allowlisted production contract literals). */
 const SAMPLE_EVM_CONTRACT = '0x2222222222222222222222222222222222222222';
@@ -274,6 +279,53 @@ describe('adminCreateSponsoredActivationRequestSchema', () => {
       campaign_wallet_address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
     });
     expect(r.success).toBe(false);
+  });
+
+  it('accepts payment_token=CADD on Base create', () => {
+    const r = adminCreateSponsoredActivationRequestSchema.safeParse({
+      settlement_rail: 'base',
+      title: 't',
+      sponsor_name: 's',
+      max_redemptions: 1,
+      ...validTime,
+      venue_settlement_wallet_address:
+        '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
+      payment_token: 'CADD',
+    });
+    expect(r.success).toBe(true);
+    if (r.success && r.data.settlement_rail === 'base') {
+      expect(r.data.payment_token).toBe('CADD');
+    }
+  });
+
+  it('rejects an unknown payment_token', () => {
+    const r = adminCreateSponsoredActivationRequestSchema.safeParse({
+      settlement_rail: 'base',
+      title: 't',
+      sponsor_name: 's',
+      max_redemptions: 1,
+      ...validTime,
+      venue_settlement_wallet_address:
+        '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
+      payment_token: 'DOGE',
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
+describe('resolveAdminBaseSponsoredActivationAssetConfig', () => {
+  it('defaults to USDC when payment_token is omitted', () => {
+    expect(resolveAdminBaseSponsoredActivationAssetConfig(undefined)).toEqual({
+      contract_address: SPONSORED_ACTIVATION_BASE_TOKENS.USDC.contract_address,
+      symbol: 'USDC',
+    });
+  });
+
+  it('resolves CADD contract and symbol', () => {
+    expect(resolveAdminBaseSponsoredActivationAssetConfig('CADD')).toEqual({
+      contract_address: CADD_ADDRESS_BASE,
+      symbol: 'CADD',
+    });
   });
 });
 

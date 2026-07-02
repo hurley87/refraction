@@ -7,6 +7,10 @@ import {
 import { POSTER_CHECKOUT_USDC_ADDRESS_BASE } from '@/lib/walletconnect-poster-direct-usdc';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import { sameWalletAddress, tryNormalizeEvmAddress } from '@/lib/utils/wallets';
+import {
+  getSponsoredActivationBaseTokenBySymbol,
+  SPONSORED_ACTIVATION_BASE_TOKEN_SYMBOLS,
+} from '@/lib/schemas/sponsored-activation-tokens';
 
 /**
  * `sponsored_activation.settlement_rail` — matches DB CHECK
@@ -42,9 +46,20 @@ const stellarAssetCodeSchema = z
   .max(12)
   .regex(/^[a-zA-Z0-9]+$/, 'Invalid Stellar asset code');
 
+/**
+ * Base settlement payment token, chosen by the admin at create time
+ * (`payment_token`). Defaults to `USDC` when omitted for backward
+ * compatibility.
+ */
+export const sponsoredActivationBaseTokenSymbolSchema = z.enum(
+  SPONSORED_ACTIVATION_BASE_TOKEN_SYMBOLS as [string, ...string[]]
+);
+
 export const baseUsdcAssetConfigSchema = z
   .object({
     contract_address: normalizedEvmAddressSchema,
+    /** Present for activations created after multi-token support (IRL CADD); absent means legacy USDC. */
+    symbol: z.string().optional(),
   })
   .strict();
 
@@ -126,6 +141,8 @@ const createSponsoredActivationBaseObject = z
     campaign_wallet_address: normalizedEvmAddressSchema,
     venue_settlement_wallet_address: normalizedEvmAddressSchema,
     usdc_asset_config: baseUsdcAssetConfigSchema,
+    /** Which Base token to settle in (admin create only; ignored once `usdc_asset_config` is explicit). */
+    payment_token: sponsoredActivationBaseTokenSymbolSchema.optional(),
   })
   .strict();
 
@@ -212,6 +229,19 @@ const adminCreateSponsoredActivationStellarObject =
 /** Canonical Base USDC contract for sponsored activations (admin create default). */
 export const DEFAULT_SPONSORED_ACTIVATION_BASE_USDC_CONTRACT =
   POSTER_CHECKOUT_USDC_ADDRESS_BASE;
+
+/**
+ * Resolves the admin's `payment_token` choice (default `USDC`) to the
+ * `usdc_asset_config` persisted for a Base-rail activation.
+ */
+export function resolveAdminBaseSponsoredActivationAssetConfig(
+  paymentToken: string | undefined
+): { contract_address: `0x${string}`; symbol: string } {
+  const token =
+    getSponsoredActivationBaseTokenBySymbol(paymentToken ?? 'USDC') ??
+    getSponsoredActivationBaseTokenBySymbol('USDC')!;
+  return { contract_address: token.contract_address, symbol: token.symbol };
+}
 
 /**
  * Admin POST body: campaign wallet is provisioned server-side (Privy on Base; shared env wallet on Stellar).
