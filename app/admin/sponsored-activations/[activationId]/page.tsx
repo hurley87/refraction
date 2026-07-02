@@ -22,6 +22,7 @@ import type {
   SettlementRail,
   SponsoredActivationStatus,
 } from '@/lib/db/sponsored-activations';
+import { describeSponsoredActivationPaymentTokenSymbol } from '@/lib/schemas/sponsored-activation-tokens';
 import { ActivationLaunchPanel } from './activation-launch-panel';
 
 type ActivationEnvelope = {
@@ -29,6 +30,7 @@ type ActivationEnvelope = {
   title: string;
   status: SponsoredActivationStatus;
   settlement_rail: SettlementRail;
+  usdc_asset_config: Record<string, unknown>;
   max_usdc_budget: number | null;
   max_redemptions: number | null;
 };
@@ -49,13 +51,13 @@ function formatIfNumber(
   return format(n);
 }
 
-function fmtUsdc(n: number | null | undefined): string {
+function fmtUsdc(n: number | null | undefined, tokenSymbol: string): string {
   return formatIfNumber(n, (v) => {
     const rounded = Math.round(v * 1e6) / 1e6;
-    return `$${rounded.toLocaleString(undefined, {
+    return `${rounded.toLocaleString(undefined, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 6,
-    })}`;
+    })} ${tokenSymbol}`;
   });
 }
 
@@ -196,6 +198,10 @@ export default function AdminSponsoredActivationDetailPage() {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
+
+  const tokenSymbol = dashboard
+    ? describeSponsoredActivationPaymentTokenSymbol(dashboard.activation)
+    : 'USDC';
 
   useEffect(() => {
     if (!dashboard?.activation?.id) return;
@@ -339,24 +345,24 @@ export default function AdminSponsoredActivationDetailPage() {
                 value={fmtInt(dashboard.tiles.redemptionsConfirmed)}
               />
               <Tile
-                label="USDC settled"
-                value={fmtUsdc(dashboard.tiles.usdcSettledTotal)}
+                label={`${tokenSymbol} settled`}
+                value={fmtUsdc(dashboard.tiles.usdcSettledTotal, tokenSymbol)}
               />
               <Tile
                 label="Reserved (inflight + committed)"
-                value={fmtUsdc(dashboard.tiles.reservedUsdc)}
+                value={fmtUsdc(dashboard.tiles.reservedUsdc, tokenSymbol)}
               />
               <Tile
                 label="Budget remaining"
                 hint={
                   dashboard.activation.max_usdc_budget == null
-                    ? 'No USDC budget cap'
+                    ? `No ${tokenSymbol} budget cap`
                     : undefined
                 }
                 value={
                   dashboard.tiles.budgetRemainingUsdc == null
                     ? '—'
-                    : fmtUsdc(dashboard.tiles.budgetRemainingUsdc)
+                    : fmtUsdc(dashboard.tiles.budgetRemainingUsdc, tokenSymbol)
                 }
               />
               <Tile
@@ -415,7 +421,7 @@ export default function AdminSponsoredActivationDetailPage() {
                             {fmtLocalDateTime(row.confirmedAt)}
                           </td>
                           <td className="px-3 py-2 font-mono text-xs">
-                            {fmtUsdc(row.amount)}
+                            {fmtUsdc(row.amount, tokenSymbol)}
                           </td>
                           <td className="px-3 py-2">
                             <SettlementExplorerTxLink
@@ -474,7 +480,7 @@ export default function AdminSponsoredActivationDetailPage() {
                             {row.status}
                           </td>
                           <td className="px-3 py-2 font-mono text-xs">
-                            {fmtUsdc(row.amount)}
+                            {fmtUsdc(row.amount, tokenSymbol)}
                           </td>
                           <td className="px-3 py-2 text-xs">
                             {row.submissionAttempt}
@@ -659,7 +665,11 @@ export default function AdminSponsoredActivationDetailPage() {
                       Status: {selectedRedemption.settlement.status}
                     </li>
                     <li>
-                      Amount: {fmtUsdc(selectedRedemption.settlement.amount)}
+                      Amount:{' '}
+                      {fmtUsdc(
+                        selectedRedemption.settlement.amount,
+                        tokenSymbol
+                      )}
                     </li>
                     <li className="break-all">
                       Tx:{' '}

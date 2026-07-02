@@ -11,6 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  isSponsoredActivationBaseTokenSymbol,
+  SPONSORED_ACTIVATION_BASE_TOKENS,
+} from '@/lib/schemas/sponsored-activation-tokens';
 import type { SponsoredActivationFormState } from './form-state';
 
 export type SponsoredActivationFormPanelProps = {
@@ -123,6 +127,36 @@ export function SponsoredActivationFormPanel({
                 : 'Settlements pay from the shared Stellar campaign wallet configured on the server. Fund that wallet with USDC before going live.'}
             </p>
           </div>
+          {isBase && (
+            <div className="space-y-2">
+              <Label>Payment token</Label>
+              <Select
+                value={form.payment_token}
+                onValueChange={(v) => {
+                  if (isSponsoredActivationBaseTokenSymbol(v)) {
+                    setField('payment_token')(v);
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select token" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(SPONSORED_ACTIVATION_BASE_TOKENS).map(
+                    (token) => (
+                      <SelectItem key={token.symbol} value={token.symbol}>
+                        {token.label}
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-neutral-500">
+                Settlements pay the venue in this token on Base. Fund the
+                campaign wallet with the same token before going live.
+              </p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="sa-venue">Venue settlement wallet</Label>
             <Input
@@ -153,7 +187,9 @@ export function SponsoredActivationFormPanel({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sa-max-budget">Max USDC budget</Label>
+              <Label htmlFor="sa-max-budget">
+                Max budget ({isBase ? form.payment_token : 'USDC'})
+              </Label>
               <Input
                 id="sa-max-budget"
                 type="number"

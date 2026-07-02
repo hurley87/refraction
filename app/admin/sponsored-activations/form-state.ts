@@ -1,5 +1,6 @@
 import type { SettlementRail } from '@/lib/db/sponsored-activations';
 import type { AdminCreateSponsoredActivationRequest } from '@/lib/schemas/sponsored-activation';
+import type { SponsoredActivationBaseTokenSymbol } from '@/lib/schemas/sponsored-activation-tokens';
 import { DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG } from '@/lib/schemas/activation-eligibility-config';
 
 export type SponsoredActivationFormState = {
@@ -8,6 +9,8 @@ export type SponsoredActivationFormState = {
   sponsor_name: string;
   event_id: string;
   settlement_rail: SettlementRail;
+  /** Base rail only; ignored (and omitted from the payload) for Stellar. */
+  payment_token: SponsoredActivationBaseTokenSymbol;
   venue_settlement_wallet_address: string;
   max_redemptions: string;
   max_usdc_budget: string;
@@ -34,6 +37,7 @@ export function emptySponsoredActivationForm(): SponsoredActivationFormState {
     sponsor_name: '',
     event_id: '',
     settlement_rail: 'base',
+    payment_token: 'USDC',
     venue_settlement_wallet_address: '',
     max_redemptions: '100',
     max_usdc_budget: '',
@@ -110,6 +114,7 @@ export function formStateToCreatePayload(
       ...common,
       settlement_rail: 'base',
       venue_settlement_wallet_address: venue,
+      payment_token: form.payment_token,
     } as AdminCreateSponsoredActivationRequest;
   }
 
