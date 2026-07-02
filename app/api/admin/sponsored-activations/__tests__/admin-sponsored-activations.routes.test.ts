@@ -244,6 +244,35 @@ describe('POST /api/admin/sponsored-activations', () => {
     expect(createArg.privy_campaign_wallet_id).toBe('pw-new');
   });
 
+  it('creates a Base activation with payment_token=CADD', async () => {
+    mockCreate.mockResolvedValue(baseFixture);
+    const res = await listPOST(
+      jsonReq(
+        'POST',
+        'http://localhost/api/admin/sponsored-activations',
+        {
+          settlement_rail: 'base',
+          title: 't',
+          sponsor_name: 's',
+          max_redemptions: 1,
+          ...validWindow,
+          venue_settlement_wallet_address:
+            '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+          payment_token: 'CADD',
+        },
+        'idem-cadd'
+      )
+    );
+    expect(res.status).toBe(200);
+    const createArg = mockCreate.mock.calls[0][0] as {
+      usdc_asset_config: { contract_address: string; symbol: string };
+    };
+    expect(createArg.usdc_asset_config).toEqual({
+      contract_address: '0x16F93eBC5320C89EfC8701577efe49d14A276a06',
+      symbol: 'CADD',
+    });
+  });
+
   it('uses shared env Stellar campaign wallet without Privy', async () => {
     mockCreate.mockResolvedValue({
       ...baseFixture,

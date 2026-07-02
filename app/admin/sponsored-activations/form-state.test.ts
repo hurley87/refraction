@@ -30,6 +30,25 @@ describe('formStateToCreatePayload', () => {
     expect(payload).not.toHaveProperty('usdc_asset_config');
   });
 
+  it('defaults payment_token to USDC on base rail', () => {
+    const payload = formStateToCreatePayload(minimalBaseCreateForm());
+    expect(payload).toMatchObject({ payment_token: 'USDC' });
+  });
+
+  it('includes the selected payment_token (CADD) on base rail', () => {
+    const payload = formStateToCreatePayload(
+      minimalBaseCreateForm({ payment_token: 'CADD' })
+    );
+    expect(payload).toMatchObject({ payment_token: 'CADD' });
+  });
+
+  it('omits payment_token on stellar rail', () => {
+    const payload = formStateToCreatePayload(
+      minimalBaseCreateForm({ settlement_rail: 'stellar' })
+    );
+    expect(payload).not.toHaveProperty('payment_token');
+  });
+
   it('includes trimmed description when set', () => {
     const payload = formStateToCreatePayload(
       minimalBaseCreateForm({ description: '  Free drink with check-in  ' })

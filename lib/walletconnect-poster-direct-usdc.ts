@@ -53,6 +53,8 @@ export async function fetchUsdcBalanceOnBase(
   options?: {
     rpcUrl?: string;
     usdcContract?: `0x${string}`;
+    /** ERC-20 decimals for `usdcContract` (default 6, i.e. USDC). */
+    decimals?: number;
   }
 ): Promise<number> {
   const rpcUrl =
@@ -62,11 +64,12 @@ export async function fetchUsdcBalanceOnBase(
     transport: rpcUrl ? http(rpcUrl) : http(),
   });
   const contract = options?.usdcContract ?? POSTER_CHECKOUT_USDC_ADDRESS_BASE;
+  const decimals = options?.decimals ?? 6;
   const raw = await client.readContract({
     address: contract,
     abi: erc20Abi,
     functionName: 'balanceOf',
     args: [walletAddress],
   });
-  return parseFloat(formatUnits(raw, 6));
+  return parseFloat(formatUnits(raw, decimals));
 }

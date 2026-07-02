@@ -2,12 +2,20 @@ import {
   parseStellarSettlementAssetConfig,
   submitStellarCampaignUsdcPayment,
 } from '@/lib/activation/stellar-settlement-submit';
-import { balanceUsdcToMicro } from '@/lib/activation/usdc-micro';
+import {
+  balanceToTokenMicro,
+  balanceUsdcToMicro,
+  tokenMicroToAmount,
+} from '@/lib/activation/usdc-micro';
 import { loadActivationReservedUsdc } from '@/lib/db/sponsored-activation-admin';
 import { supabase } from '@/lib/db/client';
 import type { SponsoredActivationRow } from '@/lib/db/sponsored-activations';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
 import { baseUsdcAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
+import {
+  describeSponsoredActivationPaymentTokenSymbol,
+  resolveBaseTokenDecimals,
+} from '@/lib/schemas/sponsored-activation-tokens';
 import { parseUsdcBalanceLine } from '@/lib/spend/stellar-treasury-funding';
 import { createStellarSpendHorizonServer } from '@/lib/spend/stellar-wallet-readiness-config';
 import { getSpendRailBaseRpcUrl } from '@/lib/spend-rail-config';
@@ -149,6 +157,7 @@ async function readBaseCampaignWalletBalance(
     return await fetchUsdcBalanceOnBase(normalized as `0x${string}`, {
       rpcUrl: getSpendRailBaseRpcUrl() || undefined,
       usdcContract: cfg.data.contract_address as `0x${string}`,
+      decimals: resolveBaseTokenDecimals(cfg.data.contract_address),
     });
   } catch (e) {
     console.error('readBaseCampaignWalletBalance:', e);
@@ -283,16 +292,32 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     return { ok: false, error: destCheck.error, statusCode: 400 };
   }
 
+  const tokenSymbol = describeSponsoredActivationPaymentTokenSymbol(
+    input.activation
+  );
+
   const balance = await readCampaignWalletOnChainBalance(input.activation);
   if (balance == null) {
     return {
       ok: false,
-      error: 'Could not read campaign wallet USDC balance.',
+      error: `Could not read campaign wallet ${tokenSymbol} balance.`,
       statusCode: 500,
     };
   }
 
-  let maxBalanceMicro = balanceUsdcToMicro(balance);
+  const baseAssetConfig =
+    input.activation.settlement_rail === 'base'
+      ? baseUsdcAssetConfigSchema.safeParse(input.activation.usdc_asset_config)
+      : null;
+  const tokenDecimals =
+    baseAssetConfig?.success === true
+      ? resolveBaseTokenDecimals(baseAssetConfig.data.contract_address)
+      : 6;
+
+  let maxBalanceMicro =
+    input.activation.settlement_rail === 'base'
+      ? balanceToTokenMicro(balance, tokenDecimals)
+      : balanceUsdcToMicro(balance);
   if (input.activation.settlement_rail === 'stellar') {
     maxBalanceMicro = await computeStellarSharedWalletMaxWithdrawMicro(
       input.activation,
@@ -302,14 +327,17 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
   if (maxBalanceMicro <= 0) {
     return {
       ok: false,
-      error: 'No USDC available to withdraw.',
+      error: `No ${tokenSymbol} available to withdraw.`,
       statusCode: 400,
     };
   }
 
   let withdrawMicro: number;
   if (input.amountUsdc != null && input.amountUsdc > 0) {
-    withdrawMicro = Math.floor(input.amountUsdc * 1e6);
+    withdrawMicro =
+      input.activation.settlement_rail === 'base'
+        ? balanceToTokenMicro(input.amountUsdc, tokenDecimals)
+        : Math.floor(input.amountUsdc * 1e6);
     if (withdrawMicro <= 0) {
       return {
         ok: false,
@@ -320,7 +348,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     if (withdrawMicro > maxBalanceMicro) {
       return {
         ok: false,
-        error: `Amount exceeds on-chain balance (${(maxBalanceMicro / 1e6).toFixed(6)} USDC).`,
+        error: `Amount exceeds on-chain balance (${tokenMicroToAmount(maxBalanceMicro, tokenDecimals).toFixed(tokenDecimals)} ${tokenSymbol}).`,
         statusCode: 400,
       };
     }
@@ -328,7 +356,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     withdrawMicro = maxBalanceMicro;
   }
 
-  const withdrawAmount = withdrawMicro / 1e6;
+  const withdrawAmount = tokenMicroToAmount(withdrawMicro, tokenDecimals);
   const destinationAddress = destCheck.normalized;
 
   if (input.activation.settlement_rail === 'stellar') {
@@ -373,13 +401,13 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     };
   }
 
-  const cfg = baseUsdcAssetConfigSchema.safeParse(
-    input.activation.usdc_asset_config
-  );
+  const cfg =
+    baseAssetConfig ??
+    baseUsdcAssetConfigSchema.safeParse(input.activation.usdc_asset_config);
   if (!cfg.success) {
     return {
       ok: false,
-      error: 'USDC contract is misconfigured.',
+      error: `${tokenSymbol} contract is misconfigured.`,
       statusCode: 500,
     };
   }
@@ -390,6 +418,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
     recipientAddress: destinationAddress as `0x${string}`,
     usdcAmount: withdrawAmount,
     usdcContractAddress: cfg.data.contract_address,
+    decimals: tokenDecimals,
     referenceId: `sa-wd:${input.activation.id}:${Date.now().toString(36)}`,
     withdrawTelemetry: true,
   });

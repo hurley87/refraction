@@ -8,7 +8,7 @@ import {
 } from '@/lib/db/sponsored-activations';
 import {
   adminCreateSponsoredActivationRequestSchema,
-  DEFAULT_SPONSORED_ACTIVATION_BASE_USDC_CONTRACT,
+  resolveAdminBaseSponsoredActivationAssetConfig,
 } from '@/lib/schemas/sponsored-activation';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { requireAdmin } from '@/lib/auth';
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     const activationId = randomUUID();
     const usdc_asset_config =
       data.settlement_rail === 'base'
-        ? { contract_address: DEFAULT_SPONSORED_ACTIVATION_BASE_USDC_CONTRACT }
+        ? resolveAdminBaseSponsoredActivationAssetConfig(data.payment_token)
         : getDefaultStellarSponsoredActivationUsdcAssetConfig();
 
     const description =

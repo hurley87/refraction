@@ -18,7 +18,14 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { balanceUsdcToMicro } from '@/lib/activation/usdc-micro';
+import {
+  balanceToTokenMicro,
+  balanceUsdcToMicro,
+} from '@/lib/activation/usdc-micro';
+import {
+  describeSponsoredActivationPaymentTokenSymbol,
+  resolveBaseTokenDecimals,
+} from '@/lib/schemas/sponsored-activation-tokens';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { readApiErrorMessage } from '@/lib/admin/read-api-error-message';
 import { unwrapAdminJson } from '@/lib/admin/unwrap-admin-json';
@@ -42,6 +49,7 @@ type ActivationAdminRow = {
   campaign_wallet_explorer_url: string | null;
   venue_settlement_wallet_address: string;
   venue_settlement_wallet_explorer_url: string | null;
+  usdc_asset_config: Record<string, unknown>;
   max_usdc_budget: number | null;
   max_redemptions: number | null;
   campaign_wallet_usdc_balance?: number | null;
@@ -90,29 +98,25 @@ type ActivationLaunchPanelProps = {
   dashboardQueryKey: readonly ['admin-sponsored-activation-dashboard', string];
 };
 
-function fmtUsdcHint(n: number | null): string {
-  if (n == null || Number.isNaN(n)) return 'your planned USDC budget';
-  return `$${n.toLocaleString(undefined, {
+function fmtUsdcHint(n: number | null, tokenSymbol: string): string {
+  if (n == null || Number.isNaN(n)) return `your planned ${tokenSymbol} budget`;
+  return `${n.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`;
+  })} ${tokenSymbol}`;
 }
 
-function fmtUsdc(n: number | null | undefined): string {
+function fmtUsdc(n: number | null | undefined, tokenSymbol: string): string {
   if (n == null || Number.isNaN(n)) return '—';
   const rounded = Math.round(n * 1e6) / 1e6;
-  return `$${rounded.toLocaleString(undefined, {
+  return `${rounded.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 6,
-  })}`;
+  })} ${tokenSymbol}`;
 }
 
 function railLabel(rail: SettlementRail): string {
   return rail === 'base' ? 'Base' : 'Stellar';
-}
-
-function usdcAssetHint(rail: SettlementRail): string {
-  return rail === 'base' ? 'USDC on Base' : 'USDC on Stellar';
 }
 
 function statusUpdateToastLabel(status: SponsoredActivationStatus): string {
@@ -383,7 +387,7 @@ export function ActivationLaunchPanel({
         throw new Error('Points must be zero or greater');
       }
       if (!Number.isFinite(usdc) || usdc <= 0) {
-        throw new Error('USDC amount must be greater than zero');
+        throw new Error('Payout amount must be greater than zero');
       }
       const heroImageUrl = rewardHeroFile
         ? await uploadActivationHeroImage(rewardHeroFile)
@@ -459,6 +463,15 @@ export function ActivationLaunchPanel({
   const isLive = activation.status === 'active';
   const isPaused = activation.status === 'paused';
   const canGoLive = isDraft && hasActiveReward;
+  const tokenSymbol = describeSponsoredActivationPaymentTokenSymbol(activation);
+  const tokenDecimals =
+    activation.settlement_rail === 'base'
+      ? resolveBaseTokenDecimals(
+          typeof activation.usdc_asset_config?.contract_address === 'string'
+            ? activation.usdc_asset_config.contract_address
+            : ''
+        )
+      : 6;
 
   let liveStepBody: string;
   if (isDraft) {
@@ -477,16 +490,16 @@ export function ActivationLaunchPanel({
       title: 'Add at least one active reward',
       body: hasActiveReward
         ? `${activeRewardCount} active reward${activeRewardCount === 1 ? '' : 's'} configured.`
-        : 'Users need a reward (name, points cost, USDC payout) before the activation can go live.',
+        : `Users need a reward (name, points cost, ${tokenSymbol} payout) before the activation can go live.`,
     },
     {
       id: 'fund',
       done: false,
-      title: `Fund the campaign wallet (${usdcAssetHint(activation.settlement_rail)})`,
+      title: `Fund the campaign wallet (${activation.settlement_rail === 'base' ? `${tokenSymbol} on Base` : `${tokenSymbol} on Stellar`})`,
       body:
         activation.settlement_rail === 'stellar'
-          ? `Fund the shared Stellar campaign wallet below with ${fmtUsdcHint(activation.max_usdc_budget)} or more USDC. All Stellar activations settle from this wallet.`
-          : `Send ${fmtUsdcHint(activation.max_usdc_budget)} or more to the campaign wallet below. Settlements pull from this wallet when guests redeem.`,
+          ? `Fund the shared Stellar campaign wallet below with ${fmtUsdcHint(activation.max_usdc_budget, tokenSymbol)} or more ${tokenSymbol}. All Stellar activations settle from this wallet.`
+          : `Send ${fmtUsdcHint(activation.max_usdc_budget, tokenSymbol)} or more to the campaign wallet below. Settlements pull from this wallet when guests redeem.`,
     },
     {
       id: 'live',
@@ -573,7 +586,8 @@ export function ActivationLaunchPanel({
           {activation.max_usdc_budget != null && (
             <>
               {' '}
-              Planned budget cap: {fmtUsdcHint(activation.max_usdc_budget)} (
+              Planned budget cap:{' '}
+              {fmtUsdcHint(activation.max_usdc_budget, tokenSymbol)} (
               {activation.max_redemptions ?? '∞'} max redemptions).
             </>
           )}
@@ -613,7 +627,8 @@ export function ActivationLaunchPanel({
                           <div>
                             <span className="font-medium">{item.name}</span>
                             {' · '}
-                            {item.points_cost} pts · ${item.usdc_amount} USDC
+                            {item.points_cost} pts · {item.usdc_amount}{' '}
+                            {tokenSymbol}
                             {!item.is_active && (
                               <span className="text-amber-700">
                                 {' '}
@@ -663,7 +678,9 @@ export function ActivationLaunchPanel({
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label htmlFor="launch-reward-usdc">USDC payout</Label>
+                        <Label htmlFor="launch-reward-usdc">
+                          {tokenSymbol} payout
+                        </Label>
                         <Input
                           id="launch-reward-usdc"
                           type="number"
@@ -760,9 +777,9 @@ export function ActivationLaunchPanel({
                     </div>
                     <p className="w-full text-xs text-neutral-500">
                       {activation.settlement_rail === 'stellar'
-                        ? 'Shared Stellar campaign wallet (server-configured). Fund with USDC before redemptions settle.'
+                        ? `Shared Stellar campaign wallet (server-configured). Fund with ${tokenSymbol} before redemptions settle.`
                         : 'Send funds here (campaign wallet, provisioned via Privy).'}{' '}
-                      Redemptions settle USDC to the venue wallet{' '}
+                      Redemptions settle {tokenSymbol} to the venue wallet{' '}
                       <span className="font-mono text-[11px]">
                         {activation.venue_settlement_wallet_address}
                       </span>
@@ -790,15 +807,21 @@ export function ActivationLaunchPanel({
                   <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
                     <div className="text-sm">
                       <div className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-                        USDC balance
+                        {tokenSymbol} balance
                       </div>
                       <div className="mt-1 font-medium text-neutral-900 dark:text-neutral-100">
-                        {fmtUsdc(activation.campaign_wallet_usdc_balance)}
+                        {fmtUsdc(
+                          activation.campaign_wallet_usdc_balance,
+                          tokenSymbol
+                        )}
                       </div>
                       {(activation.campaign_wallet_reserved_usdc ?? 0) > 0 && (
                         <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
-                          {fmtUsdc(activation.campaign_wallet_reserved_usdc)} is
-                          earmarked for pending redemptions or settlements.
+                          {fmtUsdc(
+                            activation.campaign_wallet_reserved_usdc,
+                            tokenSymbol
+                          )}{' '}
+                          is earmarked for pending redemptions or settlements.
                           Withdrawal includes this balance; in-flight
                           settlements may fail afterward.
                         </p>
@@ -829,9 +852,9 @@ export function ActivationLaunchPanel({
                           className="order-2 w-full font-mono text-xs sm:col-start-1 sm:row-start-2"
                         />
                         <p className="order-3 text-xs text-neutral-500 sm:col-start-1 sm:row-start-3">
-                          Withdraws the full on-chain USDC balance to the
-                          address above, including funds earmarked for pending
-                          activity.
+                          Withdraws the full on-chain {tokenSymbol} balance to
+                          the address above, including funds earmarked for
+                          pending activity.
                           {activation.settlement_rail === 'base'
                             ? ' Gas is sponsored on Base.'
                             : ' Stellar uses the shared campaign wallet; confirm the destination before sending.'}
@@ -844,9 +867,14 @@ export function ActivationLaunchPanel({
                             withdrawMutation.isPending ||
                             !withdrawDestination.trim() ||
                             activation.campaign_wallet_usdc_balance == null ||
-                            balanceUsdcToMicro(
-                              activation.campaign_wallet_usdc_balance
-                            ) <= 0
+                            (activation.settlement_rail === 'base'
+                              ? balanceToTokenMicro(
+                                  activation.campaign_wallet_usdc_balance,
+                                  tokenDecimals
+                                )
+                              : balanceUsdcToMicro(
+                                  activation.campaign_wallet_usdc_balance
+                                )) <= 0
                           }
                           onClick={() => withdrawMutation.mutate()}
                         >
@@ -856,7 +884,7 @@ export function ActivationLaunchPanel({
                               Withdrawing…
                             </>
                           ) : (
-                            'Withdraw USDC'
+                            `Withdraw ${tokenSymbol}`
                           )}
                         </Button>
                       </div>

@@ -413,6 +413,73 @@ describe('processBaseActivationSettlement', () => {
     });
   });
 
+  it('happy path: resolves 18-decimal CADD decimals for submit and chain scan', async () => {
+    const cadd = '0x16F93eBC5320C89EfC8701577efe49d14A276a06';
+    mockGetSettlementById
+      .mockResolvedValueOnce(baseSettlement())
+      .mockResolvedValue({
+        ...baseSettlement({
+          status: 'confirmed',
+          tx_hash: txHash,
+          privy_transaction_id: 'privy-tx-1',
+          submission_attempt: 1,
+        }),
+      });
+    mockGetActivationById.mockResolvedValue(
+      baseActivation({ usdc_asset_config: { contract_address: cadd } })
+    );
+    mockGetRedemptionById.mockResolvedValue(baseRedemption());
+    mockSubmitTreasury.mockResolvedValue({
+      ok: true,
+      txHash: txHash as `0x${string}`,
+      privyTransactionId: 'privy-tx-1',
+      privyStatus: 'finalized',
+    });
+
+    await processBaseActivationSettlement({ settlementId: 'settle-1' });
+
+    expect(mockSubmitTreasury).toHaveBeenCalledWith(
+      expect.objectContaining({
+        usdcContractAddress: cadd,
+        decimals: 18,
+      })
+    );
+  });
+
+  it('idempotent replay on submitted: passes 18 decimals to chain scan for CADD', async () => {
+    const cadd = '0x16F93eBC5320C89EfC8701577efe49d14A276a06';
+    mockGetSettlementById
+      .mockResolvedValueOnce(
+        baseSettlement({
+          status: 'submitted',
+          privy_transaction_id: 'privy-tx-old',
+          submission_attempt: 1,
+        })
+      )
+      .mockResolvedValue({
+        ...baseSettlement({
+          status: 'confirmed',
+          tx_hash: txHash,
+          privy_transaction_id: 'privy-tx-old',
+          submission_attempt: 1,
+        }),
+      });
+    mockGetActivationById.mockResolvedValue(
+      baseActivation({ usdc_asset_config: { contract_address: cadd } })
+    );
+    mockGetRedemptionById.mockResolvedValue(baseRedemption());
+    mockWaitForTransaction.mockRejectedValue(
+      new PrivyRestTransactionTimeoutError('privy-tx-old')
+    );
+    mockFindRecent.mockResolvedValue(txHash as `0x${string}`);
+
+    await processBaseActivationSettlement({ settlementId: 'settle-1' });
+
+    expect(mockFindRecent).toHaveBeenCalledWith(
+      expect.objectContaining({ erc20ContractAddress: cadd, decimals: 18 })
+    );
+  });
+
   it('records retry when Privy REST is not configured', async () => {
     const { PrivyRestNotConfiguredError } =
       await import('@/lib/privy-server-rest');

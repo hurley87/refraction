@@ -12,6 +12,7 @@ import { Loader2, ArrowLeft, CircleDollarSign, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { AdminCreateSponsoredActivationRequest } from '@/lib/schemas/sponsored-activation';
+import { describeSponsoredActivationPaymentTokenSymbol } from '@/lib/schemas/sponsored-activation-tokens';
 import {
   emptySponsoredActivationForm,
   formStateToCreatePayload,
@@ -26,6 +27,7 @@ type ActivationListRow = {
   sponsor_name: string;
   status: string;
   settlement_rail: string;
+  usdc_asset_config: Record<string, unknown>;
 };
 
 const LIST_QUERY_KEY = ['admin-sponsored-activations-list'] as const;
@@ -81,6 +83,9 @@ const SponsoredActivationsListBody = memo(
                 Rail
               </th>
               <th className="px-4 py-3 font-medium text-gray-700 dark:text-neutral-300">
+                Token
+              </th>
+              <th className="px-4 py-3 font-medium text-gray-700 dark:text-neutral-300">
                 Activation ID
               </th>
             </tr>
@@ -107,6 +112,9 @@ const SponsoredActivationsListBody = memo(
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-neutral-700 dark:text-neutral-300">
                   {a.settlement_rail}
+                </td>
+                <td className="px-4 py-3 font-mono text-xs text-neutral-700 dark:text-neutral-300">
+                  {describeSponsoredActivationPaymentTokenSymbol(a)}
                 </td>
                 <td className="px-4 py-3 font-mono text-xs text-neutral-600 dark:text-neutral-400">
                   {a.id}

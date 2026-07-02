@@ -111,10 +111,13 @@ async function findRecentTreasuryTransferHash(params: {
   fromBlock: bigint | null;
   /** When set (e.g. activation `usdc_asset_config.contract_address`), scan this contract instead of the spend-rail default. */
   erc20ContractAddress?: string | null;
+  /** ERC-20 decimals for `erc20ContractAddress` (default 6, i.e. USDC). */
+  decimals?: number;
 }): Promise<`0x${string}` | null> {
   const publicClient = await publicBaseClient();
   const latest = await publicClient.getBlockNumber();
-  const rawAmount = parseUnits(params.usdcAmount.toFixed(6), 6);
+  const decimals = params.decimals ?? 6;
+  const rawAmount = parseUnits(params.usdcAmount.toFixed(decimals), decimals);
   const fallbackFrom =
     latest > FALLBACK_SCAN_BLOCKS ? latest - FALLBACK_SCAN_BLOCKS : 0n;
   const scanFrom =
@@ -193,6 +196,8 @@ export function findRecentTreasuryUsdcTransfer(params: {
   recipientAddress: `0x${string}`;
   usdcAmount: number;
   erc20ContractAddress?: string | null;
+  /** ERC-20 decimals for `erc20ContractAddress` (default 6, i.e. USDC). */
+  decimals?: number;
 }): Promise<`0x${string}` | null> {
   return findRecentTreasuryTransferHash({ ...params, fromBlock: null });
 }
@@ -205,13 +210,15 @@ export async function submitTreasuryUsdcTransfer(params: {
   serverWalletId: string;
   serverWalletAddress: `0x${string}`;
   recipientAddress: `0x${string}`;
-  /** Human-readable USDC amount (6 decimals). */
+  /** Human-readable token amount (default 6 decimals, i.e. USDC). */
   usdcAmount: number;
   /**
    * ERC-20 contract for the transfer `to` field (USDC on Base).
    * When omitted, uses the spend-rail env default (`getSpendRailBaseUsdcContractAddress`).
    */
   usdcContractAddress?: string | null;
+  /** ERC-20 decimals for `usdcContractAddress` (default 6, i.e. USDC). */
+  decimals?: number;
   /** Override Privy poll (e.g. tests). */
   privyHashResolveOptions?: { timeoutMs?: number; pollIntervalMs?: number };
   /** Optional Privy `reference_id` (default: random UUID). */
@@ -261,12 +268,13 @@ export async function submitTreasuryUsdcTransfer(params: {
       };
     }
 
+    const decimals = params.decimals ?? 6;
     const transferData = encodeFunctionData({
       abi: erc20Abi,
       functionName: 'transfer',
       args: [
         params.recipientAddress,
-        parseUnits(params.usdcAmount.toFixed(6), 6),
+        parseUnits(params.usdcAmount.toFixed(decimals), decimals),
       ],
     });
 
