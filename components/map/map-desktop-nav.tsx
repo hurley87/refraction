@@ -2,13 +2,21 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { type ReactNode } from 'react';
+import LocationSearch, {
+  type LocationSearchProps,
+} from '@/components/shared/location-search';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
 import { cn } from '@/lib/utils';
 
 /** Landing header mark (`irl-logo-new-white.svg`), inverted for light map chrome. */
 const MAP_DESKTOP_LOGO_SRC = '/irl-svg/irl-logo-new-white.svg';
+
+/** Style/Body/Body Medium — desktop map nav LocationSearch (Gal Gothic). */
+export const MAP_DESKTOP_SEARCH_INPUT_CLASS =
+  'text-center text-base font-medium leading-[22px] tracking-[-0.48px] font-["Gal_Gothic_Variable",sans-serif] text-[color:var(--Dark-Tint-40---Neutral,#A9A9A9)] placeholder:text-[color:var(--Dark-Tint-40---Neutral,#A9A9A9)]';
 
 const DESKTOP_NAV_LINKS = [
   { label: 'Map', path: '/interactive-map' },
@@ -16,6 +24,42 @@ const DESKTOP_NAV_LINKS = [
   { label: 'Events', path: '/events' },
   { label: 'Rewards', path: '/rewards' },
 ] as const;
+
+type MapDesktopSearchSlotProps = {
+  onSelect?: LocationSearchProps['onSelect'];
+  proximity?: LocationSearchProps['proximity'];
+};
+
+/** Map-style location search for the desktop nav bar (255px wide). */
+export function MapDesktopSearchSlot({
+  onSelect,
+  proximity = null,
+}: MapDesktopSearchSlotProps) {
+  const router = useRouter();
+
+  const handleSelect: LocationSearchProps['onSelect'] =
+    onSelect ??
+    ((picked) => {
+      const params = new URLSearchParams({
+        lat: String(picked.latitude),
+        lng: String(picked.longitude),
+      });
+      if (picked.id) params.set('placeId', picked.id);
+      router.push(`/interactive-map?${params.toString()}`);
+    });
+
+  return (
+    <div className="flex h-16 w-[255px] items-center gap-4 px-2 py-[var(--sds-size-space-300)]">
+      <LocationSearch
+        placeholder="Search"
+        proximity={proximity}
+        onSelect={handleSelect}
+        className="h-full min-w-0 flex-1"
+        inputClassName={MAP_DESKTOP_SEARCH_INPUT_CLASS}
+      />
+    </div>
+  );
+}
 
 interface MapDesktopNavProps {
   leftSlot?: ReactNode;
