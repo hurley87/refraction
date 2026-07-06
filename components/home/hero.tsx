@@ -21,9 +21,23 @@ type HeroCarouselSlide = {
 
 const HERO_CAROUSEL_SLIDES: HeroCarouselSlide[] = [
   {
+    mobileSrc: '/homepage/hero/carousel/new-york.png',
+    desktopSrc: '/homepage/hero/carousel/new-york-full.jpg',
+    alt: 'New York',
+    stepTitle: 'Explore Local Guides',
+    stepBody: 'The best spots, hand-picked by people shaping the local scene.',
+  },
+  {
     mobileSrc: '/homepage/hero/carousel/denver.png',
     desktopSrc: '/homepage/hero/carousel/denver-full.jpg',
     alt: 'Denver',
+    stepTitle: 'Explore Local Guides',
+    stepBody: 'The best spots, hand-picked by people shaping the local scene.',
+  },
+  {
+    mobileSrc: '/homepage/hero/carousel/amsterdam.png',
+    desktopSrc: '/homepage/hero/carousel/amsterdam-full.jpg',
+    alt: 'Amsterdam',
     stepTitle: 'Explore Local Guides',
     stepBody: 'The best spots, hand-picked by people shaping the local scene.',
   },
@@ -33,13 +47,6 @@ const HERO_CAROUSEL_SLIDES: HeroCarouselSlide[] = [
     alt: 'Detroit',
     stepTitle: 'Check in at a spot',
     stepBody: 'Explore the map and check in at spots across your city.',
-  },
-  {
-    mobileSrc: '/homepage/hero/carousel/singapore.png',
-    desktopSrc: '/homepage/hero/carousel/singapore-full.jpg',
-    alt: 'Singapore',
-    stepTitle: 'Earn and spend rewards',
-    stepBody: 'Earn points for future rewards at clubs, bars, and galleries',
   },
 ];
 
@@ -69,6 +76,8 @@ export default function Hero() {
     const id = setInterval(goNext, HERO_CAROUSEL_INTERVAL_MS);
     return () => clearInterval(id);
   }, [isPaused, goNext]);
+
+  const activeSlide = HERO_CAROUSEL_SLIDES[activeIndex];
 
   return (
     <>
@@ -119,6 +128,8 @@ export default function Hero() {
             <h1 className="mt-[23px] flex flex-col justify-center self-stretch text-white">
               Your Global Guide To What&apos;s Good
             </h1>
+
+            <p className="mt-[239px] title3 text-[#a9a9a9] uppercase">{activeSlide.alt}</p>
           </div>
 
           {/* Carousel controller — TEMPORARY placeholder; final design + SVGs pending */}
