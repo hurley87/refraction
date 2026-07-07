@@ -1,12 +1,21 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent,
+} from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, MapPin } from 'lucide-react';
 
 import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
+import { cn } from '@/lib/utils';
+import { MAX_HOMEPAGE_FEATURED_EVENTS } from '@/lib/home/homepage-featured';
 import {
   getDiceEventPosterUrl,
   type DiceEvent,
@@ -32,7 +41,7 @@ export type HomepageFeaturedEvent = {
 
 interface IRLTourSectionProps {
   featuredEvent?: HomepageFeaturedEvent | null;
-  featuredDiceEventId?: string | null;
+  featuredDiceEventIds?: string[];
 }
 
 interface EventsResponse {
@@ -213,55 +222,191 @@ function ViewAllEventsLink() {
   );
 }
 
-function EventCarouselCard({ event }: { event: CarouselEvent }) {
+function EventPoster({
+  event,
+  className,
+  sizes,
+}: {
+  event: CarouselEvent;
+  className?: string;
+  sizes: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'relative w-full self-stretch overflow-hidden bg-[#1a1a1a]',
+        className
+      )}
+    >
+      {event.poster ? (
+        <Image
+          src={event.poster}
+          alt={event.title}
+          fill
+          draggable={false}
+          className="pointer-events-none object-cover"
+          sizes={sizes}
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center">
+          <Calendar className="size-8 text-[#DBDBDB]" aria-hidden />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EventCardDetails({ event }: { event: CarouselEvent }) {
+  return (
+    <div className="flex flex-col items-start gap-4 self-stretch pt-4">
+      <span className={NEXT_EVENT_LABEL_CLASS}>NEXT EVENT</span>
+
+      <h3 className="text-left text-white">{event.title}</h3>
+
+      <div className="label-small flex w-full items-center justify-between gap-2 self-stretch text-[#DBDBDB]">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="size-3 shrink-0" aria-hidden />
+            {formatEventDateChip(event.start, event.end)}
+          </span>
+          <span className="inline-flex min-w-0 items-center gap-1">
+            <MapPin className="size-3 shrink-0" aria-hidden />
+            <span className="truncate">{event.location}</span>
+          </span>
+        </div>
+        <span className="inline-flex h-4 shrink-0 items-center gap-[var(--sds-size-space-200)] border-b border-[#DBDBDB] whitespace-nowrap">
+          {getTicketPlatformLabel(event.ticketsUrl, event.isManual)}
+          <DiagonalArrowIcon className="size-[15px] shrink-0 text-[#DBDBDB]" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Mobile featured hero — first homepage featured event, full width. */
+function MobileFeaturedEventCard({ event }: { event: CarouselEvent }) {
   const ticketsHref = event.ticketsUrl.trim() || '/events';
   const isExternal = ticketsHref.startsWith('http');
 
   return (
     <Link
       href={ticketsHref}
-      className="flex min-w-0 flex-1 flex-col"
+      className="w-full"
       {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
     >
-      <div className="relative h-[367.406px] w-full self-stretch overflow-hidden bg-[#1a1a1a]">
-        {event.poster ? (
-          <Image
-            src={event.poster}
-            alt={event.title}
-            fill
-            className="object-cover"
-            sizes="(max-width: 1440px) 25vw, 360px"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Calendar className="size-8 text-[#DBDBDB]" aria-hidden />
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-col items-start gap-4 self-stretch pt-4">
-        <span className={NEXT_EVENT_LABEL_CLASS}>NEXT EVENT</span>
-
-        <h3 className="text-left text-white">{event.title}</h3>
-
-        <div className="label-small flex w-full items-center justify-between gap-2 self-stretch text-[#DBDBDB]">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1">
-              <Calendar className="size-3 shrink-0" aria-hidden />
-              {formatEventDateChip(event.start, event.end)}
-            </span>
-            <span className="inline-flex min-w-0 items-center gap-1">
-              <MapPin className="size-3 shrink-0" aria-hidden />
-              <span className="truncate">{event.location}</span>
-            </span>
-          </div>
-          <span className="inline-flex h-4 shrink-0 items-center gap-[var(--sds-size-space-200)] border-b border-[#DBDBDB] whitespace-nowrap">
-            {getTicketPlatformLabel(event.ticketsUrl, event.isManual)}
-            <DiagonalArrowIcon className="size-[15px] shrink-0 text-[#DBDBDB]" />
-          </span>
-        </div>
-      </div>
+      <EventPoster
+        event={event}
+        className="aspect-[3/4] w-full"
+        sizes="393px"
+      />
+      <EventCardDetails event={event} />
     </Link>
+  );
+}
+
+/** Mobile carousel item — matches city guides cover card sizing. */
+function MobileEventCarouselItem({ event }: { event: CarouselEvent }) {
+  const ticketsHref = event.ticketsUrl.trim() || '/events';
+  const isExternal = ticketsHref.startsWith('http');
+
+  return (
+    <Link
+      href={ticketsHref}
+      className="flex w-[214px] shrink-0 snap-start flex-col gap-4"
+      {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+    >
+      <EventPoster
+        event={event}
+        className="aspect-[3/4] w-[214px]"
+        sizes="214px"
+      />
+      <span className="title4 text-left text-white">{event.title}</span>
+      <span className="label-small inline-flex items-center gap-1 text-[#DBDBDB]">
+        <Calendar className="size-3 shrink-0" aria-hidden />
+        {formatEventDateChip(event.start, event.end)}
+      </span>
+    </Link>
+  );
+}
+
+function EventCarouselCard({
+  event,
+  className,
+  posterClassName = 'h-[367.406px]',
+}: {
+  event: CarouselEvent;
+  className?: string;
+  posterClassName?: string;
+}) {
+  const ticketsHref = event.ticketsUrl.trim() || '/events';
+  const isExternal = ticketsHref.startsWith('http');
+
+  return (
+    <Link
+      href={ticketsHref}
+      className={cn('flex min-w-0 flex-col', className)}
+      {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+    >
+      <EventPoster
+        event={event}
+        className={posterClassName}
+        sizes="(max-width: 1440px) 25vw, 360px"
+      />
+      <EventCardDetails event={event} />
+    </Link>
+  );
+}
+
+/** Mobile carousel row — swipeable featured events below the hero poster. */
+function MobileEventsCarousel({ events }: { events: CarouselEvent[] }) {
+  const dragStateRef = useRef({
+    active: false,
+    startX: 0,
+    dragged: false,
+  });
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    dragStateRef.current = {
+      active: true,
+      startX: event.clientX,
+      dragged: false,
+    };
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const state = dragStateRef.current;
+    if (!state.active) return;
+    if (Math.abs(event.clientX - state.startX) > 6) {
+      state.dragged = true;
+    }
+  };
+
+  const resetDragState = () => {
+    dragStateRef.current.active = false;
+  };
+
+  const handleClickCapture = (event: MouseEvent<HTMLDivElement>) => {
+    if (dragStateRef.current.dragged) {
+      event.preventDefault();
+      event.stopPropagation();
+      dragStateRef.current.dragged = false;
+    }
+  };
+
+  return (
+    <div
+      className="flex w-full snap-x snap-mandatory items-stretch gap-[21px] overflow-x-auto pb-6 scrollbar-hide"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={resetDragState}
+      onPointerLeave={resetDragState}
+      onPointerCancel={resetDragState}
+      onClickCapture={handleClickCapture}
+    >
+      {events.map((event) => (
+        <MobileEventCarouselItem key={event.id} event={event} />
+      ))}
+    </div>
   );
 }
 
@@ -271,14 +416,8 @@ function EventCarouselCard({ event }: { event: CarouselEvent }) {
  */
 export default function IRLTourSection({
   featuredEvent = null,
-  featuredDiceEventId = null,
+  featuredDiceEventIds = [],
 }: IRLTourSectionProps) {
-  const posterSrc = featuredEvent?.thumbnailUrl?.trim() || FALLBACK_POSTER_SRC;
-  const posterAlt = featuredEvent?.title?.trim() || 'IRL Tour poster';
-  const rsvpHref = featuredEvent?.rsvpLink?.trim() || '';
-  const posterHref = rsvpHref || '/events';
-  const desktopBgImage = posterSrc;
-
   const { data: eventsData } = useQuery<EventsResponse>({
     queryKey: ['public-dice-events'],
     queryFn: async () => {
@@ -333,10 +472,11 @@ export default function IRLTourSection({
   }, []);
 
   const carouselEvents = useMemo(() => {
+    const featuredDiceIdSet = new Set(featuredDiceEventIds);
     const featuredDiceEvents =
-      featuredDiceEventId != null
+      featuredDiceIdSet.size > 0
         ? (eventsData?.events ?? [])
-            .filter((event) => event.id === featuredDiceEventId)
+            .filter((event) => featuredDiceIdSet.has(event.id))
             .map(toDiceCarouselEvent)
         : [];
 
@@ -345,14 +485,14 @@ export default function IRLTourSection({
         ?.filter((event) => event.isFeatured)
         .map(toManualCarouselEvent) ?? [];
 
-    const featured = [...featuredDiceEvents, ...featuredManualEvents].sort(
-      (a, b) => {
+    const featured = [...featuredDiceEvents, ...featuredManualEvents]
+      .sort((a, b) => {
         if (!a.start && !b.start) return a.title.localeCompare(b.title);
         if (!a.start) return 1;
         if (!b.start) return -1;
         return a.start.getTime() - b.start.getTime();
-      }
-    );
+      })
+      .slice(0, MAX_HOMEPAGE_FEATURED_EVENTS);
 
     if (featured.length > 0) return featured;
 
@@ -372,7 +512,10 @@ export default function IRLTourSection({
     }
 
     return [];
-  }, [eventsData?.events, featuredDiceEventId, featuredEvent, manualEvents]);
+  }, [eventsData?.events, featuredDiceEventIds, featuredEvent, manualEvents]);
+
+  const mobileHeroEvent = carouselEvents[0] ?? null;
+  const mobileCarouselEvents = carouselEvents.slice(1);
 
   const displayedCarouselEvents = useMemo(() => {
     if (carouselEvents.length === 0) return [];
@@ -385,79 +528,58 @@ export default function IRLTourSection({
 
   return (
     <section className="relative w-full overflow-hidden bg-[#131313]">
-      {/* Mobile + tablet layout */}
-      <div className="relative px-4 pt-[128px] pb-16 md:py-24 xl:hidden">
-        <div
-          className="pointer-events-none absolute inset-x-4 top-0 bottom-0 bg-[#171717] bg-opacity-10 md:hidden"
-          aria-hidden
-        />
-
-        <div className="mb-4 flex items-center gap-2">
-          <WelcomeEllipse />
-          <span className="title4 text-white">IRL Picks</span>
-        </div>
-
-        <h2 className="title1 relative z-10 flex items-left justify-left gap-2 self-stretch pb-12 text-white">
-          Upcoming Events
-        </h2>
-
-        <div
-          className="pointer-events-none absolute hidden h-[3499px] w-[2626px] opacity-70 md:block"
-          style={{
-            left: '-580px',
-            bottom: '-1465px',
-            aspectRatio: '373/497',
-            background: `url(${desktopBgImage}) lightgray 50% / cover no-repeat`,
-            filter: 'blur(59.4px)',
-          }}
-          aria-hidden
-        />
-
-        <div className="relative z-10 mx-auto flex w-full max-w-[1177px] flex-col md:flex-row md:items-center md:gap-[200px]">
-          <div className="order-2 flex min-w-0 flex-1 flex-col md:order-1 md:w-[574px] md:flex-none md:items-start md:gap-[35px]">
-            <div className="mb-6 flex w-full items-center justify-center md:mb-0">
-              <Link
-                href="/events"
-                className="inline-flex w-[361px] max-w-full shrink-0"
-              >
-                <button
-                  type="button"
-                  className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[#ffffff] py-2 pr-2 pl-4 uppercase text-[#171717]"
-                >
-                  <span className="whitespace-nowrap">Browse Events</span>
-                  <svg
-                    width={24}
-                    height={24}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="shrink-0"
-                    aria-hidden
-                  >
-                    <path d={RIGHT_ARROW_PATH} fill="#171717" />
-                  </svg>
-                </button>
-              </Link>
-            </div>
+      {/* Mobile layout — featured event + horizontal carousel */}
+      <div className="mx-auto flex w-full max-w-[393px] flex-col items-center gap-8 px-4 pt-[128px] pb-16 xl:hidden">
+        <div className="flex w-full max-w-[361px] flex-col items-start">
+          <div className="mb-4 flex items-center gap-2">
+            <WelcomeEllipse />
+            <span className="title4 text-white">IRL Picks</span>
           </div>
 
-          <Link
-            href={posterHref}
-            className="relative order-1 mb-12 block aspect-[3/4] w-full md:order-2 md:mb-0 md:w-[500px] md:shrink-0"
-            {...(rsvpHref.startsWith('http')
-              ? { target: '_blank', rel: 'noopener noreferrer' }
-              : {})}
-          >
+          <h2 className="title1 text-left text-white">Upcoming Events</h2>
+        </div>
+
+        {mobileHeroEvent ? (
+          <MobileFeaturedEventCard event={mobileHeroEvent} />
+        ) : (
+          <Link href="/events" className="relative block aspect-[3/4] w-full">
             <Image
-              src={posterSrc}
-              alt={posterAlt}
+              src={FALLBACK_POSTER_SRC}
+              alt="IRL Tour poster"
               fill
+              draggable={false}
               className="object-contain"
-              sizes="(max-width: 768px) 100vw, 500px"
-              priority={false}
+              sizes="393px"
             />
           </Link>
-        </div>
+        )}
+
+        {mobileCarouselEvents.length > 0 && (
+          <MobileEventsCarousel events={mobileCarouselEvents} />
+        )}
+
+        <Link
+          href="/events"
+          className="inline-flex w-full max-w-[361px] shrink-0"
+        >
+          <button
+            type="button"
+            className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[#ffffff] py-2 pr-2 pl-4 uppercase text-[#171717]"
+          >
+            <span className="whitespace-nowrap">Browse Events</span>
+            <svg
+              width={24}
+              height={24}
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="shrink-0"
+              aria-hidden
+            >
+              <path d={RIGHT_ARROW_PATH} fill="#171717" />
+            </svg>
+          </button>
+        </Link>
       </div>
 
       {/* Desktop layout — title row + event carousel */}
@@ -481,7 +603,7 @@ export default function IRLTourSection({
             className="flex w-full items-start gap-8 self-stretch"
           >
             {displayedCarouselEvents.map(({ event, key }) => (
-              <EventCarouselCard key={key} event={event} />
+              <EventCarouselCard key={key} event={event} className="flex-1" />
             ))}
           </div>
         </div>

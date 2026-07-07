@@ -1,7 +1,7 @@
 import { fetchEvent } from '@/lib/dice/client';
 import { getDiceEventPosterUrl } from '@/lib/dice/get-poster';
 import { getDiceEventTicketsUrl } from '@/lib/dice/links';
-import { getFeaturedDiceEventId } from '@/lib/db/featured-dice-event';
+import { listFeaturedDiceEventIds } from '@/lib/db/featured-dice-event';
 import { getFeaturedManualEvent } from '@/lib/db/manual-events';
 
 export type HomepageFeaturedEvent = {
@@ -11,26 +11,23 @@ export type HomepageFeaturedEvent = {
 };
 
 /**
- * Resolve the homepage Upcoming Events poster: admin-featured DICE event first,
- * then admin-featured manual event, otherwise null (UI falls back to static art).
+ * Resolve the homepage Upcoming Events poster fallback: first valid admin-featured
+ * DICE event, then first admin-featured manual event, otherwise null.
  */
 export async function getHomepageFeaturedEvent(): Promise<HomepageFeaturedEvent | null> {
-  const diceEventId = await getFeaturedDiceEventId();
+  const diceEventIds = await listFeaturedDiceEventIds();
 
-  if (diceEventId) {
+  for (const diceEventId of diceEventIds) {
     try {
       const event = await fetchEvent(diceEventId);
-      if (event.hidden === true) {
-        // Hidden on DICE — fall through to manual or static fallback.
-      } else if (event.state === 'DRAFT' || event.state === 'CANCELLED') {
-        // Not suitable for homepage — fall through.
-      } else {
-        return {
-          title: event.name,
-          thumbnailUrl: getDiceEventPosterUrl(event.images) ?? '',
-          rsvpLink: getDiceEventTicketsUrl(event.name),
-        };
-      }
+      if (event.hidden === true) continue;
+      if (event.state === 'DRAFT' || event.state === 'CANCELLED') continue;
+
+      return {
+        title: event.name,
+        thumbnailUrl: getDiceEventPosterUrl(event.images) ?? '',
+        rsvpLink: getDiceEventTicketsUrl(event.name),
+      };
     } catch (error) {
       console.error('Failed to load featured DICE event for homepage:', error);
     }

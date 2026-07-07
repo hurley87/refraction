@@ -31,22 +31,22 @@ const HERO_CAROUSEL_SLIDES: HeroCarouselSlide[] = [
     mobileSrc: '/homepage/hero/carousel/denver.png',
     desktopSrc: '/homepage/hero/carousel/denver-full.jpg',
     alt: 'Denver',
-    stepTitle: 'Explore Local Guides',
-    stepBody: 'The best spots, hand-picked by people shaping the local scene.',
+    stepTitle: 'Check in at a spot',
+    stepBody: 'Explore the map and check in at spots across your city.',
   },
   {
     mobileSrc: '/homepage/hero/carousel/amsterdam.png',
     desktopSrc: '/homepage/hero/carousel/amsterdam-full.jpg',
     alt: 'Amsterdam',
-    stepTitle: 'Explore Local Guides',
-    stepBody: 'The best spots, hand-picked by people shaping the local scene.',
+    stepTitle: 'Earn and spend rewards',
+    stepBody: 'Earn points for future rewards at clubs, bars, and galleries',
   },
   {
     mobileSrc: '/homepage/hero/carousel/detroit.png',
     desktopSrc: '/homepage/hero/carousel/detroit-full.jpg',
     alt: 'Detroit',
-    stepTitle: 'Check in at a spot',
-    stepBody: 'Explore the map and check in at spots across your city.',
+    stepTitle: 'Earn and spend rewards',
+    stepBody: 'Earn points for future rewards at clubs, bars, and galleries',
   },
 ];
 
@@ -84,7 +84,7 @@ export default function Hero() {
       <section className="relative h-screen w-full overflow-hidden xl:aspect-video xl:h-auto xl:max-h-[100dvh]">
         {/* Hero background carousel */}
         <div className="absolute inset-0 p-0 pb-6 xl:pb-0">
-          <div className="relative h-full w-full overflow-hidden rounded-[48px] xl:rounded-none">
+          <div className="relative h-full w-full overflow-hidden xl:rounded-none">
             {HERO_CAROUSEL_SLIDES.map((slide, index) => (
               <div
                 key={slide.mobileSrc}
@@ -99,7 +99,7 @@ export default function Hero() {
                   fill
                   priority={index === 0}
                   sizes="100vw"
-                  className="object-contain object-top xl:hidden"
+                  className="object-cover object-top xl:hidden"
                 />
                 <Image
                   src={slide.desktopSrc ?? slide.mobileSrc}
@@ -129,11 +129,13 @@ export default function Hero() {
               Your Global Guide To What&apos;s Good
             </h1>
 
-            <p className="mt-[239px] title3 text-[#a9a9a9] uppercase">{activeSlide.alt}</p>
+            <p className="mt-[239px] title3 text-[#a9a9a9] uppercase">
+              {activeSlide.alt}
+            </p>
           </div>
 
           {/* Carousel controller — TEMPORARY placeholder; final design + SVGs pending */}
-          <div className="absolute bottom-8 left-1/2 z-20 w-[393px] max-w-full -translate-x-1/2 px-4 xl:flex xl:w-[1444px] xl:flex-col xl:items-start xl:gap-[9px] xl:px-0">
+          <div className="absolute bottom-8 left-1/2 z-20 flex w-[393px] max-w-full -translate-x-1/2 flex-col gap-[9px] px-4 xl:w-[1444px] xl:items-start xl:px-0">
             <div className="flex w-full items-center justify-between self-stretch">
               <button
                 type="button"
@@ -212,6 +214,22 @@ export default function Hero() {
                   />
                 </svg>
               </button>
+            </div>
+
+            {/* Trackbar — one segment per slide; active segment is brighter */}
+            <div
+              className="flex h-0.5 w-full self-stretch items-center"
+              aria-hidden
+            >
+              {HERO_CAROUSEL_SLIDES.map((slide, index) => (
+                <div
+                  key={`${slide.mobileSrc}-track`}
+                  className={cn(
+                    'h-0.5 min-w-0 flex-1 bg-white transition-opacity duration-700',
+                    index === activeIndex ? 'opacity-100' : 'opacity-40'
+                  )}
+                />
+              ))}
             </div>
           </div>
         </div>

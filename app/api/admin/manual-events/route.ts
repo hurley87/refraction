@@ -7,6 +7,7 @@ import {
   createManualEvent,
   updateManualEvent,
   deleteManualEvent,
+  HomepageFeaturedCapError,
 } from '@/lib/db/manual-events';
 
 const manualEventFields = z.object({
@@ -76,6 +77,9 @@ export async function POST(request: NextRequest) {
     const created = await createManualEvent(parsed.data);
     return apiSuccess(created, 'Event created', 201);
   } catch (e) {
+    if (e instanceof HomepageFeaturedCapError) {
+      return apiError(e.message, 409);
+    }
     console.error('Failed to create manual event:', e);
     return apiError('Failed to create event', 500);
   }
@@ -101,6 +105,9 @@ export async function PUT(request: NextRequest) {
     const updated = await updateManualEvent(id, fields);
     return apiSuccess(updated);
   } catch (e) {
+    if (e instanceof HomepageFeaturedCapError) {
+      return apiError(e.message, 409);
+    }
     console.error('Failed to update manual event:', e);
     return apiError('Failed to update event', 500);
   }

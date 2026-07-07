@@ -5,7 +5,7 @@ import {
   getHomepageFeaturedEvent,
   type HomepageFeaturedEvent,
 } from '@/lib/home/featured-event';
-import { getFeaturedDiceEventId } from '@/lib/db/featured-dice-event';
+import { listFeaturedDiceEventIds } from '@/lib/db/featured-dice-event';
 
 // Temporarily hidden — re-enable import and JSX block below to restore
 // const WhatYouGetSection = dynamic(
@@ -52,11 +52,11 @@ export const revalidate = 0;
 
 export default async function Home() {
   let featuredEvent: HomepageFeaturedEvent | null = null;
-  let featuredDiceEventId: string | null = null;
+  let featuredDiceEventIds: string[] = [];
   try {
-    [featuredEvent, featuredDiceEventId] = await Promise.all([
+    [featuredEvent, featuredDiceEventIds] = await Promise.all([
       getHomepageFeaturedEvent(),
-      getFeaturedDiceEventId(),
+      listFeaturedDiceEventIds(),
     ]);
   } catch (error) {
     console.error('Failed to load featured event for homepage:', error);
@@ -87,7 +87,7 @@ export default async function Home() {
         <div className="py-0">
           <IRLTourSection
             featuredEvent={featuredEvent}
-            featuredDiceEventId={featuredDiceEventId}
+            featuredDiceEventIds={featuredDiceEventIds}
           />
         </div>
 
