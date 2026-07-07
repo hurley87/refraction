@@ -1,5 +1,9 @@
 import { supabase } from './client';
-import { clearFeaturedDiceEvent } from './featured-dice-event';
+import {
+  countHomepageFeaturedEvents,
+  HomepageFeaturedCapError,
+} from './featured-dice-event';
+import { MAX_HOMEPAGE_FEATURED_EVENTS } from '@/lib/home/homepage-featured';
 
 export interface ManualEventRow {
   id: string;
@@ -68,14 +72,18 @@ function toPublic(row: ManualEventRow): ManualEventPublic {
   };
 }
 
-async function clearFeaturedExcept(exceptId: string): Promise<void> {
-  const { error } = await supabase
-    .from('manual_events')
-    .update({ is_featured: false })
-    .eq('is_featured', true)
-    .neq('id', exceptId);
+async function assertCanFeatureManualEvent(
+  isFeatured: boolean,
+  manualEventId?: string
+): Promise<void> {
+  if (!isFeatured) return;
 
-  if (error) throw error;
+  const count = await countHomepageFeaturedEvents(
+    manualEventId ? { manualEventId } : undefined
+  );
+  if (count >= MAX_HOMEPAGE_FEATURED_EVENTS) {
+    throw new HomepageFeaturedCapError();
+  }
 }
 
 export async function listManualEvents(): Promise<ManualEventPublic[]> {
@@ -108,6 +116,8 @@ export type ManualEventWriteInput = Omit<ManualEventPublic, 'id' | 'citySlug'>;
 export async function createManualEvent(
   input: ManualEventWriteInput
 ): Promise<ManualEventPublic> {
+  await assertCanFeatureManualEvent(input.isFeatured);
+
   const { data, error } = await supabase
     .from('manual_events')
     .insert({
@@ -126,18 +136,15 @@ export async function createManualEvent(
     .single();
 
   if (error) throw error;
-  const created = toPublic(data as unknown as ManualEventRow);
-  if (created.isFeatured) {
-    await clearFeaturedExcept(created.id);
-    await clearFeaturedDiceEvent();
-  }
-  return created;
+  return toPublic(data as unknown as ManualEventRow);
 }
 
 export async function updateManualEvent(
   id: string,
   input: ManualEventWriteInput
 ): Promise<ManualEventPublic> {
+  await assertCanFeatureManualEvent(input.isFeatured, id);
+
   const { data, error } = await supabase
     .from('manual_events')
     .update({
@@ -158,12 +165,7 @@ export async function updateManualEvent(
     .single();
 
   if (error) throw error;
-  const updated = toPublic(data as unknown as ManualEventRow);
-  if (updated.isFeatured) {
-    await clearFeaturedExcept(updated.id);
-    await clearFeaturedDiceEvent();
-  }
-  return updated;
+  return toPublic(data as unknown as ManualEventRow);
 }
 
 export async function deleteManualEvent(id: string): Promise<void> {
@@ -171,3 +173,5 @@ export async function deleteManualEvent(id: string): Promise<void> {
 
   if (error) throw error;
 }
+
+export { HomepageFeaturedCapError };

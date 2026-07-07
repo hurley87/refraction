@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { getDiceEventPosterUrl, type DiceEvent } from '@/lib/dice';
+import { MAX_HOMEPAGE_FEATURED_EVENTS } from '@/lib/home/homepage-featured';
 import Image from 'next/image';
 import {
   Calendar,
@@ -150,11 +151,13 @@ function ManualEventDialog({
   open,
   onOpenChange,
   getAccessToken,
+  featuredCount,
 }: {
   event: ManualEvent | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   getAccessToken: () => Promise<string | null | undefined>;
+  featuredCount: number;
 }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(EMPTY_MANUAL_FORM);
@@ -173,6 +176,9 @@ function ManualEventDialog({
   });
 
   const isEdit = Boolean(event);
+  const featuredCapReached =
+    featuredCount >= MAX_HOMEPAGE_FEATURED_EVENTS &&
+    !(event?.isFeatured ?? false);
 
   useEffect(() => {
     if (open && event) {
@@ -288,10 +294,10 @@ function ManualEventDialog({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
-        className="max-w-md"
+        className="max-w-md max-h-[90vh] flex flex-col overflow-hidden"
         overlayClassName="bg-white backdrop-blur-[2px]"
       >
-        <DialogHeader>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>
             {isEdit ? 'Edit Manual Event' : 'Add Manual Event'}
           </DialogTitle>
@@ -301,7 +307,7 @@ function ManualEventDialog({
               : 'Add a non-DICE event. It will appear on the public events page.'}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3 py-2">
+        <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto py-2 pr-1 -mr-1">
           <div>
             <Label htmlFor="me-title">Title *</Label>
             <Input
@@ -442,13 +448,15 @@ function ManualEventDialog({
                 Feature on homepage
               </Label>
               <p className="text-xs text-gray-500">
-                Show this event in the Upcoming Events section. Only one event
-                can be featured at a time.
+                Show this event in the Upcoming Events section. Up to{' '}
+                {MAX_HOMEPAGE_FEATURED_EVENTS} events can be featured on the
+                homepage.
               </p>
             </div>
             <Switch
               id="me-featured"
               checked={form.isFeatured}
+              disabled={featuredCapReached && !form.isFeatured}
               onCheckedChange={(checked) =>
                 setForm((prev) => ({ ...prev, isFeatured: checked }))
               }
@@ -472,8 +480,8 @@ function ManualEventDialog({
             />
           </div>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <DialogFooter>
+        {error && <p className="flex-shrink-0 text-sm text-red-600">{error}</p>}
+        <DialogFooter className="flex-shrink-0">
           <Button
             variant="outline"
             onClick={() => handleClose(false)}
@@ -773,6 +781,7 @@ export default function AdminEventsPage() {
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [manualDialogEvent, setManualDialogEvent] =
     useState<ManualEvent | null>(null);
+  const [featureError, setFeatureError] = useState<string | null>(null);
 
   useEffect(() => {
     const verifyAdmin = async () => {
@@ -818,19 +827,27 @@ export default function AdminEventsPage() {
     enabled: !!isAdmin,
   });
 
-  const { data: featuredDiceData } = useQuery<{ diceEventId: string | null }>({
+  const { data: featuredDiceData } = useQuery<{ diceEventIds: string[] }>({
     queryKey: ['featured-dice-event'],
     queryFn: async () => {
       const auth = await adminApiAuthHeaders(getAccessToken);
       const res = await fetch('/api/admin/dice/featured', { headers: auth });
-      if (!res.ok) throw new Error('Failed to fetch featured DICE event');
+      if (!res.ok) throw new Error('Failed to fetch featured DICE events');
       const body = await res.json();
-      return body.data ?? { diceEventId: null };
+      return body.data ?? { diceEventIds: [] };
     },
     enabled: !!isAdmin,
   });
 
-  const featuredDiceEventId = featuredDiceData?.diceEventId ?? null;
+  const featuredDiceEventIds = featuredDiceData?.diceEventIds ?? [];
+
+  const featuredCount = useMemo(() => {
+    const manualFeaturedCount =
+      manualEvents?.filter((event) => event.isFeatured).length ?? 0;
+    return featuredDiceEventIds.length + manualFeaturedCount;
+  }, [featuredDiceEventIds, manualEvents]);
+
+  const featuredCapReached = featuredCount >= MAX_HOMEPAGE_FEATURED_EVENTS;
 
   const featureDiceEvent = useMutation({
     mutationFn: async ({
@@ -843,10 +860,8 @@ export default function AdminEventsPage() {
       const auth = await adminApiAuthHeaders(getAccessToken);
       const res = await fetch('/api/admin/dice/featured', {
         method: featured ? 'POST' : 'DELETE',
-        headers: featured
-          ? { 'Content-Type': 'application/json', ...auth }
-          : auth,
-        body: featured ? JSON.stringify({ diceEventId }) : undefined,
+        headers: { 'Content-Type': 'application/json', ...auth },
+        body: JSON.stringify({ diceEventId }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -854,8 +869,12 @@ export default function AdminEventsPage() {
       }
     },
     onSuccess: () => {
+      setFeatureError(null);
       queryClient.invalidateQueries({ queryKey: ['featured-dice-event'] });
       queryClient.invalidateQueries({ queryKey: ['admin-manual-events'] });
+    },
+    onError: (error: Error) => {
+      setFeatureError(error.message);
     },
   });
 
@@ -974,9 +993,24 @@ export default function AdminEventsPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">DICE Events</h1>
-          <p className="text-gray-500 mt-1">Events from your DICE account</p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">DICE Events</h1>
+              <p className="text-gray-500 mt-1">
+                Events from your DICE account
+              </p>
+            </div>
+            <p className="text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Homepage featured: {featuredCount}/{MAX_HOMEPAGE_FEATURED_EVENTS}
+            </p>
+          </div>
         </div>
+
+        {featureError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {featureError}
+          </div>
+        )}
 
         {eventStats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
@@ -1022,7 +1056,11 @@ export default function AdminEventsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {eventsData?.events.map((event) => {
-              const isHomepageFeatured = featuredDiceEventId === event.id;
+              const isHomepageFeatured = featuredDiceEventIds.includes(
+                event.id
+              );
+              const canFeatureOnHomepage =
+                isHomepageFeatured || !featuredCapReached;
 
               return (
                 <div
@@ -1150,7 +1188,9 @@ export default function AdminEventsPage() {
                         <Button
                           size="sm"
                           variant={isHomepageFeatured ? 'default' : 'outline'}
-                          disabled={featureDiceEvent.isPending}
+                          disabled={
+                            featureDiceEvent.isPending || !canFeatureOnHomepage
+                          }
                           onClick={() =>
                             featureDiceEvent.mutate({
                               diceEventId: event.id,
@@ -1419,6 +1459,7 @@ export default function AdminEventsPage() {
           open={manualDialogOpen}
           onOpenChange={setManualDialogOpen}
           getAccessToken={getAccessToken}
+          featuredCount={featuredCount}
         />
       </div>
     </div>
