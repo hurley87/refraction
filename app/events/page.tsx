@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, CalendarX2, Loader2, MapPin } from 'lucide-react';
+import { Calendar, Loader2, MapPin } from 'lucide-react';
 import {
   Dialog,
   DialogClose,
@@ -1296,40 +1296,7 @@ export default function EventsPage() {
           </section>
         )}
 
-        {hasNoEvents &&
-          !isLoading &&
-          !manualLoading &&
-          !error &&
-          !manualError && (
-            <div className="flex w-[1444px] max-w-full flex-col items-center justify-center rounded-[26px] bg-white px-5 py-10 text-center shadow-[0_8px_20px_rgba(0,0,0,0.08)]">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100">
-                <CalendarX2 className="h-6 w-6 text-neutral-500" />
-              </div>
-              {hasActiveFilters ? (
-                <>
-                  <h3 className="title2 text-[#313131]">No matching events</h3>
-                  <p className="mt-2 body-small text-[#6B6B6B]">
-                    No events match your current filters. Try a different city
-                    or date range.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="mt-4 label-small uppercase tracking-wide text-[#171717] underline hover:opacity-70"
-                  >
-                    Clear filters
-                  </button>
-                </>
-              ) : (
-                <>
-                  <h3 className="title2 text-[#313131]">No Events Available</h3>
-                  <p className="mt-2 body-small text-[#6B6B6B]">
-                    Check back soon for upcoming events.
-                  </p>
-                </>
-              )}
-            </div>
-          )}
+       
       </div>
 
       <div className="px-4 pt-4 md:px-2 xl:hidden">
@@ -1634,17 +1601,12 @@ export default function EventsPage() {
         )}
 
         {hasNoEvents && (
-          <div className="flex flex-col items-center justify-center rounded-[26px] bg-white px-5 py-10 text-center shadow-[0_8px_20px_rgba(0,0,0,0.08)] xl:hidden">
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100">
-              <CalendarX2 className="h-6 w-6 text-neutral-500" />
-            </div>
+          <div className="flex flex-col items-center justify-center rounded-[26px] bg-white px-5 py-10 text-center  xl:hidden">
+          
             {hasActiveFilters ? (
               <>
-                <h3 className="title2 text-[#313131]">No matching events</h3>
-                <p className="mt-2 body-small text-[#6B6B6B]">
-                  No events match your current filters. Try a different city or
-                  date range.
-                </p>
+                <h3 className="title2 text-[#313131] uppercase">No matching events</h3>
+               
                 <button
                   type="button"
                   onClick={clearFilters}
@@ -1655,10 +1617,8 @@ export default function EventsPage() {
               </>
             ) : (
               <>
-                <h3 className="title2 text-[#313131]">No Events Available</h3>
-                <p className="mt-2 body-small text-[#6B6B6B]">
-                  Check back soon for upcoming events.
-                </p>
+                <h3 className="title2 text-[#313131] uppercase">No Events Available</h3>
+               
               </>
             )}
           </div>
