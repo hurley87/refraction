@@ -1,20 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Calendar,
-  CalendarX2,
-  ChevronDown,
-  Loader2,
-  MapPin,
-} from 'lucide-react';
+import { Calendar, CalendarX2, Loader2, MapPin } from 'lucide-react';
 import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDrawerContent,
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -23,13 +18,6 @@ import {
   MapDesktopNav,
   MapDesktopSearchSlot,
 } from '@/components/map/map-desktop-nav';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { buildCityMatcher } from '@/lib/utils/normalize-city';
 import {
@@ -254,10 +242,174 @@ function EventsSortIcon({ className }: { className?: string }) {
   );
 }
 
+function EventsFilterCloseIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={cn('size-6 shrink-0', className)}
+      aria-hidden
+    >
+      <path
+        d="M19.9986 7.32025L16.7198 4L12.012 8.69045L7.32159 4L4.00134 7.32025L8.69526 11.9969L4.00134 16.6735L7.32159 19.9938L12.012 15.3033L16.7198 19.9938L19.9986 16.6735L15.3185 11.9969L19.9986 7.32025Z"
+        fill="#A9A9A9"
+      />
+    </svg>
+  );
+}
+
+function EventsFilterDropdownIcon({
+  className,
+  expanded = false,
+}: {
+  className?: string;
+  expanded?: boolean;
+}) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={cn('size-6 shrink-0', className)}
+      aria-hidden
+    >
+      <path
+        d={
+          expanded
+            ? 'M16.2857 12.1408L13.3917 8.81502V20H10.6083V8.81502L7.71429 12.1408L6 10.3343L12.0107 4L18 10.3343L16.2857 12.1408Z'
+            : 'M17 11.8415L13.6237 15.5831V3H10.3763V15.5831L7 11.8415L5 13.8739L12.0125 21L19 13.8739L17 11.8415Z'
+        }
+        fill="#757575"
+      />
+    </svg>
+  );
+}
+
+function EventsFilterClearIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={cn('size-5 shrink-0', className)}
+      aria-hidden
+    >
+      <path
+        d="M19.9986 7.32025L16.7198 4L12.012 8.69045L7.32159 4L4.00134 7.32025L8.69526 11.9969L4.00134 16.6735L7.32159 19.9938L12.012 15.3033L16.7198 19.9938L19.9986 16.6735L15.3185 11.9969L19.9986 7.32025Z"
+        fill="#000000"
+      />
+    </svg>
+  );
+}
+
+type AppliedFilter = { key: string; label: string; onClear: () => void };
+
+/** Single applied-filter chip: label + black clear X (events filter bar). */
+function EventsFilterChip({ label, onClear }: Omit<AppliedFilter, 'key'>) {
+  return (
+    <span className="flex items-center gap-[var(--sds-size-space-050)] bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-[var(--sds-size-space-100)] py-[var(--sds-size-space-050)]">
+      <span className="label-small uppercase text-[#171717]">{label}</span>
+      <button
+        type="button"
+        onClick={onClear}
+        aria-label={`Clear ${label} filter`}
+        className="flex shrink-0 items-center transition-opacity hover:opacity-80"
+      >
+        <EventsFilterClearIcon className="size-4" />
+      </button>
+    </span>
+  );
+}
+
+/** Applied-filter count + chips, rendered next to FILTER in the filter bar. */
+function EventsAppliedFilters({ filters }: { filters: AppliedFilter[] }) {
+  if (filters.length === 0) return null;
+  return (
+    <>
+      <span className="label-small text-[#171717]">({filters.length})</span>
+      {filters.map((filter) => (
+        <EventsFilterChip
+          key={filter.key}
+          label={filter.label}
+          onClear={filter.onClear}
+        />
+      ))}
+    </>
+  );
+}
+
+function EventsFilterCheckIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={cn('size-6 shrink-0', className)}
+      aria-hidden
+    >
+      <path
+        d="M16.4784 3L10.1656 16.9722L7.36378 11.0311L2.90625 11.0054L7.43119 20H8.83614H11.9211H13.264L20.9062 3H16.4784Z"
+        fill="white"
+      />
+    </svg>
+  );
+}
+
+function EventsSortAscIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={19}
+      height={14}
+      viewBox="0 0 19 14"
+      fill="none"
+      className={cn('shrink-0', className)}
+      aria-hidden
+    >
+      <path
+        d="M18.0459 13.5H0L0.0458984 11H18.0459V13.5ZM12.0925 5.5H0V8.14317H12.0925V5.5ZM5.9174 0H0L0.0458984 2.5H5.96329L5.9174 0Z"
+        fill="#757575"
+      />
+    </svg>
+  );
+}
+
+function EventsSortDescIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={24}
+      height={24}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={cn('shrink-0', className)}
+      aria-hidden
+    >
+      <path
+        d="M21 8.15419H2.99999V5.51102H21V8.15419ZM15.0462 10.6784H2.95374V13.3216H15.0462V10.6784ZM8.87113 15.8458H3.13215V18.489H8.87113V15.8458Z"
+        fill="#757575"
+      />
+    </svg>
+  );
+}
+
 const SORT_ORDER_OPTIONS: { value: SortOrder; label: string }[] = [
   { value: 'asc', label: 'Ascending' },
   { value: 'desc', label: 'Descending' },
 ];
+
+/** Filter drawer/modal row — location, date, sort (47px, SDS padding, white bg). */
+const EVENT_FILTER_ROW_CLASS =
+  'flex h-[47px] w-full shrink-0 self-stretch items-center justify-between bg-[var(--Backgrounds-Background,#FFF)] py-4 px-[var(--sds-size-space-600)]';
 
 function compareEvents(
   a: PublicEvent,
@@ -274,22 +426,7 @@ function compareEvents(
   return sortOrder === 'asc' ? cmp : -cmp;
 }
 
-function EventsFilterSortModal({
-  open,
-  onOpenChange,
-  cities,
-  selectedCity,
-  onSelectedCityChange,
-  dateFrom,
-  dateTo,
-  onDateFromChange,
-  onDateToChange,
-  dateRangeLabel,
-  sortOrder,
-  onSortOrderChange,
-  onClearFilters,
-  hasActiveFilters,
-}: {
+interface EventsFilterSortProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   cities: CityOption[] | undefined;
@@ -304,13 +441,34 @@ function EventsFilterSortModal({
   onSortOrderChange: (order: SortOrder) => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
-}) {
+}
+
+type EventsFilterSortFieldsProps = Omit<
+  EventsFilterSortProps,
+  'open' | 'onOpenChange'
+> & {
+  /** Rendered flush below the last sort row (e.g. the Save button). */
+  saveSlot?: ReactNode;
+};
+
+/** Shared filter body: location + date accordions and sort order (modal + drawer). */
+function EventsFilterSortFields({
+  cities,
+  selectedCity,
+  onSelectedCityChange,
+  dateFrom,
+  dateTo,
+  onDateFromChange,
+  onDateToChange,
+  dateRangeLabel,
+  sortOrder,
+  onSortOrderChange,
+  
+  
+  saveSlot,
+}: EventsFilterSortFieldsProps) {
   const [expandedSection, setExpandedSection] =
     useState<FilterModalSection>(null);
-
-  useEffect(() => {
-    if (!open) setExpandedSection(null);
-  }, [open]);
 
   const selectedCityLabel =
     selectedCity === 'all'
@@ -323,187 +481,244 @@ function EventsFilterSortModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-md gap-6 border border-[#DBDBDB] bg-white p-6 shadow-lg sm:rounded-none">
-        <div className="space-y-1">
-          <DialogTitle className="label-small uppercase text-[#171717]">
-            Filter
-          </DialogTitle>
-        
-        </div>
-
-        <div className="space-y-2">
-          <div className="space-y-2">
-            <button
-              type="button"
-              aria-expanded={expandedSection === 'location'}
-              onClick={() => toggleSection('location')}
-              className={cn(
-                'flex h-11 w-full items-center justify-between border px-4 label-small uppercase tracking-wide transition-colors',
-                expandedSection === 'location'
-                  ? 'border-[#171717] bg-[#DBDBDB] text-[#171717]'
-                  : 'border-[#DBDBDB] bg-white text-[#757575] hover:border-[#757575]'
-              )}
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <MapPin className="size-4 shrink-0" aria-hidden />
-                <span>Location</span>
+    <>
+      <div className="flex flex-col">
+        <div>
+          <button
+            type="button"
+            aria-expanded={expandedSection === 'location'}
+            onClick={() => toggleSection('location')}
+            className={cn(
+              EVENT_FILTER_ROW_CLASS,
+              'label-small uppercase tracking-wide text-[#757575] transition-opacity hover:opacity-80 border-b border-[#a9a9a9]'
+            )}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-[#171717] label-large uppercase">
+                {selectedCity === 'all' ? 'Location' : selectedCityLabel}
               </span>
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate normal-case text-[#171717]">
-                  {selectedCityLabel}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    'size-4 shrink-0 transition-transform',
-                    expandedSection === 'location' && 'rotate-180'
-                  )}
-                  aria-hidden
-                />
-              </span>
-            </button>
+            </span>
+            <EventsFilterDropdownIcon
+              expanded={expandedSection === 'location'}
+            />
+          </button>
 
-            {expandedSection === 'location' && cities && cities.length > 0 && (
-              <Select value={selectedCity} onValueChange={onSelectedCityChange}>
-                <SelectTrigger
-                  aria-label="Filter events by city"
-                  className="flex h-11 w-full items-center justify-between rounded-none border border-[#DBDBDB] bg-white px-4 shadow-none focus:ring-0 focus:ring-offset-0"
-                >
-                  <span className="truncate label-small uppercase tracking-wide text-[#171717]">
-                    <SelectValue placeholder="All cities" />
-                  </span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All cities</SelectItem>
-                  {cities.map((city) => (
-                    <SelectItem key={city.id} value={city.slug}>
+          {expandedSection === 'location' && cities && cities.length > 0 && (
+            <div className="flex flex-col border-t border-[#DBDBDB]">
+              {cities.map((city) => {
+                const isSelected = selectedCity === city.slug;
+                return (
+                  <div
+                    key={city.id}
+                    className={cn(
+                      'flex items-center self-stretch',
+                      isSelected && 'bg-[#dbdbdb]'
+                    )}
+                  >
+                    <button
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        onSelectedCityChange(city.slug);
+                        setExpandedSection(null);
+                      }}
+                      className={cn(
+                        'flex grow basis-0 shrink-0 items-center py-[var(--sds-size-space-300)] pl-4 pr-0 label-medium uppercase tracking-wide transition-opacity hover:opacity-80',
+                        isSelected ? 'text-black' : 'text-[#a9a9a9]'
+                      )}
+                    >
                       {city.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <button
-              type="button"
-              aria-expanded={expandedSection === 'date'}
-              onClick={() => toggleSection('date')}
-              className={cn(
-                'flex h-11 w-full items-center justify-between border px-4 label-small uppercase tracking-wide transition-colors',
-                expandedSection === 'date'
-                  ? 'border-[#171717] bg-[#DBDBDB] text-[#171717]'
-                  : 'border-[#DBDBDB] bg-white text-[#757575] hover:border-[#757575]'
-              )}
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <Calendar className="size-4 shrink-0" aria-hidden />
-                <span>Date</span>
-              </span>
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate normal-case text-[#171717]">
-                  {dateRangeLabel}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    'size-4 shrink-0 transition-transform',
-                    expandedSection === 'date' && 'rotate-180'
-                  )}
-                  aria-hidden
-                />
-              </span>
-            </button>
-
-            {expandedSection === 'date' && (
-              <div className="space-y-3 border border-[#DBDBDB] bg-white p-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="block">
-                    <span className="label-small uppercase tracking-wide text-[#757575]">
-                      From
-                    </span>
-                    <input
-                      type="date"
-                      value={dateFrom}
-                      max={dateTo || undefined}
-                      onChange={(e) => onDateFromChange(e.target.value)}
-                      className="mt-1 w-full rounded-none border border-neutral-300 px-2 py-1.5 text-sm text-[#171717]"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="label-small uppercase tracking-wide text-[#757575]">
-                      To
-                    </span>
-                    <input
-                      type="date"
-                      value={dateTo}
-                      min={dateFrom || undefined}
-                      onChange={(e) => onDateToChange(e.target.value)}
-                      className="mt-1 w-full rounded-none border border-neutral-300 px-2 py-1.5 text-sm text-[#171717]"
-                    />
-                  </label>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onDateFromChange('');
-                    onDateToChange('');
-                  }}
-                  className="label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
-                >
-                  Clear dates
-                </button>
-              </div>
-            )}
-          </div>
+                    </button>
+                    {isSelected && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectedCityChange('all');
+                          setExpandedSection(null);
+                        }}
+                        aria-label={`Clear ${city.name} filter`}
+                        className="flex shrink-0 items-center px-4 py-[var(--sds-size-space-300)] transition-opacity hover:opacity-80"
+                      >
+                        <EventsFilterClearIcon />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        <fieldset className="space-y-2">
-          <legend className="label-small uppercase tracking-wide text-[#757575]">
-            Sort by date
-          </legend>
-          <div className="flex flex-col gap-2">
-            {SORT_ORDER_OPTIONS.map(({ value, label }) => {
-              const isSelected = sortOrder === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => onSortOrderChange(value)}
-                  className={cn(
-                    'flex h-11 w-full items-center justify-between border px-4 label-small uppercase tracking-wide transition-colors',
-                    isSelected
-                      ? 'border-[#171717] bg-[#DBDBDB] text-[#171717]'
-                      : 'border-[#DBDBDB] bg-white text-[#757575] hover:border-[#757575]'
-                  )}
-                >
+        <div>
+          <button
+            type="button"
+            aria-expanded={expandedSection === 'date'}
+            onClick={() => toggleSection('date')}
+            className={cn(
+              EVENT_FILTER_ROW_CLASS,
+              'label-small uppercase tracking-wide text-[#757575] transition-opacity hover:opacity-80 border-b border-[#a9a9a9]'
+            )}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-[#171717] label-large uppercase">
+                {dateFrom || dateTo ? dateRangeLabel : 'Date Range'}
+              </span>
+            </span>
+            <EventsFilterDropdownIcon expanded={expandedSection === 'date'} />
+          </button>
+
+          {expandedSection === 'date' && (
+            <div className="space-y-3 border-t border-[#DBDBDB] bg-[var(--Backgrounds-Background,#FFF)] px-[var(--sds-size-space-600)] py-4">
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="label-small uppercase tracking-wide text-[#757575]">
+                    From
+                  </span>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    max={dateTo || undefined}
+                    onChange={(e) => onDateFromChange(e.target.value)}
+                    className="mt-1 w-full rounded-none border border-neutral-300 px-2 py-1.5 text-sm text-[#171717]"
+                  />
+                </label>
+                <label className="block">
+                  <span className="label-small uppercase tracking-wide text-[#757575]">
+                    To
+                  </span>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    min={dateFrom || undefined}
+                    onChange={(e) => onDateToChange(e.target.value)}
+                    className="mt-1 w-full rounded-none border border-neutral-300 px-2 py-1.5 text-sm text-[#171717]"
+                  />
+                </label>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onDateFromChange('');
+                  onDateToChange('');
+                }}
+                className="label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
+              >
+                Clear dates
+              </button>
+            </div>
+          )}
+        </div>
+
+        {SORT_ORDER_OPTIONS.map(({ value, label }) => {
+          const isSelected = sortOrder === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => onSortOrderChange(value)}
+              className={cn(
+                EVENT_FILTER_ROW_CLASS,
+                'uppercase tracking-wide transition-opacity hover:opacity-80 border-b border-[#a9a9a9]',
+                isSelected && 'bg-[#dbdbdb]'
+              )}
+            >
+              <span className="flex items-baseline gap-[8px]">
+                <span className="label-large text-black">Date</span>
+                <span className="label-medium truncate text-[#A9A9A9]">
                   {label}
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
+                </span>
+              </span>
+              {value === 'asc' ? <EventsSortAscIcon /> : <EventsSortDescIcon />}
+            </button>
+          );
+        })}
 
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={onClearFilters}
-            className="label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
-          >
-            Clear filters
-          </button>
-        )}
+        {saveSlot}
+      </div>
+    </>
+  );
+}
 
-        <DialogClose asChild>
-          <button
-            type="button"
-            className="flex h-11 w-full items-center justify-center bg-[#171717] label-small uppercase tracking-wide text-white transition-opacity hover:opacity-95"
-          >
-            Save
-          </button>
-        </DialogClose>
+/** Shared Save row — flush below the last filter row. */
+const EventsFilterSaveButton = (
+  <DialogClose asChild>
+    <button
+      type="button"
+      className={cn(
+        EVENT_FILTER_ROW_CLASS,
+        'label-large uppercase tracking-wide bg-black text-white transition-opacity hover:opacity-95'
+      )}
+    >
+      Save
+      <EventsFilterCheckIcon />
+    </button>
+  </DialogClose>
+);
+
+/** Desktop: centered modal launched from the FILTER + sort header. */
+function EventsFilterSortModal({
+  open,
+  onOpenChange,
+  ...fields
+}: EventsFilterSortProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        hideCloseButton
+        className="w-full max-w-md gap-6 overflow-hidden border border-[#DBDBDB] bg-white p-0 pt-6 shadow-lg sm:rounded-none"
+      >
+        <div className="flex items-center justify-between gap-4 px-6">
+          <div className="label-small uppercase text-[#171717]">Filter</div>
+          <DialogClose asChild>
+            <button
+              type="button"
+              className="shrink-0 transition-opacity hover:opacity-80"
+              aria-label="Close filter"
+            >
+              <EventsFilterCloseIcon />
+            </button>
+          </DialogClose>
+        </div>
+
+        <EventsFilterSortFields {...fields} saveSlot={EventsFilterSaveButton} />
       </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Mobile: bottom-sheet drawer launched from the FILTER + sort header. */
+function EventsFilterSortDrawer({
+  open,
+  onOpenChange,
+  ...fields
+}: EventsFilterSortProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogDrawerContent
+        hideCloseButton
+        className="gap-2 overflow-hidden  border-t border-[#DBDBDB] bg-white p-0 pt-2"
+      >
+        <div className="flex items-center justify-between gap-4 px-6">
+          <div className="label-small uppercase text-[#171717]">Filter</div>
+          <DialogClose asChild>
+            <button
+              type="button"
+              className="shrink-0 transition-opacity hover:opacity-80"
+              aria-label="Close filter"
+            >
+              <EventsFilterCloseIcon />
+            </button>
+          </DialogClose>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <EventsFilterSortFields
+            {...fields}
+            saveSlot={EventsFilterSaveButton}
+          />
+        </div>
+      </DialogDrawerContent>
     </Dialog>
   );
 }
@@ -680,13 +895,12 @@ const toPublicEvent = (
 export default function EventsPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [sortModalOpen, setSortModalOpen] = useState(false);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [selectedPoster, setSelectedPoster] = useState<string | null>(null);
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
-  const [dateOpen, setDateOpen] = useState(false);
   const [filtersHydrated, setFiltersHydrated] = useState(false);
-  const dateMenuRef = useRef<HTMLDivElement | null>(null);
 
   // Hydrate filter state from the URL once on mount (shareable links).
   useEffect(() => {
@@ -712,26 +926,10 @@ export default function EventsPage() {
     );
   }, [selectedCity, dateFrom, dateTo, filtersHydrated]);
 
-  // Close the date popover when clicking outside of it.
-  useEffect(() => {
-    if (!dateOpen) return;
-    const handlePointerDown = (event: MouseEvent) => {
-      if (
-        dateMenuRef.current &&
-        !dateMenuRef.current.contains(event.target as Node)
-      ) {
-        setDateOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handlePointerDown);
-    return () => document.removeEventListener('mousedown', handlePointerDown);
-  }, [dateOpen]);
-
   const clearFilters = () => {
     setSelectedCity('all');
     setDateFrom('');
     setDateTo('');
-    setDateOpen(false);
   };
 
   const {
@@ -881,6 +1079,32 @@ export default function EventsPage() {
     return 'All dates';
   })();
 
+  const appliedFilters: AppliedFilter[] = [
+    ...(selectedCity !== 'all'
+      ? [
+          {
+            key: 'city',
+            label:
+              cities?.find((city) => city.slug === selectedCity)?.name ??
+              selectedCity,
+            onClear: () => setSelectedCity('all'),
+          },
+        ]
+      : []),
+    ...(dateFrom || dateTo
+      ? [
+          {
+            key: 'date',
+            label: dateRangeLabel,
+            onClear: () => {
+              setDateFrom('');
+              setDateTo('');
+            },
+          },
+        ]
+      : []),
+  ];
+
   const hasNoEvents =
     !isLoading &&
     !manualLoading &&
@@ -911,7 +1135,7 @@ export default function EventsPage() {
 
       {nextEvent && (
         <section
-          className="relative hidden h-[452px] w-full items-center justify-center overflow-hidden bg-[#d9a7c7] bg-gradient-to-r from-[#fffcdc] to-[#d9a7c7] shadow-[0_4px_24px_8px_rgba(0,0,0,0.15)] xl:flex"
+          className="relative hidden h-[452px] w-full items-center justify-center overflow-hidden bg-[#d9a7c7] bg-gradient-to-r from-[#fffcdc] to-[#d9a7c7]  xl:flex"
           aria-label="Next event"
         >
           <div className="relative flex max-w-[1440px] flex-1 basis-0 items-center justify-center gap-16">
@@ -986,122 +1210,23 @@ export default function EventsPage() {
         </section>
       )}
 
-      <div className="mx-auto w-full max-w-md space-y-2 px-4 pt-3 md:px-2 xl:max-w-[1444px] xl:space-y-0 xl:px-0">
-        <div className="space-y-2 xl:hidden">
-          <div className="flex items-stretch gap-2">
-            {cities && cities.length > 0 && (
-              <Select value={selectedCity} onValueChange={setSelectedCity}>
-                <SelectTrigger
-                  aria-label="Filter events by city"
-                  className="flex h-10 flex-1 items-center justify-between rounded-none border-0 bg-[#a9a9a9] px-4 shadow-none transition-colors hover:bg-[#3a3a3a] focus:ring-0 focus:ring-offset-0 [&>svg:last-child]:hidden"
-                >
-                  <span className="truncate label-small uppercase tracking-wide text-black">
-                    <SelectValue placeholder="All cities" />
-                  </span>
-                  <MapPin className="size-6 shrink-0 text-black" aria-hidden />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All cities</SelectItem>
-                  {cities.map((city) => (
-                    <SelectItem key={city.id} value={city.slug}>
-                      {city.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            <div
-              className="relative flex flex-1 items-stretch"
-              ref={dateMenuRef}
-            >
-              <button
-                type="button"
-                aria-label="Filter events by date range"
-                aria-expanded={dateOpen}
-                onClick={() => setDateOpen((open) => !open)}
-                className="flex h-10 w-full items-center justify-between rounded-none border-0 bg-[#a9a9a9] px-4 transition-colors hover:bg-[#3a3a3a]"
-              >
-                <span className="truncate label-small uppercase tracking-wide text-black">
-                  {dateRangeLabel}
-                </span>
-                <Calendar className="size-6 shrink-0 text-black" aria-hidden />
-              </button>
-
-              {dateOpen && (
-                <div className="absolute right-0 top-full z-20 mt-1 w-64 max-w-[calc(100vw-2rem)] space-y-3 border border-[#454545] bg-white p-3 shadow-lg">
-                  <label className="block">
-                    <span className="label-small uppercase tracking-wide text-[#757575]">
-                      From
-                    </span>
-                    <input
-                      type="date"
-                      value={dateFrom}
-                      max={dateTo || undefined}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      className="mt-1 w-full rounded-none border border-neutral-300 px-2 py-1.5 text-sm text-[#171717]"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="label-small uppercase tracking-wide text-[#757575]">
-                      To
-                    </span>
-                    <input
-                      type="date"
-                      value={dateTo}
-                      min={dateFrom || undefined}
-                      onChange={(e) => setDateTo(e.target.value)}
-                      className="mt-1 w-full rounded-none border border-neutral-300 px-2 py-1.5 text-sm text-[#171717]"
-                    />
-                  </label>
-                  <div className="flex items-center justify-between pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDateFrom('');
-                        setDateTo('');
-                      }}
-                      className="label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
-                    >
-                      Clear dates
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDateOpen(false)}
-                      className="label-small uppercase tracking-wide text-black underline"
-                    >
-                      Done
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
-            >
-              Clear filters
-            </button>
-          )}
-        </div>
-
+      <div className="mx-auto hidden w-full max-w-md px-4 pt-3 md:px-2 xl:block xl:max-w-[1444px] xl:px-0">
         <div className="relative hidden w-full xl:block">
           <div className={EVENT_DESKTOP_FILTER_HEADER_CLASS}>
-            <div className="flex w-full items-center justify-between">
-              <button
-                type="button"
-                aria-haspopup="dialog"
-                aria-expanded={sortModalOpen}
-                aria-label="Filter events"
-                onClick={() => setSortModalOpen(true)}
-                className="label-small uppercase text-[var(--Text-Primary-Text,#171717)]"
-              >
-                FILTER
-              </button>
+            <div className="flex w-full items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded={sortModalOpen}
+                  aria-label="Filter events"
+                  onClick={() => setSortModalOpen(true)}
+                  className="label-small uppercase text-[var(--Text-Primary-Text,#171717)]"
+                >
+                  FILTER
+                </button>
+                <EventsAppliedFilters filters={appliedFilters} />
+              </div>
               <button
                 type="button"
                 aria-label="Filter and sort events"
@@ -1114,16 +1239,6 @@ export default function EventsPage() {
               </button>
             </div>
           </div>
-
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="mt-2 label-small uppercase tracking-wide text-[#757575] underline hover:text-black"
-            >
-              Clear filters
-            </button>
-          )}
         </div>
       </div>
 
@@ -1332,6 +1447,36 @@ export default function EventsPage() {
           </section>
         )}
 
+        <div className="xl:hidden">
+          <div className={cn(EVENT_DESKTOP_FILTER_HEADER_CLASS, 'border-b-0')}>
+            <div className="flex w-full items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded={filterDrawerOpen}
+                  aria-label="Filter events"
+                  onClick={() => setFilterDrawerOpen(true)}
+                  className="label-small uppercase text-[var(--Text-Primary-Text,#171717)]"
+                >
+                  FILTER
+                </button>
+                <EventsAppliedFilters filters={appliedFilters} />
+              </div>
+              <button
+                type="button"
+                aria-label="Filter and sort events"
+                aria-haspopup="dialog"
+                aria-expanded={filterDrawerOpen}
+                onClick={() => setFilterDrawerOpen(true)}
+                className="shrink-0"
+              >
+                <EventsSortIcon />
+              </button>
+            </div>
+          </div>
+        </div>
+
         {remainingUpcomingEvents.length > 0 && (
           <section className="space-y-2 xl:hidden">
             <div className="space-y-2">
@@ -1531,6 +1676,23 @@ export default function EventsPage() {
       <EventsFilterSortModal
         open={sortModalOpen}
         onOpenChange={setSortModalOpen}
+        cities={cities}
+        selectedCity={selectedCity}
+        onSelectedCityChange={setSelectedCity}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+        dateRangeLabel={dateRangeLabel}
+        sortOrder={sortOrder}
+        onSortOrderChange={setSortOrder}
+        onClearFilters={clearFilters}
+        hasActiveFilters={hasActiveFilters}
+      />
+
+      <EventsFilterSortDrawer
+        open={filterDrawerOpen}
+        onOpenChange={setFilterDrawerOpen}
         cities={cities}
         selectedCity={selectedCity}
         onSelectedCityChange={setSelectedCity}

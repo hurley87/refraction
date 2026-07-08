@@ -85,6 +85,49 @@ const DialogContent = React.forwardRef<
 );
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
+/** Bottom-sheet variant: slides up from the bottom edge (mobile drawers). */
+const DialogDrawerContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  DialogContentProps
+>(
+  (
+    {
+      className,
+      overlayClassName,
+      children,
+      hideCloseButton,
+      onCloseAutoFocus,
+      ...props
+    },
+    ref
+  ) => (
+    <DialogPortal>
+      <DialogOverlay className={overlayClassName} />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          'fixed inset-x-0 bottom-0 z-50 flex max-h-[90vh] w-full flex-col gap-4 bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
+          className
+        )}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          onCloseAutoFocus?.(event);
+        }}
+        {...props}
+      >
+        {children}
+        {!hideCloseButton && (
+          <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+            <Cross2Icon className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        )}
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  )
+);
+DialogDrawerContent.displayName = 'DialogDrawerContent';
+
 const DialogHeader = ({
   className,
   ...props
@@ -147,6 +190,7 @@ export {
   DialogTrigger,
   DialogClose,
   DialogContent,
+  DialogDrawerContent,
   DialogHeader,
   DialogFooter,
   DialogTitle,
