@@ -167,7 +167,7 @@ const getTicketPlatformLabel = (
   if (url.includes('dice.fm') || !isManual) {
     return 'VIEW ON DICE';
   }
-  return 'VIEW ON DICE';
+  return 'VIEW';
 };
 
 function DiagonalArrowIcon({ className }: { className?: string }) {
@@ -296,7 +296,7 @@ function MobileFeaturedEventCard({ event }: { event: CarouselEvent }) {
     >
       <EventPoster
         event={event}
-        className="aspect-[3/4] w-full"
+        className="aspect-[4/5] w-full"
         sizes="393px"
       />
       <EventCardDetails event={event} />
@@ -332,7 +332,7 @@ function MobileEventCarouselItem({ event }: { event: CarouselEvent }) {
 function EventCarouselCard({
   event,
   className,
-  posterClassName = 'h-[367.406px]',
+  posterClassName = 'aspect-[4/5]',
 }: {
   event: CarouselEvent;
   className?: string;
