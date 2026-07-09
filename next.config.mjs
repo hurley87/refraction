@@ -173,6 +173,18 @@ const nextConfig = {
         destination: "/city-guides",
         permanent: true,
       },
+      {
+        source: "/write-a-guide",
+        destination:
+          "https://refraction-irl.notion.site/Co-create-an-IRL-Guide-to-Your-City-26aec10dc65e80918792c6e40f903126?pvs=73",
+        permanent: false,
+      },
+      {
+        source: "/write-a-guide/",
+        destination:
+          "https://refraction-irl.notion.site/Co-create-an-IRL-Guide-to-Your-City-26aec10dc65e80918792c6e40f903126?pvs=73",
+        permanent: false,
+      },
     ];
   },
 };
