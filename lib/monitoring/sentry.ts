@@ -251,6 +251,20 @@ export function isWalletExtensionOnboardingNoise(message: string): boolean {
 }
 
 /**
+ * iOS in-app browsers (Facebook, Instagram, etc.) and some third-party scripts
+ * probe `window.webkit.messageHandlers` without guarding for missing `webkit`.
+ * That bridge only exists in native WKWebView apps with registered handlers —
+ * not in Safari or most embedded WebViews — so this is environmental noise.
+ */
+export function isWebkitMessageHandlersNoise(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('webkit.messagehandlers') ||
+    (lower.includes('messagehandlers') && lower.includes('webkit'))
+  );
+}
+
+/**
  * Privy's PrivyProxyProvider subscribes to EIP-1193 events via `walletProvider.on`.
  * Some browser extensions inject partial providers (request-only, no event API),
  * which surfaces as `this.walletProvider?.on is not a function` inside
@@ -359,6 +373,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
     isWalletExtensionEthereumConflict(message) ||
     isWalletExtensionOnboardingNoise(message) ||
     isPrivyWalletProviderOnNoise(message) ||
+    isWebkitMessageHandlersNoise(message) ||
     isWalletConnectSessionNoise(message) ||
     // Wallet extension inpage scripts (e.g. MetaMask), not app code.
     message.includes('called from a webpage must specify an extension id') ||
