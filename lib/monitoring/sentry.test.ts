@@ -7,6 +7,7 @@ import {
   isPrivyWalletProviderOnNoise,
   isWalletConnectSessionNoise,
   isWalletExtensionOnboardingNoise,
+  isWebkitMessageHandlersNoise,
   sentryBeforeSend,
 } from '@/lib/monitoring/sentry';
 
@@ -46,6 +47,22 @@ describe('isWalletExtensionOnboardingNoise', () => {
     expect(isWalletExtensionOnboardingNoise('User rejected the request')).toBe(
       false
     );
+  });
+});
+
+describe('isWebkitMessageHandlersNoise', () => {
+  it('detects iOS in-app browser webkit.messageHandlers probe failures', () => {
+    expect(
+      isWebkitMessageHandlersNoise(
+        "TypeError: undefined is not an object (evaluating 'window.webkit.messageHandlers')"
+      )
+    ).toBe(true);
+    expect(
+      isWebkitMessageHandlersNoise(
+        "TypeError: undefined is not an object (evaluating 'window.webkit.messageHandlers.selectedTextHandler.postMessage')"
+      )
+    ).toBe(true);
+    expect(isWebkitMessageHandlersNoise('TypeError: fetch failed')).toBe(false);
   });
 });
 
@@ -389,6 +406,23 @@ describe('sentryBeforeSend', () => {
           {
             value:
               'Error: Talisman extension has not been configured yet. Please continue with onboarding.',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for webkit.messageHandlers in-app browser noise (JAVASCRIPT-NEXTJS-1G)', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/events' },
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value:
+              "TypeError: undefined is not an object (evaluating 'window.webkit.messageHandlers')",
           },
         ],
       },
