@@ -161,6 +161,74 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function indexedDbErrorMessage(reason: unknown): string {
+  if (reason instanceof Error) {
+    return reason.message;
+  }
+  if (typeof reason === 'string') {
+    return reason;
+  }
+  if (isPlainRecord(reason) && typeof reason.message === 'string') {
+    return reason.message;
+  }
+  return '';
+}
+
+function indexedDbErrorName(reason: unknown): string {
+  if (reason instanceof DOMException) {
+    return reason.name;
+  }
+  if (reason instanceof Error) {
+    return reason.name;
+  }
+  if (isPlainRecord(reason) && typeof reason.name === 'string') {
+    return reason.name;
+  }
+  return '';
+}
+
+/**
+ * Wallet SDKs (Privy, WalletConnect) persist session state via idb-keyval.
+ * Browsers — especially iOS Safari and in-app webviews — can close or delete
+ * the IndexedDB database during navigation, tab discard, backgrounding, or when
+ * the user clears site data while those libraries still have in-flight work.
+ */
+export function isIndexedDbNoiseError(reason: unknown): boolean {
+  const normalized = indexedDbErrorMessage(reason).toLowerCase();
+  const name = indexedDbErrorName(reason).toLowerCase();
+
+  if (
+    normalized.includes('database connection is closing') ||
+    normalized.includes('connection to indexed database server lost') ||
+    normalized.includes('database deleted by request of the user') ||
+    normalized.includes('internal error opening backing store') ||
+    normalized.includes('connection is closing')
+  ) {
+    return true;
+  }
+
+  // Generic UnknownError from IndexedDB (WebKit crashes, corrupted backing store).
+  if (
+    (name === 'unknownerror' || normalized.includes('unknownerror')) &&
+    normalized.includes('internal error')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function shouldDropIndexedDbNoiseError(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (isIndexedDbNoiseError(hint?.originalException)) {
+    return true;
+  }
+
+  return isIndexedDbNoiseError(eventMessage(event, hint));
+}
+
 /**
  * EIP-1193 providers (MetaMask, embedded wallets, etc.) reject with a plain
  * `{ code, message }` object. `4001` is "User rejected the request" / non-actionable
@@ -328,6 +396,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   }
 
   if (shouldDropFetchNetworkError(event, hint)) {
+    return null;
+  }
+
+  if (shouldDropIndexedDbNoiseError(event, hint)) {
     return null;
   }
 
