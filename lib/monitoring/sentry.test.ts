@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isAbortError,
+  isAndroidJavascriptBridgeNoise,
   isExtensionStackOverflowNoise,
   isIndexedDbNoiseError,
   isPrivyWalletProviderOnNoise,
@@ -63,6 +64,29 @@ describe('isWebkitMessageHandlersNoise', () => {
       )
     ).toBe(true);
     expect(isWebkitMessageHandlersNoise('TypeError: fetch failed')).toBe(false);
+  });
+});
+
+describe('isAndroidJavascriptBridgeNoise', () => {
+  it('detects Android in-app browser JNI bridge teardown failures', () => {
+    expect(
+      isAndroidJavascriptBridgeNoise(
+        'Error: Error invoking postMessage: Java object is gone'
+      )
+    ).toBe(true);
+    expect(
+      isAndroidJavascriptBridgeNoise(
+        'Error: Error invoking enableDidUserTypeOnKeyboardLogging: Java object is gone'
+      )
+    ).toBe(true);
+    expect(
+      isAndroidJavascriptBridgeNoise(
+        'Error: Error invoking enableButtonsClickedMetaDataLogging: Java object is gone'
+      )
+    ).toBe(true);
+    expect(isAndroidJavascriptBridgeNoise('TypeError: fetch failed')).toBe(
+      false
+    );
   });
 });
 
@@ -423,6 +447,30 @@ describe('sentryBeforeSend', () => {
             type: 'TypeError',
             value:
               "TypeError: undefined is not an object (evaluating 'window.webkit.messageHandlers')",
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for Android JNI bridge in-app browser noise (JAVASCRIPT-NEXTJS-1H)', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/events' },
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Error: Error invoking postMessage: Java object is gone',
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'app://navigation_performance_logger_android',
+                  function: 'sendBeforeUnloadMessage',
+                },
+              ],
+            },
           },
         ],
       },
