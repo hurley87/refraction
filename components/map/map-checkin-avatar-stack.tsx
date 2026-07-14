@@ -3,6 +3,7 @@ import {
   getCheckinInitial,
   type MapCheckinAvatarEntry,
 } from '@/lib/map/checkin-avatar-utils';
+import { cn } from '@/lib/utils';
 
 interface MapCheckinAvatarStackProps {
   checkins: MapCheckinAvatarEntry[];
@@ -11,7 +12,7 @@ interface MapCheckinAvatarStackProps {
   className?: string;
 }
 
-/** Overlapping check-in avatars (check-in modal CHECK-INS row). */
+/** Overlapping check-in avatars (drawer tiles + check-in modal CHECK-INS row). */
 export function MapCheckinAvatarStack({
   checkins,
   maxVisible = 3,
@@ -22,11 +23,15 @@ export function MapCheckinAvatarStack({
   }
 
   return (
-    <div className={className ?? 'flex h-4 items-center gap-2 px-2 py-1 pr-4'}>
-      {checkins.slice(0, maxVisible).map((entry) => (
+    <div className={cn('flex items-center', className)}>
+      {checkins.slice(0, maxVisible).map((entry, index) => (
         <div
           key={entry.id}
-          className="flex size-4 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d] text-[8px] font-semibold leading-none text-[#313131] shadow-sm"
+          className={cn(
+            'relative flex size-4 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d] text-[8px] font-semibold leading-none text-[#313131] shadow-sm ring-1 ring-white',
+            index > 0 && '-ml-[7px]'
+          )}
+          style={{ zIndex: index + 1 }}
         >
           {entry.profilePictureUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

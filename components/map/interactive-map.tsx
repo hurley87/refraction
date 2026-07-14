@@ -20,6 +20,7 @@ import { useFavoritePlaceIds, useToggleFavorite } from '@/hooks/useFavorites';
 import MapNav from '@/components/map/mapnav';
 import { MapDesktopNav } from '@/components/map/map-desktop-nav';
 import MapCard from '@/components/map/map-card';
+import { MapCheckinAvatarStack } from '@/components/map/map-checkin-avatar-stack';
 import { CheckInSuccessScreen } from '@/components/map/check-in-success-screen';
 import { MapPinImage } from '@/components/map/map-pin-image';
 import LocationListsDrawer, {
@@ -2295,6 +2296,40 @@ export default function InteractiveMap({
                     className="object-cover object-center"
                   />
                 ) : null}
+                {checkInTarget?.place_id ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!checkInTarget.place_id) return;
+                      const shareUrl = `${window.location.origin}/interactive-map?placeId=${encodeURIComponent(checkInTarget.place_id)}`;
+                      navigator.clipboard
+                        .writeText(shareUrl)
+                        .then(() => {
+                          toast.success('Link copied to clipboard');
+                        })
+                        .catch(() => {
+                          toast.error('Failed to copy link');
+                        });
+                    }}
+                    className="absolute left-2 top-2 z-10 flex size-10 shrink-0 items-center justify-center gap-4 rounded-[179px] border border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] transition-opacity hover:opacity-90"
+                    aria-label="Share Location"
+                  >
+                    <svg
+                      className="size-6 shrink-0"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#757575"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                      <polyline points="16 6 12 2 8 6" />
+                      <line x1="12" y1="2" x2="12" y2="15" />
+                    </svg>
+                  </button>
+                ) : null}
                 <button
                   onClick={handleCloseCheckInModal}
                   className="absolute right-2 top-2 z-10 flex size-10 shrink-0 items-center justify-center gap-4 rounded-[179px] border border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] transition-opacity hover:opacity-90 disabled:opacity-50"
@@ -2533,36 +2568,15 @@ export default function InteractiveMap({
                                       CHECK-INS
                                     </span>
                                     <div className="flex items-center justify-center gap-2">
-                                      <div className="flex h-7 items-center gap-2 px-2 py-1 pr-4">
-                                        {locationCheckins.length > 0 ? (
-                                          locationCheckins
-                                            .slice(0, 3)
-                                            .map((entry) => (
-                                              <div
-                                                key={`badge-${entry.id}`}
-                                                className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d] text-[10px] font-semibold text-[#313131] shadow-sm"
-                                              >
-                                                {entry.profilePictureUrl ? (
-                                                  <img
-                                                    src={
-                                                      entry.profilePictureUrl
-                                                    }
-                                                    alt={getCheckinDisplayName(
-                                                      entry
-                                                    )}
-                                                    className="size-7 rounded-full object-cover"
-                                                  />
-                                                ) : (
-                                                  getCheckinInitial(entry)
-                                                )}
-                                              </div>
-                                            ))
-                                        ) : (
-                                          <div className="flex size-7 items-center justify-center rounded-full bg-[#e8e8e8] text-[10px] font-semibold text-[#999]">
-                                            +
-                                          </div>
-                                        )}
-                                      </div>
+                                      {locationCheckins.length > 0 ? (
+                                        <MapCheckinAvatarStack
+                                          checkins={locationCheckins}
+                                        />
+                                      ) : (
+                                        <div className="flex size-4 items-center justify-center rounded-full bg-[#e8e8e8] text-[8px] font-semibold text-[#999]">
+                                          +
+                                        </div>
+                                      )}
                                       {locationCheckins.length > 3 ? (
                                         <span className="label-small text-[#454545]">
                                           +{locationCheckins.length - 3} OTHERS
@@ -2823,30 +2837,15 @@ export default function InteractiveMap({
                             CHECK-INS
                           </span>
                           <div className="flex items-center justify-center gap-2">
-                            <div className="flex h-7 items-center gap-2 px-2 py-1 pr-4">
-                              {locationCheckins.length > 0 ? (
-                                locationCheckins.slice(0, 3).map((entry) => (
-                                  <div
-                                    key={`badge-${entry.id}`}
-                                    className="flex size-7 items-center justify-center rounded-full bg-gradient-to-br from-[#fff3d7] via-[#ffd1a8] to-[#ffb27d] text-[10px] font-semibold text-[#313131] shadow-sm"
-                                  >
-                                    {entry.profilePictureUrl ? (
-                                      <img
-                                        src={entry.profilePictureUrl}
-                                        alt={getCheckinDisplayName(entry)}
-                                        className="size-7 rounded-full object-cover"
-                                      />
-                                    ) : (
-                                      getCheckinInitial(entry)
-                                    )}
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="flex size-7 items-center justify-center rounded-full bg-[#e8e8e8] text-[10px] font-semibold text-[#999]">
-                                  +
-                                </div>
-                              )}
-                            </div>
+                            {locationCheckins.length > 0 ? (
+                              <MapCheckinAvatarStack
+                                checkins={locationCheckins}
+                              />
+                            ) : (
+                              <div className="flex size-4 items-center justify-center rounded-full bg-[#e8e8e8] text-[8px] font-semibold text-[#999]">
+                                +
+                              </div>
+                            )}
                             {locationCheckins.length > 3 ? (
                               <span className="label-small text-[#454545]">
                                 +{locationCheckins.length - 3} OTHERS
