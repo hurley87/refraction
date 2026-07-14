@@ -10,6 +10,8 @@ import { sanitizeInternalReturnPath } from '@/lib/utils/safe-return-path';
 function InteractiveMapContent() {
   const searchParams = useSearchParams();
   const placeId = searchParams.get('placeId');
+  /** Prefer `name`; keep `placeName` as a legacy alias for recently shared links. */
+  const placeName = searchParams.get('name') ?? searchParams.get('placeName');
   /** City guide etc.: show location MapCard drawer only, not the full-screen check-in modal. */
   const mapCardOnlyDeepLink = searchParams.get('mapCard') === '1';
   const returnToRaw = searchParams.get('returnTo');
@@ -46,6 +48,7 @@ function InteractiveMapContent() {
       <div className="font-grotesk h-full w-full">
         <InteractiveMap
           initialPlaceId={placeId}
+          initialPlaceName={placeName}
           initialLatitude={initialLatitude}
           initialLongitude={initialLongitude}
           deepLinkMapCardOnly={mapCardOnlyDeepLink}
