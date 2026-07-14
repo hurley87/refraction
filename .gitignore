@@ -38,5 +38,8 @@ next-env.d.ts
 # contracts
 contracts
 
+# local DB dumps / table snapshots
+/backups/
+
 soroban-contracts/simple_payment/target/
 soroban-contracts/nft_collection/target/
