@@ -4,6 +4,7 @@ import { deleteLocationById, updateLocationById } from '@/lib/db/locations';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
+/** Admin PATCH body. `type` stores a `categories.slug` (venue category). */
 const updateLocationSchema = z.object({
   name: z.string().min(1).optional(),
   address: z.string().max(500).nullable().optional(),

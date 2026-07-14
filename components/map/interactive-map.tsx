@@ -13,6 +13,7 @@ import {
   mergeSearchBoxReverseFeatures,
 } from '@/lib/utils/location-autofill';
 import { usePrivy } from '@privy-io/react-auth';
+import { useQuery } from '@tanstack/react-query';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
 import { useFavoritePlaceIds, useToggleFavorite } from '@/hooks/useFavorites';
@@ -26,6 +27,13 @@ import LocationListsDrawer, {
 } from '@/components/location-lists-drawer';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import {
@@ -66,9 +74,17 @@ interface LocationFormData {
   name: string;
   address: string;
   description: string;
+  /** `categories.slug` persisted as `locations.type`. */
+  categorySlug: string;
   locationImage: File | null;
   checkInComment: string;
 }
+
+type CategoryOption = {
+  id: string;
+  name: string;
+  slug: string;
+};
 
 type FormStep = 'business-details' | 'success';
 
@@ -201,8 +217,20 @@ export default function InteractiveMap({
     name: '',
     address: '',
     description: '',
+    categorySlug: '',
     locationImage: null,
     checkInComment: '',
+  });
+
+  const { data: categories = [] } = useQuery<CategoryOption[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const response = await fetch('/api/categories');
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      const responseData = await response.json();
+      const data = responseData.data ?? responseData;
+      return Array.isArray(data) ? data : [];
+    },
   });
   /** Reverse-geocoded spot from map click or search — not yet an IRL location; show compact card before create form. */
   const [pendingMapCreateMarker, setPendingMapCreateMarker] =
@@ -775,6 +803,7 @@ export default function InteractiveMap({
         name: newMarker.name, // Venue name
         address: newMarker.address || newMarker.name, // Address
         description: '',
+        categorySlug: '',
         locationImage: null,
         checkInComment: '',
       });
@@ -797,6 +826,7 @@ export default function InteractiveMap({
         name: newMarker.name, // Venue name (coordinates)
         address: newMarker.address || newMarker.name, // Address (coordinates)
         description: '',
+        categorySlug: '',
         locationImage: null,
         checkInComment: '',
       });
@@ -813,6 +843,7 @@ export default function InteractiveMap({
       name: pendingMapCreateMarker.name,
       address: pendingMapCreateMarker.address || pendingMapCreateMarker.name,
       description: '',
+      categorySlug: '',
       locationImage: null,
       checkInComment: prev.checkInComment,
     }));
@@ -920,6 +951,7 @@ export default function InteractiveMap({
         name: newMarker.name,
         address: newMarker.address || newMarker.name,
         description: '',
+        categorySlug: '',
         locationImage: null,
         checkInComment: '',
       });
@@ -1192,6 +1224,11 @@ export default function InteractiveMap({
       return;
     }
 
+    if (!formData.categorySlug.trim()) {
+      toast.error('Category is required');
+      return;
+    }
+
     if (!formData.locationImage) {
       toast.error('Location image is required');
       return;
@@ -1274,7 +1311,7 @@ export default function InteractiveMap({
           description: formData.description,
           lat: selectedMarker.latitude.toString(),
           lon: selectedMarker.longitude.toString(),
-          type: 'location',
+          type: formData.categorySlug,
           walletAddress: walletAddress,
           username: userUsername,
           locationImage: locationImageUrl,
@@ -1463,6 +1500,7 @@ export default function InteractiveMap({
       name: '',
       address: '',
       description: '',
+      categorySlug: '',
       locationImage: null,
       checkInComment: '',
     });
@@ -1471,6 +1509,7 @@ export default function InteractiveMap({
   const isCreateLocationFormComplete = Boolean(
     formData.name.trim() &&
     formData.description.trim() &&
+    formData.categorySlug.trim() &&
     formData.locationImage
   );
 
@@ -1552,8 +1591,10 @@ export default function InteractiveMap({
     }
   };
 
-  const isDrawerMinimized = Boolean(pendingMapCreateMarker);
-  const isMobileDrawerCollapsed = Boolean(pendingMapCreateMarker || popupInfo);
+  const isDrawerMinimized = Boolean(pendingMapCreateMarker || showLocationForm);
+  const isMobileDrawerCollapsed = Boolean(
+    pendingMapCreateMarker || popupInfo || showLocationForm
+  );
   const [isListDetailOpen, setIsListDetailOpen] = useState(false);
 
   const mapCardBottomOverlayClassName = cn(
@@ -3195,6 +3236,39 @@ export default function InteractiveMap({
                         className="min-h-0 w-full flex-1 resize-none border border-[#e8e8e8] bg-white p-3 body-medium tracking-[-0.2px] text-[#000000] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#999]"
                         maxLength={500}
                       />
+                    </div>
+
+                    {/* Category Field */}
+                    <div className="flex flex-col gap-1.5">
+                      <label
+                        htmlFor="category"
+                        className="label-small text-[#757575] uppercase tracking-[0.3px]"
+                      >
+                        Category <span className="text-red-500">*</span>
+                      </label>
+                      <Select
+                        value={formData.categorySlug || undefined}
+                        onValueChange={(value) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            categorySlug: value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger
+                          id="category"
+                          className="h-10 border border-[#e8e8e8] bg-white px-3 body-medium tracking-[-0.2px] text-[#000000] focus:ring-0 focus:ring-offset-0 focus:border-[#999]"
+                        >
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.slug}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Image Upload */}
