@@ -1,17 +1,24 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Download, Loader2, Trash2 } from 'lucide-react';
+import { Download, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { EditLocationDialog } from '@/components/admin/edit-location-dialog';
 import type { Location } from '@/lib/types';
 import Image from 'next/image';
 
 const LOCATIONS_KEY = ['admin-locations'] as const;
+
+type CategoryOption = {
+  id: string;
+  name: string;
+  slug: string;
+};
 
 export default function AdminLocationsPage() {
   const { user, login, getAccessToken } = usePrivy();
@@ -21,6 +28,7 @@ export default function AdminLocationsPage() {
   const [showApproved, setShowApproved] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [page, setPage] = useState(1);
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const LIMIT = 50;
 
   const checkAdminStatus = useCallback(async () => {
@@ -76,6 +84,37 @@ export default function AdminLocationsPage() {
     },
     enabled: !!isAdmin && !!user?.email?.address,
   });
+
+  const { data: categories = [] } = useQuery<CategoryOption[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const response = await fetch('/api/categories');
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      const responseData = await response.json();
+      const data = responseData.data ?? responseData;
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: !!isAdmin,
+  });
+
+  const categoryNameBySlug = useMemo(() => {
+    const map = new Map<string, string>();
+    categories.forEach((category) => map.set(category.slug, category.name));
+    return map;
+  }, [categories]);
+
+  const formatCategoryLabel = useCallback(
+    (type?: string | null) => {
+      const slug = type?.trim();
+      if (!slug) return '—';
+      return (
+        categoryNameBySlug.get(slug) ??
+        slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+      );
+    },
+    [categoryNameBySlug]
+  );
+
   const filteredLocations = allLocations.filter((loc: Location) =>
     showApproved ? true : !loc.is_visible
   );
@@ -280,7 +319,7 @@ export default function AdminLocationsPage() {
                       Name
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                      Type
+                      Category
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
                       Creator
@@ -319,14 +358,8 @@ export default function AdminLocationsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                            location.type === 'event'
-                              ? 'bg-purple-100 text-purple-700'
-                              : 'bg-blue-100 text-blue-700'
-                          }`}
-                        >
-                          {location.type || 'location'}
+                        <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">
+                          {formatCategoryLabel(location.type)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
@@ -356,34 +389,47 @@ export default function AdminLocationsPage() {
                         />
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9 text-gray-500 hover:bg-red-50 hover:text-red-600"
-                          disabled={
-                            deleteMutation.isPending || location.id == null
-                          }
-                          aria-label={`Delete ${location.name}`}
-                          onClick={() => {
-                            if (location.id == null) return;
-                            if (
-                              !confirm(
-                                `Delete "${location.name}"? This cannot be undone.`
-                              )
-                            ) {
-                              return;
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                            disabled={location.id == null}
+                            aria-label={`Edit ${location.name}`}
+                            onClick={() => setEditingLocation(location)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                            disabled={
+                              deleteMutation.isPending || location.id == null
                             }
-                            deleteMutation.mutate(location.id);
-                          }}
-                        >
-                          {deleteMutation.isPending &&
-                          deleteMutation.variables === location.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
+                            aria-label={`Delete ${location.name}`}
+                            onClick={() => {
+                              if (location.id == null) return;
+                              if (
+                                !confirm(
+                                  `Delete "${location.name}"? This cannot be undone.`
+                                )
+                              ) {
+                                return;
+                              }
+                              deleteMutation.mutate(location.id);
+                            }}
+                          >
+                            {deleteMutation.isPending &&
+                            deleteMutation.variables === location.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -420,6 +466,20 @@ export default function AdminLocationsPage() {
           </>
         )}
       </div>
+
+      <EditLocationDialog
+        open={editingLocation != null}
+        onOpenChange={(open) => {
+          if (!open) setEditingLocation(null);
+        }}
+        location={editingLocation}
+        onSaved={() => {
+          queryClient.invalidateQueries({
+            queryKey: [...LOCATIONS_KEY, 'all'],
+          });
+          setEditingLocation(null);
+        }}
+      />
     </div>
   );
 }

@@ -30,6 +30,7 @@ export type Location = {
   longitude: number;
   place_id: string;
   points_value: number;
+  /** Venue category slug from `categories.slug` (legacy rows may still use free text). */
   type?: string;
   event_url?: string | null;
   context?: string;
