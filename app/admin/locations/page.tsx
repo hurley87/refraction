@@ -25,7 +25,7 @@ export default function AdminLocationsPage() {
   const queryClient = useQueryClient();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
-  const [showApproved, setShowApproved] = useState(false);
+  const [showApproved, setShowApproved] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [page, setPage] = useState(1);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);

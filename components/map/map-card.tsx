@@ -235,7 +235,7 @@ export default function MapCard({
               </span>
               <MapCheckinAvatarStack
                 checkins={recentCheckins}
-                className="ml-auto flex h-7 shrink-0 items-center gap-2 py-0 pl-1 pr-0"
+                className="ml-auto shrink-0"
               />
             </div>
           </div>
