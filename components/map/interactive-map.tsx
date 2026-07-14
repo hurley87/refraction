@@ -13,7 +13,6 @@ import {
   mergeSearchBoxReverseFeatures,
 } from '@/lib/utils/location-autofill';
 import { usePrivy } from '@privy-io/react-auth';
-import { Heart } from 'lucide-react';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
 import { useFavoritePlaceIds, useToggleFavorite } from '@/hooks/useFavorites';
@@ -2204,9 +2203,6 @@ export default function InteractiveMap({
               imageUrl={popupInfo.imageUrl}
               placeId={popupInfo.place_id}
               eventUrl={popupInfo.event_url}
-              isFavorited={favoritePlaceIds?.has(popupInfo.place_id) ?? false}
-              onToggleFavorite={() => handleToggleFavorite(popupInfo.place_id)}
-              isFavoriteLoading={isFavoritePending}
             />
           </div>
         </div>
@@ -2247,7 +2243,7 @@ export default function InteractiveMap({
           <div className={checkInModalPanelClassName}>
             {/* Hero: location image — first row */}
             {!checkInSuccess && (
-              <div className="relative flex h-[258px] w-full shrink-0 items-start gap-2 overflow-hidden border border-white/15 bg-lightgray p-2">
+              <div className="relative flex h-[258px] w-full shrink-0 items-start overflow-hidden border border-white/15 bg-lightgray p-2">
                 {checkInTarget?.imageUrl ? (
                   <Image
                     src={checkInTarget.imageUrl}
@@ -2258,140 +2254,28 @@ export default function InteractiveMap({
                     className="object-cover object-center"
                   />
                 ) : null}
-                <div className="relative z-10 flex min-w-0 items-center gap-2">
-                  <button
-                    onClick={handleCloseCheckInModal}
-                    className={`flex h-6 w-6 shrink-0 aspect-square items-center justify-center rounded-full bg-white transition-colors disabled:opacity-50 ${
-                      checkInTarget?.imageUrl
-                        ? 'text-white drop-shadow hover:text-white/90'
-                        : 'text-[#666] hover:text-[#333]'
-                    }`}
-                    aria-label="Close"
-                    disabled={isCheckingIn}
-                    type="button"
+                <button
+                  onClick={handleCloseCheckInModal}
+                  className="absolute right-2 top-2 z-10 flex size-10 shrink-0 items-center justify-center gap-4 rounded-[179px] border border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] transition-opacity hover:opacity-90 disabled:opacity-50"
+                  aria-label="Close"
+                  disabled={isCheckingIn}
+                  type="button"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width={24}
+                    height={24}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="size-6 shrink-0 aspect-square"
+                    aria-hidden
                   >
-                    <svg
-                      className="h-6 w-6 shrink-0 aspect-square"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
-                        fill="#757575"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                <div className="relative z-10 min-w-2 flex-1" aria-hidden />
-                <div className="relative z-10 flex shrink-0 items-center gap-1">
-                  {checkInTarget?.place_id ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleToggleFavorite(checkInTarget.place_id)
-                      }
-                      disabled={isFavoritePending}
-                      className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
-                        checkInTarget?.imageUrl
-                          ? 'text-white drop-shadow hover:bg-white/15'
-                          : 'text-[#666] hover:bg-black/5'
-                      }`}
-                      aria-label={
-                        favoritePlaceIds?.has(checkInTarget.place_id)
-                          ? 'Remove from favorites'
-                          : 'Add to favorites'
-                      }
-                    >
-                      <Heart
-                        className="h-4 w-4"
-                        fill={
-                          favoritePlaceIds?.has(checkInTarget.place_id)
-                            ? 'currentColor'
-                            : 'none'
-                        }
-                        aria-hidden
-                      />
-                    </button>
-                  ) : null}
-                  <button
-                    onClick={() => {
-                      if (!checkInTarget) return;
-                      const target = checkInTarget;
-                      handleCloseCheckInModal();
-                      setPopupInfo(target);
-                      setSelectedMarker(target);
-                      setViewState((prev) => ({
-                        ...prev,
-                        latitude: target.latitude,
-                        longitude: target.longitude,
-                        zoom: Math.max(prev.zoom ?? 12, 15),
-                      }));
-                      mapRef.current?.flyTo?.({
-                        center: [target.longitude, target.latitude],
-                        zoom: 15,
-                        duration: 1200,
-                      });
-                    }}
-                    className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition-colors ${
-                      checkInTarget?.imageUrl
-                        ? 'text-white drop-shadow hover:bg-white/15'
-                        : 'text-[#666] hover:bg-black/5'
-                    }`}
-                    aria-label="View on Map"
-                    type="button"
-                  >
-                    <svg
-                      className="h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (!checkInTarget?.place_id) return;
-                      const shareUrl = `${window.location.origin}/interactive-map?placeId=${encodeURIComponent(checkInTarget.place_id)}`;
-                      navigator.clipboard
-                        .writeText(shareUrl)
-                        .then(() => {
-                          toast.success('Link copied to clipboard');
-                        })
-                        .catch(() => {
-                          toast.error('Failed to copy link');
-                        });
-                    }}
-                    className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition-colors ${
-                      checkInTarget?.imageUrl
-                        ? 'text-white drop-shadow hover:bg-white/15'
-                        : 'text-[#666] hover:bg-black/5'
-                    }`}
-                    aria-label="Share Location"
-                    type="button"
-                  >
-                    <svg
-                      className="h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                      <polyline points="16 6 12 2 8 6" />
-                      <line x1="12" y1="2" x2="12" y2="15" />
-                    </svg>
-                  </button>
-                </div>
+                    <path
+                      d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
+                      fill="#757575"
+                    />
+                  </svg>
+                </button>
               </div>
             )}
 
@@ -2404,10 +2288,52 @@ export default function InteractiveMap({
                 <>
                   {checkInTarget && (
                     <div className="flex h-[330px] w-full shrink-0 flex-col items-start gap-0 self-stretch px-4 pb-0 pt-0">
-                      <div className="flex w-full flex-col justify-start bg-[#ffffff] pb-4 pt-4">
-                        <h3 className="line-clamp-1  leading-tight tracking-[-0.3px] text-[#1a1a1a]">
+                      <div className="flex w-full items-center justify-between gap-2 bg-[#ffffff] pb-4 pt-4">
+                        <h3 className="min-w-0 flex-1 line-clamp-1 leading-tight tracking-[-0.3px] text-[#1a1a1a]">
                           {checkInTarget.name || 'Selected Location'}
                         </h3>
+                        {checkInTarget.place_id ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleToggleFavorite(checkInTarget.place_id)
+                            }
+                            disabled={isFavoritePending}
+                            className={cn(
+                              'flex size-8 shrink-0 items-center justify-center gap-4 p-[var(--sds-size-space-100)] transition-opacity hover:opacity-90 disabled:opacity-50',
+                              favoritePlaceIds?.has(checkInTarget.place_id)
+                                ? 'bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)]'
+                                : 'border border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)]'
+                            )}
+                            aria-label={
+                              favoritePlaceIds?.has(checkInTarget.place_id)
+                                ? 'Remove from favorites'
+                                : 'Add to favorites'
+                            }
+                            aria-pressed={favoritePlaceIds?.has(
+                              checkInTarget.place_id
+                            )}
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width={16}
+                              height={16}
+                              viewBox="0 0 16 16"
+                              fill="none"
+                              className="size-4 shrink-0"
+                              aria-hidden
+                            >
+                              <path
+                                d="M13.3369 13.9974L7.99953 11.6311L2.66211 13.9974V2H13.3369V13.9974ZM8.00175 9.02329L10.8949 10.3046V4.37273H5.10861V10.3046L8.00175 9.02329Z"
+                                fill={
+                                  favoritePlaceIds?.has(checkInTarget.place_id)
+                                    ? '#171717'
+                                    : '#757575'
+                                }
+                              />
+                            </svg>
+                          </button>
+                        ) : null}
                       </div>
                       <div
                         className={`flex w-full items-center self-stretch ${isSingleWordLocationCategory(checkInTarget.type) ? 'justify-between' : 'justify-end'}`}

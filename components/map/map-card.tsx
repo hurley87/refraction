@@ -1,7 +1,6 @@
 'use client';
 
 import Image from 'next/image';
-import { Heart } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -11,6 +10,7 @@ import {
 import { formatLocationCategory } from '@/lib/utils/format-location-category';
 import { MapCheckinAvatarStack } from '@/components/map/map-checkin-avatar-stack';
 import type { MapCheckinAvatarEntry } from '@/lib/map/checkin-avatar-utils';
+import { cn } from '@/lib/utils';
 
 interface MapCardProps {
   name: string;
@@ -39,18 +39,42 @@ interface MapCardProps {
   isFavoriteLoading?: boolean;
 }
 
+/** Bookmark icon for drawer-tile favorite toggle (16×16). */
+function DrawerFavoriteBookmarkIcon({
+  isFavorited,
+  className,
+}: {
+  isFavorited: boolean;
+  className?: string;
+}) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={16}
+      height={16}
+      viewBox="0 0 16 16"
+      fill="none"
+      className={cn('size-4 shrink-0', !isFavorited && 'opacity-40', className)}
+      aria-hidden
+    >
+      <path
+        d="M13.3369 13.9974L7.99953 11.6311L2.66211 13.9974V2H13.3369V13.9974ZM8.00175 9.02329L10.8949 10.3046V4.37273H5.10861V10.3046L8.00175 9.02329Z"
+        fill="#171717"
+      />
+    </svg>
+  );
+}
+
 function FavoriteToggleButton({
   isFavorited = false,
   onToggleFavorite,
   isFavoriteLoading = false,
   className,
-  iconClassName,
 }: {
   isFavorited?: boolean;
   onToggleFavorite?: () => void;
   isFavoriteLoading?: boolean;
   className?: string;
-  iconClassName?: string;
 }) {
   if (!onToggleFavorite) return null;
 
@@ -64,12 +88,9 @@ function FavoriteToggleButton({
       disabled={isFavoriteLoading}
       className={className}
       aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+      aria-pressed={isFavorited}
     >
-      <Heart
-        className={iconClassName}
-        fill={isFavorited ? 'currentColor' : 'none'}
-        aria-hidden
-      />
+      <DrawerFavoriteBookmarkIcon isFavorited={isFavorited} />
     </button>
   );
 }
@@ -223,8 +244,7 @@ export default function MapCard({
           isFavorited={isFavorited}
           onToggleFavorite={onToggleFavorite}
           isFavoriteLoading={isFavoriteLoading}
-          className="absolute right-2 top-2 z-20 flex size-8 items-center justify-center rounded-full border border-[#DBDBDB] bg-white/95 text-[#171717] transition-opacity hover:opacity-90 disabled:opacity-50"
-          iconClassName="size-4"
+          className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center gap-4 bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] p-[var(--sds-size-space-100)] transition-opacity hover:opacity-90 disabled:opacity-50"
         />
       </div>
     );
@@ -245,8 +265,8 @@ export default function MapCard({
       ) : null}
 
       {/* Top actions */}
-      <div className="relative z-10 flex w-full items-start justify-between gap-2">
-        {onClose ? (
+      {onClose ? (
+        <div className="relative z-10 flex w-full items-start justify-start gap-2">
           <button
             onClick={onClose}
             className="cursor-pointer flex h-7 w-7 shrink-0 items-center justify-center gap-4 border border-[#DBDBDB] bg-white p-1 transition-colors hover:bg-white"
@@ -267,17 +287,8 @@ export default function MapCard({
               />
             </svg>
           </button>
-        ) : (
-          <span aria-hidden className="size-7 shrink-0" />
-        )}
-        <FavoriteToggleButton
-          isFavorited={isFavorited}
-          onToggleFavorite={onToggleFavorite}
-          isFavoriteLoading={isFavoriteLoading}
-          className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#DBDBDB] bg-white p-1 text-[#171717] transition-colors hover:bg-white disabled:opacity-50"
-          iconClassName="size-4"
-        />
-      </div>
+        </div>
+      ) : null}
 
       {/* Card Content */}
       <div className="relative z-10 mt-auto flex self-stretch flex-col items-start gap-2 bg-white p-2">
