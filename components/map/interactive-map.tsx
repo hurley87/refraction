@@ -126,6 +126,8 @@ function getCheckinInitial(entry: LocationCheckinPreview) {
 
 interface InteractiveMapProps {
   initialPlaceId?: string | null;
+  /** Shared links use `?name=` (location display name); matched case-insensitively. */
+  initialPlaceName?: string | null;
   initialLatitude?: number;
   initialLongitude?: number;
   /**
@@ -138,6 +140,13 @@ interface InteractiveMapProps {
 }
 
 const SEARCH_NEARBY_MATCH_MAX_METERS = 120;
+
+/** Shareable map deep link using the location display name (not place_id). */
+function buildLocationShareUrl(locationName: string) {
+  const params = new URLSearchParams();
+  params.set('name', locationName.trim());
+  return `${window.location.origin}/interactive-map?${params.toString()}`;
+}
 
 /** Great-circle distance in meters between two WGS84 points. */
 function haversineDistanceMeters(
@@ -182,6 +191,7 @@ function findNearestIrLMarker(
 
 export default function InteractiveMap({
   initialPlaceId,
+  initialPlaceName,
   initialLatitude,
   initialLongitude,
   deepLinkMapCardOnly = false,
@@ -593,12 +603,22 @@ export default function InteractiveMap({
     calculateMapBounds,
   ]);
 
-  // Handle deep link to specific location via placeId URL param
+  // Handle deep link to specific location via placeId or placeName URL param
   const deepLinkHandledRef = useRef(false);
   useEffect(() => {
-    if (!initialPlaceId || deepLinkHandledRef.current) return;
+    const placeNameQuery = initialPlaceName?.trim();
+    if ((!initialPlaceId && !placeNameQuery) || deepLinkHandledRef.current)
+      return;
 
-    const matchedMarker = markers.find((m) => m.place_id === initialPlaceId);
+    const matchedById = initialPlaceId
+      ? markers.find((m) => m.place_id === initialPlaceId)
+      : undefined;
+    const placeNameKey = placeNameQuery?.toLowerCase();
+    const matchedByName = placeNameKey
+      ? markers.find((m) => m.name?.trim().toLowerCase() === placeNameKey)
+      : undefined;
+    const matchedMarker = matchedById ?? matchedByName;
+
     const coordsFromQuery =
       initialLatitude != null &&
       initialLongitude != null &&
@@ -606,7 +626,7 @@ export default function InteractiveMap({
       !Number.isNaN(initialLongitude);
 
     const syntheticMarker =
-      deepLinkMapCardOnly && coordsFromQuery
+      deepLinkMapCardOnly && coordsFromQuery && initialPlaceId
         ? buildDeepLinkMarkerFromQueryCoords(
             initialPlaceId,
             initialLatitude,
@@ -660,6 +680,7 @@ export default function InteractiveMap({
     }
   }, [
     initialPlaceId,
+    initialPlaceName,
     initialLatitude,
     initialLongitude,
     markers,
@@ -1628,10 +1649,8 @@ export default function InteractiveMap({
   );
 
   const checkInModalPanelClassName = cn(
-    'flex min-h-0 w-full flex-col overflow-hidden bg-white pt-0',
-    checkInSuccess
-      ? 'h-full max-w-none pb-0 md:max-w-[393px] md:mx-auto'
-      : 'h-full max-w-[393px] pb-2 mx-auto',
+    'flex min-h-0 w-full max-w-none flex-col overflow-hidden bg-white pt-0',
+    checkInSuccess ? 'h-full pb-0' : 'h-full pb-2',
     'xl:mx-0 xl:flex xl:h-[954px] xl:max-h-[calc(100dvh-90px)] xl:w-[505px] xl:max-w-[505px] xl:shrink-0 xl:flex-col xl:items-center xl:justify-center'
   );
 
@@ -2296,15 +2315,23 @@ export default function InteractiveMap({
                     className="object-cover object-center"
                   />
                 ) : null}
-                {checkInTarget?.place_id ? (
+                {checkInTarget?.name ? (
                   <button
                     type="button"
                     onClick={() => {
-                      if (!checkInTarget.place_id) return;
-                      const shareUrl = `${window.location.origin}/interactive-map?placeId=${encodeURIComponent(checkInTarget.place_id)}`;
-                      navigator.clipboard
+                      const locationName = checkInTarget.name.trim();
+                      if (!locationName) return;
+                      // Always share by display name — never place_id / Mapbox id.
+                      const shareUrl = buildLocationShareUrl(locationName);
+                      void navigator.clipboard
                         .writeText(shareUrl)
                         .then(() => {
+                          const next = new URL(shareUrl);
+                          window.history.replaceState(
+                            null,
+                            '',
+                            `${next.pathname}${next.search}`
+                          );
                           toast.success('Link copied to clipboard');
                         })
                         .catch(() => {
@@ -2358,7 +2385,12 @@ export default function InteractiveMap({
             {/* Check-In Dialog Content */}
 
             <div
-              className={`relative w-full flex-1 ${checkInSuccess ? 'overflow-hidden' : 'overflow-y-auto'}`}
+              className={cn(
+                'relative w-full min-h-0 flex-1',
+                checkInSuccess
+                  ? 'flex flex-col overflow-hidden'
+                  : 'overflow-y-auto'
+              )}
             >
               {!checkInSuccess ? (
                 <>

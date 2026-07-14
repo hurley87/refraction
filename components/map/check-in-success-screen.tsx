@@ -61,6 +61,7 @@ function CheckInCtaArrow({ fill = '#DBDBDB' }: { fill?: string }) {
 
 /**
  * Post check-in success: earned points + location (section 1), balance + tier + CTAs (section 2).
+ * Section 2 (incl. buttons) stays pinned; section 1 flex-shrinks on short viewports (e.g. iPhone SE).
  */
 export function CheckInSuccessScreen({
   target,
@@ -81,9 +82,9 @@ export function CheckInSuccessScreen({
     : '—';
 
   return (
-    <div className="flex w-full flex-1 flex-col overflow-y-auto">
-      {/* Section 1 — points earned + checked-in location */}
-      <section className="relative flex h-[493px] w-full flex-col items-start gap-2 overflow-hidden border-t border-[#454545]">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+      {/* Section 1 — points earned + checked-in location (shrinks on short screens) */}
+      <section className="relative flex min-h-0 w-full flex-1 flex-col items-start overflow-hidden border-t border-[#454545]">
         <div
           className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: "url('/map/success-map.png')" }}
@@ -99,29 +100,29 @@ export function CheckInSuccessScreen({
           aria-hidden
         />
 
-        <div className="relative z-10 flex flex-col items-center gap-[12px] self-stretch px-4 pt-[100px] pb-3">
+        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-2 self-stretch overflow-hidden px-4 py-4 sm:gap-3 sm:pt-10 sm:pb-3">
           <Image
             src="/map/location-marker.svg"
             alt=""
             width={46}
             height={66}
-            className="h-[66px] w-[46px] shrink-0"
+            className="h-10 w-7 shrink-0 sm:h-[66px] sm:w-[46px]"
             aria-hidden
           />
 
-          <div className="flex w-full flex-col items-center gap-4 self-stretch">
+          <div className="flex w-full min-h-0 flex-col items-center gap-2 self-stretch sm:gap-4">
             <div className="flex w-[134px] items-center justify-center gap-2">
               <p className="label-small text-[#171717]">You Earned</p>
             </div>
 
-            <div className="flex h-[53px] shrink-0 items-end justify-center gap-2 self-stretch text-[#171717]">
+            <div className="flex h-10 shrink-0 items-end justify-center gap-2 self-stretch text-[#171717] sm:h-[53px]">
               <span className="display0 leading-none">{pointsEarned}</span>
               <IrlPtsIcon className="mb-1 h-[18px] w-8 shrink-0 text-[#171717]" />
             </div>
 
             <p className="label-small text-[#171717]">Checking In At</p>
 
-            <div className="flex min-h-[56px] w-fit max-w-full flex-col items-center gap-2 self-center bg-[rgba(255,255,255,0.65)] p-2">
+            <div className="flex min-h-0 w-fit max-w-full flex-col items-center gap-1 self-center bg-[rgba(255,255,255,0.65)] p-2 sm:gap-2 sm:min-h-[56px]">
               <p className="title5 line-clamp-2 w-full text-center text-[#171717] font-bold">
                 {target.name}
               </p>
@@ -149,8 +150,8 @@ export function CheckInSuccessScreen({
         </div>
       </section>
 
-      {/* Section 2 — balance, tier, actions */}
-      <section className="flex flex-1 flex-col items-start justify-end gap-[var(--sds-size-space-300)] self-stretch bg-white px-4 py-6">
+      {/* Section 2 — balance, tier, actions (always visible, never scrolled away) */}
+      <section className="flex w-full shrink-0 flex-col items-start gap-[var(--sds-size-space-300)] self-stretch bg-white px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="flex w-full max-w-[361px] flex-col gap-[var(--sds-size-space-300)] self-stretch">
           <div className="flex h-6 w-full max-w-[361px] items-center justify-between self-stretch">
             <span className="label-medium uppercase text-[#757575]">
@@ -178,7 +179,7 @@ export function CheckInSuccessScreen({
           </div>
         </div>
 
-        <div className="mt-auto flex w-full flex-col gap-2 pt-[var(--sds-size-space-300)]">
+        <div className="flex w-full flex-col gap-2 pt-[var(--sds-size-space-300)]">
           <Link
             href="/dashboard"
             onClick={onBackToMap}
