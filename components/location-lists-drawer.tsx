@@ -1,16 +1,17 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, type PointerEvent } from 'react';
 import Image from 'next/image';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { LocationListWithCount, Location } from '@/lib/types';
 import MapCard from '@/components/map/map-card';
+import { MapCheckinAvatarStack } from '@/components/map/map-checkin-avatar-stack';
 import type { MapCheckinAvatarEntry } from '@/lib/map/checkin-avatar-utils';
 import {
   filterByMapBounds,
   getEffectiveMapBounds,
   type MapBounds,
 } from '@/lib/utils/map-bounds';
+import { formatLocationCategory } from '@/lib/utils/format-location-category';
 import { cn } from '@/lib/utils';
 import { useFavoriteLocations } from '@/hooks/useFavorites';
 
@@ -48,6 +49,18 @@ const isDev = process.env.NODE_ENV === 'development';
 
 const FAVORITES_LIST_ID = '__favorites__';
 
+/** Mobile bottom-sheet snap states. */
+export type LocationListsSheetSize = 'collapsed' | 'peek' | 'full';
+
+type SheetSize = LocationListsSheetSize;
+
+const SHEET_DRAG_THRESHOLD_PX = 56;
+
+export interface LocationListsSheetLayout {
+  size: LocationListsSheetSize;
+  heightPx: number;
+}
+
 interface LocationListsDrawerProps {
   onLocationFocus?: (location: DrawerLocationSummary) => void;
   mapBounds?: MapBounds | null;
@@ -59,6 +72,8 @@ interface LocationListsDrawerProps {
   layout?: 'sheet' | 'sidebar';
   /** Sidebar only: fired when "View all" list detail opens or closes. */
   onListDetailChange?: (isOpen: boolean) => void;
+  /** Mobile sheet only: height/size for controls that sit above the drawer. */
+  onSheetLayoutChange?: (layout: LocationListsSheetLayout) => void;
   walletAddress?: string;
   favoritePlaceIds?: Set<string>;
   onToggleFavorite?: (placeId: string) => void;
@@ -73,6 +88,7 @@ export default function LocationListsDrawer({
   collapseForMapCard = false,
   layout = 'sheet',
   onListDetailChange,
+  onSheetLayoutChange,
   walletAddress,
   favoritePlaceIds,
   onToggleFavorite,
@@ -81,13 +97,20 @@ export default function LocationListsDrawer({
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(false);
   const [hasFetchedLists, setHasFetchedLists] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [sheetSize, setSheetSize] = useState<SheetSize>('peek');
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [checkinsByPlaceId, setCheckinsByPlaceId] = useState<
     Record<string, MapCheckinAvatarEntry[]>
   >({});
   const prevHasVisibleLocationsRef = useRef(false);
   const prevCollapseForMapCardRef = useRef(collapseForMapCard);
+  const sheetPanelRef = useRef<HTMLDivElement | null>(null);
+  const sheetDragRef = useRef<{
+    pointerId: number;
+    startY: number;
+    startSize: SheetSize;
+    moved: boolean;
+  } | null>(null);
 
   const { data: favoriteLocations = [], isLoading: isLoadingFavorites } =
     useFavoriteLocations(fetchEnabled ? walletAddress : undefined);
@@ -280,11 +303,7 @@ export default function LocationListsDrawer({
   ]);
 
   useEffect(() => {
-    if (
-      layout !== 'sidebar' ||
-      !hasFetchedLists ||
-      visiblePlaceIds.length === 0
-    ) {
+    if (!hasFetchedLists || visiblePlaceIds.length === 0) {
       return;
     }
 
@@ -329,7 +348,7 @@ export default function LocationListsDrawer({
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [layout, hasFetchedLists, visiblePlaceIds]);
+  }, [hasFetchedLists, visiblePlaceIds]);
 
   const hasAnyListLocations = useMemo(() => {
     if (isLoadingLists || !hasFetchedLists) return false;
@@ -338,7 +357,7 @@ export default function LocationListsDrawer({
 
   useEffect(() => {
     if (collapseForMapCard) {
-      setIsExpanded(false);
+      setSheetSize('collapsed');
       setSelectedListId(null);
     }
   }, [collapseForMapCard]);
@@ -351,7 +370,7 @@ export default function LocationListsDrawer({
   useEffect(() => {
     const wasCollapsedForMap = prevCollapseForMapCardRef.current;
     if (wasCollapsedForMap && !collapseForMapCard && hasVisibleLocations) {
-      setIsExpanded(true);
+      setSheetSize('peek');
     }
     prevCollapseForMapCardRef.current = collapseForMapCard;
   }, [collapseForMapCard, hasVisibleLocations]);
@@ -362,10 +381,56 @@ export default function LocationListsDrawer({
       !prevHasVisibleLocationsRef.current &&
       !collapseForMapCard
     ) {
-      setIsExpanded(true);
+      setSheetSize('peek');
     }
     prevHasVisibleLocationsRef.current = hasVisibleLocations;
   }, [hasVisibleLocations, collapseForMapCard]);
+
+  useEffect(() => {
+    if (layout === 'sidebar' || !onSheetLayoutChange) return;
+
+    const report = () => {
+      const el = sheetPanelRef.current;
+      onSheetLayoutChange({
+        size: collapseForMapCard ? 'collapsed' : sheetSize,
+        heightPx: el ? el.getBoundingClientRect().height : 0,
+      });
+    };
+
+    // Wait a frame so the sheet DOM/layout has settled after size changes.
+    const frameId = window.requestAnimationFrame(report);
+    const el = sheetPanelRef.current;
+    if (!el) {
+      return () => window.cancelAnimationFrame(frameId);
+    }
+
+    const observer = new ResizeObserver(() => report());
+    observer.observe(el);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      observer.disconnect();
+    };
+  }, [
+    layout,
+    sheetSize,
+    collapseForMapCard,
+    onSheetLayoutChange,
+    hasFetchedLists,
+    isLoadingLists,
+    hasAnyListLocations,
+    hasVisibleLocations,
+    hasVisibleFavorites,
+    favoriteDrawerLocations.length,
+    walletAddress,
+    isLoadingFavorites,
+  ]);
+
+  useEffect(() => {
+    if (layout === 'sidebar' || !onSheetLayoutChange) return;
+    return () => {
+      onSheetLayoutChange({ size: 'collapsed', heightPx: 0 });
+    };
+  }, [layout, onSheetLayoutChange]);
 
   if (isLoadingLists || !hasFetchedLists) {
     return null;
@@ -390,7 +455,9 @@ export default function LocationListsDrawer({
   }
 
   const showDiscoverBody = !collapseForMapCard;
-  const listGridOpen = showDiscoverBody && isExpanded;
+  const isSheetExpanded = sheetSize !== 'collapsed';
+  const isSheetFull = sheetSize === 'full';
+  const listGridOpen = showDiscoverBody && isSheetExpanded;
   const isSidebar = layout === 'sidebar';
   const isFavoritesDetailView =
     isSidebar && selectedListId === FAVORITES_LIST_ID && hasVisibleFavorites;
@@ -399,40 +466,108 @@ export default function LocationListsDrawer({
     (isFavoritesDetailView ||
       (selectedList !== null && (selectedList.locations?.length ?? 0) > 0));
 
+  const snapSheetFromDrag = (startSize: SheetSize, deltaY: number) => {
+    // deltaY < 0 → finger moved up (expand); > 0 → finger moved down (collapse)
+    if (deltaY < -SHEET_DRAG_THRESHOLD_PX) {
+      setSheetSize(startSize === 'collapsed' ? 'peek' : 'full');
+      return;
+    }
+    if (deltaY > SHEET_DRAG_THRESHOLD_PX) {
+      setSheetSize(startSize === 'full' ? 'peek' : 'collapsed');
+    }
+  };
+
+  const cycleSheetSize = () => {
+    setSheetSize((prev) => {
+      if (prev === 'collapsed') return 'peek';
+      if (prev === 'peek') return 'full';
+      return 'peek';
+    });
+  };
+
+  const onSheetHandlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    if (collapseForMapCard) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    sheetDragRef.current = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startSize: sheetSize,
+      moved: false,
+    };
+  };
+
+  const onSheetHandlePointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    const drag = sheetDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (Math.abs(event.clientY - drag.startY) > 8) {
+      drag.moved = true;
+    }
+  };
+
+  const onSheetHandlePointerUp = (event: PointerEvent<HTMLButtonElement>) => {
+    const drag = sheetDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    sheetDragRef.current = null;
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // ignore if already released
+    }
+    const deltaY = event.clientY - drag.startY;
+    if (drag.moved) {
+      snapSheetFromDrag(drag.startSize, deltaY);
+      return;
+    }
+    cycleSheetSize();
+  };
+
   const renderMobileCarouselCard = (
     location: NonNullable<DrawerList['locations']>[number]
-  ) => (
-    <article
-      key={location.membershipId}
-      onClick={() => onLocationFocus?.(location)}
-      className="group relative flex w-36 flex-shrink-0 cursor-pointer flex-col rounded-xl bg-black/[0.02] p-1.5 transition-all hover:bg-black/[0.04] active:scale-[0.98]"
-    >
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-lg">
-        {location.coin_image_url ? (
-          <Image
-            src={location.coin_image_url}
-            alt={location.name}
-            fill
-            sizes="144px"
-            loading="lazy"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-black/[0.04] font-anonymous text-[10px] text-[#999]">
-            No image
+  ) => {
+    const checkins = checkinsByPlaceId[location.place_id] ?? [];
+    const imageSrc =
+      location.coin_image_thumb_url || location.coin_image_url || null;
+
+    return (
+      <article
+        key={location.membershipId}
+        onClick={() => onLocationFocus?.(location)}
+        className="group flex h-[206px] w-[206px] shrink-0 cursor-pointer flex-col items-start gap-2 aspect-square bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-100)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] transition-opacity active:opacity-90"
+      >
+        <div className="relative min-h-0 w-full flex-1 overflow-hidden">
+          {imageSrc ? (
+            <Image
+              src={imageSrc}
+              alt={location.name}
+              fill
+              sizes="206px"
+              loading="lazy"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-black/[0.04] font-anonymous text-[10px] text-[#999]">
+              No image
+            </div>
+          )}
+        </div>
+
+        <div className="flex w-full flex-col items-center justify-end self-stretch bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)]">
+          <div className="title5 w-full truncate text-left text-[#171717]">
+            {location.name}
           </div>
-        )}
-      </div>
-      <div className="mt-1.5 px-0.5">
-        <p className="title3 truncate leading-tight text-[#1a1a1a]">
-          {location.name}
-        </p>
-        <p className="mt-0.5 truncate font-anonymous text-[9px] text-[#888]">
-          {location.description || location.name}
-        </p>
-      </div>
-    </article>
-  );
+          <div className="flex w-full min-h-0 items-center justify-between gap-1">
+            <span className="label-small flex shrink-0 items-center justify-center gap-2 border border-[#171717] px-1 py-0.5 uppercase text-[#171717]">
+              {formatLocationCategory(location.type)}
+            </span>
+            <MapCheckinAvatarStack
+              checkins={checkins}
+              className="ml-auto shrink-0"
+            />
+          </div>
+        </div>
+      </article>
+    );
+  };
 
   const renderDrawerTile = (
     location: NonNullable<DrawerList['locations']>[number]
@@ -464,27 +599,9 @@ export default function LocationListsDrawer({
       className={
         isSidebar
           ? 'flex min-h-0 flex-1 flex-col gap-8 overflow-hidden'
-          : 'px-4 pb-3'
+          : cn('px-4 pb-3', isSheetFull && 'flex min-h-0 flex-1 flex-col')
       }
     >
-      {!isSidebar ? (
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setIsExpanded((prev) => !prev)}
-            className="flex items-center gap-1.5 rounded-full bg-black/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[1px] text-[#1a1a1a] transition-all hover:bg-black/[0.08] active:scale-95"
-            aria-label={isExpanded ? 'Collapse lists' : 'Expand lists'}
-          >
-            {isExpanded ? 'Hide' : 'View'}
-            {isExpanded ? (
-              <ChevronDown className="h-2.5 w-2.5" />
-            ) : (
-              <ChevronUp className="h-2.5 w-2.5" />
-            )}
-          </button>
-        </div>
-      ) : null}
-
       {isListDetailView ? (
         <div className="flex min-w-0 items-center gap-4">
           <button
@@ -523,16 +640,24 @@ export default function LocationListsDrawer({
         className={
           isSidebar
             ? 'flex min-h-0 flex-1 flex-col gap-8 overflow-hidden'
-            : `grid transition-all duration-300 ease-out ${
-                listGridOpen
-                  ? 'mt-3 grid-rows-[1fr] opacity-100'
-                  : 'grid-rows-[0fr] opacity-0'
-              }`
+            : isSheetFull
+              ? cn(
+                  'mt-3 flex min-h-0 flex-1 flex-col transition-opacity duration-300',
+                  listGridOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+                )
+              : cn(
+                  'grid transition-all duration-300 ease-out',
+                  listGridOpen
+                    ? 'mt-3 grid-rows-[1fr] opacity-100'
+                    : 'grid-rows-[0fr] opacity-0'
+                )
         }
       >
         <div
           className={
-            isSidebar ? 'min-h-0 flex-1 overflow-hidden' : 'overflow-hidden'
+            isSidebar
+              ? 'min-h-0 flex-1 overflow-hidden'
+              : cn('overflow-hidden', isSheetFull && 'min-h-0 flex-1')
           }
         >
           <div
@@ -542,7 +667,10 @@ export default function LocationListsDrawer({
                     'flex h-full w-full flex-col gap-8 overflow-y-auto',
                     !isListDetailView && 'pr-1'
                   )
-                : 'max-h-64 space-y-4 overflow-y-auto'
+                : cn(
+                    'space-y-4 overflow-y-auto overscroll-contain',
+                    isSheetFull ? 'h-full min-h-0' : 'max-h-[280px]'
+                  )
             }
           >
             {isListDetailView ? (
@@ -557,22 +685,17 @@ export default function LocationListsDrawer({
                 {listsWithSpotsInView.map((list) => (
                   <div key={list.id} className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="title3 min-w-0 text-[#1a1a1a]">
+                      <h3 className="title4 min-w-0 text-[#1a1a1a]">
                         {list.title}
                       </h3>
-                      {isSidebar ? (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedListId(list.id)}
-                          className="label-medium flex h-7 w-[72px] shrink-0 items-center justify-center gap-[var(--sds-size-space-200)] bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
-                        >
-                          View all
-                        </button>
-                      ) : (
-                        <span className="font-anonymous shrink-0 text-[10px] text-[#999]">
-                          {`${list.locations?.length ?? 0} spots`}
-                        </span>
-                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedListId(list.id)}
+                        className="label-medium flex h-7 w-[72px] shrink-0 items-center justify-center gap-[var(--sds-size-space-200)] bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
+                      >
+                        View all
+                      </button>
                     </div>
                     <div
                       className={
@@ -666,18 +789,34 @@ export default function LocationListsDrawer({
   }
 
   return (
-    <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 flex justify-center px-3 pb-3">
-      <div className="pointer-events-auto w-full max-w-md overflow-hidden rounded-2xl border border-black/[0.06] bg-white/90 shadow-[0_4px_24px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-all duration-300">
+    <div
+      className={cn(
+        'pointer-events-none absolute inset-x-0 bottom-0 flex',
+        isSheetFull ? 'z-30 top-0' : 'z-20'
+      )}
+    >
+      <div
+        ref={sheetPanelRef}
+        className={cn(
+          'pointer-events-auto flex w-full flex-col overflow-hidden bg-white/90 shadow-[0_4px_24px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-[height,border-radius] duration-300',
+          isSheetFull
+            ? 'h-dvh rounded-none border-0 pb-[env(safe-area-inset-bottom)]'
+            : 'rounded-t-2xl border border-b-0 border-black/[0.06] pb-[max(0.75rem,env(safe-area-inset-bottom))]'
+        )}
+      >
         <button
           type="button"
-          onClick={() => setIsExpanded((prev) => !prev)}
-          className="group flex w-full items-center justify-center py-2"
+          onPointerDown={onSheetHandlePointerDown}
+          onPointerMove={onSheetHandlePointerMove}
+          onPointerUp={onSheetHandlePointerUp}
+          onPointerCancel={onSheetHandlePointerUp}
+          className="group flex w-full shrink-0 touch-none items-center justify-center py-3"
           aria-label={
             collapseForMapCard
               ? 'Discover minimized while a location is open'
-              : isExpanded
-                ? 'Collapse lists drawer'
-                : 'Expand lists drawer'
+              : isSheetFull
+                ? 'Pull down to shrink lists drawer'
+                : 'Pull up for full screen lists drawer'
           }
         >
           <span className="h-[3px] w-8 rounded-full bg-black/10 transition-colors group-hover:bg-black/20" />
