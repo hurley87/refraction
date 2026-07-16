@@ -141,6 +141,51 @@ export const locationFavoritesQuerySchema = z.object({
 });
 
 /**
+ * Schema for player custom lists API GET request (query params)
+ */
+export const playerCustomListsQuerySchema = z.object({
+  walletAddress: walletAddressSchema,
+  placeId: z.string().min(1).optional(),
+  includeLocations: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true'),
+});
+
+/**
+ * Schema for player custom list creation (POST)
+ */
+export const playerCustomListCreateSchema = z.object({
+  walletAddress: walletAddressSchema,
+  title: z.string().min(1).max(80),
+  /** Accept any non-empty string URL; empty/null omitted by the client. */
+  thumbnailUrl: z
+    .string()
+    .trim()
+    .min(1)
+    .nullish()
+    .transform((value) => value ?? null),
+  isPrivate: z.boolean(),
+});
+
+/**
+ * Schema for adding a location to player custom lists (POST)
+ */
+export const playerCustomListAddLocationSchema = z.object({
+  walletAddress: walletAddressSchema,
+  placeId: z.string().min(1),
+  listIds: z.array(z.string().uuid()).min(1),
+});
+
+/**
+ * Schema for deleting a player custom list (DELETE)
+ */
+export const playerCustomListDeleteSchema = z.object({
+  walletAddress: walletAddressSchema,
+  listId: z.string().uuid(),
+});
+
+/**
  * Schema for checkpoint chain types
  */
 export const chainTypeSchema = z.enum(['evm', 'solana', 'stellar', 'aptos']);

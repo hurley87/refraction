@@ -37,6 +37,10 @@ interface MapCardProps {
   isFavorited?: boolean;
   onToggleFavorite?: () => void;
   isFavoriteLoading?: boolean;
+  /** Opens the ADD TO LIST drawer (default variant only). */
+  onSaveToList?: () => void;
+  /** How many of the user's custom lists already contain this location. */
+  savedListCount?: number;
 }
 
 /** Bookmark icon for drawer-tile favorite toggle (16×16). */
@@ -59,6 +63,26 @@ function DrawerFavoriteBookmarkIcon({
     >
       <path
         d="M13.3369 13.9974L7.99953 11.6311L2.66211 13.9974V2H13.3369V13.9974ZM8.00175 9.02329L10.8949 10.3046V4.37273H5.10861V10.3046L8.00175 9.02329Z"
+        fill="#171717"
+      />
+    </svg>
+  );
+}
+
+/** Solid black bookmark (16×16) — location already saved to a list. */
+function FilledBookmarkIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={16}
+      height={16}
+      viewBox="0 0 16 16"
+      fill="none"
+      className={cn('size-4 shrink-0', className)}
+      aria-hidden
+    >
+      <path
+        d="M13.3369 13.9974L7.99953 11.6311L2.66211 13.9974V2H13.3369V13.9974Z"
         fill="#171717"
       />
     </svg>
@@ -116,6 +140,8 @@ export default function MapCard({
   isFavorited,
   onToggleFavorite,
   isFavoriteLoading = false,
+  onSaveToList,
+  savedListCount = 0,
 }: MapCardProps) {
   if (variant === 'createPreview') {
     return (
@@ -320,6 +346,35 @@ export default function MapCard({
 
         {/* Action Buttons - Horizontal Layout */}
         <div className="flex w-full self-stretch gap-2">
+          {onSaveToList && (
+            <button
+              type="button"
+              onClick={onSaveToList}
+              className={cn(
+                'flex h-8 flex-[1_0_0] items-center justify-between border border-[var(--Borders-Heavy-Border,#454545)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] transition-colors',
+                savedListCount > 0
+                  ? 'bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] hover:bg-[#d0d0d0]'
+                  : 'bg-[var(--Backgrounds-Background,#FFF)] hover:bg-neutral-50'
+              )}
+              aria-label={
+                savedListCount > 0
+                  ? `Added to ${savedListCount} list${savedListCount === 1 ? '' : 's'}. Manage lists`
+                  : 'Save location to a list'
+              }
+            >
+              <span className="label-medium uppercase text-[#171717]">
+                {savedListCount > 0
+                  ? `ADDED TO ${savedListCount} LIST${savedListCount === 1 ? '' : 'S'}`
+                  : 'SAVE TO LIST'}
+              </span>
+              {savedListCount > 0 ? (
+                <FilledBookmarkIcon />
+              ) : (
+                <DrawerFavoriteBookmarkIcon isFavorited={false} />
+              )}
+            </button>
+          )}
+
           {/* Check In / Create Location Button */}
           <button
             onClick={onAction}
