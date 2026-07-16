@@ -202,6 +202,7 @@ export function isIndexedDbNoiseError(reason: unknown): boolean {
     normalized.includes('connection to indexed database server lost') ||
     normalized.includes('database deleted by request of the user') ||
     normalized.includes('internal error opening backing store') ||
+    normalized.includes('unable to open database file') ||
     normalized.includes('connection is closing')
   ) {
     return true;
