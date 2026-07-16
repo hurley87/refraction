@@ -142,6 +142,14 @@ describe('isIndexedDbNoiseError', () => {
     );
     expect(isIndexedDbNoiseError(error)).toBe(true);
   });
+
+  it('detects Firefox unable-to-open-database-file-on-disk messages (JAVASCRIPT-NEXTJS-1J)', () => {
+    const error = new DOMException(
+      'Unable to open database file on disk',
+      'UnknownError'
+    );
+    expect(isIndexedDbNoiseError(error)).toBe(true);
+  });
 });
 
 describe('sentryBeforeSend', () => {
@@ -194,6 +202,26 @@ describe('sentryBeforeSend', () => {
           {
             type: 'Error',
             value: 'Error: UnknownError: Internal error.',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event, { originalException: idbError })).toBeNull();
+  });
+
+  it('returns null for UnknownError unable-to-open-database-file IndexedDB noise (JAVASCRIPT-NEXTJS-1J)', () => {
+    const idbError = new DOMException(
+      'Unable to open database file on disk',
+      'UnknownError'
+    );
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'Error: UnknownError: Unable to open database file on disk',
           },
         ],
       },
