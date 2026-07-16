@@ -17,6 +17,8 @@ import { useQuery } from '@tanstack/react-query';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
 import { useFavoritePlaceIds, useToggleFavorite } from '@/hooks/useFavorites';
+import { usePlayerCustomLists } from '@/hooks/usePlayerCustomLists';
+import AddToListDrawer from '@/components/map/add-to-list-drawer';
 import MapNav from '@/components/map/mapnav';
 import { MapDesktopNav } from '@/components/map/map-desktop-nav';
 import MapCard from '@/components/map/map-card';
@@ -221,6 +223,23 @@ export default function InteractiveMap({
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const [popupInfo, setPopupInfo] = useState<MarkerData | null>(null);
+  /** Location whose ADD TO LIST drawer is open (replaces the map card). */
+  const [addToListTarget, setAddToListTarget] = useState<MarkerData | null>(
+    null
+  );
+  const { data: popupCustomLists = [] } = usePlayerCustomLists(
+    walletAddress,
+    popupInfo?.place_id
+  );
+  const popupSavedListCount = popupCustomLists.filter(
+    (list) => list.contains_location
+  ).length;
+
+  // Close the ADD TO LIST drawer whenever its map card goes away.
+  useEffect(() => {
+    if (!popupInfo) setAddToListTarget(null);
+  }, [popupInfo]);
+
   const [showLocationForm, setShowLocationForm] = useState(false);
   const [formStep, setFormStep] = useState<FormStep>('business-details');
   const [isCreatingLocation, setIsCreatingLocation] = useState(false);
@@ -2271,7 +2290,7 @@ export default function InteractiveMap({
         </div>
       ) : null}
 
-      {popupInfo && (
+      {popupInfo && !addToListTarget && (
         <div className={mapCardBottomOverlayClassName}>
           <div className="pointer-events-auto w-full max-w-[361px]">
             <MapCard
@@ -2289,6 +2308,34 @@ export default function InteractiveMap({
               imageUrl={popupInfo.imageUrl}
               placeId={popupInfo.place_id}
               eventUrl={popupInfo.event_url}
+              onSaveToList={
+                walletAddress ? () => setAddToListTarget(popupInfo) : undefined
+              }
+              savedListCount={popupSavedListCount}
+            />
+          </div>
+        </div>
+      )}
+
+      {addToListTarget && walletAddress && (
+        <div
+          className={cn(
+            mapCardBottomOverlayClassName,
+            // Full-bleed sheet on mobile; centered 393px card from sm up.
+            'bottom-0 px-0 sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4'
+          )}
+        >
+          <div className="pointer-events-auto w-full sm:max-w-[393px]">
+            <AddToListDrawer
+              location={{
+                placeId: addToListTarget.place_id,
+                name: addToListTarget.name,
+                type: addToListTarget.type,
+                imageUrl:
+                  addToListTarget.imageThumbUrl || addToListTarget.imageUrl,
+              }}
+              walletAddress={walletAddress}
+              onClose={() => setAddToListTarget(null)}
             />
           </div>
         </div>

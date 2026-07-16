@@ -2,10 +2,17 @@
 
 import { useEffect, useState, useMemo, useRef, type PointerEvent } from 'react';
 import Image from 'next/image';
+import { Loader2, Trash2 } from 'lucide-react';
 import type { LocationListWithCount, Location } from '@/lib/types';
 import MapCard from '@/components/map/map-card';
 import { MapCheckinAvatarStack } from '@/components/map/map-checkin-avatar-stack';
 import type { MapCheckinAvatarEntry } from '@/lib/map/checkin-avatar-utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   filterByMapBounds,
   getEffectiveMapBounds,
@@ -14,6 +21,10 @@ import {
 import { formatLocationCategory } from '@/lib/utils/format-location-category';
 import { cn } from '@/lib/utils';
 import { useFavoriteLocations } from '@/hooks/useFavorites';
+import {
+  usePlayerCustomListLocations,
+  useDeleteCustomList,
+} from '@/hooks/usePlayerCustomLists';
 
 export type DrawerLocationSummary = Pick<
   Location,
@@ -48,6 +59,7 @@ interface UserLocation {
 const isDev = process.env.NODE_ENV === 'development';
 
 const FAVORITES_LIST_ID = '__favorites__';
+const CUSTOM_LIST_ID_PREFIX = '__custom__:';
 
 /** Mobile bottom-sheet snap states. */
 export type LocationListsSheetSize = 'collapsed' | 'peek' | 'full';
@@ -99,6 +111,7 @@ export default function LocationListsDrawer({
   const [hasFetchedLists, setHasFetchedLists] = useState(false);
   const [sheetSize, setSheetSize] = useState<SheetSize>('peek');
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [checkinsByPlaceId, setCheckinsByPlaceId] = useState<
     Record<string, MapCheckinAvatarEntry[]>
   >({});
@@ -141,6 +154,56 @@ export default function LocationListsDrawer({
   const filteredFavoriteLocations = useMemo(
     () => filterByMapBounds(favoriteDrawerLocations, mapBounds),
     [favoriteDrawerLocations, mapBounds]
+  );
+
+  const { data: customLists = [] } = usePlayerCustomListLocations(
+    fetchEnabled ? walletAddress : undefined
+  );
+  const { mutate: deleteCustomList, isPending: isDeletingList } =
+    useDeleteCustomList(walletAddress);
+
+  /** User custom lists mapped to the drawer list shape (prefixed ids). */
+  const customDrawerLists = useMemo(
+    () =>
+      customLists.map((list) => ({
+        id: `${CUSTOM_LIST_ID_PREFIX}${list.id}`,
+        title: list.title,
+        locations: list.locations
+          .filter((location) => location.id != null)
+          .map((location) => ({
+            membershipId: location.id as number,
+            id: location.id,
+            name: location.name,
+            address: location.address,
+            description: location.description,
+            place_id: location.place_id,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            context: location.context,
+            type: location.type,
+            points_value: location.points_value,
+            coin_image_url: location.coin_image_url,
+            coin_image_thumb_url: location.coin_image_thumb_url,
+            event_url: location.event_url,
+          })),
+      })),
+    [customLists]
+  );
+
+  const filteredCustomLists = useMemo(
+    () =>
+      customDrawerLists
+        .map((list) => ({
+          ...list,
+          locations: filterByMapBounds(list.locations, mapBounds),
+        }))
+        .filter((list) => list.locations.length > 0),
+    [customDrawerLists, mapBounds]
+  );
+
+  const hasCustomListLocations = useMemo(
+    () => customDrawerLists.some((list) => list.locations.length > 0),
+    [customDrawerLists]
   );
 
   useEffect(() => {
@@ -257,13 +320,43 @@ export default function LocationListsDrawer({
     [lists, selectedListId]
   );
 
+  const selectedCustomList = useMemo(
+    () =>
+      selectedListId?.startsWith(CUSTOM_LIST_ID_PREFIX)
+        ? (customDrawerLists.find((list) => list.id === selectedListId) ?? null)
+        : null,
+    [customDrawerLists, selectedListId]
+  );
+
+  // If the expanded custom list disappears (deleted / resynced), leave the
+  // detail view and close any pending delete confirmation.
+  useEffect(() => {
+    if (
+      selectedListId?.startsWith(CUSTOM_LIST_ID_PREFIX) &&
+      !customDrawerLists.some((list) => list.id === selectedListId)
+    ) {
+      setSelectedListId(null);
+      setIsDeleteDialogOpen(false);
+    }
+  }, [selectedListId, customDrawerLists]);
+
   const hasVisibleFavorites = filteredFavoriteLocations.length > 0;
+  const hasVisibleCustomLists = filteredCustomLists.length > 0;
 
   const visiblePlaceIds = useMemo(() => {
     const ids = new Set<string>();
 
     if (layout === 'sidebar' && selectedListId === FAVORITES_LIST_ID) {
       for (const location of filteredFavoriteLocations) {
+        if (location.place_id) {
+          ids.add(location.place_id);
+        }
+      }
+      return [...ids];
+    }
+
+    if (layout === 'sidebar' && selectedCustomList) {
+      for (const location of selectedCustomList.locations) {
         if (location.place_id) {
           ids.add(location.place_id);
         }
@@ -293,13 +386,23 @@ export default function LocationListsDrawer({
         }
       }
     }
+
+    for (const list of filteredCustomLists) {
+      for (const location of list.locations) {
+        if (location.place_id) {
+          ids.add(location.place_id);
+        }
+      }
+    }
     return [...ids];
   }, [
     layout,
     selectedList,
+    selectedCustomList,
     selectedListId,
     listsWithSpotsInView,
     filteredFavoriteLocations,
+    filteredCustomLists,
   ]);
 
   useEffect(() => {
@@ -439,7 +542,11 @@ export default function LocationListsDrawer({
   const hasFavorites = favoriteDrawerLocations.length > 0;
   const favoritesReady = !walletAddress || !isLoadingFavorites;
 
-  if (!hasAnyListLocations && (!hasFavorites || !favoritesReady)) {
+  if (
+    !hasAnyListLocations &&
+    !hasCustomListLocations &&
+    (!hasFavorites || !favoritesReady)
+  ) {
     return null;
   }
 
@@ -448,9 +555,16 @@ export default function LocationListsDrawer({
     selectedListId !== null &&
     (selectedListId === FAVORITES_LIST_ID
       ? hasVisibleFavorites
-      : selectedList !== null && (selectedList.locations?.length ?? 0) > 0);
+      : selectedCustomList !== null
+        ? selectedCustomList.locations.length > 0
+        : selectedList !== null && (selectedList.locations?.length ?? 0) > 0);
 
-  if (!hasVisibleLocations && !showSidebarDetail && !hasVisibleFavorites) {
+  if (
+    !hasVisibleLocations &&
+    !showSidebarDetail &&
+    !hasVisibleFavorites &&
+    !hasVisibleCustomLists
+  ) {
     return null;
   }
 
@@ -461,9 +575,14 @@ export default function LocationListsDrawer({
   const isSidebar = layout === 'sidebar';
   const isFavoritesDetailView =
     isSidebar && selectedListId === FAVORITES_LIST_ID && hasVisibleFavorites;
+  const isCustomListDetailView =
+    isSidebar &&
+    selectedCustomList !== null &&
+    selectedCustomList.locations.length > 0;
   const isListDetailView =
     isSidebar &&
     (isFavoritesDetailView ||
+      isCustomListDetailView ||
       (selectedList !== null && (selectedList.locations?.length ?? 0) > 0));
 
   const snapSheetFromDrag = (startSize: SheetSize, deltaY: number) => {
@@ -475,6 +594,17 @@ export default function LocationListsDrawer({
     if (deltaY > SHEET_DRAG_THRESHOLD_PX) {
       setSheetSize(startSize === 'full' ? 'peek' : 'collapsed');
     }
+  };
+
+  const handleConfirmDeleteList = () => {
+    if (!selectedCustomList || isDeletingList) return;
+    const rawListId = selectedCustomList.id.slice(CUSTOM_LIST_ID_PREFIX.length);
+    deleteCustomList(rawListId, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        setSelectedListId(null);
+      },
+    });
   };
 
   const cycleSheetSize = () => {
@@ -630,7 +760,11 @@ export default function LocationListsDrawer({
               MAP LIST
             </span>
             <h2 className="title3 min-w-0  text-[#171717] mapHd:text-[42px] mapHd:font-medium mapHd:leading-[40px]">
-              {isFavoritesDetailView ? 'Your Favorites' : selectedList?.title}
+              {isFavoritesDetailView
+                ? 'Your Favorites'
+                : isCustomListDetailView
+                  ? selectedCustomList?.title
+                  : selectedList?.title}
             </h2>
           </div>
         </div>
@@ -674,11 +808,26 @@ export default function LocationListsDrawer({
             }
           >
             {isListDetailView ? (
-              <div className="flex w-full flex-wrap gap-2">
-                {(isFavoritesDetailView
-                  ? filteredFavoriteLocations
-                  : (selectedList?.locations ?? [])
-                ).map((location) => renderDrawerTile(location))}
+              <div className="flex w-full flex-col gap-4">
+                <div className="flex w-full flex-wrap gap-2">
+                  {(isFavoritesDetailView
+                    ? filteredFavoriteLocations
+                    : isCustomListDetailView
+                      ? (selectedCustomList?.locations ?? [])
+                      : (selectedList?.locations ?? [])
+                  ).map((location) => renderDrawerTile(location))}
+                </div>
+
+                {isCustomListDetailView ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    className="label-medium flex h-8 w-fit items-center gap-[var(--sds-size-space-200)] border border-[var(--Borders-Heavy-Border,#454545)] bg-[var(--Backgrounds-Background,#FFF)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#171717] transition-colors hover:bg-neutral-50"
+                  >
+                    Delete list
+                    <Trash2 className="size-4 shrink-0" aria-hidden />
+                  </button>
+                ) : null}
               </div>
             ) : (
               <>
@@ -747,11 +896,95 @@ export default function LocationListsDrawer({
                     </div>
                   </div>
                 ) : null}
+                {hasVisibleCustomLists ? (
+                  <div className="space-y-4">
+                    <h3 className="title3 min-w-0 text-[#1a1a1a]">
+                      Your Lists
+                    </h3>
+                    {filteredCustomLists.map((list) => (
+                      <div key={list.id} className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="title4 min-w-0 text-[#1a1a1a]">
+                            {list.title}
+                          </h3>
+                          {isSidebar ? (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedListId(list.id)}
+                              className="label-medium flex h-7 w-[72px] shrink-0 items-center justify-center gap-[var(--sds-size-space-200)] bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
+                            >
+                              View all
+                            </button>
+                          ) : (
+                            <span className="font-anonymous shrink-0 text-[10px] text-[#999]">
+                              {`${list.locations.length} spots`}
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          className={
+                            isSidebar
+                              ? 'flex gap-2 overflow-x-auto pb-1'
+                              : 'flex gap-2 overflow-x-auto pb-1 -mx-1 px-1'
+                          }
+                        >
+                          {list.locations.map((location) =>
+                            isSidebar
+                              ? renderDrawerTile(location)
+                              : renderMobileCarouselCard(location)
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </>
             )}
           </div>
         </div>
       </div>
+
+      <Dialog
+        open={isDeleteDialogOpen}
+        onOpenChange={(open) => {
+          if (!isDeletingList) setIsDeleteDialogOpen(open);
+        }}
+      >
+        <DialogContent className="max-w-[361px] gap-4 rounded-none p-6">
+          <DialogTitle className="title4 uppercase text-[#171717]">
+            Delete list
+          </DialogTitle>
+          <DialogDescription className="body-small text-[#454545]">
+            {`Delete "${selectedCustomList?.title ?? 'this list'}"? Its ${
+              selectedCustomList?.locations.length ?? 0
+            } saved location${
+              (selectedCustomList?.locations.length ?? 0) === 1 ? '' : 's'
+            } will be removed from the list. This can't be undone.`}
+          </DialogDescription>
+          <div className="flex w-full gap-2">
+            <button
+              type="button"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeletingList}
+              className="label-medium flex h-10 flex-1 items-center justify-center border border-[var(--Borders-Heavy-Border,#454545)] bg-[var(--Backgrounds-Background,#FFF)] uppercase tracking-wide text-[#171717] transition-colors hover:bg-neutral-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmDeleteList}
+              disabled={isDeletingList}
+              className="label-medium flex h-10 flex-1 items-center justify-center bg-[#171717] uppercase tracking-wide text-white transition-colors hover:bg-black disabled:opacity-50"
+            >
+              {isDeletingList ? (
+                <Loader2 className="size-5 animate-spin" aria-hidden />
+              ) : (
+                'Delete'
+              )}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 
@@ -760,9 +993,13 @@ export default function LocationListsDrawer({
       isLoadingLists ||
       !hasFetchedLists ||
       (!hasAnyListLocations &&
+        !hasCustomListLocations &&
         (!hasFavorites || !favoritesReady) &&
         !collapseForMapCard) ||
-      (!hasVisibleLocations && !showSidebarDetail && !hasVisibleFavorites)
+      (!hasVisibleLocations &&
+        !showSidebarDetail &&
+        !hasVisibleFavorites &&
+        !hasVisibleCustomLists)
     ) {
       return null;
     }

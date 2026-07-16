@@ -106,6 +106,27 @@ export type LocationListWithCount = LocationList & {
 };
 
 /**
+ * Player-created custom list of locations ("Your lists")
+ */
+export type PlayerCustomList = {
+  id: string;
+  player_id: number;
+  title: string;
+  thumbnail_url?: string | null;
+  is_private: boolean;
+  created_at: string;
+};
+
+/**
+ * Player custom list with location count and, when queried against a
+ * specific location, whether that location is already in the list.
+ */
+export type PlayerCustomListWithCount = PlayerCustomList & {
+  location_count: number;
+  contains_location?: boolean;
+};
+
+/**
  * Location membership in a location list
  */
 export type LocationListLocation = {
