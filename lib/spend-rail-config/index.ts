@@ -14,6 +14,7 @@ import type {
   SpendRailOperationalDiagnostics,
   SpendRailPublicMetadata,
 } from '@/lib/spend-rail-config/types';
+import { getTempoExplorerTxUrlTemplate } from '@/lib/activation/tempo-config';
 
 export type {
   SpendRailPublicMetadata,
@@ -435,11 +436,12 @@ export function formatExplorerTxUrlForSpendLedger(
 }
 
 /** DB `settlement_rail` on `sponsored_activation` (Base vs Stellar USDC settlement). */
-export type SettlementExplorerRail = 'base' | 'stellar';
+export type SettlementExplorerRail = 'base' | 'stellar' | 'tempo';
 
 export function getSettlementExplorerTxUrlTemplate(
   rail: SettlementExplorerRail
 ): string {
+  if (rail === 'tempo') return getTempoExplorerTxUrlTemplate();
   const parsed = parseRailsConfig();
   return rail === 'base'
     ? parsed.base.explorerTxUrlTemplate
@@ -453,6 +455,14 @@ export function formatSettlementExplorerTxUrl(
   rail: SettlementExplorerRail,
   txHash: string | null | undefined
 ): string | null {
+  if (rail === 'tempo') {
+    const raw = txHash?.trim();
+    if (!raw || !/^0x[a-fA-F0-9]{64}$/.test(raw)) return null;
+    return getTempoExplorerTxUrlTemplate().replace(
+      '{txHash}',
+      raw.toLowerCase()
+    );
+  }
   const spendRail = rail === 'base' ? 'base_usdc' : 'stellar_usdc';
   return formatExplorerTxUrlForSpendLedger(spendRail, txHash);
 }
@@ -468,6 +478,13 @@ export function formatSettlementWalletExplorerUrl(
 ): string | null {
   const trimmed = walletAddress?.trim();
   if (!trimmed) return null;
+  if (rail === 'tempo') {
+    if (!isEvmAddress(trimmed)) return null;
+    const origin =
+      getTempoExplorerTxUrlTemplate().match(/^(https?:\/\/[^/?#]+)/)?.[1] ??
+      'https://explore.tempo.xyz';
+    return `${origin}/address/${getAddress(trimmed as `0x${string}`)}`;
+  }
   const parsed = parseRailsConfig();
   if (rail === 'base') {
     if (!isEvmAddress(trimmed)) return null;

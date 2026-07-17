@@ -12,12 +12,13 @@ import {
   SPONSORED_ACTIVATION_BASE_TOKEN_SYMBOLS,
   type SponsoredActivationBaseTokenSymbol,
 } from '@/lib/schemas/sponsored-activation-tokens';
+import { TEMPO_CADD_CONTRACT_ADDRESS } from '@/lib/activation/tempo-config';
 
 /**
  * `sponsored_activation.settlement_rail` — matches DB CHECK
  * (`database/irl-51-sponsored-activation-schema.sql`).
  */
-export const settlementRailSchema = z.enum(['base', 'stellar']);
+export const settlementRailSchema = z.enum(['base', 'stellar', 'tempo']);
 
 /**
  * `sponsored_activation.status` — matches DB CHECK.
@@ -71,6 +72,16 @@ export const stellarUsdcAssetConfigSchema = z
   })
   .strict();
 
+export const tempoCaddAssetConfigSchema = z
+  .object({
+    contract_address: normalizedEvmAddressSchema.refine(
+      (address) => address === TEMPO_CADD_CONTRACT_ADDRESS,
+      { message: 'Tempo settlement requires the configured CADD contract' }
+    ),
+    symbol: z.literal('CADD'),
+  })
+  .strict();
+
 /**
  * Full settlement bundle — rail must match wallet formats and `usdc_asset_config`.
  * Used after admin PATCH merges existing row + patch so draft updates cannot save incoherent combinations.
@@ -83,6 +94,14 @@ export const sponsoredActivationSettlementBundleSchema = z
         campaign_wallet_address: normalizedEvmAddressSchema,
         venue_settlement_wallet_address: normalizedEvmAddressSchema,
         usdc_asset_config: baseUsdcAssetConfigSchema,
+      })
+      .strict(),
+    z
+      .object({
+        settlement_rail: z.literal('tempo'),
+        campaign_wallet_address: normalizedEvmAddressSchema,
+        venue_settlement_wallet_address: normalizedEvmAddressSchema,
+        usdc_asset_config: tempoCaddAssetConfigSchema,
       })
       .strict(),
     z
@@ -157,6 +176,16 @@ const createSponsoredActivationStellarObject = z
   })
   .strict();
 
+const createSponsoredActivationTempoObject = z
+  .object({
+    ...sponsoredActivationCommonCreateFields,
+    settlement_rail: z.literal('tempo'),
+    campaign_wallet_address: normalizedEvmAddressSchema,
+    venue_settlement_wallet_address: normalizedEvmAddressSchema,
+    usdc_asset_config: tempoCaddAssetConfigSchema,
+  })
+  .strict();
+
 /**
  * Rail-discriminated create payload (plain objects only — required for `discriminatedUnion`).
  * Prefer `createSponsoredActivationSchema` for full validation including caps and window.
@@ -165,6 +194,7 @@ export const sponsoredActivationCreateDiscriminatedSchema =
   z.discriminatedUnion('settlement_rail', [
     createSponsoredActivationBaseObject,
     createSponsoredActivationStellarObject,
+    createSponsoredActivationTempoObject,
   ]);
 
 export const createSponsoredActivationSchema =
@@ -226,6 +256,18 @@ const adminCreateSponsoredActivationStellarObject =
         .optional()
         .default(DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG),
     });
+const adminCreateSponsoredActivationTempoObject =
+  createSponsoredActivationTempoObject
+    .omit({
+      campaign_wallet_address: true,
+      slug: true,
+      usdc_asset_config: true,
+    })
+    .extend({
+      eligibility_config: activationEligibilityRulesConfigSchema
+        .optional()
+        .default(DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG),
+    });
 
 /**
  * Resolves the admin's `payment_token` choice (default `USDC`) to the
@@ -250,6 +292,7 @@ export const adminCreateSponsoredActivationRequestSchema = z
   .discriminatedUnion('settlement_rail', [
     adminCreateSponsoredActivationBaseObject,
     adminCreateSponsoredActivationStellarObject,
+    adminCreateSponsoredActivationTempoObject,
   ])
   .superRefine((data, ctx) => {
     if (new Date(data.ends_at) <= new Date(data.starts_at)) {
@@ -315,7 +358,7 @@ function normalizeUpdatePayload(
   data: z.infer<typeof updateSponsoredActivationBaseObject>
 ): z.infer<typeof updateSponsoredActivationBaseObject> {
   const next = { ...data };
-  if (next.settlement_rail === 'base') {
+  if (next.settlement_rail === 'base' || next.settlement_rail === 'tempo') {
     if (next.campaign_wallet_address !== undefined) {
       const n = tryNormalizeEvmAddress(next.campaign_wallet_address);
       if (n) next.campaign_wallet_address = n;
@@ -420,6 +463,31 @@ export const updateSponsoredActivationSchema =
         if (hasConfig) {
           mergeConfigParseIssues(
             baseUsdcAssetConfigSchema.safeParse(data.usdc_asset_config),
+            ctx,
+            ['usdc_asset_config']
+          );
+        }
+      }
+
+      if (rail === 'tempo' && (hasCampaign || hasVenue || hasConfig)) {
+        for (const [key, value] of [
+          ['campaign_wallet_address', data.campaign_wallet_address],
+          [
+            'venue_settlement_wallet_address',
+            data.venue_settlement_wallet_address,
+          ],
+        ] as const) {
+          if (value !== undefined && !tryNormalizeEvmAddress(value)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Invalid EVM wallet address',
+              path: [key],
+            });
+          }
+        }
+        if (hasConfig) {
+          mergeConfigParseIssues(
+            tempoCaddAssetConfigSchema.safeParse(data.usdc_asset_config),
             ctx,
             ['usdc_asset_config']
           );

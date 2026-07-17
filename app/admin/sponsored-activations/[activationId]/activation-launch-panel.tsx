@@ -116,7 +116,9 @@ function fmtUsdc(n: number | null | undefined, tokenSymbol: string): string {
 }
 
 function railLabel(rail: SettlementRail): string {
-  return rail === 'base' ? 'Base' : 'Stellar';
+  if (rail === 'base') return 'Base';
+  if (rail === 'tempo') return 'Tempo';
+  return 'Stellar';
 }
 
 function statusUpdateToastLabel(status: SponsoredActivationStatus): string {
@@ -495,7 +497,7 @@ export function ActivationLaunchPanel({
     {
       id: 'fund',
       done: false,
-      title: `Fund the campaign wallet (${activation.settlement_rail === 'base' ? `${tokenSymbol} on Base` : `${tokenSymbol} on Stellar`})`,
+      title: `Fund the campaign wallet (${tokenSymbol} on ${railLabel(activation.settlement_rail)})`,
       body:
         activation.settlement_rail === 'stellar'
           ? `Fund the shared Stellar campaign wallet below with ${fmtUsdcHint(activation.max_usdc_budget, tokenSymbol)} or more ${tokenSymbol}. All Stellar activations settle from this wallet.`
@@ -840,7 +842,9 @@ export function ActivationLaunchPanel({
                           id="campaign-withdraw-destination"
                           type="text"
                           placeholder={
-                            activation.settlement_rail === 'base' ? '0x…' : 'G…'
+                            activation.settlement_rail === 'stellar'
+                              ? 'G…'
+                              : '0x…'
                           }
                           autoComplete="off"
                           spellCheck={false}
@@ -857,7 +861,9 @@ export function ActivationLaunchPanel({
                           pending activity.
                           {activation.settlement_rail === 'base'
                             ? ' Gas is sponsored on Base.'
-                            : ' Stellar uses the shared campaign wallet; confirm the destination before sending.'}
+                            : activation.settlement_rail === 'tempo'
+                              ? ' Fees are sponsored on Tempo.'
+                              : ' Stellar uses the shared campaign wallet; confirm the destination before sending.'}
                         </p>
                         <Button
                           type="button"

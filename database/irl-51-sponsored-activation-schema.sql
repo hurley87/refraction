@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS sponsored_activation (
     status VARCHAR(24) NOT NULL DEFAULT 'draft'
         CHECK (status IN ('draft', 'active', 'paused', 'ended')),
     settlement_rail VARCHAR(16) NOT NULL
-        CHECK (settlement_rail IN ('base', 'stellar')),
+        CHECK (settlement_rail IN ('base', 'stellar', 'tempo')),
     campaign_wallet_address TEXT NOT NULL,
     venue_settlement_wallet_address TEXT NOT NULL,
     usdc_asset_config JSONB NOT NULL,
@@ -207,7 +207,7 @@ CREATE TABLE IF NOT EXISTS activation_settlement_transaction (
     activation_id UUID NOT NULL
         REFERENCES sponsored_activation(id) ON DELETE RESTRICT,
     settlement_rail VARCHAR(16) NOT NULL
-        CHECK (settlement_rail IN ('base', 'stellar')),
+        CHECK (settlement_rail IN ('base', 'stellar', 'tempo')),
     status VARCHAR(24) NOT NULL DEFAULT 'not_started'
         CHECK (status IN (
             'not_started',

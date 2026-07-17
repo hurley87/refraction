@@ -20,6 +20,7 @@ import {
   getDefaultStellarSponsoredActivationUsdcAssetConfig,
   getStellarSponsoredCampaignPublicKey,
 } from '@/lib/activation/stellar-campaign-wallet-config';
+import { getDefaultTempoSponsoredActivationAssetConfig } from '@/lib/activation/tempo-config';
 
 /** GET /api/admin/sponsored-activations */
 export async function GET(request: NextRequest) {
@@ -117,7 +118,9 @@ export async function POST(request: NextRequest) {
     const usdc_asset_config =
       data.settlement_rail === 'base'
         ? resolveAdminBaseSponsoredActivationAssetConfig(data.payment_token)
-        : getDefaultStellarSponsoredActivationUsdcAssetConfig();
+        : data.settlement_rail === 'tempo'
+          ? getDefaultTempoSponsoredActivationAssetConfig()
+          : getDefaultStellarSponsoredActivationUsdcAssetConfig();
 
     const description =
       data.description == null ? null : data.description.trim() || null;

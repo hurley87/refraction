@@ -3,6 +3,7 @@ import {
   normalizePrivyReferenceId,
   PrivyRestApiError,
   signAndSendTransaction,
+  signAndSendTempoTransaction,
   waitForTransaction,
 } from './privy-server-rest';
 
@@ -112,6 +113,51 @@ describe('signAndSendTransaction', () => {
     );
     expect(body.reference_id).toHaveLength(PRIVY_REFERENCE_ID_MAX_LENGTH);
     expect(body.reference_id).not.toBe(LONG_REFERENCE_ID);
+  });
+});
+
+describe('signAndSendTempoTransaction', () => {
+  it('POSTs a sponsored native type-118 transaction on Tempo', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: { transaction_id: 'tempo-tx-1', hash: '0x' + 'a'.repeat(64) },
+      }),
+    });
+
+    const result = await signAndSendTempoTransaction({
+      walletId: 'tempo-wallet',
+      calls: [
+        {
+          to: '0x20c000000000000000000000D65B4808c85DbB81',
+          data: '0x1234',
+        },
+      ],
+      referenceId: 'activation-settlement:tempo-1',
+    });
+
+    expect(result.transactionId).toBe('tempo-tx-1');
+    const body = JSON.parse(
+      (fetchMock.mock.calls[0][1] as { body: string }).body
+    );
+    expect(body).toMatchObject({
+      method: 'eth_sendTransaction',
+      caip2: 'eip155:4217',
+      chain_type: 'ethereum',
+      sponsor: true,
+      params: {
+        transaction: {
+          type: 118,
+          calls: [
+            {
+              to: '0x20c000000000000000000000D65B4808c85DbB81',
+              data: '0x1234',
+              value: '0x0',
+            },
+          ],
+        },
+      },
+    });
   });
 });
 

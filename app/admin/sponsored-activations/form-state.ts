@@ -9,7 +9,7 @@ export type SponsoredActivationFormState = {
   sponsor_name: string;
   event_id: string;
   settlement_rail: SettlementRail;
-  /** Base rail only; ignored (and omitted from the payload) for Stellar. */
+  /** Base rail only; ignored for Stellar and Tempo. */
   payment_token: SponsoredActivationBaseTokenSymbol;
   venue_settlement_wallet_address: string;
   max_redemptions: string;
@@ -120,7 +120,7 @@ export function formStateToCreatePayload(
 
   return {
     ...common,
-    settlement_rail: 'stellar',
+    settlement_rail: form.settlement_rail,
     venue_settlement_wallet_address: venue,
   } as AdminCreateSponsoredActivationRequest;
 }

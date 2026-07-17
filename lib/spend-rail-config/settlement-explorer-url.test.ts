@@ -7,9 +7,12 @@ import {
 } from '@/lib/spend-rail-config/index';
 
 describe('settlement explorer helpers (sponsored activation)', () => {
-  it('exposes tx templates for base and stellar rails', () => {
+  it('exposes tx templates for base, stellar, and Tempo rails', () => {
     expect(getSettlementExplorerTxUrlTemplate('base')).toContain('{txHash}');
     expect(getSettlementExplorerTxUrlTemplate('stellar')).toContain('{txHash}');
+    expect(getSettlementExplorerTxUrlTemplate('tempo')).toBe(
+      'https://explore.tempo.xyz/tx/{txHash}'
+    );
   });
 
   it('delegates settlement tx URLs to spend ledger formatter', () => {
@@ -33,6 +36,21 @@ describe('settlement explorer helpers (sponsored activation)', () => {
 
   it('returns null for invalid Base wallet input', () => {
     expect(formatSettlementWalletExplorerUrl('base', '0xbad')).toBeNull();
+  });
+
+  it('builds Tempo transaction and wallet explorer URLs', () => {
+    const hash = `0x${'a'.repeat(64)}`;
+    expect(formatSettlementExplorerTxUrl('tempo', hash)).toBe(
+      `https://explore.tempo.xyz/tx/${hash}`
+    );
+    expect(
+      formatSettlementWalletExplorerUrl(
+        'tempo',
+        '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+      )
+    ).toBe(
+      'https://explore.tempo.xyz/address/0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+    );
   });
 
   it('builds Stellar account explorer URL', () => {

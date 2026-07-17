@@ -10,6 +10,7 @@ import {
   CADD_ADDRESS_BASE,
   SPONSORED_ACTIVATION_BASE_TOKENS,
 } from '../sponsored-activation-tokens';
+import { TEMPO_CADD_CONTRACT_ADDRESS } from '@/lib/activation/tempo-config';
 
 /** Valid EVM-format address for schema tests (avoids repo allowlisted production contract literals). */
 const SAMPLE_EVM_CONTRACT = '0x2222222222222222222222222222222222222222';
@@ -79,6 +80,26 @@ describe('createSponsoredActivationSchema', () => {
       expect(r.data.settlement_rail).toBe('stellar');
       expect(r.data.campaign_wallet_address).toBe(STELLAR_A);
     }
+  });
+
+  it('accepts Tempo only with EVM wallets and the CADD TIP-20 contract', () => {
+    const r = createSponsoredActivationSchema.safeParse({
+      settlement_rail: 'tempo',
+      slug: 'tempo-cadd',
+      title: 'Tempo CADD',
+      sponsor_name: 'Acme',
+      max_redemptions: 100,
+      ...validTime,
+      eligibility_config: sampleEligibilityConfig,
+      campaign_wallet_address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+      venue_settlement_wallet_address:
+        '0x70997970c51812dc3a010C7d01b50e0d17dc79C8',
+      usdc_asset_config: {
+        contract_address: TEMPO_CADD_CONTRACT_ADDRESS,
+        symbol: 'CADD',
+      },
+    });
+    expect(r.success).toBe(true);
   });
 
   it('rejects Stellar G-address on base rail', () => {
@@ -251,6 +272,20 @@ describe('adminCreateSponsoredActivationRequestSchema', () => {
         'GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFSHONUCEOASW7QC7OX2H',
     });
     expect(r.success).toBe(true);
+  });
+
+  it('accepts Tempo admin create without exposing token configuration', () => {
+    expect(
+      adminCreateSponsoredActivationRequestSchema.safeParse({
+        settlement_rail: 'tempo',
+        title: 'Tempo activation',
+        sponsor_name: 'Acme',
+        max_redemptions: 100,
+        ...validTime,
+        venue_settlement_wallet_address:
+          '0x70997970c51812dc3a010C7d01b50e0d17dc79C8',
+      }).success
+    ).toBe(true);
   });
 
   it('rejects slug on admin create (strict)', () => {

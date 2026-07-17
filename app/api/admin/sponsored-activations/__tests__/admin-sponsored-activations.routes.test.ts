@@ -69,6 +69,7 @@ vi.mock('@/lib/activation/explorer-url', () => ({
 
 import { POSTER_CHECKOUT_USDC_ADDRESS_BASE } from '@/lib/walletconnect-poster-direct-usdc';
 import { DEFAULT_SPONSORED_ACTIVATION_ELIGIBILITY_CONFIG } from '@/lib/schemas/activation-eligibility-config';
+import { TEMPO_CADD_CONTRACT_ADDRESS } from '@/lib/activation/tempo-config';
 import { GET as listGET, POST as listPOST } from '../route';
 import { GET as oneGET, PATCH as onePATCH } from '../[activationId]/route';
 import {
@@ -315,6 +316,46 @@ describe('POST /api/admin/sponsored-activations', () => {
     expect(createArg.usdc_asset_config).toEqual({
       asset_code: 'USDC',
       issuer: 'GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF',
+    });
+  });
+
+  it('provisions a Privy wallet and fixed CADD config for Tempo', async () => {
+    mockCreate.mockResolvedValue({
+      ...baseFixture,
+      settlement_rail: 'tempo',
+      usdc_asset_config: {
+        contract_address: TEMPO_CADD_CONTRACT_ADDRESS,
+        symbol: 'CADD',
+      },
+    });
+    const res = await listPOST(
+      jsonReq(
+        'POST',
+        'http://localhost/api/admin/sponsored-activations',
+        {
+          settlement_rail: 'tempo',
+          title: 'Tempo activation',
+          sponsor_name: 's',
+          max_redemptions: 1,
+          ...validWindow,
+          venue_settlement_wallet_address:
+            '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+        },
+        'idem-tempo'
+      )
+    );
+    expect(res.status).toBe(200);
+    expect(mockCreatePrivy).toHaveBeenCalledWith({
+      idempotencyKey: 'idem-tempo',
+      settlementRail: 'tempo',
+    });
+    expect(mockCreate.mock.calls[0][0]).toMatchObject({
+      settlement_rail: 'tempo',
+      usdc_asset_config: {
+        contract_address: TEMPO_CADD_CONTRACT_ADDRESS,
+        symbol: 'CADD',
+      },
+      privy_campaign_wallet_id: 'pw-new',
     });
   });
 

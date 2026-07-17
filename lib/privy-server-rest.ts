@@ -88,6 +88,17 @@ export type SignAndSendPrivyTransactionParams = {
   referenceId?: string;
 };
 
+export type SignAndSendPrivyTempoTransactionParams = {
+  walletId: string;
+  calls: Array<{
+    to: string;
+    data?: string;
+    value?: `0x${string}`;
+  }>;
+  sponsor?: boolean;
+  referenceId?: string;
+};
+
 export type PrivySendTransactionResult = {
   transactionId: string;
   userOperationHash: string | null;
@@ -228,6 +239,68 @@ export async function signAndSendTransaction(
     );
   }
 
+  return {
+    transactionId,
+    userOperationHash: json.data?.user_operation_hash?.trim() ?? null,
+    hash: typeof json.data?.hash === 'string' ? json.data.hash : '',
+  };
+}
+
+/**
+ * Sends a native Tempo transaction (type 118) through Privy.
+ * @see https://docs.privy.io/api-reference/wallets/tempo/eth-send-transaction
+ */
+export async function signAndSendTempoTransaction(
+  params: SignAndSendPrivyTempoTransactionParams
+): Promise<PrivySendTransactionResult> {
+  const sponsor = params.sponsor ?? true;
+  const body: Record<string, unknown> = {
+    method: 'eth_sendTransaction',
+    caip2: 'eip155:4217',
+    chain_type: 'ethereum',
+    params: {
+      transaction: {
+        type: 118,
+        calls: params.calls.map((call) => ({
+          to: call.to,
+          ...(call.data ? { data: call.data } : {}),
+          value: call.value ?? '0x0',
+        })),
+      },
+    },
+  };
+  if (sponsor) body.sponsor = true;
+  const normalizedReferenceId = params.referenceId?.trim();
+  if (normalizedReferenceId) {
+    body.reference_id = normalizePrivyReferenceId(normalizedReferenceId);
+  }
+
+  const res = await privyRestFetch(
+    `/wallets/${encodeURIComponent(params.walletId)}/rpc`,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new PrivyRestApiError(res.status, text);
+  }
+
+  const json = (await res.json()) as {
+    data?: {
+      transaction_id?: string;
+      user_operation_hash?: string;
+      hash?: string;
+    };
+  };
+  const transactionId = json.data?.transaction_id?.trim();
+  if (!transactionId) {
+    throw new PrivyRestApiError(
+      500,
+      `Malformed Privy Tempo response: ${JSON.stringify(json)}`
+    );
+  }
   return {
     transactionId,
     userOperationHash: json.data?.user_operation_hash?.trim() ?? null,

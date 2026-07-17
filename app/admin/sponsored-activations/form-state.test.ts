@@ -49,6 +49,14 @@ describe('formStateToCreatePayload', () => {
     expect(payload).not.toHaveProperty('payment_token');
   });
 
+  it('builds a Tempo create body without a Base payment token', () => {
+    const payload = formStateToCreatePayload(
+      minimalBaseCreateForm({ settlement_rail: 'tempo' })
+    );
+    expect(payload.settlement_rail).toBe('tempo');
+    expect(payload).not.toHaveProperty('payment_token');
+  });
+
   it('includes trimmed description when set', () => {
     const payload = formStateToCreatePayload(
       minimalBaseCreateForm({ description: '  Free drink with check-in  ' })

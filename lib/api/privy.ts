@@ -406,15 +406,15 @@ export type SponsoredActivationCampaignWalletMetadata = {
 
 /**
  * Provisions a Privy server wallet for a sponsored activation campaign.
- * Base rail uses an Ethereum-format address on Base; Stellar rail uses a Stellar account.
+ * Base and Tempo use Ethereum-format addresses; Stellar uses a Stellar account.
  */
 export async function createSponsoredActivationPrivyCampaignWallet(params: {
   idempotencyKey: string;
-  settlementRail: 'base' | 'stellar';
+  settlementRail: 'base' | 'stellar' | 'tempo';
 }): Promise<SponsoredActivationCampaignWalletMetadata> {
   try {
     const client = getPrivyClient();
-    if (params.settlementRail === 'base') {
+    if (params.settlementRail === 'base' || params.settlementRail === 'tempo') {
       const wallet = await client.walletApi.createWallet({
         chainType: 'ethereum',
         idempotencyKey: params.idempotencyKey,
@@ -422,7 +422,8 @@ export async function createSponsoredActivationPrivyCampaignWallet(params: {
       return {
         privy_campaign_wallet_id: wallet.id,
         campaign_wallet_address: wallet.address,
-        campaign_wallet_chain: 'base-mainnet',
+        campaign_wallet_chain:
+          params.settlementRail === 'tempo' ? 'tempo-mainnet' : 'base-mainnet',
         campaign_wallet_created_at: wallet.createdAt.toISOString(),
       };
     }
