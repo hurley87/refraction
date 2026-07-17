@@ -5,6 +5,7 @@
  * @see https://docs.privy.io/api-reference/transactions/get
  */
 import { createHash } from 'crypto';
+import { TEMPO_MAINNET_CAIP2 } from '@/lib/activation/tempo-config';
 import { SPEND_SERVER_WALLET_CAIP2 } from '@/lib/spend-server-wallet';
 
 /** Privy REST rejects `reference_id` longer than this. */
@@ -256,7 +257,7 @@ export async function signAndSendTempoTransaction(
   const sponsor = params.sponsor ?? true;
   const body: Record<string, unknown> = {
     method: 'eth_sendTransaction',
-    caip2: 'eip155:4217',
+    caip2: TEMPO_MAINNET_CAIP2,
     chain_type: 'ethereum',
     params: {
       transaction: {
