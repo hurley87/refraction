@@ -437,7 +437,8 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
         statusCode: 400,
       };
     }
-    const withdrawId = `withdraw:${input.activation.id}:${Date.now().toString(36)}`;
+    const withdrawNonce = Date.now().toString(36);
+    const withdrawId = `withdraw:${input.activation.id}:${withdrawNonce}`;
     const submitted = await submitTempoCaddTransfer({
       serverWalletId: privyWalletId,
       serverWalletAddress: campaignAddress as `0x${string}`,
@@ -445,7 +446,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
       caddAmount: withdrawAmount,
       settlementId: withdrawId,
       caddContractAddress: config.data.contract_address,
-      referenceId: `sa-wd:${input.activation.id}:${Date.now().toString(36)}`,
+      referenceId: `sa-wd:${input.activation.id}:${withdrawNonce}`,
     });
     if (!submitted.ok) {
       return { ok: false, error: submitted.error, statusCode: 500 };

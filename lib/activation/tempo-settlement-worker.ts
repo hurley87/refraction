@@ -1,4 +1,3 @@
-import { getAddress, isAddress } from 'viem';
 import {
   resolveServerIdentity,
   trackSponsoredSettlementConfirmed,
@@ -30,6 +29,7 @@ import {
   getTempoCaddTransferStatus,
   submitTempoCaddTransfer,
 } from '@/lib/activation/tempo-cadd-transfer';
+import { normalizeEvmTxHash } from '@/lib/spend-treasury-usdc-transfer';
 import { sameWalletAddress, tryNormalizeEvmAddress } from '@/lib/utils/wallets';
 
 export const TEMPO_ACTIVATION_SETTLEMENT_ERROR_CODES = {
@@ -92,7 +92,6 @@ export type TempoSettlementWorkerRunSummary = {
 
 const INSUFFICIENT_CADD_RE =
   /exceeds\s+balance|insufficient\s+funds|transfer\s+amount|balance too low/i;
-const TX_HASH_RE = /^0x[a-fA-F0-9]{64}$/;
 
 function classifySubmitError(message: string): TempoErrorCode {
   return INSUFFICIENT_CADD_RE.test(message)
@@ -101,15 +100,8 @@ function classifySubmitError(message: string): TempoErrorCode {
 }
 
 function requireEvmAddress(value: string): `0x${string}` | null {
-  const trimmed = value.trim();
-  return isAddress(trimmed) ? getAddress(trimmed as `0x${string}`) : null;
-}
-
-function normalizeTxHash(value: string | null): `0x${string}` | null {
-  const trimmed = value?.trim();
-  return trimmed && TX_HASH_RE.test(trimmed)
-    ? (trimmed as `0x${string}`)
-    : null;
+  const normalized = tryNormalizeEvmAddress(value);
+  return normalized ? (normalized as `0x${string}`) : null;
 }
 
 async function emitFailed(
@@ -338,15 +330,13 @@ export async function processTempoActivationSettlement(input: {
     return null;
   };
 
-  const reconcileHash = () => findTempoCaddTransfer(transferParams);
-
   if (row.status === 'submitted') {
-    let txHash = normalizeTxHash(row.tx_hash);
+    let txHash = normalizeEvmTxHash(row.tx_hash);
     if (!txHash && row.privy_transaction_id) {
       try {
         txHash = (
           await waitForTransaction(row.privy_transaction_id, {
-            timeoutMs: 10_000,
+            timeoutMs: 3_000,
             initialPollMs: 400,
             maxPollMs: 2_000,
           })
@@ -361,7 +351,7 @@ export async function processTempoActivationSettlement(input: {
         if (!(error instanceof PrivyRestTransactionTimeoutError)) throw error;
       }
     }
-    if (!txHash) txHash = await reconcileHash();
+    if (!txHash) txHash = await findTempoCaddTransfer(transferParams);
     if (txHash) {
       const failure = await finalize(
         txHash,
@@ -468,7 +458,7 @@ export async function processTempoActivationSettlement(input: {
 
   const txHash =
     'submittedPending' in submitted && submitted.submittedPending
-      ? await reconcileHash()
+      ? await findTempoCaddTransfer(transferParams)
       : submitted.txHash;
   if (txHash) {
     const failure = await finalize(
