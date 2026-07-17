@@ -93,7 +93,7 @@ describe('createSponsoredActivationSchema', () => {
       eligibility_config: sampleEligibilityConfig,
       campaign_wallet_address: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266',
       venue_settlement_wallet_address:
-        '0x70997970c51812dc3a010C7d01b50e0d17dc79C8',
+        '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
       usdc_asset_config: {
         contract_address: TEMPO_CADD_CONTRACT_ADDRESS,
         symbol: 'CADD',
@@ -283,7 +283,7 @@ describe('adminCreateSponsoredActivationRequestSchema', () => {
         max_redemptions: 100,
         ...validTime,
         venue_settlement_wallet_address:
-          '0x70997970c51812dc3a010C7d01b50e0d17dc79C8',
+          '0x70997970c51812dc3a010c7d01b50e0d17dc79c8',
       }).success
     ).toBe(true);
   });
