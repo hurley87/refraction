@@ -177,7 +177,7 @@ type TempoTransferMatch = {
   memo: `0x${string}`;
 };
 
-function decodeMatchingTransfer(
+export function hasMatchingTempoCaddTransferLog(
   logs: readonly {
     address: `0x${string}`;
     data: `0x${string}`;
@@ -233,7 +233,7 @@ export async function getTempoCaddTransferStatus(params: {
       ),
       memo: tempoSettlementMemo(params.settlementId),
     };
-    return decodeMatchingTransfer(receipt.logs, {
+    return hasMatchingTempoCaddTransferLog(receipt.logs, {
       ...match,
       caddContract,
     })

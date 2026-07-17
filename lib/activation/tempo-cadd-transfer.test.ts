@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { decodeFunctionData, parseAbi } from 'viem';
+import {
+  decodeFunctionData,
+  encodeAbiParameters,
+  encodeEventTopics,
+  getAddress,
+  parseAbi,
+} from 'viem';
 
 const mockGetWallet = vi.fn();
 const mockSignAndSendTempo = vi.fn();
@@ -23,6 +29,7 @@ vi.mock('@/lib/privy-server-rest', async (importOriginal) => {
 });
 
 import {
+  hasMatchingTempoCaddTransferLog,
   submitTempoCaddTransfer,
   tempoSettlementMemo,
 } from '@/lib/activation/tempo-cadd-transfer';
@@ -100,5 +107,37 @@ describe('Tempo CADD transfer adapter', () => {
     });
     expect(result).toMatchObject({ ok: false });
     expect(mockSignAndSendTempo).not.toHaveBeenCalled();
+  });
+
+  it('matches all CADD transfer event fields before confirmation', () => {
+    const memo = tempoSettlementMemo('settlement-1');
+    const eventAbi = parseAbi([
+      'event TransferWithMemo(address indexed from, address indexed to, uint256 amount, bytes32 indexed memo)',
+    ]);
+    const topics = encodeEventTopics({
+      abi: eventAbi,
+      eventName: 'TransferWithMemo',
+      args: { from: campaign, to: venue, memo },
+    });
+    const log = {
+      address: TEMPO_CADD_CONTRACT_ADDRESS,
+      topics,
+      data: encodeAbiParameters([{ type: 'uint256' }], [1_250_000n]),
+    };
+    const expected = {
+      from: getAddress(campaign),
+      to: getAddress(venue),
+      amount: 1_250_000n,
+      memo,
+      caddContract: TEMPO_CADD_CONTRACT_ADDRESS,
+    };
+
+    expect(hasMatchingTempoCaddTransferLog([log], expected)).toBe(true);
+    expect(
+      hasMatchingTempoCaddTransferLog([log], {
+        ...expected,
+        amount: 1_250_001n,
+      })
+    ).toBe(false);
   });
 });
