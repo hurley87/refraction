@@ -3,7 +3,7 @@ import { sameWalletAddress } from '@/lib/utils/wallets';
 
 export type SponsoredActivationStatus = 'draft' | 'active' | 'paused' | 'ended';
 
-export type SettlementRail = 'base' | 'stellar';
+export type SettlementRail = 'base' | 'stellar' | 'tempo';
 
 export type SponsoredActivationRow = {
   id: string;

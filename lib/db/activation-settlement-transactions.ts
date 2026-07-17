@@ -231,6 +231,13 @@ export async function listBaseActivationSettlementsForWorker(
   return listActivationSettlementsForWorker('base', limit);
 }
 
+/** Tempo rail; see {@link listActivationSettlementsForWorker}. */
+export async function listTempoActivationSettlementsForWorker(
+  limit: number
+): Promise<ActivationSettlementTransactionRow[]> {
+  return listActivationSettlementsForWorker('tempo', limit);
+}
+
 export async function markActivationSettlementSubmitted(input: {
   settlementId: string;
   txHash: string;

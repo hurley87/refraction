@@ -11,7 +11,10 @@ import { loadActivationReservedUsdc } from '@/lib/db/sponsored-activation-admin'
 import { supabase } from '@/lib/db/client';
 import type { SponsoredActivationRow } from '@/lib/db/sponsored-activations';
 import { stellarWalletAddressSchema } from '@/lib/schemas/player';
-import { baseUsdcAssetConfigSchema } from '@/lib/schemas/sponsored-activation';
+import {
+  baseUsdcAssetConfigSchema,
+  tempoCaddAssetConfigSchema,
+} from '@/lib/schemas/sponsored-activation';
 import {
   describeSponsoredActivationPaymentTokenSymbol,
   resolveBaseTokenDecimals,
@@ -28,6 +31,14 @@ import {
   fetchUsdcBalanceOnBase,
   isEvmAddress,
 } from '@/lib/walletconnect-poster-direct-usdc';
+import {
+  getTempoRpcUrl,
+  TEMPO_CADD_DECIMALS,
+} from '@/lib/activation/tempo-config';
+import {
+  getTempoCaddTransferStatus,
+  submitTempoCaddTransfer,
+} from '@/lib/activation/tempo-cadd-transfer';
 
 export type SponsoredActivationCampaignWalletBalancePack = {
   campaign_wallet_usdc_balance: number | null;
@@ -141,9 +152,13 @@ async function computeStellarSharedWalletMaxWithdrawMicro(
 async function readCampaignWalletOnChainBalance(
   activation: SponsoredActivationRow
 ): Promise<number | null> {
-  return activation.settlement_rail === 'base'
-    ? readBaseCampaignWalletBalance(activation)
-    : readStellarCampaignWalletBalance(activation);
+  if (activation.settlement_rail === 'base') {
+    return readBaseCampaignWalletBalance(activation);
+  }
+  if (activation.settlement_rail === 'tempo') {
+    return readTempoCampaignWalletBalance(activation);
+  }
+  return readStellarCampaignWalletBalance(activation);
 }
 
 async function readBaseCampaignWalletBalance(
@@ -194,6 +209,26 @@ async function readStellarCampaignWalletBalance(
   }
 }
 
+async function readTempoCampaignWalletBalance(
+  activation: SponsoredActivationRow
+): Promise<number | null> {
+  const cfg = tempoCaddAssetConfigSchema.safeParse(
+    activation.usdc_asset_config
+  );
+  const address = tryNormalizeEvmAddress(activation.campaign_wallet_address);
+  if (!cfg.success || !address || !isEvmAddress(address)) return null;
+  try {
+    return await fetchUsdcBalanceOnBase(address as `0x${string}`, {
+      rpcUrl: getTempoRpcUrl(),
+      usdcContract: cfg.data.contract_address,
+      decimals: TEMPO_CADD_DECIMALS,
+    });
+  } catch (error) {
+    console.error('readTempoCampaignWalletBalance:', error);
+    return null;
+  }
+}
+
 export async function loadSponsoredActivationCampaignWalletBalancePack(
   activation: SponsoredActivationRow
 ): Promise<SponsoredActivationCampaignWalletBalancePack> {
@@ -225,7 +260,10 @@ function validateDestinationForRail(
   activation: SponsoredActivationRow,
   destinationAddress: string
 ): { ok: true; normalized: string } | { ok: false; error: string } {
-  if (activation.settlement_rail === 'base') {
+  if (
+    activation.settlement_rail === 'base' ||
+    activation.settlement_rail === 'tempo'
+  ) {
     const normalized = tryNormalizeEvmAddress(destinationAddress);
     if (!normalized || !isEvmAddress(normalized)) {
       return { ok: false, error: 'Invalid Ethereum address' };
@@ -312,7 +350,9 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
   const tokenDecimals =
     baseAssetConfig?.success === true
       ? resolveBaseTokenDecimals(baseAssetConfig.data.contract_address)
-      : 6;
+      : input.activation.settlement_rail === 'tempo'
+        ? TEMPO_CADD_DECIMALS
+        : 6;
 
   let maxBalanceMicro =
     input.activation.settlement_rail === 'base'
@@ -324,6 +364,7 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
       maxBalanceMicro
     );
   }
+
   if (maxBalanceMicro <= 0) {
     return {
       ok: false,
@@ -378,6 +419,84 @@ export async function withdrawSponsoredActivationCampaignWallet(input: {
       txHash: submitted.txHash,
       amountUsdc: withdrawAmount,
       destinationAddress,
+    };
+  }
+
+  if (input.activation.settlement_rail === 'tempo') {
+    const privyWalletId = input.activation.privy_campaign_wallet_id?.trim();
+    const campaignAddress = tryNormalizeEvmAddress(
+      input.activation.campaign_wallet_address
+    );
+    const config = tempoCaddAssetConfigSchema.safeParse(
+      input.activation.usdc_asset_config
+    );
+    if (!privyWalletId || !campaignAddress || !config.success) {
+      return {
+        ok: false,
+        error: 'Tempo campaign wallet is not configured for this activation.',
+        statusCode: 400,
+      };
+    }
+    const withdrawNonce = Date.now().toString(36);
+    const withdrawId = `withdraw:${input.activation.id}:${withdrawNonce}`;
+    const submitted = await submitTempoCaddTransfer({
+      serverWalletId: privyWalletId,
+      serverWalletAddress: campaignAddress as `0x${string}`,
+      recipientAddress: destinationAddress as `0x${string}`,
+      caddAmount: withdrawAmount,
+      settlementId: withdrawId,
+      caddContractAddress: config.data.contract_address,
+      referenceId: `sa-wd:${input.activation.id}:${withdrawNonce}`,
+    });
+    if (!submitted.ok) {
+      return { ok: false, error: submitted.error, statusCode: 500 };
+    }
+    if ('submittedPending' in submitted && submitted.submittedPending) {
+      return {
+        ok: true,
+        status: 'submitted',
+        amountUsdc: withdrawAmount,
+        destinationAddress,
+        privyTransactionId: submitted.privyTransactionId,
+        referenceId: submitted.referenceId,
+        message: 'Withdrawal was accepted by Privy and is pending on Tempo.',
+      };
+    }
+    if (!('txHash' in submitted)) {
+      return {
+        ok: false,
+        error: 'Unexpected Tempo withdrawal response.',
+        statusCode: 500,
+      };
+    }
+    const status = await getTempoCaddTransferStatus({
+      txHash: submitted.txHash,
+      campaignAddress: campaignAddress as `0x${string}`,
+      recipientAddress: destinationAddress as `0x${string}`,
+      caddAmount: withdrawAmount,
+      settlementId: withdrawId,
+      caddContractAddress: config.data.contract_address,
+    });
+    if (status !== 'success') {
+      return {
+        ok: true,
+        status: 'submitted',
+        txHash: submitted.txHash,
+        amountUsdc: withdrawAmount,
+        destinationAddress,
+        privyTransactionId: submitted.privyTransactionId,
+        referenceId: submitted.referenceId,
+        message: 'Withdrawal is submitted; Tempo confirmation is pending.',
+      };
+    }
+    return {
+      ok: true,
+      status: 'confirmed',
+      txHash: submitted.txHash,
+      amountUsdc: withdrawAmount,
+      destinationAddress,
+      privyTransactionId: submitted.privyTransactionId,
+      referenceId: submitted.referenceId,
     };
   }
 

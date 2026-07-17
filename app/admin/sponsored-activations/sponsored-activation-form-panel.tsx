@@ -37,6 +37,7 @@ export function SponsoredActivationFormPanel({
   if (!open) return null;
 
   const isBase = form.settlement_rail === 'base';
+  const isTempo = form.settlement_rail === 'tempo';
 
   const setField =
     <K extends keyof SponsoredActivationFormState>(key: K) =>
@@ -108,7 +109,7 @@ export function SponsoredActivationFormPanel({
             <Select
               value={form.settlement_rail}
               onValueChange={(v) => {
-                if (v === 'base' || v === 'stellar') {
+                if (v === 'base' || v === 'stellar' || v === 'tempo') {
                   setField('settlement_rail')(v);
                 }
               }}
@@ -119,10 +120,11 @@ export function SponsoredActivationFormPanel({
               <SelectContent>
                 <SelectItem value="base">Base</SelectItem>
                 <SelectItem value="stellar">Stellar</SelectItem>
+                <SelectItem value="tempo">Tempo</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-neutral-500">
-              {isBase
+              {isBase || isTempo
                 ? 'Campaign wallet is provisioned automatically (Privy).'
                 : 'Settlements pay from the shared Stellar campaign wallet configured on the server. Fund that wallet with USDC before going live.'}
             </p>
@@ -165,10 +167,10 @@ export function SponsoredActivationFormPanel({
               onChange={(ev) =>
                 setField('venue_settlement_wallet_address')(ev.target.value)
               }
-              placeholder={isBase ? '0x…' : 'G…'}
+              placeholder={isBase || isTempo ? '0x…' : 'G…'}
               className="font-mono text-sm"
             />
-            {!isBase && (
+            {!isBase && !isTempo && (
               <p className="text-xs text-neutral-500">
                 Must differ from the shared campaign wallet. USDC settles here
                 when guests redeem.
@@ -188,7 +190,8 @@ export function SponsoredActivationFormPanel({
             </div>
             <div className="space-y-2">
               <Label htmlFor="sa-max-budget">
-                Max budget ({isBase ? form.payment_token : 'USDC'})
+                Max budget (
+                {isBase ? form.payment_token : isTempo ? 'CADD' : 'USDC'})
               </Label>
               <Input
                 id="sa-max-budget"
