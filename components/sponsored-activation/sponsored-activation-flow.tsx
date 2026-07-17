@@ -412,7 +412,7 @@ export function SponsoredActivationFlow({
               className="label-large flex min-h-[44px] w-full items-center justify-between gap-2 rounded-md bg-[#171717] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] font-grotesk uppercase tracking-[0.0625em] text-white transition-opacity hover:opacity-95"
             >
               <div className="truncate text-left label-large">
-                PAY WITH POINTS
+                PAY WITH CADD STABLECOIN ON TEMPO
               </div>
               <ArrowRight
                 className="size-6 shrink-0"
@@ -522,7 +522,6 @@ export function SponsoredActivationFlow({
           heroImageUrl={read.rewardItem.hero_image_url}
           perkName={read.rewardItem.name}
           pointsSpent={pointsSpent}
-          balanceAfter={balanceAfterPoints}
         />
       </SponsoredActivationPageShell>
     );

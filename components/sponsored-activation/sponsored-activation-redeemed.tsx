@@ -10,14 +10,12 @@ type SponsoredActivationRedeemedProps = {
   heroImageUrl: string | null;
   perkName: string;
   pointsSpent: number;
-  balanceAfter: number;
 };
 
 export function SponsoredActivationRedeemed({
   heroImageUrl,
   perkName,
   pointsSpent,
-  balanceAfter,
 }: SponsoredActivationRedeemedProps) {
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -36,18 +34,7 @@ export function SponsoredActivationRedeemed({
             value={
               <SponsoredActivationPointsValue
                 points={pointsSpent}
-                suffix="PTS"
-              />
-            }
-            bareValue
-            className="border-b-0"
-          />
-          <SponsoredActivationDetailRow
-            label="Your Points Balance"
-            value={
-              <SponsoredActivationPointsValue
-                points={balanceAfter}
-                suffix="$IRL"
+                suffix="CADD"
               />
             }
             bareValue

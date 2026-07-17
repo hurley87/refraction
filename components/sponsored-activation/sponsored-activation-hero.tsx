@@ -15,7 +15,7 @@ export function SponsoredActivationHero({
   redeemed = false,
 }: SponsoredActivationHeroProps) {
   return (
-    <div className="relative left-1/2 min-h-[470px] w-screen -translate-x-1/2 shrink-0 overflow-hidden bg-neutral-100 md:left-auto md:w-full md:translate-x-0">
+    <div className="relative left-1/2 min-h-[470px] w-screen -translate-x-1/2 shrink-0 overflow-hidden bg-neutral-100 [@media(max-height:700px)]:min-h-[52svh] md:left-auto md:w-full md:translate-x-0">
       {heroImageUrl ? (
         <Image
           src={heroImageUrl}

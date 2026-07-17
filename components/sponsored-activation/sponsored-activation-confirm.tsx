@@ -44,7 +44,7 @@ export function SponsoredActivationConfirm({
 
       <div className="flex flex-1 flex-col gap-6 px-4 pb-10 pt-4">
         <div className="flex flex-col gap-2">
-          <h1 className="title2 text-[#171717]">CONFIRM YOUR PURCHASE</h1>
+          <h1 className="title2 text-[#171717]">CONFIRM YOUR STABLECOIN SWAP</h1>
           {description ? (
             <div className="body-small text-[#757575]">{description}</div>
           ) : null}
@@ -62,7 +62,7 @@ export function SponsoredActivationConfirm({
             bareValue
           />
           <SponsoredActivationDetailRow
-            label="You Receive"
+            label="You Earn"
             value={rewardItem.name}
           />
           <SponsoredActivationDetailRow
@@ -98,7 +98,7 @@ export function SponsoredActivationConfirm({
             <span className="truncate text-left">
               {pending
                 ? 'Processing…'
-                : (primaryActionLabel ?? 'CONFIRM YOUR PURCHASE')}
+                : (primaryActionLabel ?? 'CONFIRM YOU PURCHASE WITH CADD')}
             </span>
           </span>
           <Trophy className="size-6 shrink-0" strokeWidth={2} aria-hidden />
