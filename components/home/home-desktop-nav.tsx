@@ -46,11 +46,13 @@ const navLinkClassName =
 
 /**
  * Desktop homepage top bar (xl+): logo, search, primary nav + sign up.
+ * Logged out, only the logo and SIGN UP show; the full nav appears after login.
  */
 export function HomeDesktopNav() {
-  const { user, login } = usePrivy();
+  const { ready, authenticated, user, login } = usePrivy();
   const router = useRouter();
   const walletAddress = user?.wallet?.address;
+  const showFullNav = ready && authenticated;
 
   const handleSearchSelect = (picked: {
     longitude: number;
@@ -87,37 +89,47 @@ export function HomeDesktopNav() {
         />
       </Link>
 
-      <div className="absolute left-[115px] flex h-8 w-[255px] shrink-0 items-center">
-        <div className="flex flex-[1_0_0] items-center gap-[var(--sds-size-space-200)] self-stretch rounded-[36px] border border-[var(--Text-Support-Text,#757575)] bg-[rgba(23,23,23,0.7)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-100)]">
-          <HomeSearchIcon />
-          <LocationSearch
-            placeholder="Search Map"
-            onSelect={handleSearchSelect}
-            className="min-w-0 flex-1"
-            shellClassName={HOME_SEARCH_SHELL_CLASS}
-            hideSearchIcon
-            inputClassName={HOME_SEARCH_INPUT_CLASS}
-            dropdownTheme="dark"
-          />
+      {showFullNav ? (
+        <div className="absolute left-[115px] flex h-8 w-[255px] shrink-0 items-center">
+          <div className="flex flex-[1_0_0] items-center gap-[var(--sds-size-space-200)] self-stretch rounded-[36px] border border-[var(--Text-Support-Text,#757575)] bg-[rgba(23,23,23,0.7)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-100)]">
+            <HomeSearchIcon />
+            <LocationSearch
+              placeholder="Search Map"
+              onSelect={handleSearchSelect}
+              className="min-w-0 flex-1"
+              shellClassName={HOME_SEARCH_SHELL_CLASS}
+              hideSearchIcon
+              inputClassName={HOME_SEARCH_INPUT_CLASS}
+              dropdownTheme="dark"
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="flex h-12 items-center justify-center gap-1">
-        {NAV_LINKS.map((item) => (
-          <Link key={item.href} href={item.href} className={navLinkClassName}>
-            {item.label}
-          </Link>
-        ))}
+        {showFullNav ? (
+          <>
+            {NAV_LINKS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={navLinkClassName}
+              >
+                {item.label}
+              </Link>
+            ))}
 
-        {walletAddress ? (
-          <Link
-            href="/dashboard"
-            className="flex min-h-[44px] h-11 items-center gap-[var(--sds-size-space-400)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] transition-opacity hover:opacity-90"
-            aria-label="Go to dashboard"
-          >
-            <LeaderboardAvatar walletAddress={walletAddress} size={44} />
-          </Link>
-        ) : (
+            {walletAddress ? (
+              <Link
+                href="/dashboard"
+                className="flex min-h-[44px] h-11 items-center gap-[var(--sds-size-space-400)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] transition-opacity hover:opacity-90"
+                aria-label="Go to dashboard"
+              >
+                <LeaderboardAvatar walletAddress={walletAddress} size={44} />
+              </Link>
+            ) : null}
+          </>
+        ) : ready ? (
           <button
             type="button"
             onClick={login}
@@ -128,7 +140,7 @@ export function HomeDesktopNav() {
           >
             SIGN UP
           </button>
-        )}
+        ) : null}
       </div>
     </nav>
   );

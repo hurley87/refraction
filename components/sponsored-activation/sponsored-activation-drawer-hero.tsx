@@ -15,7 +15,7 @@ export function SponsoredActivationDrawerHero({
   perkValueLabel,
 }: SponsoredActivationDrawerHeroProps) {
   return (
-    <div className="relative left-1/2 min-h-[470px] w-screen -translate-x-1/2 overflow-hidden bg-neutral-200 md:left-auto md:w-full md:translate-x-0">
+    <div className="relative left-1/2 min-h-[470px] w-screen -translate-x-1/2 shrink-0 overflow-hidden bg-neutral-200 [@media(max-height:700px)]:min-h-[52svh] md:left-auto md:w-full md:translate-x-0">
       {heroImageUrl ? (
         <Image
           src={heroImageUrl}

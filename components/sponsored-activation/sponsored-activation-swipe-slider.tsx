@@ -26,7 +26,7 @@ export function SponsoredActivationSwipeSlider({
   disabled,
   onComplete,
   onSwipeGestureStart,
-  label = 'Swipe to Redeem',
+  label = 'SWIPE TO REDEEM ON TEMPO',
   redeemRequestSucceeded = false,
 }: SponsoredActivationSwipeSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
