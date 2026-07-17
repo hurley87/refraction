@@ -16,7 +16,7 @@ function renderDrawer(onClose = vi.fn()) {
         location={{
           placeId: 'place-1',
           name: 'Test Spot',
-          type: 'cafe',
+          category: { id: 'cat-1', name: 'Cafe', slug: 'cafe' },
           imageUrl: null,
         }}
         walletAddress={WALLET}

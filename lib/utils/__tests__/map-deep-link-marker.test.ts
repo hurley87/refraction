@@ -9,6 +9,6 @@ describe('buildDeepLinkMarkerFromQueryCoords', () => {
     expect(m.longitude).toBe(13.4);
     expect(m.name).toBe('Location');
     expect(m.imageUrl).toBeNull();
-    expect(m.type).toBe('location');
+    expect(m.category).toBeNull();
   });
 });

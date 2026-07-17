@@ -19,6 +19,15 @@ export type Player = {
 };
 
 /**
+ * Venue category summary embedded on locations (joined from `categories`).
+ */
+export type LocationCategory = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+/**
  * Check-in location with coordinates and coin data
  */
 export type Location = {
@@ -30,8 +39,10 @@ export type Location = {
   longitude: number;
   place_id: string;
   points_value: number;
-  /** Venue category slug from `categories.slug` (legacy rows may still use free text). */
-  type?: string;
+  /** Venue category (FK to `categories.id`). */
+  category_id?: string | null;
+  /** Embedded `categories` row resolved from `category_id`. */
+  category?: LocationCategory | null;
   event_url?: string | null;
   context?: string;
   city?: string | null;

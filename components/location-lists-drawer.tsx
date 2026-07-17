@@ -36,7 +36,7 @@ export type DrawerLocationSummary = Pick<
   | 'latitude'
   | 'longitude'
   | 'context'
-  | 'type'
+  | 'category'
   | 'points_value'
   | 'coin_image_url'
   | 'coin_image_thumb_url'
@@ -142,18 +142,13 @@ export default function LocationListsDrawer({
           latitude: location.latitude,
           longitude: location.longitude,
           context: location.context,
-          type: location.type,
+          category: location.category,
           points_value: location.points_value,
           coin_image_url: location.coin_image_url,
           coin_image_thumb_url: location.coin_image_thumb_url,
           event_url: location.event_url,
         })),
     [favoriteLocations]
-  );
-
-  const filteredFavoriteLocations = useMemo(
-    () => filterByMapBounds(favoriteDrawerLocations, mapBounds),
-    [favoriteDrawerLocations, mapBounds]
   );
 
   const { data: customLists = [] } = usePlayerCustomListLocations(
@@ -180,7 +175,7 @@ export default function LocationListsDrawer({
             latitude: location.latitude,
             longitude: location.longitude,
             context: location.context,
-            type: location.type,
+            category: location.category,
             points_value: location.points_value,
             coin_image_url: location.coin_image_url,
             coin_image_thumb_url: location.coin_image_thumb_url,
@@ -190,21 +185,13 @@ export default function LocationListsDrawer({
     [customLists]
   );
 
-  const filteredCustomLists = useMemo(
-    () =>
-      customDrawerLists
-        .map((list) => ({
-          ...list,
-          locations: filterByMapBounds(list.locations, mapBounds),
-        }))
-        .filter((list) => list.locations.length > 0),
-    [customDrawerLists, mapBounds]
-  );
-
-  const hasCustomListLocations = useMemo(
-    () => customDrawerLists.some((list) => list.locations.length > 0),
+  /** Custom lists with at least one saved location (never bounds-filtered). */
+  const populatedCustomLists = useMemo(
+    () => customDrawerLists.filter((list) => list.locations.length > 0),
     [customDrawerLists]
   );
+
+  const hasCustomListLocations = populatedCustomLists.length > 0;
 
   useEffect(() => {
     if (!fetchEnabled || hasFetchedLists) return;
@@ -340,14 +327,14 @@ export default function LocationListsDrawer({
     }
   }, [selectedListId, customDrawerLists]);
 
-  const hasVisibleFavorites = filteredFavoriteLocations.length > 0;
-  const hasVisibleCustomLists = filteredCustomLists.length > 0;
+  const hasVisibleFavorites = favoriteDrawerLocations.length > 0;
+  const hasVisibleCustomLists = populatedCustomLists.length > 0;
 
   const visiblePlaceIds = useMemo(() => {
     const ids = new Set<string>();
 
     if (layout === 'sidebar' && selectedListId === FAVORITES_LIST_ID) {
-      for (const location of filteredFavoriteLocations) {
+      for (const location of favoriteDrawerLocations) {
         if (location.place_id) {
           ids.add(location.place_id);
         }
@@ -373,7 +360,7 @@ export default function LocationListsDrawer({
       return [...ids];
     }
 
-    for (const location of filteredFavoriteLocations) {
+    for (const location of favoriteDrawerLocations) {
       if (location.place_id) {
         ids.add(location.place_id);
       }
@@ -387,7 +374,7 @@ export default function LocationListsDrawer({
       }
     }
 
-    for (const list of filteredCustomLists) {
+    for (const list of populatedCustomLists) {
       for (const location of list.locations) {
         if (location.place_id) {
           ids.add(location.place_id);
@@ -401,8 +388,8 @@ export default function LocationListsDrawer({
     selectedCustomList,
     selectedListId,
     listsWithSpotsInView,
-    filteredFavoriteLocations,
-    filteredCustomLists,
+    favoriteDrawerLocations,
+    populatedCustomLists,
   ]);
 
   useEffect(() => {
@@ -687,7 +674,7 @@ export default function LocationListsDrawer({
           </div>
           <div className="flex w-full min-h-0 items-center justify-between gap-1">
             <span className="label-small flex shrink-0 items-center justify-center gap-2 border border-[#171717] px-1 py-0.5 uppercase text-[#171717]">
-              {formatLocationCategory(location.type)}
+              {formatLocationCategory(location.category)}
             </span>
             <MapCheckinAvatarStack
               checkins={checkins}
@@ -710,7 +697,7 @@ export default function LocationListsDrawer({
         location.address?.trim() || location.context?.trim() || location.name
       }
       description={location.description}
-      type={location.type}
+      category={location.category}
       imageUrl={location.coin_image_thumb_url || location.coin_image_url}
       eventUrl={location.event_url}
       isExisting
@@ -811,7 +798,7 @@ export default function LocationListsDrawer({
               <div className="flex w-full flex-col gap-4">
                 <div className="flex w-full flex-wrap gap-2">
                   {(isFavoritesDetailView
-                    ? filteredFavoriteLocations
+                    ? favoriteDrawerLocations
                     : isCustomListDetailView
                       ? (selectedCustomList?.locations ?? [])
                       : (selectedList?.locations ?? [])
@@ -877,7 +864,7 @@ export default function LocationListsDrawer({
                         </button>
                       ) : (
                         <span className="font-anonymous shrink-0 text-[10px] text-[#999]">
-                          {`${filteredFavoriteLocations.length} spots`}
+                          {`${favoriteDrawerLocations.length} spots`}
                         </span>
                       )}
                     </div>
@@ -888,7 +875,7 @@ export default function LocationListsDrawer({
                           : 'flex gap-2 overflow-x-auto pb-1 -mx-1 px-1'
                       }
                     >
-                      {filteredFavoriteLocations.map((location) =>
+                      {favoriteDrawerLocations.map((location) =>
                         isSidebar
                           ? renderDrawerTile(location)
                           : renderMobileCarouselCard(location)
@@ -901,7 +888,7 @@ export default function LocationListsDrawer({
                     <h3 className="title3 min-w-0 text-[#1a1a1a]">
                       Your Lists
                     </h3>
-                    {filteredCustomLists.map((list) => (
+                    {populatedCustomLists.map((list) => (
                       <div key={list.id} className="space-y-2">
                         <div className="flex items-center justify-between gap-2">
                           <h3 className="title4 min-w-0 text-[#1a1a1a]">

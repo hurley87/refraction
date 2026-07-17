@@ -90,8 +90,8 @@ type NewLocationFormState = {
   walletAddress: string;
   username: string;
   locationImageFile: File | null;
-  /** `categories.slug` persisted as `locations.type`. */
-  categorySlug: string;
+  /** `categories.id` persisted as `locations.category_id`. */
+  categoryId: string;
   eventUrl: string;
 };
 
@@ -105,7 +105,7 @@ type CreateLocationVariables = {
   walletAddress: string;
   username?: string;
   imageFile: File;
-  type: string;
+  categoryId: string;
   eventUrl?: string;
 };
 
@@ -137,7 +137,7 @@ const createLocationSchema = z.object({
     ),
   walletAddress: z.string().min(4, 'Wallet address is required'),
   username: z.string().optional(),
-  categorySlug: z.string().min(1, 'Category is required'),
+  categoryId: z.string().min(1, 'Category is required'),
   eventUrl: z
     .union([z.string().url('Event URL must be a valid URL'), z.literal('')])
     .optional()
@@ -186,7 +186,7 @@ export default function AdminLocationListsPage() {
     walletAddress: '',
     username: '',
     locationImageFile: null,
-    categorySlug: '',
+    categoryId: '',
     eventUrl: '',
   });
   const [fileInputKey, setFileInputKey] = useState(0);
@@ -680,7 +680,7 @@ export default function AdminLocationListsPage() {
       walletAddress,
       username,
       imageFile,
-      type,
+      categoryId,
       eventUrl,
     }: CreateLocationVariables) => {
       const uploadForm = new FormData();
@@ -719,7 +719,7 @@ export default function AdminLocationListsPage() {
           description: description?.trim() || null,
           lat: latitude.toString(),
           lon: longitude.toString(),
-          type: type || 'location',
+          categoryId,
           eventUrl: eventUrl?.trim() || null,
           walletAddress,
           username,
@@ -747,7 +747,7 @@ export default function AdminLocationListsPage() {
         walletAddress: prev.walletAddress,
         username: prev.username,
         locationImageFile: null,
-        categorySlug: '',
+        categoryId: '',
         eventUrl: '',
       }));
       setFileInputKey((prev) => prev + 1);
@@ -880,7 +880,7 @@ export default function AdminLocationListsPage() {
       longitude: newLocationForm.longitude,
       walletAddress: newLocationForm.walletAddress,
       username: newLocationForm.username,
-      categorySlug: newLocationForm.categorySlug,
+      categoryId: newLocationForm.categoryId,
       eventUrl: newLocationForm.eventUrl,
     });
 
@@ -898,7 +898,6 @@ export default function AdminLocationListsPage() {
     createLocationMutation.mutate({
       ...parsed.data,
       address: newLocationForm.address || parsed.data.name, // Use form address or fallback to name
-      type: parsed.data.categorySlug,
       imageFile: newLocationForm.locationImageFile,
     });
   };
@@ -1787,11 +1786,11 @@ export default function AdminLocationListsPage() {
             <div className="space-y-1">
               <Label htmlFor="new-location-category">Category</Label>
               <Select
-                value={newLocationForm.categorySlug || undefined}
+                value={newLocationForm.categoryId || undefined}
                 onValueChange={(value) =>
                   setNewLocationForm((prev) => ({
                     ...prev,
-                    categorySlug: value,
+                    categoryId: value,
                   }))
                 }
               >
@@ -1800,7 +1799,7 @@ export default function AdminLocationListsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.slug}>
+                    <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
                   ))}

@@ -1,6 +1,7 @@
 /**
- * Deduce `locations.type` as a `categories.slug` from each row's name + description
- * (and legacy freeform type labels when present).
+ * Deduce `locations.category_id` (FK to `categories.id`) from each row's
+ * name + description. Classification happens on slugs internally and is
+ * translated to/from category ids when reading and writing.
  *
  * Usage:
  *   node scripts/classify-location-types.mjs           # dry-run
@@ -33,12 +34,12 @@ const TYPE_ALIASES = new Map(
     'bars & nightlife': 'bar',
     'nightlife & hi-fi': 'bar',
     'audiophile & hi-fi': 'bar',
-    cafe: 'cafes',
-    cafes: 'cafes',
-    coffee: 'cafes',
-    'coffee & cafés': 'cafes',
-    'coffee & cafes': 'cafes',
-    'coffee & breakfast': 'cafes',
+    cafe: 'cafe',
+    cafes: 'cafe',
+    coffee: 'cafe',
+    'coffee & cafés': 'cafe',
+    'coffee & cafes': 'cafe',
+    'coffee & breakfast': 'cafe',
     club: 'club',
     'conscious clubbing': 'club',
     conference: 'conference',
@@ -196,7 +197,7 @@ const KEYWORD_RULES = [
     patterns: [/\bsoftwares?\b/, /\bsaas\b/, /\bapps?\b/, /\bplatforms?\b/],
   },
   {
-    slug: 'cafes',
+    slug: 'cafe',
     patterns: [
       /\bcaf[eé]s?\b/,
       /\bcoffees?\b/,
@@ -290,7 +291,7 @@ function scoreKeywords(nameText, descText) {
 function classifyLocation(row, activeSlugs) {
   const nameText = normalizeText(row.name);
   const descText = normalizeText(row.description);
-  const current = (row.type ?? '').trim();
+  const current = (row.currentSlug ?? '').trim();
   const currentKey = current.toLowerCase();
 
   const alias = TYPE_ALIASES.get(currentKey);
@@ -318,10 +319,10 @@ function classifyLocation(row, activeSlugs) {
   // Prefer cafes over restaurant when both coffee + food signals
   if (
     slug === 'restaurant' &&
-    (scores.get('cafes') ?? 0) >= 3 &&
-    (scores.get('cafes') ?? 0) >= confidence - 1
+    (scores.get('cafe') ?? 0) >= 3 &&
+    (scores.get('cafe') ?? 0) >= confidence - 1
   ) {
-    return { slug: 'cafes', reason: 'keyword/cafes (coffee bias)', confidence: scores.get('cafes') };
+    return { slug: 'cafe', reason: 'keyword/cafes (coffee bias)', confidence: scores.get('cafe') };
   }
   // Prefer bar over club when "listening bar" / hi-fi dominate
   if (
@@ -341,7 +342,7 @@ async function fetchAllLocations() {
   for (;;) {
     const { data, error } = await supabase
       .from('locations')
-      .select('id,name,description,type')
+      .select('id,name,description,category_id')
       .order('id', { ascending: true })
       .range(from, from + 999);
     if (error) throw error;
@@ -356,22 +357,20 @@ async function fetchAllLocations() {
 async function main() {
   const { data: categories, error: catErr } = await supabase
     .from('categories')
-    .select('slug,name,is_active');
+    .select('id,slug,name,is_active');
   if (catErr) throw catErr;
 
-  const allSlugs = new Set(categories.map((c) => c.slug));
   // Prefer active categories for assignment; inactive (e.g. coffee) remapped via aliases.
   const activeSlugs = new Set(
     categories.filter((c) => c.is_active).map((c) => c.slug)
   );
-  // Ensure inactive slugs that aliases might target can still work if needed
-  for (const slug of allSlugs) {
-    if (!activeSlugs.has(slug) && slug === 'coffee' && activeSlugs.has('cafes')) {
-      // coffee → cafes handled in aliases
-    }
-  }
+  const slugById = new Map(categories.map((c) => [c.id, c.slug]));
+  const idBySlug = new Map(categories.map((c) => [c.slug, c.id]));
 
-  const locations = await fetchAllLocations();
+  const locations = (await fetchAllLocations()).map((row) => ({
+    ...row,
+    currentSlug: row.category_id ? (slugById.get(row.category_id) ?? '') : '',
+  }));
   console.log(`Locations: ${locations.length}`);
   console.log(`Active categories: ${[...activeSlugs].join(', ')}`);
   console.log(APPLY ? 'MODE: APPLY' : 'MODE: dry-run (pass --apply to write)');
@@ -386,15 +385,16 @@ async function main() {
       throw new Error(`Classifier produced inactive/unknown slug: ${result.slug}`);
     }
     bySlug[result.slug] = (bySlug[result.slug] || 0) + 1;
-    if (row.type === result.slug) {
+    if (row.currentSlug === result.slug) {
       unchanged.push(row.id);
       continue;
     }
     changes.push({
       id: row.id,
       name: row.name,
-      from: row.type,
+      from: row.currentSlug || null,
       to: result.slug,
+      toCategoryId: idBySlug.get(result.slug),
       reason: result.reason,
       confidence: result.confidence,
     });
@@ -429,7 +429,7 @@ async function main() {
       batch.map(async (c) => {
         const { error } = await supabase
           .from('locations')
-          .update({ type: c.to })
+          .update({ category_id: c.toCategoryId })
           .eq('id', c.id);
         if (error) {
           failed += 1;

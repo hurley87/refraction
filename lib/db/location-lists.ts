@@ -7,7 +7,7 @@ import type {
 } from '../types';
 
 const locationSelection =
-  'id, name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, coin_address, coin_symbol, coin_name, coin_image_url, coin_image_thumb_url, creator_wallet_address, creator_username';
+  'id, name, address, description, latitude, longitude, place_id, points_value, category_id, category:categories(id, name, slug), event_url, context, coin_address, coin_symbol, coin_name, coin_image_url, coin_image_thumb_url, creator_wallet_address, creator_username';
 
 type LocationListInput = {
   title: string;
@@ -219,7 +219,9 @@ export const addLocationToList = async (
     list_id: data.list_id,
     location_id: data.location_id,
     created_at: data.created_at,
-    location: location as Location,
+    // PostgREST returns the embedded `category` as a single object for this
+    // many-to-one join, but the client's static inference types it as an array.
+    location: location as unknown as Location,
   } as LocationListLocation;
 };
 

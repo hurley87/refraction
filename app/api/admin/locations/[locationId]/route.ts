@@ -4,7 +4,7 @@ import { deleteLocationById, updateLocationById } from '@/lib/db/locations';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { getAuthenticatedAdminEmail } from '@/lib/auth';
 
-/** Admin PATCH body. `type` stores a `categories.slug` (venue category). */
+/** Admin PATCH body. `categoryId` is a `categories.id` UUID (venue category). */
 const updateLocationSchema = z.object({
   name: z.string().min(1).optional(),
   address: z.string().max(500).nullable().optional(),
@@ -15,7 +15,7 @@ const updateLocationSchema = z.object({
   walletAddress: z.string().optional(),
   username: z.string().optional(),
   imageUrl: z.string().url().nullable().optional(),
-  type: z.string().optional(),
+  categoryId: z.string().uuid().nullable().optional(),
   eventUrl: z.string().url().nullable().optional(),
   isVisible: z.boolean().optional(),
 });
@@ -60,7 +60,8 @@ export async function PATCH(
       updates.creator_username = payload.username || null;
     if (payload.imageUrl !== undefined)
       updates.coin_image_url = payload.imageUrl || null;
-    if (payload.type !== undefined) updates.type = payload.type.trim() || null;
+    if (payload.categoryId !== undefined)
+      updates.category_id = payload.categoryId;
     if (payload.eventUrl !== undefined)
       updates.event_url = payload.eventUrl?.trim() || null;
     if (payload.isVisible !== undefined) updates.is_visible = payload.isVisible;

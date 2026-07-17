@@ -6,7 +6,6 @@ interface LocationSuggestion {
   name: string;
   lat: string;
   lon: string;
-  type?: string;
   context?: string;
 }
 

@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
       return apiError('Unauthorized - Admin access required', 403);
     }
 
-    const locations = (await listAllLocations()) as Location[];
+    // Embedded `category` is a single object at runtime (many-to-one join),
+    // but supabase-js statically infers it as an array.
+    const locations = (await listAllLocations()) as unknown as Location[];
 
     const header = ['Name', 'Address', 'City', 'Description'].join(',');
     const lines = locations.map((location) =>

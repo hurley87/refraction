@@ -112,7 +112,7 @@ describe('Location Schemas', () => {
       const fullLocation = {
         ...validLocation,
         description: 'A beautiful park in Manhattan',
-        type: 'park',
+        category_id: '9928ee63-7c4f-4933-9f6b-aa33612f41db',
         event_url: 'https://centralparknyc.org/events',
         context: 'some-context',
         coin_address: '0x1234567890abcdef1234567890abcdef12345678',
@@ -293,7 +293,7 @@ describe('Location Schemas', () => {
         creator_wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
         creator_username: 'newuser',
         coin_image_url: 'https://example.com/new-coin.png',
-        type: 'restaurant',
+        category_id: '315074d0-4cda-4b5c-9a68-9ff26a56f65c',
         event_url: 'https://example.com/event',
       });
       expect(result.success).toBe(true);

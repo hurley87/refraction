@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,12 +13,6 @@ import type { Location } from '@/lib/types';
 import Image from 'next/image';
 
 const LOCATIONS_KEY = ['admin-locations'] as const;
-
-type CategoryOption = {
-  id: string;
-  name: string;
-  slug: string;
-};
 
 export default function AdminLocationsPage() {
   const { user, login, getAccessToken } = usePrivy();
@@ -85,34 +79,10 @@ export default function AdminLocationsPage() {
     enabled: !!isAdmin && !!user?.email?.address,
   });
 
-  const { data: categories = [] } = useQuery<CategoryOption[]>({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      const response = await fetch('/api/categories');
-      if (!response.ok) throw new Error('Failed to fetch categories');
-      const responseData = await response.json();
-      const data = responseData.data ?? responseData;
-      return Array.isArray(data) ? data : [];
-    },
-    enabled: !!isAdmin,
-  });
-
-  const categoryNameBySlug = useMemo(() => {
-    const map = new Map<string, string>();
-    categories.forEach((category) => map.set(category.slug, category.name));
-    return map;
-  }, [categories]);
-
   const formatCategoryLabel = useCallback(
-    (type?: string | null) => {
-      const slug = type?.trim();
-      if (!slug) return '—';
-      return (
-        categoryNameBySlug.get(slug) ??
-        slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-      );
-    },
-    [categoryNameBySlug]
+    (category?: { name?: string | null } | null) =>
+      category?.name?.trim() || '—',
+    []
   );
 
   const filteredLocations = allLocations.filter((loc: Location) =>
@@ -359,7 +329,7 @@ export default function AdminLocationsPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">
-                          {formatCategoryLabel(location.type)}
+                          {formatCategoryLabel(location.category)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">

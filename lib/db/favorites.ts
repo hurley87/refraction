@@ -10,7 +10,8 @@ const LOCATION_COLUMNS = `
   longitude,
   place_id,
   points_value,
-  type,
+  category_id,
+  category:categories(id, name, slug),
   event_url,
   context,
   city,
@@ -100,7 +101,9 @@ export const listFavoriteLocationsByPlayer = async (
       const location = Array.isArray(row.locations)
         ? row.locations[0]
         : row.locations;
-      return location as Location | null;
+      // Embedded `category` is a single object at runtime (many-to-one join),
+      // but supabase-js statically infers it as an array.
+      return location as unknown as Location | null;
     })
     .filter((loc): loc is Location => loc != null);
 };

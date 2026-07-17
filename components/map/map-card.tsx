@@ -10,6 +10,7 @@ import {
 import { formatLocationCategory } from '@/lib/utils/format-location-category';
 import { MapCheckinAvatarStack } from '@/components/map/map-checkin-avatar-stack';
 import type { MapCheckinAvatarEntry } from '@/lib/map/checkin-avatar-utils';
+import type { LocationCategory } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface MapCardProps {
@@ -30,8 +31,8 @@ interface MapCardProps {
   variant?: 'default' | 'createPreview' | 'drawerTile';
   /** Label for the primary button when `variant` is `createPreview`. */
   createPreviewActionLabel?: string;
-  /** Location category (e.g. from marker `type`); shown on default variant only. */
-  type?: string | null;
+  /** Venue category (embedded `categories` row); shown on default variant only. */
+  category?: LocationCategory | null;
   /** Recent check-ins for `drawerTile` avatar stack. */
   recentCheckins?: MapCheckinAvatarEntry[];
   isFavorited?: boolean;
@@ -135,7 +136,7 @@ export default function MapCard({
   eventUrl,
   variant = 'default',
   createPreviewActionLabel = 'Create and check in',
-  type,
+  category,
   recentCheckins = [],
   isFavorited,
   onToggleFavorite,
@@ -257,7 +258,7 @@ export default function MapCard({
             </span>
             <div className="flex min-h-0 items-center justify-between gap-1">
               <span className="flex shrink-0 label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5 uppercase  text-[#171717]">
-                {formatLocationCategory(type)}
+                {formatLocationCategory(category)}
               </span>
               <MapCheckinAvatarStack
                 checkins={recentCheckins}
@@ -340,7 +341,7 @@ export default function MapCard({
 
         <div className="flex w-full items-center self-stretch">
           <p className="flex label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5 uppercase tracking-[0.3px] text-[#171717]">
-            {formatLocationCategory(type)}
+            {formatLocationCategory(category)}
           </p>
         </div>
 

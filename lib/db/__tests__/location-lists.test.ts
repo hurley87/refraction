@@ -44,7 +44,8 @@ describe('Location Lists Database Module', () => {
     longitude: -74.006,
     place_id: 'test-place-123',
     points_value: 100,
-    type: 'venue',
+    category_id: 'cat-1',
+    category: { id: 'cat-1', name: 'Bar', slug: 'bar' },
     event_url: null,
     context: null,
     coin_address: null,
@@ -63,7 +64,12 @@ describe('Location Lists Database Module', () => {
     it('should return lists from RPC when available', async () => {
       const rpcData = [
         { ...sampleList, location_count: 5 },
-        { ...sampleList, id: 'list-2', title: 'Second List', location_count: 3 },
+        {
+          ...sampleList,
+          id: 'list-2',
+          title: 'Second List',
+          location_count: 3,
+        },
       ];
 
       mockRpc.mockResolvedValueOnce({ data: rpcData, error: null });
@@ -75,7 +81,10 @@ describe('Location Lists Database Module', () => {
     });
 
     it('should fall back to two-query approach when RPC fails', async () => {
-      const lists = [sampleList, { ...sampleList, id: 'list-2', title: 'Second List' }];
+      const lists = [
+        sampleList,
+        { ...sampleList, id: 'list-2', title: 'Second List' },
+      ];
       const memberships = [
         { list_id: 'list-1' },
         { list_id: 'list-1' },
@@ -171,7 +180,9 @@ describe('Location Lists Database Module', () => {
         if (callCount === 1) {
           return {
             select: vi.fn(() => ({
-              order: vi.fn().mockResolvedValue({ data: [sampleList], error: null }),
+              order: vi
+                .fn()
+                .mockResolvedValue({ data: [sampleList], error: null }),
             })),
           };
         }
@@ -195,7 +206,9 @@ describe('Location Lists Database Module', () => {
       mockFrom.mockReturnValue({
         insert: vi.fn(() => ({
           select: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: sampleList, error: null }),
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: sampleList, error: null }),
           })),
         })),
       });
@@ -215,7 +228,9 @@ describe('Location Lists Database Module', () => {
       mockFrom.mockReturnValue({
         insert: vi.fn(() => ({
           select: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: sampleList, error: null }),
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: sampleList, error: null }),
           })),
         })),
       });
@@ -254,13 +269,17 @@ describe('Location Lists Database Module', () => {
         update: vi.fn(() => ({
           eq: vi.fn(() => ({
             select: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({ data: updatedList, error: null }),
+              single: vi
+                .fn()
+                .mockResolvedValue({ data: updatedList, error: null }),
             })),
           })),
         })),
       });
 
-      const result = await updateLocationList('list-1', { title: 'Updated Title' });
+      const result = await updateLocationList('list-1', {
+        title: 'Updated Title',
+      });
 
       expect(result).toEqual(updatedList);
       expect(result.title).toBe('Updated Title');
@@ -330,7 +349,9 @@ describe('Location Lists Database Module', () => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            order: vi.fn().mockResolvedValue({ data: membershipData, error: null }),
+            order: vi
+              .fn()
+              .mockResolvedValue({ data: membershipData, error: null }),
           })),
         })),
       });
@@ -364,7 +385,9 @@ describe('Location Lists Database Module', () => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            order: vi.fn().mockResolvedValue({ data: membershipData, error: null }),
+            order: vi
+              .fn()
+              .mockResolvedValue({ data: membershipData, error: null }),
           })),
         })),
       });
@@ -389,7 +412,9 @@ describe('Location Lists Database Module', () => {
       mockFrom.mockReturnValue({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            order: vi.fn().mockResolvedValue({ data: membershipData, error: null }),
+            order: vi
+              .fn()
+              .mockResolvedValue({ data: membershipData, error: null }),
           })),
         })),
       });
@@ -446,7 +471,9 @@ describe('Location Lists Database Module', () => {
       mockFrom.mockReturnValue({
         insert: vi.fn(() => ({
           select: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: insertedData, error: null }),
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: insertedData, error: null }),
           })),
         })),
       });
@@ -472,7 +499,9 @@ describe('Location Lists Database Module', () => {
       mockFrom.mockReturnValue({
         insert: vi.fn(() => ({
           select: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: insertedData, error: null }),
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: insertedData, error: null }),
           })),
         })),
       });
@@ -494,7 +523,9 @@ describe('Location Lists Database Module', () => {
       mockFrom.mockReturnValue({
         insert: vi.fn(() => ({
           select: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({ data: insertedData, error: null }),
+            single: vi
+              .fn()
+              .mockResolvedValue({ data: insertedData, error: null }),
           })),
         })),
       });
@@ -533,7 +564,9 @@ describe('Location Lists Database Module', () => {
         })),
       });
 
-      await expect(removeLocationFromList('list-1', 1)).resolves.toBeUndefined();
+      await expect(
+        removeLocationFromList('list-1', 1)
+      ).resolves.toBeUndefined();
       expect(mockFrom).toHaveBeenCalledWith('location_list_members');
     });
 
