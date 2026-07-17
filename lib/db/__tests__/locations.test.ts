@@ -32,7 +32,8 @@ describe('Locations Database Module', () => {
     longitude: -74.006,
     place_id: 'test-place-123',
     points_value: 100,
-    type: 'venue',
+    category_id: 'cat-1',
+    category: { id: 'cat-1', name: 'Bar', slug: 'bar' },
     created_at: '2024-01-01T00:00:00Z',
   };
 

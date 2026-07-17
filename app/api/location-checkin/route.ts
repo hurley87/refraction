@@ -37,12 +37,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate location data
-    const { place_id, name, address, lat, lon, type, context } = locationData;
+    const { place_id, name, address, lat, lon, context } = locationData;
 
     const sanitizedPlaceId = sanitizeString(place_id);
     const sanitizedName = sanitizeString(name) ?? sanitizeString(place_id);
     const sanitizedAddress = sanitizeString(address) ?? sanitizedName; // Fallback to name if address not provided
-    const sanitizedType = sanitizeString(type);
     const sanitizedContext =
       sanitizeString(context) ??
       (context && typeof context === 'object'
@@ -96,14 +95,14 @@ export async function POST(request: NextRequest) {
     const player = await createOrUpdatePlayer(playerData);
 
     // Create or get location (must record creator; legacy is_visible=false rows use gate below)
-    const locationInfo: Omit<Location, 'id' | 'created_at'> = {
+    // Check-in-created rows have no venue category; admins can assign one later.
+    const locationInfo: Omit<Location, 'id' | 'created_at' | 'category'> = {
       place_id: sanitizedPlaceId,
       name: sanitizedName,
       address: sanitizedAddress,
       latitude: parsedLat,
       longitude: parsedLon,
       points_value: 100, // Each location is worth 100 points
-      type: sanitizedType || 'location',
       context: sanitizedContext,
       is_visible: true,
       creator_wallet_address: walletAddress.trim(),

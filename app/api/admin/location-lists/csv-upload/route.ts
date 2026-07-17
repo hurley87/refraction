@@ -11,7 +11,6 @@ export const maxDuration = 60;
 
 const BATCH_SIZE = 5;
 const DESCRIPTION_MAX_LENGTH = 500;
-const TYPE_MAX_LENGTH = 50;
 const POINTS_VALUE = 100;
 const DOWNLOAD_TIMEOUT_MS = 10_000;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -353,7 +352,23 @@ type RowContext = {
   creatorWalletAddress: string;
   creatorUsername: string;
   adminDistinctId: string;
+  /** Lookup from lowercased category name/slug to the `categories` row. */
+  categoriesByKey: Map<string, { id: string; slug: string }>;
 };
+
+/** Resolve a freeform CSV category label to a known `categories` row. */
+function resolveCategory(
+  label: string,
+  categoriesByKey: Map<string, { id: string; slug: string }>
+): { id: string; slug: string } | null {
+  const trimmed = label.trim().toLowerCase();
+  if (!trimmed) return null;
+  return (
+    categoriesByKey.get(trimmed) ??
+    categoriesByKey.get(slugify(trimmed)) ??
+    null
+  );
+}
 
 async function processRow(
   row: CsvRow,
@@ -456,6 +471,7 @@ async function processRow(
       addressSlug || `row${rowNum}`
     );
     const rowDescription = row.quote?.slice(0, DESCRIPTION_MAX_LENGTH) || null;
+    const category = resolveCategory(row.category ?? '', ctx.categoriesByKey);
 
     const { data: locationData, error: locationError } = await supabase
       .from('locations')
@@ -468,7 +484,7 @@ async function processRow(
           latitude,
           longitude,
           points_value: POINTS_VALUE,
-          type: row.category?.trim().slice(0, TYPE_MAX_LENGTH) || null,
+          category_id: category?.id ?? null,
           event_url: null,
           context: JSON.stringify({
             recommendedBy: row.recommendedBy || null,
@@ -510,7 +526,7 @@ async function processRow(
     trackLocationCreated(ctx.adminDistinctId, {
       location_id: locationData.id,
       place_id: placeId,
-      type: row.category?.trim().slice(0, TYPE_MAX_LENGTH) || undefined,
+      type: category?.slug,
       creator_wallet_address: ctx.creatorWalletAddress || undefined,
     });
 
@@ -592,6 +608,19 @@ export async function POST(request: NextRequest) {
       walletAddress: creatorWalletAddress || undefined,
     });
 
+    // Categories lookup so CSV labels (name or slug) resolve to category ids.
+    const { data: categoryRows, error: categoriesError } = await supabase
+      .from('categories')
+      .select('id, name, slug');
+    if (categoriesError) throw categoriesError;
+
+    const categoriesByKey = new Map<string, { id: string; slug: string }>();
+    for (const row of categoryRows ?? []) {
+      const entry = { id: row.id as string, slug: row.slug as string };
+      categoriesByKey.set(String(row.slug).toLowerCase(), entry);
+      categoriesByKey.set(String(row.name).toLowerCase(), entry);
+    }
+
     const ctx: RowContext = {
       listSlug,
       listId: listData.id,
@@ -600,6 +629,7 @@ export async function POST(request: NextRequest) {
       creatorWalletAddress,
       creatorUsername,
       adminDistinctId,
+      categoriesByKey,
     };
 
     const results: ImportResult[] = [];

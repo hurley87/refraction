@@ -27,7 +27,7 @@ export const createLocationSchema = z.object({
   longitude: longitudeSchema,
   place_id: z.string().min(1),
   points_value: z.number().int().min(0),
-  type: z.string().optional(),
+  category_id: z.string().uuid().nullable().optional(),
   event_url: z.string().url().nullable().optional(),
   context: z.string().optional(),
   coin_address: z.string().optional(),
@@ -53,7 +53,7 @@ export const updateLocationSchema = z.object({
   creator_username: z.string().optional(),
   coin_image_url: z.string().url().nullable().optional(),
   coin_image_thumb_url: z.string().url().nullable().optional(),
-  type: z.string().optional(),
+  category_id: z.string().uuid().nullable().optional(),
   event_url: z.string().url().nullable().optional(),
 });
 

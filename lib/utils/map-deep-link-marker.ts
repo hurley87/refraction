@@ -1,3 +1,5 @@
+import type { LocationCategory } from '@/lib/types';
+
 export type DeepLinkMarkerShape = {
   latitude: number;
   longitude: number;
@@ -6,7 +8,7 @@ export type DeepLinkMarkerShape = {
   address?: string | null;
   description?: string | null;
   imageUrl?: string | null;
-  type?: string;
+  category?: LocationCategory | null;
   points_value?: number | null;
 };
 
@@ -28,7 +30,7 @@ export function buildDeepLinkMarkerFromQueryCoords(
     address: null,
     description: null,
     imageUrl: null,
-    type: 'location',
+    category: null,
     points_value: 100,
   };
 }

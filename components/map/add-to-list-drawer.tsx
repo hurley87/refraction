@@ -6,6 +6,7 @@ import { Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { formatLocationCategory } from '@/lib/utils/format-location-category';
+import type { LocationCategory } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
   usePlayerCustomLists,
@@ -16,7 +17,7 @@ import {
 interface AddToListLocation {
   placeId: string;
   name: string;
-  type?: string | null;
+  category?: LocationCategory | null;
   imageUrl?: string | null;
 }
 
@@ -324,8 +325,8 @@ export default function AddToListDrawer({
         </form>
       ) : (
         <>
-          {/* Row 2: location being added */}
-          <div className="flex shrink-0 items-center gap-2 px-4 pb-2">
+          {/* Row 2: location being added + CREATE NEW LIST link (anchored right) */}
+          <div className="flex shrink-0 items-center gap-2 px-4 pb-2 border-b border-[#DBDBDB]">
             <div className="relative flex h-[42px] w-[41px] shrink-0 items-start justify-end gap-2 overflow-hidden bg-neutral-100 p-2">
               {location.imageUrl ? (
                 <Image
@@ -337,27 +338,25 @@ export default function AddToListDrawer({
                 />
               ) : null}
             </div>
-            <div className="flex min-w-0 flex-col items-start gap-1">
+            <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
               <span className="title5 w-full truncate text-[#171717]">
                 {location.name}
               </span>
               <span className="label-small flex shrink-0 items-center justify-center gap-2 border border-[#171717] px-1 py-0.5 uppercase text-[#171717]">
-                {formatLocationCategory(location.type)}
+                {formatLocationCategory(location.category)}
               </span>
             </div>
+            <button
+              type="button"
+              onClick={() => setView('create')}
+              className="ml-auto flex shrink-0 items-center gap-[var(--sds-size-space-200)] self-end border-b border-[#171717] transition-opacity hover:opacity-80"
+            >
+              <span className="label-medium uppercase tracking-wide text-[#171717]">
+                CREATE NEW LIST
+              </span>
+              <CreateNewListIcon />
+            </button>
           </div>
-
-          {/* CREATE NEW LIST link */}
-          <button
-            type="button"
-            onClick={() => setView('create')}
-            className="flex shrink-0 items-center gap-[var(--sds-size-space-200)] px-4 py-3 transition-opacity hover:opacity-80"
-          >
-            <span className="label-medium uppercase tracking-wide text-[#171717]">
-              NEW COLLECTION
-            </span>
-            <CreateNewListIcon />
-          </button>
 
           {/* User's lists */}
           <div className="min-h-0 flex-1 overflow-y-auto">

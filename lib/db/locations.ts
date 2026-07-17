@@ -18,7 +18,8 @@ const LOCATION_COLUMNS = `
   longitude,
   place_id,
   points_value,
-  type,
+  category_id,
+  category:categories(id, name, slug),
   event_url,
   context,
   city,
@@ -41,7 +42,7 @@ const LOCATION_COLUMNS = `
  * `creator_wallet_address`, breaking moderation and the hidden-location gate.
  */
 export const createOrGetLocation = async (
-  locationData: Omit<Location, 'id' | 'created_at'>
+  locationData: Omit<Location, 'id' | 'created_at' | 'category'>
 ) => {
   const { data: existingLocation, error: selectError } = await supabase
     .from('locations')
@@ -108,7 +109,7 @@ export const listLocationsByWallet = async (walletAddress: string) => {
     .select(
       `
       locations (
-        id, name, address, latitude, longitude, place_id, points_value, type, context, created_at
+        id, name, address, latitude, longitude, place_id, points_value, category_id, category:categories(id, name, slug), context, created_at
       )
     `
     )
@@ -135,7 +136,7 @@ export const updateLocationById = async (
       | 'creator_username'
       | 'coin_image_url'
       | 'coin_image_thumb_url'
-      | 'type'
+      | 'category_id'
       | 'event_url'
       | 'is_visible'
       | 'city'
@@ -152,7 +153,9 @@ export const updateLocationById = async (
     .single();
 
   if (error) throw error;
-  return data as Location;
+  // Embedded `category` is a single object at runtime (many-to-one join),
+  // but supabase-js statically infers it as an array.
+  return data as unknown as Location;
 };
 
 /**

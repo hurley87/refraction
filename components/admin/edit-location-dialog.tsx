@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type FormEvent,
-} from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -64,8 +58,8 @@ const editLocationSchema = z.object({
     ),
   walletAddress: z.string().optional(),
   username: z.string().optional(),
-  /** `categories.slug` persisted on `locations.type`. */
-  categorySlug: z.string().min(1, 'Category is required'),
+  /** `categories.id` persisted on `locations.category_id`. */
+  categoryId: z.string().min(1, 'Category is required'),
   eventUrl: z
     .union([z.string().url('Event URL must be a valid URL'), z.literal('')])
     .optional()
@@ -83,7 +77,7 @@ type EditLocationFormState = {
   username: string;
   currentImageUrl: string;
   locationImageFile: File | null;
-  categorySlug: string;
+  categoryId: string;
   eventUrl: string;
 };
 
@@ -98,17 +92,11 @@ const EMPTY_FORM: EditLocationFormState = {
   username: '',
   currentImageUrl: '',
   locationImageFile: null,
-  categorySlug: '',
+  categoryId: '',
   eventUrl: '',
 };
 
-function formFromLocation(
-  location: Location,
-  knownSlugs: Set<string>
-): EditLocationFormState {
-  const rawType = location.type?.trim() ?? '';
-  const categorySlug = knownSlugs.has(rawType) ? rawType : '';
-
+function formFromLocation(location: Location): EditLocationFormState {
   return {
     placeId: location.place_id,
     name: location.name,
@@ -120,7 +108,7 @@ function formFromLocation(
     username: location.creator_username ?? '',
     currentImageUrl: location.coin_image_url ?? '',
     locationImageFile: null,
-    categorySlug,
+    categoryId: location.category_id ?? location.category?.id ?? '',
     eventUrl: location.event_url ?? '',
   };
 }
@@ -134,7 +122,7 @@ export type EditLocationDialogProps = {
 
 /**
  * Shared admin dialog for editing a location.
- * Category options come from `/api/categories`; selected slug is saved as `locations.type`.
+ * Category options come from `/api/categories`; selected id is saved as `locations.category_id`.
  */
 export function EditLocationDialog({
   open,
@@ -157,16 +145,11 @@ export function EditLocationDialog({
     },
   });
 
-  const knownSlugs = useMemo(
-    () => new Set(categories.map((category) => category.slug)),
-    [categories]
-  );
-
   useEffect(() => {
     if (!open || !location) return;
-    setForm(formFromLocation(location, knownSlugs));
+    setForm(formFromLocation(location));
     setFileInputKey((prev) => prev + 1);
-  }, [open, location, knownSlugs]);
+  }, [open, location]);
 
   const locationId = location?.id;
 
@@ -185,7 +168,7 @@ export function EditLocationDialog({
         longitude: form.longitude,
         walletAddress: form.walletAddress,
         username: form.username,
-        categorySlug: form.categorySlug,
+        categoryId: form.categoryId,
         eventUrl: form.eventUrl,
       });
 
@@ -241,7 +224,7 @@ export function EditLocationDialog({
           walletAddress: payload.walletAddress?.trim() || null,
           username: payload.username?.trim() || null,
           imageUrl: imageUrl || null,
-          type: payload.categorySlug,
+          categoryId: payload.categoryId,
           eventUrl: payload.eventUrl?.trim() || null,
         }),
       });
@@ -361,9 +344,9 @@ export function EditLocationDialog({
           <div className="space-y-1">
             <Label>Category</Label>
             <Select
-              value={form.categorySlug || undefined}
+              value={form.categoryId || undefined}
               onValueChange={(value) =>
-                setForm((prev) => ({ ...prev, categorySlug: value }))
+                setForm((prev) => ({ ...prev, categoryId: value }))
               }
             >
               <SelectTrigger>
@@ -371,7 +354,7 @@ export function EditLocationDialog({
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.slug}>
+                  <SelectItem key={category.id} value={category.id}>
                     {category.name}
                   </SelectItem>
                 ))}

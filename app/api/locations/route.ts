@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('locations')
       .select(
-        'id, name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, coin_image_thumb_url, creator_wallet_address, creator_username, is_visible'
+        'id, name, address, description, latitude, longitude, place_id, points_value, category_id, category:categories(id, name, slug), event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, coin_image_thumb_url, creator_wallet_address, creator_username, is_visible'
       )
       .not('coin_image_url', 'is', null);
 
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
         .select(
           `
           locations!inner (
-            id, name, address, description, latitude, longitude, place_id, points_value, type, event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, coin_image_thumb_url, creator_wallet_address, creator_username, is_visible
+            id, name, address, description, latitude, longitude, place_id, points_value, category_id, category:categories(id, name, slug), event_url, context, created_at, coin_address, coin_name, coin_symbol, coin_image_url, coin_image_thumb_url, creator_wallet_address, creator_username, is_visible
           )
         `
         )
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
       description,
       lat,
       lon,
-      type,
+      categoryId,
       eventUrl,
       walletAddress,
       username,
@@ -164,10 +164,24 @@ export async function POST(request: NextRequest) {
       description,
       MAX_LOCATION_DESCRIPTION_LENGTH
     );
-    const sanitizedType =
-      typeof type === 'string' && type.trim()
-        ? sanitizeVarchar(type)
-        : 'location';
+    // Resolve the optional venue category (FK into `categories`).
+    let category: { id: string; slug: string } | null = null;
+    if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
+      if (typeof categoryId !== 'string') {
+        return apiError('Invalid categoryId', 400);
+      }
+      const { data: categoryRow, error: categoryError } = await supabase
+        .from('categories')
+        .select('id, slug')
+        .eq('id', categoryId.trim())
+        .maybeSingle();
+
+      if (categoryError) throw categoryError;
+      if (!categoryRow) {
+        return apiError('Unknown categoryId', 400);
+      }
+      category = categoryRow;
+    }
 
     // Validate and sanitize eventUrl - must be a valid URL if provided
     const eventUrlResult = validateUrl(eventUrl);
@@ -256,7 +270,7 @@ export async function POST(request: NextRequest) {
       description: sanitizedDescription,
       latitude: parsedLat,
       longitude: parsedLon,
-      type: sanitizedType,
+      category_id: category?.id ?? null,
       event_url: sanitizedEventUrl,
       points_value: 100,
       creator_wallet_address: sanitizedWalletAddress,
@@ -275,7 +289,7 @@ export async function POST(request: NextRequest) {
     const { data: locationData, error: locationError } = await supabase
       .from('locations')
       .insert(locationInsertPayload)
-      .select()
+      .select('*, category:categories(id, name, slug)')
       .single();
 
     if (locationError) {
@@ -338,7 +352,7 @@ export async function POST(request: NextRequest) {
       city,
       country,
       place_id: sanitizedPlaceId,
-      type: sanitizedType,
+      type: category?.slug,
       creator_wallet_address: sanitizedWalletAddress,
     });
 

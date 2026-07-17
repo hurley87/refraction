@@ -46,6 +46,7 @@ import {
 } from '@/lib/utils/format-location-category';
 import { buildDeepLinkMarkerFromQueryCoords } from '@/lib/utils/map-deep-link-marker';
 import { filterByMapBounds } from '@/lib/utils/map-bounds';
+import type { LocationCategory } from '@/lib/types';
 
 interface MarkerData {
   latitude: number;
@@ -58,7 +59,7 @@ interface MarkerData {
   creator_username?: string | null;
   imageUrl?: string | null;
   imageThumbUrl?: string | null;
-  type?: string;
+  category?: LocationCategory | null;
   event_url?: string | null;
   points_value?: number | null;
 }
@@ -78,8 +79,8 @@ interface LocationFormData {
   name: string;
   address: string;
   description: string;
-  /** `categories.slug` persisted as `locations.type`. */
-  categorySlug: string;
+  /** `categories.id` persisted as `locations.category_id`. */
+  categoryId: string;
   locationImage: File | null;
   checkInComment: string;
 }
@@ -248,7 +249,7 @@ export default function InteractiveMap({
     name: '',
     address: '',
     description: '',
-    categorySlug: '',
+    categoryId: '',
     locationImage: null,
     checkInComment: '',
   });
@@ -498,7 +499,7 @@ export default function InteractiveMap({
             creator_username: loc.creator_username ?? null,
             imageUrl: loc.coin_image_url ?? null,
             imageThumbUrl: loc.coin_image_thumb_url ?? null,
-            type: loc.type ?? 'location',
+            category: loc.category ?? null,
             event_url: loc.event_url ?? null,
             points_value: loc.points_value ?? 100,
           })
@@ -845,7 +846,7 @@ export default function InteractiveMap({
         name: newMarker.name, // Venue name
         address: newMarker.address || newMarker.name, // Address
         description: '',
-        categorySlug: '',
+        categoryId: '',
         locationImage: null,
         checkInComment: '',
       });
@@ -868,7 +869,7 @@ export default function InteractiveMap({
         name: newMarker.name, // Venue name (coordinates)
         address: newMarker.address || newMarker.name, // Address (coordinates)
         description: '',
-        categorySlug: '',
+        categoryId: '',
         locationImage: null,
         checkInComment: '',
       });
@@ -885,7 +886,7 @@ export default function InteractiveMap({
       name: pendingMapCreateMarker.name,
       address: pendingMapCreateMarker.address || pendingMapCreateMarker.name,
       description: '',
-      categorySlug: '',
+      categoryId: '',
       locationImage: null,
       checkInComment: prev.checkInComment,
     }));
@@ -993,7 +994,7 @@ export default function InteractiveMap({
         name: newMarker.name,
         address: newMarker.address || newMarker.name,
         description: '',
-        categorySlug: '',
+        categoryId: '',
         locationImage: null,
         checkInComment: '',
       });
@@ -1016,7 +1017,7 @@ export default function InteractiveMap({
       imageUrl: null,
       creator_wallet_address: null,
       creator_username: null,
-      type: 'location',
+      category: null,
       event_url: null,
     });
   };
@@ -1190,7 +1191,6 @@ export default function InteractiveMap({
             address: checkInTarget.address ?? checkInTarget.name,
             lat: checkInTarget.latitude.toString(),
             lon: checkInTarget.longitude.toString(),
-            type: 'location',
           },
           comment: checkInComment.trim() ? checkInComment.trim() : undefined,
         }),
@@ -1266,7 +1266,7 @@ export default function InteractiveMap({
       return;
     }
 
-    if (!formData.categorySlug.trim()) {
+    if (!formData.categoryId.trim()) {
       toast.error('Category is required');
       return;
     }
@@ -1353,7 +1353,7 @@ export default function InteractiveMap({
           description: formData.description,
           lat: selectedMarker.latitude.toString(),
           lon: selectedMarker.longitude.toString(),
-          type: formData.categorySlug,
+          categoryId: formData.categoryId,
           walletAddress: walletAddress,
           username: userUsername,
           locationImage: locationImageUrl,
@@ -1469,7 +1469,7 @@ export default function InteractiveMap({
             creator_username?: string | null;
             coin_image_url?: string | null;
             coin_image_thumb_url?: string | null;
-            type?: string | null;
+            category?: LocationCategory | null;
             points_value?: number | null;
             event_url?: string | null;
             is_visible?: boolean | null;
@@ -1496,7 +1496,7 @@ export default function InteractiveMap({
             imageUrl: apiLocation.coin_image_url ?? locationImageUrl ?? null,
             imageThumbUrl:
               apiLocation.coin_image_thumb_url ?? locationImageThumbUrl,
-            type: apiLocation.type ?? 'location',
+            category: apiLocation.category ?? null,
             points_value: apiLocation.points_value ?? 100,
             event_url: apiLocation.event_url ?? null,
           }
@@ -1542,7 +1542,7 @@ export default function InteractiveMap({
       name: '',
       address: '',
       description: '',
-      categorySlug: '',
+      categoryId: '',
       locationImage: null,
       checkInComment: '',
     });
@@ -1551,7 +1551,7 @@ export default function InteractiveMap({
   const isCreateLocationFormComplete = Boolean(
     formData.name.trim() &&
     formData.description.trim() &&
-    formData.categorySlug.trim() &&
+    formData.categoryId.trim() &&
     formData.locationImage
   );
 
@@ -1627,7 +1627,7 @@ export default function InteractiveMap({
         imageThumbUrl: location.coin_image_thumb_url ?? null,
         creator_wallet_address: null,
         creator_username: null,
-        type: location.type ?? 'location',
+        category: location.category ?? null,
         event_url: location.event_url ?? null,
       });
     }
@@ -2297,7 +2297,7 @@ export default function InteractiveMap({
               name={popupInfo.name}
               address={popupInfo.address || popupInfo.name}
               description={popupInfo.description}
-              type={popupInfo.type}
+              category={popupInfo.category}
               isExisting={true}
               onAction={() => handleStartCheckIn(popupInfo)}
               onClose={() => {
@@ -2330,7 +2330,7 @@ export default function InteractiveMap({
               location={{
                 placeId: addToListTarget.place_id,
                 name: addToListTarget.name,
-                type: addToListTarget.type,
+                category: addToListTarget.category,
                 imageUrl:
                   addToListTarget.imageThumbUrl || addToListTarget.imageUrl,
               }}
@@ -2516,11 +2516,11 @@ export default function InteractiveMap({
                         ) : null}
                       </div>
                       <div
-                        className={`flex w-full items-center self-stretch ${isSingleWordLocationCategory(checkInTarget.type) ? 'justify-between' : 'justify-end'}`}
+                        className={`flex w-full items-center self-stretch ${isSingleWordLocationCategory(checkInTarget.category) ? 'justify-between' : 'justify-end'}`}
                       >
-                        {isSingleWordLocationCategory(checkInTarget.type) ? (
+                        {isSingleWordLocationCategory(checkInTarget.category) ? (
                           <p className="flex label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5  uppercase tracking-[0.3px] text-[#171717]">
-                            {formatLocationCategory(checkInTarget.type)}
+                            {formatLocationCategory(checkInTarget.category)}
                           </p>
                         ) : null}
                         <a
@@ -2594,14 +2594,14 @@ export default function InteractiveMap({
                                 </div>
 
                                 <div
-                                  className={`flex w-full items-center self-stretch ${isSingleWordLocationCategory(checkInTarget.type) ? 'justify-between' : 'justify-end'}`}
+                                  className={`flex w-full items-center self-stretch ${isSingleWordLocationCategory(checkInTarget.category) ? 'justify-between' : 'justify-end'}`}
                                 >
                                   {isSingleWordLocationCategory(
-                                    checkInTarget.type
+                                    checkInTarget.category
                                   ) ? (
                                     <p className="flex label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5  uppercase tracking-[0.3px] text-[#171717]">
                                       {formatLocationCategory(
-                                        checkInTarget.type
+                                        checkInTarget.category
                                       )}
                                     </p>
                                   ) : null}
@@ -3350,11 +3350,11 @@ export default function InteractiveMap({
                         Category <span className="text-red-500">*</span>
                       </label>
                       <Select
-                        value={formData.categorySlug || undefined}
+                        value={formData.categoryId || undefined}
                         onValueChange={(value) =>
                           setFormData((prev) => ({
                             ...prev,
-                            categorySlug: value,
+                            categoryId: value,
                           }))
                         }
                       >
@@ -3366,7 +3366,7 @@ export default function InteractiveMap({
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.slug}>
+                            <SelectItem key={category.id} value={category.id}>
                               {category.name}
                             </SelectItem>
                           ))}

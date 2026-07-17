@@ -70,7 +70,6 @@ describe('Location Checkin API Route', () => {
     name: 'Test Venue Name',
     lat: 40.7128,
     lon: -74.006,
-    type: 'venue',
     context: '{"city": "New York"}',
   };
 
@@ -88,7 +87,7 @@ describe('Location Checkin API Route', () => {
     latitude: 40.7128,
     longitude: -74.006,
     points_value: 100,
-    type: 'venue',
+    category_id: 'cat-1',
     is_visible: true,
   };
 

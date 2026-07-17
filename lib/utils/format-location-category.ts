@@ -1,14 +1,15 @@
-/** Human-readable label for a location `type` (matches check-in dialog). */
-export function formatLocationCategory(type?: string | null) {
-  const normalized = (type ?? 'location').trim();
-  if (!normalized) return 'Location';
-  return normalized
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+import type { LocationCategory } from '@/lib/types';
+
+/** Category shape accepted by the display helpers (embedded `categories` row). */
+type CategoryLike = Pick<LocationCategory, 'name'> | null | undefined;
+
+/** Human-readable label for a location's venue category (matches check-in dialog). */
+export function formatLocationCategory(category: CategoryLike) {
+  const name = category?.name?.trim();
+  return name || 'Location';
 }
 
-/** True when the formatted category is a single word (e.g. "Restaurant", not "Coffee Shop"). */
-export function isSingleWordLocationCategory(type?: string | null): boolean {
-  const label = formatLocationCategory(type);
-  return !/\s/.test(label.trim());
+/** True when the category label is a single word (e.g. "Restaurant", not "Performance Venue"). */
+export function isSingleWordLocationCategory(category: CategoryLike): boolean {
+  return !/\s/.test(formatLocationCategory(category).trim());
 }
