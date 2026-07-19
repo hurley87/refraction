@@ -380,13 +380,12 @@ function shouldDropFetchNetworkError(
     return true;
   }
 
-  const message = eventMessage(event, hint).toLowerCase();
-  return (
-    message.includes('typeerror: failed to fetch') ||
-    message.includes('typeerror: fetch failed') ||
-    message.includes('typeerror: load failed') ||
-    message.includes('networkerror when attempting to fetch resource')
-  );
+  const message = eventMessage(event, hint);
+  if (!message) {
+    return false;
+  }
+
+  return isFetchNetworkError(new Error(message));
 }
 
 function normalizeCsv(rawValue: string): string[] {

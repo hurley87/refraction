@@ -1,3 +1,5 @@
+import { HttpRequestError } from 'viem';
+import { getContractError } from 'viem/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const { captureException } = vi.hoisted(() => ({
@@ -35,6 +37,34 @@ describe('captureHandledException', () => {
     captureHandledException(new TypeError('fetch failed'), {
       route: '/api/stellar-wallet',
       operation: 'GET',
+    });
+
+    expect(captureException).not.toHaveBeenCalled();
+  });
+
+  it('skips viem ContractFunctionExecutionError RPC transport failures', () => {
+    vi.stubEnv('SENTRY_DSN', 'https://example@o0.ingest.sentry.io/0');
+
+    const contractError = getContractError(
+      new HttpRequestError({ url: 'https://mainnet.base.org' }),
+      {
+        abi: [
+          {
+            type: 'function',
+            name: 'balanceOf',
+            inputs: [],
+            outputs: [],
+            stateMutability: 'view',
+          },
+        ],
+        functionName: 'balanceOf',
+        args: [],
+      }
+    );
+
+    captureHandledException(contractError, {
+      route: '/api/claim-nft',
+      operation: 'mint_claim',
     });
 
     expect(captureException).not.toHaveBeenCalled();
