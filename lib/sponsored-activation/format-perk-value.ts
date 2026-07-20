@@ -11,5 +11,5 @@ export function formatPerkValueUsdLabel(usdcAmount: number): string {
     dollars % 1 === 0
       ? dollars.toFixed(0)
       : dollars.toFixed(2).replace(/\.?0+$/, '');
-  return `$${rounded} USD value`;
+  return `$${rounded} CADD value`;
 }
