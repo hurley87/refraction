@@ -85,8 +85,8 @@ const FundAccountButton: React.FC<FundAccountButtonProps> = ({
   };
 
   const buttonClass = compact
-    ? 'h-[32px] bg-white hover:bg-gray-100 text-[#313131] px-3 rounded-full font-grotesk text-sm transition-colors duration-200 flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
-    : 'w-full h-12 bg-white hover:bg-gray-100 text-[#313131] px-6 rounded-full title3 font-grotesk transition-colors duration-200 flex items-center justify-between cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+    ? 'label-small uppercase flex h-[32px] cursor-pointer items-center gap-2 bg-black px-3 text-white transition-colors hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50'
+    : 'label-large uppercase flex h-[44px] w-full cursor-pointer items-center justify-between bg-black py-2 pr-2 pl-4 text-white transition-colors hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50';
 
   return (
     <button
@@ -96,11 +96,12 @@ const FundAccountButton: React.FC<FundAccountButtonProps> = ({
     >
       <span>{isPending ? 'Funding...' : 'Fund Account'}</span>
       <Image
-        src="/home/arrow-right.svg"
-        alt="arrow"
-        width={21}
-        height={21}
-        className={compact ? 'w-4 h-4' : 'w-[21px] h-[21px]'}
+        src="/guidance_up-right-2-short-arrow.svg"
+        alt=""
+        width={compact ? 16 : 24}
+        height={compact ? 16 : 24}
+        className={compact ? 'h-4 w-4' : 'h-6 w-6 shrink-0'}
+        aria-hidden
       />
     </button>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { useStellarWallet } from '@/hooks/useStellarWallet';
 import {
   Select,
@@ -13,6 +14,15 @@ import type { OneClickToken, QuoteResponse } from '@/lib/near-intents/types';
 
 const ONECLICK_QUOTE_WAIT_MS = 3000;
 const SLIPPAGE_BPS = 100; // 1%
+
+const primaryCtaClass =
+  'label-large uppercase flex h-[44px] w-full cursor-pointer items-center justify-between bg-black py-2 pr-2 pl-4 text-white transition-colors hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50';
+
+const fieldClass =
+  'h-11 w-full rounded-none border-0 border-b border-[#757575] bg-transparent px-0 text-sm text-[#171717] font-grotesk placeholder:text-[#757575] focus:border-[#171717] focus:outline-none focus:ring-0';
+
+const selectTriggerClass =
+  'h-11 w-full rounded-none border-0 border-b border-[#757575] bg-transparent px-0 text-sm text-[#171717] font-grotesk shadow-none focus:ring-0 focus:ring-offset-0 [&>span]:flex [&>span]:items-center [&>span]:gap-2';
 
 /** Chain slug used by Llama.fi chain icons CDN */
 const CHAIN_ICON_SLUG: Record<string, string> = {
@@ -127,12 +137,25 @@ function ChainIcon({
         alt=""
         width={CHAIN_ICON_SIZE}
         height={CHAIN_ICON_SIZE}
-        className="object-cover w-full h-full"
+        className="h-full w-full object-cover"
         onError={(e) => {
           (e.target as HTMLImageElement).style.display = 'none';
         }}
       />
     </span>
+  );
+}
+
+function CtaArrow() {
+  return (
+    <Image
+      src="/guidance_up-right-2-short-arrow.svg"
+      alt=""
+      width={24}
+      height={24}
+      className="h-6 w-6 shrink-0"
+      aria-hidden
+    />
   );
 }
 
@@ -323,244 +346,230 @@ export function NearIntentsBridgeWidget({
   };
 
   if (isLoading) {
-    return (
-      <div className="bg-[#313131] rounded-[26px] p-4">
-        <p className="body-medium text-[#B5B5B5] font-grotesk">
-          Loading Stellar wallet…
-        </p>
-      </div>
-    );
+    return <p className="body-small text-[#757575]">Loading Stellar wallet…</p>;
   }
 
   if (!stellarAddress) {
     return (
-      <div className="bg-[#313131] rounded-[26px] p-4">
-        <h2 className="title2 text-white font-grotesk">Bridge to Stellar</h2>
-        <p className="mt-2 body-medium text-[#B5B5B5] font-grotesk">
-          Connect or create a Stellar wallet above to bridge assets from other
-          chains (Ethereum, Solana, Bitcoin, etc.) to your Stellar address.
-        </p>
-      </div>
+      <p className="body-small text-[#757575]">
+        Sign in with IRL above to bridge assets from other chains (Ethereum,
+        Solana, Bitcoin, etc.) to your Stellar address.
+      </p>
     );
   }
 
   return (
-    <div className="bg-[#313131] rounded-[26px] p-4">
-      <div className="flex flex-col gap-4">
-        <div>
-          <p className="mt-2 body-medium text-[#B5B5B5] font-grotesk">
-            Swap from 100+ chains into XLM or USDC on Stellar. Powered by NEAR
-            Intents.
-          </p>
-          <p className="mt-2 body-medium text-[#B5B5B5] font-grotesk">
-            App/wallet network:{' '}
-            <span className="font-medium text-white">
-              Stellar {isTestnet ? 'Testnet' : 'Mainnet'}
-            </span>
-          </p>
-        </div>
+    <div className="flex flex-col gap-5">
+      <div>
+        <p className="body-small text-[#757575]">
+          Swap from 100+ chains into XLM or USDC on Stellar. Powered by NEAR
+          Intents.
+        </p>
+        <p className="mt-1 body-small text-[#757575]">
+          Network:{' '}
+          <span className="font-medium text-[#171717]">
+            Stellar {isTestnet ? 'Testnet' : 'Mainnet'}
+          </span>
+        </p>
+      </div>
 
-        {loadingTokens ? (
-          <p className="body-medium text-[#B5B5B5] font-grotesk">
-            Loading tokens…
-          </p>
-        ) : (
-          <div className="flex flex-col gap-4">
-            <div>
-              <label className="mb-1 block body-medium text-white font-grotesk">
-                From (Source Chain)
-              </label>
-              <Select
-                value={sourceToken?.assetId ?? ''}
-                onValueChange={(value) => {
-                  const t = sourceTokens.find((x) => x.assetId === value);
-                  setSourceToken(t ?? null);
-                  setRefundAddress('');
-                  setQuote(null);
-                }}
-              >
-                <SelectTrigger className="w-full rounded-xl border border-white/20 bg-[#313131] px-3 py-2.5 text-sm text-white font-grotesk focus:border-white focus:ring-1 focus:ring-white [&>span]:flex [&>span]:items-center [&>span]:gap-2">
-                  {sourceToken ? (
-                    <span className="flex items-center gap-3">
-                      <ChainIcon blockchain={sourceToken.blockchain} />
-                      <span>{sourceToken.symbol}</span>
-                      <span className="text-gray-500">
-                        {getChainDisplayName(sourceToken.blockchain)}
-                      </span>
-                    </span>
-                  ) : (
-                    <SelectValue placeholder="Select token" />
-                  )}
-                </SelectTrigger>
-                <SelectContent className="border border-white/20 bg-[#313131] text-white">
-                  {sortedSourceTokens.map((t) => (
-                    <SelectItem
-                      key={t.assetId}
-                      value={t.assetId}
-                      className="text-white focus:bg-white/10 focus:text-white"
-                    >
-                      <span className="flex items-center gap-3">
-                        <ChainIcon blockchain={t.blockchain} />
-                        <span>{t.symbol}</span>
-                        <span className="text-[#B5B5B5]">
-                          {getChainDisplayName(t.blockchain)}
-                        </span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="mb-1 block body-medium text-white font-grotesk">
-                To (Stellar)
-              </label>
-              <select
-                className="w-full rounded-xl border border-white/20 bg-[#313131] px-3 py-2.5 text-sm text-white font-grotesk focus:border-white focus:outline-none focus:ring-1 focus:ring-white"
-                value={destinationToken?.assetId ?? ''}
-                onChange={(e) => {
-                  const t = stellarTokens.find(
-                    (x) => x.assetId === e.target.value
-                  );
-                  setDestinationToken(t ?? null);
-                  setQuote(null);
-                }}
-              >
-                {stellarTokens.map((t) => (
-                  <option key={t.assetId} value={t.assetId}>
-                    {t.symbol}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1 block body-medium text-white font-grotesk">
-                Amount
-              </label>
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="0"
-                className="w-full rounded-xl border border-white/20 bg-[#313131] px-3 py-2.5 text-sm text-white font-grotesk focus:border-white focus:outline-none focus:ring-1 focus:ring-white"
-                value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value);
-                  setQuote(null);
-                }}
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block body-medium text-white font-grotesk">
-                {sourceToken
-                  ? getRefundFieldConfig(sourceToken.blockchain).label
-                  : 'Refund address (source chain)'}
-              </label>
-              <input
-                type="text"
-                placeholder={
-                  sourceToken
-                    ? getRefundFieldConfig(sourceToken.blockchain).placeholder
-                    : 'Select source chain first'
-                }
-                className="w-full rounded-xl border border-white/20 bg-[#313131] px-3 py-2.5 text-sm font-mono text-white placeholder:text-gray-400 font-grotesk focus:border-white focus:outline-none focus:ring-1 focus:ring-white"
-                value={refundAddress}
-                onChange={(e) => {
-                  setRefundAddress(e.target.value);
-                  setQuote(null);
-                }}
-              />
-              <p className="mt-1 body-medium text-[#B5B5B5] font-grotesk text-sm">
-                {sourceToken
-                  ? getRefundFieldConfig(sourceToken.blockchain).help
-                  : 'If the swap fails, funds are returned to this address. Select a source token to see chain-specific format.'}
-              </p>
-            </div>
-
-            {quoteError && (
-              <p className="body-medium text-red-600 font-grotesk text-sm">
-                {quoteError}
-              </p>
-            )}
-
-            <button
-              type="button"
-              disabled={
-                quoteLoading ||
-                !sourceToken ||
-                !amount ||
-                !effectiveRefundAddress.trim()
-              }
-              className="w-full h-12 bg-white hover:bg-gray-100 text-[#313131] px-6 rounded-full title3 font-grotesk transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-              onClick={requestQuote}
+      {loadingTokens ? (
+        <p className="body-small text-[#757575]">Loading tokens…</p>
+      ) : (
+        <div className="flex flex-col gap-5">
+          <div>
+            <label className="mb-1 block label-small uppercase text-[#171717]">
+              From (Source Chain)
+            </label>
+            <Select
+              value={sourceToken?.assetId ?? ''}
+              onValueChange={(value) => {
+                const t = sourceTokens.find((x) => x.assetId === value);
+                setSourceToken(t ?? null);
+                setRefundAddress('');
+                setQuote(null);
+              }}
             >
-              {quoteLoading ? 'Getting quote…' : 'Get quote & deposit address'}
-            </button>
-
-            {quote && (
-              <div className="rounded-xl border border-white/20 bg-[#313131] p-4">
-                <p className="title2 text-white font-grotesk">
-                  Send to complete swap
-                </p>
-                <p className="mt-2 body-medium text-[#B5B5B5] font-grotesk">
-                  Send exactly{' '}
-                  <strong className="text-white">
-                    {quote.amountInFormatted} {sourceToken?.symbol}
-                  </strong>{' '}
-                  to the address below before{' '}
-                  {quote.deadline
-                    ? new Date(quote.deadline).toLocaleString()
-                    : 'deadline'}
-                  . You will receive ~{quote.amountOutFormatted}{' '}
-                  {destinationToken?.symbol} on Stellar.
-                </p>
-                <div className="mt-3 space-y-3">
-                  <div>
-                    <span className="body-medium text-[#B5B5B5] font-grotesk text-sm">
-                      Deposit address:
+              <SelectTrigger className={selectTriggerClass}>
+                {sourceToken ? (
+                  <span className="flex items-center gap-3">
+                    <ChainIcon blockchain={sourceToken.blockchain} />
+                    <span>{sourceToken.symbol}</span>
+                    <span className="text-[#757575]">
+                      {getChainDisplayName(sourceToken.blockchain)}
                     </span>
-                    <div className="mt-1 flex items-center gap-2">
-                      <code className="break-all rounded-lg bg-[#1f1f1f] border border-white/20 px-3 py-2 text-xs font-mono text-white">
-                        {quote.depositAddress}
+                  </span>
+                ) : (
+                  <SelectValue placeholder="Select token" />
+                )}
+              </SelectTrigger>
+              <SelectContent className="rounded-none border border-[#EDEDED] bg-white text-[#171717]">
+                {sortedSourceTokens.map((t) => (
+                  <SelectItem
+                    key={t.assetId}
+                    value={t.assetId}
+                    className="rounded-none text-[#171717] focus:bg-[#EDEDED] focus:text-[#171717]"
+                  >
+                    <span className="flex items-center gap-3">
+                      <ChainIcon blockchain={t.blockchain} />
+                      <span>{t.symbol}</span>
+                      <span className="text-[#757575]">
+                        {getChainDisplayName(t.blockchain)}
+                      </span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="mb-1 block label-small uppercase text-[#171717]">
+              To (Stellar)
+            </label>
+            <select
+              className={fieldClass}
+              value={destinationToken?.assetId ?? ''}
+              onChange={(e) => {
+                const t = stellarTokens.find(
+                  (x) => x.assetId === e.target.value
+                );
+                setDestinationToken(t ?? null);
+                setQuote(null);
+              }}
+            >
+              {stellarTokens.map((t) => (
+                <option key={t.assetId} value={t.assetId}>
+                  {t.symbol}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block label-small uppercase text-[#171717]">
+              Amount
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="0"
+              className={fieldClass}
+              value={amount}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setQuote(null);
+              }}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block label-small uppercase text-[#171717]">
+              {sourceToken
+                ? getRefundFieldConfig(sourceToken.blockchain).label
+                : 'Refund address (source chain)'}
+            </label>
+            <input
+              type="text"
+              placeholder={
+                sourceToken
+                  ? getRefundFieldConfig(sourceToken.blockchain).placeholder
+                  : 'Select source chain first'
+              }
+              className={`${fieldClass} font-mono`}
+              value={refundAddress}
+              onChange={(e) => {
+                setRefundAddress(e.target.value);
+                setQuote(null);
+              }}
+            />
+            <p className="mt-1 body-small text-[#757575]">
+              {sourceToken
+                ? getRefundFieldConfig(sourceToken.blockchain).help
+                : 'If the swap fails, funds are returned to this address. Select a source token to see chain-specific format.'}
+            </p>
+          </div>
+
+          {quoteError && (
+            <p className="body-small text-red-600">{quoteError}</p>
+          )}
+
+          <button
+            type="button"
+            disabled={
+              quoteLoading ||
+              !sourceToken ||
+              !amount ||
+              !effectiveRefundAddress.trim()
+            }
+            className={primaryCtaClass}
+            onClick={requestQuote}
+          >
+            <span>
+              {quoteLoading ? 'Getting quote…' : 'Get quote & deposit address'}
+            </span>
+            <CtaArrow />
+          </button>
+
+          {quote && (
+            <div className="border border-[#EDEDED] bg-[#EDEDED]/40 p-4">
+              <p className="font-medium text-[#171717]">
+                Send to complete swap
+              </p>
+              <p className="mt-2 body-small text-[#757575]">
+                Send exactly{' '}
+                <strong className="text-[#171717]">
+                  {quote.amountInFormatted} {sourceToken?.symbol}
+                </strong>{' '}
+                to the address below before{' '}
+                {quote.deadline
+                  ? new Date(quote.deadline).toLocaleString()
+                  : 'deadline'}
+                . You will receive ~{quote.amountOutFormatted}{' '}
+                {destinationToken?.symbol} on Stellar.
+              </p>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <span className="label-small uppercase text-[#757575]">
+                    Deposit address
+                  </span>
+                  <div className="mt-2 flex items-stretch gap-2">
+                    <code className="min-w-0 flex-1 break-all border border-[#EDEDED] bg-white px-3 py-2 font-mono text-xs text-[#171717]">
+                      {quote.depositAddress}
+                    </code>
+                    <button
+                      type="button"
+                      className="label-small shrink-0 cursor-pointer border border-[#171717] bg-transparent px-3 py-2 uppercase text-[#171717] transition-colors hover:bg-black hover:text-white"
+                      onClick={() => copyToClipboard(quote.depositAddress)}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                {quote.depositMemo && (
+                  <div>
+                    <span className="label-small uppercase text-[#757575]">
+                      Memo (required for Stellar)
+                    </span>
+                    <div className="mt-2 flex items-stretch gap-2">
+                      <code className="min-w-0 flex-1 border border-[#EDEDED] bg-white px-3 py-2 font-mono text-xs text-[#171717]">
+                        {quote.depositMemo}
                       </code>
                       <button
                         type="button"
-                        className="shrink-0 rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm font-medium text-white font-grotesk hover:bg-white/10 cursor-pointer"
-                        onClick={() => copyToClipboard(quote.depositAddress)}
+                        className="label-small shrink-0 cursor-pointer border border-[#171717] bg-transparent px-3 py-2 uppercase text-[#171717] transition-colors hover:bg-black hover:text-white"
+                        onClick={() => copyToClipboard(quote.depositMemo ?? '')}
                       >
                         Copy
                       </button>
                     </div>
                   </div>
-                  {quote.depositMemo && (
-                    <div>
-                      <span className="body-medium text-[#B5B5B5] font-grotesk text-sm">
-                        Memo (required for Stellar):
-                      </span>
-                      <div className="mt-1 flex items-center gap-2">
-                        <code className="rounded-lg bg-[#1f1f1f] border border-white/20 px-3 py-2 text-xs font-mono text-white">
-                          {quote.depositMemo}
-                        </code>
-                        <button
-                          type="button"
-                          className="shrink-0 rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm font-medium text-white font-grotesk hover:bg-white/10 cursor-pointer"
-                          onClick={() =>
-                            copyToClipboard(quote.depositMemo ?? '')
-                          }
-                        >
-                          Copy
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

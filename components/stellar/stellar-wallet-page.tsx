@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { ChevronDown } from 'lucide-react';
 
-import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 import { WalletProvider } from '@/lib/stellar/providers/wallet-provider';
 import { NotificationProvider } from '@/lib/stellar/providers/notification-provider';
 import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
@@ -25,9 +24,7 @@ function StellarWalletPageContent() {
     address: stellarWalletAddress,
   } = useWallet();
   const { address: privyStellarAddress } = useStellarWallet();
-  const hasStellarForBalance = Boolean(
-    stellarWalletAddress || privyStellarAddress
-  );
+  const hasStellarForBalance = Boolean(privyStellarAddress);
   const [rewardTxHash, setRewardTxHash] = useState<string | null>(null);
   const [rewardStatus, setRewardStatus] = useState<
     'idle' | 'pending' | 'success' | 'error'
@@ -49,18 +46,18 @@ function StellarWalletPageContent() {
     let effectiveLabel: string;
     if (networkPassphrase) {
       if (isMainnetFromPassphrase) {
-        effectiveLabel = 'MAINNET (Freighter / wallet kit passphrase)';
+        effectiveLabel = 'MAINNET (wallet passphrase)';
       } else if (isTestnetFromPassphrase) {
-        effectiveLabel = 'TESTNET (Freighter / wallet kit passphrase)';
+        effectiveLabel = 'TESTNET (wallet passphrase)';
       } else {
         effectiveLabel = 'CUSTOM / OTHER (wallet passphrase set)';
       }
     } else {
       const u = envConfigured.toUpperCase();
       if (u === 'PUBLIC' || u === 'MAINNET') {
-        effectiveLabel = `MAINNET (NEXT_PUBLIC_STELLAR_NETWORK=${envConfigured}, no wallet passphrase yet)`;
+        effectiveLabel = `MAINNET (NEXT_PUBLIC_STELLAR_NETWORK=${envConfigured})`;
       } else {
-        effectiveLabel = `TESTNET-LIKE (NEXT_PUBLIC_STELLAR_NETWORK=${envConfigured}, no wallet passphrase yet)`;
+        effectiveLabel = `TESTNET-LIKE (NEXT_PUBLIC_STELLAR_NETWORK=${envConfigured})`;
       }
     }
 
@@ -78,211 +75,123 @@ function StellarWalletPageContent() {
   }, [network, networkPassphrase, stellarWalletAddress, privyStellarAddress]);
 
   return (
-    <div
-      style={{
-        background: '#FFE600',
-      }}
-      className="min-h-screen px-4 pt-2 pb-4 font-grotesk cursor-auto md:px-2"
-    >
-      <div className="max-w-md mx-auto">
-        {/* Navigation */}
-        <div className="flex min-w-0 items-center justify-between pb-2 pt-2">
-          <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
+    <div className="min-h-screen bg-white px-4 pb-0 pt-4 font-grotesk">
+      <div className="mx-auto max-w-md">
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
+          </div>
         </div>
 
-        {/* Main Content */}
-        <div className="px-0 pt-2 space-y-2">
-          {/* IRL × Stellar Card */}
-          <div className="bg-[#313131] rounded-[26px] overflow-hidden">
-            <div className="relative w-full h-[340px] sm:h-[380px]">
-              <div className="relative w-full h-full overflow-hidden rounded-b-[17px]">
-                <Image
-                  src="/stellar-banner.png"
-                  alt="IRL × Stellar"
-                  fill
-                  className="object-cover"
-                  priority
-                />
-              </div>
+        <div className="space-y-1 px-0 pt-2">
+          {/* Hero — full-bleed image like rewards */}
+          <div className="mb-1">
+            <div className="relative mb-4 h-[340px] w-screen max-w-[100vw] overflow-hidden max-md:left-1/2 max-md:-translate-x-1/2 sm:h-[380px] md:left-auto md:aspect-[86/79] md:h-auto md:w-full md:translate-x-0">
+              <Image
+                src="/stellar-banner.jpg"
+                alt="IRL × Stellar"
+                fill
+                className="object-cover"
+                sizes="(max-width: 767px) 100vw, 448px"
+                priority
+              />
             </div>
-            <div className="flex flex-col items-center md:items-start gap-3 px-4 py-6 border-t border-white/25">
-              <div className="flex w-full justify-center">
-                <div className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-2 [filter:drop-shadow(0_0_10px_rgba(255,255,255,0.55))_drop-shadow(0_0_22px_rgba(255,255,255,0.28))]">
-                  <Image
-                    src="/irl-svg/irl-logo-new.svg"
-                    alt="IRL"
-                    width={130}
-                    height={78}
-                    className="h-[41.6px] w-auto object-contain brightness-0 invert"
-                  />
-                  <span
-                    className="leading-none select-none text-white [font-size:1.95rem] [text-shadow:0_0_12px_rgba(255,255,255,0.55),0_0_24px_rgba(255,255,255,0.3)]"
-                    aria-hidden
-                  >
-                    ×
-                  </span>
-                  <Image
-                    src="/stellar-logo.png"
-                    alt="Stellar"
-                    width={156}
-                    height={52}
-                    className="h-[41.6px] w-auto object-contain"
-                  />
-                </div>
-              </div>
-              <p
-                className="text-center md:text-left overflow-hidden text-ellipsis"
-                style={{
-                  color: 'var(--Dark-Tint-40, #B5B5B5)',
-                  fontFamily:
-                    '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
-                  fontSize: '13px',
-                  fontStyle: 'normal',
-                  fontWeight: 400,
-                  lineHeight: '20px',
-                  letterSpacing: '-0.26px',
-                }}
-              >
-                IRL works with Stellar to bring cultural onchain experiences to
-                real-world events — use your embedded IRL wallet (Privy) or
-                connect Freighter to earn points towards future rewards.
+
+            <div className="flex flex-col items-start gap-2 self-stretch pb-6">
+         
+              <h2 className="w-full self-stretch text-left font-medium text-[#171717]">
+                IRL × Stellar
+              </h2>
+              <p className="body-small mb-2 w-full text-left text-[#757575]">
+                Cultural onchain experiences for real-world events. Sign in with
+                IRL to use your embedded Stellar wallet and earn points toward
+                future rewards.
               </p>
+
+              <div className="mb-2 flex h-5 min-w-0 items-center gap-2 self-stretch">
+                <div className="flex h-5 shrink-0 items-center justify-center border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
+                  Wallet
+                </div>
+                <span className="label-small uppercase text-[#171717]">
+                  {hasStellarForBalance ? 'Connected' : 'Sign in required'}
+                </span>
+              </div>
+
+              {!hasStellarForBalance && <ConnectAccount />}
             </div>
           </div>
 
           {hasStellarForBalance && (
-            <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <WelcomeEllipse />
-                  <h2
-                    className="title5 text-white font-grotesk"
-                    style={{
-                      textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px',
-                    }}
-                  >
-                    Wallet Balance
-                  </h2>
-                </div>
-                <UserBalance />
-              </div>
-            </div>
+            <section className="flex flex-col gap-4 border-t border-[var(--Text-Secondary-Text,#757575)] bg-white py-6">
+              <p className="body-large text-black">WALLET BALANCE</p>
+              <UserBalance />
+            </section>
           )}
 
-          {/* Step 1: Connect */}
-          <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <WelcomeEllipse />
-                <h2
-                  className="title5 text-white font-grotesk"
-                  style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
-                >
-                  {hasStellarForBalance ? 'Connected' : 'Connect'}
-                </h2>
-              </div>
-              {!hasStellarForBalance && (
-                <p
-                  className="text-[#B5B5B5]"
-                  style={{
-                    fontFamily:
-                      '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
-                    fontSize: '13px',
-                    fontStyle: 'normal',
-                    fontWeight: 400,
-                    lineHeight: '20px',
-                    letterSpacing: '-0.26px',
-                  }}
-                >
-                  {privyStellarAddress
-                    ? 'Optionally connect Freighter if you prefer an external browser wallet.'
-                    : 'Connect with Freighter, or sign in with IRL to use your embedded Stellar wallet.'}
-                </p>
-              )}
-              <ConnectAccount />
-            </div>
-          </div>
-
-          {/* Step 2: Bridge to Stellar (NEAR Intents) - collapsible */}
-          <div className="bg-[#313131] rounded-[26px] overflow-hidden border border-white/15">
+          <section className="border-t border-[var(--Text-Secondary-Text,#757575)] bg-white">
             <button
               type="button"
               onClick={() => setBridgeExpanded((v) => !v)}
-              className="w-full flex items-center justify-between gap-2 py-4 px-4 text-white font-grotesk hover:bg-white/5 transition-colors cursor-pointer"
+              className="flex w-full cursor-pointer items-center justify-between gap-2 py-6 text-left transition-colors hover:bg-black/[0.02]"
               aria-expanded={bridgeExpanded}
             >
-              <div className="flex items-center gap-2">
-                <WelcomeEllipse />
-                <h2
-                  className="title5 text-white font-grotesk"
-                  style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
-                >
-                  Bridge to Stellar
-                </h2>
+              <div className="flex min-w-0 flex-col gap-1">
+                <p className="body-large text-black">BRIDGE TO STELLAR</p>
+                <p className="body-small text-[#757575]">
+                  Move assets onto Stellar
+                </p>
               </div>
               <ChevronDown
-                className={`h-5 w-5 shrink-0 text-white transition-transform ${bridgeExpanded ? 'rotate-180' : ''}`}
+                className={`h-5 w-5 shrink-0 text-[#171717] transition-transform ${bridgeExpanded ? 'rotate-180' : ''}`}
                 aria-hidden
               />
             </button>
             {bridgeExpanded && (
-              <div className="border-t border-white/15 px-4 pb-4 pt-2">
-                <p className="body-medium text-[#B5B5B5] font-grotesk mb-4">
-                  Move assets onto Stellar
-                </p>
+              <div className="pb-6">
                 <NearIntentsBridgeWidget
-                  stellarAddressOverride={
-                    privyStellarAddress ?? stellarWalletAddress ?? undefined
-                  }
+                  stellarAddressOverride={privyStellarAddress ?? undefined}
                   stellarNetworkOverride={network ?? undefined}
                 />
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Step 3: Claim Points */}
-          <div className="bg-[#313131] rounded-[26px] p-4 border border-white/15">
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <WelcomeEllipse />
-                <h2
-                  className="title5 text-white font-grotesk"
-                  style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
-                >
-                  Claim Points
-                </h2>
-              </div>
-
-              <ClaimPoints
-                onPending={() => {
-                  setRewardStatus('pending');
-                  setRewardTxHash(null);
-                  setRewardError(null);
-                }}
-                onSuccess={(txHash) => {
-                  setRewardStatus('success');
-                  setRewardTxHash(txHash);
-                }}
-                onError={(errorMsg) => {
-                  setRewardStatus('error');
-                  setRewardTxHash(null);
-                  setRewardError(errorMsg);
-                }}
-              />
-
-              <TransactionStatus
-                status={rewardStatus}
-                txHash={rewardTxHash}
-                error={rewardError}
-                successMessage="Points claimed successfully!"
-                network={network}
-                networkPassphrase={networkPassphrase}
-              />
+          <section className="flex flex-col gap-4 border-t border-[var(--Text-Secondary-Text,#757575)] bg-white py-6">
+            <div className="flex flex-col gap-1">
+              <div className="body-large text-black">CLAIM POINTS</div>
+              <p className="body-small text-[#757575]">
+                Claim points for rewards. No XLM required — fees are covered.
+              </p>
             </div>
-          </div>
 
-          {/* Footer - Network Pill */}
-          <div className="flex justify-end pt-2">
+            <ClaimPoints
+              onPending={() => {
+                setRewardStatus('pending');
+                setRewardTxHash(null);
+                setRewardError(null);
+              }}
+              onSuccess={(txHash) => {
+                setRewardStatus('success');
+                setRewardTxHash(txHash);
+              }}
+              onError={(errorMsg) => {
+                setRewardStatus('error');
+                setRewardTxHash(null);
+                setRewardError(errorMsg);
+              }}
+            />
+
+            <TransactionStatus
+              status={rewardStatus}
+              txHash={rewardTxHash}
+              error={rewardError}
+              successMessage="Points claimed successfully!"
+              network={network}
+              networkPassphrase={networkPassphrase}
+            />
+          </section>
+
+          <div className="flex justify-end pt-4 pb-24">
             <NetworkPill />
           </div>
         </div>
