@@ -22,6 +22,12 @@ describe('isAbortError', () => {
     const error = new Error('AbortError: The operation was aborted.');
     expect(isAbortError(error)).toBe(true);
   });
+
+  it('detects WebKit Fetch is aborted messages (JAVASCRIPT-NEXTJS-1M)', () => {
+    const error = new DOMException('Fetch is aborted', 'AbortError');
+    expect(isAbortError(error)).toBe(true);
+    expect(isAbortError(new Error('Fetch is aborted'))).toBe(true);
+  });
 });
 
 describe('isWalletConnectSessionNoise', () => {
@@ -239,6 +245,20 @@ describe('sentryBeforeSend', () => {
       request: { url: 'https://example.com/events' },
       exception: {
         values: [{ value: 'Error: AbortError: The operation was aborted.' }],
+      },
+    };
+
+    expect(
+      sentryBeforeSend(event, { originalException: abortError })
+    ).toBeNull();
+  });
+
+  it('returns null for WebKit Fetch is aborted noise (JAVASCRIPT-NEXTJS-1M)', () => {
+    const abortError = new DOMException('Fetch is aborted', 'AbortError');
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [{ value: 'Error: Fetch is aborted' }],
       },
     };
 

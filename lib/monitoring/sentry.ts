@@ -13,6 +13,8 @@ const DEFAULT_IGNORED_ERRORS = [
   // fetch/AbortController cancellations (navigation, unmount, timeouts).
   'AbortError',
   'The operation was aborted',
+  // WebKit (Safari/iOS): aborted fetch during response read bubbles as unhandled rejection.
+  'Fetch is aborted',
   // Competing wallet extensions injecting window.ethereum.
   'Cannot set property ethereum',
   'Cannot redefine property: ethereum',
@@ -264,14 +266,19 @@ function shouldDropEip1193UserRejection(
  * fetch() and streams reject with AbortError when a signal is aborted (component
  * unmount, route change, debounced reload). These are expected and not bugs.
  */
+function messageLooksLikeFetchAbort(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('the operation was aborted') ||
+    lower.includes('fetch is aborted') ||
+    (lower.includes('aborterror') && lower.includes('aborted'))
+  );
+}
+
 export function isAbortError(reason: unknown): boolean {
   if (reason instanceof Error) {
     if (reason.name === 'AbortError') return true;
-    const message = reason.message.toLowerCase();
-    if (message.includes('the operation was aborted')) return true;
-    if (message.includes('aborterror') && message.includes('aborted')) {
-      return true;
-    }
+    if (messageLooksLikeFetchAbort(reason.message)) return true;
   }
 
   if (isPlainRecord(reason) && reason.name === 'AbortError') {
@@ -365,11 +372,7 @@ function shouldDropAbortError(
     return true;
   }
 
-  const message = eventMessage(event, hint).toLowerCase();
-  return (
-    message.includes('the operation was aborted') ||
-    (message.includes('aborterror') && message.includes('aborted'))
-  );
+  return messageLooksLikeFetchAbort(eventMessage(event, hint));
 }
 
 function shouldDropFetchNetworkError(
