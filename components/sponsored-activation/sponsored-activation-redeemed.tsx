@@ -28,17 +28,24 @@ export function SponsoredActivationRedeemed({
       <div className="flex flex-1 flex-col gap-4 px-4 pb-28 pt-4">
         <h1 className="title2 text-[#171717]">Success!</h1>
 
-        <div>
-          <SponsoredActivationDetailRow
-            label="You Spent"
-            value={
-              <SponsoredActivationPointsValue
-                points={pointsSpent}
-                suffix="CADD"
-              />
-            }
-            bareValue
-          />
+          <div>
+            <SponsoredActivationDetailRow
+              label="You Spent"
+              value={
+                <SponsoredActivationPointsValue
+                  points={pointsSpent}
+                  suffix="PTS"
+                />
+              }
+              bareValue
+            />
+            <SponsoredActivationDetailRow
+              label="YOU SWAPPED"
+              value={
+                <SponsoredActivationPointsValue points={5} suffix="CADD" />
+              }
+              bareValue
+            />
         </div>
 
         <SponsoredActivationCollectInstructions redeemed />
