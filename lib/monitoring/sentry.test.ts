@@ -418,6 +418,39 @@ describe('sentryBeforeSend', () => {
     ).toBeNull();
   });
 
+  it('returns null for viem ContractFunctionExecutionError RPC transport failures', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/onboarding' },
+      exception: {
+        values: [
+          {
+            type: 'ContractFunctionExecutionError',
+            value: 'ContractFunctionExecutionError: HTTP request failed.',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('keeps viem ContractFunctionExecutionError contract reverts', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/onboarding' },
+      exception: {
+        values: [
+          {
+            type: 'ContractFunctionExecutionError',
+            value:
+              'ContractFunctionExecutionError: The contract function "createUser" reverted.',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toEqual(event);
+  });
+
   it('returns null for WalletConnect stale session topic noise', () => {
     const event = {
       request: { url: 'https://www.irl.energy/stellar' },
