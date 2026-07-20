@@ -8,9 +8,9 @@ import {
   isValidAddress,
   isValidContractAddress,
 } from '@/lib/stellar/utils/soroban';
-import { connectWallet } from '@/lib/stellar/utils/wallet';
 import { getSimplePaymentContractAddress } from '@/lib/stellar/utils/network';
 import { toast } from 'sonner';
+import Image from 'next/image';
 
 interface ClaimPointsProps {
   onPending?: () => void;
@@ -23,7 +23,7 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { address, network, networkPassphrase, isPending } = useWallet();
+  const { network, networkPassphrase } = useWallet();
   const {
     address: privyStellarAddress,
     connect: connectPrivyStellarWallet,
@@ -31,7 +31,7 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
     isConnecting: isPrivyWalletConnecting,
   } = useStellarWallet();
   const { addNotification } = useNotification();
-  const effectiveAddress = privyStellarAddress ?? address ?? '';
+  const effectiveAddress = privyStellarAddress ?? '';
   const fallbackNetworkPassphrase =
     process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toUpperCase() === 'PUBLIC' ||
     process.env.NEXT_PUBLIC_STELLAR_NETWORK?.toUpperCase() === 'MAINNET'
@@ -48,12 +48,7 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleConnectForClaim = async () => {
-    // If Privy wallet exists/loads, avoid opening wallet selector.
-    try {
-      await connectPrivyStellarWallet();
-    } catch {
-      await connectWallet();
-    }
+    await connectPrivyStellarWallet();
   };
 
   const handleClaim = async () => {
@@ -68,7 +63,7 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
 
     if (!recipientAddress) {
       const errorMsg =
-        'Recipient address is required. Please connect your wallet.';
+        'Recipient address is required. Please sign in with IRL.';
       toast.error(errorMsg);
       onError?.(errorMsg);
       return;
@@ -212,19 +207,25 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
   if (!recipientAddress) {
     return (
       <div className="space-y-4">
-        <p className="body-medium text-[#7D7D7D] font-grotesk">
-          Claim points for rewards.
-        </p>
         <button
-          className="w-full h-12 bg-white hover:bg-gray-100 text-[#313131] px-6 rounded-full title3 font-grotesk transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          type="button"
+          className="label-large uppercase flex h-[44px] w-full cursor-pointer items-center justify-between bg-black py-2 pr-2 pl-4 text-white transition-colors hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
           onClick={() => void handleConnectForClaim()}
-          disabled={
-            isPending || isPrivyWalletLoading || isPrivyWalletConnecting
-          }
+          disabled={isPrivyWalletLoading || isPrivyWalletConnecting}
         >
-          {isPending || isPrivyWalletLoading || isPrivyWalletConnecting
-            ? 'Loading...'
-            : 'Claim Points'}
+          <span>
+            {isPrivyWalletLoading || isPrivyWalletConnecting
+              ? 'Loading...'
+              : 'Sign in to claim'}
+          </span>
+          <Image
+            src="/guidance_up-right-2-short-arrow.svg"
+            alt=""
+            width={24}
+            height={24}
+            className="h-6 w-6 shrink-0"
+            aria-hidden
+          />
         </button>
       </div>
     );
@@ -232,17 +233,21 @@ const ClaimPoints: React.FC<ClaimPointsProps> = ({
 
   return (
     <div className="space-y-4">
-      <p className="body-medium text-[#7D7D7D] font-grotesk">
-        Claim points for rewards. No XLM required — the reward contract covers
-        transaction fees.
-      </p>
-
       <button
+        type="button"
         onClick={handleClaim}
         disabled={isLoading || !contractAddress || !recipientAddress}
-        className="w-full h-12 bg-white hover:bg-gray-100 text-[#313131] px-6 rounded-full title3 font-grotesk transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+        className="label-large uppercase flex h-[44px] w-full cursor-pointer items-center justify-between bg-black py-2 pr-2 pl-4 text-white transition-colors hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {isLoading ? 'Processing...' : 'Claim Points'}
+        <span>{isLoading ? 'Processing...' : 'Claim Points'}</span>
+        <Image
+          src="/guidance_up-right-2-short-arrow.svg"
+          alt=""
+          width={24}
+          height={24}
+          className="h-6 w-6 shrink-0"
+          aria-hidden
+        />
       </button>
     </div>
   );

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import {
+  Account,
   Keypair,
   TransactionBuilder,
   nativeToScVal,
@@ -21,6 +22,18 @@ import {
   getFungibleTokenContractAddress,
   getHorizonUrlForNetwork,
 } from '@/lib/stellar/utils/network';
+import {
+  assembleClaimPointsTransaction,
+  claimPointsInclusionFeeStroops,
+  claimPointsSendIsBadSeq,
+  extendClaimPointsFootprintTtlIfNeeded,
+  formatStroopsAsXlm,
+  loadClaimPointsSigningAccount,
+  restoreArchivedClaimCodeIfNeeded,
+  restoreClaimPointsFootprintIfNeeded,
+  CLAIM_POINTS_MAX_FEE_STROOPS,
+  CLAIM_POINTS_RESTORE_MAX_FEE_STROOPS,
+} from '@/lib/stellar/utils/claim-points-fee';
 
 /** Amount of custom tokens the simple payment sends per claim (100 tokens). */
 const FUNGIBLE_TOKEN_AMOUNT_TOKENS = 100;
@@ -169,26 +182,58 @@ export async function POST(request: NextRequest) {
     console.log(`[claim-points] [${requestId}] Horizon URL:`, horizonUrl);
 
     const horizonServer = new Horizon.Server(horizonUrl);
-    const account = await horizonServer.loadAccount(signerAddress);
+    let account: {
+      accountId: () => string;
+      sequenceNumber: () => string;
+    } = await horizonServer.loadAccount(signerAddress);
+    let nativeBalanceXlm =
+      (
+        account as Awaited<ReturnType<typeof horizonServer.loadAccount>>
+      ).balances.find((b) => b.asset_type === 'native')?.balance ?? null;
     console.log(`[claim-points] [${requestId}] Account loaded:`, {
       sequence: account.sequenceNumber(),
-      balance: account.balances[0]?.balance,
+      nativeXlm: nativeBalanceXlm,
     });
 
-    const baseFee = isMainnet ? '100000' : '100';
+    const inclusionFee = claimPointsInclusionFeeStroops(isMainnet);
 
-    const transaction = new TransactionBuilder(account, {
-      fee: baseFee,
-      networkPassphrase: passphrase,
-    })
-      .addOperation(contractCall)
-      .setTimeout(30)
-      .build();
+    const buildInvokeTx = (
+      sourceAccount: { accountId: () => string; sequenceNumber: () => string },
+      fee: number = inclusionFee
+    ) => {
+      // Snapshot so TransactionBuilder does not bump the loaded account sequence.
+      const snapshot = new Account(
+        sourceAccount.accountId(),
+        sourceAccount.sequenceNumber()
+      );
+      return new TransactionBuilder(snapshot, {
+        fee: String(fee),
+        networkPassphrase: passphrase,
+      })
+        .addOperation(contractCall)
+        .setTimeout(30)
+        .build();
+    };
+
+    /** Prefer Soroban RPC sequence — Horizon can lag after restore/extend. */
+    const reloadSignerAccount = async () => {
+      try {
+        return await loadClaimPointsSigningAccount(rpc, signerAddress);
+      } catch (rpcErr) {
+        console.warn(
+          `[claim-points] [${requestId}] RPC getAccount failed, falling back to Horizon:`,
+          rpcErr instanceof Error ? rpcErr.message : rpcErr
+        );
+        return horizonServer.loadAccount(signerAddress);
+      }
+    };
+
+    let transaction = buildInvokeTx(account);
 
     console.log(
       `[claim-points] [${requestId}] Transaction built, simulating...`
     );
-    const simulation = await rpc.simulateTransaction(transaction);
+    let simulation = await rpc.simulateTransaction(transaction);
     const isSimulationSuccess = SorobanRpc.Api.isSimulationSuccess(simulation);
     const isSimulationError = SorobanRpc.Api.isSimulationError(simulation);
     console.log(`[claim-points] [${requestId}] Simulation result:`, {
@@ -202,6 +247,9 @@ export async function POST(request: NextRequest) {
         isSimulationSuccess && 'minResourceFee' in simulation
           ? simulation.minResourceFee
           : undefined,
+      needsRestore: isSimulationSuccess
+        ? SorobanRpc.Api.isSimulationRestore(simulation)
+        : false,
     });
     if (SorobanRpc.Api.isSimulationError(simulation)) {
       const errorDetails = simulation.error
@@ -251,18 +299,346 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[claim-points] [${requestId}] Preparing transaction...`);
-    const prepared = await rpc.prepareTransaction(transaction);
-    prepared.sign(keypair);
-    console.log(`[claim-points] [${requestId}] Transaction signed, sending...`);
+    if (SorobanRpc.Api.isSimulationRestore(simulation)) {
+      console.log(
+        `[claim-points] [${requestId}] Restoring expired footprint before claim...`
+      );
+      try {
+        await restoreClaimPointsFootprintIfNeeded({
+          rpc,
+          accountId: signerAddress,
+          keypair,
+          networkPassphrase: passphrase,
+          simulation,
+          inclusionFee,
+        });
+      } catch (restoreError) {
+        const message =
+          restoreError instanceof Error
+            ? restoreError.message
+            : 'Footprint restore failed';
+        return NextResponse.json(
+          {
+            success: false,
+            error: message,
+            debug: {
+              requestId,
+              network: isMainnet ? 'MAINNET' : 'TESTNET',
+              simplePaymentAddress,
+              fungibleTokenAddress,
+              maxFeeStroops: CLAIM_POINTS_MAX_FEE_STROOPS,
+            },
+          },
+          { status: 400 }
+        );
+      }
+      // Fresh account sequence after restore, then re-simulate the claim.
+      account = await reloadSignerAccount();
+      transaction = buildInvokeTx(account);
+      simulation = await rpc.simulateTransaction(transaction);
+      if (SorobanRpc.Api.isSimulationError(simulation)) {
+        const errorDetails = simulation.error
+          ? JSON.stringify(simulation.error, null, 2)
+          : 'Unknown simulation error';
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Simulation failed after restore: ${errorDetails}`,
+            debug: {
+              requestId,
+              network: isMainnet ? 'MAINNET' : 'TESTNET',
+              simplePaymentAddress,
+              fungibleTokenAddress,
+            },
+          },
+          { status: 400 }
+        );
+      }
+      if (SorobanRpc.Api.isSimulationRestore(simulation)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Claim still requires footprint restore after restore attempt. Retry shortly.',
+            debug: {
+              requestId,
+              network: isMainnet ? 'MAINNET' : 'TESTNET',
+              simplePaymentAddress,
+              fungibleTokenAddress,
+            },
+          },
+          { status: 400 }
+        );
+      }
+    }
 
-    const sendResult = await rpc.sendTransaction(prepared);
-    console.log(`[claim-points] [${requestId}] Send result:`, {
-      hash: sendResult.hash,
-      status: sendResult.status,
-      hasErrorResult: !!sendResult.errorResult,
-      errorResult: sendResult.errorResult,
-    });
+    if (!SorobanRpc.Api.isSimulationSuccess(simulation)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Simulation was not successful',
+          debug: {
+            requestId,
+            network: isMainnet ? 'MAINNET' : 'TESTNET',
+            simplePaymentAddress,
+            fungibleTokenAddress,
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    // Protocol 23 auto-restores archived WASM inside the claim (~20 XLM).
+    // Restore code/instance first (one-time), then the claim stays under 1 XLM.
+    try {
+      const restored = await restoreArchivedClaimCodeIfNeeded({
+        rpc,
+        accountId: signerAddress,
+        keypair,
+        networkPassphrase: passphrase,
+        simulation,
+        inclusionFee,
+        nativeBalanceXlm,
+      });
+      if (restored) {
+        account = await reloadSignerAccount();
+        const horizonAcct = await horizonServer.loadAccount(signerAddress);
+        nativeBalanceXlm =
+          horizonAcct.balances.find((b) => b.asset_type === 'native')
+            ?.balance ?? null;
+        transaction = buildInvokeTx(account);
+        simulation = await rpc.simulateTransaction(transaction);
+        if (SorobanRpc.Api.isSimulationError(simulation)) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Simulation failed after archival restore: ${
+                simulation.error
+                  ? JSON.stringify(simulation.error, null, 2)
+                  : 'Unknown simulation error'
+              }`,
+              debug: {
+                requestId,
+                network: isMainnet ? 'MAINNET' : 'TESTNET',
+                simplePaymentAddress,
+                fungibleTokenAddress,
+              },
+            },
+            { status: 400 }
+          );
+        }
+        if (!SorobanRpc.Api.isSimulationSuccess(simulation)) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Simulation was not successful after archival restore',
+              debug: {
+                requestId,
+                network: isMainnet ? 'MAINNET' : 'TESTNET',
+                simplePaymentAddress,
+                fungibleTokenAddress,
+              },
+            },
+            { status: 400 }
+          );
+        }
+      }
+    } catch (restoreError) {
+      const message =
+        restoreError instanceof Error
+          ? restoreError.message
+          : 'Archival restore failed';
+      return NextResponse.json(
+        {
+          success: false,
+          error: message,
+          debug: {
+            requestId,
+            network: isMainnet ? 'MAINNET' : 'TESTNET',
+            simplePaymentAddress,
+            fungibleTokenAddress,
+            minResourceFee:
+              'minResourceFee' in simulation
+                ? simulation.minResourceFee
+                : undefined,
+            maxFeeStroops: CLAIM_POINTS_RESTORE_MAX_FEE_STROOPS,
+            nativeBalanceXlm,
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    // Live entries with low TTL: extend cheaply, then re-simulate.
+    try {
+      const extended = await extendClaimPointsFootprintTtlIfNeeded({
+        rpc,
+        accountId: signerAddress,
+        keypair,
+        networkPassphrase: passphrase,
+        simulation,
+        inclusionFee,
+      });
+      if (extended) {
+        account = await reloadSignerAccount();
+        transaction = buildInvokeTx(account);
+        simulation = await rpc.simulateTransaction(transaction);
+        if (SorobanRpc.Api.isSimulationError(simulation)) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Simulation failed after TTL extend: ${
+                simulation.error
+                  ? JSON.stringify(simulation.error, null, 2)
+                  : 'Unknown simulation error'
+              }`,
+              debug: {
+                requestId,
+                network: isMainnet ? 'MAINNET' : 'TESTNET',
+                simplePaymentAddress,
+                fungibleTokenAddress,
+              },
+            },
+            { status: 400 }
+          );
+        }
+        if (!SorobanRpc.Api.isSimulationSuccess(simulation)) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Simulation was not successful after TTL extend',
+              debug: {
+                requestId,
+                network: isMainnet ? 'MAINNET' : 'TESTNET',
+                simplePaymentAddress,
+                fungibleTokenAddress,
+              },
+            },
+            { status: 400 }
+          );
+        }
+      }
+    } catch (extendError) {
+      const message =
+        extendError instanceof Error
+          ? extendError.message
+          : 'Footprint TTL extend failed';
+      return NextResponse.json(
+        {
+          success: false,
+          error: message,
+          debug: {
+            requestId,
+            network: isMainnet ? 'MAINNET' : 'TESTNET',
+            simplePaymentAddress,
+            fungibleTokenAddress,
+            minResourceFee:
+              'minResourceFee' in simulation
+                ? simulation.minResourceFee
+                : undefined,
+            maxFeeStroops: CLAIM_POINTS_MAX_FEE_STROOPS,
+          },
+        },
+        { status: 400 }
+      );
+    }
+
+    console.log(
+      `[claim-points] [${requestId}] Assembling transaction (fee capped at ${formatStroopsAsXlm(CLAIM_POINTS_MAX_FEE_STROOPS)} XLM)...`
+    );
+
+    let prepared;
+    let sendResult;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        prepared = assembleClaimPointsTransaction(
+          transaction,
+          simulation,
+          inclusionFee
+        );
+      } catch (assembleError) {
+        const message =
+          assembleError instanceof Error
+            ? assembleError.message
+            : 'Failed to assemble claim transaction';
+        return NextResponse.json(
+          {
+            success: false,
+            error: message,
+            debug: {
+              requestId,
+              network: isMainnet ? 'MAINNET' : 'TESTNET',
+              simplePaymentAddress,
+              fungibleTokenAddress,
+              minResourceFee:
+                'minResourceFee' in simulation
+                  ? simulation.minResourceFee
+                  : undefined,
+              maxFeeStroops: CLAIM_POINTS_MAX_FEE_STROOPS,
+            },
+          },
+          { status: 400 }
+        );
+      }
+
+      console.log(`[claim-points] [${requestId}] Prepared fee:`, {
+        feeStroops: prepared.fee,
+        feeXlm: formatStroopsAsXlm(Number(prepared.fee)),
+        minResourceFee: simulation.minResourceFee,
+        attempt,
+        sequence: prepared.sequence,
+      });
+
+      prepared.sign(keypair);
+      console.log(
+        `[claim-points] [${requestId}] Transaction signed, sending...`
+      );
+
+      sendResult = await rpc.sendTransaction(prepared);
+      console.log(`[claim-points] [${requestId}] Send result:`, {
+        hash: sendResult.hash,
+        status: sendResult.status,
+        hasErrorResult: !!sendResult.errorResult,
+        errorResult: sendResult.errorResult,
+      });
+
+      if (
+        sendResult.errorResult &&
+        attempt === 0 &&
+        claimPointsSendIsBadSeq(sendResult.errorResult)
+      ) {
+        console.warn(
+          `[claim-points] [${requestId}] Claim hit txBadSeq; reloading RPC sequence and retrying`
+        );
+        account = await reloadSignerAccount();
+        transaction = buildInvokeTx(account);
+        simulation = await rpc.simulateTransaction(transaction);
+        if (
+          SorobanRpc.Api.isSimulationError(simulation) ||
+          !SorobanRpc.Api.isSimulationSuccess(simulation)
+        ) {
+          break;
+        }
+        continue;
+      }
+      break;
+    }
+
+    if (!prepared || !sendResult) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to prepare claim transaction',
+          debug: {
+            requestId,
+            network: isMainnet ? 'MAINNET' : 'TESTNET',
+            simplePaymentAddress,
+            fungibleTokenAddress,
+          },
+        },
+        { status: 500 }
+      );
+    }
 
     if (sendResult.errorResult) {
       const errMsg =

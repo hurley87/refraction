@@ -85,28 +85,28 @@ export const UserBalance = () => {
 
   return (
     <div
-      className="flex flex-col gap-3 w-full"
+      className="flex w-full flex-col gap-3"
       style={{ opacity: isPending ? 0.6 : 1 }}
     >
       {walletSource === 'privy' && (
-        <p className="body-small font-grotesk text-[#B5B5B5]">
+        <p className="body-small text-[#757575]">
           Embedded Stellar wallet (IRL / Privy)
         </p>
       )}
 
-      <div className="flex flex-row items-end justify-between w-full gap-3">
-        <div className="flex items-end gap-2 min-w-0 flex-1">
+      <div className="flex w-full flex-row items-end justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-end gap-2">
           <Image
             src="/ep-coin-white.svg"
             alt=""
             width={12}
             height={12}
-            className="w-4 h-4 shrink-0 mb-2"
+            className="mb-2 h-4 w-4 shrink-0 brightness-0"
             aria-hidden
           />
-          <div className="flex items-baseline gap-2 min-w-0">
+          <div className="flex min-w-0 items-baseline gap-2">
             <p
-              className="m-0 text-white text-center md:text-left truncate"
+              className="m-0 truncate text-left text-[#171717]"
               style={{
                 fontFamily: '"ABC Monument Grotesk Unlicensed Trial"',
                 fontSize: '64px',
@@ -119,7 +119,7 @@ export const UserBalance = () => {
               {displayBalance !== '-' ? numBalance.toLocaleString() : '-'}
             </p>
             <p
-              className="m-0 shrink-0 text-[#B5B5B5] leading-none"
+              className="m-0 shrink-0 leading-none text-[#757575]"
               style={{
                 fontFamily: '"ABC Monument Grotesk Semi-Mono Unlicensed Trial"',
                 fontSize: '13px',
@@ -133,64 +133,63 @@ export const UserBalance = () => {
           </div>
         </div>
 
-        <div
-          className="h-10 min-w-10 px-3 rounded-full bg-[#FFE600] flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity shrink-0"
+        <button
+          type="button"
+          className="flex h-10 min-w-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[#EDEDED] px-3 transition-opacity hover:opacity-90"
           onClick={() => setShowDisconnectModal(true)}
           title={address}
         >
-          <span className="text-[#131313] font-semibold text-sm">
+          <span className="text-sm font-semibold text-[#171717]">
             {address.slice(-2).toUpperCase()}
           </span>
-        </div>
+        </button>
       </div>
 
       {showDisconnectModal && (
         <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={() => setShowDisconnectModal(false)}
         >
           <div
-            className="bg-[#313131] rounded-[26px] border border-white/15 p-6 max-w-md w-full"
+            className="w-full max-w-md rounded-[26px] border border-[#131313]/10 bg-white p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-3 mb-4 min-w-0">
-              <h3
-                className="title5 text-white font-grotesk min-w-0 flex-1"
-                style={{ textShadow: 'rgba(255,255,255,0.7) 0px 0px 16px' }}
-              >
+            <div className="mb-4 flex min-w-0 items-center justify-between gap-3">
+              <h3 className="min-w-0 flex-1 font-medium text-[#171717]">
                 Wallet Settings
               </h3>
               <button
                 type="button"
                 onClick={() => setShowDisconnectModal(false)}
-                className="shrink-0 p-2 rounded-full text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="shrink-0 cursor-pointer rounded-full p-2 text-[#171717] transition-colors hover:bg-black/5"
                 aria-label="Close modal"
               >
-                <X size={20} className="text-white" aria-hidden />
+                <X size={20} aria-hidden />
               </button>
             </div>
 
-            <div className="bg-black/25 rounded-[26px] border border-white/10 p-4 mb-4">
+            <div className="mb-4 rounded-[26px] border border-[#131313]/10 bg-[#EDEDED]/40 p-4">
               <div className="flex flex-col gap-2">
-                <div className="body-small font-grotesk text-[#B5B5B5] uppercase tracking-wide">
+                <div className="body-small uppercase tracking-wide text-[#757575]">
                   {walletSource === 'freighter'
                     ? 'Connected Wallet'
                     : 'Embedded Stellar wallet'}
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="text-xs break-all text-white flex-1 min-w-0 font-mono">
+                  <code className="min-w-0 flex-1 break-all font-mono text-xs text-[#171717]">
                     {address}
                   </code>
                   <button
+                    type="button"
                     onClick={() => {
                       navigator.clipboard.writeText(address);
                       toast.success('Address copied!');
                     }}
-                    className="flex-shrink-0 p-1 hover:bg-white/10 rounded transition-colors cursor-pointer"
+                    className="flex-shrink-0 cursor-pointer rounded p-1 transition-colors hover:bg-black/5"
                     title="Copy address"
                   >
                     <svg
-                      className="w-4 h-4 text-white"
+                      className="h-4 w-4 text-[#171717]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -205,20 +204,8 @@ export const UserBalance = () => {
                   </button>
                 </div>
                 {walletSource === 'privy' && (
-                  <p className="text-xs text-[#B5B5B5] font-grotesk leading-snug pt-1">
-                    {freighterAddress ? (
-                      <>
-                        This is your IRL embedded address (same as your
-                        profile). Freighter is also connected for optional
-                        browser-wallet flows.
-                      </>
-                    ) : (
-                      <>
-                        This address is tied to your IRL login (Privy). To use a
-                        different Stellar account, connect Freighter in the
-                        section below.
-                      </>
-                    )}
+                  <p className="pt-1 text-xs leading-snug text-[#757575]">
+                    This address is tied to your IRL login (Privy).
                   </p>
                 )}
               </div>
@@ -227,32 +214,38 @@ export const UserBalance = () => {
             {walletSource === 'freighter' ? (
               <button
                 type="button"
-                className="w-full min-w-0 h-12 bg-white hover:bg-gray-100 text-[#313131] px-4 sm:px-6 rounded-full title3 font-grotesk transition-colors duration-200 flex items-center gap-3 cursor-pointer"
+                className="label-large uppercase flex h-[44px] w-full cursor-pointer items-center justify-between bg-black py-2 pr-2 pl-4 text-white transition-colors hover:bg-neutral-900"
                 onClick={() => {
                   void disconnectWallet().then(() =>
                     setShowDisconnectModal(false)
                   );
                 }}
               >
-                <span className="min-w-0 flex-1 text-left leading-tight">
-                  Disconnect Wallet
-                </span>
+                <span>Disconnect Wallet</span>
                 <Image
                   src="/log-out.svg"
                   alt=""
                   width={24}
                   height={24}
-                  className="h-6 w-6 shrink-0"
+                  className="h-6 w-6 shrink-0 invert"
                   aria-hidden
                 />
               </button>
             ) : (
               <button
                 type="button"
-                className="w-full min-w-0 h-12 bg-white hover:bg-gray-100 text-[#313131] px-4 sm:px-6 rounded-full title3 font-grotesk transition-colors duration-200 cursor-pointer"
+                className="label-large uppercase flex h-[44px] w-full cursor-pointer items-center justify-between bg-black py-2 pr-2 pl-4 text-white transition-colors hover:bg-neutral-900"
                 onClick={() => setShowDisconnectModal(false)}
               >
-                Close
+                <span>Close</span>
+                <Image
+                  src="/guidance_up-right-2-short-arrow.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="h-6 w-6 shrink-0"
+                  aria-hidden
+                />
               </button>
             )}
           </div>
