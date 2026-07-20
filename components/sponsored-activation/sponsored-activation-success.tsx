@@ -104,12 +104,19 @@ export function SponsoredActivationSuccess({
               className="border-b-0"
             />
             <SponsoredActivationDetailRow
-              label="YOUR CADD BALANCE"
+              label="YOUR POINTS BALANCE"
               value={
                 <SponsoredActivationPointsValue
                   points={balanceAfter}
-                  suffix="CADD"
+                  suffix="PTS"
                 />
+              }
+              bareValue
+            />
+            <SponsoredActivationDetailRow
+              label="YOU SWAPPED"
+              value={
+                <SponsoredActivationPointsValue points={5} suffix="CADD" />
               }
               bareValue
             />
