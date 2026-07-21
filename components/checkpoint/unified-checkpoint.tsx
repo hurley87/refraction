@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useStellarWallet } from '@/hooks/useStellarWallet';
 import { useAptosWallet } from '@/hooks/useAptosWallet';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import SpendCheckpoint from '@/components/checkpoint/spend-checkpoint';
 import type { Checkpoint } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -179,6 +180,7 @@ function CheckinSuccessView({
 function CheckinCheckpoint({ checkpoint }: UnifiedCheckpointProps) {
   const { user } = usePrivy();
   const { createWallet } = useCreateWallet();
+  const evmWalletAddress = useEvmWalletAddress();
   const {
     address: stellarAddress,
     connect: connectStellar,
@@ -200,7 +202,7 @@ function CheckinCheckpoint({ checkpoint }: UnifiedCheckpointProps) {
   const getWalletAddress = () => {
     switch (checkpoint.chain_type) {
       case 'evm':
-        return user?.wallet?.address;
+        return evmWalletAddress;
       case 'solana': {
         const solanaWallet = user?.linkedAccounts?.find(
           (account) =>

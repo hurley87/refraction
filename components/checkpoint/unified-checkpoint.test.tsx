@@ -25,9 +25,11 @@ vi.mock('@/components/layout/footer', () => ({
 
 // Mock Privy
 const mockUsePrivy = vi.fn();
+const mockUseWallets = vi.fn();
 const mockCreateWallet = vi.fn();
 vi.mock('@privy-io/react-auth', () => ({
   usePrivy: () => mockUsePrivy(),
+  useWallets: () => mockUseWallets(),
   useCreateWallet: () => ({ createWallet: mockCreateWallet }),
 }));
 
@@ -71,6 +73,7 @@ describe('UnifiedCheckpoint', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn();
+    mockUseWallets.mockReturnValue({ wallets: [] });
     mockUseStellarWallet.mockReturnValue({
       address: null,
       connect: vi.fn(),
@@ -372,7 +375,9 @@ describe('UnifiedCheckpoint', () => {
     it('should auto check-in when wallet is available', async () => {
       mockUsePrivy.mockReturnValue({
         user: {
-          wallet: { address: '0x1234567890abcdef' },
+          wallet: {
+            address: '0x1234567890abcdef1234567890abcdef12345678',
+          },
           email: { address: 'test@example.com' },
         },
       });
@@ -401,7 +406,52 @@ describe('UnifiedCheckpoint', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chain: 'evm',
-            walletAddress: '0x1234567890abcdef',
+            walletAddress: '0x1234567890AbcdEF1234567890aBcdef12345678',
+            email: 'test@example.com',
+            checkpoint: 'checkpoint-1',
+          }),
+        });
+      });
+    });
+
+    it('should use a linked EVM wallet when the primary wallet is non-EVM', async () => {
+      mockUsePrivy.mockReturnValue({
+        user: {
+          wallet: { address: 'SolanaWallet123' },
+          email: { address: 'test@example.com' },
+          linkedAccounts: [
+            {
+              type: 'wallet',
+              chainType: 'solana',
+              address: 'SolanaWallet123',
+            },
+            {
+              type: 'wallet',
+              chainType: 'ethereum',
+              address: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+            },
+          ],
+        },
+      });
+
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, player: { total_points: 1000 } }),
+      } as Response);
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      } as Response);
+
+      render(<UnifiedCheckpoint checkpoint={mockEvmCheckpoint} />);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith('/api/checkin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chain: 'evm',
+            walletAddress: '0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD',
             email: 'test@example.com',
             checkpoint: 'checkpoint-1',
           }),
@@ -533,7 +583,9 @@ describe('UnifiedCheckpoint', () => {
     it('should show success screen with points earned', async () => {
       mockUsePrivy.mockReturnValue({
         user: {
-          wallet: { address: '0x1234567890abcdef' },
+          wallet: {
+            address: '0x1234567890abcdef1234567890abcdef12345678',
+          },
           email: { address: 'test@example.com' },
         },
       });
@@ -565,7 +617,9 @@ describe('UnifiedCheckpoint', () => {
     it('should show Go to IRL Map button', async () => {
       mockUsePrivy.mockReturnValue({
         user: {
-          wallet: { address: '0x1234567890abcdef' },
+          wallet: {
+            address: '0x1234567890abcdef1234567890abcdef12345678',
+          },
           email: { address: 'test@example.com' },
         },
       });
@@ -593,7 +647,9 @@ describe('UnifiedCheckpoint', () => {
       const user = userEvent.setup();
       mockUsePrivy.mockReturnValue({
         user: {
-          wallet: { address: '0x1234567890abcdef' },
+          wallet: {
+            address: '0x1234567890abcdef1234567890abcdef12345678',
+          },
           email: { address: 'test@example.com' },
         },
       });
@@ -631,7 +687,9 @@ describe('UnifiedCheckpoint', () => {
 
       mockUsePrivy.mockReturnValue({
         user: {
-          wallet: { address: '0x1234567890abcdef' },
+          wallet: {
+            address: '0x1234567890abcdef1234567890abcdef12345678',
+          },
           email: { address: 'test@example.com' },
         },
       });
@@ -660,7 +718,9 @@ describe('UnifiedCheckpoint', () => {
     it('should show error message when check-in fails', async () => {
       mockUsePrivy.mockReturnValue({
         user: {
-          wallet: { address: '0x1234567890abcdef' },
+          wallet: {
+            address: '0x1234567890abcdef1234567890abcdef12345678',
+          },
           email: { address: 'test@example.com' },
         },
       });
@@ -686,7 +746,9 @@ describe('UnifiedCheckpoint', () => {
     it('should show daily limit message when limit is reached', async () => {
       mockUsePrivy.mockReturnValue({
         user: {
-          wallet: { address: '0x1234567890abcdef' },
+          wallet: {
+            address: '0x1234567890abcdef1234567890abcdef12345678',
+          },
           email: { address: 'test@example.com' },
         },
       });
@@ -714,7 +776,9 @@ describe('UnifiedCheckpoint', () => {
     it('should show Visit IRL.ENERGY button on error', async () => {
       mockUsePrivy.mockReturnValue({
         user: {
-          wallet: { address: '0x1234567890abcdef' },
+          wallet: {
+            address: '0x1234567890abcdef1234567890abcdef12345678',
+          },
           email: { address: 'test@example.com' },
         },
       });
@@ -743,7 +807,9 @@ describe('UnifiedCheckpoint', () => {
     it('should show checking in message while request is in progress', async () => {
       mockUsePrivy.mockReturnValue({
         user: {
-          wallet: { address: '0x1234567890abcdef' },
+          wallet: {
+            address: '0x1234567890abcdef1234567890abcdef12345678',
+          },
           email: { address: 'test@example.com' },
         },
       });
