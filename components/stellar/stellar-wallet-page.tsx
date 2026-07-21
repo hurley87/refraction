@@ -2,15 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { ChevronDown } from 'lucide-react';
 
 import { WalletProvider } from '@/lib/stellar/providers/wallet-provider';
 import { NotificationProvider } from '@/lib/stellar/providers/notification-provider';
 import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
 import ConnectAccount from './connect-account';
-import { UserBalance } from './user-balance';
 import ClaimPoints from './claim-points';
-import { NearIntentsBridgeWidget } from './near-intents-bridge-widget';
 import { TransactionStatus } from './transaction-status';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
 import { useStellarWallet } from '@/hooks/useStellarWallet';
@@ -24,13 +21,12 @@ function StellarWalletPageContent() {
     address: stellarWalletAddress,
   } = useWallet();
   const { address: privyStellarAddress } = useStellarWallet();
-  const hasStellarForBalance = Boolean(privyStellarAddress);
+  const hasStellarWallet = Boolean(privyStellarAddress);
   const [rewardTxHash, setRewardTxHash] = useState<string | null>(null);
   const [rewardStatus, setRewardStatus] = useState<
     'idle' | 'pending' | 'success' | 'error'
   >('idle');
   const [rewardError, setRewardError] = useState<string | null>(null);
-  const [bridgeExpanded, setBridgeExpanded] = useState(false);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'development') return;
@@ -98,7 +94,6 @@ function StellarWalletPageContent() {
             </div>
 
             <div className="flex flex-col items-start gap-2 self-stretch pb-6">
-         
               <h2 className="w-full self-stretch text-left font-medium text-[#171717]">
                 IRL × Stellar
               </h2>
@@ -113,48 +108,13 @@ function StellarWalletPageContent() {
                   Wallet
                 </div>
                 <span className="label-small uppercase text-[#171717]">
-                  {hasStellarForBalance ? 'Connected' : 'Sign in required'}
+                  {hasStellarWallet ? 'Connected' : 'Sign in required'}
                 </span>
               </div>
 
-              {!hasStellarForBalance && <ConnectAccount />}
+              {!hasStellarWallet && <ConnectAccount />}
             </div>
           </div>
-
-          {hasStellarForBalance && (
-            <section className="flex flex-col gap-4 border-t border-[var(--Text-Secondary-Text,#757575)] bg-white py-6">
-              <p className="body-large text-black">WALLET BALANCE</p>
-              <UserBalance />
-            </section>
-          )}
-
-          <section className="border-t border-[var(--Text-Secondary-Text,#757575)] bg-white">
-            <button
-              type="button"
-              onClick={() => setBridgeExpanded((v) => !v)}
-              className="flex w-full cursor-pointer items-center justify-between gap-2 py-6 text-left transition-colors hover:bg-black/[0.02]"
-              aria-expanded={bridgeExpanded}
-            >
-              <div className="flex min-w-0 flex-col gap-1">
-                <p className="body-large text-black">BRIDGE TO STELLAR</p>
-                <p className="body-small text-[#757575]">
-                  Move assets onto Stellar
-                </p>
-              </div>
-              <ChevronDown
-                className={`h-5 w-5 shrink-0 text-[#171717] transition-transform ${bridgeExpanded ? 'rotate-180' : ''}`}
-                aria-hidden
-              />
-            </button>
-            {bridgeExpanded && (
-              <div className="pb-6">
-                <NearIntentsBridgeWidget
-                  stellarAddressOverride={privyStellarAddress ?? undefined}
-                  stellarNetworkOverride={network ?? undefined}
-                />
-              </div>
-            )}
-          </section>
 
           <section className="flex flex-col gap-4 border-t border-[var(--Text-Secondary-Text,#757575)] bg-white py-6">
             <div className="flex flex-col gap-1">

@@ -5,6 +5,27 @@ import Image from 'next/image';
 import { useNotification } from '@/lib/stellar/hooks/use-notification';
 import { useWallet } from '@/lib/stellar/hooks/use-wallet';
 import { getFriendbotUrl } from '@/lib/stellar/utils/friendbot';
+import { stellarNetwork } from '@/lib/stellar/utils/network';
+
+function isMainnetNetwork(
+  network?: string | null,
+  networkPassphrase?: string | null
+): boolean {
+  const n = (network ?? stellarNetwork).trim().toUpperCase();
+  if (n === 'PUBLIC' || n === 'MAINNET') return true;
+  if (
+    n === 'TESTNET' ||
+    n === 'FUTURENET' ||
+    n === 'LOCAL' ||
+    n === 'STANDALONE'
+  ) {
+    return false;
+  }
+  const p = networkPassphrase ?? '';
+  if (p.includes('Public Global Stellar Network')) return true;
+  if (p.includes('Test SDF Network')) return false;
+  return false;
+}
 
 interface FundAccountButtonProps {
   compact?: boolean;
@@ -27,7 +48,11 @@ const FundAccountButton: React.FC<FundAccountButtonProps> = ({
 }) => {
   const { addNotification } = useNotification();
   const [isPending, startTransition] = useTransition();
-  const { address, balances, accountExists } = useWallet();
+  const { address, balances, accountExists, network, networkPassphrase } =
+    useWallet();
+
+  // Friendbot is testnet-only — never show on mainnet.
+  if (isMainnetNetwork(network, networkPassphrase)) return null;
 
   const targetAddress = fundAddress ?? address;
   if (!targetAddress) return null;
