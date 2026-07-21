@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { getAddress } from 'viem';
 import UnifiedCheckpoint from './unified-checkpoint';
 import type { Checkpoint } from '@/lib/types';
 
@@ -25,11 +26,10 @@ vi.mock('@/components/layout/footer', () => ({
 
 // Mock Privy
 const mockUsePrivy = vi.fn();
-const mockUseWallets = vi.fn();
 const mockCreateWallet = vi.fn();
 vi.mock('@privy-io/react-auth', () => ({
   usePrivy: () => mockUsePrivy(),
-  useWallets: () => mockUseWallets(),
+  useWallets: () => ({ wallets: [] }),
   useCreateWallet: () => ({ createWallet: mockCreateWallet }),
 }));
 
@@ -45,7 +45,25 @@ vi.mock('@/hooks/useAptosWallet', () => ({
   useAptosWallet: () => mockUseAptosWallet(),
 }));
 
+const PRIMARY_EVM_WALLET = '0x1234567890abcdef1234567890abcdef12345678';
+const LINKED_EVM_WALLET = '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
+const CHECKSUMMED_PRIMARY_EVM_WALLET = getAddress(
+  PRIMARY_EVM_WALLET as `0x${string}`
+);
+const CHECKSUMMED_LINKED_EVM_WALLET = getAddress(
+  LINKED_EVM_WALLET as `0x${string}`
+);
+
 describe('UnifiedCheckpoint', () => {
+  const mockSignedInEvmUser = () => {
+    mockUsePrivy.mockReturnValue({
+      user: {
+        wallet: { address: PRIMARY_EVM_WALLET },
+        email: { address: 'test@example.com' },
+      },
+    });
+  };
+
   const mockEvmCheckpoint: Checkpoint = {
     id: 'checkpoint-1',
     name: 'Test Checkpoint',
@@ -73,7 +91,6 @@ describe('UnifiedCheckpoint', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn();
-    mockUseWallets.mockReturnValue({ wallets: [] });
     mockUseStellarWallet.mockReturnValue({
       address: null,
       connect: vi.fn(),
@@ -373,14 +390,7 @@ describe('UnifiedCheckpoint', () => {
 
   describe('Auto Check-in', () => {
     it('should auto check-in when wallet is available', async () => {
-      mockUsePrivy.mockReturnValue({
-        user: {
-          wallet: {
-            address: '0x1234567890abcdef1234567890abcdef12345678',
-          },
-          email: { address: 'test@example.com' },
-        },
-      });
+      mockSignedInEvmUser();
 
       // Player stats fetch
       vi.mocked(global.fetch).mockResolvedValueOnce({
@@ -406,7 +416,7 @@ describe('UnifiedCheckpoint', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chain: 'evm',
-            walletAddress: '0x1234567890AbcdEF1234567890aBcdef12345678',
+            walletAddress: CHECKSUMMED_PRIMARY_EVM_WALLET,
             email: 'test@example.com',
             checkpoint: 'checkpoint-1',
           }),
@@ -428,7 +438,7 @@ describe('UnifiedCheckpoint', () => {
             {
               type: 'wallet',
               chainType: 'ethereum',
-              address: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+              address: LINKED_EVM_WALLET,
             },
           ],
         },
@@ -451,7 +461,7 @@ describe('UnifiedCheckpoint', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chain: 'evm',
-            walletAddress: '0xABcdEFABcdEFabcdEfAbCdefabcdeFABcDEFabCD',
+            walletAddress: CHECKSUMMED_LINKED_EVM_WALLET,
             email: 'test@example.com',
             checkpoint: 'checkpoint-1',
           }),
@@ -581,14 +591,7 @@ describe('UnifiedCheckpoint', () => {
 
   describe('Successful Check-in', () => {
     it('should show success screen with points earned', async () => {
-      mockUsePrivy.mockReturnValue({
-        user: {
-          wallet: {
-            address: '0x1234567890abcdef1234567890abcdef12345678',
-          },
-          email: { address: 'test@example.com' },
-        },
-      });
+      mockSignedInEvmUser();
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
@@ -615,14 +618,7 @@ describe('UnifiedCheckpoint', () => {
     });
 
     it('should show Go to IRL Map button', async () => {
-      mockUsePrivy.mockReturnValue({
-        user: {
-          wallet: {
-            address: '0x1234567890abcdef1234567890abcdef12345678',
-          },
-          email: { address: 'test@example.com' },
-        },
-      });
+      mockSignedInEvmUser();
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
@@ -645,14 +641,7 @@ describe('UnifiedCheckpoint', () => {
 
     it('should navigate to map when button is clicked', async () => {
       const user = userEvent.setup();
-      mockUsePrivy.mockReturnValue({
-        user: {
-          wallet: {
-            address: '0x1234567890abcdef1234567890abcdef12345678',
-          },
-          email: { address: 'test@example.com' },
-        },
-      });
+      mockSignedInEvmUser();
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
@@ -685,14 +674,7 @@ describe('UnifiedCheckpoint', () => {
         partner_image_url: '/images/partner.png',
       };
 
-      mockUsePrivy.mockReturnValue({
-        user: {
-          wallet: {
-            address: '0x1234567890abcdef1234567890abcdef12345678',
-          },
-          email: { address: 'test@example.com' },
-        },
-      });
+      mockSignedInEvmUser();
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
@@ -716,14 +698,7 @@ describe('UnifiedCheckpoint', () => {
 
   describe('Check-in Error', () => {
     it('should show error message when check-in fails', async () => {
-      mockUsePrivy.mockReturnValue({
-        user: {
-          wallet: {
-            address: '0x1234567890abcdef1234567890abcdef12345678',
-          },
-          email: { address: 'test@example.com' },
-        },
-      });
+      mockSignedInEvmUser();
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
@@ -744,14 +719,7 @@ describe('UnifiedCheckpoint', () => {
     });
 
     it('should show daily limit message when limit is reached', async () => {
-      mockUsePrivy.mockReturnValue({
-        user: {
-          wallet: {
-            address: '0x1234567890abcdef1234567890abcdef12345678',
-          },
-          email: { address: 'test@example.com' },
-        },
-      });
+      mockSignedInEvmUser();
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
@@ -774,14 +742,7 @@ describe('UnifiedCheckpoint', () => {
     });
 
     it('should show Visit IRL.ENERGY button on error', async () => {
-      mockUsePrivy.mockReturnValue({
-        user: {
-          wallet: {
-            address: '0x1234567890abcdef1234567890abcdef12345678',
-          },
-          email: { address: 'test@example.com' },
-        },
-      });
+      mockSignedInEvmUser();
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
@@ -805,14 +766,7 @@ describe('UnifiedCheckpoint', () => {
 
   describe('Checking In State', () => {
     it('should show checking in message while request is in progress', async () => {
-      mockUsePrivy.mockReturnValue({
-        user: {
-          wallet: {
-            address: '0x1234567890abcdef1234567890abcdef12345678',
-          },
-          email: { address: 'test@example.com' },
-        },
-      });
+      mockSignedInEvmUser();
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
