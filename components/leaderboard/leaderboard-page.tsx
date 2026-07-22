@@ -8,6 +8,7 @@ import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
 import Link from 'next/link';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
 import { useUserStats } from '@/hooks/usePlayer';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 interface LeaderboardUser {
   player_id: number;
@@ -44,7 +45,7 @@ const getOrdinalSuffix = (num: number): string => {
 
 export default function LeaderboardPage() {
   const { user } = usePrivy();
-  const currentUserAddress = user?.wallet?.address;
+  const currentUserAddress = useEvmWalletAddress();
   const currentUsername = user?.google?.name || user?.twitter?.name;
 
   // Use the reusable hook for user stats

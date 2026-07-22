@@ -1,22 +1,24 @@
-"use client";
+'use client';
 
-import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
-import { z } from "zod";
-import { publicClient, irlChain } from "@/lib/publicClient";
+import { usePrivy } from '@privy-io/react-auth';
+import { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { z } from 'zod';
+import { publicClient, irlChain } from '@/lib/publicClient';
 import {
   userManagerABI,
   userManagerAddress,
-} from "@/lib/contracts/UserManager";
-import { createWalletClient, custom } from "viem";
+} from '@/lib/contracts/UserManager';
+import { createWalletClient, custom } from 'viem';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
+import { useConnectedEvmWallet } from '@/hooks/use-connected-evm-wallet';
 
 // Dev-only logger to avoid noisy logs during SSG/production
 const devLog = (...args: any[]) => {
-  if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+  if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
     // eslint-disable-next-line no-console
     console.log(...args);
   }
@@ -24,25 +26,25 @@ const devLog = (...args: any[]) => {
 
 const usernameSchema = z
   .string()
-  .min(1, "Username is required")
-  .regex(/^[a-zA-Z0-9_]+$/, "Invalid username");
+  .min(1, 'Username is required')
+  .regex(/^[a-zA-Z0-9_]+$/, 'Invalid username');
 
 // Helper function to safely get chain ID
 const getWalletChainId = (wallet: any): string | undefined => {
   if (!wallet) return undefined;
 
   // Check if chainId is already a string number
-  if (typeof wallet.chainId === "string" && !wallet.chainId.includes(":")) {
+  if (typeof wallet.chainId === 'string' && !wallet.chainId.includes(':')) {
     return wallet.chainId;
   }
 
   // Parse chain ID from format like "eip155:8453"
-  if (typeof wallet.chainId === "string" && wallet.chainId.includes(":")) {
-    return wallet.chainId.split(":")[1];
+  if (typeof wallet.chainId === 'string' && wallet.chainId.includes(':')) {
+    return wallet.chainId.split(':')[1];
   }
 
   // If chainId is a number
-  if (typeof wallet.chainId === "number") {
+  if (typeof wallet.chainId === 'number') {
     return wallet.chainId.toString();
   }
 
@@ -51,32 +53,26 @@ const getWalletChainId = (wallet: any): string | undefined => {
 
 export default function Onboarding() {
   const { user, login, logout } = usePrivy();
-  const { wallets } = useWallets();
+  const evmWalletAddress = useEvmWalletAddress();
+  const wallet = useConnectedEvmWallet();
 
-  devLog("user", user);
-  devLog("wallets", wallets);
+  devLog('user', user);
+  devLog('wallet:', wallet);
 
-  // Get the primary wallet address
-  const address = (user?.wallet?.address || wallets[0]?.address) as
-    | `0x${string}`
-    | undefined;
-  devLog("address:", address);
-
-  // Find the wallet object
-  const wallet = wallets.find((w) => w.address === address) || wallets[0];
-  devLog("wallet:", wallet);
-  devLog("wallet type:", wallet?.walletClientType);
-  devLog("wallet chainId:", wallet?.chainId);
+  const address = evmWalletAddress as `0x${string}` | undefined;
+  devLog('address:', address);
+  devLog('wallet type:', wallet?.walletClientType);
+  devLog('wallet chainId:', wallet?.chainId);
 
   // Parse chain ID safely
   const walletChainId = getWalletChainId(wallet);
-  devLog("walletChainId:", walletChainId);
+  devLog('walletChainId:', walletChainId);
 
-  const [usernameInput, setUsernameInput] = useState("");
+  const [usernameInput, setUsernameInput] = useState('');
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentChainId, setCurrentChainId] = useState<string | undefined>(
-    walletChainId,
+    walletChainId
   );
 
   // Update currentChainId when wallet changes
@@ -85,7 +81,7 @@ export default function Onboarding() {
       const chainId = getWalletChainId(wallet);
       if (chainId) {
         setCurrentChainId(chainId);
-        devLog("Updated currentChainId:", chainId);
+        devLog('Updated currentChainId:', chainId);
       }
     }
   }, [wallet, wallet?.chainId]);
@@ -98,15 +94,15 @@ export default function Onboarding() {
         const userId = await publicClient.readContract({
           address: userManagerAddress,
           abi: userManagerABI,
-          functionName: "addressToId",
+          functionName: 'addressToId',
           args: [address],
         });
 
-        devLog("userId", userId);
+        devLog('userId', userId);
 
         // Check if userId is 0 (no user registered for this address)
         if (!userId || userId === BigInt(0)) {
-          devLog("No user ID found for address");
+          devLog('No user ID found for address');
           return;
         }
 
@@ -114,17 +110,17 @@ export default function Onboarding() {
         const name = await publicClient.readContract({
           address: userManagerAddress,
           abi: userManagerABI,
-          functionName: "getName",
+          functionName: 'getName',
           args: [userId],
         });
 
-        devLog("name", name);
+        devLog('name', name);
 
-        if (name && typeof name === "string" && name.length > 0) {
+        if (name && typeof name === 'string' && name.length > 0) {
           setCurrentUsername(name);
         }
       } catch (err) {
-        console.error("Error fetching username", err);
+        console.error('Error fetching username', err);
       }
     };
     fetchUsername();
@@ -145,34 +141,34 @@ export default function Onboarding() {
     try {
       setIsLoading(true);
 
-      devLog("currentChainId", currentChainId);
-      devLog("irlChain.id", irlChain.id);
-      devLog("wallet", wallet);
+      devLog('currentChainId', currentChainId);
+      devLog('irlChain.id', irlChain.id);
+      devLog('wallet', wallet);
 
       // Ensure we're on the correct chain before proceeding
       if (currentChainId !== irlChain.id.toString()) {
         try {
           // Try to switch chain directly first
           await wallet.switchChain(irlChain.id);
-          toast.info("Switching to IRL chain...");
+          toast.info('Switching to IRL chain...');
           setCurrentChainId(irlChain.id.toString());
 
           // Wait a bit for the chain switch to complete
           await new Promise((resolve) => setTimeout(resolve, 1000));
         } catch (switchError: any) {
-          console.error("Direct chain switch failed:", switchError);
+          console.error('Direct chain switch failed:', switchError);
 
           // If direct switch fails, try adding the chain first
           const provider = await wallet.getEthereumProvider();
 
           if (!provider) {
-            toast.error("Unable to get wallet provider");
+            toast.error('Unable to get wallet provider');
             return;
           }
 
           // Try switching again
           await wallet.switchChain(irlChain.id);
-          toast.info("Switching to IRL chain...");
+          toast.info('Switching to IRL chain...');
           setCurrentChainId(irlChain.id.toString());
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
@@ -182,7 +178,7 @@ export default function Onboarding() {
       const provider = await wallet.getEthereumProvider();
 
       if (!provider) {
-        toast.error("Unable to get wallet provider");
+        toast.error('Unable to get wallet provider');
         return;
       }
 
@@ -195,18 +191,18 @@ export default function Onboarding() {
       const { request } = await publicClient.simulateContract({
         address: userManagerAddress,
         abi: userManagerABI,
-        functionName: "createUser",
+        functionName: 'createUser',
         args: [usernameInput],
         account: address,
       });
 
       const hash = await walletClient.writeContract(request);
       await publicClient.waitForTransactionReceipt({ hash });
-      toast.success("Username created");
+      toast.success('Username created');
       setCurrentUsername(usernameInput);
     } catch (err) {
-      console.error("Error creating username", err);
-      toast.error("Failed to create username");
+      console.error('Error creating username', err);
+      toast.error('Failed to create username');
     } finally {
       setIsLoading(false);
     }
@@ -214,19 +210,19 @@ export default function Onboarding() {
 
   const handleChainSwitch = async () => {
     if (!wallet) {
-      toast.error("No wallet connected");
+      toast.error('No wallet connected');
       return;
     }
 
     try {
-      devLog("Starting chain switch...");
-      devLog("Wallet object:", wallet);
-      devLog("Current chainId:", wallet.chainId);
+      devLog('Starting chain switch...');
+      devLog('Wallet object:', wallet);
+      devLog('Current chainId:', wallet.chainId);
 
       // Try to switch chain using the wallet's switchChain method
       try {
         await wallet.switchChain(irlChain.id);
-        devLog("Chain switched successfully");
+        devLog('Chain switched successfully');
 
         // Update the current chain ID
         setCurrentChainId(irlChain.id.toString());
@@ -234,15 +230,15 @@ export default function Onboarding() {
         // Force a small delay to ensure the chain switch is reflected
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        toast.success("Switched to IRL chain");
+        toast.success('Switched to IRL chain');
       } catch (switchError: any) {
-        console.error("Error during switchChain:", switchError);
+        console.error('Error during switchChain:', switchError);
 
         // If switchChain fails, try adding the chain first
         const provider = await wallet.getEthereumProvider();
 
         if (!provider) {
-          toast.error("Unable to get wallet provider");
+          toast.error('Unable to get wallet provider');
           return;
         }
 
@@ -250,21 +246,21 @@ export default function Onboarding() {
           // Try switching again after adding
           await wallet.switchChain(irlChain.id);
           setCurrentChainId(irlChain.id.toString());
-          toast.success("Switched to IRL chain");
+          toast.success('Switched to IRL chain');
         } catch (addError: any) {
-          console.error("Error adding chain:", addError);
+          console.error('Error adding chain:', addError);
           throw addError;
         }
       }
     } catch (err: any) {
-      console.error("Error switching chain - Full error:", err);
-      console.error("Error type:", typeof err);
-      console.error("Error message:", err?.message);
-      console.error("Error stack:", err?.stack);
+      console.error('Error switching chain - Full error:', err);
+      console.error('Error type:', typeof err);
+      console.error('Error message:', err?.message);
+      console.error('Error stack:', err?.stack);
 
       const errorMessage =
         err?.message ||
-        "Failed to switch chain. Please switch manually in your wallet.";
+        'Failed to switch chain. Please switch manually in your wallet.';
       toast.error(errorMessage);
     }
   };
@@ -294,7 +290,7 @@ export default function Onboarding() {
     );
   }
 
-  devLog("wallet", wallet);
+  devLog('wallet', wallet);
 
   return (
     <>
@@ -317,7 +313,7 @@ export default function Onboarding() {
                 disabled={isLoading}
                 onClick={handleCreate}
               >
-                {isLoading ? "Creating..." : "Create Username"}
+                {isLoading ? 'Creating...' : 'Create Username'}
               </Button>
             ) : (
               <Button

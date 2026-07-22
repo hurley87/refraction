@@ -4,6 +4,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { useUsernameSignup } from '@/hooks/use-username-signup';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import { UsernameSignupForm } from '@/components/auth/username-signup-form';
 
 interface AuthProps {
@@ -12,7 +13,7 @@ interface AuthProps {
 
 export default function Auth({ children }: AuthProps) {
   const { user, ready, linkEmail, login } = usePrivy();
-  const walletAddress = user?.wallet?.address;
+  const walletAddress = useEvmWalletAddress();
   const {
     username,
     setUsername,

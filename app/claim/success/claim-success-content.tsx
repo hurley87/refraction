@@ -9,6 +9,7 @@ import ExportWalletButton from '@/components/claim/export-wallet-button';
 import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 import { useQuery } from '@tanstack/react-query';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 /** Styling-only success UI: any build can use `?preview=1` (no mint). */
 function isPreviewModeFromSearch(search: string): boolean {
@@ -16,7 +17,7 @@ function isPreviewModeFromSearch(search: string): boolean {
 }
 
 export function ClaimSuccessContent() {
-  const { authenticated, ready, user, getAccessToken } = usePrivy();
+  const { authenticated, ready, getAccessToken } = usePrivy();
   const router = useRouter();
 
   /** null = not yet read on client (avoid redirect using stale React Query cache from /claim/nft). */
@@ -30,7 +31,7 @@ export function ClaimSuccessContent() {
     setPreviewResolved(true);
   }, []);
 
-  const userAddress = user?.wallet?.address;
+  const userAddress = useEvmWalletAddress();
 
   // Wait for Privy — before `ready`, `authenticated` is false and would wrongly send users to /claim.
   useEffect(() => {

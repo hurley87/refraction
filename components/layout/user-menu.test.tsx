@@ -23,6 +23,9 @@ const mockUsePrivy = vi.fn();
 vi.mock('@privy-io/react-auth', () => ({
   usePrivy: () => mockUsePrivy(),
 }));
+vi.mock('@/hooks/use-evm-wallet-address', () => ({
+  useEvmWalletAddress: () => mockUsePrivy()?.user?.wallet?.address,
+}));
 
 // Mock useUserStats hook
 const mockUseUserStats = vi.fn();

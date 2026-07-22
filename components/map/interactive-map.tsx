@@ -47,6 +47,7 @@ import {
 import { buildDeepLinkMarkerFromQueryCoords } from '@/lib/utils/map-deep-link-marker';
 import { filterByMapBounds } from '@/lib/utils/map-bounds';
 import type { LocationCategory } from '@/lib/types';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 interface MarkerData {
   latitude: number;
@@ -209,7 +210,7 @@ export default function InteractiveMap({
     guideReturnHref ?? guideReturnPersistedRef.current;
 
   const { user, getAccessToken } = usePrivy();
-  const walletAddress = user?.wallet?.address;
+  const walletAddress = useEvmWalletAddress();
   const { data: favoritePlaceIds } = useFavoritePlaceIds(walletAddress);
   const { mutate: toggleFavorite, isPending: isFavoritePending } =
     useToggleFavorite(walletAddress);
@@ -2518,7 +2519,9 @@ export default function InteractiveMap({
                       <div
                         className={`flex w-full items-center self-stretch ${isSingleWordLocationCategory(checkInTarget.category) ? 'justify-between' : 'justify-end'}`}
                       >
-                        {isSingleWordLocationCategory(checkInTarget.category) ? (
+                        {isSingleWordLocationCategory(
+                          checkInTarget.category
+                        ) ? (
                           <p className="flex label-small items-center justify-center gap-2 border border-[#171717] px-1 py-0.5  uppercase tracking-[0.3px] text-[#171717]">
                             {formatLocationCategory(checkInTarget.category)}
                           </p>

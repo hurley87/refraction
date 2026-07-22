@@ -29,24 +29,24 @@ export function resolvePrivyEvmWalletAddress(
   user: User | null | undefined,
   connectedWallets?: WalletAddressSource[]
 ): string | undefined {
-  const candidates: string[] = [];
+  const seen = new Set<string>();
 
   const push = (value: string | null | undefined) => {
     const normalized = value ? tryNormalizeEvmAddress(value) : null;
-    if (normalized && !candidates.includes(normalized)) {
-      candidates.push(normalized);
-    }
+    if (normalized) seen.add(normalized);
   };
+
+  // Preserve Privy's active wallet when it is already EVM. If the active
+  // wallet is another chain, fall back to the user's linked EVM accounts.
+  push(user?.wallet?.address);
 
   for (const account of user?.linkedAccounts ?? []) {
     push(evmAddressFromLinkedAccount(account));
   }
 
-  push(user?.wallet?.address);
-
   for (const wallet of connectedWallets ?? []) {
     push(wallet.address);
   }
 
-  return candidates[0];
+  return seen.values().next().value;
 }

@@ -10,14 +10,15 @@ import MembersSection from '@/components/members-section';
 import { usePrivy } from '@privy-io/react-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 export default function ClaimNFTPage() {
-  const { authenticated, user, ready, getAccessToken } = usePrivy();
+  const { authenticated, ready, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
   const router = useRouter();
   const [claiming, setClaiming] = useState(false);
 
-  const userAddress = user?.wallet?.address;
+  const userAddress = useEvmWalletAddress();
 
   // Redirect to login if not authenticated (only after Privy is ready)
   useEffect(() => {

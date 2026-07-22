@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
-import { useMemo } from "react";
-import { usePrivy } from "@privy-io/react-auth";
-import { toast } from "sonner";
+import { useMemo } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
+import { toast } from 'sonner';
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
+import { resolveEmbeddedPrivyEvmWalletAddress } from '@/lib/privy/resolve-embedded-privy-evm-wallet-address';
 
 interface ExportWalletButtonProps {
   className?: string;
@@ -13,39 +14,30 @@ interface ExportWalletButtonProps {
 
 export default function ExportWalletButton({
   className,
-  buttonText = "Export Wallet",
+  buttonText = 'Export Wallet',
 }: ExportWalletButtonProps) {
   const { ready, authenticated, user, exportWallet } = usePrivy();
 
-  const userAddress = user?.wallet?.address;
-  const hasEmbeddedWallet = useMemo(
-    () =>
-      Boolean(
-        user?.linkedAccounts?.some(
-          (account) =>
-            account.type === "wallet" &&
-            account.walletClientType === "privy" &&
-            account.chainType === "ethereum",
-        ),
-      ),
-    [user?.linkedAccounts],
+  const userAddress = useMemo(
+    () => resolveEmbeddedPrivyEvmWalletAddress(user),
+    [user]
   );
-
   const isWalletReady = ready || Boolean(userAddress);
 
   const disabledReason = useMemo(() => {
     if (!isWalletReady && !authenticated) {
-      return "Connecting to Privy...";
+      return 'Connecting to Privy...';
     }
-    if (!authenticated) return "Log in to export your wallet.";
-    if (!hasEmbeddedWallet || !userAddress)
-      return "No embedded Privy wallet found to export.";
+    if (!authenticated) return 'Log in to export your wallet.';
+    if (!userAddress) return 'No embedded Privy wallet found to export.';
     return null;
-  }, [isWalletReady, authenticated, hasEmbeddedWallet, userAddress]);
+  }, [isWalletReady, authenticated, userAddress]);
 
   const handleExportWallet = async () => {
     if (!isWalletReady) {
-      toast.error("Still connecting to your wallet. Please try again in a moment.");
+      toast.error(
+        'Still connecting to your wallet. Please try again in a moment.'
+      );
       return;
     }
 
@@ -56,10 +48,10 @@ export default function ExportWalletButton({
 
     try {
       await exportWallet({ address: userAddress as `0x${string}` });
-      toast.success("Privy export modal opened. Copy your key securely.");
+      toast.success('Privy export modal opened. Copy your key securely.');
     } catch (error: any) {
-      console.error("Failed to export wallet:", error);
-      toast.error(error?.message || "Failed to export wallet. Please retry.");
+      console.error('Failed to export wallet:', error);
+      toast.error(error?.message || 'Failed to export wallet. Please retry.');
     }
   };
 
@@ -70,12 +62,11 @@ export default function ExportWalletButton({
       disabled={Boolean(disabledReason)}
       title={disabledReason ?? undefined}
       className={cn(
-        "flex h-10 w-full items-center justify-center rounded-full border border-[#313131] bg-white px-4 py-2 font-grotesk text-sm text-[#313131] transition hover:bg-[#F9F9F9] disabled:cursor-not-allowed disabled:opacity-60",
-        className,
+        'flex h-10 w-full items-center justify-center rounded-full border border-[#313131] bg-white px-4 py-2 font-grotesk text-sm text-[#313131] transition hover:bg-[#F9F9F9] disabled:cursor-not-allowed disabled:opacity-60',
+        className
       )}
     >
       {buttonText}
     </button>
   );
 }
-

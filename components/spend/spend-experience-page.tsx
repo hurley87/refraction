@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { usePrivy, useSendTransaction, useWallets } from '@privy-io/react-auth';
+import { usePrivy, useSendTransaction } from '@privy-io/react-auth';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
+import { useConnectedEvmWallet } from '@/hooks/use-connected-evm-wallet';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SpendPageShell } from '@/components/spend/spend-page-shell';
@@ -186,24 +187,10 @@ export function SpendExperiencePage({
 }: SpendExperiencePageProps) {
   const { user, login, getAccessToken } = usePrivy();
   const { sendTransaction } = useSendTransaction();
-  const { wallets } = useWallets();
   const queryClient = useQueryClient();
   const walletAddress = useEvmWalletAddress();
+  const evmWallet = useConnectedEvmWallet({ preferEmbeddedPrivy: true });
   const [trackedScan, setTrackedScan] = useState(false);
-
-  const evmWallet = useMemo(() => {
-    if (!walletAddress) return null;
-    const lower = walletAddress.toLowerCase();
-    const privyEmbedded = wallets.find(
-      (w) => w.walletClientType === 'privy' && w.address.toLowerCase() === lower
-    );
-    if (privyEmbedded) return privyEmbedded;
-    return (
-      wallets.find((w) => w.address.toLowerCase() === lower) ??
-      wallets[0] ??
-      null
-    );
-  }, [walletAddress, wallets]);
 
   const {
     data: sessionPayload,

@@ -8,6 +8,9 @@ const mockUsePrivy = vi.fn()
 vi.mock('@privy-io/react-auth', () => ({
   usePrivy: () => mockUsePrivy(),
 }))
+vi.mock('@/hooks/use-evm-wallet-address', () => ({
+  useEvmWalletAddress: () => mockUsePrivy()?.user?.wallet?.address,
+}))
 
 // Mock lucide-react icons
 vi.mock('lucide-react', () => ({
@@ -102,33 +105,35 @@ describe('Leaderboard', () => {
     it('should display leaderboard entries', async () => {
       const user = userEvent.setup()
       // Override the default mock for this test
-      vi.mocked(global.fetch).mockReset().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            leaderboard: [
-              {
-                player_id: '1',
-                wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
-                username: 'TopPlayer',
-                total_points: 5000,
-                total_checkins: 50,
-                rank: 1,
-              },
-              {
-                player_id: '2',
-                wallet_address: '0xabcdef1234567890abcdef1234567890abcdef12',
-                username: 'SecondPlayer',
-                total_points: 4500,
-                total_checkins: 45,
-                rank: 2,
-              },
-            ],
-            pagination: { page: 1, limit: 50, total: 2, totalPages: 1 },
-          },
-        }),
-      } as Response)
+      vi.mocked(global.fetch)
+        .mockReset()
+        .mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              leaderboard: [
+                {
+                  player_id: '1',
+                  wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+                  username: 'TopPlayer',
+                  total_points: 5000,
+                  total_checkins: 50,
+                  rank: 1,
+                },
+                {
+                  player_id: '2',
+                  wallet_address: '0xabcdef1234567890abcdef1234567890abcdef12',
+                  username: 'SecondPlayer',
+                  total_points: 4500,
+                  total_checkins: 45,
+                  rank: 2,
+                },
+              ],
+              pagination: { page: 1, limit: 50, total: 2, totalPages: 1 },
+            },
+          }),
+        } as Response)
 
       render(<Leaderboard />)
 
@@ -170,11 +175,14 @@ describe('Leaderboard', () => {
     it('should fetch and display current user stats when logged in', async () => {
       const user = userEvent.setup()
       mockUsePrivy.mockReturnValue({
-        user: { wallet: { address: '0x1234567890abcdef1234567890abcdef12345678' } },
+        user: {
+          wallet: { address: '0x1234567890abcdef1234567890abcdef12345678' },
+        },
       })
 
       // Reset and set up sequential mocks
-      vi.mocked(global.fetch).mockReset()
+      vi.mocked(global.fetch)
+        .mockReset()
         // Leaderboard fetch
         .mockResolvedValueOnce({
           ok: true,
@@ -212,7 +220,9 @@ describe('Leaderboard', () => {
     it('should show prompt when user has no stats', async () => {
       const user = userEvent.setup()
       mockUsePrivy.mockReturnValue({
-        user: { wallet: { address: '0x1234567890abcdef1234567890abcdef12345678' } },
+        user: {
+          wallet: { address: '0x1234567890abcdef1234567890abcdef12345678' },
+        },
       })
 
       vi.mocked(global.fetch).mockResolvedValueOnce({
@@ -294,23 +304,25 @@ describe('Leaderboard', () => {
   describe('Pagination', () => {
     it('should show pagination controls when multiple pages exist', async () => {
       const user = userEvent.setup()
-      vi.mocked(global.fetch).mockReset().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            leaderboard: Array.from({ length: 50 }, (_, i) => ({
-              player_id: `${i + 1}`,
-              wallet_address: `0x${i.toString().padStart(40, '0')}`,
-              username: `Player${i + 1}`,
-              total_points: 1000 - i * 10,
-              total_checkins: 10,
-              rank: i + 1,
-            })),
-            pagination: { page: 1, limit: 50, total: 150, totalPages: 3 },
-          },
-        }),
-      } as Response)
+      vi.mocked(global.fetch)
+        .mockReset()
+        .mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              leaderboard: Array.from({ length: 50 }, (_, i) => ({
+                player_id: `${i + 1}`,
+                wallet_address: `0x${i.toString().padStart(40, '0')}`,
+                username: `Player${i + 1}`,
+                total_points: 1000 - i * 10,
+                total_checkins: 10,
+                rank: i + 1,
+              })),
+              pagination: { page: 1, limit: 50, total: 150, totalPages: 3 },
+            },
+          }),
+        } as Response)
 
       render(<Leaderboard />)
 
@@ -324,16 +336,18 @@ describe('Leaderboard', () => {
 
     it('should navigate to next page when right arrow is clicked', async () => {
       const user = userEvent.setup()
-      vi.mocked(global.fetch).mockReset().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            leaderboard: [],
-            pagination: { page: 1, limit: 50, total: 150, totalPages: 3 },
-          },
-        }),
-      } as Response)
+      vi.mocked(global.fetch)
+        .mockReset()
+        .mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              leaderboard: [],
+              pagination: { page: 1, limit: 50, total: 150, totalPages: 3 },
+            },
+          }),
+        } as Response)
 
       render(<Leaderboard />)
 
@@ -352,16 +366,18 @@ describe('Leaderboard', () => {
 
     it('should disable previous button on first page', async () => {
       const user = userEvent.setup()
-      vi.mocked(global.fetch).mockReset().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            leaderboard: [],
-            pagination: { page: 1, limit: 50, total: 150, totalPages: 3 },
-          },
-        }),
-      } as Response)
+      vi.mocked(global.fetch)
+        .mockReset()
+        .mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              leaderboard: [],
+              pagination: { page: 1, limit: 50, total: 150, totalPages: 3 },
+            },
+          }),
+        } as Response)
 
       render(<Leaderboard />)
 
@@ -463,20 +479,32 @@ describe('Leaderboard', () => {
     it('should show loading state initially when modal opens', async () => {
       const user = userEvent.setup()
       // Use a pending promise that we'll manually resolve
-      vi.mocked(global.fetch).mockReset().mockImplementation(
-        () => new Promise((resolve) => {
-          setTimeout(() => resolve({
-            ok: true,
-            json: async () => ({
-              success: true,
-              data: {
-                leaderboard: [],
-                pagination: { page: 1, limit: 50, total: 0, totalPages: 0 },
-              },
-            }),
-          } as Response), 100)
-        })
-      )
+      vi.mocked(global.fetch)
+        .mockReset()
+        .mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              setTimeout(
+                () =>
+                  resolve({
+                    ok: true,
+                    json: async () => ({
+                      success: true,
+                      data: {
+                        leaderboard: [],
+                        pagination: {
+                          page: 1,
+                          limit: 50,
+                          total: 0,
+                          totalPages: 0,
+                        },
+                      },
+                    }),
+                  } as Response),
+                100
+              )
+            })
+        )
 
       render(<Leaderboard />)
 
@@ -492,25 +520,27 @@ describe('Leaderboard', () => {
   describe('Wallet Address Formatting', () => {
     it('should format wallet addresses for users without usernames', async () => {
       const user = userEvent.setup()
-      vi.mocked(global.fetch).mockReset().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: {
-            leaderboard: [
-              {
-                player_id: '1',
-                wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
-                username: null,
-                total_points: 1000,
-                total_checkins: 10,
-                rank: 1,
-              },
-            ],
-            pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
-          },
-        }),
-      } as Response)
+      vi.mocked(global.fetch)
+        .mockReset()
+        .mockResolvedValue({
+          ok: true,
+          json: async () => ({
+            success: true,
+            data: {
+              leaderboard: [
+                {
+                  player_id: '1',
+                  wallet_address: '0x1234567890abcdef1234567890abcdef12345678',
+                  username: null,
+                  total_points: 1000,
+                  total_checkins: 10,
+                  rank: 1,
+                },
+              ],
+              pagination: { page: 1, limit: 50, total: 1, totalPages: 1 },
+            },
+          }),
+        } as Response)
 
       render(<Leaderboard />)
 

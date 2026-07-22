@@ -23,6 +23,7 @@ import { useAnalytics } from '@/hooks/useAnalytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
 import { apiClient } from '@/lib/api/client';
 import type { Perk } from '@/lib/types';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {
@@ -84,8 +85,8 @@ const TimeLeft = ({
 
 export default function PerkDetailPage() {
   const params = useParams();
-  const { user, login } = usePrivy();
-  const address = user?.wallet?.address;
+  const { login } = usePrivy();
+  const address = useEvmWalletAddress();
   const queryClient = useQueryClient();
   const perkId = params.perkId as string;
   const { trackEvent } = useAnalytics();

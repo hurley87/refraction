@@ -15,15 +15,20 @@ vi.mock('next/image', () => ({
 const mockLogin = vi.fn();
 const mockLinkEmail = vi.fn();
 const mockUsePrivy = vi.fn();
+const mockUseEvmWalletAddress = vi.fn();
 
 vi.mock('@privy-io/react-auth', () => ({
   usePrivy: () => mockUsePrivy(),
+}));
+vi.mock('@/hooks/use-evm-wallet-address', () => ({
+  useEvmWalletAddress: () => mockUseEvmWalletAddress(),
 }));
 
 describe('Auth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    mockUseEvmWalletAddress.mockReturnValue('0x1234567890abcdef');
     // Default mock - override in specific tests
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -341,6 +346,54 @@ describe('Auth', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             walletAddress: '0x1234567890abcdef',
+            email: 'test@example.com',
+            username: 'testuser',
+          }),
+        });
+      });
+    });
+
+    it('should create a player with the linked EVM wallet when the primary wallet is non-EVM', async () => {
+      const user = userEvent.setup();
+      mockUsePrivy.mockReturnValue({
+        user: {
+          wallet: { address: 'SolanaWallet123' },
+          email: { address: 'test@example.com' },
+        },
+        ready: true,
+        login: mockLogin,
+        linkEmail: mockLinkEmail,
+      });
+      mockUseEvmWalletAddress.mockReturnValue(
+        '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd'
+      );
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      } as Response);
+
+      render(
+        <Auth>
+          <div>Children</div>
+        </Auth>
+      );
+
+      await user.type(
+        await screen.findByPlaceholderText('Enter your username'),
+        'testuser'
+      );
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      } as Response);
+      await user.click(screen.getByRole('button', { name: /start earning/i }));
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith('/api/player', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
             email: 'test@example.com',
             username: 'testuser',
           }),

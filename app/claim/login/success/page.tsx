@@ -9,9 +9,11 @@ import ClaimFooter from '@/components/claim/claim-footer';
 import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
 
 import { usePrivy } from '@privy-io/react-auth';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 export default function LoginSuccessPage() {
-  const { authenticated, ready, user, getAccessToken } = usePrivy();
+  const { authenticated, ready, getAccessToken } = usePrivy();
+  const walletAddress = useEvmWalletAddress();
   const router = useRouter();
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [checkinPointsLine, setCheckinPointsLine] = useState<string | null>(
@@ -28,7 +30,7 @@ export default function LoginSuccessPage() {
 
   // One-time 100 IRL points for reaching this screen (server enforces idempotency)
   useEffect(() => {
-    if (!ready || !authenticated || !user?.wallet?.address) return;
+    if (!ready || !authenticated || !walletAddress) return;
     if (walletconPointsRequestedRef.current) return;
     walletconPointsRequestedRef.current = true;
 
@@ -37,8 +39,7 @@ export default function LoginSuccessPage() {
     void (async () => {
       try {
         const token = await getAccessToken();
-        const addr = user.wallet?.address;
-        if (!token || !addr) {
+        if (!token) {
           walletconPointsRequestedRef.current = false;
           return;
         }
@@ -48,7 +49,7 @@ export default function LoginSuccessPage() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ walletAddress: addr }),
+          body: JSON.stringify({ walletAddress }),
         });
         const json = await res.json();
         if (cancelled) return;
@@ -71,7 +72,7 @@ export default function LoginSuccessPage() {
     return () => {
       cancelled = true;
     };
-  }, [ready, authenticated, user?.wallet?.address, getAccessToken]);
+  }, [ready, authenticated, walletAddress, getAccessToken]);
 
   // Show loading state while Privy is initializing
   if (!ready) {
