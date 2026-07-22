@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { isPaymentLink } from "@reown/walletkit";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { usePrivy } from '@privy-io/react-auth';
+import { isPaymentLink } from '@reown/walletkit';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -10,26 +10,26 @@ import {
   QrCode,
   Sparkles,
   Wallet,
-} from "lucide-react";
-import Image from "next/image";
-import { toast } from "sonner";
+} from 'lucide-react';
+import Image from 'next/image';
+import { toast } from 'sonner';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   getWalletKitSingleton,
   isWalletConnectPayAuthErrorMessage,
   resetWalletKitSingleton,
-} from "@/lib/walletconnect-pay/walletkit-instance";
+} from '@/lib/walletconnect-pay/walletkit-instance';
 import {
   signWalletRpcAction,
   type BrowserProvider,
-} from "@/lib/walletconnect-pay/sign-wallet-rpc-action";
+} from '@/lib/walletconnect-pay/sign-wallet-rpc-action';
 import {
   encodePosterUsdcTransferData,
   fetchUsdcBalanceOnBase,
@@ -37,22 +37,23 @@ import {
   POSTER_CHECKOUT_CHAIN_ID,
   POSTER_CHECKOUT_USDC_ADDRESS_BASE,
   USDC_WARNING_THRESHOLD,
-} from "@/lib/walletconnect-poster-direct-usdc";
-import { PaymentLinkQrReaderDialog } from "@/components/walletconnect/payment-link-qr-reader-dialog";
-import { cn } from "@/lib/utils";
-import { useEvmWalletAddress } from "@/hooks/use-evm-wallet-address";
+} from '@/lib/walletconnect-poster-direct-usdc';
+import { PaymentLinkQrReaderDialog } from '@/components/walletconnect/payment-link-qr-reader-dialog';
+import { cn } from '@/lib/utils';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
+import { useConnectedEvmWallet } from '@/hooks/use-connected-evm-wallet';
 
-import type { PaymentOptionsResponse } from "@walletconnect/pay";
+import type { PaymentOptionsResponse } from '@walletconnect/pay';
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
+const PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? '';
 /** When set, /walletconnect can settle $1 USDC on Base without a Pay product link (plain ERC-20 transfer). */
 const POSTER_USDC_RECIPIENT =
-  process.env.NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS?.trim() ?? "";
+  process.env.NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS?.trim() ?? '';
 
 const POSTER_PRICE_USD = 1;
-const PRODUCT_NAME = "Limited edition poster";
+const PRODUCT_NAME = 'Limited edition poster';
 const PRODUCT_BLURB =
-  "Screen-printed IRL drop. Pay with USDC via WalletConnect Pay.";
+  'Screen-printed IRL drop. Pay with USDC via WalletConnect Pay.';
 
 /**
  * Build CAIP-10 accounts from the connected wallet address.
@@ -77,13 +78,13 @@ function toEvmHexAddress(value: string | undefined): `0x${string}` | null {
 }
 
 type FlowStatus =
-  | "idle"
-  | "initializing"
-  | "loading_options"
-  | "awaiting_ic"
-  | "signing"
-  | "confirming"
-  | "done";
+  | 'idle'
+  | 'initializing'
+  | 'loading_options'
+  | 'awaiting_ic'
+  | 'signing'
+  | 'confirming'
+  | 'done';
 
 const WALLET_STEP_TIMEOUT_MS = 180_000;
 
@@ -114,15 +115,15 @@ function withTimeout<T>(
 
 export function WalletConnectPageClient() {
   const { login, authenticated, ready: privyReady } = usePrivy();
-  const { wallets } = useWallets();
   const address = useEvmWalletAddress();
+  const evmWallet = useConnectedEvmWallet();
 
-  const [paymentLinkOverride, setPaymentLinkOverride] = useState("");
+  const [paymentLinkOverride, setPaymentLinkOverride] = useState('');
   const [qrReaderOpen, setQrReaderOpen] = useState(false);
   const [optionsResponse, setOptionsResponse] =
     useState<PaymentOptionsResponse | null>(null);
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
-  const [flowStatus, setFlowStatus] = useState<FlowStatus>("idle");
+  const [flowStatus, setFlowStatus] = useState<FlowStatus>('idle');
   const [lastError, setLastError] = useState<string | null>(null);
   const [purchaseComplete, setPurchaseComplete] = useState(false);
 
@@ -133,12 +134,6 @@ export function WalletConnectPageClient() {
 
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
   const [usdcBalanceLoading, setUsdcBalanceLoading] = useState(false);
-
-  const evmWallet = (() => {
-    if (!address) return null;
-    const lower = address.toLowerCase();
-    return wallets.find((w) => w.address.toLowerCase() === lower) ?? null;
-  })();
 
   /** Payment URI from QR scan only (no env-based product link). */
   const effectivePaymentLink = paymentLinkOverride.trim();
@@ -176,12 +171,12 @@ export function WalletConnectPageClient() {
     function handleMessage(event: MessageEvent) {
       try {
         const data =
-          typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-        if (data?.type === "IC_COMPLETE") {
+          typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        if (data?.type === 'IC_COMPLETE') {
           icResolveRef.current?.();
-        } else if (data?.type === "IC_ERROR") {
+        } else if (data?.type === 'IC_ERROR') {
           icRejectRef.current?.(
-            new Error(data.error || "Information collection failed")
+            new Error(data.error || 'Information collection failed')
           );
         }
       } catch {
@@ -189,12 +184,12 @@ export function WalletConnectPageClient() {
       }
     }
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [icOpen]);
 
   const handleCloseIc = useCallback(() => {
-    icRejectRef.current?.(new Error("Information collection cancelled"));
+    icRejectRef.current?.(new Error('Information collection cancelled'));
   }, []);
 
   const handleWalletKitPayError = useCallback(
@@ -220,7 +215,7 @@ export function WalletConnectPageClient() {
   const initWalletKit = useCallback(
     async (authHint: string) => {
       if (!PROJECT_ID) {
-        toast.error("App configuration incomplete");
+        toast.error('App configuration incomplete');
         return null;
       }
       try {
@@ -229,7 +224,7 @@ export function WalletConnectPageClient() {
             projectId: PROJECT_ID,
           }),
           60_000,
-          "Wallet connection setup"
+          'Wallet connection setup'
         );
       } catch (e) {
         handleWalletKitPayError(e, authHint);
@@ -243,29 +238,29 @@ export function WalletConnectPageClient() {
     useCallback(async (): Promise<PaymentOptionsResponse | null> => {
       const link = effectivePaymentLink;
       if (!link) {
-        toast.error("Scan the payment QR code first");
+        toast.error('Scan the payment QR code first');
         return null;
       }
       if (!isPaymentLink(link)) {
-        toast.error("Invalid payment link");
+        toast.error('Invalid payment link');
         return null;
       }
       if (!address) {
-        toast.error("Connect your wallet to continue");
+        toast.error('Connect your wallet to continue');
         return null;
       }
       setLastError(null);
-      setFlowStatus("initializing");
+      setFlowStatus('initializing');
       try {
         const walletkit = await initWalletKit(
-          "Pay rejected the configured project id (401). Confirm NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID and redeploy."
+          'Pay rejected the configured project id (401). Confirm NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID and redeploy.'
         );
         if (!walletkit) return null;
-        setFlowStatus("loading_options");
+        setFlowStatus('loading_options');
         const accounts = buildPayCaip10Accounts(address);
         if (accounts.length === 0) {
           throw new Error(
-            "Connected wallet address is invalid for EVM payments"
+            'Connected wallet address is invalid for EVM payments'
           );
         }
 
@@ -276,11 +271,11 @@ export function WalletConnectPageClient() {
             includePaymentInfo: true,
           }),
           WALLET_STEP_TIMEOUT_MS,
-          "Loading payment options"
+          'Loading payment options'
         );
         setOptionsResponse(options);
         if (options.options.length === 0) {
-          toast.error("No payment options for your wallet");
+          toast.error('No payment options for your wallet');
           return null;
         }
         const first = options.options[0]!.id;
@@ -289,65 +284,65 @@ export function WalletConnectPageClient() {
       } catch (e) {
         handleWalletKitPayError(
           e,
-          "Pay rejected the configured project id (401). Confirm NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID and redeploy."
+          'Pay rejected the configured project id (401). Confirm NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID and redeploy.'
         );
         return null;
       } finally {
-        setFlowStatus("idle");
+        setFlowStatus('idle');
       }
     }, [address, effectivePaymentLink, handleWalletKitPayError, initWalletKit]);
 
   const payWithSelectedOption = useCallback(
     async (response: PaymentOptionsResponse, optionId: string) => {
       if (!address || !evmWallet) {
-        toast.error("Wallet not ready");
+        toast.error('Wallet not ready');
         return;
       }
       const link = effectivePaymentLink;
       if (!link || !isPaymentLink(link)) {
-        toast.error("Invalid payment link");
+        toast.error('Invalid payment link');
         return;
       }
       setLastError(null);
 
       try {
         const walletkit = await initWalletKit(
-          "Pay rejected the configured project id (401). Check NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID and redeploy after changes."
+          'Pay rejected the configured project id (401). Check NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID and redeploy after changes.'
         );
         if (!walletkit) {
-          setFlowStatus("idle");
+          setFlowStatus('idle');
           return;
         }
 
         const option = response.options.find((o) => o.id === optionId);
         if (!option) {
-          throw new Error("Selected payment method not found");
+          throw new Error('Selected payment method not found');
         }
 
         const ic = option.collectData?.url;
         if (ic) {
-          setFlowStatus("awaiting_ic");
+          setFlowStatus('awaiting_ic');
           await runDataCollectionIframe(ic);
         }
 
-        setFlowStatus("signing");
+        setFlowStatus('signing');
         const actions = await withTimeout(
           walletkit.pay.getRequiredPaymentActions({
             paymentId: response.paymentId,
             optionId,
           }),
           WALLET_STEP_TIMEOUT_MS,
-          "Preparing payment in wallet"
+          'Preparing payment in wallet'
         );
 
         const provider = await evmWallet.getEthereumProvider();
         if (!provider) {
-          throw new Error("Could not connect to your wallet");
+          throw new Error('Could not connect to your wallet');
         }
 
         const accountAddress = toEvmHexAddress(address);
         if (!accountAddress) {
-          throw new Error("Connected wallet address is invalid for signing");
+          throw new Error('Connected wallet address is invalid for signing');
         }
 
         const signatures: string[] = [];
@@ -362,18 +357,18 @@ export function WalletConnectPageClient() {
                   await withTimeout(
                     evmWallet.switchChain(chainId),
                     WALLET_STEP_TIMEOUT_MS,
-                    "Switch network in your wallet"
+                    'Switch network in your wallet'
                   );
                 },
               }
             ),
             WALLET_STEP_TIMEOUT_MS,
-            "Sign or confirm in your wallet"
+            'Sign or confirm in your wallet'
           );
           signatures.push(sig);
         }
 
-        setFlowStatus("confirming");
+        setFlowStatus('confirming');
         const result = await withTimeout(
           walletkit.pay.confirmPayment({
             paymentId: response.paymentId,
@@ -381,17 +376,17 @@ export function WalletConnectPageClient() {
             signatures,
           }),
           WALLET_STEP_TIMEOUT_MS,
-          "Confirming payment"
+          'Confirming payment'
         );
 
-        setFlowStatus("done");
-        if (result.status === "succeeded") {
+        setFlowStatus('done');
+        if (result.status === 'succeeded') {
           setPurchaseComplete(true);
-          toast.success("Payment received — thank you!");
-        } else if (result.status === "processing") {
+          toast.success('Payment received — thank you!');
+        } else if (result.status === 'processing') {
           setPurchaseComplete(true);
-          toast.message("Payment is processing", {
-            description: "We will confirm shortly.",
+          toast.message('Payment is processing', {
+            description: 'We will confirm shortly.',
           });
         } else {
           toast.error(`Payment could not complete (${result.status})`);
@@ -399,11 +394,11 @@ export function WalletConnectPageClient() {
       } catch (e) {
         handleWalletKitPayError(
           e,
-          "Pay rejected the configured project id (401). Check NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID and redeploy after changes."
+          'Pay rejected the configured project id (401). Check NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID and redeploy after changes.'
         );
       } finally {
         setFlowStatus((prev) =>
-          prev === "done" || prev === "idle" ? prev : "idle"
+          prev === 'done' || prev === 'idle' ? prev : 'idle'
         );
       }
     },
@@ -419,29 +414,29 @@ export function WalletConnectPageClient() {
 
   const payDirectUsdcOnBase = useCallback(async () => {
     if (!address || !evmWallet) {
-      toast.error("Wallet not ready");
+      toast.error('Wallet not ready');
       return;
     }
     if (!directUsdcReady) return;
 
     setLastError(null);
-    setFlowStatus("signing");
+    setFlowStatus('signing');
     try {
       await withTimeout(
         evmWallet.switchChain(POSTER_CHECKOUT_CHAIN_ID),
         WALLET_STEP_TIMEOUT_MS,
-        "Switching to Base in your wallet"
+        'Switching to Base in your wallet'
       );
       const provider = await evmWallet.getEthereumProvider();
       if (!provider) {
-        throw new Error("Could not connect to your wallet");
+        throw new Error('Could not connect to your wallet');
       }
       const data = encodePosterUsdcTransferData(
         POSTER_USDC_RECIPIENT as `0x${string}`
       );
       await withTimeout(
         (provider as unknown as BrowserProvider).request({
-          method: "eth_sendTransaction",
+          method: 'eth_sendTransaction',
           params: [
             {
               from: address,
@@ -451,18 +446,18 @@ export function WalletConnectPageClient() {
           ],
         }),
         WALLET_STEP_TIMEOUT_MS,
-        "Confirm the USDC payment in your wallet"
+        'Confirm the USDC payment in your wallet'
       );
-      setFlowStatus("done");
+      setFlowStatus('done');
       setPurchaseComplete(true);
-      toast.success("Payment sent — thank you!");
+      toast.success('Payment sent — thank you!');
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setLastError(msg);
       toast.error(msg);
     } finally {
       setFlowStatus((prev) =>
-        prev === "done" || prev === "idle" ? prev : "idle"
+        prev === 'done' || prev === 'idle' ? prev : 'idle'
       );
     }
   }, [address, directUsdcReady, evmWallet]);
@@ -470,7 +465,7 @@ export function WalletConnectPageClient() {
   const handlePayClick = useCallback(async () => {
     if (!checkoutReady) {
       toast.error(
-        "Scan the payment QR code, or set NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS for direct 1 USDC on Base."
+        'Scan the payment QR code, or set NEXT_PUBLIC_POSTER_USDC_RECIPIENT_ADDRESS for direct 1 USDC on Base.'
       );
       return;
     }
@@ -514,11 +509,11 @@ export function WalletConnectPageClient() {
     usdcBalance !== null &&
     usdcBalance < USDC_WARNING_THRESHOLD;
   const isBusy =
-    flowStatus === "initializing" ||
-    flowStatus === "loading_options" ||
-    flowStatus === "awaiting_ic" ||
-    flowStatus === "signing" ||
-    flowStatus === "confirming";
+    flowStatus === 'initializing' ||
+    flowStatus === 'loading_options' ||
+    flowStatus === 'awaiting_ic' ||
+    flowStatus === 'signing' ||
+    flowStatus === 'confirming';
 
   useEffect(() => {
     if (!walletReady || !wcPayLinkValid || purchaseComplete || optionsResponse)
@@ -559,10 +554,10 @@ export function WalletConnectPageClient() {
       <main className="mx-auto max-w-lg px-4 py-8 sm:max-w-xl sm:py-12">
         {!configOk ? (
           <div className="rounded-2xl border border-amber-900 bg-amber-950/40 p-4 text-sm text-amber-100">
-            This checkout is not fully configured. Add{" "}
+            This checkout is not fully configured. Add{' '}
             <code className="rounded bg-zinc-900 px-1">
               NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
-            </code>{" "}
+            </code>{' '}
             to the app environment.
           </div>
         ) : null}
@@ -637,10 +632,10 @@ export function WalletConnectPageClient() {
                           Insufficient USDC balance
                         </p>
                         <p className="text-sm text-amber-300/80">
-                          You need at least{" "}
+                          You need at least{' '}
                           <span className="font-semibold">
                             {USDC_WARNING_THRESHOLD} USDC
-                          </span>{" "}
+                          </span>{' '}
                           on Base to complete this purchase. Send USDC to your
                           wallet address before continuing:
                         </p>
@@ -682,10 +677,10 @@ export function WalletConnectPageClient() {
                               type="button"
                               onClick={() => setSelectedOptionId(opt.id)}
                               className={cn(
-                                "flex w-full items-center rounded-xl border px-4 py-3 text-left text-sm transition-colors",
+                                'flex w-full items-center rounded-xl border px-4 py-3 text-left text-sm transition-colors',
                                 active
-                                  ? "border-primary bg-primary/5 ring-1 ring-primary"
-                                  : "border-zinc-700 hover:bg-zinc-800"
+                                  ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                                  : 'border-zinc-700 hover:bg-zinc-800'
                               )}
                             >
                               <span>
@@ -694,7 +689,7 @@ export function WalletConnectPageClient() {
                                 </span>
                                 {opt.amount.display.networkName ? (
                                   <span className="text-zinc-500">
-                                    {" "}
+                                    {' '}
                                     on {opt.amount.display.networkName}
                                   </span>
                                 ) : null}

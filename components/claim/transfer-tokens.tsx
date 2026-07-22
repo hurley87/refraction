@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useWallets } from "@privy-io/react-auth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { createPublicClient, createWalletClient, custom, parseAbi } from "viem";
-import { base } from "viem/chains";
-import { useEvmWalletAddress } from "@/hooks/use-evm-wallet-address";
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { createPublicClient, createWalletClient, custom, parseAbi } from 'viem';
+import { base } from 'viem/chains';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
+import { useConnectedEvmWallet } from '@/hooks/use-connected-evm-wallet';
 
 const ERC20_ABI = parseAbi([
-  "function transfer(address to, uint256 amount) external returns (bool)",
-  "function balanceOf(address account) external view returns (uint256)",
-  "function decimals() external view returns (uint8)",
+  'function transfer(address to, uint256 amount) external returns (bool)',
+  'function balanceOf(address account) external view returns (uint256)',
+  'function decimals() external view returns (uint8)',
 ]);
 
 interface TransferTokensProps {
@@ -27,19 +27,15 @@ export default function TransferTokens({
   onTransferComplete,
   buttonClassName,
   buttonFontFamily,
-  buttonText = "Transfer Tokens",
+  buttonText = 'Transfer Tokens',
 }: TransferTokensProps) {
-  const { wallets } = useWallets();
   const userAddress = useEvmWalletAddress();
+  const evmWallet = useConnectedEvmWallet();
   const queryClient = useQueryClient();
-  const [recipientAddress, setRecipientAddress] = useState("");
-  const [amount, setAmount] = useState("");
+  const [recipientAddress, setRecipientAddress] = useState('');
+  const [amount, setAmount] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [showFundingInfo, setShowFundingInfo] = useState(false);
-
-  const evmWallet = wallets.find(
-    (wallet) => wallet.address.toLowerCase() === userAddress?.toLowerCase()
-  );
 
   // Helper function to check if wallet is on Base network (without switching)
   const isOnBaseNetwork = async (): Promise<boolean> => {
@@ -51,8 +47,8 @@ export default function TransferTokens({
       if (wallet?.chainId) {
         // Privy chainId format is "eip155:8453" or just the number
         const chainIdStr = wallet.chainId.toString();
-        const chainIdNumber = chainIdStr.includes(":")
-          ? parseInt(chainIdStr.split(":")[1], 10)
+        const chainIdNumber = chainIdStr.includes(':')
+          ? parseInt(chainIdStr.split(':')[1], 10)
           : parseInt(chainIdStr, 10);
 
         if (chainIdNumber === base.id) {
@@ -65,14 +61,14 @@ export default function TransferTokens({
       if (provider) {
         try {
           const currentChainId = await provider.request({
-            method: "eth_chainId",
+            method: 'eth_chainId',
           });
           const currentChainIdNumber = parseInt(currentChainId, 16);
           return currentChainIdNumber === base.id;
         } catch (providerError) {
           // Provider request failed, but we already checked Privy wallet
           // If we got here, Privy wallet wasn't on Base, so return false
-          console.warn("Provider request failed:", providerError);
+          console.warn('Provider request failed:', providerError);
           return false;
         }
       }
@@ -81,7 +77,7 @@ export default function TransferTokens({
       // Default to false to be safe
       return false;
     } catch (error) {
-      console.error("Error checking network:", error);
+      console.error('Error checking network:', error);
       return false;
     }
   };
@@ -103,7 +99,7 @@ export default function TransferTokens({
       // Switch to Base network
       try {
         await wallet.switchChain(base.id);
-        toast.info("Switched to Base network");
+        toast.info('Switched to Base network');
         // Wait a bit for the chain switch to complete
         await new Promise((resolve) => setTimeout(resolve, 1500));
 
@@ -114,14 +110,14 @@ export default function TransferTokens({
         if (provider) {
           try {
             const currentChainId = await provider.request({
-              method: "eth_chainId",
+              method: 'eth_chainId',
             });
             const currentChainIdNumber = parseInt(currentChainId, 16);
             if (currentChainIdNumber === base.id) {
               return true;
             }
           } catch (verifyError) {
-            console.warn("Failed to verify chain after switch:", verifyError);
+            console.warn('Failed to verify chain after switch:', verifyError);
           }
         }
 
@@ -129,25 +125,25 @@ export default function TransferTokens({
         const verified = await isOnBaseNetwork();
         return verified;
       } catch (switchError: any) {
-        console.error("Failed to switch to Base network:", switchError);
-        toast.error("Please switch to Base network in your wallet");
+        console.error('Failed to switch to Base network:', switchError);
+        toast.error('Please switch to Base network in your wallet');
         return false;
       }
     } catch (error) {
-      console.error("Error ensuring Base network:", error);
+      console.error('Error ensuring Base network:', error);
       return false;
     }
   };
 
   // Get token info
   const { data: tokenInfo } = useQuery({
-    queryKey: ["token-info", userAddress],
+    queryKey: ['token-info', userAddress],
     queryFn: async () => {
       if (!userAddress) return null;
       const response = await fetch(
         `/api/transfer-tokens?userAddress=${userAddress}`
       );
-      if (!response.ok) throw new Error("Failed to fetch token info");
+      if (!response.ok) throw new Error('Failed to fetch token info');
       return response.json();
     },
     enabled: !!userAddress,
@@ -155,7 +151,7 @@ export default function TransferTokens({
 
   // Check ETH balance for gas
   const { data: ethBalance } = useQuery({
-    queryKey: ["eth-balance", userAddress],
+    queryKey: ['eth-balance', userAddress],
     queryFn: async () => {
       if (!userAddress) return null;
 
@@ -168,7 +164,7 @@ export default function TransferTokens({
           // Log but don't return null immediately - try to get balance anyway
           // The actual balance query might work even if network check failed
           console.log(
-            "Network check suggests not on Base, but attempting balance query anyway"
+            'Network check suggests not on Base, but attempting balance query anyway'
           );
         }
 
@@ -181,7 +177,7 @@ export default function TransferTokens({
             provider = await wallet.getEthereumProvider();
           } catch (walletError) {
             console.warn(
-              "Failed to get provider from Privy wallet:",
+              'Failed to get provider from Privy wallet:',
               walletError
             );
           }
@@ -193,7 +189,7 @@ export default function TransferTokens({
         }
 
         if (!provider) {
-          console.warn("No provider available for balance check");
+          console.warn('No provider available for balance check');
           return null;
         }
 
@@ -208,12 +204,12 @@ export default function TransferTokens({
             address: userAddress as `0x${string}`,
           });
 
-          console.log("ETH Balance:", balance);
+          console.log('ETH Balance:', balance);
           return balance;
         } catch (balanceError: any) {
           // If balance query fails, it might be because we're not on the right network
           // or there's a network issue
-          console.warn("Failed to get ETH balance:", balanceError);
+          console.warn('Failed to get ETH balance:', balanceError);
 
           // If network check said we're not on Base, return null
           // Otherwise, it might be a temporary network issue
@@ -226,7 +222,7 @@ export default function TransferTokens({
           return null;
         }
       } catch (error) {
-        console.error("Error in ETH balance query:", error);
+        console.error('Error in ETH balance query:', error);
         return null;
       }
     },
@@ -239,18 +235,18 @@ export default function TransferTokens({
   // Transfer mutation
   const transferMutation = useMutation({
     mutationFn: async ({ to, amount }: { to: string; amount: string }) => {
-      if (!userAddress) throw new Error("No wallet connected");
+      if (!userAddress) throw new Error('No wallet connected');
       if (!tokenInfo?.tokenAddress)
-        throw new Error("No token address available");
+        throw new Error('No token address available');
 
       // Get the wallet from Privy first
       const wallet = evmWallet;
-      if (!wallet) throw new Error("No wallet found");
+      if (!wallet) throw new Error('No wallet found');
 
       // Ensure wallet is on Base network before performing transfer
       const isOnBase = await ensureBaseNetwork();
       if (!isOnBase) {
-        throw new Error("Please switch to Base network in your wallet");
+        throw new Error('Please switch to Base network in your wallet');
       }
 
       // Get the wallet provider from Privy (not window.ethereum)
@@ -258,17 +254,17 @@ export default function TransferTokens({
       try {
         provider = await wallet.getEthereumProvider();
       } catch (walletError) {
-        console.warn("Failed to get provider from Privy wallet:", walletError);
+        console.warn('Failed to get provider from Privy wallet:', walletError);
         // Fallback to window.ethereum if Privy provider not available
         provider = (window as any).ethereum;
       }
 
-      if (!provider) throw new Error("No wallet provider found");
+      if (!provider) throw new Error('No wallet provider found');
 
       // Double-check the chain after getting provider
       try {
         const currentChainId = await provider.request({
-          method: "eth_chainId",
+          method: 'eth_chainId',
         });
         const currentChainIdNumber = parseInt(currentChainId, 16);
         if (currentChainIdNumber !== base.id) {
@@ -277,15 +273,15 @@ export default function TransferTokens({
           await new Promise((resolve) => setTimeout(resolve, 1500));
 
           // Verify again
-          const newChainId = await provider.request({ method: "eth_chainId" });
+          const newChainId = await provider.request({ method: 'eth_chainId' });
           const newChainIdNumber = parseInt(newChainId, 16);
           if (newChainIdNumber !== base.id) {
-            throw new Error("Please switch to Base network in your wallet");
+            throw new Error('Please switch to Base network in your wallet');
           }
         }
       } catch (chainError: any) {
-        console.error("Chain verification failed:", chainError);
-        throw new Error("Please switch to Base network in your wallet");
+        console.error('Chain verification failed:', chainError);
+        throw new Error('Please switch to Base network in your wallet');
       }
 
       // Create wallet client with user's wallet
@@ -305,7 +301,7 @@ export default function TransferTokens({
       const hash = await walletClient.writeContract({
         address: tokenInfo.tokenAddress as `0x${string}`,
         abi: ERC20_ABI,
-        functionName: "transfer",
+        functionName: 'transfer',
         args: [to as `0x${string}`, amountInWei],
       });
 
@@ -317,35 +313,35 @@ export default function TransferTokens({
 
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
-      if (receipt.status !== "success") {
-        throw new Error("Transaction failed");
+      if (receipt.status !== 'success') {
+        throw new Error('Transaction failed');
       }
 
       return { hash, receipt };
     },
     onSuccess: () => {
-      toast.success("Tokens transferred successfully!");
-      setRecipientAddress("");
-      setAmount("");
+      toast.success('Tokens transferred successfully!');
+      setRecipientAddress('');
+      setAmount('');
       setIsOpen(false);
       setShowFundingInfo(false);
       queryClient.invalidateQueries({
-        queryKey: ["claim-status", userAddress],
+        queryKey: ['claim-status', userAddress],
       });
-      queryClient.invalidateQueries({ queryKey: ["token-info", userAddress] });
+      queryClient.invalidateQueries({ queryKey: ['token-info', userAddress] });
       onTransferComplete?.();
     },
     onError: (error: any) => {
-      const errorMessage = error.message || "Failed to transfer tokens";
+      const errorMessage = error.message || 'Failed to transfer tokens';
 
       // Check for chain mismatch errors
       if (
-        errorMessage.includes("chain") ||
-        errorMessage.includes("Chain ID") ||
-        errorMessage.includes("does not match") ||
-        errorMessage.includes("target chain")
+        errorMessage.includes('chain') ||
+        errorMessage.includes('Chain ID') ||
+        errorMessage.includes('does not match') ||
+        errorMessage.includes('target chain')
       ) {
-        toast.error("Please switch to Base network in your wallet");
+        toast.error('Please switch to Base network in your wallet');
         return;
       }
 
@@ -353,9 +349,9 @@ export default function TransferTokens({
 
       // If error is about insufficient funds, show funding info
       if (
-        errorMessage.toLowerCase().includes("insufficient funds") ||
-        errorMessage.toLowerCase().includes("insufficient balance") ||
-        errorMessage.toLowerCase().includes("gas")
+        errorMessage.toLowerCase().includes('insufficient funds') ||
+        errorMessage.toLowerCase().includes('insufficient balance') ||
+        errorMessage.toLowerCase().includes('gas')
       ) {
         setShowFundingInfo(true);
       }
@@ -364,32 +360,32 @@ export default function TransferTokens({
 
   const handleTransfer = async () => {
     if (!userAddress || !evmWallet) {
-      toast.error("Your EVM wallet is still connecting");
+      toast.error('Your EVM wallet is still connecting');
       return;
     }
 
     if (!recipientAddress || !amount) {
-      toast.error("Please fill in all fields");
+      toast.error('Please fill in all fields');
       return;
     }
 
     // Basic address validation
     if (!/^0x[a-fA-F0-9]{40}$/.test(recipientAddress)) {
-      toast.error("Invalid recipient address");
+      toast.error('Invalid recipient address');
       return;
     }
 
     // Validate amount
     const transferAmount = parseFloat(amount);
     if (isNaN(transferAmount) || transferAmount <= 0) {
-      toast.error("Invalid amount");
+      toast.error('Invalid amount');
       return;
     }
 
     const balanceInTokens =
       Number(tokenBalance) / 10 ** (tokenInfo?.decimals || 18);
     if (transferAmount > balanceInTokens) {
-      toast.error("Insufficient balance");
+      toast.error('Insufficient balance');
       return;
     }
 
@@ -399,9 +395,9 @@ export default function TransferTokens({
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success("Address copied to clipboard!");
+      toast.success('Address copied to clipboard!');
     } catch {
-      toast.error("Failed to copy address");
+      toast.error('Failed to copy address');
     }
   };
 
@@ -410,7 +406,7 @@ export default function TransferTokens({
 
   // Helper function to convert wei to ETH
   const weiToEth = (wei: bigint | null | undefined): string => {
-    if (!wei) return "0.0000";
+    if (!wei) return '0.0000';
     const eth = Number(wei) / Math.pow(10, 18);
     return eth.toFixed(4);
   };
@@ -432,7 +428,7 @@ export default function TransferTokens({
           onClick={() => setIsOpen(true)}
           className={
             buttonClassName ||
-            "flex w-full items-center justify-center gap-2 rounded-full border border-[#313131] bg-white px-4 py-2 text-sm font-grotesk text-[#313131] transition hover:bg-[#F9F9F9]"
+            'flex w-full items-center justify-center gap-2 rounded-full border border-[#313131] bg-white px-4 py-2 text-sm font-grotesk text-[#313131] transition hover:bg-[#F9F9F9]'
           }
         >
           <span
@@ -514,7 +510,7 @@ export default function TransferTokens({
                     </p>
                     <p className="mt-1 text-xs font-grotesk text-[#92400E]">
                       You need ETH on Base to pay for transaction fees. Send ETH
-                      to your wallet address below. ETH Balance:{" "}
+                      to your wallet address below. ETH Balance:{' '}
                       {formattedEthBalance} ETH
                     </p>
                   </div>
@@ -533,7 +529,7 @@ export default function TransferTokens({
                   </div>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(userAddress || "")}
+                    onClick={() => copyToClipboard(userAddress || '')}
                     className="flex-shrink-0 rounded-lg border border-[#313131] bg-white p-2 text-[#313131] transition hover:bg-[#F9F9F9]"
                     title="Copy address"
                   >
@@ -565,7 +561,7 @@ export default function TransferTokens({
               <div className="rounded-lg border border-[#EDEDED] bg-[#F9F9F9] p-3">
                 <p className="text-xs font-grotesk text-[#7D7D7D]">
                   <strong className="text-[#313131]">Note:</strong> Make sure to
-                  send ETH on the{" "}
+                  send ETH on the{' '}
                   <strong className="text-[#313131]">Base network</strong>.
                   Sending on other networks will result in loss of funds.
                 </p>
@@ -674,7 +670,7 @@ export default function TransferTokens({
                       Transferring...
                     </span>
                   ) : (
-                    "Transfer"
+                    'Transfer'
                   )}
                 </button>
               )}
