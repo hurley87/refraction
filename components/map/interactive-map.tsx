@@ -25,6 +25,7 @@ import MapCard from '@/components/map/map-card';
 import { MapCheckinAvatarStack } from '@/components/map/map-checkin-avatar-stack';
 import { CheckInSuccessScreen } from '@/components/map/check-in-success-screen';
 import { MapPinImage } from '@/components/map/map-pin-image';
+import { MapWelcomeTour } from '@/components/map/map-welcome-tour';
 import LocationListsDrawer, {
   DrawerLocationSummary,
   type LocationListsSheetLayout,
@@ -94,20 +95,23 @@ type CategoryOption = {
 
 type FormStep = 'business-details' | 'success';
 
-const WELCOME_BANNER_STORAGE_KEY = 'irl-map-welcome-dismissed';
-const WELCOME_BANNER_MAX_SHOWS = 3;
+const WELCOME_TOUR_STORAGE_KEY = 'irl-map-welcome-tour-v3';
 const LOCATION_INSTRUCTION_STORAGE_KEY =
   'irl-location-create-instruction-count';
+/** Legacy keys from earlier welcome card / tour; cleared so old dismiss counts
+ *  do not suppress the redesigned Malcolm tour. */
+const LEGACY_WELCOME_TOUR_STORAGE_KEYS = [
+  'irl-map-welcome-dismissed',
+  'irl-map-welcome-tour-v2',
+] as const;
 const LOCATION_INSTRUCTION_LIMIT = 3;
 
 /** Style/Body/Body Medium — map LocationSearch (Gal Gothic) */
 const MAP_SEARCH_INPUT_CLASS =
   'text-center text-base font-medium leading-[22px] tracking-[-0.48px] font-["Gal_Gothic_Variable",sans-serif] text-[color:var(--Dark-Tint-40---Neutral,#A9A9A9)] placeholder:text-[color:var(--Dark-Tint-40---Neutral,#A9A9A9)]';
 
-const getWelcomeBannerStorageKey = (wallet?: string | null) =>
-  wallet
-    ? `${WELCOME_BANNER_STORAGE_KEY}:${wallet}`
-    : WELCOME_BANNER_STORAGE_KEY;
+const getWelcomeTourStorageKey = (wallet?: string | null) =>
+  wallet ? `${WELCOME_TOUR_STORAGE_KEY}:${wallet}` : WELCOME_TOUR_STORAGE_KEY;
 
 function getCheckinDisplayName(entry: LocationCheckinPreview) {
   if (entry.username && entry.username.trim().length > 0) {
@@ -209,7 +213,7 @@ export default function InteractiveMap({
   const effectiveGuideReturnHref =
     guideReturnHref ?? guideReturnPersistedRef.current;
 
-  const { user, getAccessToken } = usePrivy();
+  const { user, getAccessToken, login } = usePrivy();
   const walletAddress = useEvmWalletAddress();
   const { data: favoritePlaceIds } = useFavoritePlaceIds(walletAddress);
   const { mutate: toggleFavorite, isPending: isFavoritePending } =
@@ -309,8 +313,6 @@ export default function InteractiveMap({
   const hasSetInitialLocationRef = useRef(false);
   const walletAddressRef = useRef<string | null | undefined>(walletAddress);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [welcomeBannerViews, setWelcomeBannerViews] = useState(0);
   const [, setLocationInstructionShows] = useState(0);
 
   // When initial coords are provided (e.g. from ?city= or ?lat=&lng=), center the map on them.
@@ -397,36 +399,21 @@ export default function InteractiveMap({
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Check wallet-specific key first (if wallet is connected)
-    const welcomeKey = getWelcomeBannerStorageKey(walletAddress);
-    const storedViews = window.localStorage.getItem(welcomeKey);
-    let parsedViews = storedViews ? parseInt(storedViews, 10) : 0;
-
-    // If wallet is connected but no wallet-specific key exists, check the non-wallet key
-    // and migrate it to preserve the view count
-    if (walletAddress && (!storedViews || Number.isNaN(parsedViews))) {
-      const nonWalletKey = getWelcomeBannerStorageKey(null);
-      const nonWalletViews = window.localStorage.getItem(nonWalletKey);
-      const parsedNonWalletViews = nonWalletViews
-        ? parseInt(nonWalletViews, 10)
-        : 0;
-
-      if (!Number.isNaN(parsedNonWalletViews) && parsedNonWalletViews > 0) {
-        // Migrate the view count to the wallet-specific key
-        parsedViews = parsedNonWalletViews;
-        window.localStorage.setItem(welcomeKey, String(parsedViews));
-        // Optionally remove the old key to avoid confusion
-        window.localStorage.removeItem(nonWalletKey);
-      }
+    // Pre-login tour only — once Privy has a user, the map continues without it.
+    if (user) {
+      setShowWelcomeBanner(false);
+      return;
     }
 
-    if (!Number.isNaN(parsedViews)) {
-      setWelcomeBannerViews(parsedViews);
-      setShowWelcomeBanner(parsedViews < WELCOME_BANNER_MAX_SHOWS);
-    } else {
-      setWelcomeBannerViews(0);
-      setShowWelcomeBanner(true);
+    // Drop legacy dismiss counts so the redesigned tour can show.
+    for (const key of LEGACY_WELCOME_TOUR_STORAGE_KEYS) {
+      window.localStorage.removeItem(key);
     }
+
+    // Guest (logged-out) storage key — tour runs before Privy sign-in.
+    const welcomeKey = getWelcomeTourStorageKey(null);
+    const dismissed = window.localStorage.getItem(welcomeKey) === '1';
+    setShowWelcomeBanner(!dismissed);
 
     const storedInstructionCount = window.localStorage.getItem(
       LOCATION_INSTRUCTION_STORAGE_KEY
@@ -437,22 +424,20 @@ export default function InteractiveMap({
         setLocationInstructionShows(parsed);
       }
     }
-  }, [walletAddress]);
+  }, [user]);
 
   const dismissWelcomeBanner = () => {
     if (typeof window !== 'undefined') {
-      setWelcomeBannerViews((prev) => {
-        const next = Math.min(prev + 1, WELCOME_BANNER_MAX_SHOWS);
-        // Use ref to get current wallet address to avoid stale closure
-        const currentWalletAddress = walletAddressRef.current;
-        window.localStorage.setItem(
-          getWelcomeBannerStorageKey(currentWalletAddress),
-          String(next)
-        );
-        return next;
-      });
+      window.localStorage.setItem(getWelcomeTourStorageKey(null), '1');
     }
     setShowWelcomeBanner(false);
+  };
+
+  const handleWelcomeTourComplete = () => {
+    dismissWelcomeBanner();
+    if (!user) {
+      login();
+    }
   };
 
   const remindLocationCreationFlow = () => {
@@ -466,14 +451,6 @@ export default function InteractiveMap({
           LOCATION_INSTRUCTION_STORAGE_KEY,
           String(next)
         );
-        // Use ref to get current wallet address to avoid stale closure
-        const currentWalletAddress = walletAddressRef.current;
-        const welcomeKey = getWelcomeBannerStorageKey(currentWalletAddress);
-        const storedViews = window.localStorage.getItem(welcomeKey);
-        const parsed = storedViews ? parseInt(storedViews, 10) : 0;
-        if (Number.isNaN(parsed) || parsed < WELCOME_BANNER_MAX_SHOWS) {
-          setShowWelcomeBanner(true);
-        }
       }
       return next;
     });
@@ -1892,7 +1869,7 @@ export default function InteractiveMap({
         </div>
       ) : null}
 
-      {/* Search row (tablet only) + welcome banner */}
+      {/* Search row (tablet only) */}
       <div className="absolute left-1/2 top-20 z-10 w-full max-w-md -translate-x-1/2 transform px-4 xl:hidden">
         <div className="space-y-3">
           <div className="hidden items-center gap-2 md:flex">
@@ -1967,49 +1944,13 @@ export default function InteractiveMap({
               )}
             </button>
           </div>
-          {showWelcomeBanner && (
-            <div className="rounded-3xl bg-white shadow-lg border border-[#ededed] overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-[#ededed]">
-                <h3 className="label-large font-semibold not-italic leading-6 tracking-[-0.4px] text-[color:var(--Dark-Tint-100---Ink-Black,#171717)]">
-                  Welcome to IRL!
-                </h3>
-                <button
-                  type="button"
-                  onClick={dismissWelcomeBanner}
-                  className="bg-[#ededed] rounded-full size-8 flex items-center justify-center hover:bg-[#e0e0e0] transition-colors"
-                  aria-label="Dismiss message"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 text-[#b5b5b5]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-              {/* Content */}
-              <div className="px-4 py-4">
-                <p className="text-sm text-[#313131] leading-relaxed">
-                  Every spot on the map is curated by people shaping the local
-                  scene.
-                </p>
-                <p className="text-sm text-[#7d7d7d] mt-2 leading-relaxed">
-                  Click on a spot to check in and earn 100 points.
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      <MapWelcomeTour
+        open={showWelcomeBanner}
+        onComplete={handleWelcomeTourComplete}
+      />
 
       <div className="xl:hidden">
         <LocationListsDrawer
