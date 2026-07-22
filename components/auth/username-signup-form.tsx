@@ -1,7 +1,6 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface UsernameSignupFormProps {
@@ -29,7 +28,7 @@ export function UsernameSignupForm({
     <div className="flex w-full max-w-md flex-col gap-6">
       <p
         className={cn(
-          'text-center text-lg font-semibold tracking-tight font-inktrap md:text-xl',
+          'text-center label-large tracking-[-0.5px] text-[#1a1a1a]',
           headingClassName
         )}
         style={headingStyle}
@@ -37,16 +36,20 @@ export function UsernameSignupForm({
         {heading}
       </p>
 
-      <div className="rounded-2xl border border-white/30 bg-white/20 p-4 backdrop-blur-sm">
-        <p className="mb-3 text-sm font-inktrap uppercase text-foreground">
-          ENTER YOUR USERNAME
-        </p>
+      <div className="flex w-full flex-col gap-1.5">
+        <label
+          htmlFor="signupUsername"
+          className="text-[10px] font-medium uppercase tracking-[0.3px] text-[#999]"
+        >
+          Your Username <span className="text-red-500">*</span>
+        </label>
         <input
+          id="signupUsername"
           type="text"
           placeholder="Enter your username"
           value={username}
           onChange={(e) => onUsernameChange(e.target.value)}
-          className="w-full rounded-full border border-border/60 bg-white py-3 pl-4 pr-4 font-inktrap text-foreground placeholder:text-muted-foreground shadow-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/30"
+          className="w-full rounded-xl border border-[#e8e8e8] bg-white p-3 text-sm tracking-[-0.2px] text-[#1a1a1a] placeholder:text-[#c0c0c0] shadow-none focus:border-[#999] focus:outline-none focus:ring-0 disabled:opacity-50"
           maxLength={20}
           disabled={isCreatingPlayer}
           autoComplete="username"
@@ -62,29 +65,32 @@ export function UsernameSignupForm({
         </p>
       )}
 
-      <Button
-        className="flex w-full items-center justify-center rounded-full bg-white px-6 py-6 text-base font-inktrap uppercase text-black hover:bg-white/90 disabled:opacity-50"
+      <button
+        type="button"
         onClick={onSubmit}
         disabled={!username.trim() || isCreatingPlayer}
+        className="flex h-11 w-full items-center justify-between bg-black px-4 py-2 transition-colors hover:bg-[#171717] disabled:opacity-50"
       >
-        {isCreatingPlayer ? 'CREATING PLAYER...' : 'START EARNING'}
+        <span className="label-medium label-large uppercase text-[#ffffff]">
+          {isCreatingPlayer ? '...' : 'Start Earning'}
+        </span>
         {!isCreatingPlayer && (
           <svg
-            className="ml-2 h-4 w-4"
-            fill="none"
-            stroke="currentColor"
+            width="24"
+            height="24"
             viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="block size-6 max-w-none"
             aria-hidden
           >
             <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
+              d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+              fill="#DBDBDB"
             />
           </svg>
         )}
-      </Button>
+      </button>
     </div>
   );
 }

@@ -443,7 +443,7 @@ describe('Auth', () => {
       );
       await user.click(screen.getByRole('button', { name: /start earning/i }));
 
-      expect(screen.getByText('CREATING PLAYER...')).toBeInTheDocument();
+      expect(screen.getByText('...')).toBeInTheDocument();
 
       resolvePromise!({
         ok: true,
