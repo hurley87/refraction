@@ -40,6 +40,7 @@ import {
 } from "@/lib/walletconnect-poster-direct-usdc";
 import { PaymentLinkQrReaderDialog } from "@/components/walletconnect/payment-link-qr-reader-dialog";
 import { cn } from "@/lib/utils";
+import { useEvmWalletAddress } from "@/hooks/use-evm-wallet-address";
 
 import type { PaymentOptionsResponse } from "@walletconnect/pay";
 
@@ -86,7 +87,11 @@ type FlowStatus =
 
 const WALLET_STEP_TIMEOUT_MS = 180_000;
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string
+): Promise<T> {
   return new Promise((resolve, reject) => {
     const id = window.setTimeout(() => {
       reject(
@@ -108,8 +113,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 export function WalletConnectPageClient() {
-  const { login, authenticated, ready: privyReady, user } = usePrivy();
+  const { login, authenticated, ready: privyReady } = usePrivy();
   const { wallets } = useWallets();
+  const address = useEvmWalletAddress();
 
   const [paymentLinkOverride, setPaymentLinkOverride] = useState("");
   const [qrReaderOpen, setQrReaderOpen] = useState(false);
@@ -128,14 +134,10 @@ export function WalletConnectPageClient() {
   const [usdcBalance, setUsdcBalance] = useState<number | null>(null);
   const [usdcBalanceLoading, setUsdcBalanceLoading] = useState(false);
 
-  const address = user?.wallet?.address;
-
   const evmWallet = (() => {
     if (!address) return null;
     const lower = address.toLowerCase();
-    return (
-      wallets.find((w) => w.address.toLowerCase() === lower) ?? wallets[0] ?? null
-    );
+    return wallets.find((w) => w.address.toLowerCase() === lower) ?? null;
   })();
 
   /** Payment URI from QR scan only (no env-based product link). */
@@ -195,22 +197,25 @@ export function WalletConnectPageClient() {
     icRejectRef.current?.(new Error("Information collection cancelled"));
   }, []);
 
-  const handleWalletKitPayError = useCallback((err: unknown, authHint: string) => {
-    const msg = err instanceof Error ? err.message : String(err);
-    const formattedProjectId = JSON.stringify(PROJECT_ID);
-    const withProjectId = (text: string) =>
-      `${text} (projectId=${formattedProjectId})`;
-    if (isWalletConnectPayAuthErrorMessage(msg)) {
-      resetWalletKitSingleton();
-      const hint = withProjectId(authHint);
-      setLastError(hint);
-      toast.error(hint);
-      return;
-    }
-    const detail = withProjectId(msg);
-    setLastError(detail);
-    toast.error(detail);
-  }, []);
+  const handleWalletKitPayError = useCallback(
+    (err: unknown, authHint: string) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      const formattedProjectId = JSON.stringify(PROJECT_ID);
+      const withProjectId = (text: string) =>
+        `${text} (projectId=${formattedProjectId})`;
+      if (isWalletConnectPayAuthErrorMessage(msg)) {
+        resetWalletKitSingleton();
+        const hint = withProjectId(authHint);
+        setLastError(hint);
+        toast.error(hint);
+        return;
+      }
+      const detail = withProjectId(msg);
+      setLastError(detail);
+      toast.error(detail);
+    },
+    []
+  );
 
   const initWalletKit = useCallback(
     async (authHint: string) => {
@@ -259,7 +264,9 @@ export function WalletConnectPageClient() {
         setFlowStatus("loading_options");
         const accounts = buildPayCaip10Accounts(address);
         if (accounts.length === 0) {
-          throw new Error("Connected wallet address is invalid for EVM payments");
+          throw new Error(
+            "Connected wallet address is invalid for EVM payments"
+          );
         }
 
         const options = await withTimeout(
@@ -288,12 +295,7 @@ export function WalletConnectPageClient() {
       } finally {
         setFlowStatus("idle");
       }
-    }, [
-      address,
-      effectivePaymentLink,
-      handleWalletKitPayError,
-      initWalletKit,
-    ]);
+    }, [address, effectivePaymentLink, handleWalletKitPayError, initWalletKit]);
 
   const payWithSelectedOption = useCallback(
     async (response: PaymentOptionsResponse, optionId: string) => {
@@ -500,7 +502,12 @@ export function WalletConnectPageClient() {
   ]);
 
   const configOk = Boolean(PROJECT_ID);
-  const walletReady = privyReady && authenticated && Boolean(address) && configOk;
+  const walletReady =
+    privyReady &&
+    authenticated &&
+    Boolean(address) &&
+    Boolean(evmWallet) &&
+    configOk;
   const hasLowUsdcBalance =
     authenticated &&
     !usdcBalanceLoading &&
@@ -514,12 +521,7 @@ export function WalletConnectPageClient() {
     flowStatus === "confirming";
 
   useEffect(() => {
-    if (
-      !walletReady ||
-      !wcPayLinkValid ||
-      purchaseComplete ||
-      optionsResponse
-    )
+    if (!walletReady || !wcPayLinkValid || purchaseComplete || optionsResponse)
       return;
     void loadPaymentOptions();
   }, [
@@ -590,7 +592,6 @@ export function WalletConnectPageClient() {
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                 {PRODUCT_BLURB}
               </p>
-
             </div>
 
             {purchaseComplete ? (
@@ -657,7 +658,9 @@ export function WalletConnectPageClient() {
                     variant="outline"
                     size="lg"
                     className="h-12 w-full rounded-xl text-base"
-                    disabled={!walletReady || purchaseComplete || hasLowUsdcBalance}
+                    disabled={
+                      !walletReady || purchaseComplete || hasLowUsdcBalance
+                    }
                     onClick={() => setQrReaderOpen(true)}
                   >
                     <QrCode className="size-5" />
@@ -730,8 +733,8 @@ export function WalletConnectPageClient() {
 
                 {directUsdcReady && !wcPayLinkValid ? (
                   <p className="text-center text-xs text-zinc-400">
-                    Sends 1 USDC on Base to the merchant wallet. No WalletConnect
-                    Pay link needed.
+                    Sends 1 USDC on Base to the merchant wallet. No
+                    WalletConnect Pay link needed.
                   </p>
                 ) : null}
               </div>
@@ -744,8 +747,6 @@ export function WalletConnectPageClient() {
             ) : null}
           </div>
         </div>
-
-
       </main>
 
       <PaymentLinkQrReaderDialog
@@ -764,8 +765,8 @@ export function WalletConnectPageClient() {
             <DialogTitle>Verify your details</DialogTitle>
           </DialogHeader>
           <p className="shrink-0 px-4 pb-2 text-xs text-muted-foreground">
-            Regulations require a few details for this payment. Complete the form,
-            then we will finish in your wallet.
+            Regulations require a few details for this payment. Complete the
+            form, then we will finish in your wallet.
           </p>
           {icUrl ? (
             <iframe

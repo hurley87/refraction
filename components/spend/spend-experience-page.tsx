@@ -198,11 +198,7 @@ export function SpendExperiencePage({
       (w) => w.walletClientType === 'privy' && w.address.toLowerCase() === lower
     );
     if (privyEmbedded) return privyEmbedded;
-    return (
-      wallets.find((w) => w.address.toLowerCase() === lower) ??
-      wallets[0] ??
-      null
-    );
+    return wallets.find((w) => w.address.toLowerCase() === lower) ?? null;
   }, [walletAddress, wallets]);
 
   const {

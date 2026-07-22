@@ -2,7 +2,6 @@
 
 import type { Perk } from '@/lib/types';
 import Link from 'next/link';
-import { usePrivy } from '@privy-io/react-auth';
 import { Tag, Clock, MapPin, ExternalLink, Gift } from 'lucide-react';
 
 import { useState, useEffect } from 'react';
@@ -14,6 +13,7 @@ import {
 } from '@/hooks/usePerks';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 // Helper function to calculate time left
 const getTimeLeft = (endDate: string) => {
@@ -85,8 +85,7 @@ const PerkCodeCount = ({ perkId }: { perkId: string }) => {
 };
 
 export default function PerksPage() {
-  const { user } = usePrivy();
-  const address = user?.wallet?.address;
+  const address = useEvmWalletAddress();
   const { trackPage } = useAnalytics();
 
   // Track page view on mount

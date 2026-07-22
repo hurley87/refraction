@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { resolvePrivyEvmWalletAddress } from '@/lib/privy/resolve-evm-wallet-address';
 
 const EVM = '0x4D418f71c531465337b65127B207aa849Fa5a9e3';
+const OTHER_EVM = '0x1234567890AbcdEF1234567890aBcdef12345678';
 const STELLAR = 'GMATCHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB';
 
 describe('resolvePrivyEvmWalletAddress', () => {
@@ -38,6 +39,26 @@ describe('resolvePrivyEvmWalletAddress', () => {
     } as never);
 
     expect(address).toBeUndefined();
+  });
+
+  it('preserves an active EVM wallet when multiple EVM wallets are linked', () => {
+    const address = resolvePrivyEvmWalletAddress({
+      linkedAccounts: [
+        {
+          type: 'wallet',
+          chainType: 'ethereum',
+          address: OTHER_EVM,
+        },
+        {
+          type: 'wallet',
+          chainType: 'ethereum',
+          address: EVM,
+        },
+      ],
+      wallet: { address: EVM },
+    } as never);
+
+    expect(address).toBe(EVM);
   });
 
   it('uses connected wallets as fallback', () => {

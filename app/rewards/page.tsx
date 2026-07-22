@@ -30,6 +30,7 @@ import { usePerks, useUserRedemptions } from '@/hooks/usePerks';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 // Perks tagged with this city value apply everywhere; they yield to more
 // specific local picks when a city filter is active.
@@ -103,8 +104,8 @@ const TimeLeft = ({
 };
 
 function PerksPageInner() {
-  const { user, login } = usePrivy();
-  const address = user?.wallet?.address;
+  const { login } = usePrivy();
+  const address = useEvmWalletAddress();
   const { trackEvent, trackPage } = useAnalytics();
 
   // Track page view on mount

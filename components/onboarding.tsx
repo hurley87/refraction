@@ -13,6 +13,7 @@ import {
   userManagerAddress,
 } from "@/lib/contracts/UserManager";
 import { createWalletClient, custom } from "viem";
+import { useEvmWalletAddress } from "@/hooks/use-evm-wallet-address";
 
 // Dev-only logger to avoid noisy logs during SSG/production
 const devLog = (...args: any[]) => {
@@ -52,18 +53,17 @@ const getWalletChainId = (wallet: any): string | undefined => {
 export default function Onboarding() {
   const { user, login, logout } = usePrivy();
   const { wallets } = useWallets();
+  const evmWalletAddress = useEvmWalletAddress();
 
   devLog("user", user);
   devLog("wallets", wallets);
 
-  // Get the primary wallet address
-  const address = (user?.wallet?.address || wallets[0]?.address) as
-    | `0x${string}`
-    | undefined;
+  const address = evmWalletAddress as `0x${string}` | undefined;
   devLog("address:", address);
 
-  // Find the wallet object
-  const wallet = wallets.find((w) => w.address === address) || wallets[0];
+  const wallet = wallets.find(
+    (candidate) => candidate.address.toLowerCase() === address?.toLowerCase()
+  );
   devLog("wallet:", wallet);
   devLog("wallet type:", wallet?.walletClientType);
   devLog("wallet chainId:", wallet?.chainId);
@@ -76,7 +76,7 @@ export default function Onboarding() {
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentChainId, setCurrentChainId] = useState<string | undefined>(
-    walletChainId,
+    walletChainId
   );
 
   // Update currentChainId when wallet changes

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 type ClaimStatus = {
   hasClaimed: boolean;
@@ -18,12 +19,12 @@ type ClaimStatus = {
 };
 
 export default function StripeCommonsArtworkPage() {
-  const { authenticated, user, ready, getAccessToken } = usePrivy();
+  const { authenticated, ready, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
   const router = useRouter();
   const [claiming, setClaiming] = useState(false);
 
-  const userAddress = user?.wallet?.address;
+  const userAddress = useEvmWalletAddress();
 
   useEffect(() => {
     if (ready && !authenticated) {

@@ -19,6 +19,7 @@ import type { Tier } from '@/lib/types';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
 import DashboardSocialLinks from '@/components/dashboard/dashboard-social-links';
 import Transactions from '@/components/dashboard/transactions';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 /** Single dashboard shell background (hero + points gutter share this) */
 const DASHBOARD_HERO_GRADIENT =
@@ -38,7 +39,7 @@ function findTierForPoints(tiers: Tier[], totalPoints: number): Tier | null {
 export default function DashboardPage() {
   const { user, ready } = usePrivy();
   const router = useRouter();
-  const currentUserAddress = user?.wallet?.address;
+  const currentUserAddress = useEvmWalletAddress();
 
   const { data: player, isLoading: isLoadingPlayer } = useCurrentPlayer();
   const { data: userProfile } = useUserProfile(currentUserAddress);

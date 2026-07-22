@@ -38,11 +38,13 @@ export function resolvePrivyEvmWalletAddress(
     }
   };
 
+  // Preserve Privy's active wallet when it is already EVM. If the active
+  // wallet is another chain, fall back to the user's linked EVM accounts.
+  push(user?.wallet?.address);
+
   for (const account of user?.linkedAccounts ?? []) {
     push(evmAddressFromLinkedAccount(account));
   }
-
-  push(user?.wallet?.address);
 
   for (const wallet of connectedWallets ?? []) {
     push(wallet.address);

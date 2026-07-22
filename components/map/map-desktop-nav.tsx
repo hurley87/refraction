@@ -10,6 +10,7 @@ import LocationSearch, {
 } from '@/components/shared/location-search';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
 import { cn } from '@/lib/utils';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 /** Landing header mark (`irl-logo-new-white.svg`), inverted for light map chrome. */
 const MAP_DESKTOP_LOGO_SRC = '/irl-svg/irl-logo-new-white.svg';
@@ -78,7 +79,7 @@ export function MapDesktopNav({
   className,
 }: MapDesktopNavProps) {
   const { user, login } = usePrivy();
-  const walletAddress = user?.wallet?.address;
+  const walletAddress = useEvmWalletAddress();
 
   return (
     <header

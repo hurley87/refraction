@@ -7,6 +7,7 @@ import { usePrivy } from '@privy-io/react-auth';
 import LocationSearch from '@/components/shared/location-search';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
 import { cn } from '@/lib/utils';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 const NAV_LINKS = [
   { label: 'MAP', href: '/interactive-map' },
@@ -49,9 +50,9 @@ const navLinkClassName =
  * Logged out, only the logo and SIGN UP show; the full nav appears after login.
  */
 export function HomeDesktopNav() {
-  const { ready, authenticated, user, login } = usePrivy();
+  const { ready, authenticated, login } = usePrivy();
   const router = useRouter();
-  const walletAddress = user?.wallet?.address;
+  const walletAddress = useEvmWalletAddress();
   const showFullNav = ready && authenticated;
 
   const handleSearchSelect = (picked: {

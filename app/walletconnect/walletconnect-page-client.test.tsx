@@ -29,6 +29,9 @@ vi.mock("@privy-io/react-auth", () => ({
   }),
   useWallets: () => ({ wallets: [] }),
 }));
+vi.mock("@/hooks/use-evm-wallet-address", () => ({
+  useEvmWalletAddress: () => "0x4D41AABBCCDDEEFF00112233445566778899A9E3",
+}));
 
 vi.mock("@reown/walletkit", () => ({
   isPaymentLink: () => false,
@@ -52,7 +55,8 @@ vi.mock("@/lib/walletconnect-poster-direct-usdc", () => ({
     mockFetchUsdcBalanceOnBase(...args),
   isEvmAddress: () => false,
   POSTER_CHECKOUT_CHAIN_ID: 8453,
-  POSTER_CHECKOUT_USDC_ADDRESS_BASE: "0x0000000000000000000000000000000000000000",
+  POSTER_CHECKOUT_USDC_ADDRESS_BASE:
+    "0x0000000000000000000000000000000000000000",
   USDC_WARNING_THRESHOLD: 0.01,
 }));
 
@@ -77,7 +81,9 @@ describe("WalletConnectPageClient", () => {
     render(<WalletConnectPageClient />);
 
     expect(screen.getByText(/paying with/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /change/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /change/i })
+    ).not.toBeInTheDocument();
   });
 
   it("shows low USDC balance warning when balance is below threshold", async () => {

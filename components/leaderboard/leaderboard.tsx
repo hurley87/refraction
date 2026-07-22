@@ -10,7 +10,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { usePrivy } from "@privy-io/react-auth";
+import { useEvmWalletAddress } from "@/hooks/use-evm-wallet-address";
 
 interface UserStats {
   rank: number;
@@ -34,7 +34,6 @@ export default function Leaderboard({
   onClose,
   autoOpen = false,
 }: LeaderboardProps = {}) {
-  const { user } = usePrivy();
   const [showLeaderboard, setShowLeaderboard] = useState(autoOpen);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
@@ -49,7 +48,7 @@ export default function Leaderboard({
   });
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
 
-  const currentUserAddress = user?.wallet?.address;
+  const currentUserAddress = useEvmWalletAddress();
 
   // Fetch leaderboard data with pagination
   const fetchLeaderboardPage = useCallback(
@@ -57,7 +56,7 @@ export default function Leaderboard({
       setIsLoadingLeaderboard(true);
       try {
         const response = await fetch(
-          `/api/leaderboard?page=${page}&limit=${limit}`,
+          `/api/leaderboard?page=${page}&limit=${limit}`
         );
         const result = await response.json();
 
@@ -76,7 +75,7 @@ export default function Leaderboard({
         setIsLoadingLeaderboard(false);
       }
     },
-    [],
+    []
   );
 
   // Load leaderboard when opened - only if not already loading
@@ -121,7 +120,7 @@ export default function Leaderboard({
     setIsLoadingUserStats(true);
     try {
       const response = await fetch(
-        `/api/player?walletAddress=${encodeURIComponent(walletAddress)}`,
+        `/api/player?walletAddress=${encodeURIComponent(walletAddress)}`
       );
 
       if (response.ok) {
@@ -133,7 +132,7 @@ export default function Leaderboard({
         if (player) {
           // Get user's actual rank
           const rankResponse = await fetch(
-            `/api/player/rank?walletAddress=${encodeURIComponent(walletAddress)}`,
+            `/api/player/rank?walletAddress=${encodeURIComponent(walletAddress)}`
           );
 
           let actualRank = 0;

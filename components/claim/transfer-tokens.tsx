@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useWallets } from "@privy-io/react-auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { createPublicClient, createWalletClient, custom, parseAbi } from "viem";
 import { base } from "viem/chains";
+import { useEvmWalletAddress } from "@/hooks/use-evm-wallet-address";
 
 const ERC20_ABI = parseAbi([
   "function transfer(address to, uint256 amount) external returns (bool)",
@@ -28,15 +29,17 @@ export default function TransferTokens({
   buttonFontFamily,
   buttonText = "Transfer Tokens",
 }: TransferTokensProps) {
-  const { user } = usePrivy();
   const { wallets } = useWallets();
+  const userAddress = useEvmWalletAddress();
   const queryClient = useQueryClient();
   const [recipientAddress, setRecipientAddress] = useState("");
   const [amount, setAmount] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [showFundingInfo, setShowFundingInfo] = useState(false);
 
-  const userAddress = user?.wallet?.address;
+  const evmWallet = wallets.find(
+    (wallet) => wallet.address.toLowerCase() === userAddress?.toLowerCase()
+  );
 
   // Helper function to check if wallet is on Base network (without switching)
   const isOnBaseNetwork = async (): Promise<boolean> => {
@@ -44,14 +47,14 @@ export default function TransferTokens({
 
     try {
       // First, try to use Privy wallet's chainId (most reliable)
-      const wallet = wallets.find((w) => w.address === userAddress) || wallets[0];
+      const wallet = evmWallet;
       if (wallet?.chainId) {
         // Privy chainId format is "eip155:8453" or just the number
         const chainIdStr = wallet.chainId.toString();
         const chainIdNumber = chainIdStr.includes(":")
           ? parseInt(chainIdStr.split(":")[1], 10)
           : parseInt(chainIdStr, 10);
-        
+
         if (chainIdNumber === base.id) {
           return true;
         }
@@ -61,7 +64,9 @@ export default function TransferTokens({
       const provider = (window as any).ethereum;
       if (provider) {
         try {
-          const currentChainId = await provider.request({ method: "eth_chainId" });
+          const currentChainId = await provider.request({
+            method: "eth_chainId",
+          });
           const currentChainIdNumber = parseInt(currentChainId, 16);
           return currentChainIdNumber === base.id;
         } catch (providerError) {
@@ -85,7 +90,7 @@ export default function TransferTokens({
   const ensureBaseNetwork = async (): Promise<boolean> => {
     if (!userAddress) return false;
 
-    const wallet = wallets.find((w) => w.address === userAddress) || wallets[0];
+    const wallet = evmWallet;
     if (!wallet) return false;
 
     try {
@@ -101,12 +106,16 @@ export default function TransferTokens({
         toast.info("Switched to Base network");
         // Wait a bit for the chain switch to complete
         await new Promise((resolve) => setTimeout(resolve, 1500));
-        
+
         // Verify the chain switch was successful
-        const provider = await wallet.getEthereumProvider().catch(() => (window as any).ethereum);
+        const provider = await wallet
+          .getEthereumProvider()
+          .catch(() => (window as any).ethereum);
         if (provider) {
           try {
-            const currentChainId = await provider.request({ method: "eth_chainId" });
+            const currentChainId = await provider.request({
+              method: "eth_chainId",
+            });
             const currentChainIdNumber = parseInt(currentChainId, 16);
             if (currentChainIdNumber === base.id) {
               return true;
@@ -115,7 +124,7 @@ export default function TransferTokens({
             console.warn("Failed to verify chain after switch:", verifyError);
           }
         }
-        
+
         // If verification failed, check again using isOnBaseNetwork
         const verified = await isOnBaseNetwork();
         return verified;
@@ -136,7 +145,7 @@ export default function TransferTokens({
     queryFn: async () => {
       if (!userAddress) return null;
       const response = await fetch(
-        `/api/transfer-tokens?userAddress=${userAddress}`,
+        `/api/transfer-tokens?userAddress=${userAddress}`
       );
       if (!response.ok) throw new Error("Failed to fetch token info");
       return response.json();
@@ -154,22 +163,27 @@ export default function TransferTokens({
         // First, try to verify wallet is on Base network
         // But don't fail completely if check fails - still try to get balance
         const onBase = await isOnBaseNetwork();
-        
+
         if (!onBase) {
           // Log but don't return null immediately - try to get balance anyway
           // The actual balance query might work even if network check failed
-          console.log("Network check suggests not on Base, but attempting balance query anyway");
+          console.log(
+            "Network check suggests not on Base, but attempting balance query anyway"
+          );
         }
 
         // Try to get provider from Privy wallet first (more reliable)
-        const wallet = wallets.find((w) => w.address === userAddress) || wallets[0];
+        const wallet = evmWallet;
         let provider: any = null;
 
         if (wallet) {
           try {
             provider = await wallet.getEthereumProvider();
           } catch (walletError) {
-            console.warn("Failed to get provider from Privy wallet:", walletError);
+            console.warn(
+              "Failed to get provider from Privy wallet:",
+              walletError
+            );
           }
         }
 
@@ -200,13 +214,13 @@ export default function TransferTokens({
           // If balance query fails, it might be because we're not on the right network
           // or there's a network issue
           console.warn("Failed to get ETH balance:", balanceError);
-          
+
           // If network check said we're not on Base, return null
           // Otherwise, it might be a temporary network issue
           if (!onBase) {
             return null;
           }
-          
+
           // If we thought we were on Base but balance query failed,
           // return null to be safe (will show as insufficient funds)
           return null;
@@ -230,7 +244,7 @@ export default function TransferTokens({
         throw new Error("No token address available");
 
       // Get the wallet from Privy first
-      const wallet = wallets.find((w) => w.address === userAddress) || wallets[0];
+      const wallet = evmWallet;
       if (!wallet) throw new Error("No wallet found");
 
       // Ensure wallet is on Base network before performing transfer
@@ -253,13 +267,15 @@ export default function TransferTokens({
 
       // Double-check the chain after getting provider
       try {
-        const currentChainId = await provider.request({ method: "eth_chainId" });
+        const currentChainId = await provider.request({
+          method: "eth_chainId",
+        });
         const currentChainIdNumber = parseInt(currentChainId, 16);
         if (currentChainIdNumber !== base.id) {
           // Try switching one more time
           await wallet.switchChain(base.id);
           await new Promise((resolve) => setTimeout(resolve, 1500));
-          
+
           // Verify again
           const newChainId = await provider.request({ method: "eth_chainId" });
           const newChainIdNumber = parseInt(newChainId, 16);
@@ -282,7 +298,7 @@ export default function TransferTokens({
       // Convert amount to wei (assuming 18 decimals)
       const decimals = tokenInfo.decimals || 18;
       const amountInWei = BigInt(
-        Math.floor(parseFloat(amount) * 10 ** decimals),
+        Math.floor(parseFloat(amount) * 10 ** decimals)
       );
 
       // Execute transfer
@@ -321,7 +337,7 @@ export default function TransferTokens({
     },
     onError: (error: any) => {
       const errorMessage = error.message || "Failed to transfer tokens";
-      
+
       // Check for chain mismatch errors
       if (
         errorMessage.includes("chain") ||
@@ -347,6 +363,11 @@ export default function TransferTokens({
   });
 
   const handleTransfer = async () => {
+    if (!userAddress || !evmWallet) {
+      toast.error("Your EVM wallet is still connecting");
+      return;
+    }
+
     if (!recipientAddress || !amount) {
       toast.error("Please fill in all fields");
       return;
@@ -493,7 +514,8 @@ export default function TransferTokens({
                     </p>
                     <p className="mt-1 text-xs font-grotesk text-[#92400E]">
                       You need ETH on Base to pay for transaction fees. Send ETH
-                      to your wallet address below. ETH Balance: {formattedEthBalance} ETH
+                      to your wallet address below. ETH Balance:{" "}
+                      {formattedEthBalance} ETH
                     </p>
                   </div>
                 </div>
@@ -624,7 +646,7 @@ export default function TransferTokens({
                 <button
                   type="button"
                   onClick={handleTransfer}
-                  disabled={transferMutation.isPending}
+                  disabled={transferMutation.isPending || !evmWallet}
                   className="flex h-10 w-full items-center justify-center rounded-full bg-[#313131] px-4 py-2 font-grotesk text-sm text-white transition hover:bg-[#313131]/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:opacity-50"
                 >
                   {transferMutation.isPending ? (

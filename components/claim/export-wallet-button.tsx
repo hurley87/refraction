@@ -5,6 +5,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
+import { tryNormalizeEvmAddress } from "@/lib/utils/wallets";
 
 interface ExportWalletButtonProps {
   className?: string;
@@ -17,20 +18,23 @@ export default function ExportWalletButton({
 }: ExportWalletButtonProps) {
   const { ready, authenticated, user, exportWallet } = usePrivy();
 
-  const userAddress = user?.wallet?.address;
-  const hasEmbeddedWallet = useMemo(
-    () =>
-      Boolean(
-        user?.linkedAccounts?.some(
-          (account) =>
-            account.type === "wallet" &&
-            account.walletClientType === "privy" &&
-            account.chainType === "ethereum",
-        ),
-      ),
-    [user?.linkedAccounts],
-  );
-
+  const userAddress = useMemo(() => {
+    const embeddedEvmWallet = user?.linkedAccounts?.find(
+      (account) =>
+        account.type === "wallet" &&
+        account.walletClientType === "privy" &&
+        account.chainType === "ethereum"
+    );
+    if (
+      !embeddedEvmWallet ||
+      !("address" in embeddedEvmWallet) ||
+      typeof embeddedEvmWallet.address !== "string"
+    ) {
+      return undefined;
+    }
+    return tryNormalizeEvmAddress(embeddedEvmWallet.address) ?? undefined;
+  }, [user?.linkedAccounts]);
+  const hasEmbeddedWallet = Boolean(userAddress);
   const isWalletReady = ready || Boolean(userAddress);
 
   const disabledReason = useMemo(() => {
@@ -45,7 +49,9 @@ export default function ExportWalletButton({
 
   const handleExportWallet = async () => {
     if (!isWalletReady) {
-      toast.error("Still connecting to your wallet. Please try again in a moment.");
+      toast.error(
+        "Still connecting to your wallet. Please try again in a moment."
+      );
       return;
     }
 
@@ -71,11 +77,10 @@ export default function ExportWalletButton({
       title={disabledReason ?? undefined}
       className={cn(
         "flex h-10 w-full items-center justify-center rounded-full border border-[#313131] bg-white px-4 py-2 font-grotesk text-sm text-[#313131] transition hover:bg-[#F9F9F9] disabled:cursor-not-allowed disabled:opacity-60",
-        className,
+        className
       )}
     >
       {buttonText}
     </button>
   );
 }
-

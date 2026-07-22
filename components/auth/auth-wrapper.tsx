@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useUsernameSignup } from '@/hooks/use-username-signup';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import { UsernameSignupForm } from '@/components/auth/username-signup-form';
 
 export interface CheckpointCustomization {
@@ -70,7 +71,7 @@ export default function AuthWrapper({
     ? `Choose your username to check in at ${authContextName.trim()}`
     : DEFAULT_USERNAME_HEADING;
   const { user, ready, linkEmail, login } = usePrivy();
-  const walletAddress = user?.wallet?.address;
+  const walletAddress = useEvmWalletAddress();
   const {
     username,
     setUsername,

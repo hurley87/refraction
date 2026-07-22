@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { UserProfile } from '@/lib/types';
 import { toast } from 'sonner';
 import { invalidateProfileRelatedQueries } from '@/lib/invalidate-profile-queries';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 // Reusable Pencil Icon Component
 const PencilIcon = ({
@@ -174,6 +175,7 @@ export default function ProfileMenu({
 }: ProfileMenuProps) {
   const { user, logout } = usePrivy();
   const queryClient = useQueryClient();
+  const walletAddress = useEvmWalletAddress();
   const [profile, setProfile] = useState<UserProfile>({
     wallet_address: '',
     email: '',
@@ -214,19 +216,19 @@ export default function ProfileMenu({
   }, [isOpen]);
 
   const fetchProfile = useCallback(async () => {
-    if (!user?.wallet?.address) return;
+    if (!user || !walletAddress) return;
 
     setIsLoadingProfile(true);
     try {
       const response = await fetch(
-        `/api/profile?wallet_address=${user.wallet.address}`
+        `/api/profile?wallet_address=${walletAddress}`
       );
       const responseData = await response.json();
       // Unwrap the apiSuccess wrapper
       const data = responseData.data || responseData;
 
       setProfile({
-        wallet_address: user.wallet.address,
+        wallet_address: walletAddress,
         email: data.email || user.email?.address || '',
         name: data.name || '',
         username: data.username || '',
@@ -246,17 +248,17 @@ export default function ProfileMenu({
     } finally {
       setIsLoadingProfile(false);
     }
-  }, [user?.wallet?.address, user?.email?.address]);
+  }, [walletAddress, user]);
 
   // Fetch user profile on mount
   useEffect(() => {
-    if (user?.wallet?.address && isOpen) {
+    if (walletAddress && isOpen) {
       fetchProfile();
     }
-  }, [user?.wallet?.address, isOpen, fetchProfile]);
+  }, [walletAddress, isOpen, fetchProfile]);
 
   const handleSave = async (field?: string) => {
-    if (!user?.wallet?.address) return;
+    if (!walletAddress) return;
 
     isSavingRef.current = true;
     setSaving(true);
@@ -268,7 +270,7 @@ export default function ProfileMenu({
         },
         body: JSON.stringify({
           ...profile,
-          wallet_address: user.wallet.address,
+          wallet_address: walletAddress,
         }),
       });
 
@@ -303,7 +305,7 @@ export default function ProfileMenu({
 
       toast.success(successMessage);
 
-      invalidateProfileRelatedQueries(queryClient, user.wallet.address);
+      invalidateProfileRelatedQueries(queryClient, walletAddress);
 
       // Clear editing state after successful save
       if (field) {
@@ -330,7 +332,7 @@ export default function ProfileMenu({
   };
 
   const handleImageUpload = async (file: File) => {
-    if (!user?.wallet?.address) return;
+    if (!walletAddress) return;
 
     setUploadingImage(true);
     try {
@@ -372,7 +374,7 @@ export default function ProfileMenu({
         },
         body: JSON.stringify({
           ...updatedProfile,
-          wallet_address: user.wallet.address,
+          wallet_address: walletAddress,
         }),
       });
 
@@ -391,7 +393,7 @@ export default function ProfileMenu({
 
       setProfile(updatedProfile);
       toast.success('Profile picture updated successfully');
-      invalidateProfileRelatedQueries(queryClient, user.wallet.address);
+      invalidateProfileRelatedQueries(queryClient, walletAddress);
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error(

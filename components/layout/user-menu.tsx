@@ -8,6 +8,7 @@ import Image from 'next/image';
 import type { UserProfile } from '@/lib/types';
 import { getSocialUrl } from '@/lib/utils/social-links';
 import { useUserStats } from '@/hooks/usePlayer';
+import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 interface UserMenuProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export default function UserMenu({
 }: UserMenuProps) {
   const { user } = usePrivy();
   const router = useRouter();
+  const walletAddress = useEvmWalletAddress();
   const [profile, setProfile] = useState<UserProfile>({
     wallet_address: '',
     email: '',
@@ -44,9 +46,8 @@ export default function UserMenu({
   const scrollableContentRef = useRef<HTMLDivElement>(null);
 
   // Use the reusable hook for user stats
-  const { userStats, isLoading: isLoadingUserStats } = useUserStats(
-    user?.wallet?.address
-  );
+  const { userStats, isLoading: isLoadingUserStats } =
+    useUserStats(walletAddress);
 
   // Handle menu open/close with transitions
   useEffect(() => {
@@ -85,12 +86,12 @@ export default function UserMenu({
   }, [isOpen]);
 
   const fetchProfile = useCallback(async () => {
-    if (!user?.wallet?.address) return;
+    if (!user || !walletAddress) return;
 
     setIsLoadingProfile(true);
     try {
       const response = await fetch(
-        `/api/profile?wallet_address=${user.wallet.address}`
+        `/api/profile?wallet_address=${walletAddress}`
       );
 
       if (response.ok) {
@@ -99,7 +100,7 @@ export default function UserMenu({
         const data = responseData.data || responseData;
 
         setProfile({
-          wallet_address: user.wallet.address,
+          wallet_address: walletAddress,
           email: data.email || user.email?.address || '',
           name: data.name || '',
           username: data.username || '',
@@ -117,7 +118,7 @@ export default function UserMenu({
       } else {
         // If profile doesn't exist or API returns error, use defaults
         setProfile({
-          wallet_address: user.wallet.address,
+          wallet_address: walletAddress,
           email: user.email?.address || '',
           name: '',
           username: '',
@@ -137,7 +138,7 @@ export default function UserMenu({
       console.error('Error fetching profile:', error);
       // On error, use defaults
       setProfile({
-        wallet_address: user.wallet.address,
+        wallet_address: walletAddress,
         email: user.email?.address || '',
         name: '',
         username: '',
@@ -155,14 +156,14 @@ export default function UserMenu({
     } finally {
       setIsLoadingProfile(false);
     }
-  }, [user?.wallet?.address, user?.email?.address]);
+  }, [walletAddress, user]);
 
   // Fetch data when menu opens
   useEffect(() => {
-    if (isOpen && user?.wallet?.address) {
+    if (isOpen && walletAddress) {
       void fetchProfile();
     }
-  }, [isOpen, user?.wallet?.address, fetchProfile]);
+  }, [isOpen, walletAddress, fetchProfile]);
 
   if (!user || !isMenuMounted) return null;
 
