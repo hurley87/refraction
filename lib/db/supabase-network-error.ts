@@ -30,3 +30,35 @@ export function isSupabaseNetworkError(error: unknown): boolean {
     text.includes('socket')
   );
 }
+
+type SupabaseNetworkRetryOptions = {
+  maxAttempts?: number;
+  delayMs?: number;
+};
+
+/**
+ * Retries an idempotent Supabase operation only for transport failures.
+ * SQL, authorization, and validation errors are returned immediately.
+ */
+export async function retrySupabaseNetworkOperation<T>(
+  operation: () => Promise<T>,
+  options: SupabaseNetworkRetryOptions = {}
+): Promise<T> {
+  const maxAttempts = Math.max(1, options.maxAttempts ?? 2);
+  const delayMs = Math.max(0, options.delayMs ?? 50);
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isSupabaseNetworkError(error) || attempt === maxAttempts) {
+        throw error;
+      }
+      if (delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+
+  throw new Error('Supabase operation exhausted retry attempts');
+}

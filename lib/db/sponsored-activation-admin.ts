@@ -9,6 +9,10 @@ import {
   normalizeActivationSettlementTransactionRow,
   type ActivationSettlementTransactionRow,
 } from '@/lib/db/activation-settlement-transactions';
+import {
+  isSupabaseNetworkError,
+  retrySupabaseNetworkOperation,
+} from '@/lib/db/supabase-network-error';
 import type { ActivationRedemptionStatus } from '@/lib/schemas/activation-redemption';
 import { formatSettlementExplorerTxUrl } from '@/lib/spend-rail-config';
 
@@ -394,14 +398,14 @@ async function fetchSettlementsByRedemptionIds(
   const uniq = [...new Set(redemptionIds)].filter(Boolean);
   const map = new Map<string, ActivationSettlementTransactionRow>();
   if (uniq.length === 0) return map;
-  const { data, error } = await supabase
-    .from('activation_settlement_transaction')
-    .select('*')
-    .in('redemption_id', uniq);
-  if (error) {
-    console.error('fetchSettlementsByRedemptionIds:', error);
-    throw new Error(error.message || 'Failed to load settlements');
-  }
+  const data = await retrySupabaseNetworkOperation(async () => {
+    const result = await supabase
+      .from('activation_settlement_transaction')
+      .select('*')
+      .in('redemption_id', uniq);
+    if (result.error) throw result.error;
+    return result.data;
+  });
   for (const r of data ?? []) {
     const row = normalizeActivationSettlementTransactionRow(
       r as Record<string, unknown>
@@ -547,7 +551,14 @@ export async function loadSponsoredActivationAdminDashboard(
       fetchPlayersByIds(userIds),
       fetchRewardItemsByIds(rewardIds),
       fetchEligibilityEventsByIds(eligIds),
-      fetchSettlementsByRedemptionIds(redIds),
+      fetchSettlementsByRedemptionIds(redIds).catch((error) => {
+        if (!isSupabaseNetworkError(error)) throw error;
+        console.error(
+          'fetchSettlementsByRedemptionIds: transport failed after retry; returning dashboard without settlement enrichment',
+          error
+        );
+        return new Map<string, ActivationSettlementTransactionRow>();
+      }),
     ]);
 
   const redemptions: SponsoredActivationAdminRedemptionRow[] =
