@@ -398,20 +398,36 @@ async function fetchSettlementsByRedemptionIds(
   const uniq = [...new Set(redemptionIds)].filter(Boolean);
   const map = new Map<string, ActivationSettlementTransactionRow>();
   if (uniq.length === 0) return map;
-  const data = await retrySupabaseNetworkOperation(async () => {
-    const result = await supabase
-      .from('activation_settlement_transaction')
-      .select('*')
-      .in('redemption_id', uniq);
-    if (result.error) throw result.error;
-    return result.data;
-  });
-  for (const r of data ?? []) {
-    const row = normalizeActivationSettlementTransactionRow(
-      r as Record<string, unknown>
+
+  try {
+    const data = await retrySupabaseNetworkOperation(
+      async () => {
+        const result = await supabase
+          .from('activation_settlement_transaction')
+          .select('*')
+          .in('redemption_id', uniq);
+        if (result.error) {
+          console.error('fetchSettlementsByRedemptionIds:', result.error);
+          throw new Error(result.error.message || 'Failed to load settlements');
+        }
+        return result.data ?? [];
+      },
+      { delayMs: 0 }
     );
-    map.set(row.redemption_id, row);
+    for (const r of data) {
+      const row = normalizeActivationSettlementTransactionRow(
+        r as Record<string, unknown>
+      );
+      map.set(row.redemption_id, row);
+    }
+  } catch (error) {
+    if (!isSupabaseNetworkError(error)) throw error;
+    console.error(
+      'fetchSettlementsByRedemptionIds: transport failed after retry; returning dashboard without settlement enrichment',
+      error
+    );
   }
+
   return map;
 }
 
@@ -551,14 +567,7 @@ export async function loadSponsoredActivationAdminDashboard(
       fetchPlayersByIds(userIds),
       fetchRewardItemsByIds(rewardIds),
       fetchEligibilityEventsByIds(eligIds),
-      fetchSettlementsByRedemptionIds(redIds).catch((error) => {
-        if (!isSupabaseNetworkError(error)) throw error;
-        console.error(
-          'fetchSettlementsByRedemptionIds: transport failed after retry; returning dashboard without settlement enrichment',
-          error
-        );
-        return new Map<string, ActivationSettlementTransactionRow>();
-      }),
+      fetchSettlementsByRedemptionIds(redIds),
     ]);
 
   const redemptions: SponsoredActivationAdminRedemptionRow[] =
