@@ -40,6 +40,14 @@ const deploymentId =
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   ...(deploymentId ? { deploymentId } : {}),
+  // Run these checks separately in CI/local development so the Vercel build
+  // does not hold lint, type-check, and compilation graphs in memory together.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   experimental: {
     serverComponentsExternalPackages: [
       "@stellar/js-xdr",

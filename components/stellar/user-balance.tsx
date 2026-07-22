@@ -253,6 +253,7 @@ export const UserBalance = () => {
       )}
 
       {currentNetwork !== 'PUBLIC' &&
+        currentNetwork !== 'MAINNET' &&
         (walletSource === 'freighter' ? (
           <div className="w-full">
             <FundAccountButton />

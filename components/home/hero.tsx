@@ -41,13 +41,7 @@ const HERO_CAROUSEL_SLIDES: HeroCarouselSlide[] = [
     stepTitle: 'Earn and spend rewards',
     stepBody: 'Earn points for future rewards at clubs, bars, and galleries',
   },
-  {
-    mobileSrc: '/homepage/hero/carousel/detroit.png',
-    desktopSrc: '/homepage/hero/carousel/detroit-full.jpg',
-    alt: 'Detroit',
-    stepTitle: 'Check in at a spot',
-    stepBody: 'The best spots, hand-picked by people shaping the local scene.',
-  },
+
 ];
 
 const HERO_CAROUSEL_INTERVAL_MS = 5000;
