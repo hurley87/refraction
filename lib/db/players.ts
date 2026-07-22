@@ -9,6 +9,15 @@ type PlayerLookupField =
   | 'aptos_wallet_address'
   | 'email';
 
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: string }).code === '23505'
+  );
+}
+
 // Select only the columns we need for Player type
 const PLAYER_COLUMNS = `
   id,
@@ -85,9 +94,45 @@ export const createOrUpdatePlayer = async (
     .select(PLAYER_COLUMNS)
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (isUniqueViolation(error)) {
+      const concurrentWinner = await getPlayerByWallet(normalizedWallet);
+      if (concurrentWinner) return concurrentWinner;
+    }
+    throw error;
+  }
   return data;
 };
+
+/**
+ * Assigns an authenticated EVM wallet to a player. If another request wins
+ * the unique-key race, returns the player that now owns that wallet.
+ */
+export async function assignEvmWalletToPlayer(
+  playerId: number,
+  walletAddress: string
+): Promise<Player> {
+  const wallet =
+    tryNormalizeEvmAddress(walletAddress.trim()) ?? walletAddress.trim();
+  const { data, error } = await supabase
+    .from('players')
+    .update({
+      wallet_address: wallet,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', playerId)
+    .select(PLAYER_COLUMNS)
+    .single();
+
+  if (error) {
+    if (isUniqueViolation(error)) {
+      const walletOwner = await getPlayerByWallet(wallet);
+      if (walletOwner) return walletOwner;
+    }
+    throw error;
+  }
+  return data;
+}
 
 /**
  * Get player by EVM wallet address
