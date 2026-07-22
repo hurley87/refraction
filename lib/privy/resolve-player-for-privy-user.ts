@@ -9,7 +9,7 @@ import {
   getPlayerByWallet,
 } from '@/lib/db/players';
 import type { Player } from '@/lib/types';
-import { tryNormalizeEvmAddress } from '@/lib/utils/wallets';
+import { sameWalletAddress, tryNormalizeEvmAddress } from '@/lib/utils/wallets';
 
 function linkedWalletAddress(
   user: User,
@@ -35,11 +35,7 @@ async function backfillEvmWalletOnPlayer(
   const wallet =
     tryNormalizeEvmAddress(evmWalletAddress.trim()) ?? evmWalletAddress.trim();
   const storedWallet = player.wallet_address?.trim();
-  if (storedWallet) {
-    const normalizedStored =
-      tryNormalizeEvmAddress(storedWallet) ?? storedWallet;
-    if (normalizedStored === wallet) return player;
-  }
+  if (storedWallet && sameWalletAddress(storedWallet, wallet)) return player;
   return assignEvmWalletToPlayer(player.id, wallet);
 }
 

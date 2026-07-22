@@ -18,6 +18,14 @@ function isUniqueViolation(error: unknown): boolean {
   );
 }
 
+async function getPlayerAfterWalletUniqueViolation(
+  error: unknown,
+  wallet: string
+): Promise<Player | null> {
+  if (!isUniqueViolation(error)) return null;
+  return getPlayerByWallet(wallet);
+}
+
 // Select only the columns we need for Player type
 const PLAYER_COLUMNS = `
   id,
@@ -94,14 +102,14 @@ export const createOrUpdatePlayer = async (
     .select(PLAYER_COLUMNS)
     .single();
 
-  if (error) {
-    if (isUniqueViolation(error)) {
-      const concurrentWinner = await getPlayerByWallet(normalizedWallet);
-      if (concurrentWinner) return concurrentWinner;
-    }
-    throw error;
-  }
-  return data;
+  if (!error) return data;
+
+  const walletOwner = await getPlayerAfterWalletUniqueViolation(
+    error,
+    normalizedWallet
+  );
+  if (walletOwner) return walletOwner;
+  throw error;
 };
 
 /**
@@ -124,14 +132,11 @@ export async function assignEvmWalletToPlayer(
     .select(PLAYER_COLUMNS)
     .single();
 
-  if (error) {
-    if (isUniqueViolation(error)) {
-      const walletOwner = await getPlayerByWallet(wallet);
-      if (walletOwner) return walletOwner;
-    }
-    throw error;
-  }
-  return data;
+  if (!error) return data;
+
+  const walletOwner = await getPlayerAfterWalletUniqueViolation(error, wallet);
+  if (walletOwner) return walletOwner;
+  throw error;
 }
 
 /**
