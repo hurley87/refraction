@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 
 const mockVerifyWallet = vi.fn();
 const mockGetPrivyUserId = vi.fn();
+const mockGetPrivyUser = vi.fn();
 const mockGetActivation = vi.fn();
 const mockFindEvent = vi.fn();
 const mockCountLifetime = vi.fn();
@@ -29,6 +30,7 @@ vi.mock('@/lib/analytics/server', () => ({
 vi.mock('@/lib/api/privy', () => ({
   verifyWalletOwnership: (...a: unknown[]) => mockVerifyWallet(...a),
   getPrivyUserIdFromRequest: (...a: unknown[]) => mockGetPrivyUserId(...a),
+  getPrivyUserFromRequest: (...a: unknown[]) => mockGetPrivyUser(...a),
 }));
 
 vi.mock('@/lib/db/sponsored-activations', () => ({
@@ -148,6 +150,7 @@ describe('POST /api/sponsored-activations/[activationId]/eligibility', () => {
       userId: 'privy-user-1',
     });
     mockGetPrivyUserId.mockResolvedValue('privy-user-1');
+    mockGetPrivyUser.mockResolvedValue(null);
     mockGetActivation.mockResolvedValue(activeActivation);
     mockFindEvent.mockResolvedValue(null);
     mockCountLifetime.mockResolvedValue(0);

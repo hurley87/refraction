@@ -10,8 +10,11 @@ const mockGetPlayerByStellarWallet = vi.fn();
 const mockGetPlayerBySolanaWallet = vi.fn();
 const mockGetPlayerByAptosWallet = vi.fn();
 const mockCreateOrUpdatePlayer = vi.fn();
+const mockAssignEvmWalletToPlayer = vi.fn();
 
 vi.mock('@/lib/db/players', () => ({
+  assignEvmWalletToPlayer: (...args: unknown[]) =>
+    mockAssignEvmWalletToPlayer(...args),
   getPlayerByWallet: (...args: unknown[]) => mockGetPlayerByWallet(...args),
   getPlayerByEmail: (...args: unknown[]) => mockGetPlayerByEmail(...args),
   getPlayerByStellarWallet: (...args: unknown[]) =>
@@ -56,7 +59,7 @@ describe('resolvePlayerForPrivyUser', () => {
       stellar_wallet_address: STELLAR,
       total_points: 200,
     });
-    mockCreateOrUpdatePlayer.mockResolvedValue({
+    mockAssignEvmWalletToPlayer.mockResolvedValue({
       id: 42,
       wallet_address: EVM,
       stellar_wallet_address: STELLAR,
@@ -75,9 +78,6 @@ describe('resolvePlayerForPrivyUser', () => {
     } as never);
 
     expect(player.id).toBe(42);
-    expect(mockCreateOrUpdatePlayer).toHaveBeenCalledWith(
-      { wallet_address: EVM },
-      expect.objectContaining({ id: 42 })
-    );
+    expect(mockAssignEvmWalletToPlayer).toHaveBeenCalledWith(42, EVM);
   });
 });

@@ -1,5 +1,6 @@
 import type { User } from '@privy-io/server-auth';
 import {
+  assignEvmWalletToPlayer,
   createOrUpdatePlayer,
   getPlayerByAptosWallet,
   getPlayerByEmail,
@@ -7,9 +8,8 @@ import {
   getPlayerByStellarWallet,
   getPlayerByWallet,
 } from '@/lib/db/players';
-import { supabase } from '@/lib/db/client';
 import type { Player } from '@/lib/types';
-import { tryNormalizeEvmAddress } from '@/lib/utils/wallets';
+import { sameWalletAddress, tryNormalizeEvmAddress } from '@/lib/utils/wallets';
 
 function linkedWalletAddress(
   user: User,
@@ -35,24 +35,8 @@ async function backfillEvmWalletOnPlayer(
   const wallet =
     tryNormalizeEvmAddress(evmWalletAddress.trim()) ?? evmWalletAddress.trim();
   const storedWallet = player.wallet_address?.trim();
-  if (storedWallet) {
-    const normalizedStored =
-      tryNormalizeEvmAddress(storedWallet) ?? storedWallet;
-    if (normalizedStored === wallet) return player;
-  }
-  const { data, error } = await supabase
-    .from('players')
-    .update({
-      wallet_address: wallet,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', player.id)
-    .select(
-      'id, wallet_address, solana_wallet_address, stellar_wallet_address, stellar_wallet_id, aptos_wallet_address, aptos_wallet_id, email, username, total_points, created_at, updated_at'
-    )
-    .single();
-  if (error) throw error;
-  return data;
+  if (storedWallet && sameWalletAddress(storedWallet, wallet)) return player;
+  return assignEvmWalletToPlayer(player.id, wallet);
 }
 
 /**

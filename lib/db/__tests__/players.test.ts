@@ -40,6 +40,7 @@ import {
   getPlayerBySolanaWallet,
   getPlayerByStellarWallet,
   getPlayerByEmail,
+  assignEvmWalletToPlayer,
   createOrUpdatePlayer,
   updatePlayerPoints,
 } from '../players';
@@ -357,6 +358,31 @@ describe('Players Database Module', () => {
       expect(result).toEqual(newPlayer);
     });
 
+    it('returns the concurrent winner after an insert unique violation', async () => {
+      const wallet = '0x0000000000000000000000000000000000000001';
+      const concurrentWinner: Player = {
+        id: 9,
+        wallet_address: wallet,
+        total_points: 0,
+      };
+      mockMaybeSingle
+        .mockResolvedValueOnce({ data: null, error: null })
+        .mockResolvedValueOnce({ data: concurrentWinner, error: null });
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: { code: '23505', message: 'duplicate key value' },
+      });
+
+      const result = await createOrUpdatePlayer({
+        wallet_address: wallet,
+        total_points: 0,
+      });
+
+      expect(result).toEqual(concurrentWinner);
+      expect(mockInsert).toHaveBeenCalledOnce();
+      expect(mockMaybeSingle).toHaveBeenCalledTimes(2);
+    });
+
     it('should throw error on update failure', async () => {
       const existingPlayer: Player = {
         id: 1,
@@ -396,6 +422,44 @@ describe('Players Database Module', () => {
           total_points: 0,
         })
       ).rejects.toEqual({ code: 'PGRST500', message: 'Insert failed' });
+    });
+  });
+
+  describe('assignEvmWalletToPlayer', () => {
+    it('returns the wallet owner after a backfill unique violation', async () => {
+      const wallet = '0x0000000000000000000000000000000000000001';
+      const walletOwner: Player = {
+        id: 12,
+        wallet_address: wallet,
+        total_points: 25,
+      };
+      mockSingle.mockResolvedValueOnce({
+        data: null,
+        error: { code: '23505', message: 'duplicate key value' },
+      });
+      mockMaybeSingle.mockResolvedValueOnce({
+        data: walletOwner,
+        error: null,
+      });
+
+      await expect(assignEvmWalletToPlayer(42, wallet)).resolves.toEqual(
+        walletOwner
+      );
+      expect(mockUpdate).toHaveBeenCalledOnce();
+      expect(mockMaybeSingle).toHaveBeenCalledOnce();
+    });
+
+    it('preserves non-unique update errors', async () => {
+      const error = { code: '42501', message: 'permission denied' };
+      mockSingle.mockResolvedValueOnce({ data: null, error });
+
+      await expect(
+        assignEvmWalletToPlayer(
+          42,
+          '0x0000000000000000000000000000000000000001'
+        )
+      ).rejects.toBe(error);
+      expect(mockMaybeSingle).not.toHaveBeenCalled();
     });
   });
 
