@@ -95,7 +95,7 @@ type CategoryOption = {
 
 type FormStep = 'business-details' | 'success';
 
-const WELCOME_TOUR_STORAGE_KEY = 'irl-map-welcome-tour-v3';
+const WELCOME_TOUR_STORAGE_KEY = 'irl-map-welcome-tour-v4';
 const LOCATION_INSTRUCTION_STORAGE_KEY =
   'irl-location-create-instruction-count';
 /** Legacy keys from earlier welcome card / tour; cleared so old dismiss counts
@@ -103,6 +103,7 @@ const LOCATION_INSTRUCTION_STORAGE_KEY =
 const LEGACY_WELCOME_TOUR_STORAGE_KEYS = [
   'irl-map-welcome-dismissed',
   'irl-map-welcome-tour-v2',
+  'irl-map-welcome-tour-v3',
 ] as const;
 const LOCATION_INSTRUCTION_LIMIT = 3;
 
