@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-export type MapWelcomeTourStep = 'intro' | 'page1';
+export type MapWelcomeTourStep = 'intro' | 'page1' | 'page2';
 
 type MapWelcomeTourProps = {
   open: boolean;
@@ -12,7 +12,7 @@ type MapWelcomeTourProps = {
   className?: string;
 };
 
-const TOUR_STEPS: MapWelcomeTourStep[] = ['intro', 'page1'];
+const TOUR_STEPS: MapWelcomeTourStep[] = ['intro', 'page1', 'page2'];
 
 function TourArrowIcon({
   className,
@@ -176,6 +176,74 @@ function Page1Step({
   );
 }
 
+/**
+ * Full-bleed tour step: poster + local-guides copy.
+ * Tap anywhere to advance.
+ */
+function Page2Step({
+  onContinue,
+  onClose,
+}: {
+  onContinue: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onContinue}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onContinue();
+        }
+      }}
+      aria-label="Continue tour"
+      className="pointer-events-auto absolute inset-0 z-40 h-dvh w-screen cursor-pointer overflow-hidden bg-black"
+    >
+      <TourCloseButton onClose={onClose} />
+      <Image
+        src="/map/tour/tour-page2.png"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center"
+      />
+
+      <div className="absolute inset-x-0 bottom-0 top-24 z-10 flex flex-col items-stretch gap-2 px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
+        <div className="flex min-h-0 flex-1 items-center justify-center">
+          <div className="relative aspect-[4/5] h-full max-w-full">
+            <Image
+              src="/map/tour/tour-page2-poster.png"
+              alt=""
+              fill
+              priority
+              sizes="299px"
+              className="object-cover"
+            />
+          </div>
+        </div>
+
+        <div className="flex w-full shrink-0 items-end justify-between gap-3">
+          <p className='max-w-[240px] font-["Gal_Gothic_Variable",sans-serif] text-[20.102px] font-semibold leading-[25.73px] text-[#171717]'>
+            The best spots, hand-picked by people shaping the local scene.
+          </p>
+          <TourArrowIcon fill="#171717" className="bg-transparent" />
+        </div>
+
+        <p className="shrink-0 self-end text-right font-label-xl text-[32.892px] font-normal uppercase leading-[125%] tracking-[0.658px] text-[#171717]">
+          EXPLORE
+        </p>
+
+        <p className='shrink-0 self-end bg-[#171717] px-2 py-1 font-["Gal_Gothic_Variable",sans-serif] text-[47.379px] font-semibold leading-[125%] text-[var(--Brand-Colors-Yellow,#FFF200)]'>
+          Local Guides
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function TourCloseButton({
   onClose,
   className,
@@ -257,6 +325,9 @@ export function MapWelcomeTour({
       ) : null}
       {step === 'page1' ? (
         <Page1Step onContinue={advance} onClose={onComplete} />
+      ) : null}
+      {step === 'page2' ? (
+        <Page2Step onContinue={advance} onClose={onComplete} />
       ) : null}
     </div>
   );
