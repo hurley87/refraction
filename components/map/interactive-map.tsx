@@ -96,15 +96,10 @@ type CategoryOption = {
 type FormStep = 'business-details' | 'success';
 
 const WELCOME_TOUR_STORAGE_KEY = 'irl-map-welcome-tour-v4';
+/** Logged-in users see the tour on their first N map visits after wallet creation. */
+const WELCOME_TOUR_MAX_SHOWS = 3;
 const LOCATION_INSTRUCTION_STORAGE_KEY =
   'irl-location-create-instruction-count';
-/** Legacy keys from earlier welcome card / tour; cleared so old dismiss counts
- *  do not suppress the redesigned Malcolm tour. */
-const LEGACY_WELCOME_TOUR_STORAGE_KEYS = [
-  'irl-map-welcome-dismissed',
-  'irl-map-welcome-tour-v2',
-  'irl-map-welcome-tour-v3',
-] as const;
 const LOCATION_INSTRUCTION_LIMIT = 3;
 
 /** Style/Body/Body Medium — map LocationSearch (Gal Gothic) */
@@ -313,6 +308,8 @@ export default function InteractiveMap({
   const mapRef = useRef<any>(null);
   const hasSetInitialLocationRef = useRef(false);
   const walletAddressRef = useRef<string | null | undefined>(walletAddress);
+  /** Prevents re-opening the tour in the same session after guest complete → login. */
+  const tourCompletedThisSessionRef = useRef(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [, setLocationInstructionShows] = useState(0);
 
@@ -400,22 +397,6 @@ export default function InteractiveMap({
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Pre-login tour only — once Privy has a user, the map continues without it.
-    if (user) {
-      setShowWelcomeBanner(false);
-      return;
-    }
-
-    // Drop legacy dismiss counts so the redesigned tour can show.
-    for (const key of LEGACY_WELCOME_TOUR_STORAGE_KEYS) {
-      window.localStorage.removeItem(key);
-    }
-
-    // Guest (logged-out) storage key — tour runs before Privy sign-in.
-    const welcomeKey = getWelcomeTourStorageKey(null);
-    const dismissed = window.localStorage.getItem(welcomeKey) === '1';
-    setShowWelcomeBanner(!dismissed);
-
     const storedInstructionCount = window.localStorage.getItem(
       LOCATION_INSTRUCTION_STORAGE_KEY
     );
@@ -425,13 +406,42 @@ export default function InteractiveMap({
         setLocationInstructionShows(parsed);
       }
     }
-  }, [user]);
+
+    // Guests: always show the tour on each map visit/refresh, then Privy login.
+    if (!user) {
+      setShowWelcomeBanner(true);
+      return;
+    }
+
+    // Just finished the guest tour and signed in — don't immediately replay.
+    if (tourCompletedThisSessionRef.current || !walletAddress) {
+      setShowWelcomeBanner(false);
+      return;
+    }
+
+    // Logged-in: show for the first N map visits after wallet creation.
+    const welcomeKey = getWelcomeTourStorageKey(walletAddress);
+    const storedViews = window.localStorage.getItem(welcomeKey);
+    const parsedViews = storedViews ? parseInt(storedViews, 10) : 0;
+    const views = Number.isNaN(parsedViews) ? 0 : parsedViews;
+    setShowWelcomeBanner(views < WELCOME_TOUR_MAX_SHOWS);
+  }, [user, walletAddress]);
 
   const dismissWelcomeBanner = () => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(getWelcomeTourStorageKey(null), '1');
-    }
     setShowWelcomeBanner(false);
+    tourCompletedThisSessionRef.current = true;
+
+    const wallet = walletAddressRef.current;
+    if (typeof window !== 'undefined' && wallet) {
+      const welcomeKey = getWelcomeTourStorageKey(wallet);
+      const storedViews = window.localStorage.getItem(welcomeKey);
+      const parsedViews = storedViews ? parseInt(storedViews, 10) : 0;
+      const current = Number.isNaN(parsedViews) ? 0 : parsedViews;
+      window.localStorage.setItem(
+        welcomeKey,
+        String(Math.min(current + 1, WELCOME_TOUR_MAX_SHOWS))
+      );
+    }
   };
 
   const handleWelcomeTourComplete = () => {

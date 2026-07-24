@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
-export type MapWelcomeTourStep = 'intro' | 'page1' | 'page2';
+export type MapWelcomeTourStep =
+  | 'intro'
+  | 'page1'
+  | 'page2'
+  | 'page3'
+  | 'page4';
 
 type MapWelcomeTourProps = {
   open: boolean;
@@ -12,7 +17,13 @@ type MapWelcomeTourProps = {
   className?: string;
 };
 
-const TOUR_STEPS: MapWelcomeTourStep[] = ['intro', 'page1', 'page2'];
+const TOUR_STEPS: MapWelcomeTourStep[] = [
+  'intro',
+  'page1',
+  'page2',
+  'page3',
+  'page4',
+];
 
 function TourArrowIcon({
   className,
@@ -212,17 +223,15 @@ function Page2Step({
       />
 
       <div className="absolute inset-x-0 bottom-0 top-24 z-10 flex flex-col items-stretch gap-2 px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
-        <div className="flex min-h-0 flex-1 items-center justify-center">
-          <div className="relative aspect-[4/5] h-full max-w-full">
-            <Image
-              src="/map/tour/tour-page2-poster.png"
-              alt=""
-              fill
-              priority
-              sizes="299px"
-              className="object-cover"
-            />
-          </div>
+        <div className="relative min-h-0 w-full flex-1">
+          <Image
+            src="/map/tour/tour-page2-poster.jpg"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-contain object-center"
+          />
         </div>
 
         <div className="flex w-full shrink-0 items-end justify-between gap-3">
@@ -244,13 +253,151 @@ function Page2Step({
   );
 }
 
+/**
+ * Full-bleed tour step: earn/spend rewards copy + reward graphic.
+ * Tap anywhere to advance.
+ */
+function Page3Step({
+  onContinue,
+  onClose,
+}: {
+  onContinue: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onContinue}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onContinue();
+        }
+      }}
+      aria-label="Continue tour"
+      className="pointer-events-auto absolute inset-0 z-40 h-dvh w-screen cursor-pointer overflow-hidden bg-black"
+    >
+      <TourCloseButton variant="inverted" onClose={onClose} />
+      <Image
+        src="/map/tour/tour-page3.png"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center"
+      />
+
+      <div className="absolute inset-x-0 bottom-0 top-14 z-10 flex flex-col items-stretch gap-2 px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-12">
+        <p className="title1 shrink-0 self-end text-right !font-medium text-white">
+          Earn and Spend
+        </p>
+
+        <p className='shrink-0 self-start bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Gal_Gothic_Variable",sans-serif] text-[58.924px] font-semibold leading-[125%] text-[#181818]'>
+          Rewards
+        </p>
+
+        <div className="flex w-full shrink-0 items-end justify-between gap-3">
+          <p className="title3 max-w-[280px] text-white">
+            Earn points for future rewards at clubs, bars and galleries
+          </p>
+          <TourArrowIcon fill="#FFF200" />
+        </div>
+
+        <div className="mt-16 flex w-full justify-center px-6">
+          <Image
+            src="/map/tour/reward.png"
+            alt=""
+            width={442}
+            height={777}
+            priority
+            className="h-auto w-[442px] max-w-full shrink-0"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Final full-bleed tour step: get-started CTA.
+ */
+function Page4Step({
+  onContinue,
+  onClose,
+}: {
+  onContinue: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="pointer-events-auto absolute inset-0 z-40 h-dvh w-screen overflow-hidden bg-black">
+      <TourCloseButton onClose={onClose} />
+      <Image
+        src="/map/tour/tour-page4.png"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center"
+      />
+      {/* Blur + gradient darken from the midpoint down for CTA legibility */}
+      <div
+        className="pointer-events-none absolute inset-x-0 top-1/2 bottom-0 overflow-hidden"
+        aria-hidden
+      >
+        <div className="absolute inset-x-0 bottom-0 h-dvh w-full">
+          <Image
+            src="/map/tour/tour-page4.png"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center blur-[2px]"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/40 to-black/70" />
+      </div>
+
+      <div className="absolute inset-x-0 top-1/2 bottom-0 z-10 flex flex-col items-center px-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="flex w-[361px] max-w-full flex-col items-stretch gap-4">
+          <div className="flex flex-col items-start self-start">
+            <span className='bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Special_Gothic_Expanded_One",sans-serif] text-[61px] font-normal uppercase leading-[64px] tracking-[-4px] text-[#181818]'>
+              GET
+            </span>
+            <span className='bg-[var(--Brand-Colors-Yellow,#FFF200)] px-2 py-1 font-["Special_Gothic_Expanded_One",sans-serif] text-[61px] font-normal uppercase leading-[64px] tracking-[-4px] text-[#181818]'>
+              STARTED
+            </span>
+          </div>
+
+          <p className="title3 max-w-[75%] text-left text-white">
+            Discover cool spots, check-in, and curate your own lists to share
+            with your circle.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onContinue}
+          className="mt-auto flex min-h-11 w-[361px] max-w-full items-center justify-center gap-[var(--sds-size-space-400)] bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] transition-colors hover:bg-black"
+        >
+          <span className="label-large uppercase text-white">START NOW</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TourCloseButton({
   onClose,
   className,
+  variant = 'default',
 }: {
   onClose: () => void;
   className?: string;
+  variant?: 'default' | 'inverted';
 }) {
+  const inverted = variant === 'inverted';
+
   return (
     <button
       type="button"
@@ -259,7 +406,10 @@ function TourCloseButton({
         onClose();
       }}
       className={cn(
-        'pointer-events-auto absolute right-2 top-2 z-50 flex size-10 shrink-0 items-center justify-center gap-4 rounded-[179px] border border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] transition-opacity hover:opacity-90',
+        'pointer-events-auto absolute right-2 top-2 z-50 flex size-10 shrink-0 items-center justify-center gap-4 rounded-[179px] p-[var(--sds-size-space-200)] transition-opacity hover:opacity-90',
+        inverted
+          ? 'border border-[#171717] bg-[#171717] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)]'
+          : 'border border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)]',
         className
       )}
       aria-label="Skip tour"
@@ -275,7 +425,7 @@ function TourCloseButton({
       >
         <path
           d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
-          fill="#757575"
+          fill={inverted ? '#FFFFFF' : '#757575'}
         />
       </svg>
     </button>
@@ -328,6 +478,12 @@ export function MapWelcomeTour({
       ) : null}
       {step === 'page2' ? (
         <Page2Step onContinue={advance} onClose={onComplete} />
+      ) : null}
+      {step === 'page3' ? (
+        <Page3Step onContinue={advance} onClose={onComplete} />
+      ) : null}
+      {step === 'page4' ? (
+        <Page4Step onContinue={advance} onClose={onComplete} />
       ) : null}
     </div>
   );
