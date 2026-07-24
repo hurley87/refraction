@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isAbortError,
   isAndroidJavascriptBridgeNoise,
+  isCefSharpBotNoise,
   isExtensionStackOverflowNoise,
   isIndexedDbNoiseError,
   isPrivyWalletProviderOnNoise,
@@ -54,6 +55,22 @@ describe('isWalletExtensionOnboardingNoise', () => {
     expect(isWalletExtensionOnboardingNoise('User rejected the request')).toBe(
       false
     );
+  });
+});
+
+describe('isCefSharpBotNoise', () => {
+  it('detects CefSharp Safe Links crawler promise rejections (JAVASCRIPT-NEXTJS-1N)', () => {
+    expect(
+      isCefSharpBotNoise(
+        'Object Not Found Matching Id:18, MethodName:update, ParamCount:4'
+      )
+    ).toBe(true);
+    expect(
+      isCefSharpBotNoise(
+        'UnhandledRejection: Non-Error promise rejection captured with value: Object Not Found Matching Id:18, MethodName:update, ParamCount:4'
+      )
+    ).toBe(true);
+    expect(isCefSharpBotNoise('TypeError: fetch failed')).toBe(false);
   });
 });
 
@@ -517,6 +534,29 @@ describe('sentryBeforeSend', () => {
     };
 
     expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for CefSharp bot crawler noise (JAVASCRIPT-NEXTJS-1N)', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/events' },
+      exception: {
+        values: [
+          {
+            type: 'UnhandledRejection',
+            value:
+              'UnhandledRejection: Non-Error promise rejection captured with value: Object Not Found Matching Id:18, MethodName:update, ParamCount:4',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+    expect(
+      sentryBeforeSend(event, {
+        originalException:
+          'Object Not Found Matching Id:18, MethodName:update, ParamCount:4',
+      })
+    ).toBeNull();
   });
 
   it('returns null for webkit.messageHandlers in-app browser noise (JAVASCRIPT-NEXTJS-1G)', () => {

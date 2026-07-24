@@ -327,6 +327,34 @@ export function isWalletExtensionOnboardingNoise(message: string): boolean {
 }
 
 /**
+ * Microsoft Office Safe Links and similar link scanners use CefSharp (.NET Chromium)
+ * to prefetch URLs. Their JavascriptObjectRepository rejects with this fixed signature
+ * when automated scripts call into stale JS object bindings — bot traffic, not app bugs.
+ *
+ * @see https://github.com/cefsharp/CefSharp/issues/3632
+ */
+export function isCefSharpBotNoise(message: string): boolean {
+  const lower = message.toLowerCase();
+  return /object not found matching id:\d+, methodname:\w+, paramcount:\d+/.test(
+    lower
+  );
+}
+
+function shouldDropCefSharpBotNoise(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (
+    typeof hint?.originalException === 'string' &&
+    isCefSharpBotNoise(hint.originalException)
+  ) {
+    return true;
+  }
+
+  return isCefSharpBotNoise(eventMessage(event, hint));
+}
+
+/**
  * iOS in-app browsers (Facebook, Instagram, etc.) and some third-party scripts
  * probe `window.webkit.messageHandlers` without guarding for missing `webkit`.
  * That bridge only exists in native WKWebView apps with registered handlers —
@@ -428,6 +456,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   }
 
   if (shouldDropIndexedDbNoiseError(event, hint)) {
+    return null;
+  }
+
+  if (shouldDropCefSharpBotNoise(event, hint)) {
     return null;
   }
 
