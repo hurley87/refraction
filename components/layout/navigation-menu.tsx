@@ -45,9 +45,12 @@ export default function NavigationMenu({
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'City Guides', path: '/city-guides' },
     { label: 'Events', path: '/events' },
-    { label: 'Rewards', path: '/rewards' },
+    { label: 'Rewards', path: '/rewards' 
+      
+    },/*
     { label: 'Stellar', path: '/stellar' },
     { label: 'Livepaper', path: '/livepaper' },
+     */
     {
       label: 'Become a Partner',
       path: 'https://www.irl.energy/contact-us',

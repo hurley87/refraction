@@ -25,6 +25,13 @@ const TOUR_STEPS: MapWelcomeTourStep[] = [
   'page4',
 ];
 
+/** Mobile design rail — used on all breakpoints until a desktop tour layout exists. */
+const TOUR_FRAME_CLASS =
+  'pointer-events-none relative mx-auto h-dvh w-full max-w-[393px] overflow-hidden';
+
+const TOUR_STEP_SHELL_CLASS =
+  'pointer-events-auto absolute inset-0 z-40 h-full w-full cursor-pointer overflow-hidden bg-black';
+
 function TourArrowIcon({
   className,
   fill = '#DBDBDB',
@@ -132,8 +139,7 @@ function TourLogoMark({ className }: { className?: string }) {
 }
 
 /**
- * Full-bleed tour image step. Fills the viewport (design ref 681.6×852, 4/5).
- * Desktop keeps the same full-screen framing until a desktop layout is designed.
+ * Full-bleed tour image step within the mobile frame (design ref ~393×852).
  * Tap anywhere to advance.
  */
 function Page1Step({
@@ -155,7 +161,7 @@ function Page1Step({
         }
       }}
       aria-label="Continue tour"
-      className="pointer-events-auto absolute inset-0 z-40 h-dvh w-screen cursor-pointer overflow-hidden bg-black"
+      className={TOUR_STEP_SHELL_CLASS}
     >
       <TourCloseButton onClose={onClose} />
       <Image
@@ -163,7 +169,7 @@ function Page1Step({
         alt=""
         fill
         priority
-        sizes="100vw"
+        sizes="393px"
         className="origin-top-left object-cover object-left-top scale-[1.3]"
       />
 
@@ -210,7 +216,7 @@ function Page2Step({
         }
       }}
       aria-label="Continue tour"
-      className="pointer-events-auto absolute inset-0 z-40 h-dvh w-screen cursor-pointer overflow-hidden bg-black"
+      className={TOUR_STEP_SHELL_CLASS}
     >
       <TourCloseButton onClose={onClose} />
       <Image
@@ -218,7 +224,7 @@ function Page2Step({
         alt=""
         fill
         priority
-        sizes="100vw"
+        sizes="393px"
         className="object-cover object-center"
       />
 
@@ -229,7 +235,7 @@ function Page2Step({
             alt=""
             fill
             priority
-            sizes="100vw"
+            sizes="393px"
             className="object-contain object-center"
           />
         </div>
@@ -276,7 +282,7 @@ function Page3Step({
         }
       }}
       aria-label="Continue tour"
-      className="pointer-events-auto absolute inset-0 z-40 h-dvh w-screen cursor-pointer overflow-hidden bg-black"
+      className={TOUR_STEP_SHELL_CLASS}
     >
       <TourCloseButton variant="inverted" onClose={onClose} />
       <Image
@@ -284,7 +290,7 @@ function Page3Step({
         alt=""
         fill
         priority
-        sizes="100vw"
+        sizes="393px"
         className="object-cover object-center"
       />
 
@@ -330,14 +336,14 @@ function Page4Step({
   onClose: () => void;
 }) {
   return (
-    <div className="pointer-events-auto absolute inset-0 z-40 h-dvh w-screen overflow-hidden bg-black">
+    <div className="pointer-events-auto absolute inset-0 z-40 h-full w-full overflow-hidden bg-black">
       <TourCloseButton onClose={onClose} />
       <Image
         src="/map/tour/tour-page4.png"
         alt=""
         fill
         priority
-        sizes="100vw"
+        sizes="393px"
         className="object-cover object-center"
       />
       {/* Blur + gradient darken from the midpoint down for CTA legibility */}
@@ -345,13 +351,13 @@ function Page4Step({
         className="pointer-events-none absolute inset-x-0 top-1/2 bottom-0 overflow-hidden"
         aria-hidden
       >
-        <div className="absolute inset-x-0 bottom-0 h-dvh w-full">
+        <div className="absolute inset-x-0 bottom-0 h-full w-full">
           <Image
             src="/map/tour/tour-page4.png"
             alt=""
             fill
             priority
-            sizes="100vw"
+            sizes="393px"
             className="object-cover object-center blur-[2px]"
           />
         </div>
@@ -433,8 +439,8 @@ function TourCloseButton({
 }
 
 /**
- * Sequential map welcome tour overlay. Mobile dimensions are used on all
- * breakpoints until a desktop layout is designed.
+ * Sequential map welcome tour overlay.
+ * Always renders in the mobile 393px rail (centered on larger viewports).
  */
 export function MapWelcomeTour({
   open,
@@ -465,26 +471,36 @@ export function MapWelcomeTour({
       role="dialog"
       aria-modal="true"
       aria-labelledby="map-welcome-tour-title"
-      className={cn('pointer-events-none absolute inset-0 z-30', className)}
+      className={cn(
+        'pointer-events-none absolute inset-0 z-30 flex justify-center',
+        className
+      )}
     >
-      <span id="map-welcome-tour-title" className="sr-only">
-        Welcome to IRL
-      </span>
-      {step === 'intro' ? (
-        <IntroStep onContinue={advance} onClose={onComplete} />
-      ) : null}
-      {step === 'page1' ? (
-        <Page1Step onContinue={advance} onClose={onComplete} />
-      ) : null}
-      {step === 'page2' ? (
-        <Page2Step onContinue={advance} onClose={onComplete} />
-      ) : null}
-      {step === 'page3' ? (
-        <Page3Step onContinue={advance} onClose={onComplete} />
-      ) : null}
-      {step === 'page4' ? (
-        <Page4Step onContinue={advance} onClose={onComplete} />
-      ) : null}
+      {/* Dim sides outside the mobile frame on wide screens */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-black/50 max-[393px]:hidden"
+        aria-hidden
+      />
+      <div className={TOUR_FRAME_CLASS}>
+        <span id="map-welcome-tour-title" className="sr-only">
+          Welcome to IRL
+        </span>
+        {step === 'intro' ? (
+          <IntroStep onContinue={advance} onClose={onComplete} />
+        ) : null}
+        {step === 'page1' ? (
+          <Page1Step onContinue={advance} onClose={onComplete} />
+        ) : null}
+        {step === 'page2' ? (
+          <Page2Step onContinue={advance} onClose={onComplete} />
+        ) : null}
+        {step === 'page3' ? (
+          <Page3Step onContinue={advance} onClose={onComplete} />
+        ) : null}
+        {step === 'page4' ? (
+          <Page4Step onContinue={advance} onClose={onComplete} />
+        ) : null}
+      </div>
     </div>
   );
 }
