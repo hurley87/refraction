@@ -2,14 +2,15 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { WelcomeEllipse } from '@/components/shared/welcome-ellipse';
 import { cn } from '@/lib/utils';
 
 /**
- * Hero background slides, cycled by the carousel. Order is the display order.
+ * Hero background slides, cycled by the hero carousel. Order is the display order.
  * Mobile uses tall portrait assets; desktop (xl+) uses `-full` widescreen assets.
+ * How It Works steps share this order but advance on a separate timer (in-view only).
  */
 type HeroCarouselSlide = {
   mobileSrc: string;
@@ -41,37 +42,74 @@ const HERO_CAROUSEL_SLIDES: HeroCarouselSlide[] = [
     stepTitle: 'Earn and spend rewards',
     stepBody: 'Earn points for future rewards at clubs, bars, and galleries',
   },
-
 ];
 
 const HERO_CAROUSEL_INTERVAL_MS = 5000;
+const STEPS_CAROUSEL_INTERVAL_MS = 5000;
 
 /**
  * Hero component with a background image carousel above the fold.
+ * How It Works steps cycle independently and only while that section is in view.
  */
 export default function Hero() {
   const slideCount = HERO_CAROUSEL_SLIDES.length;
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [heroIndex, setHeroIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [stepsInView, setStepsInView] = useState(false);
+  const stepsSectionRef = useRef<HTMLDivElement>(null);
+  const stepsWereInViewRef = useRef(false);
 
   const goNext = useCallback(
-    () => setActiveIndex((prev) => (prev + 1) % slideCount),
+    () => setHeroIndex((prev) => (prev + 1) % slideCount),
     [slideCount]
   );
   const goPrev = useCallback(
-    () => setActiveIndex((prev) => (prev - 1 + slideCount) % slideCount),
+    () => setHeroIndex((prev) => (prev - 1 + slideCount) % slideCount),
     [slideCount]
   );
   const togglePause = useCallback(() => setIsPaused((prev) => !prev), []);
 
-  // Auto-advance unless paused.
+  // Hero images: auto-advance unless paused.
   useEffect(() => {
     if (isPaused) return;
     const id = setInterval(goNext, HERO_CAROUSEL_INTERVAL_MS);
     return () => clearInterval(id);
   }, [isPaused, goNext]);
 
-  const activeSlide = HERO_CAROUSEL_SLIDES[activeIndex];
+  // How It Works: observe visibility so steps only run when on screen.
+  useEffect(() => {
+    const el = stepsSectionRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const visible = entry?.isIntersecting ?? false;
+        if (visible && !stepsWereInViewRef.current) {
+          // Fresh enter → always start on step 1.
+          setStepIndex(0);
+        }
+        stepsWereInViewRef.current = visible;
+        setStepsInView(visible);
+      },
+      { threshold: 0.35 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // How It Works: auto-advance only while the section is in view.
+  useEffect(() => {
+    if (!stepsInView) return;
+    const id = setInterval(() => {
+      setStepIndex((prev) => (prev + 1) % slideCount);
+    }, STEPS_CAROUSEL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [stepsInView, slideCount]);
+
+  const activeSlide = HERO_CAROUSEL_SLIDES[heroIndex];
+  const activeStep = HERO_CAROUSEL_SLIDES[stepIndex];
 
   return (
     <>
@@ -84,7 +122,7 @@ export default function Hero() {
                 key={slide.mobileSrc}
                 className={cn(
                   'absolute inset-0 transition-opacity duration-700 ease-in-out',
-                  index === activeIndex ? 'opacity-100' : 'opacity-0'
+                  index === heroIndex ? 'opacity-100' : 'opacity-0'
                 )}
               >
                 <Image
@@ -220,7 +258,7 @@ export default function Hero() {
                   key={`${slide.mobileSrc}-track`}
                   className={cn(
                     'h-0.5 min-w-0 flex-1 bg-white transition-opacity duration-700',
-                    index === activeIndex ? 'opacity-100' : 'opacity-40'
+                    index === heroIndex ? 'opacity-100' : 'opacity-40'
                   )}
                 />
               ))}
@@ -237,8 +275,11 @@ export default function Hero() {
         </p>
       </div>
 
-      {/* How It Works card — follows the carousel's active step */}
-      <div className="mx-auto w-[393px] max-w-full px-4 pt-24 xl:w-[553px] xl:px-0">
+      {/* How It Works — independent steps carousel; advances only while in view */}
+      <div
+        ref={stepsSectionRef}
+        className="mx-auto w-[393px] max-w-full px-4 pt-24 xl:w-[553px] xl:px-0"
+      >
         <div className="flex h-[638px] w-[393px] max-w-full flex-col gap-6 text-white xl:h-auto xl:w-[553px] xl:items-center xl:pb-[174px] xl:text-center">
           {/* Row 1: label */}
           <div className="flex items-center gap-2 xl:mx-auto xl:w-[460px] xl:justify-center xl:gap-[var(--sds-size-space-200)] xl:text-center xl:items-center">
@@ -251,7 +292,7 @@ export default function Hero() {
           {/* Benefit card — step number, title, body */}
           <div className="flex w-full flex-col items-center xl:h-[214px] xl:w-[553px] xl:items-center xl:gap-[var(--sds-size-space-200)] xl:p-[var(--sds-size-space-600)]">
             <span className="title2 text-center text-white xl:text-center">
-              {activeIndex + 1}
+              {stepIndex + 1}
             </span>
             <p
               className={cn(
@@ -259,7 +300,7 @@ export default function Hero() {
                 'xl:title1 xl:mx-0 xl:w-full xl:text-center'
               )}
             >
-              {HERO_CAROUSEL_SLIDES[activeIndex].stepTitle}
+              {activeStep.stepTitle}
             </p>
             <p
               className={cn(
@@ -267,7 +308,7 @@ export default function Hero() {
                 'xl:title3 xl:text-center'
               )}
             >
-              {HERO_CAROUSEL_SLIDES[activeIndex].stepBody}
+              {activeStep.stepBody}
             </p>
           </div>
 
