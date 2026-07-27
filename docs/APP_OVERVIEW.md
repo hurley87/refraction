@@ -44,7 +44,7 @@ The most specific current product goal to use for weekly analysis is: **improve 
 ### Completing a checkpoint check-in
 
 1. **User action:** Open a checkpoint link at `/c/[id]`.
-2. **App action:** Resolve the checkpoint's required chain (`evm`, `solana`, `stellar`, or `aptos`) and require the matching wallet.
+2. **App action:** Resolve the checkpoint's required chain (`evm`, `solana`, `stellar`, or `aptos`) and require the matching wallet. EVM checkpoints submit the user's validated linked EVM address when Privy's primary wallet is non-EVM.
 3. **App action:** Auto-submit the checkpoint check-in request.
 4. **App action:** Enforce the daily checkpoint limit, insert a `points_activities` row with `activity_type=checkpoint_checkin`, increment `players.total_points`, and track `checkin_completed` with `checkin_type=checkpoint`.
 5. **Success means:** The checkpoint success screen renders and the player receives checkpoint points.
