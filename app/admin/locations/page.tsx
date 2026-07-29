@@ -1,12 +1,20 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Download, Loader2, Pencil, Trash2 } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Download,
+  Loader2,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { EditLocationDialog } from '@/components/admin/edit-location-dialog';
 import type { Location } from '@/lib/types';
@@ -14,12 +22,16 @@ import Image from 'next/image';
 
 const LOCATIONS_KEY = ['admin-locations'] as const;
 
+type CreatedSort = 'desc' | 'asc';
+
 export default function AdminLocationsPage() {
   const { user, login, getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [adminLoading, setAdminLoading] = useState(true);
   const [showApproved, setShowApproved] = useState(true);
+  const [nameQuery, setNameQuery] = useState('');
+  const [createdSort, setCreatedSort] = useState<CreatedSort>('desc');
   const [isExporting, setIsExporting] = useState(false);
   const [page, setPage] = useState(1);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
@@ -85,16 +97,21 @@ export default function AdminLocationsPage() {
     []
   );
 
-  const filteredLocations = allLocations.filter((loc: Location) =>
-    showApproved ? true : !loc.is_visible
-  );
+  const sortedLocations = useMemo(() => {
+    const normalizedQuery = nameQuery.trim().toLowerCase();
 
-  // Sort by created_at descending
-  const sortedLocations = [...filteredLocations].sort((a, b) => {
-    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return dateB - dateA;
-  });
+    const filtered = allLocations.filter((loc: Location) => {
+      if (!showApproved && loc.is_visible) return false;
+      if (!normalizedQuery) return true;
+      return (loc.name ?? '').toLowerCase().includes(normalizedQuery);
+    });
+
+    return [...filtered].sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return createdSort === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+  }, [allLocations, showApproved, nameQuery, createdSort]);
 
   // Paginate client-side
   const paginatedLocations = sortedLocations.slice(
@@ -246,24 +263,71 @@ export default function AdminLocationsPage() {
           </Button>
         </div>
 
-        <div className="mb-6 flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input
-              type="checkbox"
-              checked={showApproved}
-              onChange={(e) => {
-                setShowApproved(e.target.checked);
-                setPage(1);
-              }}
-              className="h-4 w-4 rounded border-gray-300"
-            />
-            Show approved locations
-          </label>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+            <label className="flex min-w-0 flex-1 flex-col gap-1.5 text-sm text-gray-700">
+              <span>Search by name</span>
+              <Input
+                type="search"
+                value={nameQuery}
+                onChange={(e) => {
+                  setNameQuery(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Filter locations…"
+                className="max-w-sm bg-white"
+              />
+            </label>
 
-          <div className="text-sm text-gray-500">
-            {sortedLocations.length} location
-            {sortedLocations.length !== 1 ? 's' : ''}{' '}
-            {showApproved ? 'total' : 'pending approval'}
+            <div className="flex flex-col gap-1.5 text-sm text-gray-700">
+              <span>Created</span>
+              <Button
+                type="button"
+                variant="outline"
+                className="justify-start bg-white"
+                onClick={() => {
+                  setCreatedSort((prev) => (prev === 'desc' ? 'asc' : 'desc'));
+                  setPage(1);
+                }}
+                aria-label={
+                  createdSort === 'desc'
+                    ? 'Sort by created date: newest first. Click for oldest first.'
+                    : 'Sort by created date: oldest first. Click for newest first.'
+                }
+              >
+                {createdSort === 'desc' ? (
+                  <ArrowDown className="mr-2 h-4 w-4" />
+                ) : (
+                  <ArrowUp className="mr-2 h-4 w-4" />
+                )}
+                {createdSort === 'desc' ? 'Newest first' : 'Oldest first'}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={showApproved}
+                onChange={(e) => {
+                  setShowApproved(e.target.checked);
+                  setPage(1);
+                }}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              Show approved locations
+            </label>
+
+            <div className="text-sm text-gray-500">
+              {sortedLocations.length} location
+              {sortedLocations.length !== 1 ? 's' : ''}{' '}
+              {nameQuery.trim()
+                ? 'matching'
+                : showApproved
+                  ? 'total'
+                  : 'pending approval'}
+            </div>
           </div>
         </div>
 
@@ -274,9 +338,11 @@ export default function AdminLocationsPage() {
         ) : paginatedLocations.length === 0 ? (
           <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
             <p className="text-gray-500">
-              {showApproved
-                ? 'No locations found.'
-                : 'No locations pending approval.'}
+              {nameQuery.trim()
+                ? 'No locations match that name.'
+                : showApproved
+                  ? 'No locations found.'
+                  : 'No locations pending approval.'}
             </p>
           </div>
         ) : (

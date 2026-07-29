@@ -2187,22 +2187,20 @@ export default function InteractiveMap({
                     </filter>
                   </defs>
                 </svg>
-                {/* Image inside pin */}
-                {marker.imageUrl && (
-                  <MapPinImage
-                    imageUrl={marker.imageUrl}
-                    imageThumbUrl={marker.imageThumbUrl}
-                    alt={marker.name}
-                    className="absolute rounded-full object-cover"
-                    style={{
-                      width: '28px',
-                      height: '28px',
-                      top: '4px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                    }}
-                  />
-                )}
+                {/* Image inside pin — missing/broken URLs use IRL ink-black mark */}
+                <MapPinImage
+                  imageUrl={marker.imageUrl}
+                  imageThumbUrl={marker.imageThumbUrl}
+                  alt={marker.name}
+                  className="absolute rounded-full object-cover"
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    top: '4px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                  }}
+                />
               </div>
             </button>
           </Marker>
