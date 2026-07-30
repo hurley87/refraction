@@ -167,7 +167,7 @@ export default function AuthWrapper({
       return <>{children}</>;
     }
 
-    // Map page: show the real map (children). Pre-login tour + Privy live in InteractiveMap.
+    // Map page: show the real map (children). Privy login then tour live in InteractiveMap.
     if (unauthenticatedUI !== 'map-onboarding') {
       // Default unauthenticated UI — if checkpoint customization is provided, use the branded layout
       if (checkpointCustomization) {

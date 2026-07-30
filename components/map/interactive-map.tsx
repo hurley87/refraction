@@ -209,7 +209,7 @@ export default function InteractiveMap({
   const effectiveGuideReturnHref =
     guideReturnHref ?? guideReturnPersistedRef.current;
 
-  const { user, getAccessToken, login } = usePrivy();
+  const { user, ready, getAccessToken, login } = usePrivy();
   const walletAddress = useEvmWalletAddress();
   const { data: favoritePlaceIds } = useFavoritePlaceIds(walletAddress);
   const { mutate: toggleFavorite, isPending: isFavoritePending } =
@@ -308,8 +308,10 @@ export default function InteractiveMap({
   const mapRef = useRef<any>(null);
   const hasSetInitialLocationRef = useRef(false);
   const walletAddressRef = useRef<string | null | undefined>(walletAddress);
-  /** Prevents re-opening the tour in the same session after guest complete → login. */
+  /** Prevents re-opening the tour in the same session after the user dismisses it. */
   const tourCompletedThisSessionRef = useRef(false);
+  /** Auto-prompt Privy once per map mount for logged-out guests. */
+  const hasPromptedLoginRef = useRef(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [, setLocationInstructionShows] = useState(0);
 
@@ -407,13 +409,12 @@ export default function InteractiveMap({
       }
     }
 
-    // Guests: always show the tour on each map visit/refresh, then Privy login.
+    // Guests: Privy first — do not show the tour until after sign-in.
     if (!user) {
-      setShowWelcomeBanner(true);
+      setShowWelcomeBanner(false);
       return;
     }
 
-    // Just finished the guest tour and signed in — don't immediately replay.
     if (tourCompletedThisSessionRef.current || !walletAddress) {
       setShowWelcomeBanner(false);
       return;
@@ -426,6 +427,13 @@ export default function InteractiveMap({
     const views = Number.isNaN(parsedViews) ? 0 : parsedViews;
     setShowWelcomeBanner(views < WELCOME_TOUR_MAX_SHOWS);
   }, [user, walletAddress]);
+
+  // Logged-out map visits: open Privy before the welcome tour.
+  useEffect(() => {
+    if (!ready || user || hasPromptedLoginRef.current) return;
+    hasPromptedLoginRef.current = true;
+    login();
+  }, [ready, user, login]);
 
   const dismissWelcomeBanner = () => {
     setShowWelcomeBanner(false);
@@ -446,9 +454,6 @@ export default function InteractiveMap({
 
   const handleWelcomeTourComplete = () => {
     dismissWelcomeBanner();
-    if (!user) {
-      login();
-    }
   };
 
   const remindLocationCreationFlow = () => {

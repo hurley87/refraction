@@ -151,7 +151,7 @@
 @font-face {
   font-family: 'Gal Gothic Variable';
   src: url('/fonts/GalGothicVariable-Reg.otf') format('opentype');
-  font-weight: 400;
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
@@ -159,7 +159,7 @@
 @font-face {
   font-family: 'Gal Gothic Variable';
   src: url('/fonts/GalGothicVariable-Italic.otf') format('opentype');
-  font-weight: 400;
+  font-weight: 100 900;
   font-style: italic;
   font-display: swap;
 }
