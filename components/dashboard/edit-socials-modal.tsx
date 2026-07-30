@@ -16,16 +16,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  PlayerLocationFields,
+  type CitySuggestion,
+} from '@/components/shared/player-location-fields';
 
 type AboutYouDraft = Pick<
   UserProfile,
-  | 'username'
-  | 'website'
-  | 'city'
-  | 'country'
-  | 'bio'
-  | 'twitter_handle'
-  | 'instagram_handle'
+  'username' | 'website' | 'bio' | 'twitter_handle' | 'instagram_handle'
 >;
 
 /** Editable inputs — white field, light border */
@@ -49,8 +47,6 @@ interface EditSocialsModalProps {
 const emptyDraft: AboutYouDraft = {
   username: '',
   website: '',
-  city: '',
-  country: '',
   bio: '',
   twitter_handle: '',
   instagram_handle: '',
@@ -60,8 +56,6 @@ function draftFromProfile(p: UserProfile): AboutYouDraft {
   return {
     username: (p.username ?? '').toLowerCase(),
     website: p.website ?? '',
-    city: p.city ?? '',
-    country: p.country ?? '',
     bio: p.bio ?? '',
     twitter_handle: p.twitter_handle ?? '',
     instagram_handle: p.instagram_handle ?? '',
@@ -115,11 +109,29 @@ export default function EditSocialsModal({
   const [saving, setSaving] = useState(false);
   const [profilePictureUrl, setProfilePictureUrl] = useState<string>('');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [countryId, setCountryId] = useState('');
+  const [cityQuery, setCityQuery] = useState('');
+  const [selectedCity, setSelectedCity] = useState<CitySuggestion | null>(null);
+  /** True when user changed country/city selection this session. */
+  const [locationDirty, setLocationDirty] = useState(false);
 
   useEffect(() => {
     if (open && profile) {
       setDraft(draftFromProfile(profile));
       setProfilePictureUrl(profile.profile_picture_url ?? '');
+      setCountryId(profile.country_id ?? '');
+      setCityQuery(profile.city ?? '');
+      setSelectedCity(
+        profile.geo_city_id && profile.city
+          ? {
+              mapboxId: '',
+              name: profile.city,
+              region: null,
+              placeFormatted: null,
+            }
+          : null
+      );
+      setLocationDirty(false);
     }
   }, [open, profile]);
 
@@ -212,6 +224,11 @@ export default function EditSocialsModal({
   const handleSave = async () => {
     if (!profile?.wallet_address) return;
 
+    if (locationDirty && (!countryId || !selectedCity?.mapboxId)) {
+      toast.error('Select a country and city from the list to save location');
+      return;
+    }
+
     setSaving(true);
     try {
       const response = await fetch('/api/profile', {
@@ -237,6 +254,30 @@ export default function EditSocialsModal({
         toast.error(raw.error ?? 'Could not save profile');
         return;
       }
+
+      if (locationDirty && countryId && selectedCity?.mapboxId) {
+        const locationRes = await fetch('/api/profile/location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress: profile.wallet_address,
+            countryId,
+            mapboxId: selectedCity.mapboxId,
+            name: selectedCity.name,
+            region: selectedCity.region,
+          }),
+        });
+        const locationBody = await locationRes.json().catch(() => ({}));
+        if (!locationRes.ok) {
+          toast.error(
+            (locationBody as { error?: string }).error ??
+              'Profile saved, but location could not be updated'
+          );
+          invalidateProfileRelatedQueries(queryClient, profile.wallet_address);
+          return;
+        }
+      }
+
       const result = raw.data ?? raw;
       let message = 'Profile updated';
       if (result?.pointsAwarded && result.pointsAwarded.length > 0) {
@@ -399,46 +440,25 @@ export default function EditSocialsModal({
               className={editFieldInputClassName}
             />
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label
-                htmlFor="edit-about-city"
-                className="label-small uppercase text-[#171717]"
-              >
-                City
-              </Label>
-              <Input
-                id="edit-about-city"
-                type="text"
-                placeholder="City"
-                maxLength={120}
-                value={draft.city ?? ''}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, city: e.target.value }))
-                }
-                className={editFieldInputClassName}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label
-                htmlFor="edit-about-country"
-                className="label-small uppercase text-[#171717]"
-              >
-                Country
-              </Label>
-              <Input
-                id="edit-about-country"
-                type="text"
-                placeholder="Country"
-                maxLength={120}
-                value={draft.country ?? ''}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, country: e.target.value }))
-                }
-                className={editFieldInputClassName}
-              />
-            </div>
-          </div>
+          <PlayerLocationFields
+            countryId={countryId}
+            onCountryChange={(id) => {
+              setCountryId(id);
+              setLocationDirty(true);
+            }}
+            cityQuery={cityQuery}
+            onCityQueryChange={(q) => {
+              setCityQuery(q);
+              setLocationDirty(true);
+            }}
+            selectedCity={selectedCity}
+            onCitySelect={(city) => {
+              setSelectedCity(city);
+              setLocationDirty(true);
+            }}
+            disabled={saving}
+            controlClassName={editFieldInputClassName}
+          />
           <div className="space-y-2">
             <Label
               htmlFor="edit-about-bio"

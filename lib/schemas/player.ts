@@ -65,6 +65,27 @@ export const updateUserProfileSchema = z.object({
 });
 
 /**
+ * Schema for setting player geo location from a Mapbox place selection.
+ */
+export const updatePlayerLocationSchema = z.object({
+  walletAddress: walletAddressSchema,
+  countryId: z.string().uuid(),
+  mapboxId: z.string().min(1).max(200),
+  name: z.string().min(1).max(200),
+  region: z.string().max(200).optional().nullable(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
+});
+
+export const geoCitySuggestQuerySchema = z.object({
+  countryIso2: z
+    .string()
+    .length(2)
+    .regex(/^[A-Za-z]{2}$/, 'Invalid country ISO2'),
+  q: z.string().min(2).max(100),
+});
+
+/**
  * Schema for profile field points award
  */
 export const awardProfileFieldPointsSchema = z.object({

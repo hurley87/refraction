@@ -35,6 +35,12 @@ interface UserStats {
   username: string;
   total_points: number;
   created_at: string;
+  country_id: string | null;
+  geo_city_id: string | null;
+  /** Display name from countries FK */
+  country: string;
+  /** Display name from geo_cities FK */
+  city: string;
 }
 
 interface UploadResult {
@@ -274,7 +280,9 @@ export default function AdminUsersPage() {
         (user) =>
           user.email?.toLowerCase().includes(query) ||
           user.wallet_address?.toLowerCase().includes(query) ||
-          user.username?.toLowerCase().includes(query)
+          user.username?.toLowerCase().includes(query) ||
+          user.city?.toLowerCase().includes(query) ||
+          user.country?.toLowerCase().includes(query)
       );
     }
 
@@ -355,7 +363,9 @@ export default function AdminUsersPage() {
           (user) =>
             user.email?.toLowerCase().includes(query) ||
             user.wallet_address?.toLowerCase().includes(query) ||
-            user.username?.toLowerCase().includes(query)
+            user.username?.toLowerCase().includes(query) ||
+            user.city?.toLowerCase().includes(query) ||
+            user.country?.toLowerCase().includes(query)
         );
       }
 
@@ -383,6 +393,8 @@ export default function AdminUsersPage() {
         'Email',
         'Wallet Address',
         'Username',
+        'City',
+        'Country',
         'Points',
         'Created At',
       ];
@@ -390,6 +402,8 @@ export default function AdminUsersPage() {
         user.email || '',
         user.wallet_address || '',
         user.username || '',
+        user.city || '',
+        user.country || '',
         user.total_points,
         new Date(user.created_at).toLocaleString(),
       ]);
@@ -569,7 +583,7 @@ export default function AdminUsersPage() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             type="text"
-            placeholder="Search by email, wallet address, or username..."
+            placeholder="Search by email, wallet, username, city, or country..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -615,6 +629,12 @@ export default function AdminUsersPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Username
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    City
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Country
+                  </th>
                   <th
                     className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                     onClick={() => handleSort('total_points')}
@@ -659,6 +679,16 @@ export default function AdminUsersPage() {
                         <span className="text-gray-400 italic">
                           No username
                         </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {user.city || (
+                        <span className="text-gray-400 italic">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {user.country || (
+                        <span className="text-gray-400 italic">—</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-semibold text-gray-900">

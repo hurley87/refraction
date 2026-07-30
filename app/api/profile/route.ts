@@ -41,6 +41,8 @@ export async function GET(request: NextRequest) {
         profile_picture_url: '',
         city: '',
         country: '',
+        country_id: null,
+        geo_city_id: null,
         bio: '',
       });
     }
@@ -113,18 +115,12 @@ export async function PUT(request: NextRequest) {
         profileData.profile_picture_url.trim();
     }
 
-    if (typeof profileData.city === 'string') {
-      const t = profileData.city.trim();
-      validatedData.city = t.length > 120 ? t.slice(0, 120) : t;
-    }
-    if (typeof profileData.country === 'string') {
-      const t = profileData.country.trim();
-      validatedData.country = t.length > 120 ? t.slice(0, 120) : t;
-    }
     if (typeof profileData.bio === 'string') {
       const t = profileData.bio.trim();
       validatedData.bio = t.length > 500 ? t.slice(0, 500) : t;
     }
+
+    // city/country free-text updates are deprecated — use POST /api/profile/location
 
     // Get the current profile to compare what's new
     const currentProfile = await getUserProfile(wallet_address);
