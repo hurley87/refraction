@@ -133,7 +133,10 @@ export default function DashboardSocialLinks({
   const city = profile.city?.trim() ?? '';
   const country = profile.country?.trim() ?? '';
   const bio = profile.bio?.trim() ?? '';
-  const hasLocation = Boolean(city || country);
+  // Prefer FK-backed location (API enriches city/country from geo tables).
+  const hasLocation = Boolean(
+    profile.geo_city_id || profile.country_id || city || country
+  );
   const hasBio = Boolean(bio);
 
   return (

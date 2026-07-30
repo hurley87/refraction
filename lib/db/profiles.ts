@@ -23,6 +23,8 @@ const PROFILE_COLUMNS = `
   profile_picture_url,
   city,
   country,
+  country_id,
+  geo_city_id,
   bio,
   total_points,
   created_at,
@@ -130,8 +132,38 @@ export const getUserProfile = async (walletAddress: string) => {
     .single();
 
   if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
-  return data;
+  if (!data) return data;
+  return enrichProfileGeoDisplayNames(data as UserProfile);
 };
+
+/**
+ * Prefer geo FK display names over legacy free-text city/country.
+ */
+async function enrichProfileGeoDisplayNames(
+  profile: UserProfile
+): Promise<UserProfile> {
+  const next: UserProfile = { ...profile };
+
+  if (profile.geo_city_id) {
+    const { data: cityRow } = await supabase
+      .from('geo_cities')
+      .select('name')
+      .eq('id', profile.geo_city_id)
+      .maybeSingle();
+    if (cityRow?.name) next.city = cityRow.name;
+  }
+
+  if (profile.country_id) {
+    const { data: countryRow } = await supabase
+      .from('countries')
+      .select('name')
+      .eq('id', profile.country_id)
+      .maybeSingle();
+    if (countryRow?.name) next.country = countryRow.name;
+  }
+
+  return next;
+}
 
 /**
  * Update user profile fields
@@ -151,6 +183,35 @@ export const updateUserProfile = async (
 
   if (error) throw error;
   return data;
+};
+
+/**
+ * Set player country/city FKs from a Mapbox selection and sync legacy text fields.
+ */
+export const updatePlayerGeoLocation = async (
+  walletAddress: string,
+  input: {
+    countryId: string;
+    geoCityId: string;
+    cityName: string;
+    countryName: string;
+  }
+) => {
+  const { data, error } = await supabase
+    .from('players')
+    .update({
+      country_id: input.countryId,
+      geo_city_id: input.geoCityId,
+      city: input.cityName.slice(0, 120),
+      country: input.countryName.slice(0, 120),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('wallet_address', walletAddress)
+    .select(PROFILE_COLUMNS)
+    .single();
+
+  if (error) throw error;
+  return enrichProfileGeoDisplayNames(data as UserProfile);
 };
 
 /**

@@ -26,6 +26,7 @@ import { MapCheckinAvatarStack } from '@/components/map/map-checkin-avatar-stack
 import { CheckInSuccessScreen } from '@/components/map/check-in-success-screen';
 import { MapPinImage } from '@/components/map/map-pin-image';
 import { MapWelcomeTour } from '@/components/map/map-welcome-tour';
+import { PlayerLocationPrompt } from '@/components/map/player-location-prompt';
 import LocationListsDrawer, {
   DrawerLocationSummary,
   type LocationListsSheetLayout,
@@ -313,6 +314,8 @@ export default function InteractiveMap({
   /** Auto-prompt Privy once per map mount for logged-out guests. */
   const hasPromptedLoginRef = useRef(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [needsLocationPrompt, setNeedsLocationPrompt] = useState(false);
   const [, setLocationInstructionShows] = useState(0);
 
   // When initial coords are provided (e.g. from ?city= or ?lat=&lng=), center the map on them.
@@ -372,25 +375,40 @@ export default function InteractiveMap({
     walletAddressRef.current = walletAddress;
   }, [walletAddress]);
 
-  // Fetch user's username from database
+  // Fetch user's username + whether geo location FKs are set.
   useEffect(() => {
     const fetchUserData = async () => {
-      if (walletAddress) {
-        try {
-          const response = await fetch(
+      if (!walletAddress) {
+        setNeedsLocationPrompt(false);
+        setShowLocationPrompt(false);
+        return;
+      }
+      try {
+        const [playerRes, profileRes] = await Promise.all([
+          fetch(
             `/api/player?walletAddress=${encodeURIComponent(walletAddress)}`
-          );
-          if (response.ok) {
-            const responseData = await response.json();
-            // Unwrap the apiSuccess wrapper
-            const result = responseData.data || responseData;
-            if (result.player?.username) {
-              setUserUsername(result.player.username);
-            }
+          ),
+          fetch(
+            `/api/profile?wallet_address=${encodeURIComponent(walletAddress)}`
+          ),
+        ]);
+
+        if (playerRes.ok) {
+          const responseData = await playerRes.json();
+          const result = responseData.data || responseData;
+          if (result.player?.username) {
+            setUserUsername(result.player.username);
           }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
         }
+
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          const profile = profileData.data || profileData;
+          const missingGeo = !profile?.country_id || !profile?.geo_city_id;
+          setNeedsLocationPrompt(missingGeo);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
       }
     };
     fetchUserData();
@@ -412,6 +430,8 @@ export default function InteractiveMap({
     // Guests: Privy first — do not show the tour until after sign-in.
     if (!user) {
       setShowWelcomeBanner(false);
+      setShowLocationPrompt(false);
+      setNeedsLocationPrompt(false);
       return;
     }
 
@@ -427,6 +447,19 @@ export default function InteractiveMap({
     const views = Number.isNaN(parsedViews) ? 0 : parsedViews;
     setShowWelcomeBanner(views < WELCOME_TOUR_MAX_SHOWS);
   }, [user, walletAddress]);
+
+  // After tour (or if no tour), prompt for country/city when FKs are missing.
+  useEffect(() => {
+    if (!user || !walletAddress || !needsLocationPrompt) {
+      setShowLocationPrompt(false);
+      return;
+    }
+    if (showWelcomeBanner) {
+      setShowLocationPrompt(false);
+      return;
+    }
+    setShowLocationPrompt(true);
+  }, [user, walletAddress, needsLocationPrompt, showWelcomeBanner]);
 
   // Logged-out map visits: open Privy before the welcome tour.
   useEffect(() => {
@@ -454,6 +487,11 @@ export default function InteractiveMap({
 
   const handleWelcomeTourComplete = () => {
     dismissWelcomeBanner();
+  };
+
+  const handleLocationPromptComplete = () => {
+    setNeedsLocationPrompt(false);
+    setShowLocationPrompt(false);
   };
 
   const remindLocationCreationFlow = () => {
@@ -1967,6 +2005,14 @@ export default function InteractiveMap({
         open={showWelcomeBanner}
         onComplete={handleWelcomeTourComplete}
       />
+
+      {walletAddress ? (
+        <PlayerLocationPrompt
+          open={showLocationPrompt}
+          walletAddress={walletAddress}
+          onComplete={handleLocationPromptComplete}
+        />
+      ) : null}
 
       <div className="xl:hidden">
         <LocationListsDrawer

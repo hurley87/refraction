@@ -237,6 +237,10 @@ export type UserProfile = {
   city?: string | null;
   /** Display country (free text) */
   country?: string | null;
+  /** FK to countries for marketing targeting */
+  country_id?: string | null;
+  /** FK to geo_cities for marketing targeting */
+  geo_city_id?: string | null;
   /** Short user-written bio */
   bio?: string | null;
   created_at?: string;
