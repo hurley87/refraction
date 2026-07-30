@@ -25,9 +25,9 @@ const TOUR_STEPS: MapWelcomeTourStep[] = [
   'page4',
 ];
 
-/** Mobile design rail — used on all breakpoints until a desktop tour layout exists. */
+/** Full-bleed on mobile; 393px centered rail on md+ until a desktop tour exists. */
 const TOUR_FRAME_CLASS =
-  'pointer-events-none relative mx-auto h-dvh w-full max-w-[393px] overflow-hidden';
+  'pointer-events-none relative mx-auto h-dvh w-full overflow-hidden md:max-w-[393px]';
 
 const TOUR_STEP_SHELL_CLASS =
   'pointer-events-auto absolute inset-0 z-40 h-full w-full cursor-pointer overflow-hidden bg-black';
@@ -41,8 +41,6 @@ function TourArrowIcon({
 }) {
   return (
     <svg
-      width={44}
-      height={44}
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -80,7 +78,7 @@ function IntroStep({
         </div>
 
         <div className="flex w-full flex-col items-start self-stretch">
-          <p className="title5 text-[#171717]">Hi, I&apos;m Malcolm.</p>
+          <p className="title5-bold text-[#000000]">Hi, I&apos;m Malcolm.</p>
           <p className="body-medium mt-[var(--sds-size-space-200)] text-[#171717]">
             IRL is a network of 2000+ artists, DJs, and venues building
             infrastructure for independent culture worldwide.
@@ -91,7 +89,7 @@ function IntroStep({
             and get surprise rewards at the bars, clubs, and galleries we work
             with.
           </p>
-          <p className="title5 mt-[var(--sds-size-space-200)] text-[#171717]">
+          <p className="title5-bold  mt-[var(--sds-size-space-200)] text-[#000000]">
             Have fun out there.
           </p>
         </div>
@@ -105,7 +103,7 @@ function IntroStep({
             <span className="label-medium label-large uppercase text-white">
               Get Started
             </span>
-            <TourArrowIcon />
+            <TourArrowIcon fill="#FFFFFF" className="!size-6" />
           </button>
         </div>
       </div>
@@ -175,15 +173,21 @@ function Page1Step({
 
       {/* Lower-half overlay: logo → WELCOME → tagline → yellow arrow */}
       <div className="absolute inset-x-0 bottom-0 z-10 flex min-h-[50%] flex-col justify-end gap-2 px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-8">
-        <TourLogoMark className="self-start" />
+        <div className="flex flex-col gap-2">
+          <TourLogoMark className="-mb-5 self-start" />
 
-        <p className="h-[66.765px] w-[349.926px] max-w-full self-center text-right font-label-xl text-[61px] font-normal leading-[110%] text-[var(--Backgrounds-Primary---Elevated,#FFF)]">
-          WELCOME
-        </p>
+          <p className='w-full text-center font-["Special_Gothic_Expanded_One",sans-serif] text-[61px] font-normal leading-[110%] tracking-normal text-[var(--Backgrounds-Primary---Elevated,#FFF)]'>
+            Welcome
+          </p>
 
-        <p className="title1 w-[358.705px] max-w-full self-start bg-[#FFF200] px-2 py-2 text-center !font-semibold text-[#171717]">
-          IRL is your global guide to what&apos;s good.
-        </p>
+          <p className="title1 m-0 max-w-full self-start !font-semibold !leading-[52px] text-[#171717]">
+            <span className="box-decoration-clone bg-[#FFF200] px-2 py-1.5">
+              IRL is your global
+              <br />
+              guide to what&apos;s good.
+            </span>
+          </p>
+        </div>
 
         <div className="flex w-full justify-end">
           <TourArrowIcon fill="#FFF200" />
@@ -225,20 +229,18 @@ function Page2Step({
         fill
         priority
         sizes="393px"
-        className="object-cover object-center"
+        className="object-cover object-bottom"
       />
 
-      <div className="absolute inset-x-0 bottom-0 top-24 z-10 flex flex-col items-stretch gap-2 px-2 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
-        <div className="relative min-h-0 w-full flex-1">
-          <Image
-            src="/map/tour/tour-page2-poster.jpg"
-            alt=""
-            fill
-            priority
-            sizes="393px"
-            className="object-contain object-center"
-          />
-        </div>
+      <div className="absolute inset-x-0 bottom-0 top-24 z-10 flex flex-col gap-2 px-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <Image
+          src="/map/tour/tour-page2-poster.jpg"
+          alt=""
+          width={1440}
+          height={1800}
+          priority
+          className="mx-auto h-auto w-auto max-h-[calc(100%-10.5rem)] max-w-full shrink-0 object-contain object-top"
+        />
 
         <div className="flex w-full shrink-0 items-end justify-between gap-3">
           <p className='max-w-[240px] font-["Gal_Gothic_Variable",sans-serif] text-[20.102px] font-semibold leading-[25.73px] text-[#171717]'>
@@ -376,7 +378,7 @@ function Page4Step({
           </div>
 
           <p className="title3 max-w-[75%] text-left text-white">
-            Discover cool spots, check-in, and curate your own lists to share
+            Discover curated city guides, check-in, and curate your own lists to share
             with your circle.
           </p>
         </div>
@@ -440,7 +442,7 @@ function TourCloseButton({
 
 /**
  * Sequential map welcome tour overlay.
- * Always renders in the mobile 393px rail (centered on larger viewports).
+ * Full device width on mobile; 393px centered rail on md+.
  */
 export function MapWelcomeTour({
   open,
@@ -478,7 +480,7 @@ export function MapWelcomeTour({
     >
       {/* Dim sides outside the mobile frame on wide screens */}
       <div
-        className="pointer-events-none absolute inset-0 bg-black/50 max-[393px]:hidden"
+        className="pointer-events-none absolute inset-0 hidden bg-black/50 md:block"
         aria-hidden
       />
       <div className={TOUR_FRAME_CLASS}>

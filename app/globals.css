@@ -148,6 +148,17 @@
     letter-spacing: var(--Kerning-Titles, 0);
   }
 
+  /* Style/Title/Title 5 Bold */
+  .title5-bold {
+    font-family: 'Gal Gothic Variable', sans-serif;
+    font-size: var(--sds-typography-heading-size-base);
+    font-style: normal;
+    font-weight: 700;
+    font-variation-settings: 'wght' 700;
+    line-height: var(--Line-Height-2, 20px); /* 125% */
+    letter-spacing: var(--Kerning-Titles, 0);
+  }
+
   .title6 {
     font-size: 2.3125rem; /* 37px */
     font-style: normal;
