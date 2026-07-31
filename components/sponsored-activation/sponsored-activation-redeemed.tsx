@@ -41,7 +41,7 @@ export function SponsoredActivationRedeemed({
           />
           <SponsoredActivationDetailRow
             label="YOU SWAPPED"
-            value={<SponsoredActivationPointsValue points={5} suffix="CADD" />}
+            value={<SponsoredActivationPointsValue points={1} suffix="USDC" />}
             bareValue
           />
         </div>

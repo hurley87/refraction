@@ -116,7 +116,7 @@ export function SponsoredActivationSuccess({
             <SponsoredActivationDetailRow
               label="YOU SWAPPED"
               value={
-                <SponsoredActivationPointsValue points={5} suffix="CADD" />
+                <SponsoredActivationPointsValue points={1} suffix="USDC" />
               }
               bareValue
             />

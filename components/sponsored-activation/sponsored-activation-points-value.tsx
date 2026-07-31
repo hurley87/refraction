@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 
 type SponsoredActivationPointsValueProps = {
   points: number;
-  suffix?: 'PTS' | '$IRL' | 'CADD';
+  suffix?: 'PTS' | '$IRL' | 'CADD' | 'USDC';
   className?: string;
 };
 
