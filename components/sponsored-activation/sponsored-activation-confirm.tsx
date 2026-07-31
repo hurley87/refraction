@@ -98,7 +98,7 @@ export function SponsoredActivationConfirm({
             <span className="truncate text-left">
               {pending
                 ? 'Processing…'
-                : (primaryActionLabel ?? 'CLICK TO SWAP FOR CADD')}
+                : (primaryActionLabel ?? 'CLICK TO SWAP FOR USDC')}
             </span>
           </span>
           <Trophy className="size-6 shrink-0" strokeWidth={2} aria-hidden />

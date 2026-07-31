@@ -1,7 +1,7 @@
 const COLLECT_INSTRUCTIONS =
   "Swipe below and show this screen to the event staff. Swipe only when you're ready to purchase — once you've redeemed you can't redeem again!";
 
-const REDEEMED_INSTRUCTIONS = 'Thanks for spending CADD stablecoin on Tempo with IRL! Show this screen to the event staff to collect your drink.';
+const REDEEMED_INSTRUCTIONS = 'Thanks for spending USDC on Stellar with IRL! Show this screen to the event staff to collect your drink.';
 
 type SponsoredActivationCollectInstructionsProps = {
   /** After redemption the swipe copy is replaced with simple staff instructions. */
