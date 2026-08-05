@@ -6,6 +6,8 @@
 export const ANALYTICS_EVENTS = {
   // City & Map Metrics
   LOCATION_CREATED: 'location_created',
+  /** Map activation: player finished the mandatory geo location prompt. */
+  PLAYER_LOCATION_PROMPT_COMPLETED: 'player_location_prompt_completed',
 
   // Interest
   ACCOUNT_CREATED: 'account_created',
