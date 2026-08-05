@@ -10,6 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAnalytics } from '@/components/shared/analytics-provider';
+import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 import { cn } from '@/lib/utils';
 
 type CountryOption = {
@@ -55,6 +57,7 @@ export function PlayerLocationPrompt({
   onComplete,
   className,
 }: PlayerLocationPromptProps) {
+  const { trackEvent } = useAnalytics();
   const [countries, setCountries] = useState<CountryOption[]>([]);
   const [countryId, setCountryId] = useState<string>('');
   const [cityQuery, setCityQuery] = useState('');
@@ -187,6 +190,13 @@ export function PlayerLocationPrompt({
           json?.error || json?.message || 'Failed to save location'
         );
       }
+      trackEvent(ANALYTICS_EVENTS.PLAYER_LOCATION_PROMPT_COMPLETED, {
+        country_id: countryId,
+        country_iso2: selectedCountry.iso2,
+        city_name: selectedCity.name,
+        mapbox_id: selectedCity.mapboxId,
+        source: 'map_prompt',
+      });
       onComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save location');
