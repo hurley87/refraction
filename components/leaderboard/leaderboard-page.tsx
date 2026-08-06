@@ -9,6 +9,7 @@ import Link from 'next/link';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
 import { useUserStats } from '@/hooks/usePlayer';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
+import { profilePathForPlayer } from '@/lib/username';
 
 interface LeaderboardUser {
   player_id: number;
@@ -298,7 +299,10 @@ export default function LeaderboardPage() {
                       {/* Name */}
                       <div className="flex items-center gap-2 min-w-0 pl-5">
                         <Link
-                          href={`/profiles/${entry.wallet_address}`}
+                          href={profilePathForPlayer({
+                            username: entry.username,
+                            wallet_address: entry.wallet_address,
+                          })}
                           className="flex items-center gap-2 min-w-0"
                         >
                           <LeaderboardAvatar

@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { z } from 'zod';
 import { publicClient, irlChain } from '@/lib/publicClient';
 import {
   userManagerABI,
@@ -15,6 +14,7 @@ import {
 import { createWalletClient, custom } from 'viem';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import { useConnectedEvmWallet } from '@/hooks/use-connected-evm-wallet';
+import { sanitizeUsernameInput, usernameSchema } from '@/lib/username';
 
 // Dev-only logger to avoid noisy logs during SSG/production
 const devLog = (...args: any[]) => {
@@ -23,11 +23,6 @@ const devLog = (...args: any[]) => {
     console.log(...args);
   }
 };
-
-const usernameSchema = z
-  .string()
-  .min(1, 'Username is required')
-  .regex(/^[a-zA-Z0-9_]+$/, 'Invalid username');
 
 // Helper function to safely get chain ID
 const getWalletChainId = (wallet: any): string | undefined => {
@@ -129,9 +124,11 @@ export default function Onboarding() {
   const handleCreate = async () => {
     const parse = usernameSchema.safeParse(usernameInput);
     if (!parse.success) {
-      toast.error(parse.error.errors[0].message);
+      toast.error(parse.error.issues[0]?.message ?? 'Invalid username');
       return;
     }
+
+    const normalizedUsername = parse.data;
 
     if (!address || !wallet) {
       login();
@@ -192,14 +189,15 @@ export default function Onboarding() {
         address: userManagerAddress,
         abi: userManagerABI,
         functionName: 'createUser',
-        args: [usernameInput],
+        args: [normalizedUsername],
         account: address,
       });
 
       const hash = await walletClient.writeContract(request);
       await publicClient.waitForTransactionReceipt({ hash });
       toast.success('Username created');
-      setCurrentUsername(usernameInput);
+      setCurrentUsername(normalizedUsername);
+      setUsernameInput(normalizedUsername);
     } catch (err) {
       console.error('Error creating username', err);
       toast.error('Failed to create username');
@@ -303,7 +301,9 @@ export default function Onboarding() {
             <Input
               className="bg-[#E9E7FF]"
               value={usernameInput}
-              onChange={(e) => setUsernameInput(e.target.value)}
+              onChange={(e) =>
+                setUsernameInput(sanitizeUsernameInput(e.target.value))
+              }
             />
           </div>
           {wallet ? (

@@ -6,6 +6,7 @@ import {
   aptosWalletAddressSchema,
 } from './player';
 import { signupAttributionSchema } from './signup-attribution';
+import { usernameSchema } from '@/lib/username';
 
 /** Treat blank client email strings as omitted (Privy often sends `''`). */
 export const optionalEmailSchema = z.preprocess(
@@ -37,7 +38,7 @@ export const checkinRequestSchema = z.object({
 export const createPlayerRequestSchema = z.object({
   walletAddress: walletAddressSchema,
   email: optionalEmailSchema,
-  username: z.string().min(1).max(30),
+  username: usernameSchema,
   signup_attribution: signupAttributionSchema.optional(),
 });
 
@@ -53,7 +54,7 @@ export const getPlayerRequestSchema = z.object({
  */
 export const updatePlayerRequestSchema = z.object({
   walletAddress: walletAddressSchema,
-  username: z.string().min(1).max(30),
+  username: usernameSchema,
 });
 
 /**

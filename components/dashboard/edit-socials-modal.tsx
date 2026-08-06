@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { UserProfile } from '@/lib/types';
 import { invalidateProfileRelatedQueries } from '@/lib/invalidate-profile-queries';
+import { sanitizeUsernameInput, usernameSchema } from '@/lib/username';
 import {
   Dialog,
   DialogClose,
@@ -229,6 +230,16 @@ export default function EditSocialsModal({
       return;
     }
 
+    let usernameForSave = draft.username;
+    if ((draft.username ?? '').trim()) {
+      const parsed = usernameSchema.safeParse(draft.username);
+      if (!parsed.success) {
+        toast.error(parsed.error.issues[0]?.message ?? 'Invalid username');
+        return;
+      }
+      usernameForSave = parsed.data;
+    }
+
     setSaving(true);
     try {
       const response = await fetch('/api/profile', {
@@ -237,6 +248,7 @@ export default function EditSocialsModal({
         body: JSON.stringify({
           ...profile,
           ...draft,
+          username: usernameForSave,
           profile_picture_url:
             profilePictureUrl || profile.profile_picture_url || '',
           wallet_address: profile.wallet_address,
@@ -417,7 +429,10 @@ export default function EditSocialsModal({
               maxLength={30}
               value={draft.username ?? ''}
               onChange={(e) =>
-                setDraft((d) => ({ ...d, username: e.target.value }))
+                setDraft((d) => ({
+                  ...d,
+                  username: sanitizeUsernameInput(e.target.value),
+                }))
               }
               className={editFieldInputClassName}
             />

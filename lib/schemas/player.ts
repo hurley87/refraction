@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { usernameSchema } from '@/lib/username';
 
 /**
  * Validates EVM wallet address format (0x followed by 40 hex characters)
@@ -41,7 +42,7 @@ export const createPlayerSchema = z.object({
   aptos_wallet_address: aptosWalletAddressSchema.optional(),
   aptos_wallet_id: z.string().optional(),
   email: z.string().email().optional(),
-  username: z.string().min(3).max(30).optional(),
+  username: usernameSchema.optional(),
   total_points: z.number().int().min(0).default(0),
 });
 
@@ -51,7 +52,7 @@ export const createPlayerSchema = z.object({
 export const updateUserProfileSchema = z.object({
   email: z.string().email().optional(),
   name: z.string().min(1).max(100).optional(),
-  username: z.string().min(3).max(30).optional(),
+  username: usernameSchema.optional(),
   website: z.string().url().optional(),
   twitter_handle: z.string().min(1).max(50).optional(),
   towns_handle: z.string().min(1).max(50).optional(),

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getSignupAttributionBodyFields } from '@/lib/analytics/attribution';
 import { optionalPrivyEmailBody } from '@/lib/api/privy-email';
+import { usernameSchema } from '@/lib/username';
 
 const DEFAULT_CREATE_ERROR = 'Unable to create your profile. Please try again.';
 const NETWORK_ERROR = 'Something went wrong. Please try again.';
@@ -58,6 +59,14 @@ export function useUsernameSignup({
   const handleCreatePlayer = useCallback(async () => {
     if (!username.trim() || !walletAddress) return;
 
+    const parsed = usernameSchema.safeParse(username);
+    if (!parsed.success) {
+      setCreatePlayerError(
+        parsed.error.issues[0]?.message ?? 'Invalid username'
+      );
+      return;
+    }
+
     setIsCreatingPlayer(true);
     setCreatePlayerError(null);
     try {
@@ -67,7 +76,7 @@ export function useUsernameSignup({
         body: JSON.stringify({
           walletAddress,
           ...optionalPrivyEmailBody(emailAddress),
-          username: username.trim(),
+          username: parsed.data,
           ...getSignupAttributionBodyFields(),
         }),
       });

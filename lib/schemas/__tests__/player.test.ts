@@ -304,6 +304,15 @@ describe('Player Schemas', () => {
       expect(result.success).toBe(false);
     });
 
+    it('should reject reserved usernames', () => {
+      expect(createPlayerSchema.safeParse({ username: 'faq' }).success).toBe(
+        false
+      );
+      expect(createPlayerSchema.safeParse({ username: 'admin' }).success).toBe(
+        false
+      );
+    });
+
     it('should reject negative total_points', () => {
       const invalidPlayer = {
         total_points: -10,
