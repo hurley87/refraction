@@ -274,6 +274,22 @@ describe('Player API Route', () => {
       expect(json.success).toBe(false);
     });
 
+    it('should return 400 when username is a reserved system slug', async () => {
+      for (const username of ['faq', 'admin', 'FAQ']) {
+        const request = createMockRequest('POST', {
+          walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+          username,
+        });
+
+        const response = await POST(request);
+        const json = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(json.success).toBe(false);
+        expect(createOrUpdatePlayer).not.toHaveBeenCalled();
+      }
+    });
+
     it('should handle database errors gracefully', async () => {
       vi.mocked(getPlayerByWallet).mockRejectedValueOnce(
         new Error('Database connection failed')
@@ -414,6 +430,21 @@ describe('Player API Route', () => {
       expect(json.success).toBe(true);
       expect(json.data.player.username).toBe('newuser');
       expect(json.message).toContain('newuser');
+    });
+
+    it('should return 400 when PATCH username is a reserved system slug', async () => {
+      const request = createMockRequest('PATCH', {
+        walletAddress: '0x1234567890abcdef1234567890abcdef12345678',
+        username: 'admin',
+      });
+
+      const response = await PATCH(request);
+      const json = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(json.success).toBe(false);
+      expect(getPlayerByWallet).not.toHaveBeenCalled();
+      expect(createOrUpdatePlayer).not.toHaveBeenCalled();
     });
 
     it('should return 404 for non-existent player', async () => {

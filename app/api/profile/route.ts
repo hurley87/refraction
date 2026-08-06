@@ -10,6 +10,7 @@ import {
 } from '@/lib/db/profiles';
 import type { UserProfile } from '@/lib/types';
 import { apiSuccess, apiError } from '@/lib/api/response';
+import { usernameSchema } from '@/lib/username';
 
 export async function GET(request: NextRequest) {
   try {
@@ -72,7 +73,13 @@ export async function PUT(request: NextRequest) {
       typeof profileData.username === 'string' &&
       profileData.username.trim() !== ''
     ) {
-      const normalizedUsername = profileData.username.trim().toLowerCase();
+      const usernameResult = usernameSchema.safeParse(profileData.username);
+      if (!usernameResult.success) {
+        const message =
+          usernameResult.error.issues[0]?.message ?? 'Invalid username';
+        return apiError(message, 400);
+      }
+      const normalizedUsername = usernameResult.data;
       validatedData.username = normalizedUsername;
       const taken = await isUsernameTakenByOther(
         normalizedUsername,

@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     const { walletAddress, email, username, signup_attribution } =
       validationResult.data;
-    const normalizedUsername = username.trim().toLowerCase();
+    const normalizedUsername = username;
 
     const taken = await isUsernameTakenByOther(
       normalizedUsername,
@@ -171,7 +171,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { walletAddress, username } = validationResult.data;
-    const normalizedUsername = username.trim().toLowerCase();
+    const normalizedUsername = username;
 
     // Get existing player
     const existingPlayer = await getPlayerByWallet(walletAddress);

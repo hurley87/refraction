@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
+import { sanitizeUsernameInput } from '@/lib/username';
 
 interface UsernameSignupFormProps {
   heading: string;
@@ -48,9 +49,11 @@ export function UsernameSignupForm({
           type="text"
           placeholder="Enter your username"
           value={username}
-          onChange={(e) => onUsernameChange(e.target.value)}
+          onChange={(e) =>
+            onUsernameChange(sanitizeUsernameInput(e.target.value))
+          }
           className="w-full rounded-xl border border-[#e8e8e8] bg-white p-3 text-sm tracking-[-0.2px] text-[#1a1a1a] placeholder:text-[#c0c0c0] shadow-none focus:border-[#999] focus:outline-none focus:ring-0 disabled:opacity-50"
-          maxLength={20}
+          maxLength={30}
           disabled={isCreatingPlayer}
           autoComplete="username"
         />

@@ -137,6 +137,24 @@ export const getUserProfile = async (walletAddress: string) => {
 };
 
 /**
+ * Get user profile by public username (stored lowercase).
+ */
+export const getUserProfileByUsername = async (username: string) => {
+  const key = username.trim().toLowerCase();
+  if (!key) return null;
+
+  const { data, error } = await supabase
+    .from('players')
+    .select(PROFILE_COLUMNS)
+    .eq('username', key)
+    .maybeSingle();
+
+  if (error && error.code !== 'PGRST116') throw error;
+  if (!data) return null;
+  return enrichProfileGeoDisplayNames(data as UserProfile);
+};
+
+/**
  * Prefer geo FK display names over legacy free-text city/country.
  */
 async function enrichProfileGeoDisplayNames(
