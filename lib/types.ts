@@ -220,6 +220,18 @@ export type Tier = {
 /**
  * Extended profile with social handles
  */
+/** Mapbox POI saved on a player profile (favorite venue / gallery / restaurant). */
+export type ProfileFavoritePlace = {
+  place_id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  /** IRL location image when the place exists in `locations`. */
+  image_url?: string | null;
+  category?: LocationCategory | null;
+};
+
 export type UserProfile = {
   id?: string;
   wallet_address: string;
@@ -243,6 +255,9 @@ export type UserProfile = {
   geo_city_id?: string | null;
   /** Short user-written bio */
   bio?: string | null;
+  favorite_music_venue?: ProfileFavoritePlace | null;
+  favorite_gallery?: ProfileFavoritePlace | null;
+  favorite_restaurant?: ProfileFavoritePlace | null;
   created_at?: string;
   updated_at?: string;
 };

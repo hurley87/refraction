@@ -99,6 +99,13 @@ export interface LocationSearchProps {
   inputClassName?: string;
   /** Dropdown panel colors — `dark` inverts for dark landing chrome. */
   dropdownTheme?: 'light' | 'dark';
+  /** Start in the expanded search-input state (e.g. profile location picker modal). */
+  defaultExpanded?: boolean;
+  /**
+   * Keep the expanded input; the clear control resets the query instead of
+   * collapsing back to the pill button.
+   */
+  keepExpanded?: boolean;
 }
 
 type DropdownTheme = NonNullable<LocationSearchProps['dropdownTheme']>;
@@ -190,6 +197,8 @@ export default function LocationSearch({
   hideSearchIcon = false,
   inputClassName,
   dropdownTheme = 'light',
+  defaultExpanded = false,
+  keepExpanded = false,
 }: LocationSearchProps) {
   const dropdownStyles = getDropdownStyles(dropdownTheme);
   const [query, setQuery] = useState('');
@@ -199,7 +208,7 @@ export default function LocationSearch({
   const listRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const sessionTokenRef = useRef<string | null>(null);
-  const [showSearch, setShowSearch] = useState(false);
+  const [showSearch, setShowSearch] = useState(defaultExpanded || keepExpanded);
   const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>([]);
 
   useEffect(() => {
@@ -502,11 +511,15 @@ export default function LocationSearch({
           />
           <button
             onClick={() => {
-              setShowSearch(false);
               setQuery('');
               setSuggestions([]);
               setIsOpen(false);
               setActiveIndex(-1);
+              if (!keepExpanded) {
+                setShowSearch(false);
+              } else {
+                inputRef.current?.focus();
+              }
             }}
             className="flex items-center justify-center size-5 rounded-full bg-[#ededed] hover:bg-[#e0e0e0] transition-colors shrink-0"
             aria-label="Close"

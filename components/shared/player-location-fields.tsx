@@ -155,9 +155,9 @@ export function PlayerLocationFields({
       <div className="space-y-2">
         <label
           htmlFor="player-location-country"
-          className="label-small uppercase text-[#171717]"
+          className="label-small uppercase text-[#757575]"
         >
-          Country
+          Your Country
         </label>
         <Select
           value={countryId || undefined}
@@ -191,9 +191,9 @@ export function PlayerLocationFields({
       <div className="relative space-y-2">
         <label
           htmlFor="player-location-city"
-          className="label-small uppercase text-[#171717]"
+          className="label-small uppercase text-[#757575]"
         >
-          City
+          Your City
         </label>
         <Input
           id="player-location-city"

@@ -46,6 +46,24 @@ export const createPlayerSchema = z.object({
   total_points: z.number().int().min(0).default(0),
 });
 
+/** Mapbox POI stored on player profile favorites. */
+export const profileFavoritePlaceSchema = z.object({
+  place_id: z.string().min(1).max(200),
+  name: z.string().min(1).max(200),
+  address: z.string().max(500),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  image_url: z.string().url().nullable().optional(),
+  category: z
+    .object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      slug: z.string().min(1),
+    })
+    .nullable()
+    .optional(),
+});
+
 /**
  * Schema for updating user profile
  */
@@ -63,6 +81,9 @@ export const updateUserProfileSchema = z.object({
   city: z.string().max(120).optional(),
   country: z.string().max(120).optional(),
   bio: z.string().max(500).optional(),
+  favorite_music_venue: profileFavoritePlaceSchema.nullable().optional(),
+  favorite_gallery: profileFavoritePlaceSchema.nullable().optional(),
+  favorite_restaurant: profileFavoritePlaceSchema.nullable().optional(),
 });
 
 /**

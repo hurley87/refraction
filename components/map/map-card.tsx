@@ -31,6 +31,8 @@ interface MapCardProps {
   variant?: 'default' | 'createPreview' | 'drawerTile';
   /** Label for the primary button when `variant` is `createPreview`. */
   createPreviewActionLabel?: string;
+  /** Override primary CTA label on the default map card (otherwise Check In / Create). */
+  primaryActionLabel?: string;
   /** Venue category (embedded `categories` row); shown on default variant only. */
   category?: LocationCategory | null;
   /** Recent check-ins for `drawerTile` avatar stack. */
@@ -136,6 +138,7 @@ export default function MapCard({
   eventUrl,
   variant = 'default',
   createPreviewActionLabel = 'Create and check in',
+  primaryActionLabel,
   category,
   recentCheckins = [],
   isFavorited,
@@ -383,7 +386,9 @@ export default function MapCard({
             className="flex h-8 w-full flex-[1_0_0] items-center justify-between bg-[var(--Dark-Tint-100---Ink-Black,#171717)] px-2 py-1 transition-colors hover:bg-black disabled:opacity-50"
           >
             <span className="label-medium uppercase text-white">
-              {isLoading ? '...' : isExisting ? 'Check In' : 'Create'}
+              {isLoading
+                ? '...'
+                : (primaryActionLabel ?? (isExisting ? 'Check In' : 'Create'))}
             </span>
             <svg
               width={24}

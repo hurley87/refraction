@@ -8,9 +8,24 @@ import {
   isUsernameTakenByOther,
   isPostgresUniqueUsernameViolation,
 } from '@/lib/db/profiles';
-import type { UserProfile } from '@/lib/types';
+import type { ProfileFavoritePlace, UserProfile } from '@/lib/types';
 import { apiSuccess, apiError } from '@/lib/api/response';
+import { profileFavoritePlaceSchema } from '@/lib/schemas/player';
 import { usernameSchema } from '@/lib/username';
+
+function parseFavoritePlaceField(
+  value: unknown
+):
+  | { ok: true; value: ProfileFavoritePlace | null | undefined }
+  | { ok: false; error: string } {
+  if (value === undefined) return { ok: true, value: undefined };
+  if (value === null) return { ok: true, value: null };
+  const parsed = profileFavoritePlaceSchema.safeParse(value);
+  if (!parsed.success) {
+    return { ok: false, error: 'Invalid favorite place' };
+  }
+  return { ok: true, value: parsed.data };
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -45,6 +60,9 @@ export async function GET(request: NextRequest) {
         country_id: null,
         geo_city_id: null,
         bio: '',
+        favorite_music_venue: null,
+        favorite_gallery: null,
+        favorite_restaurant: null,
       });
     }
 
@@ -125,6 +143,21 @@ export async function PUT(request: NextRequest) {
     if (typeof profileData.bio === 'string') {
       const t = profileData.bio.trim();
       validatedData.bio = t.length > 500 ? t.slice(0, 500) : t;
+    }
+
+    for (const key of [
+      'favorite_music_venue',
+      'favorite_gallery',
+      'favorite_restaurant',
+    ] as const) {
+      if (!(key in profileData)) continue;
+      const parsed = parseFavoritePlaceField(profileData[key]);
+      if (!parsed.ok) {
+        return apiError(parsed.error, 400);
+      }
+      if (parsed.value !== undefined) {
+        validatedData[key] = parsed.value;
+      }
     }
 
     // city/country free-text updates are deprecated — use POST /api/profile/location
