@@ -124,6 +124,68 @@ export const listCustomListsWithLocationsByPlayer = async (
   });
 };
 
+/** Compact public-profile card for a non-private personal list. */
+export type PublicPlayerListCard = {
+  id: string;
+  title: string;
+  location_count: number;
+  image_url: string | null;
+  preview_place: {
+    place_id: string;
+    latitude: number;
+    longitude: number;
+  } | null;
+};
+
+/**
+ * Public (non-private) custom lists for a profile, with thumbnail / first-spot image.
+ */
+export const listPublicCustomListsForProfile = async (
+  playerId: number
+): Promise<PublicPlayerListCard[]> => {
+  const { data, error } = await supabase
+    .from('player_custom_lists')
+    .select(
+      `*, player_custom_list_items(location_id, locations(${LOCATION_COLUMNS}))`
+    )
+    .eq('player_id', playerId)
+    .eq('is_private', false)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map(({ player_custom_list_items, ...list }) => {
+    const items = (player_custom_list_items ?? []) as Array<{
+      location_id: number;
+      locations: Location | Location[] | null;
+    }>;
+    const locations = items
+      .map((item) =>
+        Array.isArray(item.locations) ? item.locations[0] : item.locations
+      )
+      .filter((loc): loc is Location => loc != null);
+    const first = locations[0];
+
+    return {
+      id: (list as PlayerCustomList).id,
+      title: (list as PlayerCustomList).title,
+      location_count: locations.length,
+      image_url:
+        (list as PlayerCustomList).thumbnail_url ||
+        first?.coin_image_thumb_url ||
+        first?.coin_image_url ||
+        null,
+      preview_place: first
+        ? {
+            place_id: first.place_id,
+            latitude: first.latitude,
+            longitude: first.longitude,
+          }
+        : null,
+    };
+  });
+};
+
 /**
  * Add a location to multiple lists owned by the player (idempotent).
  * Returns the number of lists the location now belongs to.

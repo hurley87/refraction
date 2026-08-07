@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { PublicProfileView } from '@/components/profile/public-profile-view';
 import {
+  getPublicProfileLists,
   getPublicProfileStats,
   loadPublicProfileByUsername,
 } from '@/lib/profile/public-profile-data';
@@ -27,7 +28,12 @@ export default async function UsernameProfilePage({
     notFound();
   }
 
-  const userStats = await getPublicProfileStats(profile.wallet_address);
+  const [userStats, lists] = await Promise.all([
+    getPublicProfileStats(profile.wallet_address),
+    getPublicProfileLists(profile.wallet_address),
+  ]);
 
-  return <PublicProfileView profile={profile} userStats={userStats} />;
+  return (
+    <PublicProfileView profile={profile} userStats={userStats} lists={lists} />
+  );
 }
