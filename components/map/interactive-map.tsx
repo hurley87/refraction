@@ -47,6 +47,7 @@ import {
   isSingleWordLocationCategory,
 } from '@/lib/utils/format-location-category';
 import { buildDeepLinkMarkerFromQueryCoords } from '@/lib/utils/map-deep-link-marker';
+import { normalizePlaceName } from '@/lib/utils/place-name-match';
 import { filterByMapBounds } from '@/lib/utils/map-bounds';
 import type { LocationCategory } from '@/lib/types';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
@@ -666,9 +667,13 @@ export default function InteractiveMap({
     const matchedById = initialPlaceId
       ? markers.find((m) => m.place_id === initialPlaceId)
       : undefined;
-    const placeNameKey = placeNameQuery?.toLowerCase();
+    const placeNameKey = placeNameQuery
+      ? normalizePlaceName(placeNameQuery)
+      : '';
     const matchedByName = placeNameKey
-      ? markers.find((m) => m.name?.trim().toLowerCase() === placeNameKey)
+      ? markers.find(
+          (m) => normalizePlaceName(m.name?.trim() || '') === placeNameKey
+        )
       : undefined;
     const matchedMarker = matchedById ?? matchedByName;
 
@@ -683,7 +688,8 @@ export default function InteractiveMap({
         ? buildDeepLinkMarkerFromQueryCoords(
             initialPlaceId,
             initialLatitude,
-            initialLongitude
+            initialLongitude,
+            { name: placeNameQuery }
           )
         : null;
 

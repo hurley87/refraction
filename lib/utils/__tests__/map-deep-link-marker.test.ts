@@ -11,4 +11,15 @@ describe('buildDeepLinkMarkerFromQueryCoords', () => {
     expect(m.imageUrl).toBeNull();
     expect(m.category).toBeNull();
   });
+
+  it('uses query metadata for name and address when provided', () => {
+    const m = buildDeepLinkMarkerFromQueryCoords('place-abc', 43.65, -79.42, {
+      name: "Bambi's",
+      address: '1265 Dundas St W',
+      imageUrl: 'https://example.com/bambis.webp',
+    });
+    expect(m.name).toBe("Bambi's");
+    expect(m.address).toBe('1265 Dundas St W');
+    expect(m.imageUrl).toBe('https://example.com/bambis.webp');
+  });
 });

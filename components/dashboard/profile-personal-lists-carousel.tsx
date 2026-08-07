@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import MapCard from '@/components/map/map-card';
+import { DragScrollRow } from '@/components/dashboard/drag-scroll-row';
 import { usePlayerCustomListLocations } from '@/hooks/usePlayerCustomLists';
 import type { LocationCategory } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -39,7 +40,7 @@ export default function ProfilePersonalListsCarousel({
       aria-label="Your lists"
     >
       <span className="label-small uppercase text-[#757575]">Your Lists</span>
-      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <DragScrollRow aria-label="Your lists carousel">
         {lists.map((list) => {
           const first = list.locations[0];
           const imageUrl =
@@ -71,7 +72,7 @@ export default function ProfilePersonalListsCarousel({
             />
           );
         })}
-      </div>
+      </DragScrollRow>
     </section>
   );
 }
