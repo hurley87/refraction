@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { UserProfile } from '@/lib/types';
+import type { ProfileFavoritePlace, UserProfile } from '@/lib/types';
 import { invalidateProfileRelatedQueries } from '@/lib/invalidate-profile-queries';
 import { sanitizeUsernameInput, usernameSchema } from '@/lib/username';
 import {
@@ -15,12 +15,40 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
   PlayerLocationFields,
   type CitySuggestion,
 } from '@/components/shared/player-location-fields';
+import { LocationSearchDialog } from '@/components/dashboard/location-search-dialog';
+import MapCard from '@/components/map/map-card';
+
+type FavoritePlaceField =
+  | 'favorite_music_venue'
+  | 'favorite_gallery'
+  | 'favorite_restaurant';
+
+const FAVORITE_PLACE_FIELDS: {
+  key: FavoritePlaceField;
+  label: string;
+  searchTitle: string;
+}[] = [
+  {
+    key: 'favorite_music_venue',
+    label: 'Your Favorite Music Venue',
+    searchTitle: 'Search music venue',
+  },
+  {
+    key: 'favorite_gallery',
+    label: 'Your Favorite Gallery',
+    searchTitle: 'Search gallery',
+  },
+  {
+    key: 'favorite_restaurant',
+    label: 'Your Favorite Restaurant',
+    searchTitle: 'Search restaurant',
+  },
+];
 
 type AboutYouDraft = Pick<
   UserProfile,
@@ -115,6 +143,33 @@ export default function EditSocialsModal({
   const [selectedCity, setSelectedCity] = useState<CitySuggestion | null>(null);
   /** True when user changed country/city selection this session. */
   const [locationDirty, setLocationDirty] = useState(false);
+  const [favoriteMusicVenue, setFavoriteMusicVenue] =
+    useState<ProfileFavoritePlace | null>(null);
+  const [favoriteGallery, setFavoriteGallery] =
+    useState<ProfileFavoritePlace | null>(null);
+  const [favoriteRestaurant, setFavoriteRestaurant] =
+    useState<ProfileFavoritePlace | null>(null);
+  const [searchField, setSearchField] = useState<FavoritePlaceField | null>(
+    null
+  );
+
+  const favoritePlaceByKey: Record<
+    FavoritePlaceField,
+    ProfileFavoritePlace | null
+  > = {
+    favorite_music_venue: favoriteMusicVenue,
+    favorite_gallery: favoriteGallery,
+    favorite_restaurant: favoriteRestaurant,
+  };
+
+  const setFavoritePlaceByKey = (
+    key: FavoritePlaceField,
+    place: ProfileFavoritePlace | null
+  ) => {
+    if (key === 'favorite_music_venue') setFavoriteMusicVenue(place);
+    else if (key === 'favorite_gallery') setFavoriteGallery(place);
+    else setFavoriteRestaurant(place);
+  };
 
   useEffect(() => {
     if (open && profile) {
@@ -133,6 +188,10 @@ export default function EditSocialsModal({
           : null
       );
       setLocationDirty(false);
+      setFavoriteMusicVenue(profile.favorite_music_venue ?? null);
+      setFavoriteGallery(profile.favorite_gallery ?? null);
+      setFavoriteRestaurant(profile.favorite_restaurant ?? null);
+      setSearchField(null);
     }
   }, [open, profile]);
 
@@ -252,6 +311,9 @@ export default function EditSocialsModal({
           profile_picture_url:
             profilePictureUrl || profile.profile_picture_url || '',
           wallet_address: profile.wallet_address,
+          favorite_music_venue: favoriteMusicVenue,
+          favorite_gallery: favoriteGallery,
+          favorite_restaurant: favoriteRestaurant,
         }),
       });
 
@@ -307,257 +369,313 @@ export default function EditSocialsModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        hideCloseButton
-        className="max-h-[90vh] w-[min(100%,393px)] max-w-[393px] gap-0 overflow-y-auto overflow-x-hidden border border-gray-200 bg-white p-0 font-grotesk sm:rounded-3xl"
-        overlayClassName="bg-black/60 backdrop-blur-sm"
-      >
-        <DialogDescription className="sr-only">
-          Edit your profile: photo, username, website, location, bio, and social
-          handles.
-        </DialogDescription>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent
+          hideCloseButton
+          className="max-h-[90vh] w-[min(100%,393px)] max-w-[393px] gap-0 overflow-y-auto overflow-x-hidden border border-gray-200 bg-white p-0 font-grotesk sm:rounded-3xl"
+          overlayClassName="bg-black/60 backdrop-blur-sm"
+        >
+          <DialogDescription className="sr-only">
+            Edit your profile: photo, username, website, location, bio, and
+            social handles.
+          </DialogDescription>
 
-        {/* Header: 393×212; aspect-ratio 317/171 matches 393/212 */}
-        <div className="relative flex h-[212px] w-full max-w-[393px] shrink-0 flex-col bg-gradient-to-b from-[#DBDBDB] to-[#757575] pb-4">
-          {/* Row 1: title + close */}
-          <div className="flex w-full shrink-0 flex-row items-stretch justify-between px-0 pt-3">
-            <DialogTitle asChild>
-              <span className="label-medium self-center px-4 text-[#171717]">
-                Edit Profile
-              </span>
-            </DialogTitle>
-            <DialogClose
-              type="button"
-              className="mr-4 flex size-[56px] shrink-0 items-center justify-center self-center rounded-full bg-white text-[#171717] transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFE600] focus-visible:ring-offset-0"
-              style={{
-                backdropFilter: 'blur(18.149999618530273px)',
-                WebkitBackdropFilter: 'blur(18.149999618530273px)',
-              }}
-              aria-label="Close"
-            >
-              <CloseModalIcon />
-            </DialogClose>
-          </div>
-
-          {/* Row 2: avatar + edit control, bottom-aligned */}
-          <div className="flex min-h-0 flex-1 flex-row items-end justify-center gap-[6px] self-stretch px-4 pb-4 pt-2">
-            <div className="relative size-[108.709px] shrink-0">
-              <div
-                className="size-full overflow-hidden ring-2 ring-white/80"
-                role={profilePictureUrl ? 'img' : undefined}
-                aria-label={profilePictureUrl ? 'Profile photo' : undefined}
-                style={
-                  profilePictureUrl
-                    ? {
-                        borderRadius: '108.709px',
-                        ['--UI-Avatar' as string]: `url(${JSON.stringify(
-                          profilePictureUrl
-                        )}) lightgray 0px 0px / 100% 100% no-repeat`,
-                        background: 'var(--UI-Avatar, lightgray)',
-                      }
-                    : {
-                        borderRadius: '108.709px',
-                        background: 'lightgray',
-                      }
-                }
+          {/* Header: 393×212; aspect-ratio 317/171 matches 393/212 */}
+          <div className="relative flex h-[212px] w-full max-w-[393px] shrink-0 flex-col bg-gradient-to-b from-[#DBDBDB] to-[#757575] pb-4">
+            {/* Row 1: title + close */}
+            <div className="flex w-full shrink-0 flex-row items-stretch justify-between px-0 pt-3">
+              <DialogTitle asChild>
+                <span className="label-medium self-center px-4 text-[#171717]">
+                  Edit Profile
+                </span>
+              </DialogTitle>
+              <DialogClose
+                type="button"
+                className="mr-4 flex size-[56px] shrink-0 items-center justify-center self-center rounded-full bg-white text-[#171717] transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFE600] focus-visible:ring-offset-0"
+                style={{
+                  backdropFilter: 'blur(18.149999618530273px)',
+                  WebkitBackdropFilter: 'blur(18.149999618530273px)',
+                }}
+                aria-label="Close"
               >
-                {!profilePictureUrl && (
-                  <div className="flex h-full w-full items-center justify-center text-2xl font-medium text-[#171717]">
-                    {(profile?.name || profile?.username)?.trim()
-                      ? (profile.name || profile.username)!
-                          .charAt(0)
-                          .toUpperCase()
-                      : '?'}
-                  </div>
-                )}
+                <CloseModalIcon />
+              </DialogClose>
+            </div>
+
+            {/* Row 2: avatar + edit control, bottom-aligned */}
+            <div className="flex min-h-0 flex-1 flex-row items-end justify-center gap-[6px] self-stretch px-4 pb-4 pt-2">
+              <div className="relative size-[108.709px] shrink-0">
+                <div
+                  className="size-full overflow-hidden ring-2 ring-white/80"
+                  role={profilePictureUrl ? 'img' : undefined}
+                  aria-label={profilePictureUrl ? 'Profile photo' : undefined}
+                  style={
+                    profilePictureUrl
+                      ? {
+                          borderRadius: '108.709px',
+                          ['--UI-Avatar' as string]: `url(${JSON.stringify(
+                            profilePictureUrl
+                          )}) lightgray 0px 0px / 100% 100% no-repeat`,
+                          background: 'var(--UI-Avatar, lightgray)',
+                        }
+                      : {
+                          borderRadius: '108.709px',
+                          background: 'lightgray',
+                        }
+                  }
+                >
+                  {!profilePictureUrl && (
+                    <div className="flex h-full w-full items-center justify-center text-2xl font-medium text-[#171717]">
+                      {(profile?.name || profile?.username)?.trim()
+                        ? (profile.name || profile.username)!
+                            .charAt(0)
+                            .toUpperCase()
+                        : '?'}
+                    </div>
+                  )}
+                </div>
+
+                <label
+                  htmlFor="edit-profile-avatar-input"
+                  className={`absolute -bottom-2 -right-2 z-10 inline-flex cursor-pointer items-center justify-center gap-4 rounded-[100px] bg-[var(--Dark-Tint-20---Light-Steel,#DBDBDB)] p-2 transition-opacity ${
+                    uploadingImage
+                      ? 'pointer-events-none opacity-50'
+                      : 'hover:opacity-90'
+                  }`}
+                  aria-label="Change profile photo"
+                >
+                  <AvatarPencilIcon />
+                </label>
+                <input
+                  id="edit-profile-avatar-input"
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  disabled={uploadingImage || !profile}
+                  onChange={handleAvatarFileChange}
+                />
               </div>
-
-              <label
-                htmlFor="edit-profile-avatar-input"
-                className={`absolute -bottom-2 -right-2 z-10 inline-flex cursor-pointer items-center justify-center gap-4 rounded-[100px] bg-[var(--Dark-Tint-20---Light-Steel,#DBDBDB)] p-2 transition-opacity ${
-                  uploadingImage
-                    ? 'pointer-events-none opacity-50'
-                    : 'hover:opacity-90'
-                }`}
-                aria-label="Change profile photo"
-              >
-                <AvatarPencilIcon />
-              </label>
-              <input
-                id="edit-profile-avatar-input"
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                disabled={uploadingImage || !profile}
-                onChange={handleAvatarFileChange}
-              />
             </div>
           </div>
-        </div>
 
-        <div className="flex flex-col items-stretch gap-4 px-6 py-4">
-          <div className="space-y-2">
-            <Label
-              htmlFor="edit-about-email"
-              className="label-small uppercase text-[#171717]"
-            >
-              Email
-            </Label>
-            <Input
-              id="edit-about-email"
-              type="email"
-              readOnly
-              autoComplete="email"
-              value={profile?.email?.trim() ?? ''}
-              placeholder="No email on file"
-              aria-readonly="true"
-              className={`${editFieldEmailClassName} cursor-default`}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label
-              htmlFor="edit-about-username"
-              className="label-small uppercase text-[#171717]"
-            >
-              Username
-            </Label>
-            <Input
-              id="edit-about-username"
-              type="text"
-              placeholder="Your username"
-              maxLength={30}
-              value={draft.username ?? ''}
-              onChange={(e) =>
-                setDraft((d) => ({
-                  ...d,
-                  username: sanitizeUsernameInput(e.target.value),
-                }))
-              }
-              className={editFieldInputClassName}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label
-              htmlFor="edit-about-website"
-              className="label-small uppercase text-[#171717]"
-            >
-              Website link
-            </Label>
-            <Input
-              id="edit-about-website"
-              type="text"
-              placeholder="www.yourwebsite.com"
-              value={draft.website ?? ''}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, website: e.target.value }))
-              }
-              className={editFieldInputClassName}
-            />
-          </div>
-          <PlayerLocationFields
-            countryId={countryId}
-            onCountryChange={(id) => {
-              setCountryId(id);
-              setLocationDirty(true);
-            }}
-            cityQuery={cityQuery}
-            onCityQueryChange={(q) => {
-              setCityQuery(q);
-              setLocationDirty(true);
-            }}
-            selectedCity={selectedCity}
-            onCitySelect={(city) => {
-              setSelectedCity(city);
-              setLocationDirty(true);
-            }}
-            disabled={saving}
-            controlClassName={editFieldInputClassName}
-          />
-          <div className="space-y-2">
-            <Label
-              htmlFor="edit-about-bio"
-              className="label-small uppercase text-[#171717]"
-            >
-              Bio
-            </Label>
-            <Textarea
-              id="edit-about-bio"
-              placeholder="A few words about you"
-              maxLength={500}
-              rows={4}
-              value={draft.bio ?? ''}
-              onChange={(e) => setDraft((d) => ({ ...d, bio: e.target.value }))}
-              className={editFieldTextareaClassName}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label
-              htmlFor="edit-about-x"
-              className="label-small uppercase text-[#171717]"
-            >
-              X
-            </Label>
-            <Input
-              id="edit-about-x"
-              type="text"
-              placeholder="Your X handle"
-              value={draft.twitter_handle ?? ''}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, twitter_handle: e.target.value }))
-              }
-              className={editFieldInputClassName}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label
-              htmlFor="edit-about-ig"
-              className="label-small uppercase text-[#171717]"
-            >
-              Instagram
-            </Label>
-            <Input
-              id="edit-about-ig"
-              type="text"
-              placeholder="Your Instagram handle"
-              value={draft.instagram_handle ?? ''}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, instagram_handle: e.target.value }))
-              }
-              className={editFieldInputClassName}
-            />
-          </div>
-        </div>
-
-        <DialogFooter className="gap-2 border-t border-gray-100 px-6 py-4 sm:flex-row sm:justify-end">
-          <div className="inline-flex w-full max-w-[361px] shrink-0 sm:ml-auto">
-            <button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={saving || !profile}
-              className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[#171717] py-2 pr-2 pl-4 text-[#ffffff] shadow-none transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50 uppercase"
-            >
-              <span className="whitespace-nowrap">
-                {saving ? 'Saving…' : 'Save profile'}
-              </span>
-              <svg
-                width={24}
-                height={24}
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="shrink-0 invert"
-                aria-hidden
+          <div className="flex flex-col items-stretch gap-4 px-6 py-4">
+            <div className="space-y-2">
+              <label
+                htmlFor="edit-about-email"
+                className="label-small uppercase text-[#757575]"
               >
-                <path
-                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
-                  fill="#171717"
-                />
-              </svg>
-            </button>
+                Email
+              </label>
+              <Input
+                id="edit-about-email"
+                type="email"
+                readOnly
+                autoComplete="email"
+                value={profile?.email?.trim() ?? ''}
+                placeholder="No email on file"
+                aria-readonly="true"
+                className={`${editFieldEmailClassName} cursor-default`}
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="edit-about-username"
+                className="label-small uppercase text-[#757575]"
+              >
+                Username
+              </label>
+              <Input
+                id="edit-about-username"
+                type="text"
+                placeholder="Your username"
+                maxLength={30}
+                value={draft.username ?? ''}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    username: sanitizeUsernameInput(e.target.value),
+                  }))
+                }
+                className={editFieldInputClassName}
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="edit-about-website"
+                className="label-small uppercase text-[#757575]"
+              >
+                Website link (Optional)
+              </label>
+              <Input
+                id="edit-about-website"
+                type="text"
+                placeholder="www.yourwebsite.com"
+                value={draft.website ?? ''}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, website: e.target.value }))
+                }
+                className={editFieldInputClassName}
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="edit-about-x"
+                className="label-small uppercase text-[#757575]"
+              >
+                X
+              </label>
+              <Input
+                id="edit-about-x"
+                type="text"
+                placeholder="Your X handle"
+                value={draft.twitter_handle ?? ''}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, twitter_handle: e.target.value }))
+                }
+                className={editFieldInputClassName}
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="edit-about-ig"
+                className="label-small uppercase text-[#757575]"
+              >
+                Instagram
+              </label>
+              <Input
+                id="edit-about-ig"
+                type="text"
+                placeholder="Your Instagram handle"
+                value={draft.instagram_handle ?? ''}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, instagram_handle: e.target.value }))
+                }
+                className={editFieldInputClassName}
+              />
+            </div>
+            <PlayerLocationFields
+              countryId={countryId}
+              onCountryChange={(id) => {
+                setCountryId(id);
+                setLocationDirty(true);
+              }}
+              cityQuery={cityQuery}
+              onCityQueryChange={(q) => {
+                setCityQuery(q);
+                setLocationDirty(true);
+              }}
+              selectedCity={selectedCity}
+              onCitySelect={(city) => {
+                setSelectedCity(city);
+                setLocationDirty(true);
+              }}
+              disabled={saving}
+              controlClassName={editFieldInputClassName}
+            />
+            <div className="space-y-2">
+              <label
+                htmlFor="edit-about-bio"
+                className="label-small uppercase text-[#757575]"
+              >
+                Bio (Optional)
+              </label>
+              <Textarea
+                id="edit-about-bio"
+                placeholder="A few words about you"
+                maxLength={500}
+                rows={4}
+                value={draft.bio ?? ''}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, bio: e.target.value }))
+                }
+                className={editFieldTextareaClassName}
+              />
+            </div>
+
+            {FAVORITE_PLACE_FIELDS.map(({ key, label }) => {
+              const place = favoritePlaceByKey[key];
+              return (
+                <div key={key} className="space-y-2">
+                  <label className="label-small uppercase text-[#171717]">
+                    {label}
+                  </label>
+                  {place ? (
+                    <div className="flex w-full justify-center">
+                      <MapCard
+                        name={place.name}
+                        address={place.address}
+                        description={place.address}
+                        category={place.category}
+                        imageUrl={place.image_url}
+                        placeId={place.place_id}
+                        isExisting
+                        primaryActionLabel="CHANGE"
+                        onAction={() => setSearchField(key)}
+                        onClose={() => setFavoritePlaceByKey(key, null)}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => setSearchField(key)}
+                      className="label-medium flex h-11 w-full items-center justify-center border border-dashed border-[#DBDBDB] bg-white px-4 text-[#171717] transition-colors hover:bg-[#FAFAFA] disabled:opacity-50"
+                    >
+                      + SEARCH FOR LOCATION
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+          <DialogFooter className="gap-2 border-t border-gray-100 px-6 py-4 sm:flex-row sm:justify-end">
+            <div className="inline-flex w-full max-w-[361px] shrink-0 sm:ml-auto">
+              <button
+                type="button"
+                onClick={() => void handleSave()}
+                disabled={saving || !profile}
+                className="label-large flex h-[44px] w-full cursor-pointer items-center justify-between bg-[#171717] py-2 pr-2 pl-4 text-[#ffffff] shadow-none transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-50 uppercase"
+              >
+                <span className="whitespace-nowrap">
+                  {saving ? 'Saving…' : 'Save profile'}
+                </span>
+                <svg
+                  width={24}
+                  height={24}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="shrink-0 invert"
+                  aria-hidden
+                >
+                  <path
+                    d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                    fill="#171717"
+                  />
+                </svg>
+              </button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <LocationSearchDialog
+        open={searchField !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setSearchField(null);
+        }}
+        title={
+          FAVORITE_PLACE_FIELDS.find((f) => f.key === searchField)
+            ?.searchTitle ?? 'Search location'
+        }
+        onSelect={(place) => {
+          if (!searchField) return;
+          setFavoritePlaceByKey(searchField, place);
+          setSearchField(null);
+        }}
+      />
+    </>
   );
 }

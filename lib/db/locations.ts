@@ -1,6 +1,10 @@
 import { supabase } from './client';
 import { LOCATION_OPTIONS_MAX_ROWS } from '../constants';
 import type { Location, LocationOption } from '../types';
+import { haversineDistanceMeters } from '../utils/location-autofill';
+
+/** Same radius the map uses when Mapbox place_id ≠ IRL place_id. */
+const NEARBY_PLACE_MATCH_MAX_METERS = 120;
 
 const isUniqueViolation = (error: unknown): boolean =>
   typeof error === 'object' &&
@@ -34,6 +38,120 @@ const LOCATION_COLUMNS = `
   is_visible,
   created_at
 `;
+
+/**
+ * Look up an IRL location by Mapbox / Google place_id (may be null).
+ */
+export const getLocationByPlaceId = async (placeId: string) => {
+  const id = placeId.trim();
+  if (!id) return null;
+
+  const { data, error } = await supabase
+    .from('locations')
+    .select(LOCATION_COLUMNS)
+    .eq('place_id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as Location | null;
+};
+
+function normalizePlaceName(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+/**
+ * Score how well a candidate IRL name matches a Mapbox search name.
+ * Higher is better; 0 means not a usable match (avoids snapping to a neighbor POI).
+ */
+function placeNameMatchScore(
+  searchName: string,
+  candidateName: string
+): number {
+  const a = normalizePlaceName(searchName);
+  const b = normalizePlaceName(candidateName);
+  if (!a || !b) return 0;
+  if (a === b) return 100;
+  if (a.includes(b) || b.includes(a)) return 80;
+
+  const aTokens = new Set(a.split(' ').filter(Boolean));
+  const bTokens = new Set(b.split(' ').filter(Boolean));
+  if (aTokens.size === 0 || bTokens.size === 0) return 0;
+
+  let overlap = 0;
+  for (const token of aTokens) {
+    if (bTokens.has(token)) overlap += 1;
+  }
+  const ratio = overlap / Math.max(aTokens.size, bTokens.size);
+  // Require most tokens to overlap so "Standard Time" ≠ "Blood Brothers"
+  if (ratio >= 0.67 && overlap >= 2) return Math.round(ratio * 60);
+  if (ratio === 1) return 70;
+  return 0;
+}
+
+/**
+ * Resolve an IRL location for a Mapbox search pick: exact place_id, else a nearby
+ * pin within ~120m whose name matches the search result (not merely nearest).
+ */
+export const resolveLocationForSearchPick = async (input: {
+  placeId: string;
+  latitude: number;
+  longitude: number;
+  name?: string | null;
+  maxMeters?: number;
+}): Promise<Location | null> => {
+  const byId = await getLocationByPlaceId(input.placeId);
+  if (byId) return byId;
+
+  const searchName = input.name?.trim();
+  if (!searchName) return null;
+
+  const maxMeters = input.maxMeters ?? NEARBY_PLACE_MATCH_MAX_METERS;
+  // ~0.002° ≈ 220m — bounding box before haversine filter
+  const delta = 0.002;
+  const { data, error } = await supabase
+    .from('locations')
+    .select(LOCATION_COLUMNS)
+    .eq('is_visible', true)
+    .gte('latitude', input.latitude - delta)
+    .lte('latitude', input.latitude + delta)
+    .gte('longitude', input.longitude - delta)
+    .lte('longitude', input.longitude + delta)
+    .limit(50);
+
+  if (error) throw error;
+  if (!data?.length) return null;
+
+  let best: Location | null = null;
+  let bestScore = 0;
+  let bestD = Infinity;
+
+  for (const row of data as Location[]) {
+    const d = haversineDistanceMeters(
+      input.latitude,
+      input.longitude,
+      row.latitude,
+      row.longitude
+    );
+    if (d > maxMeters) continue;
+
+    const score = placeNameMatchScore(searchName, row.name);
+    if (score <= 0) continue;
+
+    if (score > bestScore || (score === bestScore && d < bestD)) {
+      best = row;
+      bestScore = score;
+      bestD = d;
+    }
+  }
+
+  return best;
+};
 
 /**
  * Create a location or return existing one by place_id.

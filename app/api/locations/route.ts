@@ -21,12 +21,20 @@ import {
   validateUrl,
 } from '@/lib/utils/validation';
 import { apiSuccess, apiError } from '@/lib/api/response';
+import {
+  getLocationByPlaceId,
+  resolveLocationForSearchPick,
+} from '@/lib/db/locations';
 import { resolveCityFromCoordinates } from '@/lib/utils/city-resolver';
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const walletAddress = searchParams.get('walletAddress');
+    const placeId = searchParams.get('placeId')?.trim();
+    const latParam = searchParams.get('lat');
+    const lngParam = searchParams.get('lng');
+    const nameParam = searchParams.get('name')?.trim();
     const includeHidden = searchParams.get('includeHidden') === 'true';
 
     // Only allow includeHidden if admin (verified Privy token)
@@ -35,6 +43,46 @@ export async function GET(request: NextRequest) {
       if (!adminEmail) {
         return apiError('Unauthorized', 403);
       }
+    }
+
+    // Resolve IRL location for a Mapbox pick (exact place_id, else nearby pin)
+    if (placeId && latParam != null && lngParam != null) {
+      const latitude = Number(latParam);
+      const longitude = Number(lngParam);
+      if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180
+      ) {
+        return apiError('Invalid lat/lng', 400);
+      }
+      const location = await resolveLocationForSearchPick({
+        placeId,
+        latitude,
+        longitude,
+        name: nameParam,
+      });
+      if (!location) {
+        return apiSuccess({ location: null });
+      }
+      if (!includeHidden && location.is_visible === false) {
+        return apiSuccess({ location: null });
+      }
+      return apiSuccess({ location });
+    }
+
+    if (placeId) {
+      const location = await getLocationByPlaceId(placeId);
+      if (!location) {
+        return apiSuccess({ location: null });
+      }
+      if (!includeHidden && location.is_visible === false) {
+        return apiSuccess({ location: null });
+      }
+      return apiSuccess({ location });
     }
 
     // Base query - only return locations with images

@@ -1,6 +1,7 @@
 import { supabase } from './client';
-import type { UserProfile } from '../types';
+import type { ProfileFavoritePlace, UserProfile } from '../types';
 import { sameWalletAddress } from '../utils/wallets';
+import { resolveLocationForSearchPick } from './locations';
 
 // Select specific columns for profile queries (from players table)
 const PROFILE_COLUMNS = `
@@ -26,6 +27,9 @@ const PROFILE_COLUMNS = `
   country_id,
   geo_city_id,
   bio,
+  favorite_music_venue,
+  favorite_gallery,
+  favorite_restaurant,
   total_points,
   created_at,
   updated_at
@@ -64,6 +68,18 @@ export const createOrUpdateUserProfile = async (
             ? profile.country
             : existingProfile.country,
         bio: profile.bio !== undefined ? profile.bio : existingProfile.bio,
+        favorite_music_venue:
+          profile.favorite_music_venue !== undefined
+            ? profile.favorite_music_venue
+            : existingProfile.favorite_music_venue,
+        favorite_gallery:
+          profile.favorite_gallery !== undefined
+            ? profile.favorite_gallery
+            : existingProfile.favorite_gallery,
+        favorite_restaurant:
+          profile.favorite_restaurant !== undefined
+            ? profile.favorite_restaurant
+            : existingProfile.favorite_restaurant,
       })
       .eq('wallet_address', profile.wallet_address)
       .select(PROFILE_COLUMNS)
@@ -154,8 +170,40 @@ export const getUserProfileByUsername = async (username: string) => {
   return enrichProfileGeoDisplayNames(data as UserProfile);
 };
 
+async function enrichFavoritePlace(
+  place: ProfileFavoritePlace | null | undefined
+): Promise<ProfileFavoritePlace | null | undefined> {
+  if (!place?.place_id) return place;
+  if (place.image_url) return place;
+
+  try {
+    const irl = await resolveLocationForSearchPick({
+      placeId: place.place_id,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      name: place.name,
+    });
+    if (!irl) return place;
+    const imageUrl =
+      irl.coin_image_thumb_url?.trim() || irl.coin_image_url?.trim() || null;
+    return {
+      ...place,
+      place_id: irl.place_id || place.place_id,
+      name: irl.name?.trim() || place.name,
+      address: irl.address?.trim() || place.address,
+      latitude: irl.latitude ?? place.latitude,
+      longitude: irl.longitude ?? place.longitude,
+      image_url: imageUrl,
+      category: irl.category ?? place.category ?? null,
+    };
+  } catch {
+    return place;
+  }
+}
+
 /**
  * Prefer geo FK display names over legacy free-text city/country.
+ * Also backfill favorite-place images from IRL locations when missing.
  */
 async function enrichProfileGeoDisplayNames(
   profile: UserProfile
@@ -179,6 +227,15 @@ async function enrichProfileGeoDisplayNames(
       .maybeSingle();
     if (countryRow?.name) next.country = countryRow.name;
   }
+
+  const [music, gallery, restaurant] = await Promise.all([
+    enrichFavoritePlace(profile.favorite_music_venue),
+    enrichFavoritePlace(profile.favorite_gallery),
+    enrichFavoritePlace(profile.favorite_restaurant),
+  ]);
+  next.favorite_music_venue = music ?? null;
+  next.favorite_gallery = gallery ?? null;
+  next.favorite_restaurant = restaurant ?? null;
 
   return next;
 }
