@@ -2,12 +2,17 @@ import Link from 'next/link';
 import Image from 'next/image';
 import PointsActivity from '@/components/perks/points-activity';
 import ProfileAvatar from '@/components/profile-avatar';
+import PublicProfileListsCarousel from '@/components/profile/public-profile-lists-carousel';
 import type { UserProfile } from '@/lib/types';
-import type { PublicProfileStats } from '@/lib/profile/public-profile-data';
+import type {
+  PublicPlayerListCard,
+  PublicProfileStats,
+} from '@/lib/profile/public-profile-data';
 
 type PublicProfileViewProps = {
   profile: UserProfile;
   userStats: PublicProfileStats;
+  lists?: PublicPlayerListCard[];
 };
 
 function getOrdinalSuffix(num: number): string {
@@ -44,10 +49,10 @@ function getSocialUrl(platform: string, handle: string) {
   }
 }
 
-
 export function PublicProfileView({
   profile,
   userStats,
+  lists = [],
 }: PublicProfileViewProps) {
   return (
     <div className="min-h-screen bg-[#7d7d7d] flex flex-col font-inktrap">
@@ -91,6 +96,19 @@ export function PublicProfileView({
               @{profile.username || 'username'}
             </div>
           </div>
+
+          {/* Section 2b: Personal lists */}
+          {lists.length > 0 ? (
+            <div className="w-full bg-white rounded-3xl border border-gray-200 p-4 flex flex-col gap-3">
+              <div className="body-small font-grotesk text-[#7d7d7d] uppercase tracking-wide">
+                Lists
+              </div>
+              <PublicProfileListsCarousel
+                lists={lists}
+                className="-mx-1 px-1"
+              />
+            </div>
+          ) : null}
 
           {/* Section 3: Points and Rank */}
           <div className="w-full bg-white rounded-[26px] p-4">

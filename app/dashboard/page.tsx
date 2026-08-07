@@ -19,6 +19,7 @@ import type { Tier } from '@/lib/types';
 import LeaderboardAvatar from '@/components/leaderboard-avatar';
 import DashboardSocialLinks from '@/components/dashboard/dashboard-social-links';
 import ProfileFavoritePlacesCarousel from '@/components/dashboard/profile-favorite-places-carousel';
+import ProfilePersonalListsCarousel from '@/components/dashboard/profile-personal-lists-carousel';
 import Transactions from '@/components/dashboard/transactions';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
@@ -294,6 +295,10 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-6 px-4 pt-2 pb-4 md:px-2">
             <ProfileFavoritePlacesCarousel
               profile={userProfile}
+              className="-mx-4 px-4 md:-mx-2 md:px-2"
+            />
+            <ProfilePersonalListsCarousel
+              walletAddress={currentUserAddress}
               className="-mx-4 px-4 md:-mx-2 md:px-2"
             />
             <DashboardSocialLinks profile={userProfile} />

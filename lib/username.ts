@@ -42,20 +42,27 @@ export const RESERVED_USERNAMES = new Set(
     '_next',
     'favicon.ico',
     'icon.svg',
-  ].map((s) => s.toLowerCase())
+  ].flatMap((s) => {
+    const lower = s.toLowerCase();
+    const underscored = lower.replace(/-/g, '_');
+    return lower === underscored ? [lower] : [lower, underscored];
+  })
 );
 
 /**
- * Trim, collapse whitespace runs to `_`, and lowercase.
- * e.g. "Mr Frog" → "mr_frog"
+ * Trim, collapse whitespace/hyphen runs to `_`, and lowercase.
+ * e.g. "Mr Frog" / "mr-frog" → "mr_frog"
  */
 export function normalizeUsername(input: string): string {
-  return input.trim().replace(/\s+/g, '_').toLowerCase();
+  return input
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
 }
 
-/** Live input helper: replace spaces with underscores as the user types. */
+/** Live input helper: replace spaces/hyphens with underscores as the user types. */
 export function sanitizeUsernameInput(input: string): string {
-  return input.replace(/\s+/g, '_');
+  return input.replace(/[\s-]+/g, '_');
 }
 
 export function isReservedUsername(slug: string): boolean {

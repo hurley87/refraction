@@ -720,7 +720,7 @@ export default function LocationListsDrawer({
       }
     >
       {isListDetailView ? (
-        <div className="flex min-w-0 items-center gap-4">
+        <div className="flex min-w-0 items-center gap-4 py-2">
           <button
             type="button"
             onClick={() => setSelectedListId(null)}
@@ -828,7 +828,7 @@ export default function LocationListsDrawer({
                       <button
                         type="button"
                         onClick={() => setSelectedListId(list.id)}
-                        className="label-medium flex h-7 w-[72px] shrink-0 items-center justify-center gap-[var(--sds-size-space-200)] bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
+                        className="label-medium flex shrink-0 items-center justify-center bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-3 py-2 uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
                       >
                         View all
                       </button>
@@ -858,7 +858,7 @@ export default function LocationListsDrawer({
                         <button
                           type="button"
                           onClick={() => setSelectedListId(FAVORITES_LIST_ID)}
-                          className="label-medium flex h-7 w-[72px] shrink-0 items-center justify-center gap-[var(--sds-size-space-200)] bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
+                          className="label-medium flex shrink-0 items-center justify-center bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-3 py-2 uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
                         >
                           View all
                         </button>
@@ -898,7 +898,7 @@ export default function LocationListsDrawer({
                             <button
                               type="button"
                               onClick={() => setSelectedListId(list.id)}
-                              className="label-medium flex h-7 w-[72px] shrink-0 items-center justify-center gap-[var(--sds-size-space-200)] bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
+                              className="label-medium flex shrink-0 items-center justify-center bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-3 py-2 uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
                             >
                               View all
                             </button>

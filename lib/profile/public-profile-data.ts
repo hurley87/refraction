@@ -1,7 +1,13 @@
 import type { UserProfile } from '@/lib/types';
 import { getUserProfile, getUserProfileByUsername } from '@/lib/db/profiles';
 import { getPlayerByWallet } from '@/lib/db/players';
+import {
+  listPublicCustomListsForProfile,
+  type PublicPlayerListCard,
+} from '@/lib/db/player-custom-lists';
 import { supabase } from '@/lib/db/client';
+
+export type { PublicPlayerListCard };
 
 export type PublicProfileStats = {
   rank: number;
@@ -49,6 +55,22 @@ export async function loadPublicProfileByUsername(
   } catch (error) {
     console.error('Error fetching profile by username:', error);
     return null;
+  }
+}
+
+/**
+ * Public (non-private) personal lists for a profile wallet.
+ */
+export async function getPublicProfileLists(
+  walletAddress: string
+): Promise<PublicPlayerListCard[]> {
+  try {
+    const player = await getPlayerByWallet(walletAddress);
+    if (!player?.id) return [];
+    return await listPublicCustomListsForProfile(player.id);
+  } catch (error) {
+    console.error('Error fetching public profile lists:', error);
+    return [];
   }
 }
 
