@@ -2,9 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import MapCard from '@/components/map/map-card';
+import { DragScrollRow } from '@/components/dashboard/drag-scroll-row';
 import type { ProfileFavoritePlace, UserProfile } from '@/lib/types';
 
-type CarouselItem = {
+type FavoriteCarouselItem = {
   key: string;
   label: string;
   place: ProfileFavoritePlace;
@@ -12,9 +13,9 @@ type CarouselItem = {
 
 function collectFavoritePlaces(
   profile: UserProfile | null | undefined
-): CarouselItem[] {
+): FavoriteCarouselItem[] {
   if (!profile) return [];
-  const items: CarouselItem[] = [];
+  const items: FavoriteCarouselItem[] = [];
   if (profile.favorite_music_venue?.place_id) {
     items.push({
       key: 'favorite_music_venue',
@@ -58,7 +59,7 @@ export default function ProfileFavoritePlacesCarousel({
 
   return (
     <section className={className} aria-label="Favorite places">
-      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <DragScrollRow aria-label="Favorite places carousel">
         {items.map(({ key, label, place }) => (
           <div key={key} className="flex w-[206px] shrink-0 flex-col gap-2">
             <span className="label-small uppercase text-[#757575]">
@@ -73,14 +74,19 @@ export default function ProfileFavoritePlacesCarousel({
               placeId={place.place_id}
               isExisting
               onAction={() => {
-                router.push(
-                  `/interactive-map?placeId=${encodeURIComponent(place.place_id)}&lat=${place.latitude}&lng=${place.longitude}&mapCard=1`
-                );
+                const q = new URLSearchParams({
+                  placeId: place.place_id,
+                  lat: String(place.latitude),
+                  lng: String(place.longitude),
+                  mapCard: '1',
+                });
+                if (place.name?.trim()) q.set('name', place.name.trim());
+                router.push(`/interactive-map?${q.toString()}`);
               }}
             />
           </div>
         ))}
-      </div>
+      </DragScrollRow>
     </section>
   );
 }

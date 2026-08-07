@@ -12,6 +12,12 @@ export type DeepLinkMarkerShape = {
   points_value?: number | null;
 };
 
+export type DeepLinkMarkerMeta = {
+  name?: string | null;
+  address?: string | null;
+  imageUrl?: string | null;
+};
+
 /**
  * GET /api/locations omits rows without `coin_image_url`, so a saved place can exist in DB
  * but not appear in map markers. City-guide links pass `lat`/`lng`; use them so fly-to and
@@ -20,16 +26,18 @@ export type DeepLinkMarkerShape = {
 export function buildDeepLinkMarkerFromQueryCoords(
   placeId: string,
   latitude: number,
-  longitude: number
+  longitude: number,
+  meta?: DeepLinkMarkerMeta
 ): DeepLinkMarkerShape {
+  const name = meta?.name?.trim();
   return {
     place_id: placeId,
     latitude,
     longitude,
-    name: 'Location',
-    address: null,
+    name: name || 'Location',
+    address: meta?.address?.trim() || null,
     description: null,
-    imageUrl: null,
+    imageUrl: meta?.imageUrl?.trim() || null,
     category: null,
     points_value: 100,
   };

@@ -251,7 +251,8 @@ export default function MapCard({
               fill
               sizes="206px"
               loading="lazy"
-              className="object-cover object-top"
+              draggable={false}
+              className="object-cover object-top [-webkit-user-drag:none]"
             />
           ) : null}
 
