@@ -61,13 +61,9 @@ export default function ProfilePersonalListsCarousel({
               placeId={first?.place_id}
               isExisting
               onAction={() => {
-                if (first) {
-                  router.push(
-                    `/interactive-map?placeId=${encodeURIComponent(first.place_id)}&lat=${first.latitude}&lng=${first.longitude}&mapCard=1`
-                  );
-                  return;
-                }
-                router.push('/interactive-map');
+                router.push(
+                  `/interactive-map?listId=${encodeURIComponent(list.id)}`
+                );
               }}
             />
           );

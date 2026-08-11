@@ -61,11 +61,7 @@ describe('AddToListDrawer create flow', () => {
     const nameInput = await screen.findByPlaceholderText('My favorite spots');
     await user.type(nameInput, 'My list');
 
-    await user.click(
-      screen.getByRole('switch', {
-        name: /toggle list visibility/i,
-      })
-    );
+    await user.click(screen.getByRole('radio', { name: /^public$/i }));
 
     const saveButton = screen.getByRole('button', { name: 'Save new list' });
     expect(saveButton).not.toBeDisabled();

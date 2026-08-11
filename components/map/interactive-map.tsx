@@ -144,6 +144,8 @@ interface InteractiveMapProps {
   deepLinkMapCardOnly?: boolean;
   /** When set (e.g. from `returnTo` query), replace IRL logo with back control to this path. */
   guideReturnHref?: string | null;
+  /** Dashboard deep link: open lists drawer focused on this player custom list UUID. */
+  initialCustomListId?: string | null;
 }
 
 const SEARCH_NEARBY_MATCH_MAX_METERS = 120;
@@ -203,6 +205,7 @@ export default function InteractiveMap({
   initialLongitude,
   deepLinkMapCardOnly = false,
   guideReturnHref = null,
+  initialCustomListId = null,
 }: InteractiveMapProps) {
   const guideReturnPersistedRef = useRef<string | null>(null);
   if (guideReturnHref) {
@@ -1823,6 +1826,7 @@ export default function InteractiveMap({
           favoritePlaceIds={favoritePlaceIds}
           onToggleFavorite={handleToggleFavorite}
           isFavoritePending={isFavoritePending}
+          initialCustomListId={initialCustomListId}
         />
       </aside>
 
@@ -2032,6 +2036,7 @@ export default function InteractiveMap({
           favoritePlaceIds={favoritePlaceIds}
           onToggleFavorite={handleToggleFavorite}
           isFavoritePending={isFavoritePending}
+          initialCustomListId={initialCustomListId}
         />
       </div>
 

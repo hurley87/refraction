@@ -156,6 +156,43 @@ export function useDeleteCustomList(walletAddress: string | undefined) {
   });
 }
 
+/** Update privacy (private ↔ public) for one of the player's custom lists. */
+export function useUpdateCustomListPrivacy(walletAddress: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: { listId: string; isPrivate: boolean }) => {
+      const response = await fetch('/api/player-lists', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress,
+          listId: input.listId,
+          isPrivate: input.isPrivate,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update list');
+      }
+      return (result.data ?? result) as {
+        list: { id: string; is_private: boolean };
+      };
+    },
+    onSuccess: (_data, variables) => {
+      toast.success(
+        variables.isPrivate ? 'List is now private' : 'List is now public'
+      );
+      queryClient.invalidateQueries({
+        queryKey: ['player-custom-lists', walletAddress],
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update list');
+    },
+  });
+}
+
 /** Add a location to one or more of the player's lists. */
 export function useAddLocationToLists(walletAddress: string | undefined) {
   const queryClient = useQueryClient();

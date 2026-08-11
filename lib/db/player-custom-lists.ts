@@ -221,6 +221,27 @@ export const addLocationToLists = async (
 };
 
 /**
+ * Update privacy for a custom list owned by the player.
+ * Returns the updated list, or null when the list was not found / not owned.
+ */
+export const updateCustomListPrivacy = async (
+  playerId: number,
+  listId: string,
+  isPrivate: boolean
+): Promise<PlayerCustomList | null> => {
+  const { data, error } = await supabase
+    .from('player_custom_lists')
+    .update({ is_private: isPrivate })
+    .eq('id', listId)
+    .eq('player_id', playerId)
+    .select()
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as PlayerCustomList | null) ?? null;
+};
+
+/**
  * Delete a custom list owned by the player (items cascade).
  * Returns true when a list was actually deleted.
  */
