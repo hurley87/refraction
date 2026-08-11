@@ -6,12 +6,14 @@ import {
   deleteCustomList,
   listCustomListsByPlayer,
   listCustomListsWithLocationsByPlayer,
+  updateCustomListPrivacy,
 } from '@/lib/db/player-custom-lists';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import {
   playerCustomListsQuerySchema,
   playerCustomListCreateSchema,
   playerCustomListDeleteSchema,
+  playerCustomListUpdateSchema,
 } from '@/lib/schemas/api';
 
 async function getLocationIdByPlaceId(placeId: string): Promise<number | null> {
@@ -89,6 +91,35 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Failed to create player custom list:', error);
     return apiError('Failed to create list', 500);
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const parsed = playerCustomListUpdateSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return apiValidationError(parsed.error);
+    }
+
+    const { walletAddress, listId, isPrivate } = parsed.data;
+    const player = await getPlayerByWallet(walletAddress);
+
+    if (!player?.id) {
+      return apiError('Player not found', 404);
+    }
+
+    const list = await updateCustomListPrivacy(player.id, listId, isPrivate);
+
+    if (!list) {
+      return apiError('List not found', 404);
+    }
+
+    return apiSuccess({ list });
+  } catch (error) {
+    console.error('Failed to update player custom list:', error);
+    return apiError('Failed to update list', 500);
   }
 }
 

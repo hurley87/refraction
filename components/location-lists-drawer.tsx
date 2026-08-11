@@ -24,7 +24,9 @@ import { useFavoriteLocations } from '@/hooks/useFavorites';
 import {
   usePlayerCustomListLocations,
   useDeleteCustomList,
+  useUpdateCustomListPrivacy,
 } from '@/hooks/usePlayerCustomLists';
+import { Switch } from '@/components/ui/switch';
 
 export type DrawerLocationSummary = Pick<
   Location,
@@ -90,6 +92,11 @@ interface LocationListsDrawerProps {
   favoritePlaceIds?: Set<string>;
   onToggleFavorite?: (placeId: string) => void;
   isFavoritePending?: boolean;
+  /**
+   * Open the drawer focused on this player custom list (raw UUID from
+   * `player_custom_lists.id`). Applied once the list is loaded.
+   */
+  initialCustomListId?: string | null;
 }
 
 export default function LocationListsDrawer({
@@ -105,6 +112,7 @@ export default function LocationListsDrawer({
   favoritePlaceIds,
   onToggleFavorite,
   isFavoritePending = false,
+  initialCustomListId = null,
 }: LocationListsDrawerProps) {
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(false);
@@ -117,6 +125,7 @@ export default function LocationListsDrawer({
   >({});
   const prevHasVisibleLocationsRef = useRef(false);
   const prevCollapseForMapCardRef = useRef(collapseForMapCard);
+  const initialCustomListAppliedRef = useRef(false);
   const sheetPanelRef = useRef<HTMLDivElement | null>(null);
   const sheetDragRef = useRef<{
     pointerId: number;
@@ -151,11 +160,12 @@ export default function LocationListsDrawer({
     [favoriteLocations]
   );
 
-  const { data: customLists = [] } = usePlayerCustomListLocations(
-    fetchEnabled ? walletAddress : undefined
-  );
+  const { data: customLists = [], isFetched: isCustomListsFetched } =
+    usePlayerCustomListLocations(fetchEnabled ? walletAddress : undefined);
   const { mutate: deleteCustomList, isPending: isDeletingList } =
     useDeleteCustomList(walletAddress);
+  const { mutate: updateListPrivacy, isPending: isUpdatingPrivacy } =
+    useUpdateCustomListPrivacy(walletAddress);
 
   /** User custom lists mapped to the drawer list shape (prefixed ids). */
   const customDrawerLists = useMemo(
@@ -163,6 +173,7 @@ export default function LocationListsDrawer({
       customLists.map((list) => ({
         id: `${CUSTOM_LIST_ID_PREFIX}${list.id}`,
         title: list.title,
+        is_private: list.is_private,
         locations: list.locations
           .filter((location) => location.id != null)
           .map((location) => ({
@@ -318,14 +329,37 @@ export default function LocationListsDrawer({
   // If the expanded custom list disappears (deleted / resynced), leave the
   // detail view and close any pending delete confirmation.
   useEffect(() => {
-    if (
-      selectedListId?.startsWith(CUSTOM_LIST_ID_PREFIX) &&
-      !customDrawerLists.some((list) => list.id === selectedListId)
-    ) {
+    if (!selectedListId?.startsWith(CUSTOM_LIST_ID_PREFIX)) return;
+    // Wait until custom lists have loaded so a deep-linked id is not cleared early
+    if (!isCustomListsFetched) return;
+    if (!customDrawerLists.some((list) => list.id === selectedListId)) {
       setSelectedListId(null);
       setIsDeleteDialogOpen(false);
     }
-  }, [selectedListId, customDrawerLists]);
+  }, [selectedListId, customDrawerLists, isCustomListsFetched]);
+
+  // Deep link from dashboard: open this custom list's detail once it loads
+  useEffect(() => {
+    if (initialCustomListAppliedRef.current) return;
+    const rawId = initialCustomListId?.trim();
+    if (!rawId || collapseForMapCard) return;
+    if (!isCustomListsFetched) return;
+
+    const drawerId = `${CUSTOM_LIST_ID_PREFIX}${rawId}`;
+    if (!customDrawerLists.some((list) => list.id === drawerId)) return;
+
+    initialCustomListAppliedRef.current = true;
+    setSelectedListId(drawerId);
+    if (layout === 'sheet') {
+      setSheetSize('full');
+    }
+  }, [
+    initialCustomListId,
+    customDrawerLists,
+    isCustomListsFetched,
+    collapseForMapCard,
+    layout,
+  ]);
 
   const hasVisibleFavorites = favoriteDrawerLocations.length > 0;
   const hasVisibleCustomLists = populatedCustomLists.length > 0;
@@ -537,8 +571,7 @@ export default function LocationListsDrawer({
     return null;
   }
 
-  const showSidebarDetail =
-    layout === 'sidebar' &&
+  const showListDetail =
     selectedListId !== null &&
     (selectedListId === FAVORITES_LIST_ID
       ? hasVisibleFavorites
@@ -548,7 +581,7 @@ export default function LocationListsDrawer({
 
   if (
     !hasVisibleLocations &&
-    !showSidebarDetail &&
+    !showListDetail &&
     !hasVisibleFavorites &&
     !hasVisibleCustomLists
   ) {
@@ -561,16 +594,13 @@ export default function LocationListsDrawer({
   const listGridOpen = showDiscoverBody && isSheetExpanded;
   const isSidebar = layout === 'sidebar';
   const isFavoritesDetailView =
-    isSidebar && selectedListId === FAVORITES_LIST_ID && hasVisibleFavorites;
+    selectedListId === FAVORITES_LIST_ID && hasVisibleFavorites;
   const isCustomListDetailView =
-    isSidebar &&
-    selectedCustomList !== null &&
-    selectedCustomList.locations.length > 0;
+    selectedCustomList !== null && selectedCustomList.locations.length > 0;
   const isListDetailView =
-    isSidebar &&
-    (isFavoritesDetailView ||
-      isCustomListDetailView ||
-      (selectedList !== null && (selectedList.locations?.length ?? 0) > 0));
+    isFavoritesDetailView ||
+    isCustomListDetailView ||
+    (selectedList !== null && (selectedList.locations?.length ?? 0) > 0);
 
   const snapSheetFromDrag = (startSize: SheetSize, deltaY: number) => {
     // deltaY < 0 → finger moved up (expand); > 0 → finger moved down (collapse)
@@ -592,6 +622,12 @@ export default function LocationListsDrawer({
         setSelectedListId(null);
       },
     });
+  };
+
+  const handlePrivacyToggle = (makePublic: boolean) => {
+    if (!selectedCustomList || isUpdatingPrivacy) return;
+    const rawListId = selectedCustomList.id.slice(CUSTOM_LIST_ID_PREFIX.length);
+    updateListPrivacy({ listId: rawListId, isPrivate: !makePublic });
   };
 
   const cycleSheetSize = () => {
@@ -806,14 +842,36 @@ export default function LocationListsDrawer({
                 </div>
 
                 {isCustomListDetailView ? (
-                  <button
-                    type="button"
-                    onClick={() => setIsDeleteDialogOpen(true)}
-                    className="label-medium flex h-8 w-fit items-center gap-[var(--sds-size-space-200)] border border-[var(--Borders-Heavy-Border,#454545)] bg-[var(--Backgrounds-Background,#FFF)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#171717] transition-colors hover:bg-neutral-50"
-                  >
-                    Delete list
-                    <Trash2 className="size-4 shrink-0" aria-hidden />
-                  </button>
+                  <div className="flex w-full flex-col gap-3">
+                    <div className="flex items-center justify-between gap-3 border border-[var(--Borders-Light-Border,#DBDBDB)] px-3 py-2">
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <span className="label-small uppercase tracking-wide text-[#757575]">
+                          {selectedCustomList?.is_private
+                            ? 'Private'
+                            : 'Public'}
+                        </span>
+                        <span className="body-small text-[#757575]">
+                          {selectedCustomList?.is_private
+                            ? 'Only you can see this list on your profile'
+                            : 'Visible on your public profile'}
+                        </span>
+                      </div>
+                      <Switch
+                        checked={!selectedCustomList?.is_private}
+                        disabled={isUpdatingPrivacy}
+                        onCheckedChange={handlePrivacyToggle}
+                        aria-label="Toggle list visibility between private and public"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                      className="label-medium flex h-8 w-fit items-center gap-[var(--sds-size-space-200)] border border-[var(--Borders-Heavy-Border,#454545)] bg-[var(--Backgrounds-Background,#FFF)] px-[var(--sds-size-space-200)] py-[var(--sds-size-space-100)] uppercase tracking-wide text-[#171717] transition-colors hover:bg-neutral-50"
+                    >
+                      Delete list
+                      <Trash2 className="size-4 shrink-0" aria-hidden />
+                    </button>
+                  </div>
                 ) : null}
               </div>
             ) : (
@@ -827,7 +885,10 @@ export default function LocationListsDrawer({
 
                       <button
                         type="button"
-                        onClick={() => setSelectedListId(list.id)}
+                        onClick={() => {
+                          setSelectedListId(list.id);
+                          if (!isSidebar) setSheetSize('full');
+                        }}
                         className="label-medium flex shrink-0 items-center justify-center bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-3 py-2 uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
                       >
                         View all
@@ -894,19 +955,16 @@ export default function LocationListsDrawer({
                           <h3 className="title4 min-w-0 text-[#1a1a1a]">
                             {list.title}
                           </h3>
-                          {isSidebar ? (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedListId(list.id)}
-                              className="label-medium flex shrink-0 items-center justify-center bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-3 py-2 uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
-                            >
-                              View all
-                            </button>
-                          ) : (
-                            <span className="font-anonymous shrink-0 text-[10px] text-[#999]">
-                              {`${list.locations.length} spots`}
-                            </span>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedListId(list.id);
+                              if (!isSidebar) setSheetSize('full');
+                            }}
+                            className="label-medium flex shrink-0 items-center justify-center bg-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] px-3 py-2 uppercase tracking-wide text-[#313131] transition-opacity hover:opacity-80"
+                          >
+                            View all
+                          </button>
                         </div>
                         <div
                           className={
@@ -984,7 +1042,7 @@ export default function LocationListsDrawer({
         (!hasFavorites || !favoritesReady) &&
         !collapseForMapCard) ||
       (!hasVisibleLocations &&
-        !showSidebarDetail &&
+        !showListDetail &&
         !hasVisibleFavorites &&
         !hasVisibleCustomLists)
     ) {

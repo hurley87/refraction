@@ -14,6 +14,8 @@ function InteractiveMapContent() {
   const placeName = searchParams.get('name') ?? searchParams.get('placeName');
   /** City guide etc.: show location MapCard drawer only, not the full-screen check-in modal. */
   const mapCardOnlyDeepLink = searchParams.get('mapCard') === '1';
+  /** Dashboard: open lists drawer focused on this player custom list. */
+  const customListId = searchParams.get('listId');
   const returnToRaw = searchParams.get('returnTo');
   const guideReturnHref = useMemo(
     () => sanitizeInternalReturnPath(returnToRaw),
@@ -53,6 +55,7 @@ function InteractiveMapContent() {
           initialLongitude={initialLongitude}
           deepLinkMapCardOnly={mapCardOnlyDeepLink}
           guideReturnHref={guideReturnHref}
+          initialCustomListId={customListId}
         />
       </div>
     </AuthWrapper>

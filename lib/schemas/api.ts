@@ -179,6 +179,15 @@ export const playerCustomListAddLocationSchema = z.object({
 });
 
 /**
+ * Schema for updating a player custom list (PATCH)
+ */
+export const playerCustomListUpdateSchema = z.object({
+  walletAddress: walletAddressSchema,
+  listId: z.string().uuid(),
+  isPrivate: z.boolean(),
+});
+
+/**
  * Schema for deleting a player custom list (DELETE)
  */
 export const playerCustomListDeleteSchema = z.object({
