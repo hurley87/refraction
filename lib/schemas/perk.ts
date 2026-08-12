@@ -17,6 +17,12 @@ export const createPerkSchema = z.object({
   is_featured: z.boolean().default(false),
   thumbnail_url: z.string().url().optional(),
   hero_image: z.string().url().optional(),
+  max_claims_per_member_per_day: z
+    .number()
+    .int()
+    .positive()
+    .nullable()
+    .optional(),
 });
 
 /**
@@ -35,6 +41,12 @@ export const updatePerkSchema = z.object({
   is_featured: z.boolean().optional(),
   thumbnail_url: z.string().url().optional(),
   hero_image: z.string().url().optional(),
+  max_claims_per_member_per_day: z
+    .number()
+    .int()
+    .positive()
+    .nullable()
+    .optional(),
 });
 
 /**

@@ -83,6 +83,14 @@ export const redeemPerkRequestSchema = z.object({
 });
 
 /**
+ * Schema for in-person perk claim (show-to-staff success screen)
+ */
+export const inPersonPerkClaimRequestSchema = z.object({
+  perkId: z.string().uuid(),
+  walletAddress: walletAddressSchema,
+});
+
+/**
  * Schema for number assignment API POST request
  */
 export const numberAssignmentRequestSchema = z.object({

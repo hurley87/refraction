@@ -24,6 +24,8 @@ export const ANALYTICS_EVENTS = {
   /** User clicked a "Claim Reward" CTA (intent). Distinct from `reward_claimed` (successful redemption). */
   REWARD_CLAIM_CLICKED: 'reward_claim_clicked',
   REWARD_CLAIMED: 'reward_claimed',
+  /** In-person success screen rendered after a recorded claim. */
+  REWARD_CLAIM_COMPLETED: 'reward_claim_completed',
 
   // Token / Points
   POINTS_EARNED: 'points_earned',

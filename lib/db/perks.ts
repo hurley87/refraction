@@ -19,7 +19,8 @@ const PERK_COLUMNS = `
   is_unlisted,
   is_featured,
   thumbnail_url,
-  hero_image
+  hero_image,
+  max_claims_per_member_per_day
 `;
 
 // Select specific columns for discount code queries

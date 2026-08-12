@@ -5,15 +5,7 @@ import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 
 import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
-import {
-  ExternalLink,
-  Gift,
-  Info,
-  MapPin,
-  Clock,
-  Copy,
-  Tag,
-} from 'lucide-react';
+import { ExternalLink, Gift, Info, MapPin, Copy, Tag } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -23,6 +15,7 @@ import {
 } from '@/components/ui/select';
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
@@ -31,6 +24,7 @@ import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
+import { apiClient } from '@/lib/api/client';
 
 // Perks tagged with this city value apply everywhere; they yield to more
 // specific local picks when a city filter is active.
@@ -105,6 +99,7 @@ const TimeLeft = ({
 
 function PerksPageInner() {
   const { login } = usePrivy();
+  const router = useRouter();
   const address = useEvmWalletAddress();
   const { trackEvent, trackPage } = useAnalytics();
 
@@ -134,6 +129,7 @@ function PerksPageInner() {
   //const queryClient = useQueryClient();
   const [selectedPerk, setSelectedPerk] = useState<Perk | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isInPersonClaiming, setIsInPersonClaiming] = useState(false);
 
   // Filter chips: city + type, both AND-combined. "all" means no filter.
   const [selectedCity, setSelectedCity] = useState<string>('all');
@@ -191,6 +187,34 @@ function PerksPageInner() {
     ? selectedDiscountCode
     : selectedPerk?.website_url?.trim() || undefined;
 
+  const heroImageUrl =
+    selectedPerk?.hero_image?.trim() ||
+    selectedPerk?.thumbnail_url?.trim() ||
+    '';
+
+  const isInPersonPerk = Boolean(selectedPerk && !claimUrl);
+
+  const { data: inPersonClaimStatus, refetch: refetchInPersonClaimStatus } =
+    useQuery({
+      queryKey: ['in-person-claim-status', selectedPerk?.id, address],
+      queryFn: async () => {
+        if (!selectedPerk?.id || !address) return null;
+        return apiClient<{
+          claimed_today: boolean;
+          claim_count_today: number;
+          max_claims_per_member_per_day: number | null;
+        }>(
+          `/api/perks/in-person-claim?perkId=${encodeURIComponent(selectedPerk.id)}&walletAddress=${encodeURIComponent(address)}`
+        );
+      },
+      enabled: Boolean(
+        isModalOpen && isInPersonPerk && selectedPerk?.id && address
+      ),
+      staleTime: 30_000,
+    });
+
+  const claimedToday = Boolean(inPersonClaimStatus?.claimed_today);
+
   const handleCopyCode = async () => {
     if (!selectedDiscountCode) return;
 
@@ -231,9 +255,7 @@ function PerksPageInner() {
     });
   };
 
-  // Fires when the user clicks a "Claim Reward" CTA that leaves to a partner
-  // claim URL (these never hit /api/perks/redeem, so `reward_claimed` is not
-  // emitted for them). Captures claim intent for external/code-based perks.
+  // Online: partner URL / code-as-URL. In-person: POST claim then success screen.
   const handleClaimClick = () => {
     if (!selectedPerk) return;
     trackEvent(ANALYTICS_EVENTS.REWARD_CLAIM_CLICKED, {
@@ -241,7 +263,53 @@ function PerksPageInner() {
       reward_type: selectedPerk.type,
       partner: selectedPerk.location || undefined,
       points_required: selectedPerk.points_threshold,
+      perk_type: 'online',
     });
+  };
+
+  const handleInPersonClaim = async () => {
+    if (!selectedPerk?.id || !address || claimedToday || isInPersonClaiming) {
+      return;
+    }
+
+    trackEvent(ANALYTICS_EVENTS.REWARD_CLAIM_CLICKED, {
+      reward_id: selectedPerk.id,
+      reward_type: selectedPerk.type,
+      partner: selectedPerk.location || undefined,
+      points_required: selectedPerk.points_threshold,
+      perk_type: 'in_person',
+    });
+
+    setIsInPersonClaiming(true);
+    try {
+      const result = await apiClient<{
+        claim_count_today: number;
+      }>('/api/perks/in-person-claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          perkId: selectedPerk.id,
+          walletAddress: address,
+        }),
+      });
+
+      setIsModalOpen(false);
+      setSelectedPerk(null);
+      router.push(
+        `/rewards/claim/success?perkId=${encodeURIComponent(selectedPerk.id)}&claimCount=${result.claim_count_today}`
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to claim reward';
+      if (/CLAIMED TODAY/i.test(message)) {
+        await refetchInPersonClaimStatus();
+        toast.error('Already claimed today');
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setIsInPersonClaiming(false);
+    }
   };
 
   const handleModalOpenChange = (open: boolean) => {
@@ -963,76 +1031,134 @@ function PerksPageInner() {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
-        <DialogContent className="w-full max-w-lg border-none bg-[#313131] p-1 shadow-none [&>button]:hidden">
+        <DialogContent className="w-full max-w-[393px] gap-0 border-none bg-white p-0 shadow-none [&>button]:hidden">
           {selectedPerk && (
-            <div className="max-h-[90vh] overflow-y-auto space-y-1">
-              {/* Container 1: Close */}
-              <div className="w-full rounded-full border border-[#131313]/10 shadow-none bg-white p-2 flex items-center justify-center">
-                <DialogClose asChild>
-                  <button
-                    className="text-black w-full rounded-full"
-                    style={{
-                      display: 'flex',
-                      height: '48px',
-                      width: '48px',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      borderRadius: '9999px',
-                      background: '#FFF',
-                    }}
-                    aria-label="Close"
-                    type="button"
+            <div className="max-h-[90vh] overflow-y-auto">
+              {/* Hero: blurred reward image + centered thumb + logo + close */}
+              <div
+                className="relative flex h-[212px] w-full items-start justify-center gap-2 overflow-hidden"
+                style={{
+                  background:
+                    'linear-gradient(0deg, rgba(0, 0, 0, 0.20) 0%, rgba(0, 0, 0, 0.20) 100%), #454545',
+                }}
+              >
+                {heroImageUrl ? (
+                  <div
+                    className="pointer-events-none absolute inset-0 overflow-hidden"
+                    aria-hidden
                   >
                     <Image
-                      src="/x-close.svg"
-                      alt="Close"
-                      width={24}
-                      height={24}
+                      src={heroImageUrl}
+                      alt=""
+                      fill
+                      className="scale-125 object-cover"
+                      style={{ filter: 'blur(18.15px)' }}
+                      sizes="393px"
                     />
-                  </button>
-                </DialogClose>
-              </div>
-
-              {/* Container 2: Media + title */}
-              <div className="w-full rounded-[26px] border border-[#131313]/10 bg-white p-6 text-center">
-                <div style={{ gap: '8px' }} className="flex flex-col">
-                  {selectedPerk.thumbnail_url && (
-                    <div className="mx-auto flex items-center justify-center rounded-[12px] bg-black overflow-hidden">
-                      <Image
-                        src={selectedPerk.thumbnail_url}
-                        alt={selectedPerk.title}
-                        width={127}
-                        height={129}
-                        className="object-cover"
-                        style={{
-                          width: '127px',
-                          height: '129px',
-                          aspectRatio: '127/129',
-                        }}
-                      />
-                    </div>
-                  )}
-                  <div
-                    className="title1 font-grotesk text-[#313131]"
-                    style={{
-                      display: 'flex',
-                      padding: '8px 17px',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      gap: '8px',
-                      alignSelf: 'stretch',
-                      borderRadius: '24px',
-                    }}
-                  >
-                    {selectedPerk.title}
+                    <div className="absolute inset-0 bg-black/20" />
                   </div>
+                ) : null}
+
+                <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between p-2">
+                  <Image
+                    src="/irl-svg/irl-logo-new-white.svg"
+                    alt="IRL"
+                    width={70}
+                    height={56}
+                    className="-mt-2 block h-[56px] w-[70px] shrink-0 object-contain object-top"
+                  />
+                  <DialogClose asChild>
+                    <button
+                      type="button"
+                      className="flex size-10 shrink-0 items-center justify-center rounded-[179px] border border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] transition-opacity hover:opacity-90"
+                      aria-label="Close"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width={24}
+                        height={24}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        className="size-6 shrink-0 aspect-square"
+                        aria-hidden
+                      >
+                        <path
+                          d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
+                          fill="#757575"
+                        />
+                      </svg>
+                    </button>
+                  </DialogClose>
                 </div>
+
+                {heroImageUrl ? (
+                  <div className="relative z-[1] flex h-full w-full items-center justify-center p-2">
+                    <Image
+                      src={heroImageUrl}
+                      alt={selectedPerk.title}
+                      width={127}
+                      height={129}
+                      className="object-cover rounded-[24px]"
+                      style={{
+                        width: '127px',
+                        height: '129px',
+                        aspectRatio: '127/129',
+                      }}
+                    />
+                  </div>
+                ) : null}
               </div>
 
               {/* Container 3: Details */}
-              <div className="w-full rounded-[26px] border border-[#131313]/10 bg-white p-6 space-y-6 relative">
+              <div className="w-full  border border-[#131313]/10 bg-white p-6 relative">
                 <div className="space-y-4">
+                  <h3 className="flex h-9 grow basis-0 shrink-0 flex-col justify-center text-[#171717]">
+                    {selectedPerk.title}
+                  </h3>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="label-small inline-flex items-center justify-center gap-[var(--sds-size-space-050)] border border-[var(--Tint-Ink-Black,#171717)] px-[var(--sds-size-space-100)] py-[var(--sds-size-space-050)] text-[#171717]">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        aria-hidden
+                      >
+                        <path
+                          d="M8 14C4.69123 14 2 11.3088 2 8C2 4.69123 4.69123 2 8 2C11.3088 2 14 4.69123 14 8C14 11.3088 11.3088 14 8 14ZM8 4.00974C5.80024 4.00974 4.00974 5.80024 4.00974 8C4.00974 10.1998 5.80024 11.9903 8 11.9903C10.1998 11.9903 11.9903 10.1998 11.9903 8C11.9903 5.80024 10.1998 4.00974 8 4.00974Z"
+                          fill="#757575"
+                        />
+                        <path
+                          d="M7.26495 10.7386V6.62662H8.75295V10.7386H7.26495ZM7.27295 6.13862V5.01862H8.75295V6.13862H7.27295Z"
+                          fill="#757575"
+                        />
+                      </svg>
+                      {selectedPerk.type?.length ? selectedPerk.type : 'Reward'}
+                    </span>
+                    <span className="label-small inline-flex items-center justify-center gap-[var(--sds-size-space-050)] border border-[var(--Tint-Ink-Black,#171717)] px-[var(--sds-size-space-100)] py-[var(--sds-size-space-050)] text-[#171717]">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        aria-hidden
+                      >
+                        <path
+                          d="M8.00008 13.9795C4.70261 13.9795 2.02057 11.2974 2.02057 7.99996C2.02057 4.70249 4.70261 2.02045 8.00008 2.02045C11.2976 2.02045 13.9796 4.70249 13.9796 7.99996C13.9796 11.2974 11.2976 13.9795 8.00008 13.9795ZM8.00008 4.02333C5.80784 4.02333 4.02345 5.80772 4.02345 7.99996C4.02345 10.1922 5.80784 11.9766 8.00008 11.9766C10.1923 11.9766 11.9767 10.1922 11.9767 7.99996C11.9767 5.80772 10.1923 4.02333 8.00008 4.02333Z"
+                          fill="#757575"
+                        />
+                        <path
+                          d="M9.68496 10.8095L7.2724 8.27861V5.27246H8.72904V7.69595L10.7392 9.80444L9.68496 10.8095Z"
+                          fill="#757575"
+                        />
+                      </svg>
+                      {dateLabel}
+                    </span>
+                  </div>
+
                   <div className="flex items-center gap-2 text-gray-600">
                     <Info className="h-4 w-4" />
                     <div className="body-small uppercase font-grotesk tracking-wide">
@@ -1044,16 +1170,6 @@ function PerksPageInner() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
-                    <span
-                      className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 body-small font-grotesk uppercase tracking-wide"
-                      style={{
-                        padding: '6px 8px',
-                        height: '28px',
-                      }}
-                    >
-                      <Info className="h-3 w-3" />
-                      {selectedPerk.type?.length ? selectedPerk.type : 'Reward'}
-                    </span>
                     <div
                       className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
                       style={{
@@ -1072,16 +1188,6 @@ function PerksPageInner() {
                           Not specified
                         </>
                       )}
-                    </div>
-                    <div
-                      className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
-                      style={{
-                        padding: '6px 8px',
-                        height: '28px',
-                      }}
-                    >
-                      <Clock className="h-3 w-3" />
-                      {dateLabel}
                     </div>
 
                     {selectedPerk.website_url ? (
@@ -1148,13 +1254,13 @@ function PerksPageInner() {
                       {/* Row 2: Instructions */}
                       <p className="body-medium text-[#4F4F4F]">
                         {codeIsClaimUrl || !hasDiscountCode
-                          ? 'Click the link to claim your reward.'
-                          : `Click the link and use code ${selectedDiscountCode} to claim your reward.`}
+                          ? 'Click the button to claim your reward.'
+                          : `Click the button and use code ${selectedDiscountCode} to claim your reward.`}
                       </p>
 
                       {/* Row 3: Pills */}
                       {codeIsClaimUrl || !hasDiscountCode ? (
-                        /* Full width claim button when code is a URL */
+                        /* Full width claim button when code is a URL or in-person */
                         <div className="w-full">
                           {claimUrl ? (
                             <a
@@ -1173,13 +1279,24 @@ function PerksPageInner() {
                                 className="h-4 w-4"
                               />
                             </a>
-                          ) : (
+                          ) : claimedToday ? (
                             <button
                               type="button"
                               disabled
                               className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-grotesk uppercase tracking-wide text-gray-500 cursor-not-allowed"
                             >
-                              <h4>Claim Reward</h4>
+                              <h4>CLAIMED TODAY</h4>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleInPersonClaim}
+                              disabled={isInPersonClaiming}
+                              className="inline-flex w-full items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white hover:bg-[#313131] transition-colors disabled:opacity-50"
+                            >
+                              <h4 className="text-left">
+                                {isInPersonClaiming ? '...' : 'Claim Reward'}
+                              </h4>
                             </button>
                           )}
                         </div>
@@ -1216,13 +1333,22 @@ function PerksPageInner() {
                                 className="h-4 w-4"
                               />
                             </a>
-                          ) : (
+                          ) : claimedToday ? (
                             <button
                               type="button"
                               disabled
                               className="inline-flex items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-grotesk uppercase tracking-wide text-gray-500 cursor-not-allowed flex-1"
                             >
-                              Claim Reward
+                              CLAIMED TODAY
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleInPersonClaim}
+                              disabled={isInPersonClaiming}
+                              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white hover:bg-[#313131] transition-colors flex-1 disabled:opacity-50"
+                            >
+                              {isInPersonClaiming ? '...' : 'Claim Reward'}
                             </button>
                           )}
                         </div>

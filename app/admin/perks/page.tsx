@@ -134,6 +134,7 @@ export default function AdminPerksPage() {
     is_featured: false,
     thumbnail_url: '',
     hero_image: '',
+    max_claims_per_member_per_day: null,
   });
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
@@ -445,6 +446,11 @@ export default function AdminPerksPage() {
         ...formData,
         thumbnail_url: thumbnailUrl,
         hero_image: heroImageUrl,
+        max_claims_per_member_per_day:
+          formData.max_claims_per_member_per_day &&
+          formData.max_claims_per_member_per_day > 0
+            ? formData.max_claims_per_member_per_day
+            : null,
       };
 
       if (editingPerk) {
@@ -473,6 +479,7 @@ export default function AdminPerksPage() {
       hero_image: perk.hero_image ?? '',
       is_unlisted: perk.is_unlisted ?? false,
       is_featured: perk.is_featured ?? false,
+      max_claims_per_member_per_day: perk.max_claims_per_member_per_day ?? null,
     });
     setThumbnailPreview(perk.thumbnail_url || null);
     setThumbnailFile(null);
@@ -501,6 +508,7 @@ export default function AdminPerksPage() {
       is_featured: false,
       thumbnail_url: '',
       hero_image: '',
+      max_claims_per_member_per_day: null,
     });
     setThumbnailFile(null);
     setThumbnailPreview(null);
@@ -927,6 +935,38 @@ export default function AdminPerksPage() {
                       setFormData({ ...formData, website_url: e.target.value })
                     }
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor="max_claims_per_member_per_day">
+                    Max claims per member per day
+                  </Label>
+                  <Input
+                    id="max_claims_per_member_per_day"
+                    type="number"
+                    min={1}
+                    step={1}
+                    placeholder="Blank = unlimited"
+                    value={
+                      formData.max_claims_per_member_per_day != null
+                        ? formData.max_claims_per_member_per_day
+                        : ''
+                    }
+                    onChange={(e) => {
+                      const raw = e.target.value.trim();
+                      setFormData({
+                        ...formData,
+                        max_claims_per_member_per_day:
+                          raw === ''
+                            ? null
+                            : Math.max(1, parseInt(raw, 10) || 1),
+                      });
+                    }}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Leave blank for unlimited daily claims (in-person perks).
+                    Set to 1 for one-per-day.
+                  </p>
                 </div>
 
                 <div>
