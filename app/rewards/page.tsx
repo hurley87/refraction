@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 
 import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
-import { ExternalLink, Gift, Info, MapPin, Copy, Tag } from 'lucide-react';
+import { Gift, MapPin, Tag } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -1116,7 +1116,7 @@ function PerksPageInner() {
                     {selectedPerk.title}
                   </h3>
 
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <span className="label-small inline-flex items-center justify-center gap-[var(--sds-size-space-050)] border border-[var(--Tint-Ink-Black,#171717)] px-[var(--sds-size-space-100)] py-[var(--sds-size-space-050)] text-[#171717]">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -1157,71 +1157,61 @@ function PerksPageInner() {
                       </svg>
                       {dateLabel}
                     </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Info className="h-4 w-4" />
-                    <div className="body-small uppercase font-grotesk tracking-wide">
-                      Details
-                    </div>
-                  </div>
-                  <div className="body-medium leading-relaxed text-[#4F4F4F]">
-                    {selectedPerk.description?.trim() || 'Details coming soon.'}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div
-                      className="inline-flex w-full items-center justify-start gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide"
-                      style={{
-                        padding: '6px 8px',
-                        height: '28px',
-                      }}
-                    >
-                      {selectedPerk.location ? (
-                        <>
-                          <MapPin className="h-3 w-3" />
-                          {selectedPerk.location}
-                        </>
-                      ) : (
-                        <>
-                          <MapPin className="h-3 w-3" />
-                          Not specified
-                        </>
-                      )}
-                    </div>
 
                     {selectedPerk.website_url ? (
                       <a
                         href={selectedPerk.website_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex w-full items-center justify-between gap-2 rounded-full border bg-[#EDEDED] border-[#131313]/20 text-[#4F4F4F] body-small font-grotesk uppercase tracking-wide hover:underline"
-                        style={{
-                          padding: '6px 8px',
-                          height: '28px',
-                        }}
+                        className="label-medium uppercase border-b border-[#171717] ml-auto inline-flex shrink-0 items-center gap-1 text-[#171717] transition-opacity hover:opacity-80"
                       >
-                        <span>View Website</span>
-                        <Image
-                          src="/home/arrow-right.svg"
-                          alt="arrow-right"
-                          width={16}
-                          height={16}
-                          className="w-4 h-4"
-                        />
-                      </a>
-                    ) : (
-                      <span
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#ffffff]/5 text-gray-400 body-small font-grotesk uppercase tracking-wide"
-                        style={{
-                          padding: '6px 8px',
-                          height: '28px',
-                        }}
-                      >
-                        <ExternalLink className="h-3 w-3" />
                         View Website
-                      </span>
-                    )}
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          aria-hidden
+                        >
+                          <path
+                            d="M9.38812 2.66669L7.88264 4.19072L10.6667 6.76352H1.33334V9.23652H10.6542L7.88264 11.8093L9.38812 13.3334L14.6667 7.98972L9.38812 2.66669Z"
+                            fill="#171717"
+                          />
+                        </svg>
+                      </a>
+                    ) : null}
+                  </div>
+
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <MapPin className="h-4 w-4 shrink-0" />
+                    <div className="body-small uppercase  tracking-wide">
+                      {selectedPerk.location?.trim() || 'Not specified'}
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 body-small leading-relaxed text-[#757575]">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      className="mt-0.5 shrink-0"
+                      aria-hidden
+                    >
+                      <path
+                        d="M8 14C4.69123 14 2 11.3088 2 8C2 4.69123 4.69123 2 8 2C11.3088 2 14 4.69123 14 8C14 11.3088 11.3088 14 8 14ZM8 4.00974C5.80024 4.00974 4.00974 5.80024 4.00974 8C4.00974 10.1998 5.80024 11.9903 8 11.9903C10.1998 11.9903 11.9903 10.1998 11.9903 8C11.9903 5.80024 10.1998 4.00974 8 4.00974Z"
+                        fill="#A9A9A9"
+                      />
+                      <path
+                        d="M7.26495 10.7386V6.62662H8.75295V10.7386H7.26495ZM7.27295 6.13862V5.01862H8.75295V6.13862H7.27295Z"
+                        fill="#A9A9A9"
+                      />
+                    </svg>
+                    <span>
+                      {selectedPerk.description?.trim() ||
+                        'Details coming soon.'}
+                    </span>
                   </div>
                 </div>
                 <div
@@ -1236,23 +1226,29 @@ function PerksPageInner() {
                 {/* Claim Section - Only visible if user is logged in and eligible */}
                 {address && selectedPerk && canAfford(selectedPerk) && (
                   <>
-                    <div className="space-y-4">
-                      {/* Row 1: Header */}
+                    <div className="space-y-4 pt-4">
                       <div className="flex items-center gap-2">
-                        <Image
-                          src="/guidance_reward.svg"
-                          alt="Guidance Reward"
-                          width={16}
-                          height={16}
-                          className="h-4 w-4"
-                        />
-                        <span className="body-small font-abc-monument-regular uppercase tracking-wide text-[#313131]">
+                        <div className="h-4" aria-hidden />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          aria-hidden
+                        >
+                          <path
+                            d="M3.05003 8.71842C3.5299 8.26921 4.16073 8.01809 4.81745 8.01592C6.33902 8.01051 8.74808 7.97696 8.74808 7.97696H9.69811C10.2535 7.97696 10.7042 8.42941 10.7042 8.98685C10.7042 9.5443 10.2535 9.99675 9.69811 9.99675H6.28079C6.08669 9.99675 5.92925 10.1548 5.92925 10.3496C5.92925 10.5445 6.08669 10.7025 6.28079 10.7025H9.74665C10.6428 10.7025 11.3696 9.97294 11.3696 9.07345V8.62316C11.3696 8.51384 11.4116 8.40776 11.4882 8.32874L12.8955 6.79062C13.2891 6.35982 13.962 6.34683 14.3717 6.76356C14.7438 7.14133 14.7664 7.74099 14.4246 8.14581L11.6597 11.418C11.2607 11.8899 10.6751 12.1616 10.0583 12.1616H5.5777L4.29337 13.0373C4.25347 13.0773 1.56512 10.1093 1.56512 10.1093L3.05111 8.71842H3.05003ZM8.6823 3.33337C7.55326 3.33337 6.6388 4.25126 6.6388 5.38456C6.6388 6.51785 7.55326 7.43575 8.6823 7.43575C9.81135 7.43575 10.7258 6.51785 10.7258 5.38456C10.7258 4.25126 9.81135 3.33337 8.6823 3.33337Z"
+                            fill="#757575"
+                          />
+                        </svg>
+                        <span className="label-small uppercase tracking-wide text-[#757575]">
                           CLAIM
                         </span>
                       </div>
 
                       {/* Row 2: Instructions */}
-                      <p className="body-medium text-[#4F4F4F]">
+                      <p className="body-small text-[#757575]">
                         {codeIsClaimUrl || !hasDiscountCode
                           ? 'Click the button to claim your reward.'
                           : `Click the button and use code ${selectedDiscountCode} to claim your reward.`}
@@ -1268,35 +1264,54 @@ function PerksPageInner() {
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={handleClaimClick}
-                              className="inline-flex w-full items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white hover:bg-[#313131] transition-colors"
+                              className="label-large flex h-11 min-h-11 w-full items-center justify-between bg-[#171717] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] text-white transition-opacity hover:opacity-95"
                             >
-                              <h4 className="text-left">Claim Reward</h4>
-                              <Image
-                                src="/guidance-up-right.svg"
-                                alt="Up Right"
-                                width={16}
-                                height={16}
-                                className="h-4 w-4"
-                              />
+                              Claim Reward
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                className="shrink-0"
+                                aria-hidden
+                              >
+                                <path
+                                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                                  fill="#FFFFFF"
+                                />
+                              </svg>
                             </a>
                           ) : claimedToday ? (
                             <button
                               type="button"
                               disabled
-                              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-grotesk uppercase tracking-wide text-gray-500 cursor-not-allowed"
+                              className="label-large flex h-11 min-h-11 w-full cursor-not-allowed items-center justify-center bg-gray-300 px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] text-gray-500"
                             >
-                              <h4>CLAIMED TODAY</h4>
+                              CLAIMED TODAY
                             </button>
                           ) : (
                             <button
                               type="button"
                               onClick={handleInPersonClaim}
                               disabled={isInPersonClaiming}
-                              className="inline-flex w-full items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white hover:bg-[#313131] transition-colors disabled:opacity-50"
+                              className="label-large flex h-11 min-h-11 w-full items-center justify-between bg-[#171717] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] text-white transition-opacity hover:opacity-95 disabled:opacity-50"
                             >
-                              <h4 className="text-left">
-                                {isInPersonClaiming ? '...' : 'Claim Reward'}
-                              </h4>
+                              {isInPersonClaiming ? '...' : 'Claim Reward'}
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                className="shrink-0"
+                                aria-hidden
+                              >
+                                <path
+                                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                                  fill="#FFFFFF"
+                                />
+                              </svg>
                             </button>
                           )}
                         </div>
@@ -1307,12 +1322,27 @@ function PerksPageInner() {
                           <button
                             type="button"
                             onClick={handleCopyCode}
-                            className="inline-flex items-center justify-between gap-2 rounded-full border font-grotesk border-[#131313]/20 bg-white px-4 py-2 body-small uppercase tracking-wide text-[#313131] hover:bg-gray-50 transition-colors flex-1"
+                            className="label-medium flex h-11 grow basis-0 shrink-0 items-center justify-center gap-[var(--sds-size-space-050)] border border-[var(--Borders-Light-Border,#DBDBDB)] bg-white px-[var(--sds-size-space-100)] py-[var(--sds-size-space-050)] text-[#171717] transition-colors hover:bg-gray-50"
                           >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 16 16"
+                              fill="none"
+                              className="shrink-0"
+                              aria-hidden
+                            >
+                              <path
+                                d="M4.73331 9.40004H3.33331V3.33337H9.39998V4.73337M6.59998 6.60004H12.6666V12.6667H6.59998V6.60004Z"
+                                stroke="#171717"
+                                strokeWidth="2.5"
+                                strokeLinejoin="bevel"
+                              />
+                            </svg>
                             <span>
                               {selectedDiscountCode?.slice(0, 20) || ''}
                             </span>
-                            <Copy className="h-4 w-4" />
                           </button>
 
                           {/* Pill 2: Claim Reward */}
@@ -1322,22 +1352,29 @@ function PerksPageInner() {
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={handleClaimClick}
-                              className="inline-flex items-center justify-between gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white hover:bg-[#313131] transition-colors flex-1"
+                              className="label-large flex h-11 min-h-11 w-[212px] shrink-0 items-center justify-between bg-[#171717] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] text-white transition-opacity hover:opacity-95"
                             >
-                              <span className="text-left">Claim Reward</span>
-                              <Image
-                                src="/guidance-up-right.svg"
-                                alt="Up Right"
-                                width={16}
-                                height={16}
-                                className="h-4 w-4"
-                              />
+                              Claim Reward
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                className="shrink-0"
+                                aria-hidden
+                              >
+                                <path
+                                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                                  fill="#FFFFFF"
+                                />
+                              </svg>
                             </a>
                           ) : claimedToday ? (
                             <button
                               type="button"
                               disabled
-                              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-gray-300 px-4 py-2 body-small font-grotesk uppercase tracking-wide text-gray-500 cursor-not-allowed flex-1"
+                              className="label-large flex h-11 min-h-11 w-[212px] shrink-0 cursor-not-allowed items-center justify-center bg-gray-300 px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] text-gray-500"
                             >
                               CLAIMED TODAY
                             </button>
@@ -1346,9 +1383,23 @@ function PerksPageInner() {
                               type="button"
                               onClick={handleInPersonClaim}
                               disabled={isInPersonClaiming}
-                              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#131313]/20 bg-[#131313] px-4 py-2 body-small font-grotesk uppercase tracking-wide text-white hover:bg-[#313131] transition-colors flex-1 disabled:opacity-50"
+                              className="label-large flex h-11 min-h-11 w-[212px] shrink-0 items-center justify-between bg-[#171717] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] text-white transition-opacity hover:opacity-95 disabled:opacity-50"
                             >
                               {isInPersonClaiming ? '...' : 'Claim Reward'}
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                className="shrink-0"
+                                aria-hidden
+                              >
+                                <path
+                                  d="M14.0822 4L11.8239 6.28605L16 10.1453H2V13.8547H15.9812L11.8239 17.7139L14.0822 20L22 11.9846L14.0822 4Z"
+                                  fill="#FFFFFF"
+                                />
+                              </svg>
                             </button>
                           )}
                         </div>
