@@ -176,6 +176,21 @@ export type Perk = {
   is_featured?: boolean;
   thumbnail_url?: string;
   hero_image?: string;
+  /**
+   * Max in-person claims per wallet per perk per UTC day (12:00 UTC boundary).
+   * Null/undefined = unlimited.
+   */
+  max_claims_per_member_per_day?: number | null;
+};
+
+/**
+ * Show-to-staff in-person perk claim (success screen).
+ */
+export type PerkInPersonClaim = {
+  id?: string;
+  perk_id: string;
+  user_wallet_address: string;
+  claimed_at?: string;
 };
 
 /**

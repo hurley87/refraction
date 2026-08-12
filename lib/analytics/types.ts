@@ -56,6 +56,13 @@ export interface RewardEventProperties {
   reward_type?: string;
   partner?: string;
   points_required?: number;
+  /** online = Website URL / claim link; in_person = show-to-staff success screen */
+  perk_type?: 'online' | 'in_person';
+  perk_id?: string;
+  perk_name?: string;
+  member_wallet_address?: string;
+  /** 1-indexed count within the current UTC-12:00 claim day after this claim */
+  claim_count_today_for_member?: number;
 }
 
 export interface LocationCreatedProperties {
