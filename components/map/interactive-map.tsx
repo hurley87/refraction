@@ -111,6 +111,24 @@ const MAP_SEARCH_INPUT_CLASS =
 const getWelcomeTourStorageKey = (wallet?: string | null) =>
   wallet ? `${WELCOME_TOUR_STORAGE_KEY}:${wallet}` : WELCOME_TOUR_STORAGE_KEY;
 
+function readLocalStorageItem(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalStorageItem(key: string, value: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Storage may be blocked (Safari privacy settings, sandboxed iframe).
+  }
+}
+
 function getCheckinDisplayName(entry: LocationCheckinPreview) {
   if (entry.username && entry.username.trim().length > 0) {
     return entry.username;
@@ -421,7 +439,7 @@ export default function InteractiveMap({
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const storedInstructionCount = window.localStorage.getItem(
+    const storedInstructionCount = readLocalStorageItem(
       LOCATION_INSTRUCTION_STORAGE_KEY
     );
     if (storedInstructionCount) {
@@ -446,7 +464,7 @@ export default function InteractiveMap({
 
     // Logged-in: show for the first N map visits after wallet creation.
     const welcomeKey = getWelcomeTourStorageKey(walletAddress);
-    const storedViews = window.localStorage.getItem(welcomeKey);
+    const storedViews = readLocalStorageItem(welcomeKey);
     const parsedViews = storedViews ? parseInt(storedViews, 10) : 0;
     const views = Number.isNaN(parsedViews) ? 0 : parsedViews;
     setShowWelcomeBanner(views < WELCOME_TOUR_MAX_SHOWS);
@@ -479,10 +497,10 @@ export default function InteractiveMap({
     const wallet = walletAddressRef.current;
     if (typeof window !== 'undefined' && wallet) {
       const welcomeKey = getWelcomeTourStorageKey(wallet);
-      const storedViews = window.localStorage.getItem(welcomeKey);
+      const storedViews = readLocalStorageItem(welcomeKey);
       const parsedViews = storedViews ? parseInt(storedViews, 10) : 0;
       const current = Number.isNaN(parsedViews) ? 0 : parsedViews;
-      window.localStorage.setItem(
+      writeLocalStorageItem(
         welcomeKey,
         String(Math.min(current + 1, WELCOME_TOUR_MAX_SHOWS))
       );
@@ -504,12 +522,7 @@ export default function InteractiveMap({
         return prev;
       }
       const next = prev + 1;
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(
-          LOCATION_INSTRUCTION_STORAGE_KEY,
-          String(next)
-        );
-      }
+      writeLocalStorageItem(LOCATION_INSTRUCTION_STORAGE_KEY, String(next));
       return next;
     });
   };
