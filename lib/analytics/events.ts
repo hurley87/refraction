@@ -26,6 +26,8 @@ export const ANALYTICS_EVENTS = {
   REWARD_CLAIMED: 'reward_claimed',
   /** In-person success screen rendered after a recorded claim. */
   REWARD_CLAIM_COMPLETED: 'reward_claim_completed',
+  /** User opened the in-person claim / show-to-staff page. */
+  IN_PERSON_CLAIM_PAGE_VIEWED: 'in_person_claim_page_viewed',
 
   // Token / Points
   POINTS_EARNED: 'points_earned',

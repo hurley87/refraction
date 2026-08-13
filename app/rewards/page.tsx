@@ -4,7 +4,12 @@ import type { Perk, UserPerkRedemption, PerkDiscountCode } from '@/lib/types';
 import Image from 'next/image';
 import { usePrivy } from '@privy-io/react-auth';
 
-import { Dialog, DialogContent, DialogClose } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDrawerContent,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { Gift, MapPin, Tag } from 'lucide-react';
 import {
   Select,
@@ -14,7 +19,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  Suspense,
+  type PointerEvent,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
@@ -321,6 +333,68 @@ function PerksPageInner() {
     }
   };
 
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [drawerDragY, setDrawerDragY] = useState(0);
+  const [isDrawerDragging, setIsDrawerDragging] = useState(false);
+  const drawerDragRef = useRef<{ pointerId: number; startY: number } | null>(
+    null
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    const sync = () => setIsDesktop(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
+
+  useEffect(() => {
+    if (!isModalOpen) {
+      drawerDragRef.current = null;
+      setDrawerDragY(0);
+      setIsDrawerDragging(false);
+    }
+  }, [isModalOpen]);
+
+  const DRAWER_DISMISS_PX = 80;
+
+  const onDrawerHandlePointerDown = (
+    event: PointerEvent<HTMLButtonElement>
+  ) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drawerDragRef.current = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+    };
+    setIsDrawerDragging(true);
+  };
+
+  const onDrawerHandlePointerMove = (
+    event: PointerEvent<HTMLButtonElement>
+  ) => {
+    const drag = drawerDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setDrawerDragY(Math.max(0, event.clientY - drag.startY));
+  };
+
+  const onDrawerHandlePointerUp = (event: PointerEvent<HTMLButtonElement>) => {
+    const drag = drawerDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    drawerDragRef.current = null;
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // already released
+    }
+    const deltaY = Math.max(0, event.clientY - drag.startY);
+    setIsDrawerDragging(false);
+    if (deltaY >= DRAWER_DISMISS_PX) {
+      handleModalOpenChange(false);
+      return;
+    }
+    setDrawerDragY(0);
+  };
+
   // A modal Radix dialog locks pointer events on the rest of the page, which makes
   // Privy's login modal (rendered in its own portal) appear behind an invisible
   // interaction lock and unclickable. Close the perk dialog first, then open Privy.
@@ -505,6 +579,8 @@ function PerksPageInner() {
   const latestRewardRedeemed = latestReward?.id
     ? hasRedeemed(latestReward.id)
     : false;
+
+  const DetailsShell = isDesktop ? DialogContent : DialogDrawerContent;
 
   return (
     <div className="min-h-screen bg-white px-4 pb-0 pt-4 font-grotesk">
@@ -1031,9 +1107,44 @@ function PerksPageInner() {
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
-        <DialogContent className="w-full max-w-[393px] gap-0 border-none bg-white p-0 shadow-none [&>button]:hidden">
+        <DetailsShell
+          hideCloseButton
+          style={
+            !isDesktop && drawerDragY > 0
+              ? { transform: `translateY(${drawerDragY}px)` }
+              : undefined
+          }
+          className={
+            isDesktop
+              ? 'w-full max-w-[393px] gap-0 border-none bg-white p-0 shadow-none'
+              : `inset-0 h-dvh max-h-none gap-0 overflow-hidden border-none bg-white p-0 ${
+                  isDrawerDragging
+                    ? 'transition-none'
+                    : 'transition-transform duration-200'
+                }`
+          }
+        >
+          {!isDesktop ? (
+            <button
+              type="button"
+              onPointerDown={onDrawerHandlePointerDown}
+              onPointerMove={onDrawerHandlePointerMove}
+              onPointerUp={onDrawerHandlePointerUp}
+              onPointerCancel={onDrawerHandlePointerUp}
+              className="absolute inset-x-0 top-0 z-20 flex touch-none items-center justify-center py-3"
+              aria-label="Drag down to close"
+            >
+              <span className="h-[3px] w-8 rounded-full bg-white/70" />
+            </button>
+          ) : null}
           {selectedPerk && (
-            <div className="max-h-[90vh] overflow-y-auto">
+            <div
+              className={
+                isDesktop
+                  ? 'max-h-[90vh] overflow-y-auto'
+                  : 'h-full overflow-y-auto'
+              }
+            >
               {/* Hero: blurred reward image + centered thumb + logo + close */}
               <div
                 className="relative flex h-[212px] w-full items-start justify-center gap-2 overflow-hidden"
@@ -1213,6 +1324,7 @@ function PerksPageInner() {
                         'Details coming soon.'}
                     </span>
                   </div>
+                  <div style={{ height: '16px' }} />
                 </div>
                 <div
                   className="absolute border-t border-solid border-[#131313]/20"
@@ -1440,7 +1552,7 @@ function PerksPageInner() {
               </div>
             </div>
           )}
-        </DialogContent>
+        </DetailsShell>
       </Dialog>
     </div>
   );

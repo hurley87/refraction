@@ -133,17 +133,18 @@ yarn test:coverage  # Coverage report
 
 ## Key analytics events
 
-| Event                        | When fired                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------ |
-| `account_created`            | Net-new player profile created                                                 |
-| `checkin_completed`          | Successful location or checkpoint check-in (use `checkin_type` to distinguish) |
-| `points_earned`              | Points awarded (check-ins, location creation)                                  |
-| `reward_page_viewed`         | Reward detail opened                                                           |
-| `reward_claimed`             | Perk successfully redeemed                                                     |
-| `spend_redemption_started`   | Spend redemption initiated (pending-create flow)                               |
-| `spend_redemption_completed` | Spend redemption fulfilled or verified                                         |
-| `tier_progression`           | Tier changed after a points update                                             |
-| `location_created`           | Location created (may start hidden)                                            |
+| Event                         | When fired                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| `account_created`             | Net-new player profile created                                                 |
+| `checkin_completed`           | Successful location or checkpoint check-in (use `checkin_type` to distinguish) |
+| `points_earned`               | Points awarded (check-ins, location creation)                                  |
+| `reward_page_viewed`          | Reward detail opened                                                           |
+| `reward_claimed`              | Perk successfully redeemed                                                     |
+| `in_person_claim_page_viewed` | In-person show-to-staff claim page opened                                      |
+| `spend_redemption_started`    | Spend redemption initiated (pending-create flow)                               |
+| `spend_redemption_completed`  | Spend redemption fulfilled or verified                                         |
+| `tier_progression`            | Tier changed after a points update                                             |
+| `location_created`            | Location created (may start hidden)                                            |
 
 **Known gaps:** `session_started` and `tier_changed` are defined in code but not currently emitted. `cohort` is hard-coded to `new` and should not be used for segmentation.
 
