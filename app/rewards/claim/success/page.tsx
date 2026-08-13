@@ -38,6 +38,7 @@ function ClaimSuccessInner() {
   const address = useEvmWalletAddress();
   const { trackEvent } = useAnalytics();
   const trackedRef = useRef(false);
+  const pageViewTrackedRef = useRef(false);
   const claimShownAt = useMemo(() => new Date(), []);
 
   const perkId = searchParams.get('perkId') ?? '';
@@ -68,6 +69,24 @@ function ClaimSuccessInner() {
     player?.username?.trim() ||
     null;
   const displayEmail = profile?.email?.trim() || player?.email?.trim() || null;
+
+  useEffect(() => {
+    if (!perk?.id || pageViewTrackedRef.current) return;
+
+    pageViewTrackedRef.current = true;
+    trackEvent(ANALYTICS_EVENTS.IN_PERSON_CLAIM_PAGE_VIEWED, {
+      reward_id: perk.id,
+      perk_id: perk.id,
+      perk_name: perk.title,
+      perk_type: 'in_person',
+      member_wallet_address: address || undefined,
+      partner: perk.location || undefined,
+      points_required: perk.points_threshold,
+      ...(Number.isFinite(claimCountToday)
+        ? { claim_count_today_for_member: claimCountToday }
+        : {}),
+    });
+  }, [perk, claimCountToday, address, trackEvent]);
 
   useEffect(() => {
     if (!perk?.id || trackedRef.current) return;
