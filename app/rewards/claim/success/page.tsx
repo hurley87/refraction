@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import PerkClaimShareModule from '@/components/rewards/perk-claim-share-module';
 import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
 import { SponsoredActivationHeroDetailsCard } from '@/components/sponsored-activation/sponsored-activation-hero-details-card';
 import { useAnalytics } from '@/hooks/useAnalytics';
@@ -241,28 +242,11 @@ function ClaimSuccessInner() {
             />
           ) : null}
         </div>
+
+        <PerkClaimShareModule perkTitle={perk.title} perkId={perk.id} />
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#171717]/10 bg-white/95 px-4 py-4 backdrop-blur-sm">
-        <div className="mx-auto w-full max-w-[420px] md:max-w-lg">
-          <button
-            type="button"
-            onClick={() => router.push('/rewards')}
-            className="label-large flex h-12 w-full items-center justify-between gap-2 rounded-md bg-[#171717] px-4 font-grotesk uppercase tracking-wide text-white transition-opacity hover:opacity-95"
-          >
-            <span className="min-w-0 truncate whitespace-nowrap text-left">
-              Back to rewards
-            </span>
-            <Image
-              src="/home/arrow-right.svg"
-              alt=""
-              width={21}
-              height={21}
-              className="invert"
-            />
-          </button>
-        </div>
-      </div>
+     
     </div>
   );
 }
