@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import PerkClaimShareModule from '@/components/rewards/perk-claim-share-module';
 import { SponsoredActivationDetailRow } from '@/components/sponsored-activation/sponsored-activation-detail-row';
 import { SponsoredActivationHeroDetailsCard } from '@/components/sponsored-activation/sponsored-activation-hero-details-card';
 import { useAnalytics } from '@/hooks/useAnalytics';
@@ -241,6 +242,8 @@ function ClaimSuccessInner() {
             />
           ) : null}
         </div>
+
+        <PerkClaimShareModule perkTitle={perk.title} perkId={perk.id} />
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#171717]/10 bg-white/95 px-4 py-4 backdrop-blur-sm">

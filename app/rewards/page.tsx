@@ -27,7 +27,7 @@ import {
   Suspense,
   type PointerEvent,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
@@ -112,6 +112,7 @@ const TimeLeft = ({
 function PerksPageInner() {
   const { login } = usePrivy();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const address = useEvmWalletAddress();
   const { trackEvent, trackPage } = useAnalytics();
 
@@ -266,6 +267,23 @@ function PerksPageInner() {
       points_required: perk.points_threshold,
     });
   };
+
+  const deepLinkPerkId = searchParams.get('perkId')?.trim() || '';
+  const deepLinkOpenedRef = useRef(false);
+
+  useEffect(() => {
+    if (deepLinkOpenedRef.current || !deepLinkPerkId || perksLoading) return;
+    const perk = perks.find((item) => item.id === deepLinkPerkId);
+    if (!perk) return;
+    deepLinkOpenedRef.current = true;
+    setSelectedPerk(perk);
+    setIsModalOpen(true);
+    trackEvent(ANALYTICS_EVENTS.REWARD_PAGE_VIEWED, {
+      reward_id: perk.id,
+      reward_type: perk.type,
+      points_required: perk.points_threshold,
+    });
+  }, [deepLinkPerkId, perks, perksLoading, trackEvent]);
 
   // Online: partner URL / code-as-URL. In-person: POST claim then success screen.
   const handleClaimClick = () => {
