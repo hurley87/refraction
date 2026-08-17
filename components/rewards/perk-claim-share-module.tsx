@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { buildPerkMemberShareUrl } from '@/lib/perks/member-share-url';
 
 const COPIED_LABEL_MS = 2000;
@@ -83,9 +84,24 @@ export default function PerkClaimShareModule({
       <button
         type="button"
         onClick={() => void handleShare()}
-        className="label-large flex h-12 w-full items-center justify-center bg-[#171717] px-4 font-grotesk uppercase tracking-wide text-white transition-opacity hover:opacity-95"
+        className="label-large flex h-12 w-full items-center justify-between gap-2 bg-[#171717] px-4 font-grotesk uppercase tracking-wide text-white transition-opacity hover:opacity-95"
       >
-        {copied ? 'Link copied' : 'Share this perk'}
+        <span className="min-w-0 truncate whitespace-nowrap text-left">
+          {copied ? 'Link copied' : 'Share this perk'}
+        </span>
+        <span
+          className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white"
+          aria-hidden
+        >
+          <Image
+            src="/right-arrow.svg" style={{ transform: 'rotate(-45deg)' }}
+       
+            alt=""
+            width={24}
+            height={24}
+            className="size-4 object-contain"
+          />
+        </span>
       </button>
     </section>
   );
