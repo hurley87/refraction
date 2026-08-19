@@ -19,8 +19,6 @@ type PublicProfileViewProps = {
 };
 
 const DASHBOARD_SHELL_STYLE = {
-  borderTopLeftRadius: '26px',
-  borderTopRightRadius: '26px',
   backgroundColor: '#FFF',
   backgroundImage: 'url(/profile/profile-card-other.png)',
   backgroundSize: '100% auto',
@@ -138,10 +136,10 @@ export function PublicProfileView({
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] font-grotesk">
+    <div className="min-h-screen bg-white font-grotesk md:bg-[#F5F5F5]">
       <div
         style={DASHBOARD_SHELL_STYLE}
-        className="mx-auto min-h-screen w-full max-w-[393px] overflow-x-hidden pt-2 pb-4"
+        className="mx-auto min-h-screen w-full overflow-x-hidden pt-2 pb-4 md:max-w-[393px] md:rounded-t-[26px]"
       >
         <div className="mx-auto w-full px-4">
           <div
