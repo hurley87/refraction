@@ -24,8 +24,6 @@ import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 
 /** Shell background: profile card art at top; solid fill below where the image ends */
 const DASHBOARD_SHELL_STYLE = {
-  borderTopLeftRadius: '26px',
-  borderTopRightRadius: '26px',
   backgroundColor: '#FFF',
   backgroundImage: 'url(/profile/profile-card.png)',
   backgroundSize: '100% auto',
@@ -85,10 +83,10 @@ export default function DashboardPage() {
   /** Avoid blank screen while Privy hydrates or during logout redirect */
   if (!ready) {
     return (
-      <div className="min-h-screen bg-[#F5F5F5] font-grotesk">
+      <div className="min-h-screen bg-white font-grotesk md:bg-[#F5F5F5]">
         <div
           style={DASHBOARD_SHELL_STYLE}
-          className="mx-auto min-h-screen w-full max-w-[393px] overflow-x-hidden pt-2 pb-4"
+          className="mx-auto min-h-screen w-full overflow-x-hidden pt-2 pb-4 md:max-w-[393px] md:rounded-t-[26px]"
         >
           <div className="mx-auto flex min-h-[50vh] w-full items-center justify-center px-4">
             <div
@@ -104,10 +102,10 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#F5F5F5] font-grotesk">
+      <div className="min-h-screen bg-white font-grotesk md:bg-[#F5F5F5]">
         <div
           style={DASHBOARD_SHELL_STYLE}
-          className="mx-auto min-h-screen w-full max-w-[393px] overflow-x-hidden pt-2 pb-4"
+          className="mx-auto min-h-screen w-full overflow-x-hidden pt-2 pb-4 md:max-w-[393px] md:rounded-t-[26px]"
         >
           <div className="mx-auto flex min-h-[50vh] w-full flex-col items-center justify-center gap-3 px-4 text-center">
             <p className="body-small text-white/90">Redirecting…</p>
@@ -129,10 +127,10 @@ export default function DashboardPage() {
       : null;
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] font-grotesk">
+    <div className="min-h-screen bg-white font-grotesk md:bg-[#F5F5F5]">
       <div
         style={DASHBOARD_SHELL_STYLE}
-        className="mx-auto min-h-screen w-full max-w-[393px] overflow-x-hidden pt-2 pb-4"
+        className="mx-auto min-h-screen w-full overflow-x-hidden pt-2 pb-4 md:max-w-[393px] md:rounded-t-[26px]"
       >
         <div className="mx-auto w-full px-4">
           {/* Navigation - Sticky Header */}
