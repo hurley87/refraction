@@ -173,6 +173,14 @@ describe('isIndexedDbNoiseError', () => {
     );
     expect(isIndexedDbNoiseError(error)).toBe(true);
   });
+
+  it('detects WebKit idb-keyval transaction-lifecycle messages (JAVASCRIPT-NEXTJS-1R)', () => {
+    const error = new DOMException(
+      'Attempt to get a record from database without an in-progress transaction',
+      'UnknownError'
+    );
+    expect(isIndexedDbNoiseError(error)).toBe(true);
+  });
 });
 
 describe('sentryBeforeSend', () => {
@@ -245,6 +253,27 @@ describe('sentryBeforeSend', () => {
           {
             type: 'Error',
             value: 'Error: UnknownError: Unable to open database file on disk',
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event, { originalException: idbError })).toBeNull();
+  });
+
+  it('returns null for UnknownError idb-keyval transaction-lifecycle IndexedDB noise (JAVASCRIPT-NEXTJS-1R)', () => {
+    const idbError = new DOMException(
+      'Attempt to get a record from database without an in-progress transaction',
+      'UnknownError'
+    );
+    const event = {
+      request: { url: 'https://www.irl.energy/dashboard' },
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value:
+              'Error: UnknownError: Attempt to get a record from database without an in-progress transaction',
           },
         ],
       },
