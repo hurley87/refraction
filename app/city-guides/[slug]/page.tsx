@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { CityGuideArticleNav } from '@/components/city-guides/city-guide-article-nav';
 import { CityGuideArticleDescription } from '@/components/city-guides/city-guide-article-description';
 import { CityGuideArticleHeroImage } from '@/components/city-guides/city-guide-article-hero-image';
-import { CityGuideLocationCard } from '@/components/city-guides/city-guide-location-card';
+import { CityGuideLocationsSection } from '@/components/city-guides/city-guide-locations-section';
 import { CityGuideTexturedImage } from '@/components/city-guides/city-guide-textured-image';
 import { CityGuideArticleMetaRow } from '@/components/city-guides/city-guide-article-meta-row';
 import { CityGuideArticleTitle } from '@/components/city-guides/city-guide-article-title';
@@ -36,40 +36,10 @@ export async function generateMetadata({
   });
 }
 
-function interactiveMapHrefForLocation(
-  returnPath: string,
-  placeId: string,
-  lat: number,
-  lng: number
-) {
-  const q = new URLSearchParams();
-  q.set('placeId', placeId);
-  q.set('lat', String(lat));
-  q.set('lng', String(lng));
-  q.set('mapCard', '1');
-  q.set('returnTo', returnPath);
-  return `/interactive-map?${q.toString()}`;
-}
-
 function interactiveMapLaunchHref(returnPath: string) {
   const q = new URLSearchParams();
   q.set('returnTo', returnPath);
   return `/interactive-map?${q.toString()}`;
-}
-
-function contributorLineForLocation(
-  placeId: string,
-  overrides: Map<string, string>,
-  sectionDefaultContributor: string | null,
-  guideContributors: readonly string[]
-): string {
-  const fromOverride = overrides.get(placeId)?.trim();
-  if (fromOverride) return fromOverride;
-  const sectionName = sectionDefaultContributor?.trim();
-  if (sectionName) return sectionName;
-  if (guideContributors.length === 0) return '';
-  if (guideContributors.length === 1) return guideContributors[0];
-  return guideContributors.join(', ');
 }
 
 export default async function CityGuideBySlugPage({
@@ -90,14 +60,8 @@ export default async function CityGuideBySlugPage({
     contributorNames,
     locationSections,
     locationContributorByPlaceId,
+    locationGate,
   } = data;
-  const nonEmptyLocationSections = locationSections.filter(
-    (s) => s.locations.length > 0
-  );
-  const totalVenueCount = nonEmptyLocationSections.reduce(
-    (n, s) => n + s.locations.length,
-    0
-  );
   const returnPath = `/city-guides/${row.slug}`;
   const mapHeading = 'In This Guide';
   const leadParagraphs = row.lead_paragraphs?.filter((p) => p.trim()) ?? [];
@@ -161,51 +125,17 @@ export default async function CityGuideBySlugPage({
             </section>
           ) : null}
 
-          {totalVenueCount === 0 ? (
-            <p className="body-medium mt-6 text-[#757575]">
-              No venues linked to this guide yet. Assign each contributor a
-              venue list in Admin → Guides, or add venues in Admin → Location
-              Lists.
-            </p>
-          ) : (
-            nonEmptyLocationSections.map((section, sectionIndex) => {
-              const isLastSection =
-                sectionIndex === nonEmptyLocationSections.length - 1;
-              return (
-                <div key={`venue-section-${sectionIndex}`}>
-                  {section.locations.map((entry, index) => {
-                    const loc = entry.location;
-                    const description =
-                      loc.description?.trim() || loc.address?.trim() || '—';
-                    const isLast =
-                      isLastSection && index === section.locations.length - 1;
-                    return (
-                      <CityGuideLocationCard
-                        key={entry.membership_id}
-                        name={loc.name}
-                        description={description}
-                        imageSrc={loc.coin_image_url ?? null}
-                        imageAlt={`${loc.name} — location photo`}
-                        contributorName={contributorLineForLocation(
-                          loc.place_id,
-                          locationContributorByPlaceId,
-                          section.defaultContributorName,
-                          contributorNames
-                        )}
-                        mapHref={interactiveMapHrefForLocation(
-                          returnPath,
-                          loc.place_id,
-                          loc.latitude,
-                          loc.longitude
-                        )}
-                        isLast={isLast}
-                      />
-                    );
-                  })}
-                </div>
-              );
-            })
-          )}
+          <CityGuideLocationsSection
+            slug={row.slug}
+            city={row.city}
+            returnPath={returnPath}
+            initialLocationSections={locationSections}
+            initialLocationContributorByPlaceId={Object.fromEntries(
+              locationContributorByPlaceId
+            )}
+            initialContributorNames={contributorNames}
+            locationGate={locationGate}
+          />
 
           <div className="box-border flex h-[92px] w-full max-w-[361px] flex-col gap-2  py-6 opacity-100">
             <Link

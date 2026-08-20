@@ -44,7 +44,10 @@ import {
 } from '@/components/ui/select';
 import { EditLocationDialog } from '@/components/admin/edit-location-dialog';
 import LocationSearch from '@/components/shared/location-search';
-import { LOCATION_OPTIONS_MAX_ROWS } from '@/lib/constants';
+import {
+  LOCATION_OPTIONS_MAX_ROWS,
+  MAX_LOCATION_DESCRIPTION_LENGTH,
+} from '@/lib/constants';
 import Image from 'next/image';
 import { deriveDisplayNameAndAddress } from '@/lib/utils/location-autofill';
 import type {
@@ -118,7 +121,7 @@ type CategoryOption = {
 const createLocationSchema = z.object({
   placeId: z.string().min(3, 'Place ID is required'),
   name: z.string().min(3, 'Name is required'),
-  description: z.string().max(500).optional(),
+  description: z.string().max(MAX_LOCATION_DESCRIPTION_LENGTH).optional(),
   latitude: z
     .string()
     .min(1, 'Latitude is required')
@@ -1778,8 +1781,8 @@ export default function AdminLocationListsPage() {
                     description: event.target.value,
                   }))
                 }
-                rows={2}
-                maxLength={500}
+                rows={6}
+                maxLength={MAX_LOCATION_DESCRIPTION_LENGTH}
               />
             </div>
 

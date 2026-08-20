@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { MAX_LOCATION_DESCRIPTION_LENGTH } from '@/lib/constants';
 import type { Location } from '@/lib/types';
 import { deriveDisplayNameAndAddress } from '@/lib/utils/location-autofill';
 
@@ -39,7 +40,7 @@ const editLocationSchema = z.object({
   placeId: z.string().min(3, 'Place ID is required'),
   name: z.string().min(3, 'Name is required'),
   address: z.string().max(500).optional(),
-  description: z.string().max(500).optional(),
+  description: z.string().max(MAX_LOCATION_DESCRIPTION_LENGTH).optional(),
   latitude: z
     .string()
     .min(1, 'Latitude is required')
@@ -336,8 +337,8 @@ export function EditLocationDialog({
                   description: event.target.value,
                 }))
               }
-              rows={2}
-              maxLength={500}
+              rows={6}
+              maxLength={MAX_LOCATION_DESCRIPTION_LENGTH}
             />
           </div>
 

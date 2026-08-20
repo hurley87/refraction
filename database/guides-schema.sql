@@ -32,6 +32,9 @@ CREATE TABLE IF NOT EXISTS guides (
   location_list_id UUID REFERENCES location_lists (id) ON DELETE SET NULL,
   map_image_url TEXT,
   map_image_alt TEXT,
+  -- City guide only: logged-out location gate (NULL count disables gating)
+  unauthenticated_visible_location_count INTEGER,
+  gated_location_teaser_summary TEXT,
 
   -- Editorial only: block stream (validated in app via Zod)
   blocks JSONB,
@@ -47,8 +50,19 @@ CREATE TABLE IF NOT EXISTS guides (
   featured_people TEXT[] NOT NULL DEFAULT '{}',
 
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT guides_unauthenticated_visible_location_count_non_negative CHECK (
+    unauthenticated_visible_location_count IS NULL
+    OR unauthenticated_visible_location_count >= 0
+  )
 );
+
+-- Columns added after the original table shipped; keeps this file safe to
+-- re-apply to databases created before those migrations.
+ALTER TABLE guides
+  ADD COLUMN IF NOT EXISTS unauthenticated_visible_location_count INTEGER,
+  ADD COLUMN IF NOT EXISTS gated_location_teaser_summary TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_guides_published_at ON guides (is_published, published_at DESC NULLS LAST);
 CREATE INDEX IF NOT EXISTS idx_guides_kind_published ON guides (kind, is_published);
@@ -75,3 +89,7 @@ CREATE TABLE IF NOT EXISTS guide_location_overrides (
 
 COMMENT ON TABLE guides IS 'CMS articles: city guides (venue lists) and editorials (block body).';
 COMMENT ON COLUMN guides.blocks IS 'Editorial only: JSON array of { type, ... } blocks; see lib/guides/block-schema.ts';
+COMMENT ON COLUMN guides.unauthenticated_visible_location_count IS
+  'City guide only: number of ordered locations visible before the logged-out member gate. NULL disables gating.';
+COMMENT ON COLUMN guides.gated_location_teaser_summary IS
+  'City guide only: admin-authored teaser for the hidden locations shown in the member gate.';

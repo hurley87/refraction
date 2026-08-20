@@ -41,6 +41,13 @@ const patchSchema = z.object({
   location_list_id: z.string().uuid().nullable().optional(),
   map_image_url: z.string().nullable().optional(),
   map_image_alt: z.string().nullable().optional(),
+  unauthenticated_visible_location_count: z
+    .number()
+    .int()
+    .min(0)
+    .nullable()
+    .optional(),
+  gated_location_teaser_summary: z.string().trim().nullable().optional(),
   blocks: z.unknown().optional(),
   is_published: z.boolean().optional(),
   published_at: z.union([z.string(), z.null()]).optional(),

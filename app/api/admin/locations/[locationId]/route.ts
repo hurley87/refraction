@@ -3,12 +3,17 @@ import { z } from 'zod';
 import { deleteLocationById, updateLocationById } from '@/lib/db/locations';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import { getAuthenticatedAdminEmail } from '@/lib/auth';
+import { MAX_LOCATION_DESCRIPTION_LENGTH } from '@/lib/constants';
 
 /** Admin PATCH body. `categoryId` is a `categories.id` UUID (venue category). */
 const updateLocationSchema = z.object({
   name: z.string().min(1).optional(),
   address: z.string().max(500).nullable().optional(),
-  description: z.string().max(500).nullable().optional(),
+  description: z
+    .string()
+    .max(MAX_LOCATION_DESCRIPTION_LENGTH)
+    .nullable()
+    .optional(),
   placeId: z.string().min(1).optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
