@@ -190,6 +190,41 @@ function indexedDbErrorName(reason: unknown): string {
 }
 
 /**
+ * Browsers throw SecurityError when Web Storage is blocked — Safari with cookies
+ * disabled, sandboxed cross-origin iframes, strict privacy modes. Mixpanel (pre-2.79),
+ * Privy, and direct localStorage access can surface this as unhandled rejections.
+ */
+export function isStorageSecurityError(reason: unknown): boolean {
+  const name = indexedDbErrorName(reason).toLowerCase();
+  const message = indexedDbErrorMessage(reason).toLowerCase();
+
+  if (name === 'securityerror') {
+    return (
+      message.includes('the operation is insecure') ||
+      message.includes('access is denied for this document') ||
+      message.includes('failed to read the') ||
+      message.includes('failed to execute')
+    );
+  }
+
+  return (
+    message.includes('the operation is insecure') ||
+    message.includes('access is denied for this document')
+  );
+}
+
+function shouldDropStorageSecurityError(
+  event: SentryEventLike,
+  hint?: EventHint
+): boolean {
+  if (isStorageSecurityError(hint?.originalException)) {
+    return true;
+  }
+
+  return isStorageSecurityError(eventMessage(event, hint));
+}
+
+/**
  * Wallet SDKs (Privy, WalletConnect) persist session state via idb-keyval.
  * Browsers — especially iOS Safari and in-app webviews — can close or delete
  * the IndexedDB database during navigation, tab discard, backgrounding, or when
@@ -456,6 +491,10 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   }
 
   if (shouldDropIndexedDbNoiseError(event, hint)) {
+    return null;
+  }
+
+  if (shouldDropStorageSecurityError(event, hint)) {
     return null;
   }
 

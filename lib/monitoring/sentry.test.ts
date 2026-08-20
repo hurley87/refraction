@@ -7,6 +7,7 @@ import {
   isExtensionStackOverflowNoise,
   isIndexedDbNoiseError,
   isPrivyWalletProviderOnNoise,
+  isStorageSecurityError,
   isWalletConnectSessionNoise,
   isWalletExtensionOnboardingNoise,
   isWebkitMessageHandlersNoise,
@@ -126,6 +127,33 @@ describe('isPrivyWalletProviderOnNoise', () => {
       )
     ).toBe(true);
     expect(isPrivyWalletProviderOnNoise('TypeError: fetch failed')).toBe(false);
+  });
+});
+
+describe('isStorageSecurityError', () => {
+  it('detects Safari blocked-storage SecurityError (JAVASCRIPT-NEXTJS-1Q)', () => {
+    const error = new DOMException(
+      'The operation is insecure.',
+      'SecurityError'
+    );
+    expect(isStorageSecurityError(error)).toBe(true);
+    expect(
+      isStorageSecurityError(
+        new Error('SecurityError: The operation is insecure.')
+      )
+    ).toBe(true);
+  });
+
+  it('detects denied localStorage access messages', () => {
+    expect(
+      isStorageSecurityError(
+        new DOMException(
+          "Failed to read the 'localStorage' property from 'Window': Access is denied for this document.",
+          'SecurityError'
+        )
+      )
+    ).toBe(true);
+    expect(isStorageSecurityError(new TypeError('fetch failed'))).toBe(false);
   });
 });
 
@@ -251,6 +279,28 @@ describe('sentryBeforeSend', () => {
     };
 
     expect(sentryBeforeSend(event, { originalException: idbError })).toBeNull();
+  });
+
+  it('returns null for blocked Web Storage SecurityError (JAVASCRIPT-NEXTJS-1Q)', () => {
+    const storageError = new DOMException(
+      'The operation is insecure.',
+      'SecurityError'
+    );
+    const event = {
+      request: { url: 'https://www.irl.energy/interactive-map' },
+      exception: {
+        values: [
+          {
+            type: 'SecurityError',
+            value: 'SecurityError: The operation is insecure.',
+          },
+        ],
+      },
+    };
+
+    expect(
+      sentryBeforeSend(event, { originalException: storageError })
+    ).toBeNull();
   });
 
   it('returns null for fetch AbortError noise', () => {

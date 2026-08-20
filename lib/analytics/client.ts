@@ -11,6 +11,20 @@ let _mixpanelInitialized = false;
 let _mixpanelInstance: typeof import('mixpanel-browser').default | null = null;
 let _initPromise: Promise<void> | null = null;
 
+/** Browsers with blocked storage (Safari cookie settings, sandboxed iframes) throw SecurityError. */
+export function resolveMixpanelPersistence(): 'localStorage' | 'cookie' {
+  if (typeof window === 'undefined') return 'cookie';
+
+  try {
+    const probeKey = '__irl_storage_probe__';
+    window.localStorage.setItem(probeKey, '1');
+    window.localStorage.removeItem(probeKey);
+    return 'localStorage';
+  } catch {
+    return 'cookie';
+  }
+}
+
 /**
  * Initialize Mixpanel client-side tracking
  * Should be called once when the app loads
@@ -36,7 +50,7 @@ export async function initMixpanel(token: string): Promise<void> {
     _mixpanelInstance.init(token, {
       debug: process.env.NODE_ENV === 'development',
       track_pageview: false, // We'll track pageviews manually via route changes for better control
-      persistence: 'localStorage', // Recommended by Mixpanel for web
+      persistence: resolveMixpanelPersistence(),
       autocapture: false, // Disabled - we track events manually for better control and privacy
     });
 
