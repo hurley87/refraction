@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { MAX_LOCATION_DESCRIPTION_LENGTH } from '@/lib/constants';
 import {
   formatLocationCategory,
   isSingleWordLocationCategory,
@@ -3365,7 +3366,7 @@ export default function InteractiveMap({
                           }))
                         }
                         className="min-h-0 w-full flex-1 resize-none border border-[#e8e8e8] bg-white p-3 body-medium tracking-[-0.2px] text-[#000000] placeholder:text-[#c0c0c0] focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-[#999]"
-                        maxLength={500}
+                        maxLength={MAX_LOCATION_DESCRIPTION_LENGTH}
                       />
                     </div>
 

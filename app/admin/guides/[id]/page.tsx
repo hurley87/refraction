@@ -266,6 +266,10 @@ export default function AdminGuideEditPage() {
   const [leadParagraphsText, setLeadParagraphsText] = useState('');
   const [mapUrl, setMapUrl] = useState('');
   const [mapAlt, setMapAlt] = useState('');
+  const [guestVisibleLocationCount, setGuestVisibleLocationCount] =
+    useState('');
+  const [gatedLocationTeaserSummary, setGatedLocationTeaserSummary] =
+    useState('');
   const [mapImageUploading, setMapImageUploading] = useState(false);
   const mapFileInputRef = useRef<HTMLInputElement>(null);
   const [heroImageUploading, setHeroImageUploading] = useState(false);
@@ -339,6 +343,10 @@ export default function AdminGuideEditPage() {
     setLeadParagraphsText((guide.lead_paragraphs ?? []).join('\n\n'));
     setMapUrl(guide.map_image_url ?? '');
     setMapAlt(guide.map_image_alt ?? '');
+    setGuestVisibleLocationCount(
+      guide.unauthenticated_visible_location_count?.toString() ?? ''
+    );
+    setGatedLocationTeaserSummary(guide.gated_location_teaser_summary ?? '');
     setCardPreview(guide.card_preview ?? '');
     setCardImageUrl(guide.card_image_url ?? '');
     setCardImageAlt(guide.card_image_alt ?? '');
@@ -436,15 +444,41 @@ export default function AdminGuideEditPage() {
       }
 
       if (guide.kind === 'city_guide') {
+        const visibleLocationCount =
+          guestVisibleLocationCount.trim() === ''
+            ? null
+            : Number(guestVisibleLocationCount);
+        if (
+          visibleLocationCount !== null &&
+          (!Number.isInteger(visibleLocationCount) || visibleLocationCount < 0)
+        ) {
+          throw new Error(
+            'Guest-visible location count must be a non-negative whole number'
+          );
+        }
+        if (
+          visibleLocationCount !== null &&
+          !gatedLocationTeaserSummary.trim()
+        ) {
+          throw new Error(
+            'Add a gated-location teaser summary when the member gate is enabled'
+          );
+        }
+
         body.location_list_id = null;
         body.map_image_url = mapUrl.trim() || null;
         body.map_image_alt = mapAlt.trim() || null;
+        body.unauthenticated_visible_location_count = visibleLocationCount;
+        body.gated_location_teaser_summary =
+          gatedLocationTeaserSummary.trim() || null;
         body.blocks = null;
       } else {
         body.blocks = blocks;
         body.location_list_id = null;
         body.map_image_url = null;
         body.map_image_alt = null;
+        body.unauthenticated_visible_location_count = null;
+        body.gated_location_teaser_summary = null;
       }
 
       const auth = await adminApiAuthHeaders(getAccessToken);
@@ -1313,6 +1347,43 @@ export default function AdminGuideEditPage() {
         <section className="space-y-4 rounded-lg border border-neutral-200 bg-white p-4">
           <h2 className="text-lg font-semibold">City guide map & venues</h2>
           <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="guide-guest-visible-location-count">
+                  Locations visible before member gate
+                </Label>
+                <Input
+                  id="guide-guest-visible-location-count"
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  value={guestVisibleLocationCount}
+                  onChange={(event) =>
+                    setGuestVisibleLocationCount(event.target.value)
+                  }
+                  placeholder="Leave blank to disable gating"
+                />
+                <p className="mt-1 text-xs text-neutral-500">
+                  Use 0 to gate every location. Leave blank to show the full
+                  guide to logged-out visitors.
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="guide-gated-location-teaser-summary">
+                  Gated location teaser summary
+                </Label>
+                <Textarea
+                  id="guide-gated-location-teaser-summary"
+                  value={gatedLocationTeaserSummary}
+                  onChange={(event) =>
+                    setGatedLocationTeaserSummary(event.target.value)
+                  }
+                  placeholder="Tease three of the hidden spots without naming every location…"
+                  rows={4}
+                />
+              </div>
+            </div>
             <div>
               <Label>Map image</Label>
               <p className="mb-2 text-xs text-neutral-500">

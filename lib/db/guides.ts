@@ -12,6 +12,12 @@ import {
 } from '@/lib/guides/contributor-instagram';
 import { cityGuideDisplayTitle } from '@/lib/guides/city-guide-title';
 import { guideReadHref } from '@/lib/guides/guide-paths';
+import {
+  buildCityGuideLocationGateMeta,
+  filterLocationContributorOverrides,
+  sliceCityGuideLocationSections,
+  type CityGuideLocationGateMeta,
+} from '@/lib/guides/city-guide-locations';
 import type { GuideKindDb } from '@/lib/guides/guide-paths';
 import type { GuideKind } from '@/components/city-guides/featured-editorial-hero-card';
 
@@ -70,6 +76,8 @@ export type GuideRow = {
   location_list_id: string | null;
   map_image_url: string | null;
   map_image_alt: string | null;
+  unauthenticated_visible_location_count: number | null;
+  gated_location_teaser_summary: string | null;
   blocks: unknown | null;
   is_published: boolean;
   published_at: string | null;
@@ -286,6 +294,8 @@ const GUIDE_LIST_COLUMNS = `
   location_list_id,
   map_image_url,
   map_image_alt,
+  unauthenticated_visible_location_count,
+  gated_location_teaser_summary,
   blocks,
   is_published,
   published_at,
@@ -487,11 +497,14 @@ export type CityGuidePageData = {
   contributorNames: string[];
   locationSections: CityGuideLocationSection[];
   locationContributorByPlaceId: Map<string, string>;
+  locationGate: CityGuideLocationGateMeta | null;
 };
 
 export type GetGuidePageOptions = {
   /** HMAC token from /api/admin/guides/:id/preview-link — required to view drafts on public routes. */
   previewToken?: string | null;
+  /** Public responses strip gated locations; authenticated APIs request full. */
+  locationAudience?: 'public' | 'full';
 };
 
 async function buildCityGuidePageDataFromRow(
@@ -587,6 +600,29 @@ async function buildCityGuidePageDataFromRow(
     contributorNames,
     locationSections,
     locationContributorByPlaceId,
+    locationGate: null,
+  };
+}
+
+function applyPublicLocationGate(data: CityGuidePageData): CityGuidePageData {
+  const sliced = sliceCityGuideLocationSections(
+    data.locationSections,
+    data.row.unauthenticated_visible_location_count
+  );
+  if (sliced.hiddenCount === 0) return data;
+
+  return {
+    ...data,
+    locationSections: sliced.sections,
+    locationContributorByPlaceId: filterLocationContributorOverrides(
+      data.locationContributorByPlaceId,
+      sliced.sections
+    ),
+    locationGate: buildCityGuideLocationGateMeta(
+      data.row,
+      data.contributorNames[0] ?? null,
+      sliced
+    ),
   };
 }
 
@@ -619,7 +655,9 @@ export async function getCityGuidePageData(
   }
   const row = rowOrTimeout;
   if (!row) return null;
-  return buildCityGuidePageDataFromRow(row);
+  const data = await buildCityGuidePageDataFromRow(row);
+  if (!data || options?.locationAudience === 'full') return data;
+  return applyPublicLocationGate(data);
 }
 
 export type EditorialPageData = {
@@ -816,6 +854,8 @@ export type UpdateGuidePayload = Partial<{
   location_list_id: string | null;
   map_image_url: string | null;
   map_image_alt: string | null;
+  unauthenticated_visible_location_count: number | null;
+  gated_location_teaser_summary: string | null;
   blocks: unknown | null;
   is_published: boolean;
   published_at: string | null;
