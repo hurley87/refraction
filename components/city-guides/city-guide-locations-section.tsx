@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
+import { useLogin, usePrivy } from '@privy-io/react-auth';
 import { CityGuideLocationCard } from '@/components/city-guides/city-guide-location-card';
 import {
   Dialog,
@@ -10,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useAnalytics } from '@/hooks/useAnalytics';
+import { ANALYTICS_EVENTS } from '@/lib/analytics/events';
 import { apiClientBearerGet } from '@/lib/api/privy-bearer-client';
 import type { CityGuideLocationSection } from '@/lib/db/guides';
 import type { CityGuideLocationGateMeta } from '@/lib/guides/city-guide-locations';
@@ -70,7 +72,8 @@ export function CityGuideLocationsSection({
   initialContributorNames,
   locationGate,
 }: CityGuideLocationsSectionProps) {
-  const { authenticated, ready, login, getAccessToken } = usePrivy();
+  const { authenticated, ready, getAccessToken } = usePrivy();
+  const { trackEvent } = useAnalytics();
   const [fullLocations, setFullLocations] =
     useState<FullLocationsResponse | null>(null);
   const [isUnlocking, setIsUnlocking] = useState(false);
@@ -79,6 +82,24 @@ export function CityGuideLocationsSection({
   const gateSentinelRef = useRef<HTMLDivElement | null>(null);
   /** Blocks re-opening until the sentinel has left the viewport again. */
   const gateArmedRef = useRef(true);
+  /** True after the gate CTA until Privy login completes (or is abandoned). */
+  const pendingSignupFromGateRef = useRef(false);
+  const gateViewTrackedForOpenRef = useRef(false);
+  const slugRef = useRef(slug);
+  slugRef.current = slug;
+  const trackEventRef = useRef(trackEvent);
+  trackEventRef.current = trackEvent;
+
+  const { login } = useLogin({
+    onComplete: ({ isNewUser }) => {
+      if (!pendingSignupFromGateRef.current) return;
+      pendingSignupFromGateRef.current = false;
+      if (!isNewUser) return;
+      trackEventRef.current(ANALYTICS_EVENTS.SIGNUP_FROM_GATE, {
+        guide_slug: slugRef.current,
+      });
+    },
+  });
 
   useEffect(() => {
     if (!ready || !authenticated || !locationGate || requestedRef.current) {
@@ -159,7 +180,23 @@ export function CityGuideLocationsSection({
     if (authenticated) setIsGateOpen(false);
   }, [authenticated]);
 
+  useEffect(() => {
+    if (!isGateOpen) {
+      gateViewTrackedForOpenRef.current = false;
+      return;
+    }
+    if (gateViewTrackedForOpenRef.current) return;
+    gateViewTrackedForOpenRef.current = true;
+    trackEvent(ANALYTICS_EVENTS.GATE_VIEWED, { guide_slug: slug });
+  }, [isGateOpen, slug, trackEvent]);
+
   const gateContributorName = locationGate?.primaryContributorName || 'IRL';
+
+  const handleGateSignupClick = () => {
+    pendingSignupFromGateRef.current = true;
+    trackEvent(ANALYTICS_EVENTS.GATE_SIGNUP_CLICKED, { guide_slug: slug });
+    login();
+  };
 
   return (
     <>
@@ -222,7 +259,7 @@ export function CityGuideLocationsSection({
                 {gateContributorName} • {locationGate.totalCount} RECCOS
               </p>
               <DialogTitle className="title3 uppercase text-white">
-                See all of {gateContributorName}&apos;s curated {city} list
+                THE REST OF THIS LIST IS MEMBERS ONLY
               </DialogTitle>
             </DialogHeader>
 
@@ -236,16 +273,15 @@ export function CityGuideLocationsSection({
                     : '.'}
                 </span>
                 <span className="body-medium text-[#DBDBDB]">
-                  Become an IRL member to access all City Guides, the IRL Map,
-                  plus exclusive member rewards. No payment or subscription
-                  required.
+                  IRL membership is free, and unlocks every city guide, the full
+                  map, and member rewards.
                 </span>
               </div>
             </DialogDescription>
 
             <button
               type="button"
-              onClick={() => login()}
+              onClick={handleGateSignupClick}
               disabled={isUnlocking}
               className="label-large flex h-11 w-full items-center justify-between bg-[var(--IRL-Yellow,#FFF200)] px-4 py-2 uppercase text-[#171717] transition-opacity hover:opacity-90 disabled:opacity-60"
             >

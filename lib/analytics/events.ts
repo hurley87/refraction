@@ -12,6 +12,13 @@ export const ANALYTICS_EVENTS = {
   // Interest
   ACCOUNT_CREATED: 'account_created',
 
+  /** City guide membership gate: modal became visible to a signed-out reader. */
+  GATE_VIEWED: 'gate_viewed',
+  /** City guide membership gate: reader tapped Become a Member. */
+  GATE_SIGNUP_CLICKED: 'gate_signup_clicked',
+  /** City guide membership gate: new Privy account created after the gate CTA. */
+  SIGNUP_FROM_GATE: 'signup_from_gate',
+
   // Conversion
   CHECKIN_COMPLETED: 'checkin_completed',
   USER_ACTIVE: 'user_active',

@@ -7,6 +7,8 @@ import type { CityGuideLocationSection } from '@/lib/db/guides';
 const mockLogin = vi.fn();
 const mockGetAccessToken = vi.fn();
 const mockBearerGet = vi.fn();
+const mockTrackEvent = vi.fn();
+let loginOnComplete: ((params: { isNewUser: boolean }) => void) | undefined;
 let authenticated = false;
 let ready = true;
 let setSentinelIntersecting: ((isIntersecting: boolean) => void) | null = null;
@@ -15,9 +17,18 @@ vi.mock('@privy-io/react-auth', () => ({
   usePrivy: () => ({
     authenticated,
     ready,
-    login: mockLogin,
     getAccessToken: mockGetAccessToken,
   }),
+  useLogin: (callbacks?: {
+    onComplete?: (params: { isNewUser: boolean }) => void;
+  }) => {
+    loginOnComplete = callbacks?.onComplete;
+    return { login: mockLogin };
+  },
+}));
+
+vi.mock('@/hooks/useAnalytics', () => ({
+  useAnalytics: () => ({ trackEvent: mockTrackEvent }),
 }));
 
 vi.mock('@/lib/api/privy-bearer-client', () => ({
@@ -72,6 +83,7 @@ describe('CityGuideLocationsSection', () => {
     authenticated = false;
     ready = true;
     setSentinelIntersecting = null;
+    loginOnComplete = undefined;
     mockGetAccessToken.mockResolvedValue('token');
 
     vi.stubGlobal(
@@ -111,9 +123,35 @@ describe('CityGuideLocationsSection', () => {
     expect(await screen.findByRole('dialog')).toBeTruthy();
     expect(screen.getByText('Alice • 3 RECCOS')).toBeTruthy();
     expect(screen.getByText(/Unlock the other 2/)).toBeTruthy();
+    expect(mockTrackEvent).toHaveBeenCalledWith('gate_viewed', {
+      guide_slug: 'berlin',
+    });
 
     await user.click(screen.getByRole('button', { name: 'BECOME A MEMBER' }));
     expect(mockLogin).toHaveBeenCalledOnce();
+    expect(mockTrackEvent).toHaveBeenCalledWith('gate_signup_clicked', {
+      guide_slug: 'berlin',
+    });
+  });
+
+  it('fires signup_from_gate only for new users after the gate CTA', async () => {
+    const user = userEvent.setup();
+    render(<CityGuideLocationsSection {...baseProps} />);
+
+    act(() => setSentinelIntersecting?.(true));
+    await user.click(screen.getByRole('button', { name: 'BECOME A MEMBER' }));
+
+    act(() => loginOnComplete?.({ isNewUser: false }));
+    expect(mockTrackEvent).not.toHaveBeenCalledWith(
+      'signup_from_gate',
+      expect.anything()
+    );
+
+    await user.click(screen.getByRole('button', { name: 'BECOME A MEMBER' }));
+    act(() => loginOnComplete?.({ isNewUser: true }));
+    expect(mockTrackEvent).toHaveBeenCalledWith('signup_from_gate', {
+      guide_slug: 'berlin',
+    });
   });
 
   it('re-opens the gate after dismissal once the sentinel is reached again', async () => {
