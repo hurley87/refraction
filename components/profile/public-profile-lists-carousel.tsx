@@ -6,9 +6,14 @@ import { DragScrollRow } from '@/components/dashboard/drag-scroll-row';
 import type { PublicPlayerListCard } from '@/lib/db/player-custom-lists';
 import type { LocationCategory } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { normalizeUsername } from '@/lib/username';
 
 type PublicProfileListsCarouselProps = {
   lists: PublicPlayerListCard[];
+  /** Profile username for canonical /map/{username}/{list-slug} links. */
+  profileUsername: string;
+  /** Profile path used for map back navigation (`returnTo`). */
+  returnPath: string;
   className?: string;
 };
 
@@ -25,9 +30,12 @@ function spotCategory(count: number): LocationCategory {
  */
 export default function PublicProfileListsCarousel({
   lists,
+  profileUsername,
+  returnPath,
   className,
 }: PublicProfileListsCarouselProps) {
   const router = useRouter();
+  const username = normalizeUsername(profileUsername);
 
   if (lists.length === 0) {
     return null;
@@ -57,13 +65,19 @@ export default function PublicProfileListsCarousel({
               placeId={place?.place_id}
               isExisting
               onAction={() => {
+                const query = new URLSearchParams({ returnTo: returnPath });
                 if (place) {
+                  query.set('lat', String(place.latitude));
+                  query.set('lng', String(place.longitude));
+                }
+                if (username) {
                   router.push(
-                    `/interactive-map?placeId=${encodeURIComponent(place.place_id)}&lat=${place.latitude}&lng=${place.longitude}&mapCard=1`
+                    `/map/${encodeURIComponent(username)}/${encodeURIComponent(list.slug)}?${query.toString()}`
                   );
                   return;
                 }
-                router.push('/interactive-map');
+                query.set('profileListId', list.id);
+                router.push(`/interactive-map?${query.toString()}`);
               }}
             />
           );

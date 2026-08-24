@@ -125,6 +125,7 @@ export type PlayerCustomList = {
   title: string;
   thumbnail_url?: string | null;
   is_private: boolean;
+  slug?: string | null;
   created_at: string;
 };
 

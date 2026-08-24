@@ -6,7 +6,7 @@ import {
   deleteCustomList,
   listCustomListsByPlayer,
   listCustomListsWithLocationsByPlayer,
-  updateCustomListPrivacy,
+  updateCustomList,
 } from '@/lib/db/player-custom-lists';
 import { apiSuccess, apiError, apiValidationError } from '@/lib/api/response';
 import {
@@ -103,14 +103,17 @@ export async function PATCH(request: NextRequest) {
       return apiValidationError(parsed.error);
     }
 
-    const { walletAddress, listId, isPrivate } = parsed.data;
+    const { walletAddress, listId, isPrivate, title } = parsed.data;
     const player = await getPlayerByWallet(walletAddress);
 
     if (!player?.id) {
       return apiError('Player not found', 404);
     }
 
-    const list = await updateCustomListPrivacy(player.id, listId, isPrivate);
+    const list = await updateCustomList(player.id, listId, {
+      ...(isPrivate !== undefined ? { isPrivate } : {}),
+      ...(title !== undefined ? { title } : {}),
+    });
 
     if (!list) {
       return apiError('List not found', 404);

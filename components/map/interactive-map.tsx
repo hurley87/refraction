@@ -165,6 +165,8 @@ interface InteractiveMapProps {
   guideReturnHref?: string | null;
   /** Dashboard deep link: open lists drawer focused on this player custom list UUID. */
   initialCustomListId?: string | null;
+  /** Public profile deep link: open read-only detail for another player's list UUID. */
+  initialPublicProfileListId?: string | null;
 }
 
 const SEARCH_NEARBY_MATCH_MAX_METERS = 120;
@@ -225,6 +227,7 @@ export default function InteractiveMap({
   deepLinkMapCardOnly = false,
   guideReturnHref = null,
   initialCustomListId = null,
+  initialPublicProfileListId = null,
 }: InteractiveMapProps) {
   const guideReturnPersistedRef = useRef<string | null>(null);
   if (guideReturnHref) {
@@ -1841,6 +1844,7 @@ export default function InteractiveMap({
           onToggleFavorite={handleToggleFavorite}
           isFavoritePending={isFavoritePending}
           initialCustomListId={initialCustomListId}
+          initialPublicProfileListId={initialPublicProfileListId}
         />
       </aside>
 
@@ -2051,6 +2055,7 @@ export default function InteractiveMap({
           onToggleFavorite={handleToggleFavorite}
           isFavoritePending={isFavoritePending}
           initialCustomListId={initialCustomListId}
+          initialPublicProfileListId={initialPublicProfileListId}
         />
       </div>
 
