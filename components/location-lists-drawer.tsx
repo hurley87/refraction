@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useMemo, useRef, type PointerEvent } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Loader2, Trash2 } from 'lucide-react';
 import type { LocationListWithCount, Location } from '@/lib/types';
 import MapCard from '@/components/map/map-card';
+import ProfileAvatar from '@/components/profile-avatar';
 import { MapCheckinAvatarStack } from '@/components/map/map-checkin-avatar-stack';
 import type { MapCheckinAvatarEntry } from '@/lib/map/checkin-avatar-utils';
 import {
@@ -26,7 +28,10 @@ import {
   useDeleteCustomList,
   useUpdateCustomListPrivacy,
 } from '@/hooks/usePlayerCustomLists';
+import { usePublicProfileList } from '@/hooks/usePublicProfileList';
 import { Switch } from '@/components/ui/switch';
+import type { PublicCustomListOwner } from '@/lib/db/player-custom-lists';
+import { profilePathForPlayer } from '@/lib/username';
 
 export type DrawerLocationSummary = Pick<
   Location,
@@ -62,6 +67,7 @@ const isDev = process.env.NODE_ENV === 'development';
 
 const FAVORITES_LIST_ID = '__favorites__';
 const CUSTOM_LIST_ID_PREFIX = '__custom__:';
+const PUBLIC_PROFILE_LIST_ID_PREFIX = '__profileList__:';
 
 /** Mobile bottom-sheet snap states. */
 export type LocationListsSheetSize = 'collapsed' | 'peek' | 'full';
@@ -69,6 +75,16 @@ export type LocationListsSheetSize = 'collapsed' | 'peek' | 'full';
 type SheetSize = LocationListsSheetSize;
 
 const SHEET_DRAG_THRESHOLD_PX = 56;
+
+function publicListOwnerLabel(owner: PublicCustomListOwner): string {
+  const username = owner.username?.trim();
+  if (username) {
+    return `@${username.replace(/^@/, '')}'s list`;
+  }
+  const name = owner.name?.trim();
+  if (name) return `${name}'s list`;
+  return "IRL's list";
+}
 
 export interface LocationListsSheetLayout {
   size: LocationListsSheetSize;
@@ -97,6 +113,11 @@ interface LocationListsDrawerProps {
    * `player_custom_lists.id`). Applied once the list is loaded.
    */
   initialCustomListId?: string | null;
+  /**
+   * Public profile deep link: open read-only detail for this non-private list
+   * (raw UUID). Not shown in the drawer grid outside this session.
+   */
+  initialPublicProfileListId?: string | null;
 }
 
 export default function LocationListsDrawer({
@@ -113,6 +134,7 @@ export default function LocationListsDrawer({
   onToggleFavorite,
   isFavoritePending = false,
   initialCustomListId = null,
+  initialPublicProfileListId = null,
 }: LocationListsDrawerProps) {
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(false);
@@ -126,6 +148,7 @@ export default function LocationListsDrawer({
   const prevHasVisibleLocationsRef = useRef(false);
   const prevCollapseForMapCardRef = useRef(collapseForMapCard);
   const initialCustomListAppliedRef = useRef(false);
+  const initialPublicProfileListAppliedRef = useRef(false);
   const sheetPanelRef = useRef<HTMLDivElement | null>(null);
   const sheetDragRef = useRef<{
     pointerId: number;
@@ -162,6 +185,8 @@ export default function LocationListsDrawer({
 
   const { data: customLists = [], isFetched: isCustomListsFetched } =
     usePlayerCustomListLocations(fetchEnabled ? walletAddress : undefined);
+  const { data: publicProfileList, isFetched: isPublicProfileListFetched } =
+    usePublicProfileList(initialPublicProfileListId ?? undefined);
   const { mutate: deleteCustomList, isPending: isDeletingList } =
     useDeleteCustomList(walletAddress);
   const { mutate: updateListPrivacy, isPending: isUpdatingPrivacy } =
@@ -203,6 +228,37 @@ export default function LocationListsDrawer({
   );
 
   const hasCustomListLocations = populatedCustomLists.length > 0;
+
+  /** Read-only list injected when arriving from a public profile carousel. */
+  const publicProfileDrawerList = useMemo(() => {
+    if (!publicProfileList) return null;
+    return {
+      id: `${PUBLIC_PROFILE_LIST_ID_PREFIX}${publicProfileList.id}`,
+      title: publicProfileList.title,
+      owner: publicProfileList.owner,
+      locations: publicProfileList.locations
+        .filter((location) => location.id != null)
+        .map((location) => ({
+          membershipId: location.id as number,
+          id: location.id,
+          name: location.name,
+          address: location.address,
+          description: location.description,
+          place_id: location.place_id,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          context: location.context,
+          category: location.category,
+          points_value: location.points_value,
+          coin_image_url: location.coin_image_url,
+          coin_image_thumb_url: location.coin_image_thumb_url,
+          event_url: location.event_url,
+        })),
+    };
+  }, [publicProfileList]);
+
+  const hasPublicProfileListLocations =
+    (publicProfileDrawerList?.locations.length ?? 0) > 0;
 
   useEffect(() => {
     if (!fetchEnabled || hasFetchedLists) return;
@@ -326,6 +382,15 @@ export default function LocationListsDrawer({
     [customDrawerLists, selectedListId]
   );
 
+  const selectedPublicProfileList = useMemo(
+    () =>
+      selectedListId?.startsWith(PUBLIC_PROFILE_LIST_ID_PREFIX) &&
+      publicProfileDrawerList?.id === selectedListId
+        ? publicProfileDrawerList
+        : null,
+    [publicProfileDrawerList, selectedListId]
+  );
+
   // If the expanded custom list disappears (deleted / resynced), leave the
   // detail view and close any pending delete confirmation.
   useEffect(() => {
@@ -361,6 +426,31 @@ export default function LocationListsDrawer({
     layout,
   ]);
 
+  // Deep link from public profile: open read-only list detail once it loads
+  useEffect(() => {
+    if (initialPublicProfileListAppliedRef.current) return;
+    const rawId = initialPublicProfileListId?.trim();
+    if (!rawId || collapseForMapCard) return;
+    if (!isPublicProfileListFetched || !publicProfileDrawerList) return;
+    if (
+      publicProfileDrawerList.id !== `${PUBLIC_PROFILE_LIST_ID_PREFIX}${rawId}`
+    ) {
+      return;
+    }
+
+    initialPublicProfileListAppliedRef.current = true;
+    setSelectedListId(publicProfileDrawerList.id);
+    if (layout === 'sheet') {
+      setSheetSize('peek');
+    }
+  }, [
+    initialPublicProfileListId,
+    publicProfileDrawerList,
+    isPublicProfileListFetched,
+    collapseForMapCard,
+    layout,
+  ]);
+
   const hasVisibleFavorites = favoriteDrawerLocations.length > 0;
   const hasVisibleCustomLists = populatedCustomLists.length > 0;
 
@@ -378,6 +468,15 @@ export default function LocationListsDrawer({
 
     if (layout === 'sidebar' && selectedCustomList) {
       for (const location of selectedCustomList.locations) {
+        if (location.place_id) {
+          ids.add(location.place_id);
+        }
+      }
+      return [...ids];
+    }
+
+    if (layout === 'sidebar' && selectedPublicProfileList) {
+      for (const location of selectedPublicProfileList.locations) {
         if (location.place_id) {
           ids.add(location.place_id);
         }
@@ -420,6 +519,7 @@ export default function LocationListsDrawer({
     layout,
     selectedList,
     selectedCustomList,
+    selectedPublicProfileList,
     selectedListId,
     listsWithSpotsInView,
     favoriteDrawerLocations,
@@ -482,7 +582,6 @@ export default function LocationListsDrawer({
   useEffect(() => {
     if (collapseForMapCard) {
       setSheetSize('collapsed');
-      setSelectedListId(null);
     }
   }, [collapseForMapCard]);
 
@@ -493,11 +592,24 @@ export default function LocationListsDrawer({
 
   useEffect(() => {
     const wasCollapsedForMap = prevCollapseForMapCardRef.current;
-    if (wasCollapsedForMap && !collapseForMapCard && hasVisibleLocations) {
+    const canRestoreSheet =
+      selectedListId !== null ||
+      hasVisibleLocations ||
+      hasVisibleFavorites ||
+      hasVisibleCustomLists ||
+      hasPublicProfileListLocations;
+    if (wasCollapsedForMap && !collapseForMapCard && canRestoreSheet) {
       setSheetSize('peek');
     }
     prevCollapseForMapCardRef.current = collapseForMapCard;
-  }, [collapseForMapCard, hasVisibleLocations]);
+  }, [
+    collapseForMapCard,
+    selectedListId,
+    hasVisibleLocations,
+    hasVisibleFavorites,
+    hasVisibleCustomLists,
+    hasPublicProfileListLocations,
+  ]);
 
   useEffect(() => {
     if (
@@ -556,8 +668,20 @@ export default function LocationListsDrawer({
     };
   }, [layout, onSheetLayoutChange]);
 
+  const isPublicProfileListDeepLink = Boolean(
+    initialPublicProfileListId?.trim()
+  );
+
   if (isLoadingLists || !hasFetchedLists) {
-    return null;
+    if (!isPublicProfileListDeepLink) {
+      return null;
+    }
+    if (!isPublicProfileListFetched) {
+      return null;
+    }
+    if (!hasPublicProfileListLocations) {
+      return null;
+    }
   }
 
   const hasFavorites = favoriteDrawerLocations.length > 0;
@@ -566,7 +690,8 @@ export default function LocationListsDrawer({
   if (
     !hasAnyListLocations &&
     !hasCustomListLocations &&
-    (!hasFavorites || !favoritesReady)
+    (!hasFavorites || !favoritesReady) &&
+    !hasPublicProfileListLocations
   ) {
     return null;
   }
@@ -575,9 +700,11 @@ export default function LocationListsDrawer({
     selectedListId !== null &&
     (selectedListId === FAVORITES_LIST_ID
       ? hasVisibleFavorites
-      : selectedCustomList !== null
-        ? selectedCustomList.locations.length > 0
-        : selectedList !== null && (selectedList.locations?.length ?? 0) > 0);
+      : selectedPublicProfileList !== null
+        ? selectedPublicProfileList.locations.length > 0
+        : selectedCustomList !== null
+          ? selectedCustomList.locations.length > 0
+          : selectedList !== null && (selectedList.locations?.length ?? 0) > 0);
 
   if (
     !hasVisibleLocations &&
@@ -597,9 +724,13 @@ export default function LocationListsDrawer({
     selectedListId === FAVORITES_LIST_ID && hasVisibleFavorites;
   const isCustomListDetailView =
     selectedCustomList !== null && selectedCustomList.locations.length > 0;
+  const isPublicProfileListDetailView =
+    selectedPublicProfileList !== null &&
+    selectedPublicProfileList.locations.length > 0;
   const isListDetailView =
     isFavoritesDetailView ||
     isCustomListDetailView ||
+    isPublicProfileListDetailView ||
     (selectedList !== null && (selectedList.locations?.length ?? 0) > 0);
 
   const snapSheetFromDrag = (startSize: SheetSize, deltaY: number) => {
@@ -779,15 +910,52 @@ export default function LocationListsDrawer({
             </svg>
           </button>
           <div className="flex min-w-0 flex-col gap-1">
-            <span className="label-medium flex items-center gap-[var(--sds-size-space-200)] rounded uppercase text-[#757575]">
-              MAP LIST
-            </span>
-            <h2 className="title3 min-w-0  text-[#171717] mapHd:text-[42px] mapHd:font-medium mapHd:leading-[40px]">
+            {isPublicProfileListDetailView && selectedPublicProfileList ? (
+              <Link
+                href={profilePathForPlayer({
+                  username: selectedPublicProfileList.owner.username,
+                  wallet_address:
+                    selectedPublicProfileList.owner.wallet_address,
+                })}
+                className="label-medium flex min-w-0 items-center gap-[var(--sds-size-space-200)] uppercase text-[#757575] transition-opacity hover:opacity-80"
+                aria-label={`View ${publicListOwnerLabel(selectedPublicProfileList.owner)}`}
+              >
+                <ProfileAvatar
+                  profilePictureUrl={
+                    selectedPublicProfileList.owner.profile_picture_url ??
+                    undefined
+                  }
+                  name={selectedPublicProfileList.owner.name ?? undefined}
+                  username={
+                    selectedPublicProfileList.owner.username ?? undefined
+                  }
+                  twitterHandle={
+                    selectedPublicProfileList.owner.twitter_handle ?? undefined
+                  }
+                  size={24}
+                />
+                <span className="min-w-0 truncate">
+                  {publicListOwnerLabel(selectedPublicProfileList.owner)}
+                </span>
+              </Link>
+            ) : (
+              <span className="label-medium flex items-center gap-[var(--sds-size-space-200)] rounded uppercase text-[#757575]">
+                MAP LIST
+              </span>
+            )}
+            <h2
+              className={cn(
+                'title3 min-w-0 text-[#171717] mapHd:text-[42px] mapHd:font-medium mapHd:leading-[40px]',
+                isPublicProfileListDetailView && 'uppercase'
+              )}
+            >
               {isFavoritesDetailView
                 ? 'Your Favorites'
-                : isCustomListDetailView
-                  ? selectedCustomList?.title
-                  : selectedList?.title}
+                : isPublicProfileListDetailView
+                  ? selectedPublicProfileList?.title
+                  : isCustomListDetailView
+                    ? selectedCustomList?.title
+                    : selectedList?.title}
             </h2>
           </div>
         </div>
@@ -835,9 +1003,11 @@ export default function LocationListsDrawer({
                 <div className="flex w-full flex-wrap gap-2">
                   {(isFavoritesDetailView
                     ? favoriteDrawerLocations
-                    : isCustomListDetailView
-                      ? (selectedCustomList?.locations ?? [])
-                      : (selectedList?.locations ?? [])
+                    : isPublicProfileListDetailView
+                      ? (selectedPublicProfileList?.locations ?? [])
+                      : isCustomListDetailView
+                        ? (selectedCustomList?.locations ?? [])
+                        : (selectedList?.locations ?? [])
                   ).map((location) => renderDrawerTile(location))}
                 </div>
 

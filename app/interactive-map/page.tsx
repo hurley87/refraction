@@ -16,6 +16,8 @@ function InteractiveMapContent() {
   const mapCardOnlyDeepLink = searchParams.get('mapCard') === '1';
   /** Dashboard: open lists drawer focused on this player custom list. */
   const customListId = searchParams.get('listId');
+  /** Public profile: open read-only drawer detail for another player's list. */
+  const publicProfileListId = searchParams.get('profileListId');
   const returnToRaw = searchParams.get('returnTo');
   const guideReturnHref = useMemo(
     () => sanitizeInternalReturnPath(returnToRaw),
@@ -56,6 +58,7 @@ function InteractiveMapContent() {
           deepLinkMapCardOnly={mapCardOnlyDeepLink}
           guideReturnHref={guideReturnHref}
           initialCustomListId={customListId}
+          initialPublicProfileListId={publicProfileListId}
         />
       </div>
     </AuthWrapper>

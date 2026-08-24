@@ -338,6 +338,8 @@ export function PublicProfileView({
               {lists.length > 0 ? (
                 <PublicProfileListsCarousel
                   lists={lists}
+                  profileUsername={profile.username ?? ''}
+                  returnPath={profilePathForPlayer(profile)}
                   className="-mx-4 px-4"
                 />
               ) : null}

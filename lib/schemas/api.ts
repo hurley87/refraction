@@ -189,11 +189,19 @@ export const playerCustomListAddLocationSchema = z.object({
 /**
  * Schema for updating a player custom list (PATCH)
  */
-export const playerCustomListUpdateSchema = z.object({
-  walletAddress: walletAddressSchema,
-  listId: z.string().uuid(),
-  isPrivate: z.boolean(),
-});
+export const playerCustomListUpdateSchema = z
+  .object({
+    walletAddress: walletAddressSchema,
+    listId: z.string().uuid(),
+    isPrivate: z.boolean().optional(),
+    title: z.string().trim().min(1).max(80).optional(),
+  })
+  .refine(
+    (value) => value.isPrivate !== undefined || value.title !== undefined,
+    {
+      message: 'Provide isPrivate and/or title to update',
+    }
+  );
 
 /**
  * Schema for deleting a player custom list (DELETE)
