@@ -18,10 +18,13 @@ export function publicListPageTitle(
   return `${list.title} by ${ownerUsernameForDisplay(list.owner)} on IRL`;
 }
 
-/** Meta description with list name, place count, and first three spot names. */
+/** Meta description with list blurb, or name, place count, and first three spots. */
 export function publicListPageDescription(
   list: PublicCustomListWithLocations
 ): string {
+  const customDescription = list.description?.trim();
+  if (customDescription) return customDescription;
+
   const count = list.locations.length;
   const spotWord = count === 1 ? 'spot' : 'spots';
   const previewNames = list.locations
@@ -33,12 +36,12 @@ export function publicListPageDescription(
     return `${list.title} — ${count} ${spotWord} on IRL.`;
   }
 
-  const joined =
-    previewNames.length === 1
-      ? previewNames[0]
-      : previewNames.length === 2
-        ? `${previewNames[0]} and ${previewNames[1]}`
-        : `${previewNames[0]}, ${previewNames[1]}, and ${previewNames[2]}`;
+  let joined = previewNames[0];
+  if (previewNames.length === 2) {
+    joined = `${previewNames[0]} and ${previewNames[1]}`;
+  } else if (previewNames.length >= 3) {
+    joined = `${previewNames[0]}, ${previewNames[1]}, and ${previewNames[2]}`;
+  }
 
   return `${list.title} — ${count} ${spotWord} including ${joined}.`;
 }
@@ -61,6 +64,9 @@ export function publicListItemListJsonLd(
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: list.title,
+    ...(list.description?.trim()
+      ? { description: list.description.trim() }
+      : {}),
     numberOfItems: list.locations.length,
     url: pageUrl,
     itemListElement: list.locations.map((location, index) => ({

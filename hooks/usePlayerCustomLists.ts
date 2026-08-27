@@ -10,6 +10,7 @@ export type PlayerCustomListWithLocations = PlayerCustomListWithCount & {
 interface CreateListInput {
   walletAddress: string;
   title: string;
+  description?: string | null;
   thumbnailUrl?: string | null;
   isPrivate: boolean;
 }
@@ -100,6 +101,9 @@ export function useCreateCustomList(walletAddress: string | undefined) {
           isPrivate: input.isPrivate,
           // Omit empty/invalid URLs so Zod `.url()` does not reject the create.
           ...(input.thumbnailUrl ? { thumbnailUrl: input.thumbnailUrl } : {}),
+          ...(input.description?.trim()
+            ? { description: input.description.trim() }
+            : {}),
         }),
       });
       const result = await response.json();
@@ -189,6 +193,50 @@ export function useUpdateCustomListPrivacy(walletAddress: string | undefined) {
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to update list');
+    },
+  });
+}
+
+/** Add or replace the description on one of the player's custom lists. */
+export function useUpdateCustomListDescription(
+  walletAddress: string | undefined
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: {
+      listId: string;
+      description: string | null;
+    }) => {
+      const response = await fetch('/api/player-lists', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress,
+          listId: input.listId,
+          description: input.description ?? '',
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update description');
+      }
+      return (result.data ?? result) as {
+        list: { id: string; description: string | null };
+      };
+    },
+    onSuccess: (_data, variables) => {
+      toast.success(
+        variables.description?.trim()
+          ? 'Description updated'
+          : 'Description removed'
+      );
+      queryClient.invalidateQueries({
+        queryKey: ['player-custom-lists', walletAddress],
+      });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update description');
     },
   });
 }

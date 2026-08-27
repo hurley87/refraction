@@ -17,7 +17,8 @@ export const contentType = 'image/png';
 const IRL_BLACK = '#171717';
 const IRL_YELLOW = '#FFF200';
 const IRL_GRAY = '#757575';
-const CANVAS_INSET = 44;
+/** Small margin so the card's shadow has room without a wide gray border. */
+const CANVAS_INSET = 14;
 const CARD_RADIUS = 44;
 const CARD_PADDING = 28;
 const CARD_HEIGHT = size.height - CANVAS_INSET * 2;
@@ -134,7 +135,7 @@ function ShareCard({
           height: '100%',
           borderRadius: CARD_RADIUS,
           backgroundColor: '#ffffff',
-          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.18)',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.10)',
           padding: CARD_PADDING,
         }}
       >

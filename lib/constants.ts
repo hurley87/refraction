@@ -21,6 +21,9 @@ export const MAX_VARCHAR_LENGTH = 255;
 /** Matches `locations.description VARCHAR(500)` — see `database/add-description-to-locations.sql`. */
 export const MAX_LOCATION_DESCRIPTION_LENGTH = 500;
 
+/** Matches `player_custom_lists.description VARCHAR(500)`. */
+export const MAX_PLAYER_LIST_DESCRIPTION_LENGTH = 500;
+
 // Location system constants
 export const MAX_LOCATIONS_PER_WEEK = 300;
 

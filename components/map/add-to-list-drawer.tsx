@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { formatLocationCategory } from '@/lib/utils/format-location-category';
 import type { LocationCategory } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { MAX_PLAYER_LIST_DESCRIPTION_LENGTH } from '@/lib/constants';
 import {
   usePlayerCustomLists,
   useCreateCustomList,
@@ -105,6 +106,7 @@ export default function AddToListDrawer({
 
   // Create-list form state
   const [newListTitle, setNewListTitle] = useState('');
+  const [newListDescription, setNewListDescription] = useState('');
   const [newListIsPrivate, setNewListIsPrivate] = useState(true);
   const [newListThumbnailUrl, setNewListThumbnailUrl] = useState<string | null>(
     null
@@ -191,11 +193,13 @@ export default function AddToListDrawer({
       const result = await createList({
         walletAddress,
         title,
+        description: newListDescription.trim() || null,
         thumbnailUrl: newListThumbnailUrl,
         isPrivate: newListIsPrivate,
       });
       const createdId = result?.list?.id as string | undefined;
       setNewListTitle('');
+      setNewListDescription('');
       setNewListThumbnailUrl(null);
       setNewListIsPrivate(true);
       if (createdId) {
@@ -306,6 +310,20 @@ export default function AddToListDrawer({
                 placeholder="My favorite spots"
                 autoFocus
                 className="mt-1 w-full rounded-none border border-neutral-300 bg-white px-3 py-2 text-sm text-[#171717] focus:border-[var(--Borders-Heavy-Border,#454545)] focus:shadow-[0_0_0_2px_#FFE600] focus:outline-none"
+              />
+            </label>
+
+            <label className="block">
+              <span className="label-small uppercase tracking-wide text-[#757575]">
+                Description
+              </span>
+              <textarea
+                value={newListDescription}
+                maxLength={MAX_PLAYER_LIST_DESCRIPTION_LENGTH}
+                onChange={(e) => setNewListDescription(e.target.value)}
+                placeholder="What is this collection about?"
+                rows={3}
+                className="mt-1 w-full resize-none rounded-none border border-neutral-300 bg-white px-3 py-2 text-sm text-[#171717] focus:border-[var(--Borders-Heavy-Border,#454545)] focus:shadow-[0_0_0_2px_#FFE600] focus:outline-none"
               />
             </label>
 
