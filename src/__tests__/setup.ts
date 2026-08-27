@@ -119,6 +119,7 @@ vi.mock('@privy-io/react-auth', () => ({
     logout: vi.fn(),
     ready: true,
   })),
+  useModalStatus: vi.fn(() => ({ isOpen: false })),
   PrivyProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
