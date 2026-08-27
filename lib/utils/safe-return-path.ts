@@ -1,8 +1,10 @@
 /**
  * Allow only same-app relative paths for `returnTo`-style query params (open-redirect safe).
+ *
+ * Accepts `undefined` so route `searchParams` can be passed straight through.
  */
 export function sanitizeInternalReturnPath(
-  value: string | null
+  value: string | null | undefined
 ): string | null {
   if (value == null) return null;
   let path: string;

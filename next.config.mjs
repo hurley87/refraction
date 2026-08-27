@@ -54,6 +54,18 @@ const nextConfig = {
       "@stellar/stellar-base",
       "@stellar/stellar-sdk",
     ],
+    outputFileTracingIncludes: {
+      "/map/[username]/[listSlug]/opengraph-image": [
+        "./public/fonts/Special Gothic Expanded Regular.otf",
+        "./public/fonts/SpecialSemi-ExpandedMedium.otf",
+        "./public/irl-svg/irl-logo-new.svg",
+      ],
+      "/map/[username]/[listSlug]/twitter-image": [
+        "./public/fonts/Special Gothic Expanded Regular.otf",
+        "./public/fonts/SpecialSemi-ExpandedMedium.otf",
+        "./public/irl-svg/irl-logo-new.svg",
+      ],
+    },
   },
   images: {
     remotePatterns: [

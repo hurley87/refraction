@@ -6,6 +6,7 @@ import {
   resolvePublicListShareLookup,
   type PublicCustomListWithLocations,
 } from '@/lib/db/player-custom-lists';
+import { resolvePublicListForSharePage } from '@/lib/player-lists/public-list-og-card';
 import {
   publicListItemListJsonLd,
   publicListPageDescription,
@@ -36,21 +37,6 @@ const NOT_FOUND_METADATA: Metadata = {
   robots: { index: false, follow: false },
 };
 
-async function resolvePublicListForPage(
-  username: string,
-  listSlug: string
-): Promise<PublicCustomListWithLocations | null> {
-  const resolved = await resolvePublicListShareLookup(username, listSlug);
-  if (!resolved) return null;
-  if (resolved.kind === 'list') return resolved.list;
-
-  const canonical = await resolvePublicListShareLookup(
-    resolved.username,
-    resolved.listSlug
-  );
-  return canonical?.kind === 'list' ? canonical.list : null;
-}
-
 function buildSharedListMetadata(
   list: PublicCustomListWithLocations
 ): Metadata {
@@ -60,11 +46,27 @@ function buildSharedListMetadata(
       ? buildPublicListShareUrl({ username, listSlug: list.slug })
       : undefined;
 
+  const title = publicListPageTitle(list);
+  const description = publicListPageDescription(list);
+
+  // The root layout defines `openGraph`, so these must be set explicitly or the
+  // unfurled preview inherits the site-wide title and description.
   return {
-    title: publicListPageTitle(list),
-    description: publicListPageDescription(list),
+    title,
+    description,
     ...(canonical ? { alternates: { canonical } } : {}),
     robots: { index: true, follow: true },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      ...(canonical ? { url: canonical } : {}),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
   };
 }
 
@@ -78,7 +80,7 @@ export async function generateMetadata({
     return NOT_FOUND_METADATA;
   }
 
-  const list = await resolvePublicListForPage(username, listSlug);
+  const list = await resolvePublicListForSharePage(username, listSlug);
   if (!list) return NOT_FOUND_METADATA;
 
   return buildSharedListMetadata(list);

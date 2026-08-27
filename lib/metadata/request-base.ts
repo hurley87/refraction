@@ -132,7 +132,7 @@ function socialPreviewImageType(url: string): string | undefined {
  * iMessage / LinkedIn previews (they do not render WebP `og:image`). Returns
  * `null` for non-Supabase URLs.
  */
-function supabaseRenderImageUrl(absolute: string): string | null {
+export function supabaseRenderImageUrl(absolute: string): string | null {
   if (!absolute.includes(SUPABASE_OBJECT_SEGMENT)) return null;
   const url = new URL(
     absolute.replace(SUPABASE_OBJECT_SEGMENT, SUPABASE_RENDER_SEGMENT)
