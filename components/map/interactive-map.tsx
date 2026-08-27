@@ -242,6 +242,11 @@ export default function InteractiveMap({
   const { mutate: toggleFavorite, isPending: isFavoritePending } =
     useToggleFavorite(walletAddress);
   const [userUsername, setUserUsername] = useState<string | null>(null);
+  const [userProfileSummary, setUserProfileSummary] = useState<{
+    name: string | null;
+    profilePictureUrl: string | null;
+    twitterHandle: string | null;
+  } | null>(null);
 
   const [viewState, setViewState] = useState({
     longitude: initialLongitude ?? -73.9442,
@@ -405,6 +410,8 @@ export default function InteractiveMap({
   useEffect(() => {
     const fetchUserData = async () => {
       if (!walletAddress) {
+        setUserUsername(null);
+        setUserProfileSummary(null);
         setNeedsLocationPrompt(false);
         setShowLocationPrompt(false);
         return;
@@ -430,6 +437,11 @@ export default function InteractiveMap({
         if (profileRes.ok) {
           const profileData = await profileRes.json();
           const profile = profileData.data || profileData;
+          setUserProfileSummary({
+            name: profile?.name ?? null,
+            profilePictureUrl: profile?.profile_picture_url ?? null,
+            twitterHandle: profile?.twitter_handle ?? null,
+          });
           const missingGeo = !profile?.country_id || !profile?.geo_city_id;
           setNeedsLocationPrompt(missingGeo);
         }
@@ -1845,6 +1857,10 @@ export default function InteractiveMap({
           isFavoritePending={isFavoritePending}
           initialCustomListId={initialCustomListId}
           initialPublicProfileListId={initialPublicProfileListId}
+          viewerUsername={userUsername}
+          viewerName={userProfileSummary?.name}
+          viewerProfilePictureUrl={userProfileSummary?.profilePictureUrl}
+          viewerTwitterHandle={userProfileSummary?.twitterHandle}
         />
       </aside>
 
@@ -2056,6 +2072,10 @@ export default function InteractiveMap({
           isFavoritePending={isFavoritePending}
           initialCustomListId={initialCustomListId}
           initialPublicProfileListId={initialPublicProfileListId}
+          viewerUsername={userUsername}
+          viewerName={userProfileSummary?.name}
+          viewerProfilePictureUrl={userProfileSummary?.profilePictureUrl}
+          viewerTwitterHandle={userProfileSummary?.twitterHandle}
         />
       </div>
 

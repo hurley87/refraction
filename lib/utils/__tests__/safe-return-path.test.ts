@@ -28,4 +28,8 @@ describe('sanitizeInternalReturnPath', () => {
     expect(sanitizeInternalReturnPath('   ')).toBeNull();
     expect(sanitizeInternalReturnPath(null)).toBeNull();
   });
+
+  it('rejects a missing query param', () => {
+    expect(sanitizeInternalReturnPath(undefined)).toBeNull();
+  });
 });

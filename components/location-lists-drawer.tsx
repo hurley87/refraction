@@ -29,6 +29,10 @@ import {
   useUpdateCustomListPrivacy,
 } from '@/hooks/usePlayerCustomLists';
 import { usePublicProfileList } from '@/hooks/usePublicProfileList';
+import {
+  ListShareButton,
+  ListSharePanel,
+} from '@/components/map/list-share-button';
 import { Switch } from '@/components/ui/switch';
 import type { PublicCustomListOwner } from '@/lib/db/player-custom-lists';
 import { profilePathForPlayer } from '@/lib/username';
@@ -76,14 +80,34 @@ type SheetSize = LocationListsSheetSize;
 
 const SHEET_DRAG_THRESHOLD_PX = 56;
 
-function publicListOwnerLabel(owner: PublicCustomListOwner): string {
+/** Byline for a list author: `@username`, else their name. */
+function publicListAuthorLabel(owner: PublicCustomListOwner): string {
   const username = owner.username?.trim();
-  if (username) {
-    return `@${username.replace(/^@/, '')}'s list`;
-  }
-  const name = owner.name?.trim();
-  if (name) return `${name}'s list`;
-  return "IRL's list";
+  if (username) return `@${username.replace(/^@/, '')}`;
+  return owner.name?.trim() || 'IRL member';
+}
+
+type ListShareTarget = {
+  username: string;
+  listSlug: string;
+  listTitle: string;
+};
+
+/** Share details for a list reachable at `/map/{username}/{slug}`, else null. */
+function publicListShareTarget(
+  username: string | null | undefined,
+  listSlug: string | null | undefined,
+  listTitle: string | null | undefined
+): ListShareTarget | null {
+  const trimmedUsername = username?.trim().replace(/^@/, '');
+  const trimmedSlug = listSlug?.trim();
+  if (!trimmedUsername || !trimmedSlug) return null;
+
+  return {
+    username: trimmedUsername,
+    listSlug: trimmedSlug,
+    listTitle: listTitle?.trim() || 'IRL list',
+  };
 }
 
 export interface LocationListsSheetLayout {
@@ -118,6 +142,11 @@ interface LocationListsDrawerProps {
    * (raw UUID). Not shown in the drawer grid outside this session.
    */
   initialPublicProfileListId?: string | null;
+  /** Signed-in player's username; required to share their own public lists. */
+  viewerUsername?: string | null;
+  viewerName?: string | null;
+  viewerProfilePictureUrl?: string | null;
+  viewerTwitterHandle?: string | null;
 }
 
 export default function LocationListsDrawer({
@@ -135,6 +164,10 @@ export default function LocationListsDrawer({
   isFavoritePending = false,
   initialCustomListId = null,
   initialPublicProfileListId = null,
+  viewerUsername = null,
+  viewerName = null,
+  viewerProfilePictureUrl = null,
+  viewerTwitterHandle = null,
 }: LocationListsDrawerProps) {
   const [lists, setLists] = useState<DrawerList[]>([]);
   const [isLoadingLists, setIsLoadingLists] = useState(false);
@@ -142,6 +175,7 @@ export default function LocationListsDrawer({
   const [sheetSize, setSheetSize] = useState<SheetSize>('peek');
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isSharePanelOpen, setIsSharePanelOpen] = useState(false);
   const [checkinsByPlaceId, setCheckinsByPlaceId] = useState<
     Record<string, MapCheckinAvatarEntry[]>
   >({});
@@ -156,6 +190,10 @@ export default function LocationListsDrawer({
     startSize: SheetSize;
     moved: boolean;
   } | null>(null);
+
+  useEffect(() => {
+    setIsSharePanelOpen(false);
+  }, [selectedListId]);
 
   const { data: favoriteLocations = [], isLoading: isLoadingFavorites } =
     useFavoriteLocations(fetchEnabled ? walletAddress : undefined);
@@ -198,6 +236,8 @@ export default function LocationListsDrawer({
       customLists.map((list) => ({
         id: `${CUSTOM_LIST_ID_PREFIX}${list.id}`,
         title: list.title,
+        slug: list.slug ?? null,
+        thumbnail_url: list.thumbnail_url ?? null,
         is_private: list.is_private,
         locations: list.locations
           .filter((location) => location.id != null)
@@ -235,6 +275,8 @@ export default function LocationListsDrawer({
     return {
       id: `${PUBLIC_PROFILE_LIST_ID_PREFIX}${publicProfileList.id}`,
       title: publicProfileList.title,
+      slug: publicProfileList.slug ?? null,
+      thumbnail_url: publicProfileList.thumbnail_url ?? null,
       owner: publicProfileList.owner,
       locations: publicProfileList.locations
         .filter((location) => location.id != null)
@@ -733,6 +775,40 @@ export default function LocationListsDrawer({
     isPublicProfileListDetailView ||
     (selectedList !== null && (selectedList.locations?.length ?? 0) > 0);
 
+  // Private lists stay unshareable until the owner flips them public.
+  const listShareTarget = isPublicProfileListDetailView
+    ? publicListShareTarget(
+        selectedPublicProfileList?.owner.username,
+        selectedPublicProfileList?.slug,
+        selectedPublicProfileList?.title
+      )
+    : isCustomListDetailView && !selectedCustomList?.is_private
+      ? publicListShareTarget(
+          viewerUsername,
+          selectedCustomList?.slug,
+          selectedCustomList?.title
+        )
+      : null;
+
+  /**
+   * Player-owned lists (their own or another member's) get the profile-style
+   * header on both layouts. Favorites and editorial map lists keep the compact
+   * title row.
+   */
+  const personalListDetail = selectedPublicProfileList ?? selectedCustomList;
+  const personalListOwner = selectedPublicProfileList?.owner ?? {
+    wallet_address: walletAddress ?? '',
+    username: viewerUsername,
+    name: viewerName,
+    profile_picture_url: viewerProfilePictureUrl,
+    twitter_handle: viewerTwitterHandle,
+  };
+  const personalListThumbnail =
+    personalListDetail?.thumbnail_url?.trim() ||
+    personalListDetail?.locations[0]?.coin_image_thumb_url?.trim() ||
+    personalListDetail?.locations[0]?.coin_image_url?.trim() ||
+    null;
+
   const snapSheetFromDrag = (startSize: SheetSize, deltaY: number) => {
     // deltaY < 0 → finger moved up (expand); > 0 → finger moved down (collapse)
     if (deltaY < -SHEET_DRAG_THRESHOLD_PX) {
@@ -878,7 +954,7 @@ export default function LocationListsDrawer({
     />
   );
 
-  const listBody = (
+  const standardListBody = (
     <div
       className={
         isSidebar
@@ -887,78 +963,158 @@ export default function LocationListsDrawer({
       }
     >
       {isListDetailView ? (
-        <div className="flex min-w-0 items-center gap-4 py-2">
-          <button
-            type="button"
-            onClick={() => setSelectedListId(null)}
-            className="flex size-10 shrink-0 items-center justify-center gap-4 rounded-[179px] border border-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] p-[var(--sds-size-space-200)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)] transition-opacity hover:opacity-80"
-            aria-label="Back to all lists"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width={24}
-              height={24}
-              viewBox="0 0 24 24"
-              fill="none"
-              className="aspect-square size-6 shrink-0"
-              aria-hidden
-            >
-              <path
-                d="M21.9995 10.1429H8.0183L12.1756 6.28368L9.88918 4L1.99951 11.9846L9.88918 20L12.1756 17.7139L8.00185 13.8547H21.9995V10.1429Z"
-                fill="#757575"
-              />
-            </svg>
-          </button>
-          <div className="flex min-w-0 flex-col gap-1">
-            {isPublicProfileListDetailView && selectedPublicProfileList ? (
-              <Link
-                href={profilePathForPlayer({
-                  username: selectedPublicProfileList.owner.username,
-                  wallet_address:
-                    selectedPublicProfileList.owner.wallet_address,
-                })}
-                className="label-medium flex min-w-0 items-center gap-[var(--sds-size-space-200)] uppercase text-[#757575] transition-opacity hover:opacity-80"
-                aria-label={`View ${publicListOwnerLabel(selectedPublicProfileList.owner)}`}
+        personalListDetail ? (
+          <div className="flex shrink-0 flex-col gap-4 py-2">
+            <div className="flex">
+              <button
+                type="button"
+                onClick={() => setSelectedListId(null)}
+                className="flex size-10 shrink-0 items-center justify-center rounded-[179px] border border-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] bg-white p-2 shadow-[0_1px_8px_0_rgba(0,0,0,0.08)]"
+                aria-label="Back to all lists"
               >
-                <ProfileAvatar
-                  profilePictureUrl={
-                    selectedPublicProfileList.owner.profile_picture_url ??
-                    undefined
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width={24}
+                  height={24}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden
+                >
+                  <path
+                    d="M21.9995 10.1429H8.0183L12.1756 6.28368L9.88918 4L1.99951 11.9846L9.88918 20L12.1756 17.7139L8.00185 13.8547H21.9995V10.1429Z"
+                    fill="#757575"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-4 mapHd:grid-cols-[176px_minmax(0,1fr)] mapHd:gap-6">
+              <div className="relative aspect-square overflow-hidden rounded-2xl bg-[#FFF200]">
+                {personalListThumbnail ? (
+                  <Image
+                    src={personalListThumbnail}
+                    alt=""
+                    fill
+                    sizes="(min-width: 2560px) 176px, 112px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <Image
+                    src="/irl-svg/irl-logo-new.svg"
+                    alt=""
+                    width={64}
+                    height={58}
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                  />
+                )}
+              </div>
+
+              <div className="flex min-w-0 flex-col justify-between gap-2">
+                <h2 className="title4 line-clamp-2 text-[#171717] mapHd:text-[42px] mapHd:font-medium mapHd:leading-[40px]">
+                  {personalListDetail.title}
+                </h2>
+                <dl className="grid grid-cols-3 divide-x divide-[#DBDBDB]">
+                  <div className="pr-2">
+                    <dt className="label-small text-[#757575]">Locations</dt>
+                    <dd className="title5 text-[#171717]">
+                      {personalListDetail.locations.length}
+                    </dd>
+                  </div>
+                  <div className="px-2">
+                    <dt className="label-small text-[#757575]">Saves</dt>
+                    <dd className="title5 text-[#171717]">—</dd>
+                  </div>
+                  <div className="pl-2">
+                    <dt className="label-small text-[#757575]">Views</dt>
+                    <dd className="title5 text-[#171717]">—</dd>
+                  </div>
+                </dl>
+                <Link
+                  href={profilePathForPlayer(personalListOwner)}
+                  className="label-medium flex min-w-0 items-center gap-2 text-[#454545] transition-opacity hover:opacity-80"
+                  aria-label={`View ${publicListAuthorLabel(personalListOwner)}'s profile`}
+                >
+                  <ProfileAvatar
+                    profilePictureUrl={
+                      personalListOwner.profile_picture_url ?? undefined
+                    }
+                    name={personalListOwner.name ?? undefined}
+                    username={personalListOwner.username ?? undefined}
+                    twitterHandle={
+                      personalListOwner.twitter_handle ?? undefined
+                    }
+                    size={24}
+                  />
+                  <span className="truncate">
+                    {publicListAuthorLabel(personalListOwner)}
+                  </span>
+                </Link>
+              </div>
+            </div>
+
+            <p className="body-small text-[#757575]">
+              Description coming soon.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled
+                className="label-medium flex h-11 items-center justify-center bg-[#DBDBDB] px-4 uppercase tracking-wide text-[#757575] disabled:cursor-not-allowed"
+              >
+                Save list
+              </button>
+              {listShareTarget ? (
+                <ListShareButton
+                  {...listShareTarget}
+                  variant="full"
+                  onRequestShare={
+                    isSidebar ? undefined : () => setIsSharePanelOpen(true)
                   }
-                  name={selectedPublicProfileList.owner.name ?? undefined}
-                  username={
-                    selectedPublicProfileList.owner.username ?? undefined
-                  }
-                  twitterHandle={
-                    selectedPublicProfileList.owner.twitter_handle ?? undefined
-                  }
-                  size={24}
                 />
-                <span className="min-w-0 truncate">
-                  {publicListOwnerLabel(selectedPublicProfileList.owner)}
-                </span>
-              </Link>
-            ) : (
-              <span className="label-medium flex items-center gap-[var(--sds-size-space-200)] rounded uppercase text-[#757575]">
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="label-medium flex h-11 items-center justify-center border border-[#DBDBDB] px-4 uppercase tracking-wide text-[#A9A9A9] disabled:cursor-not-allowed"
+                >
+                  Share list
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex min-w-0 items-center gap-4 py-2">
+            <button
+              type="button"
+              onClick={() => setSelectedListId(null)}
+              className="flex size-10 shrink-0 items-center justify-center rounded-[179px] border border-[var(--Backgrounds-Secondary-CTA-BG,#DBDBDB)] bg-white p-2 shadow-[0_1px_8px_0_rgba(0,0,0,0.08)]"
+              aria-label="Back to all lists"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width={24}
+                height={24}
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden
+              >
+                <path
+                  d="M21.9995 10.1429H8.0183L12.1756 6.28368L9.88918 4L1.99951 11.9846L9.88918 20L12.1756 17.7139L8.00185 13.8547H21.9995V10.1429Z"
+                  fill="#757575"
+                />
+              </svg>
+            </button>
+            <div className="flex min-w-0 flex-col gap-1">
+              <span className="label-medium uppercase text-[#757575]">
                 MAP LIST
               </span>
-            )}
-            <h2
-              className={cn(
-                'title3 min-w-0 text-[#171717] mapHd:text-[42px] mapHd:font-medium mapHd:leading-[40px]',
-                isPublicProfileListDetailView && 'uppercase'
-              )}
-            >
-              {isFavoritesDetailView
-                ? 'Your Favorites'
-                : isPublicProfileListDetailView
-                  ? selectedPublicProfileList?.title
-                  : isCustomListDetailView
-                    ? selectedCustomList?.title
-                    : selectedList?.title}
-            </h2>
+              <h2 className="title3 min-w-0 text-[#171717] mapHd:text-[42px] mapHd:font-medium mapHd:leading-[40px]">
+                {isFavoritesDetailView ? 'Your Favorites' : selectedList?.title}
+              </h2>
+            </div>
           </div>
-        </div>
+        )
       ) : null}
 
       <div
@@ -1203,6 +1359,18 @@ export default function LocationListsDrawer({
     </div>
   );
 
+  const listBody =
+    !isSidebar && isSharePanelOpen && listShareTarget ? (
+      <div className="flex min-h-0 flex-1 px-4 pb-3">
+        <ListSharePanel
+          {...listShareTarget}
+          onClose={() => setIsSharePanelOpen(false)}
+        />
+      </div>
+    ) : (
+      standardListBody
+    );
+
   if (isSidebar) {
     if (
       isLoadingLists ||
@@ -1244,16 +1412,17 @@ export default function LocationListsDrawer({
     <div
       className={cn(
         'pointer-events-none absolute inset-x-0 bottom-0 flex',
-        isSheetFull ? 'z-30 top-0' : 'z-20'
+        isSheetFull ? 'z-30' : 'z-20'
       )}
     >
       <div
         ref={sheetPanelRef}
         className={cn(
-          'pointer-events-auto flex w-full flex-col overflow-hidden bg-white/90 shadow-[0_4px_24px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-[height,border-radius] duration-300',
+          'pointer-events-auto flex w-full flex-col overflow-hidden rounded-t-2xl border border-b-0 border-black/[0.06] bg-white/90 shadow-[0_4px_24px_rgba(0,0,0,0.08)] backdrop-blur-xl transition-[height] duration-300',
+          // Expanded stops short of the top so the map stays visible above it.
           isSheetFull
-            ? 'h-dvh rounded-none border-0 pb-[env(safe-area-inset-bottom)]'
-            : 'rounded-t-2xl border border-b-0 border-black/[0.06] pb-[max(0.75rem,env(safe-area-inset-bottom))]'
+            ? 'h-[80dvh] pb-[env(safe-area-inset-bottom)]'
+            : 'pb-[max(0.75rem,env(safe-area-inset-bottom))]'
         )}
       >
         <button
