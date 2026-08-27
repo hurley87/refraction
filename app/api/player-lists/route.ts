@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
       return apiValidationError(parsed.error);
     }
 
-    const { walletAddress, title, thumbnailUrl, isPrivate } = parsed.data;
+    const { walletAddress, title, thumbnailUrl, isPrivate, description } =
+      parsed.data;
 
     const player = await createOrUpdatePlayer({
       wallet_address: walletAddress,
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
 
     const list = await createCustomList(player.id, {
       title,
+      description,
       thumbnailUrl,
       isPrivate,
     });
@@ -103,7 +105,8 @@ export async function PATCH(request: NextRequest) {
       return apiValidationError(parsed.error);
     }
 
-    const { walletAddress, listId, isPrivate, title } = parsed.data;
+    const { walletAddress, listId, isPrivate, title, description } =
+      parsed.data;
     const player = await getPlayerByWallet(walletAddress);
 
     if (!player?.id) {
@@ -113,6 +116,7 @@ export async function PATCH(request: NextRequest) {
     const list = await updateCustomList(player.id, listId, {
       ...(isPrivate !== undefined ? { isPrivate } : {}),
       ...(title !== undefined ? { title } : {}),
+      ...(description !== undefined ? { description } : {}),
     });
 
     if (!list) {

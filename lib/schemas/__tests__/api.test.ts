@@ -14,6 +14,8 @@ import {
   locationCommentsQuerySchema,
   locationFavoriteRequestSchema,
   locationFavoritesQuerySchema,
+  playerCustomListCreateSchema,
+  playerCustomListUpdateSchema,
   chainTypeSchema,
   createCheckpointRequestSchema,
   updateCheckpointRequestSchema,
@@ -741,6 +743,60 @@ describe('API Schemas', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.includeLocations).toBe(true);
+      }
+    });
+  });
+
+  describe('playerCustomListCreateSchema', () => {
+    const base = {
+      walletAddress: '0x1234567890123456789012345678901234567890',
+      title: 'Berlin spots',
+      isPrivate: true,
+    };
+
+    it('trims description and stores null when blank', () => {
+      const withBlurb = playerCustomListCreateSchema.safeParse({
+        ...base,
+        description: '  Late-night bars  ',
+      });
+      expect(withBlurb.success).toBe(true);
+      if (withBlurb.success) {
+        expect(withBlurb.data.description).toBe('Late-night bars');
+      }
+
+      const blank = playerCustomListCreateSchema.safeParse({
+        ...base,
+        description: '   ',
+      });
+      expect(blank.success).toBe(true);
+      if (blank.success) {
+        expect(blank.data.description).toBeNull();
+      }
+    });
+  });
+
+  describe('playerCustomListUpdateSchema', () => {
+    it('accepts a description-only update', () => {
+      const result = playerCustomListUpdateSchema.safeParse({
+        walletAddress: '0x1234567890123456789012345678901234567890',
+        listId: '11111111-1111-1111-1111-111111111111',
+        description: 'Updated blurb',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.description).toBe('Updated blurb');
+      }
+    });
+
+    it('clears a description when the value is blank', () => {
+      const result = playerCustomListUpdateSchema.safeParse({
+        walletAddress: '0x1234567890123456789012345678901234567890',
+        listId: '11111111-1111-1111-1111-111111111111',
+        description: '   ',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.description).toBeNull();
       }
     });
   });

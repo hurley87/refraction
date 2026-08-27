@@ -60,6 +60,14 @@ describe('publicListPageTitle', () => {
 });
 
 describe('publicListPageDescription', () => {
+  it('uses a custom list description when present', () => {
+    expect(
+      publicListPageDescription(
+        sampleList({ description: '  Late-night Berlin bars  ' })
+      )
+    ).toBe('Late-night Berlin bars');
+  });
+
   it('includes place count and first three spot names', () => {
     expect(publicListPageDescription(sampleList())).toBe(
       'Berlin spots — 3 spots including Bambis, Greta, and OHLA.'
@@ -92,5 +100,12 @@ describe('publicListItemListJsonLd', () => {
     expect(jsonLd.numberOfItems).toBe(3);
     expect(jsonLd.itemListElement).toHaveLength(3);
     expect(jsonLd.url).toBe('https://www.irl.energy/map/alice/berlin-spots');
+  });
+
+  it('includes the list description when present', () => {
+    const jsonLd = publicListItemListJsonLd(
+      sampleList({ description: 'Late-night Berlin bars' })
+    );
+    expect(jsonLd.description).toBe('Late-night Berlin bars');
   });
 });

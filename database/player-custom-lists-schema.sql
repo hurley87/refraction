@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS player_custom_lists (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   player_id BIGINT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
+  description VARCHAR(500),
   thumbnail_url TEXT,
   is_private BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

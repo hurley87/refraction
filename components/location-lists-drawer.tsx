@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef, type PointerEvent } from 'react';
+import {
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  type PointerEvent,
+  type ReactNode,
+} from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Loader2, Trash2 } from 'lucide-react';
@@ -27,12 +34,14 @@ import {
   usePlayerCustomListLocations,
   useDeleteCustomList,
   useUpdateCustomListPrivacy,
+  useUpdateCustomListDescription,
 } from '@/hooks/usePlayerCustomLists';
 import { usePublicProfileList } from '@/hooks/usePublicProfileList';
 import {
   ListShareButton,
   ListSharePanel,
 } from '@/components/map/list-share-button';
+import { ListDescriptionEditor } from '@/components/map/list-description-editor';
 import { Switch } from '@/components/ui/switch';
 import type { PublicCustomListOwner } from '@/lib/db/player-custom-lists';
 import { profilePathForPlayer } from '@/lib/username';
@@ -229,6 +238,10 @@ export default function LocationListsDrawer({
     useDeleteCustomList(walletAddress);
   const { mutate: updateListPrivacy, isPending: isUpdatingPrivacy } =
     useUpdateCustomListPrivacy(walletAddress);
+  const {
+    mutateAsync: updateListDescription,
+    isPending: isUpdatingDescription,
+  } = useUpdateCustomListDescription(walletAddress);
 
   /** User custom lists mapped to the drawer list shape (prefixed ids). */
   const customDrawerLists = useMemo(
@@ -237,6 +250,7 @@ export default function LocationListsDrawer({
         id: `${CUSTOM_LIST_ID_PREFIX}${list.id}`,
         title: list.title,
         slug: list.slug ?? null,
+        description: list.description ?? null,
         thumbnail_url: list.thumbnail_url ?? null,
         is_private: list.is_private,
         locations: list.locations
@@ -276,6 +290,7 @@ export default function LocationListsDrawer({
       id: `${PUBLIC_PROFILE_LIST_ID_PREFIX}${publicProfileList.id}`,
       title: publicProfileList.title,
       slug: publicProfileList.slug ?? null,
+      description: publicProfileList.description ?? null,
       thumbnail_url: publicProfileList.thumbnail_url ?? null,
       owner: publicProfileList.owner,
       locations: publicProfileList.locations
@@ -808,6 +823,8 @@ export default function LocationListsDrawer({
     personalListDetail?.locations[0]?.coin_image_thumb_url?.trim() ||
     personalListDetail?.locations[0]?.coin_image_url?.trim() ||
     null;
+  const personalListDescription =
+    personalListDetail?.description?.trim() || null;
 
   const snapSheetFromDrag = (startSize: SheetSize, deltaY: number) => {
     // deltaY < 0 → finger moved up (expand); > 0 → finger moved down (collapse)
@@ -836,6 +853,29 @@ export default function LocationListsDrawer({
     const rawListId = selectedCustomList.id.slice(CUSTOM_LIST_ID_PREFIX.length);
     updateListPrivacy({ listId: rawListId, isPrivate: !makePublic });
   };
+
+  const handleSaveListDescription = async (description: string | null) => {
+    if (!selectedCustomList) return;
+    const rawListId = selectedCustomList.id.slice(CUSTOM_LIST_ID_PREFIX.length);
+    await updateListDescription({ listId: rawListId, description });
+  };
+
+  let listDescriptionSection: ReactNode = null;
+  if (isCustomListDetailView) {
+    listDescriptionSection = (
+      <ListDescriptionEditor
+        description={personalListDescription}
+        isSaving={isUpdatingDescription}
+        onSave={handleSaveListDescription}
+      />
+    );
+  } else if (personalListDescription) {
+    listDescriptionSection = (
+      <p className="body-small whitespace-pre-wrap text-[#757575]">
+        {personalListDescription}
+      </p>
+    );
+  }
 
   const cycleSheetSize = () => {
     setSheetSize((prev) => {
@@ -1052,9 +1092,7 @@ export default function LocationListsDrawer({
               </div>
             </div>
 
-            <p className="body-small text-[#757575]">
-              Description coming soon.
-            </p>
+            {listDescriptionSection}
 
             <div className="grid grid-cols-2 gap-2">
               <button

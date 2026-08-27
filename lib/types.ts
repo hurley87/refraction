@@ -123,6 +123,7 @@ export type PlayerCustomList = {
   id: string;
   player_id: number;
   title: string;
+  description?: string | null;
   thumbnail_url?: string | null;
   is_private: boolean;
   slug?: string | null;

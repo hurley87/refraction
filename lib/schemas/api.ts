@@ -7,6 +7,17 @@ import {
 } from './player';
 import { signupAttributionSchema } from './signup-attribution';
 import { usernameSchema } from '@/lib/username';
+import { MAX_PLAYER_LIST_DESCRIPTION_LENGTH } from '@/lib/constants';
+
+/** Blank or omitted list blurbs persist as null. */
+const playerCustomListDescriptionSchema = z
+  .string()
+  .max(MAX_PLAYER_LIST_DESCRIPTION_LENGTH)
+  .nullish()
+  .transform((value) => {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : null;
+  });
 
 /** Treat blank client email strings as omitted (Privy often sends `''`). */
 export const optionalEmailSchema = z.preprocess(
@@ -167,6 +178,7 @@ export const playerCustomListsQuerySchema = z.object({
 export const playerCustomListCreateSchema = z.object({
   walletAddress: walletAddressSchema,
   title: z.string().min(1).max(80),
+  description: playerCustomListDescriptionSchema,
   /** Accept any non-empty string URL; empty/null omitted by the client. */
   thumbnailUrl: z
     .string()
@@ -195,11 +207,15 @@ export const playerCustomListUpdateSchema = z
     listId: z.string().uuid(),
     isPrivate: z.boolean().optional(),
     title: z.string().trim().min(1).max(80).optional(),
+    description: playerCustomListDescriptionSchema.optional(),
   })
   .refine(
-    (value) => value.isPrivate !== undefined || value.title !== undefined,
+    (value) =>
+      value.isPrivate !== undefined ||
+      value.title !== undefined ||
+      value.description !== undefined,
     {
-      message: 'Provide isPrivate and/or title to update',
+      message: 'Provide isPrivate, title, and/or description to update',
     }
   );
 

@@ -82,7 +82,7 @@ function ShareCardPreview({
   }, [status]);
 
   return (
-    <div className="relative flex aspect-[1200/630] w-full items-center justify-center overflow-hidden border border-[var(--Borders-Light-Border,#DBDBDB)] bg-[#F5F5F5]">
+    <div className="relative flex aspect-[1200/630] w-full items-center justify-center overflow-hidden rounded-2xl bg-[#F5F5F5]">
       {status === 'error' ? (
         <span className="body-small px-6 text-center text-[#757575]">
           Preview unavailable right now. The link still works.

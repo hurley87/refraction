@@ -132,7 +132,12 @@ async function publicListFromRow(
  */
 export const createCustomList = async (
   playerId: number,
-  input: { title: string; thumbnailUrl?: string | null; isPrivate: boolean }
+  input: {
+    title: string;
+    description?: string | null;
+    thumbnailUrl?: string | null;
+    isPrivate: boolean;
+  }
 ): Promise<PlayerCustomList> => {
   const slug = await allocateUniquePlayerListSlug(playerId, input.title);
 
@@ -141,6 +146,7 @@ export const createCustomList = async (
     .insert({
       player_id: playerId,
       title: input.title,
+      description: input.description?.trim() || null,
       thumbnail_url: input.thumbnailUrl ?? null,
       is_private: input.isPrivate,
       slug,
@@ -465,7 +471,7 @@ export const addLocationToLists = async (
 export async function updateCustomList(
   playerId: number,
   listId: string,
-  input: { title?: string; isPrivate?: boolean }
+  input: { title?: string; description?: string | null; isPrivate?: boolean }
 ): Promise<PlayerCustomList | null> {
   const { data: existing, error: fetchError } = await supabase
     .from('player_custom_lists')
@@ -478,7 +484,11 @@ export async function updateCustomList(
   if (!existing) return null;
 
   const existingList = existing as PlayerCustomList;
-  const updates: { title?: string; is_private?: boolean } = {};
+  const updates: {
+    title?: string;
+    description?: string | null;
+    is_private?: boolean;
+  } = {};
   const trimmedTitle = input.title?.trim();
 
   if (input.isPrivate !== undefined) {
@@ -486,6 +496,9 @@ export async function updateCustomList(
   }
   if (trimmedTitle !== undefined) {
     updates.title = trimmedTitle;
+  }
+  if (input.description !== undefined) {
+    updates.description = input.description?.trim() || null;
   }
 
   if (Object.keys(updates).length === 0) {

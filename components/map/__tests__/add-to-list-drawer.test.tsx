@@ -61,6 +61,11 @@ describe('AddToListDrawer create flow', () => {
     const nameInput = await screen.findByPlaceholderText('My favorite spots');
     await user.type(nameInput, 'My list');
 
+    const descriptionInput = screen.getByPlaceholderText(
+      'What is this collection about?'
+    );
+    await user.type(descriptionInput, 'Late-night Berlin bars');
+
     await user.click(screen.getByRole('radio', { name: /^public$/i }));
 
     const saveButton = screen.getByRole('button', { name: 'Save new list' });
@@ -78,6 +83,7 @@ describe('AddToListDrawer create flow', () => {
       expect(body).toMatchObject({
         walletAddress: WALLET,
         title: 'My list',
+        description: 'Late-night Berlin bars',
         isPrivate: false,
       });
     });
