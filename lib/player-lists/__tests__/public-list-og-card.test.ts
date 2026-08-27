@@ -5,6 +5,7 @@ import {
   buildPublicListOgCard,
   publicListOgOwnerLabel,
   publicListOgPhotoUrl,
+  publicListOgSatoriPhotoUrl,
   publicListOgSpotsLabel,
 } from '@/lib/player-lists/public-list-og-card';
 
@@ -139,5 +140,39 @@ describe('buildPublicListOgCard', () => {
       spotsLabel: '2 spots',
       photoUrl: 'https://cdn.example/list.jpg',
     });
+  });
+});
+
+describe('publicListOgSatoriPhotoUrl', () => {
+  it('converts Supabase storage WebP to the JPEG transform endpoint', () => {
+    const result = publicListOgSatoriPhotoUrl(
+      'https://example.supabase.co/storage/v1/object/public/images/uploads/hero.webp'
+    );
+
+    expect(result).toContain(
+      'https://example.supabase.co/storage/v1/render/image/public/images/uploads/hero.webp'
+    );
+    expect(result).toContain('width=1200');
+    expect(result).toContain('resize=cover');
+  });
+
+  it('skips non-transformable WebP so the card can use the branded panel', () => {
+    expect(
+      publicListOgSatoriPhotoUrl('https://cdn.example.com/hero.webp')
+    ).toBeNull();
+  });
+
+  it('passes through PNG and JPEG URLs', () => {
+    expect(publicListOgSatoriPhotoUrl('https://cdn.example.com/hero.png')).toBe(
+      'https://cdn.example.com/hero.png'
+    );
+    expect(publicListOgSatoriPhotoUrl('https://cdn.example.com/hero.jpg')).toBe(
+      'https://cdn.example.com/hero.jpg'
+    );
+  });
+
+  it('returns null for empty values', () => {
+    expect(publicListOgSatoriPhotoUrl(null)).toBeNull();
+    expect(publicListOgSatoriPhotoUrl('   ')).toBeNull();
   });
 });

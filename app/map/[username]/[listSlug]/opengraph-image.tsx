@@ -1,15 +1,15 @@
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { ImageResponse } from 'next/og';
-import sharp from 'sharp';
 import {
   buildPublicListOgCard,
+  publicListOgSatoriPhotoUrl,
   resolvePublicListForSharePage,
   type PublicListOgCard,
 } from '@/lib/player-lists/public-list-og-card';
 
 export const runtime = 'nodejs';
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 export const alt = 'IRL list';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
@@ -28,24 +28,30 @@ const THUMBNAIL_RADIUS = 28;
 const PHOTO_FETCH_TIMEOUT_MS = 5000;
 
 type OgImageParams = {
-  params: { username: string; listSlug: string };
+  params?: { username?: string; listSlug?: string };
 };
 
-async function readPublicAsset(relativePath: string): Promise<Buffer> {
-  return readFile(join(process.cwd(), 'public', relativePath));
-}
+const FONT_REGULAR = join(
+  process.cwd(),
+  'public/fonts/Special Gothic Expanded Regular.otf'
+);
+const FONT_MEDIUM = join(
+  process.cwd(),
+  'public/fonts/SpecialSemi-ExpandedMedium.otf'
+);
+const LOGO_SVG = join(process.cwd(), 'public/irl-svg/irl-logo-new.svg');
 
 function svgDataUri(svg: Buffer): string {
   return `data:image/svg+xml;base64,${svg.toString('base64')}`;
 }
 
 /**
- * Inlines the list photo as a PNG data URI.
+ * Inlines the list photo as a PNG/JPEG/GIF data URI.
  *
- * Satori only decodes PNG/JPEG/GIF, and location uploads are stored as WebP,
- * so every photo is re-encoded to PNG at the rendered size. A slow host must
- * not stall the card, so the fetch is time-boxed and any failure falls back to
- * the branded no-photo panel.
+ * Satori only decodes those formats. Location uploads are stored as WebP, so
+ * we first convert Supabase URLs through image transforms instead of sharp.
+ * A slow host must not stall the card, so the fetch is time-boxed and any
+ * failure falls back to the branded no-photo panel.
  */
 async function loadPhotoDataUri(url: string | null): Promise<string | null> {
   if (!url) return null;
@@ -55,13 +61,11 @@ async function loadPhotoDataUri(url: string | null): Promise<string | null> {
     });
     if (!response.ok) return null;
     const contentType = response.headers.get('content-type') ?? '';
-    if (!contentType.startsWith('image/')) return null;
+    if (!/image\/(png|jpeg|jpg|gif)\b/i.test(contentType)) return null;
 
-    const png = await sharp(Buffer.from(await response.arrayBuffer()))
-      .resize(THUMBNAIL_WIDTH * 2, THUMBNAIL_HEIGHT * 2, { fit: 'cover' })
-      .png()
-      .toBuffer();
-    return `data:image/png;base64,${png.toString('base64')}`;
+    const mime = contentType.split(';')[0]?.trim() || 'image/jpeg';
+    const bytes = Buffer.from(await response.arrayBuffer());
+    return `data:${mime};base64,${bytes.toString('base64')}`;
   } catch {
     return null;
   }
@@ -71,8 +75,8 @@ async function loadFonts(): Promise<
   { name: string; data: Buffer; style: 'normal'; weight: 400 | 500 }[]
 > {
   const [regular, medium] = await Promise.all([
-    readPublicAsset('fonts/Special Gothic Expanded Regular.otf'),
-    readPublicAsset('fonts/SpecialSemi-ExpandedMedium.otf'),
+    readFile(FONT_REGULAR),
+    readFile(FONT_MEDIUM),
   ]);
   return [
     {
@@ -254,24 +258,33 @@ function ShareCard({
 }
 
 export default async function Image({ params }: OgImageParams) {
-  const [fonts, logoSvg] = await Promise.all([
-    loadFonts(),
-    readPublicAsset('irl-svg/irl-logo-new.svg'),
-  ]);
+  const [fonts, logoSvg] = await Promise.all([loadFonts(), readFile(LOGO_SVG)]);
   const logoSrc = svgDataUri(logoSvg);
 
-  const list = await resolvePublicListForSharePage(
-    params.username,
-    params.listSlug
-  );
-  const card = list ? buildPublicListOgCard(list) : null;
-  const photoSrc = await loadPhotoDataUri(card?.photoUrl ?? null);
+  let card: PublicListOgCard | null = null;
+  let photoSrc: string | null = null;
+  try {
+    const list = await resolvePublicListForSharePage(
+      params?.username ?? '',
+      params?.listSlug ?? ''
+    );
+    card = list ? buildPublicListOgCard(list) : null;
+    photoSrc = await loadPhotoDataUri(
+      publicListOgSatoriPhotoUrl(card?.photoUrl ?? null)
+    );
+  } catch {
+    card = null;
+    photoSrc = null;
+  }
 
   return new ImageResponse(
     <ShareCard card={card} photoSrc={photoSrc} logoSrc={logoSrc} />,
     {
       ...size,
       fonts,
+      headers: {
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+      },
     }
   );
 }

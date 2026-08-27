@@ -1,5 +1,6 @@
 import type { PublicCustomListWithLocations } from '@/lib/db/player-custom-lists';
 import { resolvePublicListShareLookup } from '@/lib/db/player-custom-lists';
+import { supabaseRenderImageUrl } from '@/lib/metadata/request-base';
 import { isReservedUsername, normalizeUsername } from '@/lib/username';
 
 export type PublicListOgCard = {
@@ -47,6 +48,27 @@ export function buildPublicListOgCard(
     spotsLabel: publicListOgSpotsLabel(list.locations.length),
     photoUrl: publicListOgPhotoUrl(list),
   };
+}
+
+/**
+ * Photo URL Satori can decode (PNG/JPEG/GIF). Supabase WebP is converted via
+ * image transforms; other WebP sources are skipped so the card can fall back.
+ */
+export function publicListOgSatoriPhotoUrl(
+  photoUrl: string | null
+): string | null {
+  const trimmed = photoUrl?.trim();
+  if (!trimmed) return null;
+
+  try {
+    const rendered = supabaseRenderImageUrl(trimmed);
+    if (rendered) return rendered;
+  } catch {
+    return null;
+  }
+
+  if (/\.webp(?:$|\?)/i.test(trimmed)) return null;
+  return trimmed;
 }
 
 /**
