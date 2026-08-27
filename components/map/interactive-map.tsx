@@ -12,7 +12,7 @@ import {
   mergePoiAndAddressReverseGeocode,
   mergeSearchBoxReverseFeatures,
 } from '@/lib/utils/location-autofill';
-import { usePrivy } from '@privy-io/react-auth';
+import { useModalStatus, usePrivy } from '@privy-io/react-auth';
 import { useQuery } from '@tanstack/react-query';
 import { adminApiAuthHeaders } from '@/lib/admin-api-auth-headers';
 import { toast } from 'sonner';
@@ -104,6 +104,8 @@ const WELCOME_TOUR_MAX_SHOWS = 3;
 const LOCATION_INSTRUCTION_STORAGE_KEY =
   'irl-location-create-instruction-count';
 const LOCATION_INSTRUCTION_LIMIT = 3;
+/** Privy ignores `login()` while its modal is unmounting, so wait before reopening. */
+const LOGIN_REPROMPT_DELAY_MS = 400;
 
 /** Style/Body/Body Medium — map LocationSearch (Gal Gothic) */
 const MAP_SEARCH_INPUT_CLASS =
@@ -236,7 +238,8 @@ export default function InteractiveMap({
   const effectiveGuideReturnHref =
     guideReturnHref ?? guideReturnPersistedRef.current;
 
-  const { user, ready, getAccessToken, login } = usePrivy();
+  const { user, ready, authenticated, getAccessToken, login } = usePrivy();
+  const { isOpen: isPrivyModalOpen } = useModalStatus();
   const walletAddress = useEvmWalletAddress();
   const { data: favoritePlaceIds } = useFavoritePlaceIds(walletAddress);
   const { mutate: toggleFavorite, isPending: isFavoritePending } =
@@ -342,8 +345,8 @@ export default function InteractiveMap({
   const walletAddressRef = useRef<string | null | undefined>(walletAddress);
   /** Prevents re-opening the tour in the same session after the user dismisses it. */
   const tourCompletedThisSessionRef = useRef(false);
-  /** Auto-prompt Privy once per map mount for logged-out guests. */
-  const hasPromptedLoginRef = useRef(false);
+  /** True while the guest has the Privy modal open, so dismissing it re-prompts. */
+  const wasLoginModalOpenRef = useRef(false);
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [needsLocationPrompt, setNeedsLocationPrompt] = useState(false);
@@ -499,12 +502,24 @@ export default function InteractiveMap({
     setShowLocationPrompt(true);
   }, [user, walletAddress, needsLocationPrompt, showWelcomeBanner]);
 
-  // Logged-out map visits: open Privy before the welcome tour.
+  // The map requires an account: open Privy before the welcome tour, and reopen
+  // it whenever a guest dismisses the modal without finishing sign-in.
   useEffect(() => {
-    if (!ready || user || hasPromptedLoginRef.current) return;
-    hasPromptedLoginRef.current = true;
-    login();
-  }, [ready, user, login]);
+    if (!ready || authenticated || user) {
+      wasLoginModalOpenRef.current = false;
+      return;
+    }
+
+    if (isPrivyModalOpen) {
+      wasLoginModalOpenRef.current = true;
+      return;
+    }
+
+    const delay = wasLoginModalOpenRef.current ? LOGIN_REPROMPT_DELAY_MS : 0;
+    wasLoginModalOpenRef.current = false;
+    const timeout = setTimeout(() => login(), delay);
+    return () => clearTimeout(timeout);
+  }, [ready, authenticated, user, isPrivyModalOpen, login]);
 
   const dismissWelcomeBanner = () => {
     setShowWelcomeBanner(false);
