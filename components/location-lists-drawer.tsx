@@ -82,6 +82,9 @@ const FAVORITES_LIST_ID = '__favorites__';
 const CUSTOM_LIST_ID_PREFIX = '__custom__:';
 const PUBLIC_PROFILE_LIST_ID_PREFIX = '__profileList__:';
 
+/** Saves, views, and Save list are stubbed until those features ship. */
+const SHOW_UNIMPLEMENTED_LIST_ENGAGEMENT = false;
+
 /** Mobile bottom-sheet snap states. */
 export type LocationListsSheetSize = 'collapsed' | 'peek' | 'full';
 
@@ -1053,21 +1056,35 @@ export default function LocationListsDrawer({
                 <h2 className="title4 line-clamp-2 text-[#171717] mapHd:text-[42px] mapHd:font-medium mapHd:leading-[40px]">
                   {personalListDetail.title}
                 </h2>
-                <dl className="grid grid-cols-3 divide-x divide-[#DBDBDB]">
-                  <div className="pr-2">
+                <dl
+                  className={
+                    SHOW_UNIMPLEMENTED_LIST_ENGAGEMENT
+                      ? 'grid grid-cols-3 divide-x divide-[#DBDBDB]'
+                      : undefined
+                  }
+                >
+                  <div
+                    className={
+                      SHOW_UNIMPLEMENTED_LIST_ENGAGEMENT ? 'pr-2' : undefined
+                    }
+                  >
                     <dt className="label-small text-[#757575]">Locations</dt>
                     <dd className="title5 text-[#171717]">
                       {personalListDetail.locations.length}
                     </dd>
                   </div>
-                  <div className="px-2">
-                    <dt className="label-small text-[#757575]">Saves</dt>
-                    <dd className="title5 text-[#171717]">—</dd>
-                  </div>
-                  <div className="pl-2">
-                    <dt className="label-small text-[#757575]">Views</dt>
-                    <dd className="title5 text-[#171717]">—</dd>
-                  </div>
+                  {SHOW_UNIMPLEMENTED_LIST_ENGAGEMENT ? (
+                    <>
+                      <div className="px-2">
+                        <dt className="label-small text-[#757575]">Saves</dt>
+                        <dd className="title5 text-[#171717]">—</dd>
+                      </div>
+                      <div className="pl-2">
+                        <dt className="label-small text-[#757575]">Views</dt>
+                        <dd className="title5 text-[#171717]">—</dd>
+                      </div>
+                    </>
+                  ) : null}
                 </dl>
                 <Link
                   href={profilePathForPlayer(personalListOwner)}
@@ -1094,27 +1111,33 @@ export default function LocationListsDrawer({
 
             {listDescriptionSection}
 
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                disabled
-                className="label-medium flex h-11 items-center justify-center bg-[#DBDBDB] px-4 uppercase tracking-wide text-[#757575] disabled:cursor-not-allowed"
-              >
-                Save list
-              </button>
+            <div
+              className={
+                SHOW_UNIMPLEMENTED_LIST_ENGAGEMENT
+                  ? 'grid grid-cols-2 gap-2'
+                  : undefined
+              }
+            >
+              {SHOW_UNIMPLEMENTED_LIST_ENGAGEMENT ? (
+                <button
+                  type="button"
+                  disabled
+                  className="label-medium flex h-11 items-center justify-center bg-[#DBDBDB] px-4 uppercase tracking-wide text-[#757575] disabled:cursor-not-allowed"
+                >
+                  Save list
+                </button>
+              ) : null}
               {listShareTarget ? (
                 <ListShareButton
                   {...listShareTarget}
                   variant="full"
-                  onRequestShare={
-                    isSidebar ? undefined : () => setIsSharePanelOpen(true)
-                  }
+                  onRequestShare={() => setIsSharePanelOpen(true)}
                 />
               ) : (
                 <button
                   type="button"
                   disabled
-                  className="label-medium flex h-11 items-center justify-center border border-[#DBDBDB] px-4 uppercase tracking-wide text-[#A9A9A9] disabled:cursor-not-allowed"
+                  className="label-medium flex h-11 w-full items-center justify-center border border-[#DBDBDB] px-4 uppercase tracking-wide text-[#A9A9A9] disabled:cursor-not-allowed"
                 >
                   Share list
                 </button>
@@ -1398,8 +1421,8 @@ export default function LocationListsDrawer({
   );
 
   const listBody =
-    !isSidebar && isSharePanelOpen && listShareTarget ? (
-      <div className="flex min-h-0 flex-1 px-4 pb-3">
+    isSharePanelOpen && listShareTarget ? (
+      <div className={cn('flex min-h-0 flex-1', !isSidebar && 'px-4 pb-3')}>
         <ListSharePanel
           {...listShareTarget}
           onClose={() => setIsSharePanelOpen(false)}

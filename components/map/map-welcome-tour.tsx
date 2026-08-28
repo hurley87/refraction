@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import ProfileAvatar from '@/components/profile-avatar';
 import { cn } from '@/lib/utils';
+
+const MALCOLM_LEVY_USERNAME = 'malcolm_levy';
 
 export type MapWelcomeTourStep =
   | 'intro'
@@ -58,36 +62,71 @@ function TourArrowIcon({
   );
 }
 
-function IntroStep({
-  onContinue,
-  onClose,
-}: {
-  onContinue: () => void;
-  onClose: () => void;
-}) {
+function IntroStep({ onContinue }: { onContinue: () => void }) {
+  const [profilePictureUrl, setProfilePictureUrl] = useState<
+    string | undefined
+  >();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/profile?username=${encodeURIComponent(MALCOLM_LEVY_USERNAME)}`
+        );
+        if (!response.ok) return;
+        const result = await response.json();
+        const profile = result.data ?? result;
+        const url =
+          typeof profile.profile_picture_url === 'string'
+            ? profile.profile_picture_url.trim()
+            : '';
+        if (!cancelled && url) setProfilePictureUrl(url);
+      } catch {
+        // Initials fallback when the IRL photo cannot be loaded.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div
       className={cn(
         'pointer-events-auto absolute left-2 right-2 top-[53px] z-30 flex w-auto flex-col items-center gap-[var(--sds-size-space-600)] bg-[var(--Backgrounds-Background,#FFF)] px-[var(--sds-size-space-400)] pb-[var(--sds-size-space-400)] pt-10 shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] backdrop-blur-[232px]'
       )}
     >
-      <TourCloseButton onClose={onClose} />
       <div className="flex w-full flex-col items-center gap-[var(--sds-size-space-200)] self-stretch">
         <div className="flex w-full flex-col items-start gap-4 self-stretch">
           <h2 className="title2 text-[#171717]">Welcome to IRL</h2>
         </div>
 
         <div className="flex w-full flex-col items-start self-stretch">
+          <Link
+            href={`/${MALCOLM_LEVY_USERNAME}`}
+            className="mb-[var(--sds-size-space-200)] rounded-full transition-opacity hover:opacity-80"
+            aria-label="View Malcolm Levy's profile"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <ProfileAvatar
+              profilePictureUrl={profilePictureUrl}
+              name="Malcolm Levy"
+              username={MALCOLM_LEVY_USERNAME}
+              size={48}
+            />
+          </Link>
           <p className="title5-bold text-[#000000]">Hi, I&apos;m Malcolm.</p>
           <p className="body-medium mt-[var(--sds-size-space-200)] text-[#171717]">
-            IRL is a network of 2000+ artists, DJs, and venues building
-            infrastructure for independent culture worldwide.
+            IRL is a network of 2,000+ artists, DJs, venues and cultural spaces
+            building infrastructure for independent culture around the world.
             <br />
             <br />
-            Every check-in flows value back to the rooms where culture actually
-            happens — the venues, artists, and people running it. Earn points
-            and get surprise rewards at the bars, clubs, and galleries we work
-            with.
+            Every check-in helps flow value back to the places and people where
+            culture actually happens. Earn points, discover new places, and get
+            rewards at the bars, clubs, galleries and spaces we work with.
           </p>
           <p className="title5-bold  mt-[var(--sds-size-space-200)] text-[#000000]">
             Have fun out there.
@@ -140,13 +179,7 @@ function TourLogoMark({ className }: { className?: string }) {
  * Full-bleed tour image step within the mobile frame (design ref ~393×852).
  * Tap anywhere to advance.
  */
-function Page1Step({
-  onContinue,
-  onClose,
-}: {
-  onContinue: () => void;
-  onClose: () => void;
-}) {
+function Page1Step({ onContinue }: { onContinue: () => void }) {
   return (
     <div
       role="button"
@@ -161,7 +194,6 @@ function Page1Step({
       aria-label="Continue tour"
       className={TOUR_STEP_SHELL_CLASS}
     >
-      <TourCloseButton onClose={onClose} />
       <Image
         src="/map/tour/tour-page-1.png"
         alt=""
@@ -201,13 +233,7 @@ function Page1Step({
  * Full-bleed tour step: poster + local-guides copy.
  * Tap anywhere to advance.
  */
-function Page2Step({
-  onContinue,
-  onClose,
-}: {
-  onContinue: () => void;
-  onClose: () => void;
-}) {
+function Page2Step({ onContinue }: { onContinue: () => void }) {
   return (
     <div
       role="button"
@@ -222,7 +248,6 @@ function Page2Step({
       aria-label="Continue tour"
       className={TOUR_STEP_SHELL_CLASS}
     >
-      <TourCloseButton onClose={onClose} />
       <Image
         src="/map/tour/tour-page2.png"
         alt=""
@@ -265,13 +290,7 @@ function Page2Step({
  * Full-bleed tour step: earn/spend rewards copy + reward graphic.
  * Tap anywhere to advance.
  */
-function Page3Step({
-  onContinue,
-  onClose,
-}: {
-  onContinue: () => void;
-  onClose: () => void;
-}) {
+function Page3Step({ onContinue }: { onContinue: () => void }) {
   return (
     <div
       role="button"
@@ -286,7 +305,6 @@ function Page3Step({
       aria-label="Continue tour"
       className={TOUR_STEP_SHELL_CLASS}
     >
-      <TourCloseButton variant="inverted" onClose={onClose} />
       <Image
         src="/map/tour/tour-page3.png"
         alt=""
@@ -330,16 +348,9 @@ function Page3Step({
 /**
  * Final full-bleed tour step: get-started CTA.
  */
-function Page4Step({
-  onContinue,
-  onClose,
-}: {
-  onContinue: () => void;
-  onClose: () => void;
-}) {
+function Page4Step({ onContinue }: { onContinue: () => void }) {
   return (
     <div className="pointer-events-auto absolute inset-0 z-40 h-full w-full overflow-hidden bg-black">
-      <TourCloseButton onClose={onClose} />
       <Image
         src="/map/tour/tour-page4.png"
         alt=""
@@ -378,8 +389,8 @@ function Page4Step({
           </div>
 
           <p className="title3 max-w-[75%] text-left text-white">
-            Discover curated city guides, check-in, and curate your own lists to share
-            with your circle.
+            Discover curated city guides, check-in, and curate your own lists to
+            share with your circle.
           </p>
         </div>
 
@@ -392,51 +403,6 @@ function Page4Step({
         </button>
       </div>
     </div>
-  );
-}
-
-function TourCloseButton({
-  onClose,
-  className,
-  variant = 'default',
-}: {
-  onClose: () => void;
-  className?: string;
-  variant?: 'default' | 'inverted';
-}) {
-  const inverted = variant === 'inverted';
-
-  return (
-    <button
-      type="button"
-      onClick={(event) => {
-        event.stopPropagation();
-        onClose();
-      }}
-      className={cn(
-        'pointer-events-auto absolute right-2 top-2 z-50 flex size-10 shrink-0 items-center justify-center gap-4 rounded-[179px] p-[var(--sds-size-space-200)] transition-opacity hover:opacity-90',
-        inverted
-          ? 'border border-[#171717] bg-[#171717] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)]'
-          : 'border border-[var(--Borders-Light-Border,#DBDBDB)] bg-[var(--Backgrounds-Background,#FFF)] shadow-[0_1px_8px_0_rgba(0,0,0,0.08)]',
-        className
-      )}
-      aria-label="Skip tour"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width={24}
-        height={24}
-        viewBox="0 0 24 24"
-        fill="none"
-        className="size-6 shrink-0 aspect-square"
-        aria-hidden
-      >
-        <path
-          d="M19.9987 7.32025L16.7199 4L12.0122 8.69045L7.32171 4L4.00146 7.32025L8.69538 11.9969L4.00146 16.6735L7.32171 19.9938L12.0122 15.3033L16.7199 19.9938L19.9987 16.6735L15.3186 11.9969L19.9987 7.32025Z"
-          fill={inverted ? '#FFFFFF' : '#757575'}
-        />
-      </svg>
-    </button>
   );
 }
 
@@ -487,21 +453,11 @@ export function MapWelcomeTour({
         <span id="map-welcome-tour-title" className="sr-only">
           Welcome to IRL
         </span>
-        {step === 'intro' ? (
-          <IntroStep onContinue={advance} onClose={onComplete} />
-        ) : null}
-        {step === 'page1' ? (
-          <Page1Step onContinue={advance} onClose={onComplete} />
-        ) : null}
-        {step === 'page2' ? (
-          <Page2Step onContinue={advance} onClose={onComplete} />
-        ) : null}
-        {step === 'page3' ? (
-          <Page3Step onContinue={advance} onClose={onComplete} />
-        ) : null}
-        {step === 'page4' ? (
-          <Page4Step onContinue={advance} onClose={onComplete} />
-        ) : null}
+        {step === 'intro' ? <IntroStep onContinue={advance} /> : null}
+        {step === 'page1' ? <Page1Step onContinue={advance} /> : null}
+        {step === 'page2' ? <Page2Step onContinue={advance} /> : null}
+        {step === 'page3' ? <Page3Step onContinue={advance} /> : null}
+        {step === 'page4' ? <Page4Step onContinue={advance} /> : null}
       </div>
     </div>
   );
