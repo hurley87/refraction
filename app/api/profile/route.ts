@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 export const dynamic = 'force-dynamic';
 import {
   getUserProfile,
+  getUserProfileByUsername,
   createOrUpdateUserProfile,
   awardProfileFieldPoints,
   isUsernameTakenByOther,
@@ -11,7 +12,7 @@ import {
 import type { ProfileFavoritePlace, UserProfile } from '@/lib/types';
 import { apiSuccess, apiError } from '@/lib/api/response';
 import { profileFavoritePlaceSchema } from '@/lib/schemas/player';
-import { usernameSchema } from '@/lib/username';
+import { normalizeUsername, usernameSchema } from '@/lib/username';
 
 function parseFavoritePlaceField(
   value: unknown
@@ -31,11 +32,27 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const walletAddress = searchParams.get('wallet_address');
+    const usernameParam = searchParams.get('username');
 
     console.log('walletAddress', walletAddress);
 
+    if (usernameParam && !walletAddress) {
+      const username = normalizeUsername(usernameParam);
+      if (!username) {
+        return apiError('Username is required', 400);
+      }
+
+      const profile = await getUserProfileByUsername(username);
+      return apiSuccess({
+        username: profile?.username ?? username,
+        name: profile?.name ?? '',
+        profile_picture_url: profile?.profile_picture_url ?? '',
+        twitter_handle: profile?.twitter_handle ?? '',
+      });
+    }
+
     if (!walletAddress) {
-      return apiError('Wallet address is required', 400);
+      return apiError('Wallet address or username is required', 400);
     }
 
     const profile = await getUserProfile(walletAddress);

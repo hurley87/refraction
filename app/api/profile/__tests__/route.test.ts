@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { PUT } from '../route';
+import { GET, PUT } from '../route';
 
 vi.mock('@/lib/db/profiles', () => ({
   getUserProfile: vi.fn(),
+  getUserProfileByUsername: vi.fn(),
   createOrUpdateUserProfile: vi.fn(),
   awardProfileFieldPoints: vi.fn(),
   isUsernameTakenByOther: vi.fn().mockResolvedValue(false),
@@ -12,6 +13,7 @@ vi.mock('@/lib/db/profiles', () => ({
 
 import {
   createOrUpdateUserProfile,
+  getUserProfileByUsername,
   isUsernameTakenByOther,
 } from '@/lib/db/profiles';
 
@@ -26,6 +28,36 @@ function createMockPutRequest(body: object): NextRequest {
 describe('Profile API Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('GET /api/profile', () => {
+    it('returns public profile fields for a username lookup', async () => {
+      vi.mocked(getUserProfileByUsername).mockResolvedValueOnce({
+        wallet_address: '0xabc',
+        email: 'secret@example.com',
+        username: 'malcolm_levy',
+        name: 'Malcolm Levy',
+        profile_picture_url: 'https://cdn.example/malcolm.jpg',
+        twitter_handle: 'malcolm_levy',
+      });
+
+      const response = await GET(
+        new NextRequest(
+          'http://localhost:3000/api/profile?username=malcolm_levy'
+        )
+      );
+      const json = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(json.success).toBe(true);
+      expect(json.data).toEqual({
+        username: 'malcolm_levy',
+        name: 'Malcolm Levy',
+        profile_picture_url: 'https://cdn.example/malcolm.jpg',
+        twitter_handle: 'malcolm_levy',
+      });
+      expect(json.data.email).toBeUndefined();
+    });
   });
 
   describe('PUT /api/profile', () => {

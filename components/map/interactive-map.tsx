@@ -99,8 +99,8 @@ type CategoryOption = {
 type FormStep = 'business-details' | 'success';
 
 const WELCOME_TOUR_STORAGE_KEY = 'irl-map-welcome-tour-v4';
-/** Logged-in users see the tour on their first N map visits after wallet creation. */
-const WELCOME_TOUR_MAX_SHOWS = 3;
+/** Logged-in users see the tour once after wallet creation. */
+const WELCOME_TOUR_MAX_SHOWS = 1;
 const LOCATION_INSTRUCTION_STORAGE_KEY =
   'irl-location-create-instruction-count';
 const LOCATION_INSTRUCTION_LIMIT = 3;
@@ -481,7 +481,7 @@ export default function InteractiveMap({
       return;
     }
 
-    // Logged-in: show for the first N map visits after wallet creation.
+    // Logged-in: show once after wallet creation.
     const welcomeKey = getWelcomeTourStorageKey(walletAddress);
     const storedViews = readLocalStorageItem(welcomeKey);
     const parsedViews = storedViews ? parseInt(storedViews, 10) : 0;
