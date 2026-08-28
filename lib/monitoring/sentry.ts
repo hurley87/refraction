@@ -406,12 +406,20 @@ export function isWebkitMessageHandlersNoise(message: string): boolean {
 /**
  * Android in-app browsers (Facebook, Instagram, etc.) inject
  * `navigationPerformanceLoggerJavascriptInterface` and similar JNI bridges.
- * When the WebView tears down or navigates, `postMessage` calls on those
- * injected objects throw "Java object is gone" — environmental noise, not app code.
+ * When the WebView tears down or navigates, JNI calls on those injected objects
+ * throw "Java object is gone" or "Java exception was raised during method
+ * invocation" — environmental noise, not app code.
  */
 export function isAndroidJavascriptBridgeNoise(message: string): boolean {
   const lower = message.toLowerCase();
-  return lower.includes('java object is gone');
+  if (!lower.includes('error invoking')) {
+    return false;
+  }
+
+  return (
+    lower.includes('java object is gone') ||
+    lower.includes('java exception was raised during method invocation')
+  );
 }
 
 /**

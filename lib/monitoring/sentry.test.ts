@@ -108,6 +108,16 @@ describe('isAndroidJavascriptBridgeNoise', () => {
         'Error: Error invoking enableButtonsClickedMetaDataLogging: Java object is gone'
       )
     ).toBe(true);
+    expect(
+      isAndroidJavascriptBridgeNoise(
+        'Error: Error invoking postMessage: Java exception was raised during method invocation'
+      )
+    ).toBe(true);
+    expect(
+      isAndroidJavascriptBridgeNoise(
+        'Java exception was raised during method invocation'
+      )
+    ).toBe(false);
     expect(isAndroidJavascriptBridgeNoise('TypeError: fetch failed')).toBe(
       false
     );
@@ -639,6 +649,31 @@ describe('sentryBeforeSend', () => {
                 {
                   filename: 'app://navigation_performance_logger_android',
                   function: 'sendBeforeUnloadMessage',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    };
+
+    expect(sentryBeforeSend(event)).toBeNull();
+  });
+
+  it('returns null for Android JNI bridge postMessage exception noise (JAVASCRIPT-NEXTJS-1S)', () => {
+    const event = {
+      request: { url: 'https://www.irl.energy/events' },
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value:
+              'Error: Error invoking postMessage: Java exception was raised during method invocation',
+            stacktrace: {
+              frames: [
+                {
+                  filename: 'app://navigation_performance_logger_android',
+                  function: 'sendDataToNative',
                 },
               ],
             },
