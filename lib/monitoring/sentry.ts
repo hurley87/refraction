@@ -267,16 +267,35 @@ function shouldDropIndexedDbNoiseError(
   return isIndexedDbNoiseError(eventMessage(event, hint));
 }
 
+/** EIP-1193 provider RPC codes that are environmental / user-intent, not app bugs. */
+const EIP1193_ENVIRONMENTAL_CODES = new Set([
+  4001, // User rejected the request
+  4900, // Disconnected from all chains
+  4901, // Disconnected from chain
+]);
+
+function normalizeEip1193Code(code: unknown): number | null {
+  if (typeof code === 'number' && Number.isFinite(code)) {
+    return code;
+  }
+  if (typeof code === 'string' && /^\d+$/.test(code)) {
+    return Number(code);
+  }
+  return null;
+}
+
 /**
  * EIP-1193 providers (MetaMask, embedded wallets, etc.) reject with a plain
  * `{ code, message }` object. `4001` is "User rejected the request" / non-actionable
  * user-or-wallet state (including MetaMask edge cases like an empty wallet).
- * Those surface in Sentry as unhandled rejections titled `<unknown>`.
+ * `4900`/`4901` are disconnect events during in-flight requests. Some wallets
+ * serialize `code` as a string. Those surface in Sentry as unhandled rejections
+ * titled `<unknown>`.
  */
-function isEip1193UserRejectedReason(reason: unknown): boolean {
+export function isEip1193ProviderNoise(reason: unknown): boolean {
   if (!isPlainRecord(reason)) return false;
-  const { code, message } = reason;
-  return code === 4001 && typeof message === 'string' && message.length > 0;
+  const code = normalizeEip1193Code(reason.code);
+  return code !== null && EIP1193_ENVIRONMENTAL_CODES.has(code);
 }
 
 function serializedRejectionFromEvent(
@@ -286,15 +305,15 @@ function serializedRejectionFromEvent(
   return isPlainRecord(serialized) ? serialized : null;
 }
 
-function shouldDropEip1193UserRejection(
+function shouldDropEip1193ProviderNoise(
   event: SentryEventLike,
   hint?: EventHint
 ): boolean {
-  if (isEip1193UserRejectedReason(hint?.originalException)) {
+  if (isEip1193ProviderNoise(hint?.originalException)) {
     return true;
   }
   const fromExtra = serializedRejectionFromEvent(event);
-  return isEip1193UserRejectedReason(fromExtra);
+  return isEip1193ProviderNoise(fromExtra);
 }
 
 /**
@@ -478,7 +497,7 @@ export function sentryBeforeSend<T extends SentryEventLike>(
   event: T,
   hint?: EventHint
 ): T | null {
-  if (shouldDropEip1193UserRejection(event, hint)) {
+  if (shouldDropEip1193ProviderNoise(event, hint)) {
     return null;
   }
 
