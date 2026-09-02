@@ -3,21 +3,18 @@ import {
   loadOgCardFonts,
   loadOgCardLogoDataUri,
   loadOgCardPhotoDataUri,
+  ogCardPhotoUrl,
   OG_CARD_FONT_FAMILY,
   OG_CARD_SIZE,
 } from '@/lib/og/satori-card-assets';
 import {
-  buildPublicListOgCard,
-  publicListOgSatoriPhotoUrl,
-  resolvePublicListForSharePage,
-  type PublicListOgCard,
-} from '@/lib/player-lists/public-list-og-card';
+  buildPerkShareCard,
+  type PerkShareCard,
+} from '@/lib/perks/perk-share-card';
+import { loadShareablePerk } from '@/lib/perks/shareable-perk';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const alt = 'IRL list';
-export const size = OG_CARD_SIZE;
-export const contentType = 'image/png';
 
 const IRL_BLACK = '#171717';
 const IRL_YELLOW = '#FFF200';
@@ -26,36 +23,31 @@ const IRL_GRAY = '#757575';
 const CANVAS_INSET = 14;
 const CARD_RADIUS = 44;
 const CARD_PADDING = 28;
-const CARD_HEIGHT = size.height - CANVAS_INSET * 2;
+const CARD_HEIGHT = OG_CARD_SIZE.height - CANVAS_INSET * 2;
 const FOOTER_HEIGHT = 104;
 const THUMBNAIL_WIDTH = 470;
 const THUMBNAIL_HEIGHT = CARD_HEIGHT - CARD_PADDING * 2 - FOOTER_HEIGHT;
 const THUMBNAIL_RADIUS = 28;
 
-type OgImageParams = {
-  params?: { username?: string; listSlug?: string };
-};
-
-/** Keeps long list names inside the card's text column without clipping. */
+/** Keeps long reward names inside the card's text column without clipping. */
 function titleFontSize(title: string): number {
-  if (title.length <= 10) return 92;
-  if (title.length <= 18) return 72;
-  if (title.length <= 30) return 58;
-  if (title.length <= 46) return 46;
-  return 38;
+  if (title.length <= 10) return 84;
+  if (title.length <= 18) return 68;
+  if (title.length <= 30) return 54;
+  if (title.length <= 46) return 44;
+  return 36;
 }
 
-function ShareCard({
+function RewardShareCard({
   card,
   photoSrc,
   logoSrc,
 }: {
-  card: PublicListOgCard | null;
+  card: PerkShareCard | null;
   photoSrc: string | null;
   logoSrc: string;
 }) {
   const title = card?.title ?? 'IRL';
-  const ownerLabel = card?.ownerLabel ?? '';
 
   return (
     <div
@@ -121,14 +113,8 @@ function ShareCard({
           >
             <img src={logoSrc} width={132} height={119} alt="" />
 
-            <div
-              style={{
-                display: 'flex',
-                fontSize: 40,
-                color: IRL_GRAY,
-              }}
-            >
-              {card ? 'Check out my list:' : "Culture's rewards program"}
+            <div style={{ display: 'flex', fontSize: 40, color: IRL_GRAY }}>
+              {card ? 'Member reward:' : "Culture's rewards program"}
             </div>
 
             <div
@@ -143,15 +129,9 @@ function ShareCard({
               {title}
             </div>
 
-            {ownerLabel ? (
-              <div
-                style={{
-                  display: 'flex',
-                  fontSize: 38,
-                  color: IRL_GRAY,
-                }}
-              >
-                {`- ${ownerLabel}`}
+            {card?.venueLabel ? (
+              <div style={{ display: 'flex', fontSize: 38, color: IRL_GRAY }}>
+                {card.venueLabel}
               </div>
             ) : null}
           </div>
@@ -168,9 +148,7 @@ function ShareCard({
           }}
         >
           <div style={{ display: 'flex', fontSize: 30, color: IRL_BLACK }}>
-            {card
-              ? `${title} - ${ownerLabel}'s curated list`
-              : 'Discover culture worth showing up for'}
+            {card ? card.pointsLabel : 'Discover culture worth showing up for'}
           </div>
           <div
             style={{
@@ -199,22 +177,23 @@ function ShareCard({
   );
 }
 
-export default async function Image({ params }: OgImageParams) {
+/** GET /api/og/reward/[perkId] — branded share card for a single reward. */
+export async function GET(
+  _request: Request,
+  { params }: { params: { perkId: string } }
+) {
   const [fonts, logoSrc] = await Promise.all([
     loadOgCardFonts(),
     loadOgCardLogoDataUri(),
   ]);
 
-  let card: PublicListOgCard | null = null;
+  let card: PerkShareCard | null = null;
   let photoSrc: string | null = null;
   try {
-    const list = await resolvePublicListForSharePage(
-      params?.username ?? '',
-      params?.listSlug ?? ''
-    );
-    card = list ? buildPublicListOgCard(list) : null;
+    const perk = await loadShareablePerk(params.perkId ?? '');
+    card = perk ? buildPerkShareCard(perk) : null;
     photoSrc = await loadOgCardPhotoDataUri(
-      publicListOgSatoriPhotoUrl(card?.photoUrl ?? null)
+      ogCardPhotoUrl(card?.photoUrl ?? null)
     );
   } catch {
     card = null;
@@ -222,9 +201,9 @@ export default async function Image({ params }: OgImageParams) {
   }
 
   return new ImageResponse(
-    <ShareCard card={card} photoSrc={photoSrc} logoSrc={logoSrc} />,
+    <RewardShareCard card={card} photoSrc={photoSrc} logoSrc={logoSrc} />,
     {
-      ...size,
+      ...OG_CARD_SIZE,
       fonts,
       headers: {
         'Cache-Control': 'public, max-age=3600, s-maxage=3600',
