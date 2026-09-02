@@ -1,6 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
@@ -13,12 +21,13 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog';
-import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
+import MapNav, { MAP_NAV_SAFE_AREA_X } from '@/components/map/mapnav';
 import {
   MapDesktopNav,
   MapDesktopSearchSlot,
 } from '@/components/map/map-desktop-nav';
 import { cn } from '@/lib/utils';
+import { MAX_HOMEPAGE_FEATURED_EVENTS } from '@/lib/home/homepage-featured';
 import { buildCityMatcher } from '@/lib/utils/normalize-city';
 import {
   getDiceEventPosterUrl,
@@ -50,6 +59,8 @@ interface PublicEvent {
   hostedByIrl: boolean;
   /** Canonical city slug used for filtering; null when unmatched. */
   citySlug: string | null;
+  /** True when this event is featured in CMS (manual events). */
+  isFeatured: boolean;
 }
 
 interface ManualEvent {
@@ -62,6 +73,7 @@ interface ManualEvent {
   mapsLink: string;
   rsvpLink: string;
   hosted?: boolean;
+  isFeatured?: boolean;
   citySlug?: string | null;
 }
 
@@ -463,8 +475,7 @@ function EventsFilterSortFields({
   dateRangeLabel,
   sortOrder,
   onSortOrderChange,
-  
-  
+
   saveSlot,
 }: EventsFilterSortFieldsProps) {
   const [expandedSection, setExpandedSection] =
@@ -778,6 +789,204 @@ function EventsMapLink({
   );
 }
 
+function NextEventMobileSlide({
+  event,
+  priority = false,
+  slideCount,
+  activeIndex,
+  onSelectSlide,
+}: {
+  event: PublicEvent;
+  priority?: boolean;
+  slideCount: number;
+  activeIndex: number;
+  onSelectSlide: (index: number) => void;
+}) {
+  return (
+    <article className="w-full min-w-full shrink-0 snap-start overflow-hidden">
+      {event.poster ? (
+        <Image
+          src={event.poster}
+          alt={event.title}
+          width={768}
+          height={960}
+          priority={priority}
+          className="h-auto w-full object-cover transition-opacity hover:opacity-95"
+        />
+      ) : (
+        <div className="flex aspect-[4/5] flex-col items-center justify-center border-b border-dashed border-neutral-400/60 bg-neutral-100">
+          <Calendar className="h-8 w-8 text-neutral-500" />
+        </div>
+      )}
+
+      {slideCount > 1 ? (
+        <div
+          className="flex items-center justify-center gap-2 py-3"
+          role="tablist"
+          aria-label="Featured event posters"
+        >
+          {Array.from({ length: slideCount }, (_, index) => {
+            const isActive = index === activeIndex;
+            return (
+              <button
+                key={index}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-label={`Show featured event ${index + 1} of ${slideCount}`}
+                onClick={() => onSelectSlide(index)}
+                className={cn(
+                  'size-2 shrink-0 rounded-full transition-colors',
+                  isActive ? 'bg-[#171717]' : 'bg-[#DBDBDB]'
+                )}
+              />
+            );
+          })}
+        </div>
+      ) : null}
+
+      {/* Poster bleeds to the screen edges; details keep the page gutters. */}
+      <div
+        className={cn(
+          'mx-auto flex w-full max-w-md flex-col items-start gap-4 px-4 pb-6 md:px-2',
+          slideCount > 1 ? 'pt-3' : 'pt-6'
+        )}
+      >
+        <div className="text-[#757575] label-small">NEXT EVENT</div>
+        <div className="space-y-3">
+          <h2 className=" text-[#313131]">{event.title}</h2>
+        </div>
+
+        <div className="flex w-full items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className={EVENT_META_PILL_CLASS}>
+              <Calendar className="size-3 shrink-0 text-[#757575]" />
+              <span className="whitespace-nowrap text-[11px] uppercase leading-none tracking-wide text-[#757575]">
+                {formatEventDateChip(event.start, event.end)}
+              </span>
+            </div>
+            <div className={cn(EVENT_META_PILL_CLASS, 'min-w-0 max-w-[11rem]')}>
+              <MapPin className="size-3 shrink-0 text-[#757575]" />
+              <span className="truncate text-[11px] uppercase leading-none tracking-wide text-[#757575]">
+                {event.location}
+              </span>
+            </div>
+          </div>
+          <EventsMapLink
+            href={event.mapsUrl || EVENTS_MAP_HREF}
+            arrow="diagonal"
+          />
+        </div>
+
+        <div className="w-full">
+          <a
+            href={event.ticketsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={FIND_TICKETS_CTA_CLASS}
+          >
+            <span className="text-left">REGISTER</span>
+            <span className={REGISTER_ICON_CIRCLE_LIGHT_CLASS} aria-hidden>
+              <Image
+                src={REGISTER_ARROW_PATH}
+                alt=""
+                width={24}
+                height={24}
+                className="size-4 object-contain"
+              />
+            </span>
+          </a>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/** Homepage-style snap carousel for up to three CMS-featured next events. */
+function NextEventMobileCarousel({ events }: { events: PublicEvent[] }) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const dragStateRef = useRef({
+    active: false,
+    startX: 0,
+    dragged: false,
+  });
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    dragStateRef.current = {
+      active: true,
+      startX: event.clientX,
+      dragged: false,
+    };
+  };
+
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const state = dragStateRef.current;
+    if (!state.active) return;
+    if (Math.abs(event.clientX - state.startX) > 6) {
+      state.dragged = true;
+    }
+  };
+
+  const resetDragState = () => {
+    dragStateRef.current.active = false;
+  };
+
+  const handleClickCapture = (event: MouseEvent<HTMLDivElement>) => {
+    if (dragStateRef.current.dragged) {
+      event.preventDefault();
+      event.stopPropagation();
+      dragStateRef.current.dragged = false;
+    }
+  };
+
+  const handleScroll = () => {
+    const scroller = scrollerRef.current;
+    if (!scroller || events.length === 0) return;
+    const width = scroller.clientWidth;
+    if (width <= 0) return;
+    const nextIndex = Math.round(scroller.scrollLeft / width);
+    setActiveIndex(Math.min(events.length - 1, Math.max(0, nextIndex)));
+  };
+
+  const scrollToSlide = (index: number) => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    scroller.scrollTo({
+      left: index * scroller.clientWidth,
+      behavior: 'smooth',
+    });
+    setActiveIndex(index);
+  };
+
+  return (
+    <section className="xl:hidden" aria-label="Next events">
+      <div
+        ref={scrollerRef}
+        className="relative left-1/2 flex w-screen max-w-[100vw] -translate-x-1/2 snap-x snap-mandatory overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={resetDragState}
+        onPointerLeave={resetDragState}
+        onPointerCancel={resetDragState}
+        onClickCapture={handleClickCapture}
+        onScroll={handleScroll}
+      >
+        {events.map((event, index) => (
+          <NextEventMobileSlide
+            key={event.id}
+            event={event}
+            priority={index === 0}
+            slideCount={events.length}
+            activeIndex={activeIndex}
+            onSelectSlide={scrollToSlide}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 const parseEventDate = (value: string | null | undefined): Date | null => {
   if (!value) return null;
   const parsed = new Date(value);
@@ -889,6 +1098,7 @@ const toPublicEvent = (
     isManual: false,
     hostedByIrl: false,
     citySlug: matchCity(primaryVenue?.city),
+    isFeatured: false,
   };
 };
 
@@ -968,6 +1178,18 @@ export default function EventsPage() {
     staleTime: 60 * 1000,
   });
 
+  const { data: featuredDiceEventIds = [] } = useQuery<string[]>({
+    queryKey: ['featured-dice-event-ids'],
+    queryFn: async () => {
+      const response = await fetch('/api/dice/featured');
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body?.success) return [];
+      const ids = body.data?.diceEventIds;
+      return Array.isArray(ids) ? (ids as string[]) : [];
+    },
+    staleTime: 60 * 1000,
+  });
+
   const { data: cities } = useQuery<CityOption[]>({
     queryKey: ['cities'],
     queryFn: async () => {
@@ -1011,6 +1233,7 @@ export default function EventsPage() {
         isManual: true,
         hostedByIrl: evt.hosted ?? false,
         citySlug: evt.citySlug ?? matchCity(evt.city),
+        isFeatured: evt.isFeatured ?? false,
       })) ?? [];
 
     return [...dicePublic, ...manualPublic];
@@ -1038,23 +1261,38 @@ export default function EventsPage() {
     });
   }, [publicEvents, selectedCity, dateFrom, dateTo]);
 
-  const nextEvent = useMemo(() => {
+  const nextEvents = useMemo(() => {
     const upcomingWithDate = visibleEvents
       .filter((event) => event.start && isTodayOrFuture(event.start))
       .sort((a, b) => a.start!.getTime() - b.start!.getTime());
-    return upcomingWithDate[0] ?? null;
-  }, [visibleEvents]);
+
+    const featuredDiceIdSet = new Set(featuredDiceEventIds);
+    const featured = upcomingWithDate
+      .filter(
+        (event) =>
+          featuredDiceIdSet.has(event.id) ||
+          (event.isManual && event.isFeatured)
+      )
+      .slice(0, MAX_HOMEPAGE_FEATURED_EVENTS);
+
+    if (featured.length > 0) return featured;
+    return upcomingWithDate.slice(0, 1);
+  }, [visibleEvents, featuredDiceEventIds]);
+
+  const nextEvent = nextEvents[0] ?? null;
+  const nextEventIds = useMemo(
+    () => new Set(nextEvents.map((event) => event.id)),
+    [nextEvents]
+  );
 
   const remainingUpcomingEvents = useMemo(() => {
     const upcoming = visibleEvents.filter((event) =>
       isTodayOrFuture(eventStatusDate(event))
     );
-    const withoutNext = nextEvent
-      ? upcoming.filter((event) => event.id !== nextEvent.id)
-      : upcoming;
+    const withoutNext = upcoming.filter((event) => !nextEventIds.has(event.id));
 
     return [...withoutNext].sort((a, b) => compareEvents(a, b, sortOrder));
-  }, [nextEvent, visibleEvents, sortOrder]);
+  }, [nextEventIds, visibleEvents, sortOrder]);
 
   const pastEvents = useMemo(() => {
     const onlyPast = visibleEvents.filter(
@@ -1295,17 +1533,26 @@ export default function EventsPage() {
             </div>
           </section>
         )}
-
-       
       </div>
 
       <div className="px-4 pt-4 md:px-2 xl:hidden">
         <div className="mx-auto max-w-md">
-          <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
+          <MapNav className={cn(MAP_NAV_SAFE_AREA_X, 'max-w-none')} />
         </div>
       </div>
 
-      <div className="mx-auto max-w-md space-y-3 px-4 pt-3 md:px-2">
+      <section
+        className="flex w-full items-start justify-center gap-4 bg-[var(--Backgrounds-Highlight,#FFF200)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] xl:hidden"
+        aria-label="Events page introduction"
+      >
+        <h3 className="shrink-0 text-[#171717]">Events</h3>
+        <p className="title6 min-w-0 flex-1 text-[#171717]">
+          Local knowledge, on the calendar. The nights our city editors
+          don&apos;t want you to miss.
+        </p>
+      </section>
+
+      <div className="mx-auto max-w-md space-y-3 px-4 pt-0 md:px-2 md:pt-3">
         {(isLoading || manualLoading) && (
           <div className="flex min-h-48 flex-col items-center justify-center rounded-[26px] border border-white/30 bg-white/45 px-6 py-8 backdrop-blur-sm">
             <Loader2 className="h-8 w-8 animate-spin text-neutral-700" />
@@ -1327,92 +1574,9 @@ export default function EventsPage() {
           </div>
         )}
 
-        {nextEvent && (
-          <section className="space-y-2 xl:hidden">
-            <article
-              className={cn(
-                'overflow-hidden backdrop-blur-sm max-md:-mx-4 md:w-full md:max-w-none',
-                'max-md:w-[calc(100%+2rem)]'
-              )}
-            >
-              {nextEvent.poster ? (
-                <Image
-                  src={nextEvent.poster}
-                  alt={nextEvent.title}
-                  width={768}
-                  height={960}
-                  className="h-auto w-full object-cover transition-opacity hover:opacity-95"
-                />
-              ) : (
-                <div className="flex aspect-[4/5] flex-col items-center justify-center border-b border-dashed border-neutral-400/60 bg-neutral-100">
-                  <Calendar className="h-8 w-8 text-neutral-500" />
-                </div>
-              )}
-
-              <div
-                className={cn(
-                  'flex w-full max-md:w-[393px] max-md:max-w-full flex-col items-start gap-4 py-6',
-                  'max-md:mx-auto',
-                  'md:max-w-none'
-                )}
-              >
-                <div className="text-[#757575] label-small">NEXT EVENT</div>
-                <div className="space-y-3">
-                  <h2 className=" text-[#313131]">{nextEvent.title}</h2>
-                </div>
-
-                <div className="flex w-full items-center justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <div className={EVENT_META_PILL_CLASS}>
-                      <Calendar className="size-3 shrink-0 text-[#757575]" />
-                      <span className="whitespace-nowrap text-[11px] uppercase leading-none tracking-wide text-[#757575]">
-                        {formatEventDateChip(nextEvent.start, nextEvent.end)}
-                      </span>
-                    </div>
-                    <div
-                      className={cn(
-                        EVENT_META_PILL_CLASS,
-                        'min-w-0 max-w-[11rem]'
-                      )}
-                    >
-                      <MapPin className="size-3 shrink-0 text-[#757575]" />
-                      <span className="truncate text-[11px] uppercase leading-none tracking-wide text-[#757575]">
-                        {nextEvent.location}
-                      </span>
-                    </div>
-                  </div>
-                  <EventsMapLink
-                    href={nextEvent.mapsUrl || EVENTS_MAP_HREF}
-                    arrow="diagonal"
-                  />
-                </div>
-
-                <div className="w-full">
-                  <a
-                    href={nextEvent.ticketsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={FIND_TICKETS_CTA_CLASS}
-                  >
-                    <span className="text-left">REGISTER</span>
-                    <span
-                      className={REGISTER_ICON_CIRCLE_LIGHT_CLASS}
-                      aria-hidden
-                    >
-                      <Image
-                        src={REGISTER_ARROW_PATH}
-                        alt=""
-                        width={24}
-                        height={24}
-                        className="size-4 object-contain"
-                      />
-                    </span>
-                  </a>
-                </div>
-              </div>
-            </article>
-          </section>
-        )}
+        {nextEvents.length > 0 ? (
+          <NextEventMobileCarousel events={nextEvents} />
+        ) : null}
 
         <div className="xl:hidden">
           <div className={cn(EVENT_DESKTOP_FILTER_HEADER_CLASS, 'border-b-0')}>
@@ -1602,11 +1766,12 @@ export default function EventsPage() {
 
         {hasNoEvents && (
           <div className="flex flex-col items-center justify-center rounded-[26px] bg-white px-5 py-10 text-center  xl:hidden">
-          
             {hasActiveFilters ? (
               <>
-                <h3 className="title2 text-[#313131] uppercase">No matching events</h3>
-               
+                <h3 className="title2 text-[#313131] uppercase">
+                  No matching events
+                </h3>
+
                 <button
                   type="button"
                   onClick={clearFilters}
@@ -1617,8 +1782,9 @@ export default function EventsPage() {
               </>
             ) : (
               <>
-                <h3 className="title2 text-[#313131] uppercase">No Events Available</h3>
-               
+                <h3 className="title2 text-[#313131] uppercase">
+                  No Events Available
+                </h3>
               </>
             )}
           </div>

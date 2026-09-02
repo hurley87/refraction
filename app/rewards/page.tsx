@@ -30,13 +30,18 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-import MapNav, { MAP_NAV_MOBILE_FLUSH_X } from '@/components/map/mapnav';
+import MapNav, { MAP_NAV_SAFE_AREA_X } from '@/components/map/mapnav';
+import {
+  MapDesktopNav,
+  MapDesktopSearchSlot,
+} from '@/components/map/map-desktop-nav';
 import { usePerks, useUserRedemptions } from '@/hooks/usePerks';
 import { useCurrentPlayer } from '@/hooks/usePlayer';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
 import { useEvmWalletAddress } from '@/hooks/use-evm-wallet-address';
 import { apiClient } from '@/lib/api/client';
+import { cn } from '@/lib/utils';
 
 // Perks tagged with this city value apply everywhere; they yield to more
 // specific local picks when a city filter is active.
@@ -601,23 +606,55 @@ function PerksPageInner() {
   const DetailsShell = isDesktop ? DialogContent : DialogDrawerContent;
 
   return (
-    <div className="min-h-screen bg-white px-4 pb-0 pt-4 font-grotesk">
-      <div className="mx-auto max-w-md">
-        {/* Status Bar with Header */}
-        <div className="flex justify-between items-center">
-          <div className="min-w-0 flex-1">
-            <MapNav className={MAP_NAV_MOBILE_FLUSH_X} />
+    <div className="min-h-screen bg-white pb-0 font-grotesk">
+      <header className="hidden bg-white pt-4 xl:block">
+        <MapDesktopNav searchSlot={<MapDesktopSearchSlot />} />
+      </header>
+
+      <div className="px-4 pt-4 md:px-2 xl:hidden">
+        <div className="mx-auto max-w-md">
+          {/* Status Bar with Header */}
+          <div className="flex justify-between items-center">
+            <div className="min-w-0 flex-1">
+              <MapNav className={cn(MAP_NAV_SAFE_AREA_X, 'max-w-none')} />
+            </div>
           </div>
         </div>
+      </div>
 
+      <section
+        className="hidden w-full items-start justify-center gap-4 bg-[var(--Backgrounds-Highlight,#FFF200)] p-[var(--sds-size-space-400)] xl:flex"
+        aria-label="Rewards page introduction"
+      >
+        <div className="flex max-w-[1440px] flex-1 basis-0 items-center gap-[var(--sds-size-space-800)]">
+          <h2 className="h-8 shrink-0 text-[#171717]">Rewards</h2>
+          <p className="title4 flex h-8 min-w-0 flex-1 basis-0 flex-col justify-end text-[#171717]">
+            Curated perks from our partners across the IRL Venue Network. From
+            free drinks to hotel stays to guest list spots, we got you.
+          </p>
+        </div>
+      </section>
+
+      <section
+        className="flex w-full items-start justify-center gap-4 bg-[var(--Backgrounds-Highlight,#FFF200)] px-[var(--sds-size-space-400)] py-[var(--sds-size-space-200)] xl:hidden"
+        aria-label="Rewards page introduction"
+      >
+        <h3 className="shrink-0 text-[#171717]">Rewards</h3>
+        <p className="title6 min-w-0 flex-1 text-[#171717]">
+          Curated perks from our partners across the IRL Venue Network. From
+          free drinks to hotel stays to guest list spots, we got you.
+        </p>
+      </section>
+
+      <div className="mx-auto max-w-md px-4 pt-0 md:px-2 md:pt-3">
         {/* Main Content */}
-        <div className="px-0 pt-2 space-y-1">
+        <div className="space-y-1 px-0 pt-0 md:pt-2">
           {/* LATEST REWARD Section */}
           {latestReward && !perksLoading && !hasActiveFilters && (
             <div className="mb-1">
               {/* Edge-to-edge: ignores page px-4 gutter */}
               {latestReward.thumbnail_url && (
-                <div className="relative mb-4 aspect-[86/79] overflow-hidden max-md:left-1/2 max-md:w-screen max-md:max-w-[100vw] max-md:-translate-x-1/2 md:left-auto md:w-full md:translate-x-0">
+                <div className="relative left-1/2 mb-4 aspect-[86/79] w-screen max-w-[100vw] -translate-x-1/2 overflow-hidden md:left-auto md:w-full md:translate-x-0">
                   <Image
                     src={latestReward.hero_image || latestReward.thumbnail_url!}
                     alt={latestReward.title}
@@ -646,13 +683,13 @@ function PerksPageInner() {
                 </p>
 
                 {/* Reward Title */}
-                <h2 className="text-[#171717] self-stretch font-medium w-full text-left">
+                <h2 className="text-[#171717] self-stretch font-medium w-full break-words text-left">
                   {latestReward.title}
                 </h2>
 
                 {/* Description */}
                 {latestReward.description && (
-                  <p className="text-[#757575] body-small  w-full text-left mb-4">
+                  <p className="text-[#757575] body-small  w-full break-words text-left mb-4">
                     {latestReward.description.split(/[.!?]+/)[0].trim()}
                     {latestReward.description.match(/[.!?]/) ? '.' : ''}
                   </p>
@@ -660,7 +697,7 @@ function PerksPageInner() {
 
                 {/* Points, Location, and Date — metadata left, Details right */}
                 <div className="mb-2 flex h-5 min-w-0 items-center justify-between gap-2 self-stretch">
-                  <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-2 self-stretch">
+                  <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-2 self-stretch overflow-hidden">
                     {/* Category Pill */}
                     <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
                       {latestReward.type
@@ -980,12 +1017,12 @@ function PerksPageInner() {
                           </div>
                         ) : null}
 
-                        <h2 className="w-full text-left font-medium text-[#171717]">
+                        <h2 className="w-full break-words text-left font-medium text-[#171717]">
                           {perk.title}
                         </h2>
 
                         {perk.description ? (
-                          <p className="body-small w-full text-left text-[#757575]">
+                          <p className="body-small w-full break-words text-left text-[#757575]">
                             {perk.description.split(/[.!?]+/)[0].trim()}
                             {perk.description.match(/[.!?]/) ? '.' : ''}
                           </p>
@@ -993,7 +1030,7 @@ function PerksPageInner() {
 
                         {/* Metadata row — same pattern as LATEST REWARD */}
                         <div className="mb-2 flex h-5 min-w-0 w-full items-center justify-between gap-2 self-stretch">
-                          <div className="flex min-w-0 flex-nowrap items-center justify-start gap-2 self-stretch">
+                          <div className="flex min-w-0 flex-nowrap items-center justify-start gap-2 self-stretch overflow-hidden">
                             <div className="flex h-5 shrink-0 items-center justify-center gap-1 border border-[#171717] px-1 text-[#171717] label-small uppercase whitespace-nowrap">
                               {perk.type
                                 ? formatTypeLabel(perk.type)
