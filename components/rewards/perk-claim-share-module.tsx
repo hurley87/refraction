@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { buildPerkMemberShareUrl } from '@/lib/perks/member-share-url';
+import { sharePerkLink } from '@/lib/perks/share-perk-link';
 
 const COPIED_LABEL_MS = 2000;
 
@@ -10,15 +10,6 @@ type PerkClaimShareModuleProps = {
   perkTitle: string;
   perkId?: string;
 };
-
-function isAbortError(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'name' in error &&
-    (error as { name: string }).name === 'AbortError'
-  );
-}
 
 /**
  * Share prompt on the in-person perk claim success screen.
@@ -39,8 +30,6 @@ export default function PerkClaimShareModule({
     };
   }, []);
 
-  const shareUrl = buildPerkMemberShareUrl({ title: perkTitle, perkId });
-
   const showCopied = () => {
     setCopied(true);
     if (copiedTimeoutRef.current) {
@@ -53,21 +42,8 @@ export default function PerkClaimShareModule({
   };
 
   const handleShare = async () => {
-    if (typeof navigator.share === 'function') {
-      try {
-        await navigator.share({ title: perkTitle, url: shareUrl });
-        return;
-      } catch (error) {
-        if (isAbortError(error)) return;
-      }
-    }
-
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      showCopied();
-    } catch {
-      // Clipboard can fail without a secure context; leave the button unchanged.
-    }
+    const method = await sharePerkLink({ title: perkTitle, perkId });
+    if (method === 'clipboard') showCopied();
   };
 
   return (
@@ -94,8 +70,8 @@ export default function PerkClaimShareModule({
           aria-hidden
         >
           <Image
-            src="/right-arrow.svg" style={{ transform: 'rotate(-45deg)' }}
-       
+            src="/right-arrow.svg"
+            style={{ transform: 'rotate(-45deg)' }}
             alt=""
             width={24}
             height={24}

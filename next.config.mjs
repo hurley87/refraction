@@ -65,6 +65,11 @@ const nextConfig = {
         "./public/fonts/SpecialSemi-ExpandedMedium.otf",
         "./public/irl-svg/irl-logo-new.svg",
       ],
+      "/api/og/reward/[perkId]": [
+        "./public/fonts/Special Gothic Expanded Regular.otf",
+        "./public/fonts/SpecialSemi-ExpandedMedium.otf",
+        "./public/irl-svg/irl-logo-new.svg",
+      ],
     },
   },
   images: {

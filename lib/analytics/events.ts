@@ -35,6 +35,8 @@ export const ANALYTICS_EVENTS = {
   REWARD_CLAIM_COMPLETED: 'reward_claim_completed',
   /** User opened the in-person claim / show-to-staff page. */
   IN_PERSON_CLAIM_PAGE_VIEWED: 'in_person_claim_page_viewed',
+  /** User shared a reward link from its details view. */
+  REWARD_SHARED: 'reward_shared',
 
   // Token / Points
   POINTS_EARNED: 'points_earned',
