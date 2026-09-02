@@ -9,6 +9,7 @@ const mockGetAccessToken = vi.fn();
 const mockBearerGet = vi.fn();
 const mockTrackEvent = vi.fn();
 let loginOnComplete: ((params: { isNewUser: boolean }) => void) | undefined;
+let loginOnError: ((error: string) => void) | undefined;
 let authenticated = false;
 let ready = true;
 let setSentinelIntersecting: ((isIntersecting: boolean) => void) | null = null;
@@ -21,8 +22,10 @@ vi.mock('@privy-io/react-auth', () => ({
   }),
   useLogin: (callbacks?: {
     onComplete?: (params: { isNewUser: boolean }) => void;
+    onError?: (error: string) => void;
   }) => {
     loginOnComplete = callbacks?.onComplete;
+    loginOnError = callbacks?.onError;
     return { login: mockLogin };
   },
 }));
@@ -84,6 +87,7 @@ describe('CityGuideLocationsSection', () => {
     ready = true;
     setSentinelIntersecting = null;
     loginOnComplete = undefined;
+    loginOnError = undefined;
     mockGetAccessToken.mockResolvedValue('token');
 
     vi.stubGlobal(
@@ -128,10 +132,45 @@ describe('CityGuideLocationsSection', () => {
     });
 
     await user.click(screen.getByRole('button', { name: 'BECOME A MEMBER' }));
-    expect(mockLogin).toHaveBeenCalledOnce();
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledOnce();
+    });
     expect(mockTrackEvent).toHaveBeenCalledWith('gate_signup_clicked', {
       guide_slug: 'berlin',
     });
+  });
+
+  it('closes the gate before opening Privy, so its login modal is usable', async () => {
+    const user = userEvent.setup();
+    render(<CityGuideLocationsSection {...baseProps} />);
+
+    act(() => setSentinelIntersecting?.(true));
+    await user.click(screen.getByRole('button', { name: 'BECOME A MEMBER' }));
+
+    // The gate traps focus while mounted, so it must go before Privy opens.
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+    expect(mockLogin).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledOnce();
+    });
+  });
+
+  it('re-opens the gate when the reader abandons the Privy flow', async () => {
+    const user = userEvent.setup();
+    render(<CityGuideLocationsSection {...baseProps} />);
+
+    act(() => setSentinelIntersecting?.(true));
+    await user.click(screen.getByRole('button', { name: 'BECOME A MEMBER' }));
+    await waitFor(() => {
+      expect(mockLogin).toHaveBeenCalledOnce();
+    });
+
+    act(() => loginOnError?.('exited_auth_flow'));
+
+    expect(await screen.findByRole('dialog')).toBeTruthy();
   });
 
   it('fires signup_from_gate only for new users after the gate CTA', async () => {
@@ -147,7 +186,13 @@ describe('CityGuideLocationsSection', () => {
       expect.anything()
     );
 
-    await user.click(screen.getByRole('button', { name: 'BECOME A MEMBER' }));
+    // Scroll away and back to bring the gate up for a second attempt.
+    act(() => setSentinelIntersecting?.(false));
+    act(() => setSentinelIntersecting?.(true));
+
+    await user.click(
+      await screen.findByRole('button', { name: 'BECOME A MEMBER' })
+    );
     act(() => loginOnComplete?.({ isNewUser: true }));
     expect(mockTrackEvent).toHaveBeenCalledWith('signup_from_gate', {
       guide_slug: 'berlin',

@@ -16,6 +16,12 @@ import { apiClientBearerGet } from '@/lib/api/privy-bearer-client';
 import type { CityGuideLocationSection } from '@/lib/db/guides';
 import type { CityGuideLocationGateMeta } from '@/lib/guides/city-guide-locations';
 
+/**
+ * A closing Radix dialog keeps its focus trap and pointer-events lock until the
+ * exit animation ends, so Privy has to open after that.
+ */
+const GATE_CLOSE_DURATION_MS = 250;
+
 type FullLocationsResponse = {
   locationSections: CityGuideLocationSection[];
   locationContributorByPlaceId: Record<string, string>;
@@ -84,6 +90,9 @@ export function CityGuideLocationsSection({
   const gateArmedRef = useRef(true);
   /** True after the gate CTA until Privy login completes (or is abandoned). */
   const pendingSignupFromGateRef = useRef(false);
+  /** Brings the gate back if the reader abandons the Privy flow it opened. */
+  const reopenGateAfterPrivyRef = useRef(false);
+  const loginTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gateViewTrackedForOpenRef = useRef(false);
   const slugRef = useRef(slug);
   slugRef.current = slug;
@@ -92,6 +101,7 @@ export function CityGuideLocationsSection({
 
   const { login } = useLogin({
     onComplete: ({ isNewUser }) => {
+      reopenGateAfterPrivyRef.current = false;
       if (!pendingSignupFromGateRef.current) return;
       pendingSignupFromGateRef.current = false;
       if (!isNewUser) return;
@@ -99,7 +109,20 @@ export function CityGuideLocationsSection({
         guide_slug: slugRef.current,
       });
     },
+    onError: () => {
+      pendingSignupFromGateRef.current = false;
+      if (!reopenGateAfterPrivyRef.current) return;
+      reopenGateAfterPrivyRef.current = false;
+      setIsGateOpen(true);
+    },
   });
+
+  useEffect(
+    () => () => {
+      if (loginTimeoutRef.current) clearTimeout(loginTimeoutRef.current);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!ready || !authenticated || !locationGate || requestedRef.current) {
@@ -192,10 +215,18 @@ export function CityGuideLocationsSection({
 
   const gateContributorName = locationGate?.primaryContributorName || 'IRL';
 
+  /**
+   * The gate is a modal dialog, which traps focus and locks pointer events on
+   * the rest of the document. Privy renders its login modal in a separate
+   * portal, so it stays unusable — its email field cannot even be typed into —
+   * while the gate is mounted. Close the gate first, then open Privy.
+   */
   const handleGateSignupClick = () => {
     pendingSignupFromGateRef.current = true;
+    reopenGateAfterPrivyRef.current = true;
     trackEvent(ANALYTICS_EVENTS.GATE_SIGNUP_CLICKED, { guide_slug: slug });
-    login();
+    setIsGateOpen(false);
+    loginTimeoutRef.current = setTimeout(login, GATE_CLOSE_DURATION_MS);
   };
 
   return (
