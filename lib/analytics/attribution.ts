@@ -172,7 +172,7 @@ function buildPayload(
 function readSignupFromGateIntent(): SignupFromGateIntent | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = sessionStorage.getItem(SIGNUP_FROM_GATE_STORAGE_KEY);
+    const raw = localStorage.getItem(SIGNUP_FROM_GATE_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<SignupFromGateIntent>;
     const guideSlug =
@@ -180,11 +180,11 @@ function readSignupFromGateIntent(): SignupFromGateIntent | null {
     const markedAt =
       typeof parsed.marked_at === 'number' ? parsed.marked_at : NaN;
     if (!guideSlug || !Number.isFinite(markedAt)) {
-      sessionStorage.removeItem(SIGNUP_FROM_GATE_STORAGE_KEY);
+      localStorage.removeItem(SIGNUP_FROM_GATE_STORAGE_KEY);
       return null;
     }
     if (Date.now() - markedAt > SIGNUP_FROM_GATE_TTL_MS) {
-      sessionStorage.removeItem(SIGNUP_FROM_GATE_STORAGE_KEY);
+      localStorage.removeItem(SIGNUP_FROM_GATE_STORAGE_KEY);
       return null;
     }
     return { guide_slug: guideSlug, marked_at: markedAt };
@@ -195,7 +195,7 @@ function readSignupFromGateIntent(): SignupFromGateIntent | null {
 
 /**
  * Remember that the reader started signup from a city-guide membership gate.
- * Survives the Privy modal and username step so `/api/player` can fire
+ * Survives Privy OAuth and a later username step so Mixpanel can attribute
  * `signup_from_gate`.
  */
 export function markSignupFromGate(guideSlug: string): void {
@@ -207,23 +207,37 @@ export function markSignupFromGate(guideSlug: string): void {
       guide_slug: slug.slice(0, ATTRIBUTION_LIMITS.id),
       marked_at: Date.now(),
     };
-    sessionStorage.setItem(
-      SIGNUP_FROM_GATE_STORAGE_KEY,
-      JSON.stringify(intent)
-    );
+    localStorage.setItem(SIGNUP_FROM_GATE_STORAGE_KEY, JSON.stringify(intent));
   } catch {
     // ignore quota / private mode
   }
 }
 
-/** Clear gate signup intent (abandon Privy, or after successful player create). */
+/** Clear gate signup intent (abandon Privy, after client fire, or after player create). */
 export function clearSignupFromGate(): void {
   if (typeof window === 'undefined') return;
   try {
-    sessionStorage.removeItem(SIGNUP_FROM_GATE_STORAGE_KEY);
+    localStorage.removeItem(SIGNUP_FROM_GATE_STORAGE_KEY);
   } catch {
     // ignore
   }
+}
+
+/**
+ * Read gate intent without clearing (for auth-completion checks).
+ */
+export function peekSignupFromGate(): SignupFromGateIntent | null {
+  return readSignupFromGateIntent();
+}
+
+/**
+ * Read + clear gate intent. Used when a net-new Privy account completes from
+ * the gate (city guides do not always force username / POST /api/player).
+ */
+export function consumeSignupFromGate(): SignupFromGateIntent | null {
+  const intent = readSignupFromGateIntent();
+  if (intent) clearSignupFromGate();
+  return intent;
 }
 
 /** Merge into POST /api/player JSON body; omits key when nothing stored. */

@@ -18,7 +18,7 @@ export const ANALYTICS_EVENTS = {
   GATE_VIEWED: 'gate_viewed',
   /** City guide membership gate: reader tapped Become a Member. */
   GATE_SIGNUP_CLICKED: 'gate_signup_clicked',
-  /** City guide membership gate: new IRL account created after the gate CTA. */
+  /** City guide membership gate: net-new player created on gate unlock (or username POST). */
   SIGNUP_FROM_GATE: 'signup_from_gate',
 
   // Conversion

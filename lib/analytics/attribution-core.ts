@@ -4,7 +4,10 @@
  */
 
 export const SIGNUP_ATTRIBUTION_STORAGE_KEY = 'irl_signup_attribution_v1';
-/** Session flag: Become a Member on a gated city guide (survives Privy modal). */
+/**
+ * Persist gate signup intent in localStorage (not sessionStorage) so OAuth
+ * redirects / new tabs during Privy login do not drop attribution.
+ */
 export const SIGNUP_FROM_GATE_STORAGE_KEY = 'irl_signup_from_gate_v1';
 /** Drop stale gate intents so a later unrelated signup is not attributed. */
 export const SIGNUP_FROM_GATE_TTL_MS = 2 * 60 * 60 * 1000;

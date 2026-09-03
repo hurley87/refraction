@@ -4,6 +4,7 @@ import { DEFAULT_CLIENT_ORIGIN } from '@/lib/utils/client-origin';
 import {
   captureSignupAttributionFromNavigation,
   clearSignupFromGate,
+  consumeSignupFromGate,
   getSignupAttributionBodyFields,
   markSignupFromGate,
 } from '@/lib/analytics/attribution';
@@ -11,7 +12,6 @@ import {
 describe('signup attribution client persistence', () => {
   beforeEach(() => {
     localStorage.clear();
-    sessionStorage.clear();
   });
 
   it('stores first-touch UTMs and preserves them on later navigation without UTMs', () => {
@@ -100,5 +100,11 @@ describe('signup attribution client persistence', () => {
     const body = getSignupAttributionBodyFields();
     expect(body.signup_attribution?.from_gate).toBeUndefined();
     expect(body.signup_attribution?.guide_slug).toBeUndefined();
+  });
+
+  it('consumeSignupFromGate returns and clears intent', () => {
+    markSignupFromGate('berlin');
+    expect(consumeSignupFromGate()).toMatchObject({ guide_slug: 'berlin' });
+    expect(consumeSignupFromGate()).toBeNull();
   });
 });
